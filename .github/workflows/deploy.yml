@@ -1,0 +1,92 @@
+# GitHub に上げる（main に push する）と自動で実行されます：
+#   組み立て → テスト → サイトを Netlify に公開 → サーバーを Cloudflare に公開
+# テストに1つでも失敗したら、公開はしません（今の公開版はそのまま残ります）。
+name: 公開（テスト→サイト→サーバー）
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 道具をそろえる
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: 組み立て（サイト・サーバー・検索向けページ）
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          node tools/build.mjs
+          python3 worker/build.py
+          node tools/gen-pages.cjs
+
+      - name: テスト
+        run: node tests/run.mjs
+
+      - name: 設定の確認
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+        run: |
+          miss=""
+          [ -z "$NETLIFY_AUTH_TOKEN" ] && miss="$miss NETLIFY_AUTH_TOKEN"
+          [ -z "$NETLIFY_SITE_ID" ] && miss="$miss NETLIFY_SITE_ID"
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$D1_DATABASE_ID" ] && miss="$miss D1_DATABASE_ID"
+          if [ -n "$miss" ]; then echo "::error::GitHub の Settings で次の設定が足りません:$miss（README の手順2を見てください）"; exit 1; fi
+
+      - name: サイトを公開（Netlify）
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: npx --yes netlify-cli@17 deploy --prod --dir=dist --no-build --message "GitHub ${{ github.sha }}"
+
+      - name: サーバーの設定ファイルを作る
+        env:
+          WORKER_NAME: ${{ vars.WORKER_NAME || 'pokechan-tap' }}
+          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME || 'pokechan-community' }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "${WORKER_NAME}"
+          main = "worker/dist/worker.js"
+          compatibility_date = "2025-01-01"
+          # ダッシュボードで設定した値（合言葉などの Secrets）は消さずに残す
+          keep_vars = true
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "${D1_DATABASE_NAME}"
+          database_id = "${D1_DATABASE_ID}"
+          TOML
+
+      - name: サーバーを公開（Cloudflare Workers）
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
