@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ポケチャン攻略Hub｜種族値・タイプ相性・パーティ診断</title>
+<meta name="description" content="ポケモンチャンピオンズの収録ポケモン264匹の種族値、Lv50ステータス計算（能力ポイント対応）、タイプ相性、6匹持ち込み4匹選出のパーティ診断。">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="ポケチャン攻略Hub">
+<meta property="og:description" content="種族値・Lv50計算・タイプ相性・パーティ診断をスマホで素早く。">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="__CSS__">
+</head>
+<body>
+<div class="app">
+  <header class="hdr" id="hdr"><div class="hdr-in" id="hdr-in"></div></header>
+  <main id="view"></main>
+  <footer class="foot">
+    <a href="#/sources" style="color:var(--acc)">データの出典と確認状況</a><br>
+    非公式のファンサイトです。ポケモンおよび関連する名称は各権利者の商標です。<br>
+    データ取得日 2026/10/18。種族値とタイプはPokeTools（PokeAPI由来）の公開データをもとに作成しました。覚える技・特性はPokeAPI（Champions版の習得技リスト）、技の威力・命中・PP・効果はゲーム内の説明から書き写した値をもとにしています（説明文そのものは掲載していません）。メガシンカは未収録です。数値ごとの確認状況は「データの出典と確認状況」をご覧ください。
+  </footer>
+</div>
+
+<div class="fabwrap" id="fabwrap"><div class="fabin"><button class="fab" id="fab" aria-label="相性をワンタップで調べる" title="相性を調べる"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/></svg><span class="fl">相性</span></button></div></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<nav class="tabbar"><div class="tabbar-in" id="nav"></div></nav>
+
+<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="相性を調べる">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-p">
+    <div class="sheet-h"><b id="sheet-t">相性を調べる</b><button class="ibtn" data-close aria-label="閉じる"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/></svg></button></div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+
+<script src="__JS__"></script>
+</body>
+</html>
