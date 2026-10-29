@@ -25,8 +25,8 @@ function detail(no){
     <div><b>${weakCount(p)}</b><span>弱点タイプ</span></div>
   </div>
   <div class="seg" id="seg">
-    ${['種族値','Lv50計算','弱点','対策','技・特性'].map((l,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}">${l}</button>`).join('')}
-    <span class="seg-i" style="width:20%"></span>
+    ${['種族値','解説','実数値','弱点','対策','技・特性'].map((l,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}">${l}</button>`).join('')}
+    <span class="seg-i" style="width:16.666%"></span>
   </div>
 
   <div data-panel="0">
@@ -44,7 +44,9 @@ function detail(no){
     <p class="note">右端は収録${P.length}匹の中での順位です。金色の棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
   </div>
 
-  <div data-panel="1" hidden>${srcLine('formula')}<div class="calc">
+  <div data-panel="1" hidden id="gmpanel"></div>
+
+  <div data-panel="2" hidden>${srcLine('formula')}<div class="calc">
     <div class="spbar"><div><div style="font-size:12px;color:var(--dim)">能力ポイント 残り</div><span class="big" id="sp-left">66</span><span style="color:var(--mute);font-size:12px"> / 66</span></div>
       <button class="btn btn-s" style="flex:none;height:34px;padding:0 15px;font-size:12px" id="sp-reset">リセット</button></div>
     ${SN.map((n,i)=>`<div class="sprow"><em>${n}</em><input type="range" min="0" max="${SP_CAP}" value="0" id="sp${i}" aria-label="${n}に振る能力ポイント"><span class="v" id="spv${i}">0</span><span class="o" id="sto${i}">0</span></div>`).join('')}
@@ -54,13 +56,13 @@ function detail(no){
     <p class="note" style="color:var(--mute)">HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正。個体値31・Lv50で計算しています。</p>
   </div></div>
 
-  <div data-panel="2" hidden>${srcLine('typechart')}${mxBlocks(p.t)}
+  <div data-panel="3" hidden>${srcLine('typechart')}${mxBlocks(p.t)}
     <p class="note">相手のタイプ一致技を受けたときの倍率です。</p></div>
 
-  <div data-panel="3" hidden>
+  <div data-panel="4" hidden>
     <p class="note" style="padding:14px 16px 6px">${p.n}に<b>タイプ一致で抜群</b>を取れるポケモンです（合計種族値の高い順・上位12匹）。</p>
     ${cs.map(q=>rowP(q)).join('')||'<p class="empty">該当するポケモンがいません。</p>'}</div>
-  <div data-panel="4" hidden id="mvpanel"></div>
+  <div data-panel="5" hidden id="mvpanel"></div>
 
   <div class="btns" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a></div>
   ${adSlot('記事下')}`;
@@ -72,9 +74,10 @@ function detail(no){
     seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
     ind.style.transform=`translateX(${i*100}%)`;
     V.querySelectorAll('[data-panel]').forEach(pn=>pn.hidden=+pn.dataset.panel!==i);
-    if(i===4)movesPanel(p);
+    if(i===5)movesPanel(p);
+    if(i===1){const g=document.getElementById('gmpanel');if(g&&!g.innerHTML)g.innerHTML=monGuide(p)}
   });
-  if(MVS.tab4===p.no){seg.querySelector('[data-i="4"]').click()}
+  if(MVS.tab4===p.no){seg.querySelector('[data-i="5"]').click()}
   /* 計算 */
   SN.forEach((_,i)=>document.getElementById('sp'+i).oninput=e=>setSP(i,+e.target.value));
   document.getElementById('sp-reset').onclick=()=>{

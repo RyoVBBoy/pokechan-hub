@@ -60,6 +60,7 @@ ${mxBlocks(p.t)}
 <div class="advs" style="border-top:1px solid var(--line)">${abl.length?abl.map(x=>`<p><span>${x}</span></p>`).join(''):'<p><span>データなし</span></p>'}</div>
 <div class="sec"><h2>覚える技</h2><span style="font-size:12px;color:var(--dim)">全${mvs.length}種類・物理→特殊→変化の順</span></div>
 ${mvs.length?`<table class="tbl mvt"><thead><tr><th>技</th><th>タイプ</th><th>分類</th><th>威力</th><th>命中</th><th>PP</th></tr></thead><tbody>${mvs.map(({id,u,d})=>`<tr><td><b>${d[0]}</b>${d[1]?`<br><small>${d[1]}</small>`:''}</td><td>${chip(u[0])}</td><td>${['物理','特殊','変化'][u[1]]}</td><td>${u[1]<2?(u[2]||'—'):'—'}</td><td>${u[3]||'—'}</td><td>${u[4]||'—'}</td></tr>`).join('')}</tbody></table><p class="note">効果の説明はデータをもとに当サイトがまとめたものです。</p>`:'<p class="note">データがありません。</p>'}
+${monGuide(p,{mon:no=>R+'pokemon/'+no+'/',link:h=>R+h})}
 <div class="sec"><h2>${p.n}の対策になるポケモン</h2></div>
 <p class="note" style="padding-top:0">タイプ一致で弱点を突けるポケモン（合計種族値の高い順）。</p>
 ${cs.map(q=>rowL(q,R)).join('')}

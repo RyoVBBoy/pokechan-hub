@@ -36,7 +36,7 @@ const EN={
 /* 図鑑 */
 'ポケモン名で検索':'Search Pokémon','タイプで絞り込む':'Filter by type','並び替え':'Sort','図鑑番号順':'Pokédex order','すべてのタイプ':'All types',
 /* ポケモンの画面 */
-'最速 素早さ':'Max Speed','弱点タイプ':'Weaknesses','種族値':'Base stats','Lv50計算':'Lv. 50 calc','弱点':'Weaknesses','対策':'Counters','技・特性':'Moves & abilities',
+'最速 素早さ':'Max Speed','弱点タイプ':'Weaknesses','種族値':'Base stats','Lv50計算':'Lv. 50 calc','弱点':'Weaknesses','対策':'Counters','解説':'Guide','実数値':'Lv. 50','技・特性':'Moves & abilities',
 '素早さが高く、先手を取りやすい。物理技で攻める役割に向く。':'Fast and likely to move first. Suited to physical attacking.',
 '種族値から機械的に判定した目安です。実際の役割は技・特性・持ち物で変わります。':'A rough guide judged from base stats. The actual role depends on moves, ability and item.',
 '六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。':'Clockwise from the top: HP, Atk, Def, Spe, SpD, SpA. The outer line is base 150.',

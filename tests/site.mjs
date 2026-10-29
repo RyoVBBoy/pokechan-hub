@@ -18,8 +18,13 @@ for(const r of routes){
 }
 // 図鑑の「技・特性」タブ
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(300);
-await pg.click('#seg [data-i="4"]');await pg.waitForTimeout(200);
+await pg.click('#seg [data-i="5"]');await pg.waitForTimeout(200);
 const mvn=await pg.$$eval('.mvr',x=>x.length);if(mvn<40)fail('覚える技の表示が少なすぎます: '+mvn);
+// 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）
+await pg.click('#seg [data-i="1"]');await pg.waitForTimeout(200);
+if(!(await pg.$('#gmpanel .gset')))fail('解説タブに型の例が出ません');
+const gbad=await pg.evaluate(()=>P.filter(p=>{try{return /undefined|NaN/.test(monGuide(p).replace(/<[^>]+>/g,''))}catch(e){return true}}).map(p=>p.n));
+if(gbad.length)fail('解説が作れないポケモン: '+gbad.slice(0,5).join('・'));
 // ダメージ計算が数字を出す
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(300);
 const big=await pg.$eval('.cres-big',x=>x.textContent).catch(()=>'');if(!/%/.test(big))fail('ダメージ計算の結果が出ません');
