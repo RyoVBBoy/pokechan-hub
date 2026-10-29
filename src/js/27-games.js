@@ -122,7 +122,7 @@ function gamesView(){
   if(target!=='#/'){cur=target;setUrl(target)}
 })();
 
-document.addEventListener('click',e=>{if(e.target.closest('#brand'))gameSheet()});
+document.addEventListener('click',e=>{if(e.target.closest('#brand'))drawerOpen()});
 drawNav();
 /* ---- ゲーム内の結果との照らし合わせ（この端末に保存） ---- */
 const DVER={unit:'n',open:false};

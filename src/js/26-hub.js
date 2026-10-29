@@ -9,10 +9,10 @@ function toolsView(){
     <button class="tpin${pins.includes(t.id)?' on':''}" data-tpin="${t.id}" aria-pressed="${pins.includes(t.id)}" aria-label="${esc(t.t)}をマイツールに${pins.includes(t.id)?'入れない':'入れる'}">${SVG(I.star,20)}</button></div>`;
   V.innerHTML=`${g.id==='pokechamp'?`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
   <p class="note" style="padding-top:4px">選んだ形式（いまは<b>${FMTN()}</b>：${PICK()}匹選出・先発${LEADN()}匹）で、選出・予想・使用率を計算します。</p>`:''}
-  <div class="sec"><h2>マイツール</h2><span style="font-size:12px;color:var(--dim)">☆を押すと追加</span></div>
-  ${mine.length?`<div class="tgrid">${mine.map(toolTile).join('')}</div>`:'<p class="note" style="padding:0 16px 4px">よく使うツールの☆を押すと、ここと<b>ホームの一番上</b>に並びます。</p>'}
-  ${recent.length?`<div class="sec"><h2>最近使った</h2></div><div class="tgrid">${recent.map(toolTile).join('')}</div>`:''}
-  ${secs.map(sc=>`<div class="sec"><h2>${esc(sc)}</h2></div>${all.filter(t=>t.sec===sc).map(row).join('')}`).join('')}`;
+  ${g.id==='pokechamp'?toolsTopHTML():''}
+  ${secs.map(sc=>`<div class="sec"><h2>${esc(sc)}</h2></div>${all.filter(t=>t.sec===sc).map(row).join('')}`).join('')}
+  ${g.id==='pokechamp'?toolsBottomHTML():''}`;
+  if(g.id==='pokechamp')toolsTopBind(V);
   if(g.id==='pokechamp')bindFmt(V,toolsView);
   V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrollY;toolsView();scrollTo(0,y)});
 }

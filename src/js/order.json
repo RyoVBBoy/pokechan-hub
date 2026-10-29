@@ -35,6 +35,7 @@
  "31-desktop.js",
  "32-timeline.js",
  "33-sync.js",
+ "34-drawer.js",
  "97-dict-en.js",
  "98-i18n.js",
  "99-start.js"

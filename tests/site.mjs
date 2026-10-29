@@ -31,8 +31,16 @@ if(chk[1]<200||chk[2]<200||chk[3]<400)fail('データ件数が少なすぎます
 await pg.evaluate(()=>{location.hash='#/tools'});await pg.waitForTimeout(300);
 await pg.click('[data-tpin="cmp"]');await pg.waitForTimeout(200);
 if(!(await pg.$('.tgrid .ttile[href="#/cmp"]')))fail('マイツールに入りません');
-await pg.evaluate(()=>{location.hash='#/'});await pg.waitForTimeout(300);
-if(await pg.$eval('.tgrid .ttile',a=>a.getAttribute('href')).catch(()=>'')!=='#/cmp')fail('ホームの「すぐ使う」の先頭にマイツールが出ません');
+await pg.evaluate(()=>{location.hash='#/tools'});await pg.waitForTimeout(300);
+if(await pg.$eval('.tgrid .ttile',a=>a.getAttribute('href')).catch(()=>'')!=='#/cmp')fail('ツールの「すぐ使う」の先頭にマイツールが出ません');
+// ホームは投稿（みんな／フォロー中）、左上のマークでメニューが開く
+await pg.evaluate(()=>{location.hash='#/'});await pg.waitForTimeout(400);
+if(!(await pg.$('#tl-seg')))fail('ホームに投稿のタブが出ません');
+await pg.click('#brand');await pg.waitForTimeout(450);
+const drw=await pg.evaluate(()=>{const p=document.querySelector('.dr-p');return[DR.open,p&&p.getBoundingClientRect().left,document.querySelectorAll('.dr-i').length]});
+if(!(drw[0]&&drw[1]>-2&&drw[2]>=6))fail('メニューが開きません: '+drw.join());
+await pg.click('.dr-bg',{position:{x:370,y:400}});await pg.waitForTimeout(450);
+if(await pg.evaluate(()=>DR.open))fail('メニューが閉じません');
 if(!(await pg.$eval('.tb[data-k="search"] span',s=>s.offsetWidth>10).catch(()=>false)))fail('スマホの下のメニューに名前が出ません');
 await pg.evaluate(()=>{tTogglePin('cmp')});
 // 育成画面の PiP：欄が出て、この1匹／パーティ全員のカードが作れる。「小窓」という言い方が残っていない

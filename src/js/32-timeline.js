@@ -90,23 +90,36 @@ function twComposer(prof,onDone){
         try{await authFetch('/api/notes',{body:t.value});t.value='';upd();toast('投稿しました');onDone()}catch(err){toast(err.message);upd()}};
     }};
 }
-let tlTab='all';
-async function tlView(a){
+let tlTab='all',TLP=null;
+/* ホーム（#/）とタイムライン（#/tl）は同じ画面。左「みんな」・右「フォロー中」を、押すか左右にスワイプして切りかえる */
+async function tlView(a,home){
   if(a==='following'||a==='all')tlTab=a;
-  setHeader('タイムライン','#/community');
+  const myKey=keyOf(cur);
+  if(home)setHeader(L('ホーム','Home'));else setHeader('タイムライン','#/community');
   V.innerHTML='<p class="empty">読み込み中…</p>';
-  const prof=await twAuth();if(keyOf(cur)!=='tl')return;
+  const prof=await twAuth();if(keyOf(cur)!==myKey)return;TLP=prof;
   if(tlTab==='following'&&!prof)tlTab='all';
-  const tabs=[['all','みんな'],['following','フォロー中']],ti=tabs.findIndex(x=>x[0]===tlTab);
-  const comp=prof?twComposer(prof,()=>{if(tlTab!=='following')tlTab='all';twFeed(document.getElementById('tl-list'),'/api/tl?tab='+tlTab,'')}):null;
-  V.innerHTML=`<div class="seg" id="tl-seg">${tabs.map(([k,l],i)=>`<button role="tab" aria-selected="${i===ti}" data-tab="${k}">${l}</button>`).join('')}<span class="seg-i" style="width:50%;transform:translateX(${ti*100}%)"></span></div>
+  const tabs=[['all','みんな'],['following','フォロー中']];
+  const comp=prof?twComposer(prof,()=>tlShow(tlTab,true)):null;
+  V.innerHTML=`<div class="seg" id="tl-seg">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}">${l}</button>`).join('')}<span class="seg-i" style="width:50%"></span></div>
     ${comp?comp.html:`<div class="bnote" style="margin:12px 16px">${AUTH.user?'投稿するには、<a href="#/account" style="color:var(--acc)">プロフィールを作って</a>ください。':'<a href="#/account" style="color:var(--acc)">ログイン</a>すると、投稿・いいね・フォローができます。見るだけならログインは不要です。'}</div>`}
-    <div id="tl-list"></div>`;
-  V.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{
-    if(b.dataset.tab==='following'&&!prof){toast('フォロー中を見るにはログインしてください');return}
-    tlTab=b.dataset.tab;setUrl('#/tl/'+tlTab);cur='#/tl/'+tlTab;tlView(tlTab)});
+    <div id="tl-list" class="tl-list"></div>`;
+  V.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tlShow(b.dataset.tab));
   if(comp)comp.bind();
-  twFeed(document.getElementById('tl-list'),'/api/tl?tab='+tlTab,tlTab==='following'?'フォローしている人の投稿がここに出ます。<br>「みんな」から気になるトレーナーを探してフォローしてみましょう。':'まだ投稿がありません。最初の投稿をしてみましょう。');
+  tlShow(tlTab,true);
+}
+/* タブを切りかえる（一覧だけ入れかえて、横にすべらせる） */
+function tlShow(tab,first){
+  if(tab==='following'&&!TLP){toast('フォロー中を見るにはログインしてください');return false}
+  const dir=tab==='following'?1:-1,changed=tab!==tlTab;tlTab=tab;
+  const ti=tab==='following'?1:0;
+  document.querySelectorAll('#tl-seg [data-tab]').forEach((b,i)=>b.setAttribute('aria-selected',i===ti));
+  const ind=document.querySelector('#tl-seg .seg-i');if(ind)ind.style.transform=`translateX(${ti*100}%)`;
+  if(keyOf(cur)==='tl'){const h='#/tl/'+tab;if(cur!==h){cur=h;setUrl(h)}}
+  const el=document.getElementById('tl-list');if(!el)return false;
+  if(changed&&!first&&!reduceMotion){el.animate([{transform:`translateX(${dir*40}px)`,opacity:.2},{transform:'none',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})}
+  twFeed(el,'/api/tl?tab='+tab,tab==='following'?'フォローしている人の投稿がここに出ます。<br>「みんな」から気になるトレーナーを探してフォローしてみましょう。':'まだ投稿がありません。最初の投稿をしてみましょう。');
+  return true;
 }
 async function userView(h){
   setHeader('プロフィール','#/tl');
