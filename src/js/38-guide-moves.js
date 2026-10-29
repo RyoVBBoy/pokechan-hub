@@ -58,6 +58,46 @@ function learnAbilitiesHTML(){
   +(()=>{const used=new Set(ABILITY_ROLES.flatMap(r=>r[3])),rest=Object.keys(ABDS).filter(k=>!used.has(k)&&ABN[k]).sort((a,b)=>ABN[a].localeCompare(ABN[b],'ja'));
     return rest.length?`<div class="sec"><h2>そのほかの特性</h2><span style="font-size:12px;color:var(--dim)">${rest.length}</span></div><div class="pills gchips">${rest.map(abChip).join('')}</div>`:''})();
 }
+
+/* ---- 技ごとの使いどころ：その技のデータ（優先度・命中・追加効果・反動など）だけから作る（グループの説明は使わない） ---- */
+const AIL_TIP={brn:'やけどは毎ターン少しずつ削るうえ、物理技のダメージが半分になるので、物理アタッカーを止めるのに向く。',
+  par:'まひは素早さが半分になり、ときどき動けなくなるので、速い相手を遅くしたいときに向く。',
+  psn:'どくは毎ターン少しずつHPを削る。',tox:'もうどくは毎ターンのダメージが増えていくので、長く居座る受け役を削るのに向く。',
+  slp:'ねむりは数ターン行動できなくなるので、その間に積む・交代するなど大きく動ける。',frz:'こおりは解けるまで行動できなくなる。',
+  cnf:'こんらんは、数ターンの間、自分を攻撃してしまうことがある。運に左右されるので、あてにしすぎないこと。',tri:'どの状態異常になるかは運しだい。'};
+/* グループの札に添える一言（グループのどの技にも当てはまることだけ） */
+const ROLE_TIP={sensei:'優先度が高く、素早さに関係なく先に出せる',setup:'自分の能力を上げる',heal:'自分のHPを回復・確保する',protect:'相手の攻撃から身を守る・耐える',
+  pivot:'使ったあと味方と交代できる',speed:'行動の順番を変える',field:'天気やフィールドを変える',screen:'味方が受けるダメージを減らす',
+  status:'相手を状態異常やこんらんにする',disrupt:'相手のやりたいことを邪魔する',hazard:'交代で出てくる相手へのしかけ、またはその取り除き',
+  selfdrop:'使うと自分の能力が下がる',recoil:'自分のHPが減ることがある',multi:'1回で何回も攻撃する',spread:'ダブルで複数に当たる',
+  support:'ダブルで味方を助ける',fixed:'相手の能力に関係ない量のダメージを与える',sacrifice:'自分が倒れることと引きかえの効果がある'};
+function moveTips(id){
+  const i=mvInfo(id),e=(typeof MVE!=='undefined'&&MVE[id])||{},d=MD[id][1]||'',fl=MD[id][2]||'',out=[];
+  const stl=a=>a.map(([k,v])=>`${STN[k]||k}${Math.abs(v)>=2?'を大きく':'を'}`).join('・');
+  if(i.pri>0)out.push(i.cls===2?`優先度が+${i.pri}なので、素早さに関係なく、たいていは相手より先に出せる。`:`優先度が+${i.pri}なので、素早さで負けている相手にも先に攻撃できる。威力より「先に動けること」が強みなので、削れた相手へのとどめや、先に倒されそうな場面で使う。`);
+  if(i.pri<0)out.push(`優先度が${i.pri}なので、ほとんどの場合あとから動く。相手の行動を受けてから効果が出ることを前提に使う。`);
+  if(e.s){const up=e.s.filter(x=>x[1]>0),dn=e.s.filter(x=>x[1]<0);
+    if(up.length&&i.cls===2)out.push(`自分の${stl(up)}上げる技。上げたあとの攻撃や耐久で勝負を決めるので、相手に削られにくい場面や、相手が交代してきたときに使う。`);
+    else if(up.length&&up[0][2]>=100)out.push(`攻撃しながら自分の${stl(up)}上げられるので、使うほど有利になっていく。`);
+    else if(up.length)out.push(`ときどき自分の${up.map(x=>STN[x[0]]).join('・')}が上がる（運しだい）。`);
+    if(dn.length)out.push(`使うと自分の${dn.map(x=>STN[x[0]]).join('・')}が下がる。威力の高さを活かして一撃で倒したい場面で使い、続けて使うと弱くなるので、一度交代して元に戻すとよい。`)}
+  if(e.t){const sure=e.t.filter(x=>x[2]>=100),maybe=e.t.filter(x=>x[2]<100);
+    if(sure.length)out.push(`相手の${sure.map(x=>STN[x[0]]).join('・')}を確実に下げる。${sure.some(x=>x[0]==='spe')?'素早さを下げれば、次のターンから味方が先に動きやすくなる。':'味方の攻撃を通しやすく、または相手の攻撃を受けやすくなる。'}`);
+    if(maybe.length)out.push(`${maybe.map(x=>`${x[2]}%の確率で`).join('')}相手の${maybe.map(x=>STN[x[0]]).join('・')}が下がることがある（おまけの効果）。`)}
+  if(e.a){const [k,c]=e.a;out.push(c>=100?`相手を${AILN[k]||k}にする技。${AIL_TIP[k]||''}すでに状態異常の相手や、タイプ・特性で効かない相手もいる点に注意。`:`${c}%の確率で相手を${AILN[k]||k}にする（おまけの効果なので、あてにしすぎない）。`)}
+  if(e.f)out.push(e.f>=100?'相手をひるませて、そのターンの行動を止められる。':`${e.f}%の確率で相手をひるませる。ひるみは相手より先に当てたときだけ起きるので、速いポケモンで使うと活きる。`);
+  if(e.rc)out.push(`与えたダメージの${e.rc}%を反動で受ける。威力は高いが、何度も使うと自分のHPが減っていくので、HPが多いうちに使う。`);
+  if(e.dr)out.push(`与えたダメージの${e.dr}%だけ回復できるので、攻撃しながら長く戦える。`);
+  if(e.cr)out.push('急所に当たりやすい。急所に当たると、相手の防御が上がっていても、壁があっても大きなダメージを与えられる。');
+  if(e.cx)out.push('外すと自分がダメージを受ける。命中を確かめてから使う。');
+  if(/[0-9０-９]〜[0-9０-９]回|回連続/.test(d))out.push('連続で攻撃するので、きあいのタスキ・ばけのかわ・みがわりを1回の行動で崩せる。');
+  if(/ダブルでは/.test(d))out.push('ダブルでは複数に当たる。そのぶん1匹あたりの威力は下がる（0.75倍）が、まとめて削れる。味方にも当たる技なら、味方を浮かせるかまもると組み合わせる。');
+  if(i.acc&&i.acc<90&&i.cls!==2)out.push(`命中が${i.acc}%なので、外れることも考えて使う。大事な場面では、命中の高い技と比べて選ぶ。`);
+  if(fl.includes('c')&&i.cls!==2)out.push('接触技なので、さめはだ・せいでんき・ほのおのからだなど、触れると効果のある特性を持つ相手には注意。');
+  if(i.pow>=120&&!e.rc&&!(e.s&&e.s.some(x=>x[1]<0))&&!(i.acc&&i.acc<90))out.push(`威力${i.pow}と高く、目立った弱点もないので、主力の一撃になる。`);
+  if(i.cls!==2&&i.pow&&i.pow<=60&&!(i.pri>0)&&!out.length)out.push('威力は控えめなので、追加の効果や、タイプの相性を活かして使う。');
+  return out;
+}
 function moveView(id){
   id=+id;const i=mvInfo(id);if(!MD[id]||!i){V.innerHTML='<p class="empty">技が見つかりません。</p>';return}
   setHeader(esc(mName(id)),'#/learn/move');
@@ -66,20 +106,25 @@ function moveView(id){
   V.innerHTML=`<div class="gdoc"><span class="atag">技</span><h2>${esc(mName(id))}</h2>
     <div class="chips" style="margin:6px 0 4px">${chip(i.t)}<span class="atag">${cls}</span>${i.pow?`<span class="atag">威力 ${i.pow}</span>`:''}${i.acc?`<span class="atag">命中 ${i.acc}</span>`:'<span class="atag">必ず当たる</span>'}${i.pp?`<span class="atag">PP ${i.pp}</span>`:''}${i.pri?`<span class="atag">優先度 ${i.pri>0?'+':''}${i.pri}</span>`:''}</div>
     <h3>効果</h3><p>${esc(MD[id][1])}</p>
-    ${rs.length?`<h3>使いどころ</h3>${rs.map(r=>`<p style="margin-bottom:10px"><b>${esc(r[1])}</b>：${esc(r[2])}</p>`).join('')}`:''}</div>
+    ${(()=>{const tp=moveTips(id);return tp.length?`<h3>使いどころ</h3><ul class="gtips">${tp.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''})()}
+    ${rs.length?`<h3>分類</h3><div class="gtags">${rs.map(r=>`<a href="#/learn/move" class="gtag"><b>${esc(r[1])}</b><small>${esc(ROLE_TIP[r[0]]||'')}</small></a>`).join('')}</div>`:''}</div>
     <div class="sec"><h2>覚えるポケモン</h2><span style="font-size:12px;color:var(--dim)">${ls.length}匹（攻撃・特攻の高い順）</span></div>
     ${ls.slice(0,10).map(p=>rowP(p)).join('')||'<p class="empty" style="padding:16px">収録ポケモンでは覚えません。</p>'}
     ${ls.length>10?`<p class="note">ほか${ls.length-10}匹が覚えます。</p>`:''}
     <div class="btns"><a class="btn btn-s" href="#/calc">ダメージ計算で試す</a></div>
     <p class="note" style="color:var(--mute)">技の効果と使いどころは当サイトが書いた説明です（ゲーム内の文章ではありません）。</p>`;
 }
+
+const AB_ROLE_TIP={power:'技の威力や攻撃を上げる',field:'場に出ると天気やフィールドが変わる',weatherboost:'特定の天気・フィールドで強くなる',absorb:'特定の技を受けない・受けると得をする',
+  bulk:'受けるダメージを減らす・倒されにくくする',weaken:'相手の力や行動を弱める',speed:'先に動ける・素早さが上がる',pivot:'交代や引っ込めることで効果がある',
+  contact:'触れた相手に効果がある',statusab:'状態異常に関係する',stat:'能力の変化に関係する',special:'使い方が独特'};
 function abilityView(k){
   if(!ABN[k]&&!ABDS[k]){V.innerHTML='<p class="empty">特性が見つかりません。</p>';return}
   setHeader(esc(ABN[k]||k),'#/learn/ability');
   const rs=abRoles(k),hs=abHolders(k).sort((a,b)=>b.bst-a.bst);
   V.innerHTML=`<div class="gdoc"><span class="atag">特性</span><h2>${esc(ABN[k]||k)}</h2>
     <h3>効果</h3><p>${esc(ABDS[k]||'（説明は準備中です）')}</p>
-    ${rs.length?`<h3>使い方</h3>${rs.map(r=>`<p style="margin-bottom:10px"><b>${esc(r[1])}</b>：${esc(r[2])}</p>`).join('')}`:''}
+    ${rs.length?`<h3>分類</h3><div class="gtags">${rs.map(r=>`<a href="#/learn/ability" class="gtag"><b>${esc(r[1])}</b><small>${esc(AB_ROLE_TIP[r[0]]||'')}</small></a>`).join('')}</div>`:''}
     <p class="note" style="padding:8px 0 0">${typeof ABIMPL!=='undefined'&&ABIMPL.has(k)?'当サイトのダメージ計算で効果を扱っています。':'当サイトのダメージ計算では、この特性の効果は計算に入っていません。'}</p></div>
     <div class="sec"><h2>持つポケモン</h2><span style="font-size:12px;color:var(--dim)">${hs.length}匹</span></div>
     ${hs.slice(0,12).map(p=>rowP(p)).join('')||'<p class="empty" style="padding:16px">収録ポケモンでは持ちません。</p>'}

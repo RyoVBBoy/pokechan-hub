@@ -980,3 +980,7 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .gdet summary{display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer;list-style:none;font-size:13px;color:var(--dim)}
 .gdet summary::-webkit-details-marker{display:none}
 .gdet .gchips{padding:0 0 10px}
+.gtips{margin:4px 0 0;padding-left:20px;font-size:15px;line-height:1.8}.gtips li{margin-bottom:6px}
+.gtags{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.gtag{display:block;padding:8px 12px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg)}
+.gtag b{display:block;font-size:14px}.gtag small{display:block;font-size:12.5px;color:var(--dim)}

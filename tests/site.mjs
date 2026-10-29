@@ -87,6 +87,9 @@ await pg.waitForTimeout(1200);
 const adv=await pg.evaluate(()=>[...document.querySelectorAll('.adv b')].map(e=>e.textContent));
 if(!(adv.length>=2&&adv.some(t=>/ペリッパー/.test(t))))fail('選出のアドバイス: '+adv.join(' / '));
 await pg.evaluate(()=>{opp6.length=0;saveOpp6();team.length=0;saveTeam()});
+// 技のページの使いどころは、その技のデータから作る（グループの説明と食い違わない）
+const mt=await pg.evaluate(()=>{const g=k=>moveTips(mvKeyId[k]).join(' ');return[g('confuseray'),g('protect'),g('closecombat'),g('willowisp')]});
+if(/やけど|まひ|ねむり/.test(mt[0])||/攻撃できる/.test(mt[1])||!/防御・特防が下がる/.test(mt[2])||!/やけど/.test(mt[3]))fail('技の使いどころ: '+mt.join(' ｜ '));
 // 明るい画面：端末がライトモードなら明るい色、ダークモードなら暗い色
 await pg.emulateMedia({colorScheme:'light'});await pg.waitForTimeout(200);
 const lt=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
