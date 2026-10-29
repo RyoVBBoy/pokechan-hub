@@ -5,6 +5,8 @@
    Firebase の部品は、アカウント画面を開いたときにだけ読み込む（ほかの画面は重くならない）。 */
 const PCF=(window.PC_CONFIG&&window.PC_CONFIG.firebase&&window.PC_CONFIG.firebase.apiKey)?window.PC_CONFIG.firebase:null;
 const FB_VER='10.14.1';
+const AUTH_MOBILE=/iP(hone|ad|od)|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+const AUTH_SAMEORIGIN=AUTH_MOBILE&&location.hostname==='pokechan-hub.pages.dev';
 const AUTH={fb:null,user:null,profile:undefined,ready:false,wait:null};
 async function fbLoad(){
   if(AUTH.fb)return AUTH.fb;
@@ -12,7 +14,11 @@ async function fbLoad(){
   let app,au;
   try{app=await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);au=await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth.js`)}
   catch(e){throw new Error('ログインの準備ができませんでした。電波のよいところで、ページを読み込み直してください（広告ブロックなどの機能が原因のこともあります）。')}
-  const a=app.initializeApp(PCF);const auth=au.getAuth(a);auth.languageCode='ja';
+  /* スマホでは、ログインの窓口をこのサイトの中（/__/auth/…、functions/__ で Firebase に取り次ぐ）にして、画面を切りかえる方式でログインする。
+     スマホのブラウザは、ログイン画面とサイトのアドレスが違うと失敗するため。パソコンは今まで通り（別の窓で開く） */
+  const cfg={...PCF};if(AUTH_SAMEORIGIN)cfg.authDomain=location.host;
+  const a=app.initializeApp(cfg);const auth=au.getAuth(a);auth.languageCode='ja';
+  AUTH.redir=AUTH_SAMEORIGIN&&au.getRedirectResult?au.getRedirectResult(auth).catch(e=>{AUTH.redirectErr=e}):Promise.resolve();
   AUTH.fb={au,auth};
   AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;if(u){try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
   return AUTH.fb;
@@ -59,7 +65,7 @@ async function accountView(){
   setHeader('アカウント','#/community');
   if(!PCF){V.innerHTML=`<p class="empty" style="padding:40px 24px">ログイン機能は準備中です。もうしばらくお待ちください。</p>`;return}
   V.innerHTML='<p class="empty">読み込み中…</p>';
-  try{await fbLoad();if(new URLSearchParams(location.search).get('oobCode'))await finishEmailLink();await AUTH.wait}catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(authErr(e))}</div>`;return}
+  try{await fbLoad();if(new URLSearchParams(location.search).get('oobCode'))await finishEmailLink();await AUTH.wait;await AUTH.redir}catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(authErr(e))}</div>`;return}
   if(keyOf(cur)!=='account')return;
   const {au,auth}=AUTH.fb;
   /* ログインしていない */
@@ -75,7 +81,8 @@ async function accountView(){
     <div id="ac-msg"></div>
     <p class="note" style="color:var(--mute)">ログインすると、<a href="#/terms" style="color:var(--acc)">利用規約</a>と<a href="#/privacy" style="color:var(--acc)">プライバシーポリシー</a>に同意したことになります。13歳未満の方は利用できません。</p></div>`;
     const msg=t=>{document.getElementById('ac-msg').innerHTML=`<div class="bnote" style="margin:8px 16px">${esc(t)}</div>`};
-    const pop=async prov=>{try{await au.signInWithPopup(auth,prov)}catch(e){if(e.code==='auth/popup-blocked'){await au.signInWithRedirect(auth,prov)}else msg(authErr(e))}};
+    if(AUTH.redirectErr){msg(authErr(AUTH.redirectErr));AUTH.redirectErr=null}
+    const pop=async prov=>{try{if(AUTH_SAMEORIGIN){await au.signInWithRedirect(auth,prov);return}await au.signInWithPopup(auth,prov)}catch(e){if(e.code==='auth/popup-blocked'){await au.signInWithRedirect(auth,prov)}else msg(authErr(e))}};
     document.getElementById('ac-google').onclick=()=>pop(new au.GoogleAuthProvider());
     const ap=document.getElementById('ac-apple');if(ap)ap.onclick=()=>{const p=new au.OAuthProvider('apple.com');p.addScope('email');p.addScope('name');pop(p)};
     document.getElementById('ac-send').onclick=async()=>{

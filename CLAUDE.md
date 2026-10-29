@@ -46,6 +46,7 @@ node tests/run.mjs
 - 公開は1回ごとに数分かかる。細かい修正は、まとめて push する。
 - サーバー：Cloudflare Worker `pokechan-tap`（URL に学籍番号のようなサブドメイン `22311328rn` が入っている → 変更したい、未対応）。D1（binding `DB`）に threads/posts/lobby/reports/users、タイムライン用に notes/follows/likes/notifs/user_state（表は初回アクセスで自動作成）。
 - 合言葉（APP_TOKEN・ADMIN_TOKEN・GEMINI_API_KEY 等）は **Cloudflare 側にだけ**置く。GitHub やチャットに書かない。ADMIN_TOKEN は APP_TOKEN と別・12文字以上。
+- スマホのログイン：スマホ（とホーム画面に追加したとき）は、ログインの窓口をサイトと同じアドレス（`/__/auth/…`）にして画面切りかえ方式（signInWithRedirect）でログインする。`functions/__/[[path]].js`（Cloudflare Pages Functions）が pokechan-hub.firebaseapp.com に取り次ぐ。Google Cloud の OAuth クライアントの「承認済みのリダイレクト URI」に `https://pokechan-hub.pages.dev/__/auth/handler` が必要。パソコンは別の窓（popup）のまま。
 - ログイン：Firebase Authentication（プロジェクト `pokechan-hub`）。Google・メールリンクを有効化済み。Apple は Apple Developer 登録後。サーバーは RS256 の IDトークンを Google の公開鍵で検証（`worker/src/auth.js`）。
 - iPhone アプリは別リポジトリ `RyoVBBoy/pokechan-ios`（XcodeGen + GitHub Actions → TestFlight。Apple の承認待ち）。
 
