@@ -12,6 +12,7 @@
 ## 仕組み
 - `src/`：サイト本体。`src/js/` は `order.json` の順につなげて1本の JS にする（古典的な script。トップレベルの const は全ファイル共通の名前空間）。最後の `99-start.js` が `route()` を呼ぶので、新しいファイルは `99-start.js` より前に追加する。
 - `src/styles.css`、`src/index.html`（`__JS__`/`__CSS__` を build で置換）。
+- PC表示：700px以上で下のタブ→左のメニュー（本文600px）、1280px以上で右に「よく使う機能」（`src/styles.css` の最後・`31-desktop.js`・`index.html` の `.pc-*`/`.pcside`）。スマホ（699px以下）の見た目は変えない。
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
 - `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。

@@ -714,3 +714,69 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
 
 /* アカウント */
 .ac-card{display:flex;align-items:center;gap:12px;padding:18px 16px 6px}.ac-card b{display:block;font-size:20px}.ac-card small{color:var(--dim);font-size:14px}.ac-av{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:#fff;font-size:24px;font-weight:800;flex:none}.ac-agree{display:flex!important;flex-direction:row!important;gap:8px;align-items:flex-start;font-size:14px}.ac-agree input{width:auto!important;margin-top:3px}.legal h3{font-size:16px;margin:18px 0 6px}.legal ol,.legal ul{padding-left:20px;line-height:1.8}.legal a{color:var(--acc)}
+
+/* =========================================================
+   PC・タブレット（広い画面）
+   700px以上：下のタブ → 左のメニュー（アイコンだけ）、本文は600px、右下の丸いボタン → 左のメニューへ
+   1280px以上：左のメニューに文字も出し、右に「よく使う機能」
+   ========================================================= */
+.pc-brand,.pc-post,.pcside{display:none}
+@media(min-width:700px){
+  :root{--navw:88px;--mainw:600px;--sidew:0px;--gl:max(0px,calc(50% - (var(--navw) + var(--mainw) + var(--sidew))/2))}
+  .app{max-width:var(--mainw);margin:0 0 0 calc(var(--gl) + var(--navw));padding-bottom:40px;
+    border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  .hdr.hide{transform:none}
+  /* 左のメニュー */
+  .tabbar{top:0;bottom:0;right:auto;left:var(--gl);width:var(--navw);padding:6px 12px 20px;border-top:0;
+    background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none;display:flex;flex-direction:column;align-items:center;overflow-y:auto}
+  .pc-brand{display:flex;align-items:center;gap:12px;padding:10px;border-radius:999px;margin-bottom:4px}
+  .pc-brand b{display:none;font-size:17px;font-weight:800;white-space:nowrap}
+  .pc-brand:hover{background:var(--hov)}
+  .tabbar-in{flex-direction:column;height:auto;max-width:none;margin:0;gap:4px;align-items:center}
+  .tb{flex:none;flex-direction:row;justify-content:flex-start;gap:20px;padding:12px;border-radius:999px;color:var(--fg)}
+  .tb:hover{background:rgba(231,233,234,.1)}
+  .tb[aria-current=page]::after{display:none}
+  .tb[aria-current=page] span{font-weight:800}
+  /* 右下の丸いボタンは、左のメニューの「相性を調べる」に置きかえる。通知は本文の列の下に */
+  .fabwrap{display:none}
+  .pc-post{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;width:52px;height:52px;flex:none;border:0;border-radius:999px;
+    background:var(--acc);color:#fff;font:800 17px var(--ff);cursor:pointer;transition:background .15s}
+  .pc-post svg{width:22px;height:22px}
+  .pc-post span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .pc-post:hover{background:var(--acc2)}
+  .toast{left:calc(var(--gl) + var(--navw) + var(--mainw)/2);bottom:32px}
+  /* 下から出る画面 → 真ん中に出る画面 */
+  .sheet,.psheet{align-items:center;padding:5vh 16px}
+  .sheet-p{max-width:600px;height:auto;max-height:90vh;min-height:min(560px,90vh);border-radius:16px;border-bottom:1px solid var(--line)}
+  .sheet-h::before{display:none}
+  .sheet-h{cursor:default}
+  .psheet-p{max-width:440px;border-radius:16px;padding-bottom:16px;transform:translateY(24px);opacity:0;transition:transform .18s ease-out,opacity .18s}
+  .psheet.on .psheet-p{transform:none;opacity:1}
+}
+@media(min-width:1280px){
+  :root{--navw:260px;--sidew:350px}
+  .tabbar{align-items:stretch;padding-left:12px;padding-right:24px}
+  .pc-brand{align-self:flex-start}
+  .pc-brand b{display:inline}
+  .tabbar-in{align-items:flex-start}
+  .tb{padding:12px 24px 12px 12px}
+  .tb span{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:20px;font-weight:500;letter-spacing:.01em}
+  .pc-post{width:100%}
+  .pc-post svg{width:20px;height:20px}
+  .pc-post span{position:static;width:auto;height:auto;overflow:visible;clip:auto}
+  /* 右の列 */
+  .pcside{display:block;position:fixed;top:0;bottom:0;left:calc(var(--gl) + var(--navw) + var(--mainw));width:var(--sidew);
+    padding:8px 0 24px 28px;overflow-y:auto;z-index:30}
+  .pcs-search{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 18px;margin:4px 0 14px;border:1px solid transparent;
+    border-radius:999px;background:var(--elev2);color:var(--dim);font:400 15px var(--ff);cursor:pointer;text-align:left}
+  .pcs-search svg{width:18px;height:18px;flex:none}
+  .pcs-search:hover{border-color:var(--acc);color:var(--fg)}
+  .pcs-box{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .pcs-box h2{margin:0;padding:12px 16px;font-size:20px;font-weight:800}
+  .pcs-box a{display:block;padding:12px 16px;transition:background .15s}
+  .pcs-box a:hover{background:var(--hov)}
+  .pcs-box b{display:block;font-size:15px;font-weight:700}
+  .pcs-box small{display:block;font-size:13px;color:var(--dim)}
+  .pcs-foot{margin:14px 4px 0;font-size:13px;line-height:1.8;color:var(--dim)}
+  .pcs-foot a:hover{text-decoration:underline}
+}

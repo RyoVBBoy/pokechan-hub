@@ -28,7 +28,19 @@
 <div class="fabwrap" id="fabwrap"><div class="fabin"><button class="fab" id="fab" aria-label="相性をワンタップで調べる" title="相性を調べる"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/></svg><span class="fl">相性</span></button></div></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<nav class="tabbar"><div class="tabbar-in" id="nav"></div></nav>
+<nav class="tabbar"><a class="pc-brand" href="#/" aria-label="ホーム"><span class="mark">PC</span><b>ポケチャン攻略Hub</b></a><div class="tabbar-in" id="nav"></div><button class="pc-post" id="pc-post" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/></svg><span>相性を調べる</span></button></nav>
+<aside class="pcside" aria-label="よく使う機能">
+  <button class="pcs-search" id="pcs-search" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>ポケモン名で相性を調べる</button>
+  <div class="pcs-box"><h2>よく使う機能</h2>
+    <a href="#/calc"><b>ダメージ計算</b><small>乱数16段階・確定数</small></a>
+    <a href="#/assist"><b>選出アシスト</b><small>相手の6匹から選出を考える</small></a>
+    <a href="#/types"><b>タイプ相性</b><small>18タイプの一覧</small></a>
+    <a href="#/meta"><b>流行のポケモンとパーティ</b><small>いまのルールの傾向</small></a>
+    <a href="#/lobby"><b>対戦募集</b><small>いっしょに遊ぶ相手を探す</small></a>
+    <a href="#/bbs"><b>掲示板</b><small>雑談・構築相談・質問</small></a>
+  </div>
+  <p class="pcs-foot"><a href="#/terms">利用規約</a> · <a href="#/privacy">プライバシーポリシー</a> · <a href="#/sources">データの出典</a><br>非公式のファンサイトです。</p>
+</aside>
 
 <div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="相性を調べる">
   <div class="sheet-bg" data-close></div>

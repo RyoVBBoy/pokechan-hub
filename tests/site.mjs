@@ -26,6 +26,22 @@ const big=await pg.$eval('.cres-big',x=>x.textContent).catch(()=>'');if(!/%/.tes
 const chk=await pg.evaluate(()=>{const a=mkMon(byNo[445],'me',{item:'garchompitez',moves:[mvObj(89)],ab:'rough-skin'});return[a.p.n,P.length,Object.keys(LSD).length,Object.keys(MD).length]});
 if(chk[0]!=='メガガブリアスZ')fail('メガシンカの計算: '+chk[0]);
 if(chk[1]<200||chk[2]<200||chk[3]<400)fail('データ件数が少なすぎます: '+chk.join(','));
+// PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
+for(const [w,side] of [[1440,true],[1024,false]]){
+  await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);
+  const L=await pg.evaluate(()=>{const r=e=>document.querySelector(e).getBoundingClientRect();
+    return{nav:r('.tabbar'),app:r('.app'),side:getComputedStyle(document.querySelector('.pcside')).display,
+      over:document.documentElement.scrollWidth>innerWidth,fab:getComputedStyle(document.getElementById('fabwrap')).display}});
+  if(!(L.nav.height>500&&L.nav.right<=L.app.left+1))fail(`PC(${w}px)：左のメニューの位置が正しくありません`);
+  if(L.app.width>601||L.app.width<599)fail(`PC(${w}px)：本文の幅が600pxではありません: ${L.app.width}`);
+  if((L.side!=='none')!==side)fail(`PC(${w}px)：右の列の表示が正しくありません`);
+  if(L.over)fail(`PC(${w}px)：横にはみ出しています`);
+  if(L.fab!=='none')fail(`PC(${w}px)：右下の丸いボタンが残っています`);
+  await pg.click('#pc-post');await pg.waitForTimeout(400);
+  if(await pg.evaluate(()=>document.getElementById('sheet').hidden))fail(`PC(${w}px)：「相性を調べる」が開きません`);
+  await pg.keyboard.press('Escape');await pg.evaluate(()=>closeSheet());await pg.waitForTimeout(300);
+}
+await pg.setViewportSize({width:390,height:844});
 const bad=errs.filter(e=>!/Failed to load resource|net::/.test(e));
 if(bad.length)fail('ページのエラー: '+bad.slice(0,5).join(' / '));
 await b.close();

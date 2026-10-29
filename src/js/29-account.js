@@ -9,8 +9,9 @@ const AUTH={fb:null,user:null,profile:undefined,ready:false,wait:null};
 async function fbLoad(){
   if(AUTH.fb)return AUTH.fb;
   if(!PCF)throw new Error('ログインは準備中です');
-  const app=await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
-  const au=await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth.js`);
+  let app,au;
+  try{app=await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);au=await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth.js`)}
+  catch(e){throw new Error('ログインの準備ができませんでした。電波のよいところで、ページを読み込み直してください（広告ブロックなどの機能が原因のこともあります）。')}
   const a=app.initializeApp(PCF);const auth=au.getAuth(a);auth.languageCode='ja';
   AUTH.fb={au,auth};
   AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));

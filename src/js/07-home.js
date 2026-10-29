@@ -11,7 +11,7 @@ function home(){
   </section>
   <div class="sec" style="padding-top:8px"><h2>相手のタイプをタップ</h2><span style="font-size:11px;color:var(--mute)">効く技がすぐ分かります</span></div>
   ${tkb(6)}
-  <p class="cap">ポケモン名で調べたいときは、右下の「相性」ボタンから。</p>
+  <p class="cap">ポケモン名で調べたいときは、「相性」ボタン（スマホは右下・パソコンは左のメニュー）から。</p>
 
   <div class="sec"><h2>役割から探す</h2><span style="font-size:11px;color:var(--mute)">種族値から自動判定</span></div>
   ${RDESC.map(([r,t,d])=>`<a class="row" href="#/dex" data-role="${r}"><div class="row-m"><div class="row-t">${t}</div><div class="row-s">${r}：${d}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}
