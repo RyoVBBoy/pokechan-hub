@@ -14,7 +14,8 @@ GitHub の `main` に上げると、**組み立て → テスト → 公開** �
 |---|---|
 | `src/index.html` | ページの枠 |
 | `src/styles.css` | 見た目 |
-| `src/js/` | プログラム（`00-start.js`〜`28-moves.js`。`order.json` の順につなげて使う） |
+| `src/js/` | プログラム（`order.json` の順につなげて使う。`29-account.js`：アカウント、`30-legal.js`：利用規約など） |
+| `config/public.json` | 公開してよい設定（Firebase のウェブ用の値） |
 | `worker/src/` | サーバー（Cloudflare Worker）のプログラム |
 | `tools/` | 組み立て用（`build.mjs`：サイト、`gen-pages.cjs`：検索向けページ） |
 | `worker/build.py` | サーバーの組み立て（サイトの計算部分をそのまま取り込む） |
@@ -84,6 +85,27 @@ npm test
 ```
 
 `dist/single.html` は1ファイルにまとめた版で、ダブルクリックでそのまま開けます。
+
+---
+
+## ログイン機能（Firebase Authentication）の設定
+
+ログイン・プロフィールの仕組みは入っています。次の設定をすると使えるようになります（設定するまでは「準備中」と表示されます）。
+
+1. https://console.firebase.google.com を開き、「プロジェクトを作成」（名前の例：`pokechan-hub`。Google アナリティクスはオフでOK）。
+2. 左の「構築」→「Authentication」→「始める」。
+3. 「Sign-in method」タブで、次の2つを有効にする。
+   - **Google**：「有効にする」をオン → サポート用メールを選んで保存。
+   - **メール / パスワード**：「有効にする」をオンにし、その下の「**メールリンク（パスワードなしでログイン）**」もオン → 保存。
+4. 「設定」タブ →「承認済みドメイン」→「ドメインを追加」で、サイトのドメイン（例：`pokechan-hub.netlify.app`）を追加。
+5. 左上の歯車 →「プロジェクトの設定」→「全般」→ 下の「マイアプリ」で **ウェブ（`</>`）** を押し、アプリ名（例：`pokechan-hub-web`）を入れて登録。
+6. 表示された `firebaseConfig` の中の `apiKey`・`authDomain`・`projectId`・`appId` の4つを、
+   このリポジトリの **`config/public.json`** の同じ名前の欄に貼る（GitHub の画面で鉛筆マークから編集できます）。
+7. 保存すると自動で公開され、サイトの「みんな」→「アカウント」からログインできるようになります。
+
+※ `config/public.json` の値は、ブラウザに配られる公開の値です（合言葉ではありません）。
+※ Apple でのログインは、Apple Developer Program に登録したあとで追加します（`"apple": true` にします）。
+※ プロフィールを保存するデータベースの表（users）は、サーバーが自動で作ります。
 
 ---
 
