@@ -2,12 +2,15 @@
 function home(){
   setHeader('ポケチャン攻略Hub');
   const top=(i,n)=>[...P].sort((a,b)=>b.s[i]-a.s[i]).slice(0,n);
+  const qt=quickTools(8);
   V.innerHTML=`
-  <section class="hero">
+  <div class="sec" style="padding-top:14px"><h2>すぐ使う</h2><a href="#/tools">ツール一覧</a></div>
+  <div class="tgrid">${qt.map(toolTile).join('')}</div>
+  <section class="hero" style="padding-top:8px">
     <span class="kicker"><i></i>レギュレーション M-C ／ 2026年9月9日から</span>${srcLine('regulation').replace('srcline','srcline" style="padding:8px 0 0')}
     <h2>${P.length}匹の種族値と<br>Lv50ステータス</h2>
     <p>能力ポイント（合計66・1項目32まで）にそのまま対応した計算機つき。</p>
-    <div class="btns" style="padding:16px 0 0;flex-wrap:wrap"><button class="btn btn-p" id="h-m">${SVG(I.zap,17)}相性をワンタップで調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/tools">ツールを見る（選出アシスト・ダメージ計算など）</a></div>
+    <div class="btns" style="padding:16px 0 0;flex-wrap:wrap"><button class="btn btn-p" id="h-m">${SVG(I.zap,17)}相性をワンタップで調べる</button></div>
   </section>
   <div class="sec" style="padding-top:8px"><h2>相手のタイプをタップ</h2><span style="font-size:11px;color:var(--mute)">効く技がすぐ分かります</span></div>
   ${tkb(6)}
@@ -24,7 +27,7 @@ function home(){
 
   <div class="sec"><h2>もっと使う</h2></div>
   <a class="row" href="#/tools"><div class="row-m"><div class="row-t">ツール</div><div class="row-s">選出アシスト・ダメージ計算・流行パーティ・相性・模擬戦など</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
-  <a class="row" href="#/community"><div class="row-m"><div class="row-t">みんな</div><div class="row-s">対戦募集と掲示板</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
+  <a class="row" href="#/community"><div class="row-m"><div class="row-t">みんな</div><div class="row-s">タイムライン・対戦募集・掲示板</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
   V.querySelectorAll('.tk').forEach(b=>b.onclick=()=>openSheet({types:[b.dataset.t]}));
   document.getElementById('h-m').onclick=()=>openSheet();
   V.querySelectorAll('[data-sort]').forEach(a=>a.onclick=()=>{dq={q:'',type:'',sort:a.dataset.sort,role:''}});

@@ -1,7 +1,7 @@
 /* ===================== ルーター ===================== */
 let cur='';try{cur=location.hash}catch(e){}
 function setUrl(h,push){try{history[push?'pushState':'replaceState'](null,'',h)}catch(e){}}
-const ROOTS=['','dex','tools','team','community'];
+let ROOTS=['','dex','tools','team','community'];  /* 27-games.js の drawNav() がゲームに合わせて入れ直す */
 const keyOf=h=>(h||'').replace(/^#\/?/,'').split('/')[0];
 const scrollMem={};let depth=0;
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -41,7 +41,8 @@ function route(){
     const on=e.dataset.k===navGroup(k);
     on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});
   closeSheet();
-  document.getElementById('fabwrap').hidden=(k==='types'||k==='battle');
+  document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle');
+  trackTool(cur);drawSide();
   ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,tl:tlView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
   HD.classList.toggle('sc',scrollY>4);
 }

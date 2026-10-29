@@ -2,26 +2,19 @@
 const hubRow=(h,t,d,badge)=>`<a class="row" href="${h}"><div class="row-m"><div class="row-t">${t}${badge?`<span class="atag" style="margin-left:6px">${badge}</span>`:''}</div><div class="row-s">${d}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
 function toolsView(){
   setHeader('ツール');
-  V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
-  <p class="note" style="padding-top:4px">選んだ形式（いまは<b>${FMTN()}</b>：${PICK()}匹選出・先発${LEADN()}匹）で、選出・予想・使用率を計算します。</p>
-  <div class="sec"><h2>対戦の準備</h2></div>
-  ${hubRow('#/assist','選出アシスト',`相手の6匹から、出すべき${PICK()}匹と先発・相手の予想選出を出す`)}
-  ${hubRow('#/meta','流行のポケモンとパーティ',`${FMTN()}の使用率ランキングと、よく使われる組み合わせ`)}
-  ${hubRow('#/report','パーティの強みと弱み','あなたのパーティの強み・弱み・警戒すべき相手をまとめて')}
-  <div class="sec"><h2>計算</h2></div>
-  ${hubRow('#/assist/pip','バトル中の小窓表示','選出・ダメージ・素早さなどのカードを動画にして、ゲームの上に小窓で浮かべる')}
-  ${hubRow('#/calc','ダメージ計算','あなたの育成やよくある型で、乱数16段階・確定数まで')}
-  ${hubRow('#/types','タイプ相性','相手のポケモンやタイプから、効く技と出すべきポケモン')}
-  ${hubRow('#/cmp','ポケモン比較','2匹の種族値とタイプ相性を重ねて比べる')}
-  <div class="sec"><h2>練習</h2></div>
-  ${hubRow('#/battle','模擬戦','技・特性つきの対戦で練習（今はダブルのみ）','β')}
-  <div class="sec"><h2>連携</h2></div>
-  ${hubRow('#/tap','アプリ・背面タップ連携','対戦中に、相手の読み取りと選出を自動で','β')}
-  ${hubRow('#/import','画像から取り込む','ゲームのチーム画面のスクショから、技・持ち物・能力ポイントまで')}
-  <div class="sec"><h2>資料</h2></div>
-  ${hubRow('#/guide','基本ルール','能力ポイント・性格・計算式など')}
-  ${hubRow('#/sources','データの出典と確認状況','数値の出どころと、どこまで確かめたか')}`;
-  bindFmt(V,toolsView);
+  const g=curGame(),all=toolsOf(g),pins=tPins(g),by=id=>all.find(t=>t.id===id);
+  const mine=pins.map(by).filter(Boolean),recent=tRecent(g).map(by).filter(t=>t&&!pins.includes(t.id)).slice(0,4);
+  const secs=[...new Set(all.map(t=>t.sec))];
+  const row=t=>`<div class="trow"><a class="trow-a" href="${t.href}"><span class="ttile-i">${SVG(t.ic,22)}</span><span class="row-m"><span class="row-t">${esc(t.t)}${t.badge?`<span class="atag" style="margin-left:6px">${t.badge}</span>`:''}</span><span class="row-s">${t.d}</span></span></a>
+    <button class="tpin${pins.includes(t.id)?' on':''}" data-tpin="${t.id}" aria-pressed="${pins.includes(t.id)}" aria-label="${esc(t.t)}をマイツールに${pins.includes(t.id)?'入れない':'入れる'}">${SVG(I.star,20)}</button></div>`;
+  V.innerHTML=`${g.id==='pokechamp'?`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
+  <p class="note" style="padding-top:4px">選んだ形式（いまは<b>${FMTN()}</b>：${PICK()}匹選出・先発${LEADN()}匹）で、選出・予想・使用率を計算します。</p>`:''}
+  <div class="sec"><h2>マイツール</h2><span style="font-size:12px;color:var(--dim)">☆を押すと追加</span></div>
+  ${mine.length?`<div class="tgrid">${mine.map(toolTile).join('')}</div>`:'<p class="note" style="padding:0 16px 4px">よく使うツールの☆を押すと、ここと<b>ホームの一番上</b>に並びます。</p>'}
+  ${recent.length?`<div class="sec"><h2>最近使った</h2></div><div class="tgrid">${recent.map(toolTile).join('')}</div>`:''}
+  ${secs.map(sc=>`<div class="sec"><h2>${esc(sc)}</h2></div>${all.filter(t=>t.sec===sc).map(row).join('')}`).join('')}`;
+  if(g.id==='pokechamp')bindFmt(V,toolsView);
+  V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrollY;toolsView();scrollTo(0,y)});
 }
 function communityView(){
   setHeader('みんな');

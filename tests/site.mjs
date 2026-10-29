@@ -26,6 +26,14 @@ const big=await pg.$eval('.cres-big',x=>x.textContent).catch(()=>'');if(!/%/.tes
 const chk=await pg.evaluate(()=>{const a=mkMon(byNo[445],'me',{item:'garchompitez',moves:[mvObj(89)],ab:'rough-skin'});return[a.p.n,P.length,Object.keys(LSD).length,Object.keys(MD).length]});
 if(chk[0]!=='メガガブリアスZ')fail('メガシンカの計算: '+chk[0]);
 if(chk[1]<200||chk[2]<200||chk[3]<400)fail('データ件数が少なすぎます: '+chk.join(','));
+// マイツール：☆を押すと、ホームの「すぐ使う」の先頭に出る。下のメニューに名前が出る
+await pg.evaluate(()=>{location.hash='#/tools'});await pg.waitForTimeout(300);
+await pg.click('[data-tpin="cmp"]');await pg.waitForTimeout(200);
+if(!(await pg.$('.tgrid .ttile[href="#/cmp"]')))fail('マイツールに入りません');
+await pg.evaluate(()=>{location.hash='#/'});await pg.waitForTimeout(300);
+if(await pg.$eval('.tgrid .ttile',a=>a.getAttribute('href')).catch(()=>'')!=='#/cmp')fail('ホームの「すぐ使う」の先頭にマイツールが出ません');
+if(!(await pg.$eval('.tb[data-k="dex"] span',s=>s.offsetWidth>10).catch(()=>false)))fail('スマホの下のメニューに名前が出ません');
+await pg.evaluate(()=>{tTogglePin('cmp')});
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);
