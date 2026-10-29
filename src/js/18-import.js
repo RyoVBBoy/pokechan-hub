@@ -157,7 +157,7 @@ function imDraw(){
   <p class="note" style="padding-top:0">オレンジの欄は自信の低い読み取りです。違っていたら直してください（候補から選べます）。</p>
   ${IM.slots.map(imCard).join('')}
   <div class="btns"><button class="btn btn-p" id="im-save" ${ok?'':'disabled'}>このパーティを保存（${ok}匹）</button></div>
-  <p class="note" style="color:var(--dim)">保存すると、いまの編成と入れ替わります。取り込んだ技・特性・持ち物・能力ポイント・性格は、選出アシストと模擬戦の計算に使われます。</p>`;
+  <p class="note" style="color:var(--dim)">保存すると、いま選んでいるパーティ（${esc(teamName(TEAMS.cur))}）と入れ替わります。ほかのパーティに入れたいときは、先にパーティの画面で切り替えてください。取り込んだ技・特性・持ち物・能力ポイント・性格は、選出アシストと模擬戦の計算に使われます。</p>`;
 }
 function imSave(){
   const v=getVer();

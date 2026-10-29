@@ -873,3 +873,9 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
 .mp-r .av{width:40px;height:40px}.mp-r.on{background:rgba(29,155,240,.1)}
 .mp-h{padding:12px 16px 6px;font-size:13px;font-weight:700;color:var(--dim)}
 @media(min-width:700px){.mpsheet .psheet-p{max-width:520px;height:min(720px,86vh)}}
+/* パーティの切り替え（3つまで保存） */
+.tslots{padding:14px 16px 4px}
+.tslots .pill{display:inline-flex;align-items:center;gap:6px;max-width:46%}
+.tslots .pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tslots .pill small{font:600 12px Inter,sans-serif;color:var(--dim)}
+.tslots .pill[aria-pressed=true] small{color:inherit;opacity:.7}

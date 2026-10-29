@@ -58,6 +58,10 @@ const mpc=await pg.$$eval('.mp-r .row-t',x=>x.map(e=>e.textContent));
 await pg.keyboard.press('Enter');await pg.waitForTimeout(400);
 const mpa=await pg.evaluate(()=>[...document.querySelectorAll('.mpick b')].map(b=>b.textContent)[1]);
 if(mpc.join()!=='ハッサム'||mpa!=='ハッサム')fail('ポケモンの絞り込み選択: '+mpc.join(',')+' → '+mpa);
+// パーティは3つまで保存して切り替えられる（中身は別々に残る）
+const tr=await pg.evaluate(()=>{const c0=TEAMS.cur;switchTeam(1);team=[{no:445,sel:true}];saveTeam();switchTeam(2);const e=team.length;switchTeam(1);const a=team.map(x=>x.no).join();
+  const st=JSON.parse(localStorage.getItem('pcteams'));switchTeam(c0);return[e,a,st.list.length,st.list[1].team[0].no]});
+if(tr.join()!=='0,445,3,445')fail('パーティの保存・切り替え: '+tr.join());
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);

@@ -85,6 +85,7 @@ const EN={
 '背面タップで相手を入力（β）':'Enter the opponent with Back Tap (beta)','ゲームを開いたまま、背中を2回たたくだけで相手の弱点を通知で表示':'Keep the game open and double-tap the back of your phone to see the opponent\'s weaknesses',
 '相手のポケモン名（ひらがなOK）':'Opponent\'s Pokémon name','先にあなたのパーティを登録してください':'Register your team first','パーティを登録する':'Register your team','先にパーティを登録してください':'Register your team first',
 'ポケモンを選ぶ':'Choose a Pokémon','ポケモン名を入力（ひらがなOK）':'Type a Pokémon name','見つかりません':'No matches','最近選んだ':'Recent','すべてのポケモン':'All Pokémon',
+'このパーティの名前を変える':'Rename this team','パーティの名前（20文字まで）':'Team name (up to 20 characters)',
 /* コミュニティ */
 'ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。':'A place to battle and share with other trainers. The lobby and message board can be used anonymously.',
 'タイムライン':'Timeline','トレーナーの投稿を見る・投稿する・フォローする':'Read, post and follow trainers','お知らせ':'Notifications','いいね・フォローされたとき':'Likes and new followers',
@@ -150,6 +151,7 @@ const EN_RE=[
   [/^チャンピオンズで覚えられる技の全(\d+)種類です（物理(\d+)・特殊(\d+)・変化(\d+)）。効果の説明はデータをもとに当サイトがまとめたものです。$/,'All $1 moves learnable in Champions (Physical $2, Special $3, Status $4). Effect descriptions are written by this site (Japanese for now).'],
   [/^(\d+)匹の種族値と$/,'Base stats for $1 Pokémon &'],
   [/^レギュレーション (.+?) ／ (\d+)年(\d+)月(\d+)日から$/,'Regulation $1 / from $3/$4/$2'],
+  [/^「(.+)」に切り替えました$/,'Switched to "$1"'],[/^「(.+)」のポケモンをすべて外します。よろしいですか？$/,'Remove all Pokémon from "$1"?'],
   [/^あと(\d+)分$/,'$1 min left'],
   [/^ポケモン一覧（(\d+)匹）$/,'All Pokémon ($1)'],[/^(\d+)件$/,'$1'],
   [/^データ更新日 (\d+)\/(\d+)\/(\d+)。/,(m,y,mo,d)=>`Data updated ${y}/${mo}/${d}. Base stats, types, learnsets, abilities and Mega Evolutions are based on public data from Pokémon Showdown (Champions data) and PokeAPI. Move power, accuracy and PP are checked against values transcribed from the game. Move and ability descriptions are written by this site. See "Data sources & verification" for details.`],

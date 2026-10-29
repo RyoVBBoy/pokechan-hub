@@ -2,8 +2,18 @@
 let team=[];
 /* 図鑑の見直しで番号が変わったもの（旧670フラエッテ → えいえんのはな） */
 const NO_MOVED={670:10061};
-try{team=(JSON.parse(localStorage.getItem('pcteam')||'[]')).map(x=>x&&NO_MOVED[x.no]?{...x,no:NO_MOVED[x.no]}:x).filter(x=>x&&(byNo[x.no]||ensureMon(x.no)))}catch(e){}
-const saveTeam=()=>{try{localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
+/* パーティは3つまで保存できる（pcteams：{cur:いま選んでいる番号, list:[{name,team}]}）。
+   いま選んでいるパーティが team（ほかの画面はすべて team を使う）。pcteam は前の版との互換のために同じ中身を入れておく */
+const TEAM_N=3;
+const cleanTeam=a=>(Array.isArray(a)?a:[]).map(x=>x&&NO_MOVED[x.no]?{...x,no:NO_MOVED[x.no]}:x).filter(x=>x&&(byNo[x.no]||ensureMon(x.no)));
+let TEAMS=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem('pcteams')||'null')}catch(e){}
+  if(!o||!Array.isArray(o.list)){let old=[];try{old=JSON.parse(localStorage.getItem('pcteam')||'[]')}catch(e){}o={cur:0,list:[{name:'',team:old}]}}
+  while(o.list.length<TEAM_N)o.list.push({name:'',team:[]});o.list=o.list.slice(0,TEAM_N);if(!(o.cur>=0&&o.cur<TEAM_N))o.cur=0;
+  o.list.forEach(s=>{s.team=cleanTeam(s.team);s.name=String(s.name||'').slice(0,20)});return o})();
+team=TEAMS.list[TEAMS.cur].team.map(x=>({...x}));
+const teamName=i=>TEAMS.list[i].name||L(`パーティ${i+1}`,`Team ${i+1}`);
+const saveTeam=()=>{TEAMS.list[TEAMS.cur].team=team;try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
+function switchTeam(i){if(i===TEAMS.cur||!TEAMS.list[i])return;saveTeam();TEAMS.cur=i;team=TEAMS.list[i].team.map(x=>({...x}));saveTeam()}
 let tq='';
 function addTeam(no){
   if(team.some(x=>x.no===no)){nav('#/team');return}
@@ -15,13 +25,15 @@ function teamView(arg){
   if(arg){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
     if(ids.length){team=ids.map((no,i)=>({no,sel:i<PICK()}));saveTeam();cur='#/team';setUrl('#/team')}}
   V.innerHTML=`
-  <p class="note" style="padding:16px 16px 12px">6匹まで登録し、<b>★で選出する${PICK()}匹</b>を決めます（${FMTN()}の形式）。</p>
+  <div class="pills tslots" id="tslots"></div>
+  <p class="note" style="padding:6px 16px 12px">6匹まで登録し、<b>★で選出する${PICK()}匹</b>を決めます（${FMTN()}の形式）。</p>
   <div class="grid3" id="slots"></div>
   <div id="tsets"></div>
   <a class="row" href="#/import" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
   <div class="btns">
     <button class="btn btn-p" id="shr">${SVG(I.share,17)}URLをコピー</button>
     <button class="btn btn-s" id="clr" style="flex:none;padding:0 20px">クリア</button></div>
+  <div class="btns" style="padding-top:0"><button class="btn btn-s" id="tren">${SVG(I.list,16)}このパーティの名前を変える</button></div>
 
 
   <div id="tout"></div>
@@ -30,7 +42,9 @@ function teamView(arg){
   <div id="tp" style="margin-top:8px"></div>`;
   document.getElementById('tq').oninput=e=>{tq=e.target.value;tpRender()};
   document.getElementById('shr').onclick=shareTeam;
-  document.getElementById('clr').onclick=()=>{team=[];saveTeam();teamRender()};
+  document.getElementById('clr').onclick=()=>{if(team.length&&!confirm(`「${teamName(TEAMS.cur)}」のポケモンをすべて外します。よろしいですか？`))return;team=[];saveTeam();teamRender()};
+  document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
+  document.getElementById('tslots').onclick=e=>{const b=e.target.closest('[data-tslot]');if(!b)return;switchTeam(+b.dataset.tslot);toast(`「${teamName(TEAMS.cur)}」に切り替えました`);teamRender()};
   teamRender();tpRender();
 }
 function tpRender(){
@@ -49,6 +63,8 @@ function shareTeam(){
     .then(()=>toast('URLをコピーしました')).catch(()=>prompt('URLをコピーしてください',u));
 }
 function teamRender(){
+  const ts=document.getElementById('tslots');
+  if(ts)ts.innerHTML=TEAMS.list.map((s,i)=>`<button class="pill" data-tslot="${i}" aria-pressed="${i===TEAMS.cur}"><span data-notr>${esc(teamName(i))}</span><small>${(i===TEAMS.cur?team:s.team).length}${L('匹','')}</small></button>`).join('');
   document.getElementById('slots').innerHTML=Array.from({length:6},(_,i)=>{
     const x=team[i],p=x&&byNo[x.no];
     return p?`<div class="tile${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
