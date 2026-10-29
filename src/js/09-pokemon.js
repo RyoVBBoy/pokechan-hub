@@ -98,7 +98,6 @@ function updCalc(){
   const r=calcStats(p,st.sp,st.up,st.dn);
   r.forEach((v,i)=>{document.getElementById('sto'+i).textContent=v;document.getElementById('spv'+i).textContent=st.sp[i]});
   document.getElementById('sp-left').textContent=SP_TOTAL-st.sp.reduce((a,b)=>a+b,0);
-  const slower=P.filter(q=>maxSpe(q)<r[5]).length;
-  document.getElementById('spd-note').innerHTML=`いまの素早さ <b>${r[5]}</b> は、収録${P.length}匹のうち <b>${slower}匹</b> の最速（性格で上げ・ポイント32）より速いです。`;
+  document.getElementById('spd-note').innerHTML=L(`いまの素早さ <b>${r[5]}</b> は、`,`Current Speed <b>${r[5]}</b>: `)+spdRankHTML(r[5],p.no);
 }
 

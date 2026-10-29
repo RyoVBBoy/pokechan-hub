@@ -42,6 +42,10 @@ function formInfo(p){
   return p._f={base,tag,kind};
 }
 const nm=(p,o={})=>{const f=formInfo(p);return `<span class="pn${o.big?' pn-big':''}"><b class="pn-n">${esc(f.base)}</b>${f.tag?`<i class="ftag ftag-${f.kind}">${esc(f.tag)}</i>`:''}${o.no===false?'':`<span class="no">#${String(p.dno||p.no).padStart(4,'0')}</span>`}</span>`};
+/* 素早さの順位：収録ポケモンの最速（性格で上げ・ポイント32）と比べて、全体で何位か（自分は数えない）。同じ速さの数も返す */
+const spdRank=(v,self)=>{const o=P.filter(q=>q.no!==self);return{rank:o.filter(q=>maxSpe(q)>v).length+1,same:o.filter(q=>maxSpe(q)===v).length,n:o.length+1}};
+const spdRankHTML=(v,self)=>{const r=spdRank(v,self);return L(`収録${r.n}匹の最速（性格で上げ・ポイント32）と比べると、<b>全体で${r.rank}位</b>${r.same?`（同じ速さが${r.same}匹）`:''}です。`,
+  `Compared with the max Speed (boosting nature, 32 points) of all ${r.n} Pokémon, this ranks <b>#${r.rank}</b>${r.same?` (tied with ${r.same})`:''}.`)};
 const rowP=(p,metric)=>{const v=metric==null?p.bst:p.s[metric],lb=metric==null?'合計':SN[metric];
   return `<a class="row" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}<span class="rt">${p.roles.join('・')}</span></div></div><div class="row-n"><b>${v}</b><span>${lb}</span></div><span class="chev">${SVG(I.chev,18)}</span></a>`};
 const counters=types=>P.filter(p=>p.t.some(t=>mult(t,types)>=2)).sort((a,b)=>b.bst-a.bst);

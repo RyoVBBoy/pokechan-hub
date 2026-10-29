@@ -78,8 +78,7 @@ function editView(a){
       const o2=document.getElementById('ed-o'+i);o2.style.color=o.up===i?'#ff8a7a':o.dn===i?'#7ab8ff':''});
     document.getElementById('ed-left').textContent=SP_TOTAL-o.sp.reduce((a,b)=>a+b,0);
     const sp=r[5],sc=o.it&&o.it.k==='choicescarf'?Math.floor(sp*1.5):0,eff=sc||sp;
-    const slower=P.filter(q=>q.no!==p.no&&maxSpe(q)<eff).length,same=P.filter(q=>q.no!==p.no&&maxSpe(q)===eff).length;
-    document.getElementById('ed-spd').innerHTML=`素早さ <b>${sp}</b>${sc?`（スカーフ込み <b>${sc}</b>）`:''}は、収録${P.length}匹の<b>最速</b>のうち <b>${slower}匹</b> より速いです${same?`（${same}匹と同速）`:''}。`};
+    document.getElementById('ed-spd').innerHTML=L(`素早さ <b>${sp}</b>${sc?`（スカーフ込み <b>${sc}</b>）`:''}は、`,`Speed <b>${sp}</b>${sc?` (with Choice Scarf <b>${sc}</b>)`:''}: `)+spdRankHTML(eff,p.no)};
   const touch=()=>{ED.dirty=true;save();upd();pipSchedule()};
   SN.forEach((_,i)=>document.getElementById('ed-sp'+i).oninput=e=>{const o=ED.s,others=o.sp.reduce((a,b,j)=>j===i?a:a+b,0);
     o.sp[i]=Math.max(0,Math.min(+e.target.value,SP_CAP,SP_TOTAL-others));touch()});
