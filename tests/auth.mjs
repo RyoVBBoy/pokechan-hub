@@ -35,7 +35,7 @@ r=await call('/api/me',{method:'POST',tok:A,body:{handle:'trainer_a2',name:'A改
 r=await call('/api/me/delete',{method:'POST',tok:A});expect('削除',r[0]===200,r);
 r=await call('/api/me',{tok:A});expect('削除後はプロフィールなし',r[0]===200&&r[1].user===null,r);
 r=await call('/api/boards');expect('掲示板は従来どおり',r[0]===200&&r[1].boards.length>0,r);
-const r2=await w.fetch(new Request('https://x.dev/api/me',{headers:{authorization:'Bearer '+A}}),{DB:makeD1()},{waitUntil(){}});
+const r2=await w.fetch(new Request('https://x.dev/api/me',{headers:{authorization:'Bearer '+A}}),{DB:env.DB},{waitUntil(){}});
 // config/public.json にプロジェクトIDが入っていればそれを使う（別プロジェクトのトークンは拒否）。空なら「準備中」
 const baked=JSON.parse((await import('node:fs')).readFileSync(path.join(ROOT,'config/public.json'),'utf8')).firebase?.projectId||'';
 expect(baked?'設定済みなら別プロジェクトのトークンは拒否':'設定がないときは準備中',baked?r2.status===401:r2.status===503,r2.status);
