@@ -1,10 +1,10 @@
 {
   "_説明": "公開してよい設定です（合言葉ではありません）。Firebase の「ウェブアプリ」の設定値をここに貼ります。空のままならログイン機能は「準備中」と表示されます。",
   "firebase": {
-    "apiKey": "",
-    "authDomain": "",
-    "projectId": "",
-    "appId": ""
+    "apiKey": "AIzaSyASsNfGfZ41LgXp8A8qQMMTPfSi_FflQ8M",
+    "authDomain": "pokechan-hub.firebaseapp.com",
+    "projectId": "pokechan-hub",
+    "appId": "1:974120833547:web:83d8f6cde2d86a31852d0e"
   },
   "apple": false
 }
