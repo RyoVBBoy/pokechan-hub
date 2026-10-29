@@ -3,7 +3,7 @@ let admTab='reports';
 function adminView(){
   setHeader('管理（運営者用）','#/rules');
   const tok=(()=>{try{return localStorage.getItem('pcadmin')||''}catch(e){return''}})();
-  const kindJa={post:'書き込み',thread:'スレッド',lobby:'対戦募集'};
+  const kindJa={post:'書き込み',note:'タイムライン',thread:'スレッド',lobby:'対戦募集'};
   const aget=async path=>{const r=await fetch(COMM_API+path,{headers:{'X-Admin-Token':tok}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'通信エラー');return j};
   const apost=async(path,body)=>{const r=await fetch(COMM_API+path,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':tok},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'通信エラー');return j};
   V.innerHTML=`<div id="adm-root">
@@ -28,10 +28,12 @@ function adminView(){
           <div class="btns" style="padding:8px 0 0;flex-wrap:wrap">
             ${r.hidden?`<button class="btn btn-s" data-res="${r.kind}:${r.target}">元に戻す</button>`:`<button class="btn btn-p" data-del="${r.kind}:${r.target}">非表示にする</button>`}
             <button class="btn btn-s" data-dis="${r.kind}:${r.target}">問題なし（通報を消す）</button>
-            ${r.thread_id?`<a class="btn btn-s" href="#/thread/${r.thread_id}">スレッドを開く</a>`:''}</div></div>`).join(''):'<p class="empty" style="padding:28px 24px">通報はありません。</p>';
+            ${r.kind==='note'?'':r.thread_id?`<a class="btn btn-s" href="#/thread/${r.thread_id}">スレッドを開く</a>`:''}</div></div>`).join(''):'<p class="empty" style="padding:28px 24px">通報はありません。</p>';
       }else{
         const j=await aget('/api/admin/recent');
-        el.innerHTML=`<div class="sec"><h2>掲示板</h2></div>`+(j.posts.length?j.posts.map(p=>`<div class="bpost"><div class="bpost-h"><b>${p.no}</b>「${esc(p.title||'')}」　${esc(p.name)}　ID:${esc(p.aid)}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(p.body).replace(/\n/g,'<br>')}</div>
+        el.innerHTML=`<div class="sec"><h2>タイムライン</h2></div>`+((j.notes||[]).length?j.notes.map(p=>`<div class="bpost"><div class="bpost-h">${esc(p.name||'（削除済み）')}　@${esc(p.handle||'')}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(p.body).replace(/\n/g,'<br>')}</div>
+          <div style="padding-top:6px">${p.hidden?`<button class="bback" data-res="note:${p.id}" style="padding:0">元に戻す</button>`:`<button class="bback" data-del="note:${p.id}" style="padding:0;color:var(--w2)">非表示にする</button>`}</div></div>`).join(''):'<p class="empty">投稿はありません。</p>')
+          +`<div class="sec"><h2>掲示板</h2></div>`+(j.posts.length?j.posts.map(p=>`<div class="bpost"><div class="bpost-h"><b>${p.no}</b>「${esc(p.title||'')}」　${esc(p.name)}　ID:${esc(p.aid)}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(p.body).replace(/\n/g,'<br>')}</div>
           <div style="padding-top:6px">${p.hidden?`<button class="bback" data-res="post:${p.id}" style="padding:0">元に戻す</button>`:`<button class="bback" data-del="post:${p.id}" style="padding:0;color:var(--w2)">非表示にする</button>`}</div></div>`).join(''):'<p class="empty">書き込みはありません。</p>')
           +`<div class="sec"><h2>対戦募集</h2></div>`+(j.lobby.length?j.lobby.map(x=>`<div class="bpost"><div class="bpost-h">${x.fmt==='single'?'シングル':'ダブル'}　${esc(x.rule)}　あいことば ${esc(x.pass)}　ID:${esc(x.aid)}　${ago(x.created_at)}${x.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(x.comment||'')}</div>
           <div style="padding-top:6px">${x.hidden?`<button class="bback" data-res="lobby:${x.id}" style="padding:0">元に戻す</button>`:`<button class="bback" data-del="lobby:${x.id}" style="padding:0;color:var(--w2)">非表示にする</button>`}</div></div>`).join(''):'<p class="empty">募集はありません。</p>');

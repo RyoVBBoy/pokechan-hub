@@ -41,12 +41,7 @@ function handleError(h){
 }
 const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',created_at:u.created_at};
 async function userApi(req,env,db,path,body,now){
-  /* 公開プロフィール */
-  let m;
-  if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const u=await db.prepare(`SELECT handle,name,bio,created_at FROM users WHERE handle=? COLLATE NOCASE AND banned=0`).bind(m[1]).first();
-    return u?J({user:pubUser(u)}):J({error:'ユーザーが見つかりません。'},404);
-  }
+  /* 公開プロフィール（/api/u/…）は social.js */
   if(!path.startsWith('/api/me'))return null;
   if(!fbPid(env))return J({error:'ログイン機能は準備中です。'},503);
   const me=await authOf(req,env);
@@ -71,6 +66,7 @@ async function userApi(req,env,db,path,body,now){
   }
   /* アカウントの削除（Firebase 側のアカウントはサイトから消す） */
   if(path==='/api/me/delete'&&req.method==='POST'){
+    await socialDeleteUser(db,me.uid);
     await db.prepare(`DELETE FROM users WHERE uid=?`).bind(me.uid).run();
     return J({ok:true});
   }

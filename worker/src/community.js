@@ -53,14 +53,16 @@ async function cleanup(db){
 const J=(o,st=200)=>new Response(JSON.stringify(o),{status:st,headers:{...CORS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
 async function api(req,env,u,ctx){
   if(!env.DB)return J({error:'掲示板はまだ準備中です。'},503);
-  const db=env.DB;await dbInit(db);
+  const db=env.DB;await dbInit(db);await socialInit(db);
   const ip=req.headers.get('cf-connecting-ip')||'0.0.0.0',path=u.pathname.replace(/\/+$/,''),now=Date.now();
   /* 管理者は ADMIN_TOKEN（利用者に配る APP_TOKEN とは別）。未設定なら管理機能は使えない */
   const adminTok=req.headers.get('x-admin-token')||'';
   const isAdmin=!!env.ADMIN_TOKEN&&String(env.ADMIN_TOKEN).length>=12&&adminTok.length===String(env.ADMIN_TOKEN).length&&await sha(adminTok)===await sha(String(env.ADMIN_TOKEN));
   let body={};if(req.method==='POST'){const t=await req.text();if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
-  if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db));
+  if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db)));
   let m;
+  /* タイムライン・フォロー・通知（social.js） */
+  {const r=await socialApi(req,env,db,path,u,body,now,ip);if(r)return r}
   /* ログイン・ユーザー */
   {const r=await userApi(req,env,db,path,body,now);if(r)return r}
   /* 板の一覧 */
@@ -141,10 +143,10 @@ async function api(req,env,u,ctx){
   if(path==='/api/admin/reports'&&req.method==='GET'){
     if(!isAdmin)return J({error:!env.ADMIN_TOKEN?'管理用の合言葉（ADMIN_TOKEN）がサーバーに設定されていません。':String(env.ADMIN_TOKEN).length<12?'サーバーの ADMIN_TOKEN を12文字以上にしてください。':'管理用の合言葉が違います。'},401);
     const r=await db.prepare(`SELECT r.kind,r.target,COUNT(*) AS n,MAX(r.created_at) AS last,GROUP_CONCAT(r.reason,' / ') AS reasons,
-      CASE r.kind WHEN 'post' THEN (SELECT body FROM posts WHERE id=r.target) WHEN 'thread' THEN (SELECT title FROM threads WHERE id=r.target) ELSE (SELECT COALESCE(comment,'')||'（あいことば '||pass||'）' FROM lobby WHERE id=r.target) END AS content,
-      CASE r.kind WHEN 'post' THEN (SELECT hidden FROM posts WHERE id=r.target) WHEN 'thread' THEN (SELECT hidden FROM threads WHERE id=r.target) ELSE (SELECT hidden FROM lobby WHERE id=r.target) END AS hidden,
+      CASE r.kind WHEN 'post' THEN (SELECT body FROM posts WHERE id=r.target) WHEN 'note' THEN (SELECT body FROM notes WHERE id=r.target) WHEN 'thread' THEN (SELECT title FROM threads WHERE id=r.target) ELSE (SELECT COALESCE(comment,'')||'（あいことば '||pass||'）' FROM lobby WHERE id=r.target) END AS content,
+      CASE r.kind WHEN 'post' THEN (SELECT hidden FROM posts WHERE id=r.target) WHEN 'note' THEN (SELECT hidden FROM notes WHERE id=r.target) WHEN 'thread' THEN (SELECT hidden FROM threads WHERE id=r.target) ELSE (SELECT hidden FROM lobby WHERE id=r.target) END AS hidden,
       CASE r.kind WHEN 'post' THEN (SELECT thread_id FROM posts WHERE id=r.target) WHEN 'thread' THEN r.target ELSE NULL END AS thread_id,
-      CASE r.kind WHEN 'post' THEN (SELECT aid FROM posts WHERE id=r.target) WHEN 'thread' THEN (SELECT aid FROM threads WHERE id=r.target) ELSE (SELECT aid FROM lobby WHERE id=r.target) END AS aid
+      CASE r.kind WHEN 'post' THEN (SELECT aid FROM posts WHERE id=r.target) WHEN 'note' THEN (SELECT '@'||u.handle FROM notes n JOIN users u ON u.uid=n.uid WHERE n.id=r.target) WHEN 'thread' THEN (SELECT aid FROM threads WHERE id=r.target) ELSE (SELECT aid FROM lobby WHERE id=r.target) END AS aid
       FROM reports r GROUP BY r.kind,r.target ORDER BY last DESC LIMIT 100`).all();
     return J({reports:r.results});
   }
@@ -152,7 +154,8 @@ async function api(req,env,u,ctx){
     if(!isAdmin)return J({error:!env.ADMIN_TOKEN?'管理用の合言葉（ADMIN_TOKEN）がサーバーに設定されていません。':String(env.ADMIN_TOKEN).length<12?'サーバーの ADMIN_TOKEN を12文字以上にしてください。':'管理用の合言葉が違います。'},401);
     const p=await db.prepare(`SELECT p.id,p.thread_id,p.no,p.name,p.body,p.created_at,p.aid,p.hidden,t.title FROM posts p LEFT JOIN threads t ON t.id=p.thread_id ORDER BY p.created_at DESC LIMIT 60`).all();
     const l=await db.prepare(`SELECT id,fmt,rule,pass,comment,name,created_at,expires_at,aid,hidden FROM lobby ORDER BY created_at DESC LIMIT 30`).all();
-    return J({posts:p.results,lobby:l.results});
+    const n=await db.prepare(`SELECT n.id,n.body,n.created_at,n.hidden,u.handle,u.name FROM notes n LEFT JOIN users u ON u.uid=n.uid ORDER BY n.id DESC LIMIT 60`).all();
+    return J({posts:p.results,lobby:l.results,notes:n.results});
   }
   if(path==='/api/admin/dismiss'&&req.method==='POST'){
     if(!isAdmin)return J({error:!env.ADMIN_TOKEN?'管理用の合言葉（ADMIN_TOKEN）がサーバーに設定されていません。':String(env.ADMIN_TOKEN).length<12?'サーバーの ADMIN_TOKEN を12文字以上にしてください。':'管理用の合言葉が違います。'},401);
@@ -161,7 +164,7 @@ async function api(req,env,u,ctx){
   }
   if(path==='/api/admin/delete'&&req.method==='POST'){
     if(!isAdmin)return J({error:!env.ADMIN_TOKEN?'管理用の合言葉（ADMIN_TOKEN）がサーバーに設定されていません。':String(env.ADMIN_TOKEN).length<12?'サーバーの ADMIN_TOKEN を12文字以上にしてください。':'管理用の合言葉が違います。'},401);
-    const kind=body.kind,id=+body.id,tb=kind==='post'?'posts':kind==='thread'?'threads':kind==='lobby'?'lobby':null;
+    const kind=body.kind,id=+body.id,tb=kind==='post'?'posts':kind==='note'?'notes':kind==='thread'?'threads':kind==='lobby'?'lobby':null;
     if(!tb||!id)return J({error:'削除する対象を読めませんでした。'},400);
     await db.prepare(`UPDATE ${tb} SET hidden=? WHERE id=?`).bind(body.restore?0:1,id).run();
     return J({ok:true});

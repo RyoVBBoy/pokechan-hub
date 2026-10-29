@@ -14,13 +14,13 @@ async function fbLoad(){
   catch(e){throw new Error('ログインの準備ができませんでした。電波のよいところで、ページを読み込み直してください（広告ブロックなどの機能が原因のこともあります）。')}
   const a=app.initializeApp(PCF);const auth=au.getAuth(a);auth.languageCode='ja';
   AUTH.fb={au,auth};
-  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
+  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;if(u){try{localStorage.setItem('pcin','1')}catch(e){}}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
   return AUTH.fb;
 }
 async function authFetch(path,body){
   const h={'Content-Type':'application/json'};
   if(AUTH.user)h.Authorization='Bearer '+await AUTH.user.getIdToken();
-  const r=await fetch(COMM_API+path,body?{method:'POST',headers:h,body:JSON.stringify(body)}:{headers:h});
+  let r;try{r=await fetch(COMM_API+path,body?{method:'POST',headers:h,body:JSON.stringify(body)}:{headers:h})}catch(e){throw new Error('通信できませんでした。電波のよいところでもう一度試してください。')}
   const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||'通信エラー'),{status:r.status});return j;
 }
 async function loadProfile(force){
@@ -107,6 +107,7 @@ async function accountView(){
     <div class="ac-card"><span class="ac-av">${esc((prof.name||'?').slice(0,1))}</span><div><b>${esc(prof.name)}</b><small>@${esc(prof.handle)}</small></div></div>
     ${prof.bio?`<p class="note" style="padding-top:4px;white-space:pre-wrap">${esc(prof.bio)}</p>`:''}
     <p class="note" style="color:var(--mute);padding-top:0">ログイン中：${esc(AUTH.email||AUTH.user.email||'')}（ほかの人には表示されません）</p>
+    <div class="btns" style="padding-top:4px"><a class="btn btn-s" href="#/u/${esc(prof.handle)}">自分のページを見る</a><a class="btn btn-s" href="#/tl">タイムライン</a></div>
     <div class="sec"><h2>プロフィールを編集</h2></div>${form(prof,false)}
     <div class="sec"><h2>そのほか</h2></div>
     <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ac-out">ログアウト</button><button class="btn btn-s" id="ac-del" style="color:var(--w2)">アカウントを削除</button></div>

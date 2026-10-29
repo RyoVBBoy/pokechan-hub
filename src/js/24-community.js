@@ -8,7 +8,7 @@ const blocked=()=>new Set(lsJ('pcblock',[]));
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const ago=ms=>{const s=Math.max(0,(Date.now()-ms)/1000);return s<60?'たった今':s<3600?`${Math.floor(s/60)}分前`:s<86400?`${Math.floor(s/3600)}時間前`:`${Math.floor(s/86400)}日前`};
 async function capi(path,body){
-  const r=await fetch(COMM_API+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
+  let r;try{r=await fetch(COMM_API+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})}catch(e){throw new Error('通信できませんでした。電波のよいところでもう一度試してください。')}
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok)throw new Error(j.error||('通信エラー（'+r.status+'）'));
   return j;
@@ -131,15 +131,16 @@ function threadView(id){
 function rulesView(){
   setHeader('コミュニティの利用ルール','#/community');
   V.innerHTML=`<div class="rules">
-  <p>対戦募集と掲示板は、だれでも匿名で書き込めます。みんなが気持ちよく使えるよう、次のルールを守ってください。</p>
+  <p>対戦募集と掲示板は、だれでも匿名で書き込めます。タイムラインは、ログインしてプロフィールを作った人が書き込めます。みんなが気持ちよく使えるよう、次のルールを守ってください。</p>
   <h3>禁止していること</h3><ul>
   <li>誹謗中傷、差別、脅し、いやがらせ</li><li>自分や他人の個人情報（本名・住所・学校・電話番号・SNSのアカウントなど）を書くこと</li>
   <li>アカウントやポケモン・ゲーム内のものの売買、代行、リアルマネートレード</li><li>不正行為（改造・チート・不正ツールなど）の紹介や勧誘</li>
   <li>わいせつな内容、出会いを目的とする書き込み</li><li>宣伝やリンクの書き込み、同じ内容のくり返し（荒らし）</li><li>法律やゲームの利用規約に反すること</li></ul>
   <h3>しくみ</h3><ul>
-  <li>NGワードやリンクを含む書き込み、20秒以内の連続書き込みはできません。</li>
+  <li>NGワードやリンクを含む書き込み、20秒以内の連続書き込みはできません（タイムラインは15秒・1日100件まで、1件140文字まで）。</li>
   <li>不適切な書き込みは「通報」してください。3人から通報されると自動的に非表示になり、運営者が確認します。</li>
-  <li>「非表示」を押すと、そのIDの書き込みをあなたの画面にだけ表示しなくなります。</li>
+  <li>「非表示」を押すと、そのIDの書き込みをあなたの画面にだけ表示しなくなります。タイムラインでは、投稿の「…」から、その人の投稿を表示しないようにできます。</li>
+  <li>タイムラインの投稿は、ログインした人3人から通報されると自動的に非表示になります。自分の投稿は「…」からいつでも削除できます。</li>
   <li>IDは、書き込んだ人のIPアドレスと日付から作られ、日が変わると変わります。</li>
   <li>対戦募集は、設定した時間が過ぎると自動で消えます。</li></ul>
   <h3>保存する情報</h3><ul>

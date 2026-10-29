@@ -14,9 +14,10 @@
 - `src/styles.css`、`src/index.html`（`__JS__`/`__CSS__` を build で置換）。
 - PC表示：700px以上で下のタブ→左のメニュー（本文600px）、1280px以上で右に「よく使う機能」（`src/styles.css` の最後・`31-desktop.js`・`index.html` の `.pc-*`/`.pcside`）。スマホ（699px以下）の見た目は変えない。
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
-- `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
+- タイムライン：サイトは `32-timeline.js`（#/tl・#/tl/following・#/u/ID・#/n/番号・#/notif）、サーバーは `worker/src/social.js`（/api/tl・/api/notes・/api/follow・/api/notifs・/api/u）。見るのはログイン不要、書くのはプロフィール作成済みの人だけ。140文字・15秒に1件・1日100件・リンク不可・ログインした人3人の通報で非表示。
+- `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認・タイムライン）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。
-- `tests/`：`node tests/run.mjs`（worker・auth・site 22画面・login＝ログイン画面の流れ・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
+- `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・login＝ログイン〜投稿の画面の流れ・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
 - `.github/workflows/deploy.yml`：push → 組み立て → テスト → Netlify（サイト）→ Cloudflare Workers（サーバー）。runs-on は `ubuntu-24.04` に固定（ubuntu-latest=26.04 は Playwright 非対応）。
 
 ### 手元で確かめる
@@ -29,7 +30,7 @@ node tests/run.mjs
 
 ## 公開先・設定
 - サイト：Netlify（自動公開。`SITE_URL` は GitHub の Variables）。
-- サーバー：Cloudflare Worker `pokechan-tap`（URL に学籍番号のようなサブドメイン `22311328rn` が入っている → 変更したい、未対応）。D1（binding `DB`）に threads/posts/lobby/reports/users。
+- サーバー：Cloudflare Worker `pokechan-tap`（URL に学籍番号のようなサブドメイン `22311328rn` が入っている → 変更したい、未対応）。D1（binding `DB`）に threads/posts/lobby/reports/users、タイムライン用に notes/follows/likes/notifs/user_state（表は初回アクセスで自動作成）。
 - 合言葉（APP_TOKEN・ADMIN_TOKEN・GEMINI_API_KEY 等）は **Cloudflare 側にだけ**置く。GitHub やチャットに書かない。ADMIN_TOKEN は APP_TOKEN と別・12文字以上。
 - ログイン：Firebase Authentication（プロジェクト `pokechan-hub`）。Google・メールリンクを有効化済み。Apple は Apple Developer 登録後。サーバーは RS256 の IDトークンを Google の公開鍵で検証（`worker/src/auth.js`）。
 - iPhone アプリは別リポジトリ `RyoVBBoy/pokechan-ios`（XcodeGen + GitHub Actions → TestFlight。Apple の承認待ち）。
@@ -43,7 +44,11 @@ node tests/run.mjs
 
 ## 次にやること（優先順）
 （済）ログインの動作確認：Google アカウントで本番サイトからログインできることを依頼主が確認（2026/10/29）。
-1. フォロー・タイムライン（投稿・いいね・通知）→ X 規模を見据えた設計（D1 のインデックス、ページング、レート制限）。
+（済）フォロー・タイムライン・いいね・お知らせ（2026/10/29 公開）。今後：
+   - 画像つき投稿（方針決定済み。notes.media 列を用意済み。保存先は Cloudflare R2 を想定、不適切画像の見回り方法も要検討）。
+   - 返信・リポスト・検索、管理画面からのアカウント停止（users.banned は用意済み、操作画面なし）。
+   - 利用者が増えたら「フォロー中」を読むとき集める方式 → 書くときに配る方式（受け取り箱）へ。
+1. （上の続き）タイムラインの改良。
 2. iPhone アプリからのログイン（WebView では Google ログイン不可 → ネイティブで）。
 3. Worker の URL から学籍番号のようなサブドメインを外す（独自ドメイン or サブドメイン変更 → サイトの `COMM_API` を更新）。
 4. お問い合わせ窓口（利用規約・プライバシーポリシーは下書き。公開前に専門家確認を推奨）。
