@@ -43,7 +43,7 @@ function editView(a){
     if(!abl.length)h+=`<option value="${cur&&cur.k||''}">${cur&&cur.n||'（データなし）'}</option>`;
     return h+abl.map(([k,hid])=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ABN[k]||k}${hid?'（隠れ特性）':''}${ABIMPL.has(k)?'':'　※計算では効果なし'}</option>`).join('')};
   V.innerHTML=`<div id="ed-root">
-  <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}</div></div></div>
+  <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></div>
   ${fresh?`<div class="bnote" style="margin:12px 16px 0">いまは<b>自動で決めた型</b>（よくある型）で計算しています。下の値を変えると、<b>あなたの育成</b>として保存され、選出アシストや模擬戦の計算に使われます。</div>`:''}
   <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}よく使われている型を入れる</button></div>
   <div class="sec"><h2>特性・持ち物</h2></div>

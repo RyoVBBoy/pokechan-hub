@@ -42,7 +42,7 @@ function cmpView(arg){
         :`<div class="cslot empty">${l}：未選択</div>`}).join('');
     const sq=cmpQ.trim();
     const l=sq?P.filter(p=>nmHit(p,sq)&&p.no!==cmp.a&&p.no!==cmp.b).slice(0,6):[];
-    document.getElementById('csg').innerHTML=l.length?l.map(p=>`<button class="row" data-no="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join(''):(sq?'<p class="empty" style="padding:16px">見つかりません。</p>':'');
+    document.getElementById('csg').innerHTML=l.length?l.map(p=>`<button class="row" data-no="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join(''):(sq?'<p class="empty" style="padding:16px">見つかりません。</p>':'');
     document.getElementById('cout').innerHTML=cmpOut();
   };
   qi.oninput=e=>{cmpQ=e.target.value;draw()};

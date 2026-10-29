@@ -51,7 +51,7 @@ function tpRender(){
   const q=tq.trim(),l=P.filter(p=>!q||nmHit(p,q)).slice(0,30);
   document.getElementById('tp').innerHTML=l.length?l.map(p=>
     `<button class="row" data-no="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit">
-      <span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}<span class="rt">${p.roles.join('・')}</span></div></div>
+      <span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}<span class="rt">${p.roles.join('・')}</span></div></div>
       <div class="row-n"><b>${p.bst}</b><span>合計</span></div></button>`).join('')
     :'<p class="empty">見つかりません。</p>';
   document.querySelectorAll('#tp [data-no]').forEach(b=>b.onclick=()=>addTeam(+b.dataset.no));
@@ -69,12 +69,12 @@ function teamRender(){
     const x=team[i],p=x&&byNo[x.no];
     return p?`<div class="tile${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
       <div class="acts"><button data-sel="${i}" class="${x.sel?'lit':''}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${SVG(I.star,15).replace('fill="none"',x.sel?'fill="currentColor"':'fill="none"')}</button><button data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,15)}</button></div>
-      <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${p.n}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div></div>`
+      <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${nm(p,{no:false})}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div></div>`
     :`<div class="tile empty">枠 ${i+1}</div>`}).join('');
   document.getElementById('tsets').innerHTML=team.length?`<div class="sec" style="padding-top:18px"><h2>育成</h2><span style="font-size:13px;color:var(--dim)">タップで編集</span></div>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
       :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（よくある型で計算中）</div>`;
-    return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
+    return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
   document.querySelectorAll('#slots .tile[data-ti]').forEach(t=>t.onclick=e=>{if(e.target.closest('button'))return;nav('#/edit/'+t.dataset.ti)});
   document.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>{
     const x=team[+b.dataset.sel];

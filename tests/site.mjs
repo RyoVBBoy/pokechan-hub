@@ -54,7 +54,7 @@ if(gs.length)fail('ニックネームからの予測: '+gs.join(' / '));
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
 await pg.keyboard.type('はっさ');await pg.waitForTimeout(150);
-const mpc=await pg.$$eval('.mp-r .row-t',x=>x.map(e=>e.textContent));
+const mpc=await pg.$$eval('.mp-r .pn-n',x=>x.map(e=>e.textContent));
 await pg.keyboard.press('Enter');await pg.waitForTimeout(400);
 const mpa=await pg.evaluate(()=>[...document.querySelectorAll('.mpick b')].map(b=>b.textContent)[1]);
 if(mpc.join()!=='ハッサム'||mpa!=='ハッサム')fail('ポケモンの絞り込み選択: '+mpc.join(',')+' → '+mpa);

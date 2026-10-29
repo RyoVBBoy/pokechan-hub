@@ -84,7 +84,7 @@ function matchMount(host,ctx){
     root.querySelectorAll('.tk').forEach(b=>{const on=opp.types.includes(b.dataset.t);b.setAttribute('aria-pressed',on);b.style.opacity=opp.types.length&&!on?'.4':'1'});
     const sq=oppQ.trim();
     const l=sq?P.filter(p=>nmHit(p,sq)).slice(0,6):[];
-    sg.innerHTML=l.length?l.map(p=>`<button class="row" data-no="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join(''):(sq?'<p class="empty" style="padding:18px">見つかりません。タイプを直接選んでください。</p>':'');
+    sg.innerHTML=l.length?l.map(p=>`<button class="row" data-no="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join(''):(sq?'<p class="empty" style="padding:18px">見つかりません。タイプを直接選んでください。</p>':'');
     const rl=getRecent();
     rc.innerHTML=!sq&&rl.length?`<h4>最近の相手</h4><div class="pills">${rl.map(n=>`<button class="pill" data-no="${n}" aria-pressed="${opp.no===n}">${byNo[n].n}</button>`).join('')}</div>`:'';
     rs.innerHTML=oppResultHTML();
@@ -185,7 +185,7 @@ document.getElementById('fab').onclick=()=>openSheet();
    monField(属性, 番号)：見えない <select>（元の処理はそのまま動く）＋ボタン。選ぶと select の change が起きる。 */
 const monRecent=()=>lsJ('pcmonrecent',[]);
 const monField=(attrs,no)=>{const p=byNo[no];return `<span class="mpick-w"><select class="sel" ${attrs} hidden>${P.map(q=>`<option value="${q.no}"${q.no===no?' selected':''}>${q.n}</option>`).join('')}</select>
-  <button type="button" class="mpick" aria-label="ポケモンを選ぶ">${p?`<span class="av">${stamp(p)}</span><b>${p.n}</b>`:'<b>ポケモンを選ぶ</b>'}<span class="mpick-s">${SVG(I.search,17)}</span></button></span>`};
+  <button type="button" class="mpick" aria-label="ポケモンを選ぶ">${p?`<span class="av">${stamp(p)}</span><span class="mpick-n">${nm(p)}</span>`:'<b>ポケモンを選ぶ</b>'}<span class="mpick-s">${SVG(I.search,17)}</span></button></span>`};
 function pickMon(cur){
   return new Promise(res=>{
     const o=document.createElement('div');o.className='psheet mpsheet';
@@ -195,7 +195,7 @@ function pickMon(cur){
     document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
     const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list');
     const done=v=>{o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
-    const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`;
+    const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`;
     const sec=t=>`<div class="mp-h">${t}</div>`;
     const draw=()=>{const t=q.value.trim();
       if(t){const hit=P.filter(p=>nmHit(p,t));

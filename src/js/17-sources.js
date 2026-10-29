@@ -107,7 +107,7 @@ function vItem(p){
         ${v.m===0?`<input class="vin vtx" data-fix="m" value="${fx.m||''}" placeholder="足りない技・余分な技">`:''}</div>
     </div>`;
   }
-  return `<div class="vitem${open?' open':''}"><button class="vh" data-open="${p.no}"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}<span class="no">#${String(p.dno).padStart(4,'0')}</span></div><div class="vst">${st}</div></div><span class="chev" style="transform:rotate(${open?90:0}deg);transition:transform .2s">${SVG(I.chev,18)}</span></button>${body}</div>`;
+  return `<div class="vitem${open?' open':''}"><button class="vh" data-open="${p.no}"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}<span class="no">#${String(p.dno).padStart(4,'0')}</span></div><div class="vst">${st}</div></div><span class="chev" style="transform:rotate(${open?90:0}deg);transition:transform .2s">${SVG(I.chev,18)}</span></button>${body}</div>`;
 }
 function vList(){
   const done=p=>{const v=verOf(p.no);return VF.every(([k])=>v[k]!==undefined)};

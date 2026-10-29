@@ -881,3 +881,15 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
 .tslots .pill[aria-pressed=true] small{color:inherit;opacity:.7}
 .tsync{display:flex;align-items:center;gap:8px;margin:4px 16px 0;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;color:var(--dim);box-shadow:inset 0 0 0 1px var(--line)}
 .tsync svg{flex:none}.tsync.ok svg{color:#00ba7c}.tsync b{color:var(--acc)}
+/* ポケモンの名前（太く大きく＋姿の札＋番号） */
+.pn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px 6px;min-width:0;vertical-align:middle}
+.pn-n{font-size:16.5px;font-weight:800;letter-spacing:.01em}
+.pn .no{font:500 11.5px Inter,sans-serif;color:var(--dim);margin-left:0}
+.pn-big .pn-n{font-size:inherit}
+.ftag{font-style:normal;font-size:11px;font-weight:800;line-height:1;padding:3px 7px;border-radius:6px;white-space:nowrap;letter-spacing:.02em}
+.ftag-mega{background:linear-gradient(120deg,#ff5d62,#ffb547 50%,#5aa9e6);color:#000}
+.ftag-reg{background:rgba(29,155,240,.18);color:#8ecbff;box-shadow:inset 0 0 0 1px rgba(29,155,240,.5)}
+.ftag-oth{background:var(--elev2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line2)}
+.pn-big .ftag{font-size:13px;padding:4px 9px}
+.tile .nm .pn{justify-content:center}.tile .nm .pn-n{font-size:13.5px}.tile .nm .ftag{font-size:10px;padding:2px 5px}
+.mpick-n{flex:1;min-width:0;overflow:hidden}.mpick-n .pn{flex-wrap:nowrap}.mpick-n .pn-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

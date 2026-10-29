@@ -100,7 +100,7 @@ function asDraw(){
   const same=A2&&A2.best.map(i=>myNos[i]).sort().join()===A.best.map(i=>myNos[i]).sort().join();
   const pct=v=>Math.round(v*100);
   const predRows=opp6.map((n,j)=>({n,j,w:PR.w[j]})).sort((a,b)=>b.w-a.w).map(x=>{const p=byNo[x.n],lead=PR.lead&&PR.lead.includes(x.j);
-    return `<div class="row" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}${lead?'<span class="atag on">先発予想</span>':''}</div>${oppSetHTML(x.n)}</div><div class="row-n"><b style="color:${x.w>=.7?'var(--w2)':x.w>=.4?'var(--fg)':'var(--mute)'}">${opp6.length>PICK()?pct(x.w)+'%':'—'}</b><span>選出予想</span></div></div>`}).join('');
+    return `<div class="row" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${lead?'<span class="atag on">先発予想</span>':''}</div>${oppSetHTML(x.n)}</div><div class="row-n"><b style="color:${x.w>=.7?'var(--w2)':x.w>=.4?'var(--fg)':'var(--mute)'}">${opp6.length>PICK()?pct(x.w)+'%':'—'}</b><span>選出予想</span></div></div>`}).join('');
   const predHTML=`<div class="sec"><h2>相手の予想</h2><span style="font-size:13px;color:var(--dim)">よくある型と選出</span></div>
   ${opp6.length>PICK()?`<p class="note" style="padding-top:0">相手から見て有利な${PICK()}匹を計算した<b>予想</b>です。いちばん可能性が高いのは <b>${pNos.map(n=>byNo[n].n).join('・')}</b>${PR.top[1]&&PR.top[1].p>PR.top[0].p*.6?'ですが、ほかの組み合わせとの差は小さく、<b>読みにくい相手</b>です':''}。</p>`:'<p class="note" style="padding-top:0">相手を${PICK()+1}匹以上入れると、相手が出してきそうな${PICK()}匹を予想します。</p>'}
   ${predRows}
@@ -156,7 +156,7 @@ function assistView(arg){
   <div id="as-res"></div></div>`;
   const q=document.getElementById('as-q'),sg=document.getElementById('as-sg');
   const sug=()=>{const t=q.value.trim();const l=t?P.filter(p=>nmHit(p,t)&&!opp6.includes(p.no)).slice(0,6):[];
-    sg.innerHTML=l.map(p=>`<button class="row" data-add="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join('')||(t?'<p class="empty" style="padding:16px">見つかりません</p>':'')};
+    sg.innerHTML=l.map(p=>`<button class="row" data-add="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join('')||(t?'<p class="empty" style="padding:16px">見つかりません</p>':'')};
   const add=n=>{if(opp6.length>=6){toast('相手は6匹までです');return}if(!opp6.includes(n)){opp6.push(n);saveOpp6()}q.value='';sug();asDraw();asFetch();q.focus()};
   q.oninput=sug;
   q.onkeydown=e=>{if(e.key==='Enter'){const f=P.find(p=>nmHit(p,q.value.trim())&&!opp6.includes(p.no));if(f)add(f.no)}};

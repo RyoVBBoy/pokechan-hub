@@ -14,7 +14,7 @@ function detail(no){
   <section class="phead"><span class="wash" style="background:${wash}"></span>
     <div style="position:relative;min-width:0">
       <span class="no">#${String(p.dno).padStart(4,'0')}</span>
-      <h2>${p.n}</h2>
+      <h2>${nm(p,{no:false,big:true})}</h2>
       <div class="chips" style="margin-top:9px">${p.t.map(chip).join('')}</div>
     </div>
     <div class="slot" id="artslot">${artHTML(p)}</div>
@@ -38,7 +38,7 @@ function detail(no){
     <p class="note" style="text-align:center">六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。</p>
     <div style="height:6px"></div>
     ${p.s.map((v,i)=>`<div class="stat"><em>${SN[i]}</em><b>${v}</b><div class="bar${i===p.mi?' top':''}"><i style="width:${Math.min(100,Math.round(v/200*100))}%"></i></div><small>${p.rank[i]}位</small></div>`).join('')}
-    ${megasOf(p.no).map(m=>`<div class="mega"><div class="mega-h"><b>${m.n}</b>${m.t.map(chip).join('')}</div>
+    ${megasOf(p.no).map(m=>`<div class="mega"><div class="mega-h">${nm(m,{no:false})}${m.t.map(chip).join('')}</div>
       <div class="mega-s">${m.s.map((v,i)=>`<span><em>${SN[i]}</em><b>${v}</b>${v!==p.s[i]?`<small class="${v>p.s[i]?'up':'dn'}">${v>p.s[i]?'+':''}${v-p.s[i]}</small>`:''}</span>`).join('')}</div>
       <div class="mega-f">特性 ${ABN[m.ab]||m.ab}${ABIMPL.has(m.ab)?'':'（計算では効果なし）'}　持ち物 ${ITEMN[m.stone]}　合計 ${m.bst}</div></div>`).join('')}
     <p class="note">右端は収録${P.length}匹の中での順位です。金色の棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
