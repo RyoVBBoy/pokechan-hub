@@ -34,6 +34,12 @@ await pg.evaluate(()=>{location.hash='#/'});await pg.waitForTimeout(300);
 if(await pg.$eval('.tgrid .ttile',a=>a.getAttribute('href')).catch(()=>'')!=='#/cmp')fail('ホームの「すぐ使う」の先頭にマイツールが出ません');
 if(!(await pg.$eval('.tb[data-k="dex"] span',s=>s.offsetWidth>10).catch(()=>false)))fail('スマホの下のメニューに名前が出ません');
 await pg.evaluate(()=>{tTogglePin('cmp')});
+// 育成画面の PiP：欄が出て、この1匹／パーティ全員のカードが作れる。「小窓」という言い方が残っていない
+await pg.evaluate(()=>{team.length=0;[445,149].forEach(no=>team.push({no}));saveTeam();location.hash='#/edit/0'});await pg.waitForTimeout(500);
+const pb=await pg.evaluate(()=>{const a=!!document.getElementById('ed-pipw');PIP.ball=false;const one=pipBuildPages().length;PIP.ball=true;const all=pipBuildPages().length;PIP.ball=false;return[a,one,all,document.body.innerText.includes('小窓')]});
+if(!pb[0]||pb[1]!==1||pb[2]!==3)fail('育成画面のPiP: '+pb.join(','));
+if(pb[3])fail('「小窓」という言い方が残っています');
+await pg.evaluate(()=>{team.length=0;saveTeam()});
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);

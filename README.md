@@ -45,16 +45,15 @@ GitHub のリポジトリ → **Settings → Secrets and variables → Actions**
 
 | 名前 | 取得する場所 |
 |---|---|
-| `NETLIFY_AUTH_TOKEN` | Netlify → 右上のアイコン → User settings → Applications → Personal access tokens → New access token |
-| `NETLIFY_SITE_ID` | Netlify → 対象サイト → Site configuration → Site details → **Site ID** |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare → 右上のアイコン → My Profile → API Tokens → Create Token → テンプレート「**Edit Cloudflare Workers**」→ 権限に「Account / **D1** / Edit」を追加して作成 |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → 右上のアイコン → My Profile → API Tokens → Create Token → テンプレート「**Edit Cloudflare Workers**」→ 権限に「Account / **D1** / Edit」を追加して作成（サイトの公開に「**Cloudflare Pages：編集**」、掲示板に「**D1：編集**」の権限も必要） |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages の画面右側にある **Account ID** |
 
 **Variables タブ（見えても困らない値）**
 
 | 名前 | 入れる値 |
 |---|---|
-| `SITE_URL` | サイトのアドレス（例：`https://xxxx.netlify.app`。最後の `/` は不要） |
+| `SITE_URL` | サイトのアドレス（例：`https://pokechan-hub.pages.dev`。最後の `/` は不要） |
+| `PAGES_PROJECT`（任意） | Cloudflare Pages のプロジェクト名（なければ `pokechan-hub`）。サイトのアドレスは `https://<この名前>.pages.dev` |
 | `D1_DATABASE_ID` | Cloudflare → Storage & Databases → D1 → 掲示板のデータベース → **Database ID** |
 | `D1_DATABASE_NAME` | 同じデータベースの名前 |
 | `WORKER_NAME` | 今のサーバーの名前（`pokechan-tap` なら入れなくてよい） |
@@ -80,7 +79,7 @@ GitHub の **Actions** タブ → 「公開（テスト→サイト→サーバ�
 ```
 npm install
 npx playwright install chromium
-SITE_URL=https://xxxx.netlify.app npm run build
+SITE_URL=https://pokechan-hub.pages.dev npm run build
 npm test
 ```
 
@@ -97,7 +96,7 @@ npm test
 3. 「Sign-in method」タブで、次の2つを有効にする。
    - **Google**：「有効にする」をオン → サポート用メールを選んで保存。
    - **メール / パスワード**：「有効にする」をオンにし、その下の「**メールリンク（パスワードなしでログイン）**」もオン → 保存。
-4. 「設定」タブ →「承認済みドメイン」→「ドメインを追加」で、サイトのドメイン（例：`pokechan-hub.netlify.app`）を追加。
+4. 「設定」タブ →「承認済みドメイン」→「ドメインを追加」で、サイトのドメイン（例：`pokechan-hub.pages.dev`）を追加。
 5. 左上の歯車 →「プロジェクトの設定」→「全般」→ 下の「マイアプリ」で **ウェブ（`</>`）** を押し、アプリ名（例：`pokechan-hub-web`）を入れて登録。
 6. 表示された `firebaseConfig` の中の `apiKey`・`authDomain`・`projectId`・`appId` の4つを、
    このリポジトリの **`config/public.json`** の同じ名前の欄に貼る（GitHub の画面で鉛筆マークから編集できます）。

@@ -1,5 +1,5 @@
 # GitHub に上げる（main に push する）と自動で実行されます：
-#   組み立て → テスト → サイトを Netlify に公開 → サーバーを Cloudflare に公開
+#   組み立て → テスト → サイトを Cloudflare Pages に公開 → サーバーを Cloudflare Workers に公開
 # テストに1つでも失敗したら、公開はしません（今の公開版はそのまま残ります）。
 name: 公開（テスト→サイト→サーバー）
 
@@ -45,25 +45,26 @@ jobs:
 
       - name: 設定の確認
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
         run: |
           miss=""
-          [ -z "$NETLIFY_AUTH_TOKEN" ] && miss="$miss NETLIFY_AUTH_TOKEN"
-          [ -z "$NETLIFY_SITE_ID" ] && miss="$miss NETLIFY_SITE_ID"
           [ -z "$CLOUDFLARE_API_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
           [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
           [ -z "$D1_DATABASE_ID" ] && miss="$miss D1_DATABASE_ID"
           if [ -n "$miss" ]; then echo "::error::GitHub の Settings で次の設定が足りません:$miss（README の手順2を見てください）"; exit 1; fi
 
-      - name: サイトを公開（Netlify）
+      # サイトは Cloudflare Pages（無料で公開の回数に実質上限なし）。アドレスは https://<PAGES_PROJECT>.pages.dev
+      # 初回だけプロジェクトを作る（すでにあれば何もしない）。合言葉（API トークン）に「Cloudflare Pages：編集」の権限が必要
+      - name: サイトを公開（Cloudflare Pages）
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        run: npx --yes netlify-cli@17 deploy --prod --dir=dist --message "GitHub ${{ github.sha }}"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.PAGES_PROJECT || 'pokechan-hub' }}
+        run: |
+          npx --yes wrangler@3 pages project create "$PAGES_PROJECT" --production-branch=main || echo "（プロジェクトはすでにあります）"
+          npx --yes wrangler@3 pages deploy dist --project-name="$PAGES_PROJECT" --branch=main --commit-dirty=true --commit-message="GitHub ${{ github.sha }}"
       - name: サーバーの設定ファイルを作る
         env:
           WORKER_NAME: ${{ vars.WORKER_NAME || 'pokechan-tap' }}

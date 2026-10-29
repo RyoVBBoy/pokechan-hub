@@ -19,7 +19,7 @@ const EN={
 'はじめは「前回開いていたゲーム」が開きます。いろいろなゲームを使う人は「このゲーム選択画面」にすると、毎回ここから選べます。':'By default, the game you used last opens. If you use several games, choose "This game picker" to pick each time.',
 '起動時の画面を変更しました':'Start screen changed',
 /* ホーム */
-'すぐ使う':'Quick access','ツール一覧':'All tools','選出':'Team Preview','ダメ計':'Damage','相性':'Matchups','流行':'Meta','比較':'Compare','パーティ診断':'Team check','小窓':'Overlay',
+'すぐ使う':'Quick access','ツール一覧':'All tools','選出':'Team Preview','ダメ計':'Damage','相性':'Matchups','流行':'Meta','比較':'Compare','パーティ診断':'Team check','PiP':'PiP',
 '模擬戦':'Practice battle','背面タップ':'Back Tap','取り込み':'Import','ルール':'Rules','出典':'Sources',
 'Lv50ステータス':'Lv. 50 stats','能力ポイント（合計66・1項目32まで）にそのまま対応した計算機つき。':'With a calculator built for stat points (66 total, up to 32 per stat).',
 '相手のタイプをタップ':'Tap the opponent\'s type','効く技がすぐ分かります':'See what hits hard instantly',
@@ -65,7 +65,7 @@ const EN={
 '最近使った':'Recently used','対戦の準備':'Battle prep','選出アシスト':'Team Preview Assistant','相手の6匹から、出すべき3匹と先発・相手の予想選出を出す':'From the opponent\'s 6, pick your best 3, your lead, and predict their picks',
 '流行のポケモンとパーティ':'Meta Pokémon & teams','シングルの使用率ランキングと、よく使われる組み合わせ':'Singles usage ranking and common combinations','ダブルの使用率ランキングと、よく使われる組み合わせ':'Doubles usage ranking and common combinations',
 'パーティの強みと弱み':'Team strengths & weaknesses','あなたのパーティの強み・弱み・警戒すべき相手をまとめて':'Your team\'s strengths, weaknesses and threats at a glance',
-'計算':'Calculators','バトル中の小窓表示':'In-battle overlay','選出・ダメージ・素早さなどのカードを動画にして、ゲームの上に小窓で浮かべる':'Float cards (picks, damage, speed) over the game as a picture-in-picture video',
+'計算':'Calculators','PiP（ピクチャ・イン・ピクチャ）':'PiP (picture-in-picture)','選出・ダメージ・素早さや育成のカードを、ゲームの上にPiPで浮かべる（バトル中・育成中）':'Float cards (picks, damage, speed, builds) over the game in PiP, in battle or while training',
 'ダメージ計算':'Damage calculator','あなたの育成やよくある型で、乱数16段階・確定数まで':'With your builds or common sets: all 16 damage rolls and KO chances',
 '相手のポケモンやタイプから、効く技と出すべきポケモン':'From the opponent\'s Pokémon or types: what hits hard and what to send in',
 'ポケモン比較':'Compare Pokémon','2匹の種族値とタイプ相性を重ねて比べる':'Overlay two Pokémon\'s base stats and matchups','練習':'Practice','技・特性つきの対戦で練習（今はダブルのみ）':'Practice battles with moves and abilities (Doubles only for now)',

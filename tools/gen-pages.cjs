@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
 const SITE_URL=(process.env.SITE_URL||'').replace(/\/$/,'');
-if(!SITE_URL){console.error('SITE_URL を指定してください（例：SITE_URL=https://xxxx.netlify.app）');process.exit(1)}
+if(!SITE_URL){console.error('SITE_URL を指定してください（例：SITE_URL=https://pokechan-hub.pages.dev）');process.exit(1)}
 
 // 検索エンジン向けの静的ページ（ポケモン別・タイプ別・一覧）を dist/ に作る
 // 使い方: node tools/build.mjs のあとで node tools/gen-pages.cjs（SITE_URL を環境変数で指定）

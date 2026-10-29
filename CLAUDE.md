@@ -12,6 +12,7 @@
 ## 仕組み
 - `src/`：サイト本体。`src/js/` は `order.json` の順につなげて1本の JS にする（古典的な script。トップレベルの const は全ファイル共通の名前空間）。最後の `99-start.js` が `route()` を呼ぶので、新しいファイルは `99-start.js` より前に追加する。
 - `src/styles.css`、`src/index.html`（`__JS__`/`__CSS__` を build で置換）。
+- PiP（ピクチャ・イン・ピクチャ）：`19-pip.js`。カードを動画にして端末の PiP で浮かべる（ゲーム中もJSが止まっても動く）。`PIP.mode`＝'battle'（選出アシスト #/assist/pip）／'build'（育成画面 #/edit/N。ゲームの育成画面で見ながら入力する用、「この1匹／パーティ全員」）。画面の言い方は「小窓」ではなく「PiP」。
 - PC表示：700px以上で下のタブ→左のメニュー（本文600px）、1280px以上で右に「よく使う機能」（`src/styles.css` の最後・`31-desktop.js`・`index.html` の `.pc-*`/`.pcside`）。スマホ（699px以下）の見た目は変えない。
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
 - ゲームの追加：`27-games.js` の `GAMES` に1件足す（`tabs`＝下/左のメニュー、`tools()`＝ツール一覧〔id・sec・href・ic・t・s(短い名前)・d〕、`quick`＝初めての人向けの「すぐ使う」、`fab`＝右下ボタンの有無）。「みんな」タブは全ゲーム共通で自動で付く。ツール画面・ホームの「すぐ使う」・PCの右の列・最近使った（`pcrecent`）・マイツール（☆、`pctools`）はゲームごとに自動で切りかわる。画面の中身（views）はゲームごとに新しいファイルで作り、`06-router.js` の表に足す。
@@ -20,7 +21,7 @@
 - `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認・タイムライン）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。
 - `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・login＝ログイン〜投稿の画面の流れ・i18n＝英語表示・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
-- `.github/workflows/deploy.yml`：push → 組み立て → テスト → Netlify（サイト）→ Cloudflare Workers（サーバー）。runs-on は `ubuntu-24.04` に固定（ubuntu-latest=26.04 は Playwright 非対応）。
+- `.github/workflows/deploy.yml`：push → 組み立て → テスト → Cloudflare Pages（サイト）→ Cloudflare Workers（サーバー）。runs-on は `ubuntu-24.04` に固定（ubuntu-latest=26.04 は Playwright 非対応）。
 
 ### 手元で確かめる
 ```
@@ -31,7 +32,8 @@ node tests/run.mjs
 ```
 
 ## 公開先・設定
-- サイト：Netlify（自動公開。`SITE_URL` は GitHub の Variables）。
+- サイト：Cloudflare Pages（プロジェクト `pokechan-hub`＝Variables の `PAGES_PROJECT` で変更可、アドレス `https://pokechan-hub.pages.dev`）。2026/10/29 に Netlify から移した（Netlify の無料枠は月20回ほどの公開で止まるため）。`SITE_URL` は GitHub の Variables。旧 Netlify のサイトは古い版のまま残っている。
+- 公開は1回ごとに数分かかる。細かい修正は、まとめて push する。
 - サーバー：Cloudflare Worker `pokechan-tap`（URL に学籍番号のようなサブドメイン `22311328rn` が入っている → 変更したい、未対応）。D1（binding `DB`）に threads/posts/lobby/reports/users、タイムライン用に notes/follows/likes/notifs/user_state（表は初回アクセスで自動作成）。
 - 合言葉（APP_TOKEN・ADMIN_TOKEN・GEMINI_API_KEY 等）は **Cloudflare 側にだけ**置く。GitHub やチャットに書かない。ADMIN_TOKEN は APP_TOKEN と別・12文字以上。
 - ログイン：Firebase Authentication（プロジェクト `pokechan-hub`）。Google・メールリンクを有効化済み。Apple は Apple Developer 登録後。サーバーは RS256 の IDトークンを Google の公開鍵で検証（`worker/src/auth.js`）。

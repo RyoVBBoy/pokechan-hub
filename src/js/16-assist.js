@@ -143,8 +143,8 @@ function assistView(arg){
   <div class="sec" style="padding-top:16px"><h2>相手の6匹</h2><span id="as-cnt" style="font:700 15px Inter,sans-serif;color:var(--dim)">${opp6.length}/6</span></div>
   <div id="as-opp"></div>
 
-  <div class="pipwrap" id="as-pipw" hidden><div class="pipt"><b>バトル中に小窓で見る</b><span class="atag on" style="margin-left:6px">β</span></div>
-  <p class="vcap" style="margin:4px 0 10px">選んだカードを動画にして、小窓としてゲームの上に浮かべます。<b>再生中は自動で次のカード、一時停止でそのカードに止まります</b>。</p>
+  <div class="pipwrap" id="as-pipw" hidden><div class="pipt"><b>バトル中にPiPで見る</b><span class="atag on" style="margin-left:6px">β</span></div>
+  <p class="vcap" style="margin:4px 0 10px">選んだカードを動画にして、PiP（ピクチャ・イン・ピクチャ）でゲームの上に浮かべます。<b>再生中は自動で次のカード、一時停止でそのカードに止まります</b>。</p>
   <div class="pipset"><div class="mx2" style="margin-bottom:6px">おすすめ</div><div class="pills" style="padding:0 0 10px"><button class="pill" data-pp="jissen">実戦</button><button class="pill" data-pp="hajime">はじめて</button></div>
   <div class="mx2" style="margin-bottom:6px">表示するカード（押した順に並びます）</div><div class="pills pcards" style="padding:0 0 10px;flex-wrap:wrap" id="pip-cards"></div>
   <div class="mx2" style="margin-bottom:6px">切り替えの間隔</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${[3,4,6,8].map(n=>`<button class="pill" data-ps="${n}">${n}秒</button>`).join('')}</div></div>
@@ -171,10 +171,11 @@ function assistView(arg){
     const ps=e.target.closest('[data-ps]');if(ps){PIP.cfg.sec=+ps.dataset.ps;pipSave();pipSetUI();pipSchedule();return}
     const h=e.target.closest('[data-hm]');if(h){asMode=h.dataset.hm;asDraw()}
   });
+  PIP.mode='battle';
   asDraw();asFetch();
   bindFmt(document.getElementById('as-root'),()=>assistView());
   if(arg==='pip')setTimeout(()=>{const w=document.getElementById('as-pipw');
-    if(w&&!w.hidden)w.scrollIntoView({behavior:'smooth',block:'start'});else toast('先に相手のポケモンを入れると、小窓が使えるようになります')},350);
+    if(w&&!w.hidden)w.scrollIntoView({behavior:'smooth',block:'start'});else toast('先に相手のポケモンを入れると、PiPが使えるようになります')},350);
 }
 
 

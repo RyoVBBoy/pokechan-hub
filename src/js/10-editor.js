@@ -61,6 +61,7 @@ function editView(a){
     <div class="natr"><span>性格</span><select class="sel" id="ed-nat">${NATS.map(([n,u,d],j)=>`<option value="${j}"${(u===ED.s.up&&d===ED.s.dn)||(u<0&&!(ED.s.up>0))?' selected':''}>${n}${u>0?`（${SN[u]}↑ ${SN[d]}↓）`:''}</option>`).join('')}</select></div>
     <p class="note" id="ed-spd"></p>
   </div>
+  ${pipBuildPanel()}
   <details class="edd"><summary>ゲームの実数値から入力する</summary>
     <p class="note" style="padding-top:6px">ゲームのステータス画面の数値（HP〜素早さ）を入れると、能力ポイントと性格を逆算します。</p>
     <div class="edgrid">${SN.map((n,i)=>`<label><span>${n}</span><input type="number" inputmode="numeric" id="ed-r${i}"></label>`).join('')}</div>
@@ -79,7 +80,7 @@ function editView(a){
     const sp=r[5],sc=o.it&&o.it.k==='choicescarf'?Math.floor(sp*1.5):0,eff=sc||sp;
     const slower=P.filter(q=>q.no!==p.no&&maxSpe(q)<eff).length,same=P.filter(q=>q.no!==p.no&&maxSpe(q)===eff).length;
     document.getElementById('ed-spd').innerHTML=`素早さ <b>${sp}</b>${sc?`（スカーフ込み <b>${sc}</b>）`:''}は、収録${P.length}匹の<b>最速</b>のうち <b>${slower}匹</b> より速いです${same?`（${same}匹と同速）`:''}。`};
-  const touch=()=>{ED.dirty=true;save();upd()};
+  const touch=()=>{ED.dirty=true;save();upd();pipSchedule()};
   SN.forEach((_,i)=>document.getElementById('ed-sp'+i).oninput=e=>{const o=ED.s,others=o.sp.reduce((a,b,j)=>j===i?a:a+b,0);
     o.sp[i]=Math.max(0,Math.min(+e.target.value,SP_CAP,SP_TOTAL-others));touch()});
   document.getElementById('ed-zero').onclick=()=>{ED.s.sp=[0,0,0,0,0,0];touch()};
@@ -101,6 +102,6 @@ function editView(a){
     ED.s={...sv,mv:top4&&top4.length?top4:[...sv.mv]};while(ED.s.mv.length<4)ED.s.mv.push(null);save();
     toast(d?'使用率の集計（championsbattledata）で最も多い型を入れました':'集計データが取れないため、自動で決めた型を入れました');editView(String(idx))};
   document.getElementById('ed-clear').onclick=()=>{const cur=team[ED.idx];if(cur){delete cur.set;saveTeam()}toast('未設定に戻しました');nav('#/team')};
-  upd();
+  upd();pipBuildBind(idx);
 }
 

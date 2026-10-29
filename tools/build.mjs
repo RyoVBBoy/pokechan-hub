@@ -34,7 +34,7 @@ fs.writeFileSync(path.join(DIST, 'index.html'), shell.replace('<script src="__JS
 const single = shell.replace('<link rel="stylesheet" href="__CSS__">', `<style>${css}</style>`).replace('<script src="__JS__"></script>', cfgTag + `<script>${js}</script>`);
 fs.writeFileSync(path.join(DIST, 'single.html'), single);
 
-// Netlify：ハッシュ付きファイルは長くキャッシュ、HTMLは毎回確認
+// _headers（Cloudflare Pages）：ハッシュ付きファイルは長くキャッシュ、HTMLは毎回確認
 fs.writeFileSync(path.join(DIST, '_headers'), `/assets/app.*
   Cache-Control: public, max-age=31536000, immutable
 /*.html

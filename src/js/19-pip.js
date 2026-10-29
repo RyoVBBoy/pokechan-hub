@@ -1,7 +1,8 @@
-/* ===================== 小窓（ピクチャ・イン・ピクチャ）で早見カード ===================== */
-/* カードを canvas に描き、動画（captureStream）にして動画の小窓機能で表示します。
-   小窓の中は操作できないため、再生／一時停止・次へ／前へボタンでカードを切り替えます。 */
-const PIP={cv:null,vid:null,page:0,pages:[],timer:null,auto:false,icons:{},ready:false};
+/* ===================== PiP（ピクチャ・イン・ピクチャ）で早見カード ===================== */
+/* カードを canvas に描き、動画にして端末の PiP 機能で画面に浮かべます。
+   PiP の中は操作できないため、再生／一時停止でカードを切り替えます。
+   mode：'battle'＝選出アシスト（バトル中に見る）、'build'＝育成画面（ゲームで育成するときに見る）。 */
+const PIP={cv:null,vid:null,page:0,pages:[],timer:null,auto:false,icons:{},ready:false,mode:'battle',bidx:0,ball:false};
 const PIP_W=600,PIP_H=750;
 function pipIcons(){
   if(PIP.ready)return Promise.resolve();
@@ -16,6 +17,7 @@ PIP.cfg=(()=>{try{const c=JSON.parse(localStorage.getItem('pcpip')||'null');if(c
 const pipSave=()=>{try{localStorage.setItem('pcpip',JSON.stringify(PIP.cfg))}catch(e){}};
 let ITJR=null;const itemJa=k=>{if(!ITJR){ITJR={};Object.entries(ITJ).forEach(([n,v])=>{if(!ITJR[v])ITJR[v]=n})}return ITJR[k]||null};
 function pipData(){
+  if(PIP.mode==='build')return pipBuildPages();
   const opp=opp6.map(n=>byNo[n]).filter(Boolean);
   let A=null;if(team.length>=4&&opp.length){try{A=analyze(team.map(x=>x.no),opp6)}catch(e){A=null}}
   const pages=[];
@@ -39,9 +41,11 @@ function pipDraw(){
   const g=PIP.cv.getContext('2d'),pg=PIP.pages[PIP.page]||PIP.pages[0];
   g.fillStyle='#000';g.fillRect(0,0,PIP_W,PIP_H);g.textBaseline='alphabetic';g.textAlign='left';
   const title=t=>{g.fillStyle='#e7e9ea';g.font=`800 36px ${FF}`;g.fillText(t,28,62)};
-  const foot=()=>{g.fillStyle='#71767b';g.font=`600 21px ${FF}`;g.textAlign='left';g.fillText(`${PIP.page+1} / ${PIP.pages.length}`,28,PIP_H-24);g.textAlign='right';g.fillText(`▶ ${PIP.cfg.sec}秒ごとに次へ　⏸ 固定`,PIP_W-28,PIP_H-24);g.textAlign='left'};
+  const foot=()=>{g.fillStyle='#71767b';g.font=`600 21px ${FF}`;g.textAlign='left';g.fillText(`${PIP.page+1} / ${PIP.pages.length}`,28,PIP_H-24);g.textAlign='right';g.fillText(L(`▶ ${PIP.cfg.sec}秒ごとに次へ　⏸ 固定`,`▶ next every ${PIP.cfg.sec}s　⏸ hold`),PIP_W-28,PIP_H-24);g.textAlign='left'};
   const need=t=>{g.fillStyle='#71767b';g.font=`700 26px ${FF}`;g.fillText(t,28,130)};
   if(!pg){foot();return}
+  if(pg.kind==='build'){pipDrawBuild(g,pg);foot();return}
+  if(pg.kind==='team'){pipDrawTeam(g,pg);foot();return}
   if(pg.kind==='type'){
     title('タイプ相性　技→ばつぐんの相手');
     const rh=(PIP_H-130)/18;
@@ -136,7 +140,7 @@ function pipDraw(){
   foot();
 }
 function pipGo(d){PIP.page=(PIP.page+d+PIP.pages.length)%PIP.pages.length;pipDraw()}
-/* ---- 動画ファイル（MP4）を作って、端末標準の小窓で表示 ----
+/* ---- 動画ファイル（MP4）を作って、端末標準の PiP で表示 ----
    カード1枚＝4秒の動画を作り、ループ再生します。再生中は自動で次のカードへ、一時停止でそのカードに止まります。
    JavaScriptが止められても（ゲーム中でも）動画の機能だけで動きます。 */
 const PIP_CFG={mux:'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.js'};
@@ -151,9 +155,9 @@ function pipSetUI(){
 }
 function pipUI(){
   pipSetUI();
-  const b=document.getElementById('as-pip'),m=document.getElementById('pip-msg');if(!b)return;
+  const b=document.getElementById(PIP.mode==='build'?'ed-pip':'as-pip'),m=document.getElementById('pip-msg');if(!b)return;
   b.disabled=PIP.state!=='ready';
-  b.textContent=PIP.state==='building'?'カードを準備中…':PIP.state==='fail'?'この端末では作れませんでした':'小窓で表示';
+  b.textContent=PIP.state==='building'?L('カードを準備中…','Preparing cards…'):PIP.state==='fail'?L('この端末では作れませんでした','Not supported on this device'):L('PiPで表示','Show in PiP');
   if(m&&PIP.state==='fail')m.textContent='動画を作れませんでした：'+(PIP.err||'')+'。iOS 16.4以降のSafari、またはパソコンのChromeでお試しください。';
 }
 async function pipEncodeWC(){
@@ -185,8 +189,8 @@ async function pipEncodeRec(){
 let pipT=null;
 function pipSchedule(){clearTimeout(pipT);pipT=setTimeout(pipBuild,500)}
 async function pipBuild(){
-  if(!opp6.length)return;
-  const sig=JSON.stringify([opp6,team.map(x=>x.no),Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).length,PIP.cfg]);
+  if(PIP.mode==='battle'&&!opp6.length)return;
+  const sig=PIP.mode==='build'?JSON.stringify(['build',PIP.bidx,PIP.ball,team,PIP.cfg.sec]):JSON.stringify([opp6,team.map(x=>x.no),Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).length,PIP.cfg]);
   if(PIP.sig===sig&&(PIP.state==='ready'||PIP.state==='building'))return;
   PIP.sig=sig;PIP.state='building';pipUI();
   try{
@@ -205,18 +209,87 @@ async function pipBuild(){
   }catch(e){PIP.state='fail';PIP.err=e.message||String(e)}
   pipUI();
 }
-/* ボタンを押した瞬間に小窓を頼む（待ち時間を挟むとiPhoneが許可しないため） */
+/* ボタンを押した瞬間に PiP を頼む（待ち時間を挟むとiPhoneが許可しないため） */
 function pipStart(){
   const msg=t=>{const el=document.getElementById('pip-msg');if(el)el.textContent=t};
   if(PIP.state!=='ready'){pipBuild();return}
   const v=PIP.vid;const p=v.play();if(p&&p.catch)p.catch(()=>{});
   try{
-    if(v.webkitSupportsPresentationMode&&v.webkitSupportsPresentationMode('picture-in-picture')&&!v.requestPictureInPicture){v.webkitSetPresentationMode('picture-in-picture');msg(`小窓で表示中です。再生中は${SEG_()}秒ごとに次のカード、一時停止でそのカードに止まります。`);return}
-    if(v.requestPictureInPicture){v.requestPictureInPicture().then(()=>msg(`小窓で表示中です。再生中は${SEG_()}秒ごとに次のカード、一時停止でそのカードに止まります。ホームやゲームに切り替えても残ります。`)).catch(e=>{
+    if(v.webkitSupportsPresentationMode&&v.webkitSupportsPresentationMode('picture-in-picture')&&!v.requestPictureInPicture){v.webkitSetPresentationMode('picture-in-picture');msg(L(`PiPで表示中です。再生中は${SEG_()}秒ごとに次のカード、一時停止でそのカードに止まります。`,`Showing in PiP. While playing it moves to the next card every ${SEG_()}s; pause to hold a card.`));return}
+    if(v.requestPictureInPicture){v.requestPictureInPicture().then(()=>msg(L(`PiPで表示中です。再生中は${SEG_()}秒ごとに次のカード、一時停止でそのカードに止まります。ホームやゲームに切り替えても残ります。`,`Showing in PiP. While playing it moves to the next card every ${SEG_()}s; pause to hold a card. It stays when you switch to the game.`))).catch(e=>{
       if(v.webkitSupportsPresentationMode&&v.webkitSupportsPresentationMode('picture-in-picture')){try{v.webkitSetPresentationMode('picture-in-picture');return}catch(_){}}
-      msg('小窓を開けませんでした（'+(e.name||e.message||e)+'）。下の動画の右上にある「小窓」アイコンを押して開いてください。')});return}
-    msg('このブラウザは小窓表示に対応していません。下の動画を再生して使ってください。');
-  }catch(e){msg('小窓を開けませんでした（'+(e.message||e)+'）。下の動画の「小窓」アイコンからも開けます。')}
+      msg(L('PiPを開けませんでした（','Could not open PiP (')+(e.name||e.message||e)+L('）。下の動画の右上にある「PiP」アイコンを押して開いてください。','). Use the PiP icon on the video below.'))});return}
+    msg(L('このブラウザはPiPに対応していません。下の動画を再生して使ってください。','This browser does not support PiP. Play the video below instead.'));
+  }catch(e){msg(L('PiPを開けませんでした（','Could not open PiP (')+(e.message||e)+L('）。下の動画の「PiP」アイコンからも開けます。','). You can also use the PiP icon on the video below.'))}
 }
 
 
+
+/* ---- 育成カード（育成画面から。ゲームの育成画面で見ながら入力する用） ---- */
+function pipMember(i){
+  const x=team[i],p=x&&byNo[x.no];if(!p)return null;
+  const auto=!(x.set&&x.set.sp),s=auto?setToSaved(p,mySetFor(p.no)):x.set;
+  return{p,s,auto,st:calcStats(p,s.sp,s.up,s.dn)};
+}
+function pipBuildPages(){
+  const idx=team[PIP.bidx]?PIP.bidx:0,order=[idx,...team.map((_,i)=>i).filter(i=>i!==idx)];
+  const list=(PIP.ball?order:[idx]).map(i=>({kind:'build',m:pipMember(i),i})).filter(x=>x.m);
+  if(PIP.ball&&list.length>1)list.push({kind:'team',ms:order.map(pipMember).filter(Boolean)});
+  return list;
+}
+const pipAb=s=>s.ab?(ABN[s.ab.k]||s.ab.n||''):'';
+const pipIt=s=>s.it?(ITEMN[s.it.k]||s.it.n||''):L('なし','None');
+const pipMv=m=>m?(m.id===182?L('まもる','Protect'):mName(m.id)||m.n||''):'';
+const pipNat=s=>s.up>0&&s.dn>0?`${(NATS.find(n=>n[1]===s.up&&n[2]===s.dn)||[''])[0]}（${SN[s.up]}↑ ${SN[s.dn]}↓）`:L('補正なし','Neutral');
+function pipDrawBuild(g,pg){
+  const {p,s,auto,st}=pg.m;
+  p.t.forEach((t,k)=>tIcon(g,t,28+k*56,26,50));
+  g.fillStyle='#e7e9ea';fitTxt(g,p.n,28+p.t.length*56+10,68,PIP_W-200-p.t.length*56,46,800);
+  g.textAlign='right';g.fillStyle=auto?'#ffd400':'#1d9bf0';g.font=`800 22px ${FF}`;g.fillText(auto?L('おまかせの型','Auto set'):L('あなたの育成','Your build'),PIP_W-28,62);g.textAlign='left';
+  const kv=(k,v,y)=>{g.fillStyle='#71767b';g.font=`700 22px ${FF}`;g.fillText(k,28,y);g.fillStyle='#e7e9ea';fitTxt(g,v||'—',150,y,PIP_W-178,27,800)};
+  kv(L('持ち物','Item'),pipIt(s),122);kv(L('特性','Ability'),pipAb(s),162);kv(L('性格','Nature'),pipNat(s),202);
+  /* 能力ポイント（ゲームで入れる数）を大きく */
+  const top=222,rh=52;
+  g.fillStyle='#71767b';g.font=`700 20px ${FF}`;g.fillText(L('能力','Stat'),28,top+20);g.textAlign='center';g.fillText(L('能力ポイント','Points'),300,top+20);g.fillText(L('Lv50の数値','Lv. 50'),490,top+20);g.textAlign='left';
+  SN.forEach((n,i)=>{const y=top+32+i*rh,up=s.up===i,dn=s.dn===i;
+    rr(g,20,y,PIP_W-40,rh-8,12);g.fillStyle=i%2?'#0b0c0e':'#16181c';g.fill();
+    g.fillStyle=up?'#ff8a7a':dn?'#7ab8ff':'#e7e9ea';g.font=`800 26px ${FF}`;g.fillText(n+(up?' ↑':dn?' ↓':''),36,y+rh*.6);
+    const v=s.sp[i]||0;rr(g,240,y+6,120,rh-20,10);g.fillStyle=v?'#1d9bf0':'#202327';g.fill();
+    g.fillStyle=v?'#fff':'#71767b';g.textAlign='center';g.font=`800 32px Inter,${FF}`;g.fillText(String(v),300,y+rh*.66);
+    g.fillStyle='#e7e9ea';g.font=`800 30px Inter,${FF}`;g.fillText(String(st[i]),490,y+rh*.64);g.textAlign='left'});
+  const left=SP_TOTAL-s.sp.reduce((a,b)=>a+b,0);
+  g.fillStyle=left?'#ffd400':'#71767b';g.font=`700 20px ${FF}`;g.fillText(left?L(`能力ポイント 残り${left}`,`${left} stat points left`):L(`能力ポイント 合計${SP_TOTAL}`,`Stat points total ${SP_TOTAL}`),28,top+32+6*rh+20);
+  /* 技 */
+  const my=top+32+6*rh+34,mv=[0,1,2,3].map(k=>pipMv(s.mv&&s.mv[k]));
+  mv.forEach((n,k)=>{const x=20+(k%2)*((PIP_W-40)/2),y=my+Math.floor(k/2)*46;rr(g,x+2,y,(PIP_W-40)/2-4,40,10);g.fillStyle='#16181c';g.fill();
+    g.fillStyle=n?'#e7e9ea':'#5b6167';fitTxt(g,n||'—',x+16,y+28,(PIP_W-40)/2-30,23,700)});
+}
+function pipDrawTeam(g,pg){
+  g.fillStyle='#e7e9ea';g.font=`800 36px ${FF}`;g.fillText(L('パーティの育成','Team builds'),28,62);
+  const rh=Math.min(104,(PIP_H-140)/pg.ms.length);
+  pg.ms.forEach((m,k)=>{const y=86+k*rh;
+    g.strokeStyle='#2f3336';g.lineWidth=2;g.beginPath();g.moveTo(20,y+rh-6);g.lineTo(PIP_W-20,y+rh-6);g.stroke();
+    m.p.t.forEach((t,q)=>tIcon(g,t,28+q*32,y+6,28));
+    g.fillStyle='#e7e9ea';fitTxt(g,m.p.n,100,y+30,230,28,800);
+    g.fillStyle='#c4c9cc';g.textAlign='right';fitTxt(g,pipIt(m.s),PIP_W-28,y+30,220,20,700);g.textAlign='left';
+    g.fillStyle='#1d9bf0';fitTxt(g,m.s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join(' ')||L('ポイントなし','No points'),28,y+64,PIP_W-56,24,800);
+    g.fillStyle='#71767b';fitTxt(g,pipNat(m.s),28,y+92,PIP_W-56,19,600)});
+}
+/* 育成画面に置く PiP の欄 */
+function pipBuildPanel(){
+  return `<div class="pipwrap" id="ed-pipw"><div class="pipt"><b>${L('PiPで見ながらゲームで育成','Build in the game with PiP')}</b><span class="atag on" style="margin-left:6px">β</span></div>
+  <p class="vcap" style="margin:4px 0 10px">${L('ここで作った育成を<b>PiP（ピクチャ・イン・ピクチャ）</b>で画面に浮かべたまま、ゲームの育成画面に切り替えて入力できます。スクショを撮って行き来する必要はありません。値を変えると、数秒でPiPの中身も新しくなります。','Float this build in <b>PiP (picture-in-picture)</b> and switch to the game to enter it — no screenshots needed. Changes here update the PiP within a few seconds.')}</p>
+  <div class="pills" style="padding:0 0 10px"><button class="pill" data-pball="0" aria-pressed="${!PIP.ball}">${L('この1匹','This Pokémon')}</button><button class="pill" data-pball="1" aria-pressed="${PIP.ball}">${L('パーティ全員','Whole team')}</button></div>
+  <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="ed-pip" disabled>${L('カードを準備中…','Preparing cards…')}</button></div>
+  <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>`;
+}
+function pipBuildBind(idx){
+  PIP.mode='build';PIP.bidx=idx;
+  const w=document.getElementById('ed-pipw');if(!w)return;
+  {const bx=document.getElementById('pip-box');if(bx&&PIP.vid&&!bx.contains(PIP.vid))bx.appendChild(PIP.vid)}
+  w.addEventListener('click',e=>{
+    if(e.target.closest('#ed-pip')){pipStart();return}
+    const b=e.target.closest('[data-pball]');if(b){PIP.ball=b.dataset.pball==='1';w.querySelectorAll('[data-pball]').forEach(x=>x.setAttribute('aria-pressed',x===b));pipSchedule()}
+  });
+  pipUI();pipSchedule();
+}
