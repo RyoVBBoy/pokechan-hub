@@ -961,3 +961,9 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .t-sel.lit{background:var(--gold);color:#000;border-top-color:var(--gold)}
 .t-sel:active{filter:brightness(.92)}
 .tile.empty{justify-content:center;padding:6px}
+/* 選出のアドバイス */
+.adv{margin:8px 16px;padding:12px 14px;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)}
+.adv b{display:block;font-size:14.5px;line-height:1.5}
+.adv p{margin:4px 0 0;font-size:13.5px;line-height:1.7;color:var(--dim)}
+.adv-warn{box-shadow:inset 3px 0 0 var(--w2),inset 0 0 0 1px var(--line)}
+.adv-tip{box-shadow:inset 3px 0 0 var(--acc),inset 0 0 0 1px var(--line)}

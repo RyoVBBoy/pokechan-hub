@@ -80,6 +80,13 @@ const tb=await pg.evaluate(()=>[scrY()>0,window.scrollY,Math.round(document.quer
 if(!(ts[0]>=40&&ts[1]>=90&&ts[2]===true&&ts[3]==='#/team'))fail('選出ボタン: '+ts.join());
 if(!(tb[0]&&tb[1]===0&&tb[2]===tb[3]))fail('スクロールと下のメニュー: '+tb.join());
 await pg.evaluate(()=>{scrTo(0,0);team.length=0;saveTeam()});
+// 選出アシスト：相手とパーティを入れると「選出のアドバイス」が出る（ペリッパー→天気、カイリュー→受けられない技など）
+await pg.evaluate(()=>{team.length=0;[445,149,248,6,9,94].forEach(no=>team.push({no,sel:false}));saveTeam();
+  opp6.length=0;['カイリュー','ガオガエン','ブリムオン','ペリッパー','メタグロス','ドドゲザン'].forEach(n=>{const p=P.find(q=>q.n===n);if(p)opp6.push(p.no)});saveOpp6();location.hash='#/assist'});
+await pg.waitForTimeout(1200);
+const adv=await pg.evaluate(()=>[...document.querySelectorAll('.adv b')].map(e=>e.textContent));
+if(!(adv.length>=2&&adv.some(t=>/ペリッパー/.test(t))))fail('選出のアドバイス: '+adv.join(' / '));
+await pg.evaluate(()=>{opp6.length=0;saveOpp6();team.length=0;saveTeam()});
 // 明るい画面：端末がライトモードなら明るい色、ダークモードなら暗い色
 await pg.emulateMedia({colorScheme:'light'});await pg.waitForTimeout(200);
 const lt=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);

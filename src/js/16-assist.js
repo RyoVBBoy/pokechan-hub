@@ -120,6 +120,7 @@ function asDraw(){
   <p class="note">この${A.best.length}匹で、相手${A.O.length}匹のうち<b>${covered}匹</b>に推定50%以上のダメージを与えられます。${opp6.length>PICK()?'相手が<b>出してきそうなポケモンほど重く見て</b>選んでいます。':''}</p>
   ${FMT==='double'?`<div class="btns"><button class="btn btn-p" id="as-sim" ${opp6.length<4?'disabled':''}>${SVG(I.zap,17)}この選出で模擬戦</button></div>`:''}
   ${FMT==='double'&&opp6.length<4?'<p class="note" style="padding-top:0">模擬戦は相手を4匹以上入れると使えます。</p>':''}
+  ${asAdviceHTML(A,PR)}
   ${predHTML}
   <div class="sec"><h2>警戒する相手</h2></div>${thr}
   <div class="sec"><h2>ダメージの目安</h2></div>
