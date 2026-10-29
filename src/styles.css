@@ -857,3 +857,6 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
   .pcs-t small{display:-webkit-box!important;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
   .pcs-box a.pcs-more{color:var(--acc);font-size:15px}
 }
+/* 取り込み：ニックネームのときの予測 */
+.imgs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px;padding:8px 10px;border-radius:10px;background:rgba(29,155,240,.08);font-size:13px;color:var(--dim);line-height:1.5}
+.imgs b{color:var(--acc)}.imgs span{margin-left:4px}.imgs .pill{padding:4px 12px;font-size:13px}

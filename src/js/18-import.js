@@ -98,15 +98,42 @@ function solveRobust(p,sl){
   if(best){sl.vals=best.v;sl.fixed=best.i;return best.r}
   return null;
 }
+/* ---- ニックネームでも当てる：名前以外の手がかりから、いちばん当てはまるポケモンを予測 ----
+   手がかり（強い順）：①実数値が種族値と計算で合うか ②技を覚えられるか ③特性を持てるか ④メガストーン ⑤読めた名前の似かた */
+function imCanSolve(p,sl){
+  if(!sl.vals||sl.vals.filter(v=>v>0).length<5)return null;
+  const hp=sl.vals[0]-p.s[0]-75;if(sl.vals[0]>0&&(hp<0||hp>32))return false;
+  return !!solveRobust(p,{vals:[...sl.vals],spr:sl.spr||[],alt:sl.alt,spalt:sl.spalt});
+}
+function imGuess(sl){
+  const mvs=(sl.mv||[]).filter(m=>m&&m.id),it=sl.it&&sl.it.k,abT=sl.abRaw&&kkey(sl.abRaw)?sl.abRaw:null,nmT=kkey(sl.nameRaw)?sl.nameRaw:null;
+  const sc=P.map(p=>{let s=0;const why=[];
+    const st=imCanSolve(p,sl);if(st===true){s+=6;why.push('実数値')}else if(st===false)s-=6;
+    const ls=LSD[p.no];if(ls&&mvs.length){let ok=0;mvs.forEach(m=>{if(m.id===182||m.id===197||ls[1].includes(m.id)){s+=1.5;ok++}else s-=2});if(ok)why.push(`技${ok}つ`)}
+    if(abT&&ABD[p.no]){const own=ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]);const a=own.length?fuzzy(abT,own):null;
+      if(a&&a.sc>=.6){s+=2.5*a.sc;why.push('特性')}else s-=1}
+    if(it&&isStone(it)){if(itemFor(p.no,it)){s+=4;why.push('メガストーン')}else s-=4}
+    if(nmT){const n=fuzzy(nmT,[[p.ja||p.n,p.no]]);if(n&&n.sc>.3)s+=3*(n.sc-.3)}
+    return{no:p.no,s,why}}).sort((a,b)=>b.s-a.s);
+  return sc;
+}
 /* ---- 取り込み画面 ---- */
 let IM=null;
 function imResolve(sl){
+  if(sl.mvRaw&&!sl.mv)sl.mv=sl.mvRaw.map(t=>{const a=fuzzy(t,mvC());return a&&a.sc>=.45?{n:a.name,id:a.val,c:a.sc}:{n:t.replace(/\s/g,''),id:null,c:0}});
+  if(sl.itRaw!=null&&sl.it==null){const a=fuzzy(sl.itRaw,IT_C);sl.it=a&&a.sc>=.45?{n:a.name,k:a.val,c:a.sc}:{n:sl.itRaw.replace(/\s/g,''),k:null,c:0}}
   const m=sl.noFix?{val:sl.noFix,sc:1,name:byNo[sl.noFix]?byNo[sl.noFix].n:(SPXM[sl.noFix]||[])[1]}:fuzzy(sl.nameRaw,MON_C());
-  sl.no=m&&m.sc>=.45?m.val:null;sl.nameConf=m?m.sc:0;const p=sl.no?ensureMon(sl.no):null;
+  sl.no=m&&m.sc>=.45?m.val:null;sl.nameConf=m?m.sc:0;sl.guess=null;
+  /* 名前で決まらない・名前のポケモンが数値と合わないときは、ほかの手がかりから予測する */
+  if(!sl.noFix){
+    const g=imGuess(sl),top=g[0],byName=sl.no&&g.find(x=>x.no===sl.no);
+    const nameOk=sl.no&&sl.nameConf>=.75&&byName&&byName.s>=top.s-1;
+    if(!nameOk&&top&&top.s>=3){sl.no=top.no;sl.nameConf=Math.min(.95,.5+(top.s-(g[1]?g[1].s:0))/10);
+      sl.guess={why:top.why,alts:g.slice(1,4).filter(x=>x.s>=top.s-4).map(x=>x.no)}}
+  }
+  const p=sl.no?ensureMon(sl.no):null;
   if(sl.abRaw!=null&&sl.ab==null){const own=p&&ABD[p.no]?ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]):[];
     let a=own.length?fuzzy(sl.abRaw,own):null;if(!a||a.sc<.5)a=fuzzy(sl.abRaw,AB_C);sl.ab=a&&a.sc>=.45?{n:a.name,k:a.val,c:a.sc}:{n:kkey(sl.abRaw)?sl.abRaw.replace(/\s/g,''):'',k:null,c:0}}
-  if(sl.itRaw!=null&&sl.it==null){const a=fuzzy(sl.itRaw,IT_C);sl.it=a&&a.sc>=.45?{n:a.name,k:a.val,c:a.sc}:{n:sl.itRaw.replace(/\s/g,''),k:null,c:0}}
-  if(sl.mvRaw&&!sl.mv)sl.mv=sl.mvRaw.map(t=>{const a=fuzzy(t,mvC());return a&&a.sc>=.45?{n:a.name,id:a.val,c:a.sc}:{n:t.replace(/\s/g,''),id:null,c:0}});
   sl.fixed=null;sl.solve=p&&sl.vals?solveRobust(p,sl):null;
 }
 function imCard(sl,i){
@@ -116,6 +143,7 @@ function imCard(sl,i){
   return `<div class="imc" data-i="${i}">
    <div class="imh"><span class="av">${p?stamp(p):''}</span><div style="flex:1;min-width:0"><input class="imi${p?w(sl.nameConf):' bad'}" data-f="name" list="dl-mon" value="${p?p.n:sl.nameRaw.replace(/\s/g,'')}" aria-label="ポケモン名">
    <div class="chips">${p?p.t.map(chip).join(''):''}${p&&p.ext?'<span class="rt">図鑑に未収録（取り込みのみ対応）</span>':''}</div></div>${st}</div>
+   ${sl.guess?`<div class="imgs"><b>予測</b> ${L('名前だけでは決まらないため、','Name alone was not enough — guessed from ')}${esc(sl.guess.why.join('・'))}${L('から予測しました（ニックネーム・フォルム違いなど）。',' (nickname, form, etc.).')}${sl.guess.alts.length?`<span>${L('ほかの候補','Other candidates')}：</span>${sl.guess.alts.map(n=>`<button class="pill" data-alt="${n}">${esc(byNo[n].n)}</button>`).join('')}`:''}</div>`:''}
    ${sl.ab?`<div class="imr"><span>特性</span><input class="imi${w(sl.ab.c)}" data-f="ab" list="dl-ab" value="${sl.ab.n}"></div>`:''}
    ${sl.it?`<div class="imr"><span>持ち物</span><input class="imi${w(sl.it.c)}" data-f="it" list="dl-it" value="${sl.it.n}">${sl.it.k&&!ITEMN[sl.it.k]?'<em>模擬戦では効果なし</em>':''}</div>`:''}
    ${sl.mv?sl.mv.map((m,k)=>`<div class="imr"><span>技${k+1}</span><input class="imi${w(m.c)}" data-f="mv${k}" list="dl-mv" value="${m.n}">${m.id?`<div class="imtag">${tagHTML(m.id)}</div>`:''}${sup(m)}</div>`).join(''):''}
@@ -183,7 +211,8 @@ function importView(){
     else if(f.startsWith('mv')){const id=MVJ[v.normalize('NFKC')];sl.mv[+f.slice(2)]={n:v,id:id||null,c:id?1:0}}
     imDraw();
   });
-  root.addEventListener('click',e=>{if(e.target.closest('#im-save'))imSave()});
+  root.addEventListener('click',e=>{if(e.target.closest('#im-save'))imSave();
+    const a=e.target.closest('[data-alt]');if(a&&IM){const sl=IM.slots[+a.closest('.imc').dataset.i];sl.noFix=+a.dataset.alt;sl.ab=null;imResolve(sl);imDraw()}});
   if(IM)imDraw();
 }
 /* 取り込んだ型を、模擬戦・選出アシスト用の型に変換 */

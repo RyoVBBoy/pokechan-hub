@@ -40,6 +40,16 @@ const pb=await pg.evaluate(()=>{const a=!!document.getElementById('ed-pipw');PIP
 if(!pb[0]||pb[1]!==1||pb[2]!==3)fail('育成画面のPiP: '+pb.join(','));
 if(pb[3])fail('「小窓」という言い方が残っています');
 await pg.evaluate(()=>{team.length=0;saveTeam()});
+// 画像から取り込む：ニックネームでも、実数値・技・特性・メガストーンから正しいポケモンを予測する
+const gs=await pg.evaluate(()=>{const mk=(no,sp,up,dn)=>calcStats(byNo[no],sp,up,dn);
+  const cs=[[{nameRaw:'ちょんぼ',vals:mk(445,[2,32,0,0,0,32],1,3),spr:[2,32,0,0,0,32],mvRaw:['じしん','げきりん','ストーンエッジ','まもる'],abRaw:'さめはだ'},445],
+    [{nameRaw:'ポチ',vals:mk(445,[2,32,0,0,0,32],1,3),spr:[2,32,0,0,0,32]},445],
+    [{nameRaw:'りゅうくん',mvRaw:['しんそく','げきりん','じしん','はねやすめ'],abRaw:'マルチスケイル'},149],
+    [{nameRaw:'ああああ',mvRaw:['じしん','かみくだく','ストーンエッジ','まもる'],abRaw:'すなおこし',itRaw:'バンギラスナイト'},248],
+    [{nameRaw:'ガブリアス'},445],
+    [{nameRaw:'カイリュ',vals:mk(445,[2,32,0,0,0,32],1,3),spr:[2,32,0,0,0,32],mvRaw:['じしん','げきりん','ストーンエッジ','まもる']},445]];
+  return cs.map(([sl,want])=>{sl={pos:0,...sl};imResolve(sl);return sl.no===want?'':`${sl.nameRaw}→${sl.no}`}).filter(Boolean)});
+if(gs.length)fail('ニックネームからの予測: '+gs.join(' / '));
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);
