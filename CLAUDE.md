@@ -15,7 +15,7 @@
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
 - `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。
-- `tests/`：`node tests/run.mjs`（worker・auth・site 22画面・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
+- `tests/`：`node tests/run.mjs`（worker・auth・site 22画面・login＝ログイン画面の流れ・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
 - `.github/workflows/deploy.yml`：push → 組み立て → テスト → Netlify（サイト）→ Cloudflare Workers（サーバー）。runs-on は `ubuntu-24.04` に固定（ubuntu-latest=26.04 は Playwright 非対応）。
 
 ### 手元で確かめる

@@ -18,7 +18,7 @@ function transit(dir,y){
   if(reduceMotion){run();return}
   if(document.startViewTransition){
     document.documentElement.dataset.dir=dir;
-    try{const t=document.startViewTransition(run);t.finished.finally(()=>{delete document.documentElement.dataset.dir})}catch(e){run()}
+    try{const t=document.startViewTransition(run);t.ready.catch(()=>{});t.finished.catch(()=>{}).finally(()=>{delete document.documentElement.dataset.dir})}catch(e){run()}
   }else{
     run();V.classList.remove('vt-fallback','fwd','back');void V.offsetWidth;V.classList.add('vt-fallback');if(dir==='fwd'||dir==='back')V.classList.add(dir);
   }
