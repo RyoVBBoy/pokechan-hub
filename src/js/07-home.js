@@ -27,7 +27,7 @@ function home(){
 
   <div class="sec"><h2>もっと使う</h2></div>
   <a class="row" href="#/tools"><div class="row-m"><div class="row-t">ツール</div><div class="row-s">選出アシスト・ダメージ計算・流行パーティ・相性・模擬戦など</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
-  <a class="row" href="#/community"><div class="row-m"><div class="row-t">みんな</div><div class="row-s">タイムライン・対戦募集・掲示板</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
+  <a class="row" href="#/community"><div class="row-m"><div class="row-t">コミュニティ</div><div class="row-s">タイムライン・対戦募集・掲示板</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
   V.querySelectorAll('.tk').forEach(b=>b.onclick=()=>openSheet({types:[b.dataset.t]}));
   document.getElementById('h-m').onclick=()=>openSheet();
   V.querySelectorAll('[data-sort]').forEach(a=>a.onclick=()=>{dq={q:'',type:'',sort:a.dataset.sort,role:''}});

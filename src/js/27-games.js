@@ -2,7 +2,7 @@
    GAMES に追加していけば、ゲーム選択画面・切り替えシートに自動で並ぶ。
    利用者は「マイゲーム」をピン留めし、「起動したときに開く画面」を選べる。
    ゲームごとに持つもの：
-     tabs  … 下のメニュー（左のメニュー）。最後に共通の「みんな」が自動で付く
+     tabs  … 下のメニュー（左のメニュー）。最後に共通の「コミュニティ」が自動で付く
      tools … ツール一覧に並ぶもの（ツール画面・ホームの「すぐ使う」・最近使った、に使う）
      fab   … 右下の丸いボタン（ポケチャンは「相性を調べる」）。無いゲームは出さない */
 I.target='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>';
@@ -36,7 +36,7 @@ const GAMES=[
     ]},
   {id:'efootball',name:'eFootball',short:'イーフト',home:null,status:'soon',color:'#1d9bf0',desc:'育成・スカッド作成など（準備中）'}
 ];
-const COMMON_TAB=['community',I.chat,'みんな'];
+const COMMON_TAB=['community',I.chat,'コミュニティ'];
 const BRAND={logo:null}; /* ロゴ画像のURLを入れると、左上の丸の中に表示される（例：'img/logo.png'） */
 const gpGet=()=>{const d={pins:['pokechamp'],start:'last',last:'pokechamp'};try{return{...d,...JSON.parse(localStorage.getItem('pcgames')||'{}')}}catch(e){return d}};
 const gpSet=o=>{try{localStorage.setItem('pcgames',JSON.stringify({...gpGet(),...o}))}catch(e){}};

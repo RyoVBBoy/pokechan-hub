@@ -1,5 +1,5 @@
 /* ===================== タイムライン（投稿・フォロー・いいね・お知らせ） =====================
-   #/tl（みんな）・#/tl/following（フォロー中）・#/u/ユーザーID（プロフィール）・#/n/投稿番号・#/notif（お知らせ）
+   #/tl（みんなの投稿）・#/tl/following（フォロー中）・#/u/ユーザーID（プロフィール）・#/n/投稿番号・#/notif（お知らせ）
    見るのはログインなしでもできる。投稿・いいね・フォローはログインしてプロフィールを作った人だけ。
    サーバー側は worker/src/social.js。 */
 I.heart='<path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/>';
@@ -152,7 +152,7 @@ async function notifView(){
     if(j.notifs.some(n=>n.id>j.seen))authFetch('/api/notifs/seen',{}).then(()=>notifBadge(0)).catch(()=>{});
   }catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
 }
-/* 未読のお知らせの数を「みんな」タブに出す（ログインしたことがある端末だけ、1分ごと） */
+/* 未読のお知らせの数を「コミュニティ」タブに出す（ログインしたことがある端末だけ、1分ごと） */
 let notifN=0;
 function notifBadge(n){
   notifN=n;
