@@ -15,10 +15,11 @@
 - PC表示：700px以上で下のタブ→左のメニュー（本文600px）、1280px以上で右に「よく使う機能」（`src/styles.css` の最後・`31-desktop.js`・`index.html` の `.pc-*`/`.pcside`）。スマホ（699px以下）の見た目は変えない。
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
 - ゲームの追加：`27-games.js` の `GAMES` に1件足す（`tabs`＝下/左のメニュー、`tools()`＝ツール一覧〔id・sec・href・ic・t・s(短い名前)・d〕、`quick`＝初めての人向けの「すぐ使う」、`fab`＝右下ボタンの有無）。「みんな」タブは全ゲーム共通で自動で付く。ツール画面・ホームの「すぐ使う」・PCの右の列・最近使った（`pcrecent`）・マイツール（☆、`pctools`）はゲームごとに自動で切りかわる。画面の中身（views）はゲームごとに新しいファイルで作り、`06-router.js` の表に足す。
+- ことば（日本語・英語）：`00-i18n.js`（LANG＝端末の言語→利用者が選ぶと `pclang` に保存、`L('日本語','English')`）、`02-names.js`（ポケモン・技・特性・持ち物・性格・タイプの英語の正式名。`python3 tools/gen-names.py <PokeAPIのCSVフォルダ>` で作る。手で直さない）、`97-dict-en.js`（画面の文字の辞書 `EN` と、数字入りの文の置きかえ `EN_RE`）、`98-i18n.js`（英語のときだけ名前を入れかえ、画面に出た文字を辞書で置きかえる）。利用者が書いたもの（投稿・掲示板・名前）は `data-notr` を付けて訳さない。新しい画面を作ったら `tests/i18n.mjs` が訳し忘れを一覧にするので、辞書に足す。未翻訳：技・特性の説明文（MD・ABDS）、基本ルール・出典・利用規約などの長い文、サーバーのエラー文の一部。韓国語・中国語は `gen-names.py` の LANGS と辞書を足せば増やせる。テスト・検索向けページは `locale:'ja-JP'` で日本語に固定。
 - タイムライン：サイトは `32-timeline.js`（#/tl・#/tl/following・#/u/ID・#/n/番号・#/notif）、サーバーは `worker/src/social.js`（/api/tl・/api/notes・/api/follow・/api/notifs・/api/u）。見るのはログイン不要、書くのはプロフィール作成済みの人だけ。140文字・15秒に1件・1日100件・リンク不可・ログインした人3人の通報で非表示。
 - `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認・タイムライン）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。
-- `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・login＝ログイン〜投稿の画面の流れ・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
+- `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・login＝ログイン〜投稿の画面の流れ・i18n＝英語表示・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
 - `.github/workflows/deploy.yml`：push → 組み立て → テスト → Netlify（サイト）→ Cloudflare Workers（サーバー）。runs-on は `ubuntu-24.04` に固定（ubuntu-latest=26.04 は Playwright 非対応）。
 
 ### 手元で確かめる

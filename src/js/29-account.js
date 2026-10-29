@@ -104,8 +104,8 @@ async function accountView(){
     bindSave(true);document.getElementById('ac-out').onclick=()=>au.signOut(auth);return;
   }
   V.innerHTML=`<div id="ac-root">
-    <div class="ac-card"><span class="ac-av">${esc((prof.name||'?').slice(0,1))}</span><div><b>${esc(prof.name)}</b><small>@${esc(prof.handle)}</small></div></div>
-    ${prof.bio?`<p class="note" style="padding-top:4px;white-space:pre-wrap">${esc(prof.bio)}</p>`:''}
+    <div class="ac-card"><span class="ac-av">${esc((prof.name||'?').slice(0,1))}</span><div data-notr><b>${esc(prof.name)}</b><small>@${esc(prof.handle)}</small></div></div>
+    ${prof.bio?`<p class="note" style="padding-top:4px;white-space:pre-wrap" data-notr>${esc(prof.bio)}</p>`:''}
     <p class="note" style="color:var(--mute);padding-top:0">ログイン中：${esc(AUTH.email||AUTH.user.email||'')}（ほかの人には表示されません）</p>
     <div class="btns" style="padding-top:4px"><a class="btn btn-s" href="#/u/${esc(prof.handle)}">自分のページを見る</a><a class="btn btn-s" href="#/tl">タイムライン</a></div>
     <div class="sec"><h2>プロフィールを編集</h2></div>${form(prof,false)}

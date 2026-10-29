@@ -7,7 +7,7 @@ const {calculate,Pokemon,Move,Field,Generations,Side}=require('@smogon/calc');
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
 const N=+(process.env.CALC_N||1500);
 const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
-const pg=await (await b.newContext()).newPage();await pg.route(/^https?:/,r=>r.abort());
+const pg=await (await b.newContext({locale:'ja-JP'})).newPage();await pg.route(/^https?:/,r=>r.abort());
 await pg.goto('file://'+path.join(ROOT,'dist/index.html'));await pg.waitForTimeout(500);
 const cases=await pg.evaluate(N=>{
   const R=n=>Math.floor(Math.random()*n),pick=a=>a[R(a.length)];

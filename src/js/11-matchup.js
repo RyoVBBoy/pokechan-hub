@@ -1,6 +1,6 @@
 /* ===================== 相性ワンタップ ===================== */
 const kata=q=>q.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
-const nmHit=(p,q)=>p.n.includes(kata(q.trim()));
+const nmHit=(p,q)=>{q=q.trim();return p.n.includes(kata(q))||(p.ja&&p.ja.includes(kata(q)))||(LANG==='en'&&!!q&&p.n.toLowerCase().includes(q.toLowerCase()))};
 I.cmp='<path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3-3m-3 3 3 3"/>';
 const fmt=m=>m===.5?'½':m===.25?'¼':String(m);
 const effLabel=m=>m>=4?'4倍ばつぐん':m>=2?'ばつぐん':m===1?'等倍':m===0?'こうかなし':m>=.5?'いまひとつ':'かなりいまひとつ';

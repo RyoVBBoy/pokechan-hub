@@ -84,10 +84,10 @@ function gameSheet(){
   o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="ゲームを切り替える"><h3>ゲームを切り替える</h3>
     ${list.map(g=>`<button class="gsw" data-g="${g.id}">${gameMark(g,34)}<span><b>${esc(g.name)}</b><small>${g.status==='ready'?esc(g.desc):'準備中'}</small></span>${g.id===cg.id?'<i>✓</i>':''}</button>`).join('')}
     ${GAMES.filter(g=>!list.includes(g)&&g.status!=='ready').map(g=>`<button class="gsw" data-g="${g.id}" style="opacity:.55">${gameMark(g,34)}<span><b>${esc(g.name)}</b><small>近日追加予定</small></span></button>`).join('')}
-    <button class="psheet-o" data-more>ゲームを選ぶ・マイゲームを編集</button><button class="psheet-x">閉じる</button></div>`;
+    <button class="psheet-o" data-more>ゲームを選ぶ・マイゲームを編集</button><button class="psheet-o" data-lang>言語 / Language</button><button class="psheet-x">閉じる</button></div>`;
   document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
   const done=()=>{o.classList.remove('on');setTimeout(()=>o.remove(),180)};
-  o.querySelector('.psheet-bg').onclick=done;o.querySelector('.psheet-x').onclick=done;
+  o.querySelector('.psheet-bg').onclick=done;o.querySelector('.psheet-x').onclick=done;o.querySelector('[data-lang]').addEventListener('click',done);
   o.querySelector('[data-more]').onclick=()=>{done();nav('#/games')};
   o.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{done();openGame(gameOf(b.dataset.g))});
 }
@@ -103,12 +103,15 @@ function gamesView(){
   <div class="sec"><h2>すべてのゲーム</h2></div>
   ${GAMES.map(g=>{const on=gp.pins.includes(g.id);return `<div class="row" style="content-visibility:visible">${gameMark(g,40)}<div class="row-m" data-open="${g.id}" style="cursor:pointer"><div class="row-t">${esc(g.name)}${g.status==='ready'?'':'<span class="atag" style="margin-left:6px">準備中</span>'}</div><div class="row-s">${esc(g.desc)}</div></div>
     <button class="gpin${on?' on':''}" data-pin="${g.id}" aria-pressed="${on}" aria-label="${esc(g.name)}をマイゲームに${on?'入れない':'入れる'}">${on?'★':'☆'}</button></div>`}).join('')}
+  <div class="sec"><h2>言語 / Language</h2></div>
+  <div class="btns" style="padding-top:0">${LANGS.map(([k,n])=>`<button class="btn ${k===LANG?'btn-p':'btn-s'}" data-setlang="${k}">${n}</button>`).join('')}</div>
   <div class="sec"><h2>起動したときに開く画面</h2></div>
   <div class="natr"><select class="sel" id="gm-start">${startOpts.map(([v,n])=>`<option value="${v}"${gp.start===v?' selected':''}>${esc(n)}</option>`).join('')}</select></div>
   <p class="note" style="color:var(--mute)">はじめは「前回開いていたゲーム」が開きます。いろいろなゲームを使う人は「このゲーム選択画面」にすると、毎回ここから選べます。</p>
   </div>`;
   V.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openGame(gameOf(b.dataset.open)));
   V.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const p=gpGet().pins,id=b.dataset.pin;gpSet({pins:p.includes(id)?p.filter(x=>x!==id):[...p,id]});gamesView()});
+  V.querySelectorAll('[data-setlang]').forEach(b=>b.onclick=()=>{if(b.dataset.setlang!==LANG)setLang(b.dataset.setlang)});
   document.getElementById('gm-start').onchange=e=>{gpSet({start:e.target.value});toast('起動時の画面を変更しました')};
 }
 /* 起動時：設定に合わせて最初の画面を決める（URLで特定のページが指定されているときはそのまま） */

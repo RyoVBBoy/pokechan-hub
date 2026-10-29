@@ -18,9 +18,9 @@ const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle
 function twHtml(n){
   return `<article class="tw" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
     ${twAv(n.user)}
-    <div class="tw-m"><div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who"><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
+    <div class="tw-m"><div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
-      <div class="tw-b">${esc(n.body)}</div>
+      <div class="tw-b" data-notr>${esc(n.body)}</div>
       <div class="tw-a"><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
     </div></article>`;
 }
@@ -116,8 +116,8 @@ async function userView(h){
   V.innerHTML=`<div class="twp">
     <div class="twp-top"><span class="ac-av">${esc((u.name||'?').slice(0,1))}</span>
       ${u.me?'<a class="btn btn-s twp-btn" href="#/account">プロフィールを編集</a>':`<button class="btn ${u.followed?'btn-s':'btn-p'} twp-btn" id="twp-f">${u.followed?'フォロー中':'フォローする'}</button>`}</div>
-    <h2 class="twp-n">${esc(u.name)}</h2><div class="twp-h">@${esc(u.handle)}${u.follows_me?'<span class="atag" style="margin-left:6px">フォローされています</span>':''}</div>
-    ${u.bio?`<p class="twp-b">${esc(u.bio)}</p>`:''}
+    <h2 class="twp-n" data-notr>${esc(u.name)}</h2><div class="twp-h">@${esc(u.handle)}${u.follows_me?'<span class="atag" style="margin-left:6px">フォローされています</span>':''}</div>
+    ${u.bio?`<p class="twp-b" data-notr>${esc(u.bio)}</p>`:''}
     <div class="twp-c"><span><b class="num">${u.following}</b> フォロー</span><span><b class="num" id="twp-fc">${u.followers}</b> フォロワー</span><span><b class="num">${u.notes}</b> 投稿</span></div>
     ${isMuted?`<div class="bnote" style="margin:8px 0 0">この人の投稿は、あなたの画面では表示しない設定です。<button class="bback" id="twp-um" style="padding:0">表示する</button></div>`:''}
   </div><div class="sec"><h2>投稿</h2></div><div id="twp-list"></div>`;
@@ -146,9 +146,9 @@ async function notifView(){
     const j=await authFetch('/api/notifs');
     V.innerHTML=j.notifs.length?j.notifs.map(n=>`<a class="twn${n.id>j.seen?' new':''}" href="${n.kind==='like'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}">
       <span class="twn-i twn-i--${n.kind}">${SVG(n.kind==='like'?I.heart:I.user,22)}</span>
-      <div class="tw-m"><div><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></div>
+      <div class="tw-m"><div data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></div>
       <div>${n.kind==='like'?'あなたの投稿にいいねしました':'あなたをフォローしました'}<span class="tw-t">　${ago(n.created_at)}</span></div>
-      ${n.body?`<div class="twn-b">${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいねやフォローされると、ここに届きます。</p>';
+      ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいねやフォローされると、ここに届きます。</p>';
     if(j.notifs.some(n=>n.id>j.seen))authFetch('/api/notifs/seen',{}).then(()=>notifBadge(0)).catch(()=>{});
   }catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
 }

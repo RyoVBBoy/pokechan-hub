@@ -6,7 +6,7 @@ const lsJ=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catc
 const lsW=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const blocked=()=>new Set(lsJ('pcblock',[]));
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
-const ago=ms=>{const s=Math.max(0,(Date.now()-ms)/1000);return s<60?'たった今':s<3600?`${Math.floor(s/60)}分前`:s<86400?`${Math.floor(s/3600)}時間前`:`${Math.floor(s/86400)}日前`};
+const ago=ms=>{const s=Math.max(0,(Date.now()-ms)/1000);return s<60?L('たった今','now'):s<3600?L(`${Math.floor(s/60)}分前`,`${Math.floor(s/60)}m`):s<86400?L(`${Math.floor(s/3600)}時間前`,`${Math.floor(s/3600)}h`):L(`${Math.floor(s/86400)}日前`,`${Math.floor(s/86400)}d`)};
 async function capi(path,body){
   let r;try{r=await fetch(COMM_API+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})}catch(e){throw new Error('通信できませんでした。電波のよいところでもう一度試してください。')}
   let j={};try{j=await r.json()}catch(e){}
@@ -53,9 +53,9 @@ function lobbyView(){
     try{
       const j=await capi('/api/lobby'),bl=blocked();const L=j.lobby.filter(x=>!bl.has(x.aid));
       el.innerHTML=L.length?L.map(x=>`<div class="lcard">
-        <div class="lcard-h"><span class="atag on">${x.fmt==='single'?'シングル':'ダブル'}</span><b>${esc(x.rule)}</b><span class="lt">あと${Math.max(1,Math.ceil((x.expires_at-Date.now())/60000))}分</span></div>
+        <div class="lcard-h"><span class="atag on">${x.fmt==='single'?'シングル':'ダブル'}</span><b data-notr>${esc(x.rule)}</b><span class="lt">あと${Math.max(1,Math.ceil((x.expires_at-Date.now())/60000))}分</span></div>
         <div class="lpass"><span>あいことば</span><b>${esc(x.pass)}</b><button class="btn btn-s" data-copy="${esc(x.pass)}">コピー</button></div>
-        ${x.comment?`<div class="lcm">${esc(x.comment)}</div>`:''}
+        ${x.comment?`<div class="lcm" data-notr>${esc(x.comment)}</div>`:''}
         <div class="lmeta">${esc(x.name)}　ID:${esc(x.aid)}　${ago(x.created_at)}${mine.has(x.id)?`　<button class="bback" data-close="${x.id}" style="padding:0">しめきる</button>`:''}${commMenu('lobby',x.id,x.aid)}</div>
       </div>`).join(''):'<p class="empty" style="padding:28px 24px">いま募集はありません。<br>上の「募集を出す」から募集できます。</p>';
       el.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{(navigator.clipboard?navigator.clipboard.writeText(b.dataset.copy):Promise.reject()).then(()=>toast('あいことばをコピーしました')).catch(()=>prompt('あいことば',b.dataset.copy))});
@@ -92,7 +92,7 @@ function bbsView(a){
   const load=async()=>{
     const el=document.getElementById('bb-list');
     try{const j=await capi('/api/threads?board='+bbsBoard);
-      el.innerHTML=j.threads.length?j.threads.map(t=>`<a class="row" href="#/thread/${t.id}"><div class="row-m"><div class="row-t">${esc(t.title)}</div><div class="row-s">${t.count}件　最終 ${ago(t.last_at)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join(''):'<p class="empty" style="padding:28px 24px">まだスレッドがありません。</p>'}
+      el.innerHTML=j.threads.length?j.threads.map(t=>`<a class="row" href="#/thread/${t.id}"><div class="row-m"><div class="row-t" data-notr>${esc(t.title)}</div><div class="row-s">${t.count}件　最終 ${ago(t.last_at)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join(''):'<p class="empty" style="padding:28px 24px">まだスレッドがありません。</p>'}
     catch(e){el.innerHTML=`<div class="bnote" style="margin:12px 16px">${esc(e.message)}</div>`}
   };
   document.getElementById('bb-post').onclick=async e=>{
@@ -109,10 +109,10 @@ function threadView(id){
     try{
       const j=await capi('/api/threads/'+(+id)),bl=blocked();
       setHeader(esc(j.thread.title).slice(0,24),'#/bbs/'+j.thread.board);
-      root.innerHTML=`<div class="sec" style="padding-top:14px"><h2 style="font-size:17px">${esc(j.thread.title)}</h2><span style="font-size:12px;color:var(--dim)">${j.thread.count}件</span></div>
+      root.innerHTML=`<div class="sec" style="padding-top:14px"><h2 style="font-size:17px" data-notr>${esc(j.thread.title)}</h2><span style="font-size:12px;color:var(--dim)">${j.thread.count}件</span></div>
       ${j.posts.map(p=>p.hidden?`<div class="bpost"><div class="bpost-h">${p.no}</div><div class="bpost-b" style="color:var(--mute)">（このレスは削除されました）</div></div>`
         :bl.has(p.aid)?`<div class="bpost"><div class="bpost-h">${p.no}</div><div class="bpost-b" style="color:var(--mute)">（非表示にしたIDの書き込み）</div></div>`
-        :`<div class="bpost" id="r${p.no}"><div class="bpost-h"><b>${p.no}</b> ${esc(p.name)}　${new Date(p.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}　ID:${esc(p.aid)}${commMenu('post',p.id,p.aid)}</div><div class="bpost-b">${esc(p.body).replace(/&gt;&gt;(\d+)/g,'<a href="javascript:void 0" data-anc="$1">&gt;&gt;$1</a>').replace(/\n/g,'<br>')}</div></div>`).join('')}
+        :`<div class="bpost" id="r${p.no}"><div class="bpost-h"><b>${p.no}</b> <span data-notr>${esc(p.name)}</span>　${new Date(p.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}　ID:${esc(p.aid)}${commMenu('post',p.id,p.aid)}</div><div class="bpost-b" data-notr>${esc(p.body).replace(/&gt;&gt;(\d+)/g,'<a href="javascript:void 0" data-anc="$1">&gt;&gt;$1</a>').replace(/\n/g,'<br>')}</div></div>`).join('')}
       <div class="sec"><h2>書き込む</h2></div>
       <div class="cform" style="padding:0 16px"><label>本文<textarea id="th-bd" maxlength="1000" rows="4" placeholder="返信は >>番号 で指定できます"></textarea></label><label>名前（任意）<input id="th-nm" maxlength="16" placeholder="名無しのトレーナー"></label></div>
       <div class="btns"><button class="btn btn-p" id="th-post">書き込む</button><button class="btn btn-s" id="th-ref" style="flex:none;padding:0 18px">更新</button></div>${commNote}`;

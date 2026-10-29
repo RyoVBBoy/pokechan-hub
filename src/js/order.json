@@ -1,7 +1,9 @@
 [
  "00-start.js",
+ "00-i18n.js",
  "01-types.js",
  "02-data.js",
+ "02-names.js",
  "03-icons.js",
  "04-common.js",
  "05-header.js",
@@ -32,5 +34,7 @@
  "30-legal.js",
  "31-desktop.js",
  "32-timeline.js",
+ "97-dict-en.js",
+ "98-i18n.js",
  "99-start.js"
 ]

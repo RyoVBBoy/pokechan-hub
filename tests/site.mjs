@@ -4,7 +4,7 @@ import path from 'node:path';
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
 const URL0='file://'+path.join(ROOT,'dist/index.html');
 const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
-const pg=await (await b.newContext({viewport:{width:390,height:844}})).newPage();
+const pg=await (await b.newContext({viewport:{width:390,height:844},locale:'ja-JP'})).newPage();
 const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.route(/^https?:/,r=>r.abort());   // 外部への通信はしない
 const fail=m=>{console.error('NG',m);process.exitCode=1};
