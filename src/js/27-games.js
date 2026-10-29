@@ -18,7 +18,7 @@ I.book='<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="
 I.info='<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>';
 const GAMES=[
   {id:'pokechamp',name:'ポケモンチャンピオンズ',short:'ポケチャン',home:'#/',status:'ready',color:'#ffcb05',desc:'図鑑・選出アシスト・ダメージ計算・対戦募集',
-    tabs:[['',I.home,'ホーム'],['dex',I.dex,'図鑑'],['tools',I.tool,'ツール'],['team',I.grid,'パーティ']],fab:true,
+    tabs:[['',I.home,'ホーム'],['search',I.search,'検索'],['tools',I.tool,'ツール'],['team',I.grid,'パーティ']],fab:true,
     quick:['assist','calc','types','meta'],
     tools:()=>[
       {id:'assist',sec:'対戦の準備',href:'#/assist',ic:I.target,t:'選出アシスト',s:'選出',d:`相手の6匹から、出すべき${PICK()}匹と先発・相手の予想選出を出す`},

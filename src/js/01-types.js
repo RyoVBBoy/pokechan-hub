@@ -35,5 +35,10 @@ const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 const lum=h=>{const[r,g,b]=rgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*r+.7152*g+.0722*b};
 const mixW=(h,p)=>'#'+rgb(h).map(v=>Math.round(v+(255-v)*p).toString(16).padStart(2,'0')).join('');
 const TXT={},ONC={};
-T.forEach(t=>{const L=lum(COL[t]);TXT[t]=L<.42?mixW(COL[t],Math.min(.62,(.45-L)*1.9)):COL[t];ONC[t]=L>.45?'#000':'#fff'});
+const mixK=(h,p)=>'#'+rgb(h).map(v=>Math.round(v*(1-p)).toString(16).padStart(2,'0')).join('');
+/* 文字の色：暗い画面では暗い色を明るく、明るい画面では明るい色を暗くして読みやすくする */
+const txtCalc=()=>T.forEach(t=>{const L=lum(COL[t]);TXT[t]=THEME==='light'?(L>.32?mixK(COL[t],Math.min(.55,(L-.25)*1.1)):COL[t]):(L<.42?mixW(COL[t],Math.min(.62,(.45-L)*1.9)):COL[t]);ONC[t]=L>.45?'#000':'#fff'});
+txtCalc();
+/* 端末の明るさの設定が変わったら（「端末に合わせる」のとき）、その場で切りかえる */
+if(themeMQ&&themeMQ.addEventListener)themeMQ.addEventListener('change',()=>{if(THEME_PREF!=='auto')return;THEME=themeNow();themeApply();txtCalc();if(typeof route==='function')route()});
 

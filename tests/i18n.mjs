@@ -11,7 +11,7 @@ const fail=m=>{console.error('NG',m);process.exitCode=1};
 let n=0;const ok=(c,m)=>{n++;if(!c)fail(m)};
 await pg.goto(URL0+'#/');await pg.waitForTimeout(600);
 ok(await pg.evaluate(()=>LANG==='en'&&document.documentElement.lang==='en'),'英語の端末で英語になりません');
-ok(await pg.$eval('.tb[data-k="dex"] span',s=>s.textContent==='Pokédex'),'下のメニューが英語になりません');
+ok(await pg.$eval('.tb[data-k="search"] span',s=>s.textContent==='Search'),'下のメニューが英語になりません');
 /* 名前 */
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(500);
 ok(/Garchomp/.test(await pg.$eval('#hdr h1',h=>h.textContent)),'ポケモンの名前が英語になりません');
@@ -23,7 +23,7 @@ ok(await pg.evaluate(()=>[byNo[445]].every(p=>nmHit(p,'garch')&&nmHit(p,'ガブ�
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 ok(/%/.test(await pg.$eval('.cres-big',x=>x.textContent).catch(()=>'')),'英語でダメージ計算の結果が出ません');
 /* 主な画面に日本語が残っていない（技・特性の説明と、利用者が書いたものは除く） */
-const routes=['#/','#/dex','#/p/445','#/types','#/team','#/tools','#/calc','#/assist','#/community','#/tl','#/notif','#/account','#/games','#/lobby','#/bbs','#/meta','#/report','#/cmp/445'];
+const routes=['#/','#/dex','#/p/445','#/types','#/team','#/tools','#/calc','#/assist','#/community','#/tl','#/notif','#/account','#/games','#/lobby','#/bbs','#/meta','#/report','#/cmp/445','#/search','#/search/garchomp'];
 const left=new Set();
 for(const r of routes){await pg.evaluate(h=>{location.hash=h},r);await pg.waitForTimeout(350);
   (await pg.evaluate(()=>{const JP=/[぀-ヿ㐀-鿿]/,out=[];const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let x;

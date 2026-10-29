@@ -6,6 +6,8 @@
      利用者が大きく増えたら「書くときに配る」方式（各自の受け取り箱）に切り替える
    ・ページングは id の小さい方へ（?before=最後のid）。OFFSET は使わない（件数が増えても速さが変わらない） */
 const NOTE_MAX=140,PAGE=20;
+/* ハッシュタグの取り出し（#のあとの文字・数字・_・ー。30文字まで、1投稿10個まで。大文字小文字・全角半角はそろえる） */
+const tagsOf=t=>[...new Set([...String(t).matchAll(/[#＃]([\p{L}\p{N}_ー]{1,30})/gu)].map(m=>m[1].normalize('NFKC').toLowerCase()))].slice(0,10);
 let SOCIAL_READY=false;
 async function socialInit(db){
   if(SOCIAL_READY)return;
@@ -22,7 +24,11 @@ async function socialInit(db){
     db.prepare(`CREATE INDEX IF NOT EXISTS likes_rate ON likes(uid,created_at)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS notifs(id INTEGER PRIMARY KEY AUTOINCREMENT,uid TEXT NOT NULL,kind TEXT,actor TEXT,note_id INTEGER DEFAULT 0,created_at INTEGER,UNIQUE(uid,kind,actor,note_id))`),
     db.prepare(`CREATE INDEX IF NOT EXISTS notifs_uid ON notifs(uid,id)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS user_state(uid TEXT PRIMARY KEY,notif_seen INTEGER DEFAULT 0)`)
+    db.prepare(`CREATE TABLE IF NOT EXISTS user_state(uid TEXT PRIMARY KEY,notif_seen INTEGER DEFAULT 0)`),
+    /* ハッシュタグ（#〇〇）：投稿ごとに取り出して索引にする。検索は tag で探して新しい順 */
+    db.prepare(`CREATE TABLE IF NOT EXISTS note_tags(tag TEXT NOT NULL,note_id INTEGER NOT NULL,created_at INTEGER,PRIMARY KEY(tag,note_id))`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_note ON note_tags(note_id)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_time ON note_tags(created_at)`)
   ]);
   SOCIAL_READY=true;
 }
@@ -38,7 +44,7 @@ async function socialRate(db,uid,now){
   return null;
 }
 async function socialApi(req,env,db,path,u,body,now,ip){
-  if(!/^\/api\/(tl|notes|follow|notifs|u\/)/.test(path))return null;
+  if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags)/.test(path))return null;
   await socialInit(db);
   let m;
   /* ログイン（見るだけなら不要）。書き込みにはプロフィールが必要 */
@@ -69,6 +75,7 @@ async function socialApi(req,env,db,path,u,body,now,ip){
     if([...text].length>NOTE_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400);
     const ng=ngCheck(text)||await socialRate(db,meUid,now);if(ng)return J({error:ng},400);
     const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip) VALUES(?,?,?,?) RETURNING id`).bind(meUid,text,now,ip).first();
+    const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
     return J({ok:true,id:r&&r.id});
   }
   /* 1件を読む */
@@ -81,7 +88,7 @@ async function socialApi(req,env,db,path,u,body,now,ip){
     const e=need();if(e)return e;const id=+m[1];
     const r=await db.prepare(`DELETE FROM notes WHERE id=? AND uid=?`).bind(id,meUid).run();
     if(!(r.meta&&r.meta.changes))return J({error:'消せる投稿が見つかりません。'},404);
-    await db.batch([db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
+    await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
     return J({ok:true});
   }
   /* いいね（on:false で取り消し） */
@@ -148,6 +155,26 @@ async function socialApi(req,env,db,path,u,body,now,ip){
     const f=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE dst=?`).bind(t.uid).first();
     return J({ok:true,followed:body.on!==false,followers:f?f.c:0});
   }
+  /* 検索：#タグ なら索引から、それ以外は本文に含むもの（新しい順・続きから）。人も名前・IDで探す */
+  if(path==='/api/search'&&req.method==='GET'){
+    const q=String(u.searchParams.get('q')||'').trim().slice(0,40),before=beforeOf(u);
+    if(!q)return J({notes:[],users:[],next:null});
+    const tag=q.match(/^[#＃]([\p{L}\p{N}_ー]{1,30})$/u);
+    let r;
+    if(tag)r=await db.prepare(`SELECT ${NOTE_COLS} FROM note_tags g JOIN notes n ON n.id=g.note_id JOIN users u ON u.uid=n.uid AND u.banned=0
+      WHERE g.tag=?3 AND n.hidden=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,tag[1].normalize('NFKC').toLowerCase()).all();
+    else r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0
+      WHERE n.hidden=0 AND n.id<?2 AND instr(lower(n.body),lower(?3))>0 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,q).all();
+    let users=[];
+    if(!tag&&before>=9e15){const like='%'+q.replace(/[%_\\]/g,c=>'\\'+c)+'%';
+      users=(await db.prepare(`SELECT handle,name,bio FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like).all()).results.map(x=>({handle:x.handle,name:x.name,bio:x.bio||''}))}
+    return J({...pageOut(withMine(r.results)),users});
+  }
+  /* よく使われているハッシュタグ（この7日間） */
+  if(path==='/api/tags/trend'&&req.method==='GET'){
+    const r=await db.prepare(`SELECT g.tag,COUNT(*) AS n FROM note_tags g JOIN notes n ON n.id=g.note_id AND n.hidden=0 WHERE g.created_at>? GROUP BY g.tag ORDER BY n DESC LIMIT 10`).bind(now-7*864e5).all();
+    return J({tags:r.results});
+  }
   /* お知らせ */
   if(path==='/api/notifs/count'&&req.method==='GET'){
     if(!meUid)return J({unread:0});
@@ -177,6 +204,7 @@ async function socialDeleteUser(db,uid){
   await db.batch([
     db.prepare(`DELETE FROM likes WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM notifs WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
+    db.prepare(`DELETE FROM note_tags WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM notes WHERE uid=?`).bind(uid),
     db.prepare(`UPDATE notes SET likes=MAX(0,likes-1) WHERE id IN (SELECT note_id FROM likes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM likes WHERE uid=?`).bind(uid),

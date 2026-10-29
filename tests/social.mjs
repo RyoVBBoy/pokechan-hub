@@ -76,6 +76,17 @@ r=await call('/api/u/bob/notes');expect('削除した人のいいねは数から
 r=await call('/api/notifs',{tok:A});expect('削除した人からの通知は消える',r[1].notifs.length===0,r);
 /* 掲示板は従来どおり */
 r=await call('/api/boards');expect('掲示板は従来どおり',r[0]===200,r);
+/* ハッシュタグ・検索 */
+tick();r=await call('/api/notes',{method:'POST',tok:B,body:{body:'今日の構築 #ガブリアス #シングル'}});const nt=r[1].id;
+tick();r=await call('/api/notes',{method:'POST',tok:B,body:{body:'＃ガブリアス 全角でもOK'}});
+tick();r=await call('/api/notes',{method:'POST',tok:B,body:{body:'タグなしでガブリアスの話'}});
+r=await call('/api/search?q='+encodeURIComponent('#ガブリアス'));expect('タグで探せる（全角＃も同じ）',r[0]===200&&r[1].notes.length===2,r[1].notes&&r[1].notes.map(x=>x.body));
+r=await call('/api/search?q='+encodeURIComponent('ガブリアス'));expect('言葉で探せる',r[1].notes.length===3,r[1].notes.map(x=>x.body));
+r=await call('/api/search?q=bob');expect('人も探せる',r[1].users.some(x=>x.handle==='bob')&&!JSON.stringify(r[1].users).includes('uid'),r[1].users);
+r=await call('/api/tags/trend');expect('よく使われているタグ',r[1].tags[0].tag==='ガブリアス'&&r[1].tags[0].n===2,r[1].tags);
+await call(`/api/notes/${nt}/delete`,{method:'POST',tok:B,body:{}});
+r=await call('/api/search?q='+encodeURIComponent('#シングル'));expect('消した投稿はタグからも消える',r[1].notes.length===0,r[1].notes);
+r=await call('/api/search?q='+encodeURIComponent("%' OR 1=1 --"));expect('記号だけの検索でも壊れない',r[0]===200&&r[1].notes.length===0,r);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

@@ -15,12 +15,15 @@ async function twAuth(){
   catch(e){return null}
 }
 const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${esc((u.name||'?').slice(0,1))}</a>`;
+/* 本文の #タグ を青い文字にして、押すとそのタグの検索へ（先に文字を区切ってから安全な形にする） */
+const TAG_RE=/[#＃]([\p{L}\p{N}_ー]{1,30})/gu;
+function linkTags(t){let out='',i=0;for(const m of String(t).matchAll(TAG_RE)){out+=esc(t.slice(i,m.index))+`<a class="htag" href="#/search/${encodeURIComponent('#'+m[1])}">${esc(m[0])}</a>`;i=m.index+m[0].length}return out+esc(t.slice(i))}
 function twHtml(n){
   return `<article class="tw" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
     ${twAv(n.user)}
     <div class="tw-m"><div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
-      <div class="tw-b" data-notr>${esc(n.body)}</div>
+      <div class="tw-b" data-notr>${linkTags(n.body)}</div>
       <div class="tw-a"><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
     </div></article>`;
 }
@@ -77,7 +80,7 @@ function twFeed(el,path,emptyMsg){
 /* 投稿する欄 */
 function twComposer(prof,onDone){
   return{html:`<div class="twc">${twAv(prof)}<div class="twc-m">
-      <textarea id="twc-t" rows="2" maxlength="${TW_MAX*2}" placeholder="いまどうしてる？（構築・対戦の感想など）"></textarea>
+      <textarea id="twc-t" rows="2" maxlength="${TW_MAX*2}" placeholder="いまどうしてる？（#タグ を付けると、みんなが探しやすくなります）"></textarea>
       <div class="twc-f"><span class="twc-n" id="twc-n"></span><button class="btn btn-p twc-b" id="twc-b" disabled>投稿する</button></div></div></div>`,
     bind(){
       const t=document.getElementById('twc-t'),b=document.getElementById('twc-b'),c=document.getElementById('twc-n');
@@ -167,3 +170,45 @@ async function notifPoll(){
   try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');notifBadge(keyOf(cur)==='notif'?0:j.unread)}catch(e){}
 }
 setInterval(notifPoll,60e3);setTimeout(notifPoll,1500);
+
+/* ===================== 検索（#/search/言葉） =====================
+   ポケモンの名前に合えば、いちばん上にそのポケモン（押すと図鑑の詳しい画面）。その下に人と投稿。
+   何も入れていないときは、よく使われているタグ・最近の検索・図鑑への入口。 */
+const srRecent=()=>lsJ('pcsearch',[]);
+async function searchView(a){
+  let q='';try{q=decodeURIComponent(a||'')}catch(e){q=a||''}
+  setHeader('検索');
+  V.innerHTML=`<div class="srch sr-top">${SVG(I.search,18)}<input id="sr-q" value="${esc(q)}" placeholder="ポケモン・#タグ・言葉で検索" autocomplete="off" enterkeyhint="search" aria-label="検索"></div><div id="sr-res"></div>`;
+  const inp=document.getElementById('sr-q'),res=document.getElementById('sr-res');
+  const go=v=>{v=v.trim();if(!v)return;lsW('pcsearch',[v,...srRecent().filter(x=>x!==v)].slice(0,8));nav('#/search/'+encodeURIComponent(v))};
+  inp.onkeydown=e=>{if(e.key==='Enter'){inp.blur();go(inp.value)}};
+  /* 打っている間は、ポケモンの候補だけその場で出す */
+  inp.oninput=()=>{const t=inp.value.trim().replace(/^[#＃]/,'');const box=document.getElementById('sr-live');if(!box)return;
+    box.innerHTML=t?P.filter(p=>nmHit(p,t)).slice(0,5).map(p=>rowP(p)).join(''):''};
+  if(!q){
+    const rc=srRecent();
+    res.innerHTML=`<div id="sr-live"></div>
+      <a class="row" href="#/dex"><span class="ttile-i">${SVG(I.dex,22)}</span><div class="row-m"><div class="row-t">図鑑をすべて見る</div><div class="row-s">${P.length}匹・タイプや役割で絞り込み</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
+      ${rc.length?`<div class="sec"><h2>最近の検索</h2><button class="bback" id="sr-clr" style="padding:0">消す</button></div><div class="pills" style="flex-wrap:wrap;padding-top:0">${rc.map(x=>`<a class="pill" href="#/search/${encodeURIComponent(x)}" data-notr>${esc(x)}</a>`).join('')}</div>`:''}
+      <div class="sec"><h2>よく使われているタグ</h2><span style="font-size:12px;color:var(--dim)">この7日間</span></div><div id="sr-trend"><p class="empty" style="padding:16px">読み込み中…</p></div>`;
+    const c=document.getElementById('sr-clr');if(c)c.onclick=()=>{lsW('pcsearch',[]);searchView('')};
+    if(!a)setTimeout(()=>inp.focus(),50);
+    try{await twAuth();const j=await authFetch('/api/tags/trend');const el=document.getElementById('sr-trend');if(!el)return;
+      el.innerHTML=j.tags.length?j.tags.map((t,i)=>`<a class="row" href="#/search/${encodeURIComponent('#'+t.tag)}"><div class="row-m"><div class="row-s">${i+1}位</div><div class="row-t htag" data-notr>#${esc(t.tag)}</div><div class="row-s">${t.n}件の投稿</div></div></a>`).join(''):'<p class="empty" style="padding:16px 24px">まだタグの付いた投稿がありません。投稿に #タグ を付けると、ここに並びます。</p>'}
+    catch(e){const el=document.getElementById('sr-trend');if(el)el.innerHTML=`<p class="empty" style="padding:16px 24px">${esc(e.message)}</p>`}
+    return;
+  }
+  lsW('pcsearch',[q,...srRecent().filter(x=>x!==q)].slice(0,8));
+  const t=q.replace(/^[#＃]/,''),mons=P.filter(p=>nmHit(p,t));
+  /* 名前がぴったり合うポケモンは大きく、ほかの候補は下に小さく */
+  const exact=mons.find(p=>p.n===kata(t)||(p.ja&&p.ja===kata(t))||formInfo(p).base===kata(t)||p.n.toLowerCase()===t.toLowerCase());
+  const top=exact||(mons.length===1?mons[0]:null),others=mons.filter(p=>p!==top).slice(0,5);
+  res.innerHTML=`<div id="sr-live"></div>${top?`<a class="sr-mon" href="#/p/${top.no}"><span class="av">${stamp(top)}</span><div class="row-m">${nm(top,{big:true})}<div class="chips" style="margin-top:6px">${top.t.map(chip).join('')}</div>
+      <div class="sr-st">${SN.map((n,i)=>`<span><small>${n}</small><b>${top.s[i]}</b></span>`).join('')}<span><small>合計</small><b>${top.bst}</b></span></div><div class="row-s" style="margin-top:4px">図鑑の詳しい画面を見る ›</div></div></a>`:''}
+    ${others.length?`<div class="sec"><h2>${top?'ほかのポケモン':'ポケモン'}</h2></div>${others.map(p=>rowP(p)).join('')}`:''}
+    <div id="sr-users"></div><div class="sec"><h2>投稿</h2></div><div id="sr-list"></div>`;
+  await twAuth();
+  twFeed(document.getElementById('sr-list'),'/api/search?q='+encodeURIComponent(q),`「${esc(q)}」を含む投稿はまだありません。`);
+  try{const j=await authFetch('/api/search?q='+encodeURIComponent(q));const el=document.getElementById('sr-users');
+    if(el&&j.users&&j.users.length)el.innerHTML=`<div class="sec"><h2>トレーナー</h2></div>`+j.users.map(x=>`<a class="row" href="#/u/${esc(x.handle)}">${twAv(x)}<div class="row-m" data-notr><div class="row-t">${esc(x.name)}</div><div class="row-s">@${esc(x.handle)}${x.bio?'　'+esc(x.bio.slice(0,40)):''}</div></div></a>`).join('')}catch(e){}
+}

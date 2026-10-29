@@ -9,11 +9,12 @@ const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.route(/^https?:/,r=>r.abort());   // 外部への通信はしない
 const fail=m=>{console.error('NG',m);process.exitCode=1};
 await pg.goto(URL0+'#/');await pg.waitForTimeout(600);
-const routes=['#/','#/dex','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone'];
+const routes=['#/','#/dex','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone','#/search','#/search/'+encodeURIComponent('#ガブリアス')];
 for(const r of routes){
   await pg.evaluate(h=>{location.hash=h},r);await pg.waitForTimeout(250);
   const n=await pg.evaluate(()=>document.querySelector('main')?.innerText.trim().length||0);
   if(n<20)fail(`${r} の中身が空です`);
+  if(await pg.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))fail(`${r} が横にはみ出しています`);
 }
 // 図鑑の「技・特性」タブ
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(300);
@@ -32,7 +33,7 @@ await pg.click('[data-tpin="cmp"]');await pg.waitForTimeout(200);
 if(!(await pg.$('.tgrid .ttile[href="#/cmp"]')))fail('マイツールに入りません');
 await pg.evaluate(()=>{location.hash='#/'});await pg.waitForTimeout(300);
 if(await pg.$eval('.tgrid .ttile',a=>a.getAttribute('href')).catch(()=>'')!=='#/cmp')fail('ホームの「すぐ使う」の先頭にマイツールが出ません');
-if(!(await pg.$eval('.tb[data-k="dex"] span',s=>s.offsetWidth>10).catch(()=>false)))fail('スマホの下のメニューに名前が出ません');
+if(!(await pg.$eval('.tb[data-k="search"] span',s=>s.offsetWidth>10).catch(()=>false)))fail('スマホの下のメニューに名前が出ません');
 await pg.evaluate(()=>{tTogglePin('cmp')});
 // 育成画面の PiP：欄が出て、この1匹／パーティ全員のカードが作れる。「小窓」という言い方が残っていない
 await pg.evaluate(()=>{team.length=0;[445,149].forEach(no=>team.push({no}));saveTeam();location.hash='#/edit/0'});await pg.waitForTimeout(500);
@@ -62,6 +63,12 @@ if(mpc.join()!=='ハッサム'||mpa!=='ハッサム')fail('ポケモンの絞り
 const tr=await pg.evaluate(()=>{const c0=TEAMS.cur;switchTeam(1);team=[{no:445,sel:true}];saveTeam();switchTeam(2);const e=team.length;switchTeam(1);const a=team.map(x=>x.no).join();
   const st=JSON.parse(localStorage.getItem('pcteams'));switchTeam(c0);return[e,a,st.list.length,st.list[1].team[0].no]});
 if(tr.join()!=='0,445,3,445')fail('パーティの保存・切り替え: '+tr.join());
+// 明るい画面：端末がライトモードなら明るい色、ダークモードなら暗い色
+await pg.emulateMedia({colorScheme:'light'});await pg.waitForTimeout(200);
+const lt=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
+await pg.emulateMedia({colorScheme:'dark'});await pg.waitForTimeout(200);
+const dk=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
+if(lt[0]!=='light'||lt[1]!=='rgb(255, 255, 255)'||dk[0]!=='dark'||dk[1]!=='rgb(0, 0, 0)')fail('ライト／ダークの切りかえ: '+lt.join()+' / '+dk.join());
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);

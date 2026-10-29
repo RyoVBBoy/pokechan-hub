@@ -88,6 +88,9 @@ const EN={
 'このパーティの名前を変える':'Rename this team','パーティの名前（20文字まで）':'Team name (up to 20 characters)',
 'ログイン中：パーティはどの端末でも同じになります（自動で保存）':'Signed in: your teams are the same on every device (saved automatically)','サーバーに保存できませんでした。電波のよいところで自動でやり直します。':'Could not save to the server. It will retry automatically.','すると、スマホでもパソコンでも同じパーティを使えます':' to use the same teams on your phone and PC',
 '育成':'Builds','タップで編集':'Tap to edit','未設定（よくある型で計算中）':'Not set (using a common set)','能力ポイント未入力（よくある型で計算中）':'No stat points yet (using a common set)',
+'検索':'Search','ポケモン・#タグ・言葉で検索':'Search Pokémon, #tags, words','図鑑をすべて見る':'Browse the full Pokédex','最近の検索':'Recent searches','消す':'Clear','よく使われているタグ':'Trending tags','この7日間':'Last 7 days',
+'図鑑の詳しい画面を見る ›':'Open Pokédex entry ›','ほかのポケモン':'Other Pokémon','トレーナー':'Trainers','まだタグの付いた投稿がありません。投稿に #タグ を付けると、ここに並びます。':'No tagged posts yet. Add #tags to posts to see them here.',
+'いまどうしてる？（#タグ を付けると、みんなが探しやすくなります）':'What\'s happening? (#tags help others find your post)','明るさ':'Appearance',
 /* コミュニティ */
 'ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。':'A place to battle and share with other trainers. The lobby and message board can be used anonymously.',
 'タイムライン':'Timeline','トレーナーの投稿を見る・投稿する・フォローする':'Read, post and follow trainers','お知らせ':'Notifications','いいね・フォローされたとき':'Likes and new followers',
@@ -154,6 +157,7 @@ const EN_RE=[
   [/^(\d+)匹の種族値と$/,'Base stats for $1 Pokémon &'],
   [/^レギュレーション (.+?) ／ (\d+)年(\d+)月(\d+)日から$/,'Regulation $1 / from $3/$4/$2'],
   [/^「(.+)」に切り替えました$/,'Switched to "$1"'],[/^「(.+)」のポケモンをすべて外します。よろしいですか？$/,'Remove all Pokémon from "$1"?'],
+  [/^(\d+)匹・タイプや役割で絞り込み$/,'$1 Pokémon · filter by type or role'],[/^(\d+)件の投稿$/,'$1 posts'],[/^「(.+)」を含む投稿はまだありません。$/,'No posts with "$1" yet.'],
   [/^あと(\d+)分$/,'$1 min left'],
   [/^ポケモン一覧（(\d+)匹）$/,'All Pokémon ($1)'],[/^(\d+)件$/,'$1'],
   [/^データ更新日 (\d+)\/(\d+)\/(\d+)。/,(m,y,mo,d)=>`Data updated ${y}/${mo}/${d}. Base stats, types, learnsets, abilities and Mega Evolutions are based on public data from Pokémon Showdown (Champions data) and PokeAPI. Move power, accuracy and PP are checked against values transcribed from the game. Move and ability descriptions are written by this site. See "Data sources & verification" for details.`],
