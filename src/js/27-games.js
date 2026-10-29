@@ -31,7 +31,7 @@ const GAMES=[
       {id:'battle',sec:'練習',href:'#/battle',ic:I.swords,t:'模擬戦',s:'模擬戦',d:'技・特性つきの対戦で練習（今はダブルのみ）',badge:'β'},
       {id:'tap',sec:'連携',href:'#/tap',ic:I.phone,t:'アプリ・背面タップ連携',s:'背面タップ',d:'対戦中に、相手の読み取りと選出を自動で',badge:'β'},
       {id:'import',sec:'連携',href:'#/import',ic:I.image,t:'画像から取り込む',s:'取り込み',d:'ゲームのチーム画面のスクショから、技・持ち物・能力ポイントまで'},
-      {id:'learn',sec:'資料',href:'#/learn',ic:I.book,t:'攻略ガイド（道具・戦術）',s:'ガイド',d:'持ち物の効果と使いどころ、戦術・用語を当サイトの言葉で解説'},
+      {id:'learn',sec:'資料',href:'#/learn',ic:I.book,t:'攻略ガイド（道具・技・特性・戦術）',s:'ガイド',d:'持ち物・技・特性の使いどころと、戦術・用語を当サイトの言葉で解説'},
       {id:'guide',sec:'資料',href:'#/guide',ic:I.book,t:'基本ルール',s:'ルール',d:'能力ポイント・性格・計算式など'},
       {id:'sources',sec:'資料',href:'#/sources',ic:I.info,t:'データの出典と確認状況',s:'出典',d:'数値の出どころと、どこまで確かめたか'}
     ]},

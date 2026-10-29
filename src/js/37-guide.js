@@ -72,12 +72,13 @@ const wordOf=id=>WORDS.find(w=>w[0]===id);
 const gEx=g=>{try{return(g.ex?g.ex():[]).filter(Boolean)}catch(e){return[]}};
 function learnView(a){
   setHeader('攻略ガイド','#/tools');
-  const tab=a==='word'?'word':'item';
+  const tab=['word','move','ability'].includes(a)?a:'item';
+  const TABS=[['item','道具'],['move','技'],['ability','特性'],['word','戦術・用語']],ti=TABS.findIndex(x=>x[0]===tab);
   const cats={};for(const k in ITEMN){const g=itemG(k);if(!g)continue;(cats[g.cat]=cats[g.cat]||[]).push(k)}
   const order=['こだわり系','火力アップ','耐久・回復','タイプ強化','メガストーン'];
-  V.innerHTML=`<div class="seg" id="lr-seg"><button data-lt="item" aria-selected="${tab==='item'}">道具</button><button data-lt="word" aria-selected="${tab==='word'}">戦術・用語</button><span class="seg-i" style="width:50%;transform:translateX(${tab==='word'?100:0}%)"></span></div>
-  <p class="note" style="padding-top:12px">${tab==='item'?'ダメージ計算で扱っている持ち物の効果と使いどころです。':'対戦でよく使われる考え方と言葉です。'}すべて当サイトが書いた説明で、数値は当サイトの計算と同じ前提です。</p>
-  ${tab==='item'?order.filter(c=>cats[c]).map(c=>`<div class="sec"><h2>${c}</h2><span style="font-size:12px;color:var(--dim)">${cats[c].length}</span></div>${cats[c].map(k=>{const g=itemG(k);
+  V.innerHTML=`<div class="seg" id="lr-seg">${TABS.map(([k,l])=>`<button data-lt="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}<span class="seg-i" style="width:25%;transform:translateX(${ti*100}%)"></span></div>
+  <p class="note" style="padding-top:12px">${({item:'ダメージ計算で扱っている持ち物の効果と使いどころです。',move:'技を役割ごとに分けて、使いどころをまとめました。技を押すと、覚えるポケモンも見られます。',ability:'特性を役割ごとに分けて、使い方をまとめました。特性を押すと、持つポケモンも見られます。',word:'対戦でよく使われる考え方と言葉です。'})[tab]}すべて当サイトが書いた説明で、数値は当サイトの計算と同じ前提です。</p>
+  ${tab==='move'?learnMovesHTML():tab==='ability'?learnAbilitiesHTML():tab==='item'?order.filter(c=>cats[c]).map(c=>`<div class="sec"><h2>${c}</h2><span style="font-size:12px;color:var(--dim)">${cats[c].length}</span></div>${cats[c].map(k=>{const g=itemG(k);
     return `<a class="row" href="#/item/${k}">${g.mega?`<span class="av">${stamp(g.form)}</span>`:`<span class="ttile-i">${SVG(g.type?I.zap:g.cat==='耐久・回復'?I.shield:I.star,20)}</span>`}<div class="row-m"><div class="row-t">${esc(ITEMN[k])}</div><div class="row-s">${esc(g.mega?`${formInfo(g.base).base}がメガシンカ`:g.fx)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join('')}`).join('')
    :WORDS.map(([id,t,d])=>`<a class="row" href="#/word/${id}"><div class="row-m"><div class="row-t">${esc(t)}</div><div class="row-s">${esc(d.slice(0,44))}…</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`;
   V.querySelectorAll('[data-lt]').forEach(b=>b.onclick=()=>nav('#/learn/'+b.dataset.lt));
@@ -107,6 +108,8 @@ function guideSearch(q){
   const t=kata(q.replace(/^[#＃]/,'').trim()).toLowerCase();if(!t)return'';
   const its=Object.keys(ITEMN).filter(k=>itemG(k)&&(ITEMN[k].toLowerCase().includes(t)||(LANG==='en'?false:kata(ITEMN[k]).includes(t)))).slice(0,5);
   const ws=WORDS.filter(w=>kata(w[1]).toLowerCase().includes(t)).slice(0,5);
-  if(!its.length&&!ws.length)return'';
-  return `<div class="sec"><h2>攻略ガイド</h2></div>${its.map(k=>`<a class="row" href="#/item/${k}"><div class="row-m"><div class="row-t">${esc(ITEMN[k])}</div><div class="row-s">道具・${esc(itemG(k).cat)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${ws.map(w=>`<a class="row" href="#/word/${w[0]}"><div class="row-m"><div class="row-t">${esc(w[1])}</div><div class="row-s">戦術・用語</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`;
+  const mvs=Object.keys(MD).map(Number).filter(id=>mName(id).toLowerCase().includes(t)||(LANG!=='en'&&kata(mName(id)).includes(t))).slice(0,5);
+  const abs=Object.keys(ABDS).filter(k=>ABN[k]&&(ABN[k].toLowerCase().includes(t)||(LANG!=='en'&&kata(ABN[k]).includes(t)))).slice(0,5);
+  if(!its.length&&!ws.length&&!mvs.length&&!abs.length)return'';
+  return `<div class="sec"><h2>攻略ガイド</h2></div>${its.map(k=>`<a class="row" href="#/item/${k}"><div class="row-m"><div class="row-t">${esc(ITEMN[k])}</div><div class="row-s">道具・${esc(itemG(k).cat)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${mvs.map(id=>`<a class="row" href="#/move/${id}"><div class="row-m"><div class="row-t">${esc(mName(id))}</div><div class="row-s">技</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${abs.map(k=>`<a class="row" href="#/ability/${k}"><div class="row-m"><div class="row-t">${esc(ABN[k])}</div><div class="row-s">特性</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${ws.map(w=>`<a class="row" href="#/word/${w[0]}"><div class="row-m"><div class="row-t">${esc(w[1])}</div><div class="row-s">戦術・用語</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`;
 }
