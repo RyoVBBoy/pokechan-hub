@@ -68,8 +68,9 @@ function teamRender(){
   document.getElementById('slots').innerHTML=Array.from({length:6},(_,i)=>{
     const x=team[i],p=x&&byNo[x.no];
     return p?`<div class="tile${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
-      <div class="acts"><button data-sel="${i}" class="${x.sel?'lit':''}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${SVG(I.star,15).replace('fill="none"',x.sel?'fill="currentColor"':'fill="none"')}</button><button data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,15)}</button></div>
-      <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${nm(p,{no:false})}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div></div>`
+      <button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
+      <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${nm(p,{no:false})}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div>
+      <button class="t-sel${x.sel?' lit':''}" data-sel="${i}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${SVG(I.star,16).replace('fill="none"',x.sel?'fill="currentColor"':'fill="none"')}<span>${x.sel?L('選出','Picked'):L('選出する','Pick')}</span></button></div>`
     :`<div class="tile empty">枠 ${i+1}</div>`}).join('');
   document.getElementById('tsets').innerHTML=team.length?`<div class="sec" style="padding-top:18px"><h2>育成</h2><span style="font-size:13px;color:var(--dim)">タップで編集</span></div>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')

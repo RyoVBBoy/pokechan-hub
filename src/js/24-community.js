@@ -121,7 +121,7 @@ function threadView(id){
       document.getElementById('th-post').onclick=async e=>{const b=e.currentTarget;b.disabled=true;
         try{await capi(`/api/threads/${+id}/posts`,{body:document.getElementById('th-bd').value,name:document.getElementById('th-nm').value});toast('書き込みました');load(true)}catch(err){toast(err.message);b.disabled=false}};
       commBind(root,()=>load());
-      if(toEnd)scrollTo(0,document.body.scrollHeight);
+      if(toEnd)scrTo(0,document.body.scrollHeight);
     }catch(e){root.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
   };
   load();

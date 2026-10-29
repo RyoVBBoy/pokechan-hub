@@ -150,7 +150,7 @@ function dvList(){
 function calcVerBind(R,draw){
   const box=document.getElementById('c-ver');if(!box||!R)return;
   box.addEventListener('toggle',()=>{DVER.open=box.open});
-  box.querySelectorAll('[data-vu]').forEach(b=>b.onclick=()=>{DVER.unit=b.dataset.vu;const y=scrollY;draw();scrollTo(0,y)});
+  box.querySelectorAll('[data-vu]').forEach(b=>b.onclick=()=>{DVER.unit=b.dataset.vu;const y=scrY();draw();scrTo(0,y)});
   const inp=document.getElementById('c-obs'),out=document.getElementById('c-verdict');
   const show=()=>{const v=parseFloat(inp.value);if(!(v>=0)){out.innerHTML='';return null}const j=dvJudge(R,v,DVER.unit);out.innerHTML=`<b style="color:${j.ok?'#4ec98a':'var(--w2)'}">${j.ok?'✓':'✗'}</b> ${esc(j.msg)}`;return{v,j}};
   inp.addEventListener('input',show);
@@ -163,7 +163,7 @@ function calcVerBind(R,draw){
       ...['def','spd'].filter(k=>CS.d.stg[k]).map(k=>(k==='def'?'防':'特防')+(CS.d.stg[k]>0?'+':'')+CS.d.stg[k])].filter(Boolean).join('・');
     const lo=Math.min(...R.r),hi=Math.max(...R.r),u=DVER.unit;
     const a=dvGet();a.push({at:Date.now(),t:`${R.a.p.n}の${R.mv.n}→${R.d.p.n}`,cond,full:`${side(CS.a,R.a)} ${R.mv.n} → ${side(CS.d,R.d)} HP${R.d.max}`,v:r.v,u,lo:u==='p'?+(lo/R.d.max*100).toFixed(1):lo,hi:u==='p'?+(hi/R.d.max*100).toFixed(1):hi,ok:r.j.ok,rolls:u==='n'?R.r:undefined});
-    dvSet(a);toast(r.j.ok?'一致として記録しました':'ずれとして記録しました');DVER.open=true;const y=scrollY;draw();scrollTo(0,y);
+    dvSet(a);toast(r.j.ok?'一致として記録しました':'ずれとして記録しました');DVER.open=true;const y=scrY();draw();scrTo(0,y);
   };
   const cp=document.getElementById('c-vcopy');
   if(cp)cp.onclick=async()=>{
@@ -172,6 +172,6 @@ function calcVerBind(R,draw){
     try{await navigator.clipboard.writeText(txt);toast('コピーしました')}catch(e){toast('コピーできませんでした')}
   };
   const cl=document.getElementById('c-vclr');
-  if(cl)cl.onclick=()=>{if(confirm('照合の記録をすべて消しますか？')){dvSet([]);const y=scrollY;draw();scrollTo(0,y)}};
+  if(cl)cl.onclick=()=>{if(confirm('照合の記録をすべて消しますか？')){dvSet([]);const y=scrY();draw();scrTo(0,y)}};
 }
 

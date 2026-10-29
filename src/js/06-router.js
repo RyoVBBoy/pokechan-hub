@@ -7,14 +7,14 @@ const scrollMem={};let depth=0;
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function nav(h,dir){
   if(h===cur){route();return}
-  scrollMem[cur]=scrollY;
+  scrollMem[cur]=scrY();
   const fromK=keyOf(cur),toK=keyOf(h);
   if(!dir)dir=ROOTS.includes(toK)&&ROOTS.includes(fromK)?'tab':'fwd';
   cur=h;setUrl(h,true);depth++;
   transit(dir,dir==='tab'?(scrollMem[h]||0):0);
 }
 function transit(dir,y){
-  const run=()=>{route();scrollTo(0,y||0);HD.classList.remove('hide');lastY=y||0};
+  const run=()=>{route();scrTo(0,y||0);HD.classList.remove('hide');lastY=y||0};
   if(reduceMotion){run();return}
   if(document.startViewTransition){
     document.documentElement.dataset.dir=dir;
@@ -29,7 +29,7 @@ document.addEventListener('click',e=>{
   e.preventDefault();
   const h=a.getAttribute('href');
   if(a.hasAttribute('data-back')){if(depth>0){history.back()}else{nav(h,'back')}return}
-  if(a.classList.contains('tb')&&h===cur){scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});return}
+  if(a.classList.contains('tb')&&h===cur){scrTo({top:0,behavior:reduceMotion?'auto':'smooth'});return}
   nav(h);
 });
 const NAVG={p:'search',dex:'search',cmp:'search',types:'tools',assist:'tools',calc:'tools',meta:'tools',battle:'tools',tap:'tools',guide:'tools',sources:'tools',verify:'tools',
@@ -44,11 +44,11 @@ function route(){
   document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle');
   trackTool(cur);drawSide();
   ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,search:searchView,tl:tlView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
-  HD.classList.toggle('sc',scrollY>4);
+  HD.classList.toggle('sc',scrY()>4);
 }
 function onPop(){
   const h=location.hash;if(h===cur)return;
-  scrollMem[cur]=scrollY;cur=h;depth=Math.max(0,depth-1);
+  scrollMem[cur]=scrY();cur=h;depth=Math.max(0,depth-1);
   transit('back',scrollMem[h]||0);
 }
 addEventListener('popstate',onPop);

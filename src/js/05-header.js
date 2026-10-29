@@ -8,8 +8,8 @@ function setHeader(title,back){
     :`<button class="mark mbtn" id="brand" aria-label="メニューを開く（いまは${esc(curGame().name)}）">${BRAND.logo?`<img src="${BRAND.logo}" alt="">`:gameMark(curGame(),32)}<i aria-hidden="true">▾</i></button>`)+`<h1>${title}</h1>`;
 }
 let lastY=0;
-addEventListener('scroll',()=>{
-  const y=scrollY;HD.classList.toggle('sc',y>4);
+SCROLLER.addEventListener('scroll',()=>{
+  const y=scrY();HD.classList.toggle('sc',y>4);
   if(sheetOpen)return;
   if(y>lastY+8&&y>140)HD.classList.add('hide');
   else if(y<lastY-8||y<140)HD.classList.remove('hide');

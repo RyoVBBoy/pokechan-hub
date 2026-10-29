@@ -141,13 +141,13 @@ function calcView(){
           else if(k2==='stg')X.stg[k3]=+v;
           else if(k2.startsWith('sp')){const i=+k2.slice(2),others=X.sp.reduce((s,x,j)=>j===i?s:s+x,0);X.sp[i]=Math.max(0,Math.min(+v||0,SP_CAP,SP_TOTAL-others))}
         }
-        const y=scrollY;if(el.tagName==='INPUT')setTimeout(()=>{draw();scrollTo(0,y)},0);else{draw();scrollTo(0,y)}
+        const y=scrY();if(el.tagName==='INPUT')setTimeout(()=>{draw();scrTo(0,y)},0);else{draw();scrTo(0,y)}
       });
     });
-    root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrollY;draw();scrollTo(0,y)});
+    root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y)});
     bindFmt(root,()=>{CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw();calcEnsure(CS.a.no,CS.d.no).then(c=>{if(c&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}})});
     calcVerBind(R,draw);
-    document.getElementById('c-swap').onclick=()=>{const a=CS.a;CS.a=CS.d;CS.d=a;CS.mv=null;const y=scrollY;draw();scrollTo(0,y)};
+    document.getElementById('c-swap').onclick=()=>{const a=CS.a;CS.a=CS.d;CS.d=a;CS.mv=null;const y=scrY();draw();scrTo(0,y)};
   };
   draw();
   calcEnsure(CS.a.no,CS.d.no).then(ch=>{if(ch&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}});

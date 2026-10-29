@@ -14,7 +14,7 @@ function toolsView(){
   ${g.id==='pokechamp'?toolsBottomHTML():''}`;
   if(g.id==='pokechamp')toolsTopBind(V);
   if(g.id==='pokechamp')bindFmt(V,toolsView);
-  V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrollY;toolsView();scrollTo(0,y)});
+  V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrY();toolsView();scrTo(0,y)});
 }
 function communityView(){
   setHeader('コミュニティ');

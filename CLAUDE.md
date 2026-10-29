@@ -22,6 +22,7 @@
 - 明るさ：`00-i18n.js` の THEME（端末のライト／ダークに合わせる。`pctheme`＝auto/light/dark で固定もできる）。色は `styles.css` の変数（--bg・--fg・--glass・--onfg など）を使い、`#000` などを直接書かない。明るい色は最後の `[data-theme=light]`。タイプの文字色 TXT は明るさに合わせて `txtCalc()` で作り直す。
 - 検索（下のメニューの「検索」、旧「図鑑」）：`32-timeline.js` の `searchView`（#/search/言葉）。ポケモン名に合えば一番上にそのポケモン（押すと図鑑）、その下にトレーナーと投稿。図鑑の一覧（#/dex）は検索画面から。ハッシュタグは投稿の本文から `tagsOf` で取り出して D1 の note_tags に入れる（/api/search?q=#タグ、/api/tags/trend）。本文の #タグ は `linkTags` で青い文字＋検索へのリンク。
 - ポケモンを選ぶ欄は長い一覧（select）にしない。`monField(属性,番号)`＋`pickMon()`（`11-matchup.js`）＝名前を打って絞り込む（ひらがな・英語OK、パーティ・最近選んだを上に）。
+- スクロールは body の中（`html{overflow:hidden}`、body がスクロールする）。iPhone の Safari でアドレスバーが縮んで下のメニューがずれるのを防ぐため。`window.scrollY`・`scrollTo` は使わず、`00-start.js` の `scrY()`・`scrTo()` を使う。
 - PC表示：700px以上で下のタブ→左のメニュー（本文600px）、1280px以上で右に「よく使う機能」（`src/styles.css` の最後・`31-desktop.js`・`index.html` の `.pc-*`/`.pcside`）。スマホ（699px以下）の見た目は変えない。
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
 - ゲームの追加：`27-games.js` の `GAMES` に1件足す（`tabs`＝下/左のメニュー、`tools()`＝ツール一覧〔id・sec・href・ic・t・s(短い名前)・d〕、`quick`＝初めての人向けの「すぐ使う」、`fab`＝右下ボタンの有無）。「コミュニティ」タブ（旧「みんな」）は全ゲーム共通で自動で付く。ツール画面・ホームの「すぐ使う」・PCの右の列・最近使った（`pcrecent`）・マイツール（☆、`pctools`）はゲームごとに自動で切りかわる。画面の中身（views）はゲームごとに新しいファイルで作り、`06-router.js` の表に足す。

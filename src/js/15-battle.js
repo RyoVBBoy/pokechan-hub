@@ -562,15 +562,15 @@ function battlePick(){
   <div class="blbl" style="padding-top:18px">あなた（${B.my.name}）　${sel.length}/4</div>
   <div class="bteam one">${B.my.nos.map(n=>{const q=byNo[n],k=sel.indexOf(n),s=B.mySets[n];return `<button class="bp${k>=0?' on':''}" data-pick="${n}"><span class="av">${stamp(q)}</span><div style="min-width:0"><b>${q.n}</b><div class="chips">${q.t.map(chip).join('')}</div><div class="bsm">${setTxt(s)}</div><div class="bsm">${s.moves.map(m=>m.n).join('・')}</div>${s.sp?`<div class="bsm" style="color:var(--mute)">${spTxt(s)}</div>`:''}</div>${k>=0?`<span class="no">${k+1}</span>`:''}</button>`}).join('')}</div>
   <div class="btns"><button class="btn btn-s" id="b-reroll">型を組み直す</button><button class="btn btn-p" id="b-start" ${sel.length===4?'':'disabled style="opacity:.4"'}>バトル開始</button></div>`;
-  V.querySelectorAll('[data-pick]').forEach(e=>e.onclick=()=>{const n=+e.dataset.pick,k=sel.indexOf(n);if(k>=0)sel.splice(k,1);else if(sel.length<4)sel.push(n);const y=scrollY;battlePick();scrollTo(0,y)});
+  V.querySelectorAll('[data-pick]').forEach(e=>e.onclick=()=>{const n=+e.dataset.pick,k=sel.indexOf(n);if(k>=0)sel.splice(k,1);else if(sel.length<4)sel.push(n);const y=scrY();battlePick();scrTo(0,y)});
   V.querySelectorAll('[data-info]').forEach(e=>e.onclick=ev=>{ev.stopPropagation();openSheet({no:+e.dataset.info})});
-  document.getElementById('b-reroll').onclick=()=>{B.my.nos.forEach(n=>B.mySets[n]=buildSet(byNo[n],LIVE.csv[n]||null,false));const y=scrollY;battlePick();scrollTo(0,y)};
+  document.getElementById('b-reroll').onclick=()=>{B.my.nos.forEach(n=>B.mySets[n]=buildSet(byNo[n],LIVE.csv[n]||null,false));const y=scrY();battlePick();scrTo(0,y)};
   document.getElementById('b-start').onclick=()=>{
     if(sel.length!==4)return;
     const mine=B.my.nos.map(n=>byNo[n]);
     const sc=q=>mine.reduce((a,m)=>a+matchup(q,m.t).diff-matchup(m,q.t).diff*.5,0)+Math.random()*3;
     B.myNos=[...sel];B.opPick=B.opT.nos.map(n=>byNo[n]).sort((a,b)=>sc(b)-sc(a)).slice(0,4).map(q=>q.no);
-    startBattle();battleView();scrollTo(0,0);
+    startBattle();battleView();scrTo(0,0);
   };
 }
 function moveBtn(m,cur,opA,hint,i){
@@ -619,7 +619,7 @@ function battleFight(){
       B.revealed=B.revealed||new Set();
       runTurn();
     }else B.mode='move';
-    battleFight();scrollTo(0,0);
+    battleFight();scrTo(0,0);
   };
   V.querySelectorAll('[data-m]').forEach(e=>e.onclick=()=>{
     const i=+e.dataset.m,mv=cur.moves[i];

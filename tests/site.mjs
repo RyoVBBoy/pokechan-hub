@@ -71,6 +71,15 @@ if(mpc.join()!=='ハッサム'||mpa!=='ハッサム')fail('ポケモンの絞り
 const tr=await pg.evaluate(()=>{const c0=TEAMS.cur;switchTeam(1);team=[{no:445,sel:true}];saveTeam();switchTeam(2);const e=team.length;switchTeam(1);const a=team.map(x=>x.no).join();
   const st=JSON.parse(localStorage.getItem('pcteams'));switchTeam(c0);return[e,a,st.list.length,st.list[1].team[0].no]});
 if(tr.join()!=='0,445,3,445')fail('パーティの保存・切り替え: '+tr.join());
+// パーティの選出ボタンは大きく押しやすい／スクロールしても下のメニューは画面の下に固定
+await pg.evaluate(()=>{team.length=0;[445,149,248,10230].forEach(no=>team.push({no,sel:false}));saveTeam();location.hash='#/team'});await pg.waitForTimeout(400);
+await pg.click('[data-sel="1"]');await pg.waitForTimeout(150);
+const ts=await pg.evaluate(()=>{const b=document.querySelector('.t-sel').getBoundingClientRect();scrTo(0,600);return[b.height,b.width,team[1].sel,location.hash]});
+await pg.waitForTimeout(150);
+const tb=await pg.evaluate(()=>[scrY()>0,window.scrollY,Math.round(document.querySelector('.tabbar').getBoundingClientRect().bottom),innerHeight]);
+if(!(ts[0]>=40&&ts[1]>=90&&ts[2]===true&&ts[3]==='#/team'))fail('選出ボタン: '+ts.join());
+if(!(tb[0]&&tb[1]===0&&tb[2]===tb[3]))fail('スクロールと下のメニュー: '+tb.join());
+await pg.evaluate(()=>{scrTo(0,0);team.length=0;saveTeam()});
 // 明るい画面：端末がライトモードなら明るい色、ダークモードなら暗い色
 await pg.emulateMedia({colorScheme:'light'});await pg.waitForTimeout(200);
 const lt=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
