@@ -14,7 +14,7 @@ async function fbLoad(){
   catch(e){throw new Error('ログインの準備ができませんでした。電波のよいところで、ページを読み込み直してください（広告ブロックなどの機能が原因のこともあります）。')}
   const a=app.initializeApp(PCF);const auth=au.getAuth(a);auth.languageCode='ja';
   AUTH.fb={au,auth};
-  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;if(u){try{localStorage.setItem('pcin','1')}catch(e){}}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
+  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;if(u){try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
   return AUTH.fb;
 }
 async function authFetch(path,body){
@@ -65,7 +65,7 @@ async function accountView(){
   /* ログインしていない */
   if(!AUTH.user){
     V.innerHTML=`<div id="ac-root">
-    <p class="note" style="padding-top:16px">ログインすると、プロフィールを作って、ほかのトレーナーとつながれるようになります（フォロー・投稿などは順次追加します）。図鑑や計算などはログインしなくても使えます。</p>
+    <p class="note" style="padding-top:16px">ログインすると、<b>パーティをスマホでもパソコンでも同じに使える</b>ようになり、プロフィールを作ってタイムラインで投稿・フォローもできます。図鑑や計算などはログインしなくても使えます。</p>
     <div class="btns"><button class="btn btn-p" id="ac-google">Googleでログイン</button></div>
     ${window.PC_CONFIG.apple?'<div class="btns" style="padding-top:0"><button class="btn btn-s" id="ac-apple">Appleでログイン</button></div>':''}
     <div class="sec"><h2>メールでログイン</h2></div>

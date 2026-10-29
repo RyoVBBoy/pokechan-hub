@@ -64,9 +64,27 @@ async function userApi(req,env,db,path,body,now){
     const u=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
     return J({ok:true,user:pubUser(u)});
   }
+  /* パーティ（3つまで）をどの端末でも同じにする。中身はその人だけが読める。新しい方（updated_at）を残す */
+  if(path==='/api/me/teams'&&req.method==='GET'){
+    const r=await db.prepare(`SELECT teams,updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();
+    let t=null;try{t=r&&r.teams?JSON.parse(r.teams):null}catch(e){}
+    return J({teams:t,updated_at:r?r.updated_at:0});
+  }
+  if(path==='/api/me/teams'&&req.method==='POST'){
+    const t=body.teams,at=Math.floor(+body.updated_at||0);
+    const ok=t&&typeof t==='object'&&Array.isArray(t.list)&&t.list.length<=3&&t.list.every(s=>s&&Array.isArray(s.team)&&s.team.length<=6&&s.team.every(x=>x&&Number.isInteger(x.no)));
+    if(!ok||!(at>0)||at>now+864e5)return J({error:'パーティの形が正しくありません。'},400);
+    const txt=JSON.stringify({cur:Math.max(0,Math.min(2,+t.cur||0)),list:t.list.map(s=>({name:clean(s.name,20),team:s.team}))});
+    if(txt.length>30000)return J({error:'パーティのデータが大きすぎます。'},400);
+    const r=await db.prepare(`SELECT updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();
+    if(r&&r.updated_at>at)return J({ok:false,newer:true,updated_at:r.updated_at},409);
+    await db.prepare(`INSERT INTO user_data(uid,teams,updated_at) VALUES(?,?,?) ON CONFLICT(uid) DO UPDATE SET teams=excluded.teams,updated_at=excluded.updated_at`).bind(me.uid,txt,at).run();
+    return J({ok:true,updated_at:at});
+  }
   /* アカウントの削除（Firebase 側のアカウントはサイトから消す） */
   if(path==='/api/me/delete'&&req.method==='POST'){
     await socialDeleteUser(db,me.uid);
+    await db.prepare(`DELETE FROM user_data WHERE uid=?`).bind(me.uid).run();
     await db.prepare(`DELETE FROM users WHERE uid=?`).bind(me.uid).run();
     return J({ok:true});
   }

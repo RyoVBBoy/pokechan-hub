@@ -86,6 +86,7 @@ const EN={
 '相手のポケモン名（ひらがなOK）':'Opponent\'s Pokémon name','先にあなたのパーティを登録してください':'Register your team first','パーティを登録する':'Register your team','先にパーティを登録してください':'Register your team first',
 'ポケモンを選ぶ':'Choose a Pokémon','ポケモン名を入力（ひらがなOK）':'Type a Pokémon name','見つかりません':'No matches','最近選んだ':'Recent','すべてのポケモン':'All Pokémon',
 'このパーティの名前を変える':'Rename this team','パーティの名前（20文字まで）':'Team name (up to 20 characters)',
+'ログイン中：パーティはどの端末でも同じになります（自動で保存）':'Signed in: your teams are the same on every device (saved automatically)','サーバーに保存できませんでした。電波のよいところで自動でやり直します。':'Could not save to the server. It will retry automatically.','すると、スマホでもパソコンでも同じパーティを使えます':' to use the same teams on your phone and PC',
 /* コミュニティ */
 'ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。':'A place to battle and share with other trainers. The lobby and message board can be used anonymously.',
 'タイムライン':'Timeline','トレーナーの投稿を見る・投稿する・フォローする':'Read, post and follow trainers','お知らせ':'Notifications','いいね・フォローされたとき':'Likes and new followers',

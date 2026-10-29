@@ -76,5 +76,16 @@ r=await call('/api/u/bob/notes');expect('削除した人のいいねは数から
 r=await call('/api/notifs',{tok:A});expect('削除した人からの通知は消える',r[1].notifs.length===0,r);
 /* 掲示板は従来どおり */
 r=await call('/api/boards');expect('掲示板は従来どおり',r[0]===200,r);
+/* パーティの同期（/api/me/teams） */
+r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
+r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);
+const TM={cur:1,list:[{name:'A',team:[{no:445,sel:true}]},{name:'<b>B</b>',team:[{no:149}]},{name:'',team:[]}]};
+r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:TM,updated_at:clock}});expect('パーティ：保存',r[0]===200,r);
+r=await call('/api/me/teams',{tok:A});expect('パーティ：読める',r[1].updated_at===clock&&r[1].teams.cur===1&&r[1].teams.list[0].team[0].no===445,r);
+r=await call('/api/me/teams',{tok:B});expect('パーティ：ほかの人のは見えない',r[1].teams===null,r);
+r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:TM,updated_at:clock-1000}});expect('パーティ：古い内容では上書きしない',r[0]===409,r);
+r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{team:Array(7).fill({no:1})}]},updated_at:clock+1}});expect('パーティ：7匹は拒否',r[0]===400,r);
+r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{name:'x'.repeat(40000),team:[]}]},updated_at:clock+1}});expect('パーティ：名前は20文字に切る',r[0]===200,r);
+await call('/api/me/delete',{method:'POST',tok:A,body:{}});r=await call('/api/me/teams',{tok:A});expect('パーティ：アカウント削除で消える',r[1].teams===null,r);
 Date.now=realNow;
 console.log(bad?`social: NG（${bad}件）`:`social: OK（${n}項目）`);if(bad)process.exitCode=1;

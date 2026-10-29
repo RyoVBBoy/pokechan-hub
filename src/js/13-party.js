@@ -12,7 +12,7 @@ let TEAMS=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem('pcteams')||'nu
   o.list.forEach(s=>{s.team=cleanTeam(s.team);s.name=String(s.name||'').slice(0,20)});return o})();
 team=TEAMS.list[TEAMS.cur].team.map(x=>({...x}));
 const teamName=i=>TEAMS.list[i].name||L(`パーティ${i+1}`,`Team ${i+1}`);
-const saveTeam=()=>{TEAMS.list[TEAMS.cur].team=team;try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
+const saveTeam=fromServer=>{TEAMS.list[TEAMS.cur].team=team;if(fromServer!==true){TEAMS.updated=Date.now();if(typeof teamSyncSoon==='function')teamSyncSoon()}try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
 function switchTeam(i){if(i===TEAMS.cur||!TEAMS.list[i])return;saveTeam();TEAMS.cur=i;team=TEAMS.list[i].team.map(x=>({...x}));saveTeam()}
 let tq='';
 function addTeam(no){
@@ -25,7 +25,7 @@ function teamView(arg){
   if(arg){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
     if(ids.length){team=ids.map((no,i)=>({no,sel:i<PICK()}));saveTeam();cur='#/team';setUrl('#/team')}}
   V.innerHTML=`
-  <div class="pills tslots" id="tslots"></div>
+  <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
   <p class="note" style="padding:6px 16px 12px">6匹まで登録し、<b>★で選出する${PICK()}匹</b>を決めます（${FMTN()}の形式）。</p>
   <div class="grid3" id="slots"></div>
   <div id="tsets"></div>
@@ -45,7 +45,7 @@ function teamView(arg){
   document.getElementById('clr').onclick=()=>{if(team.length&&!confirm(`「${teamName(TEAMS.cur)}」のポケモンをすべて外します。よろしいですか？`))return;team=[];saveTeam();teamRender()};
   document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
   document.getElementById('tslots').onclick=e=>{const b=e.target.closest('[data-tslot]');if(!b)return;switchTeam(+b.dataset.tslot);toast(`「${teamName(TEAMS.cur)}」に切り替えました`);teamRender()};
-  teamRender();tpRender();
+  teamRender();tpRender();syncBadge();if(PCF)teamSync();
 }
 function tpRender(){
   const q=tq.trim(),l=P.filter(p=>!q||nmHit(p,q)).slice(0,30);
@@ -72,7 +72,7 @@ function teamRender(){
       <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${p.n}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div></div>`
     :`<div class="tile empty">枠 ${i+1}</div>`}).join('');
   document.getElementById('tsets').innerHTML=team.length?`<div class="sec" style="padding-top:18px"><h2>育成</h2><span style="font-size:13px;color:var(--dim)">タップで編集</span></div>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
-    const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>m.n).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
+    const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
       :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（よくある型で計算中）</div>`;
     return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
   document.querySelectorAll('#slots .tile[data-ti]').forEach(t=>t.onclick=e=>{if(e.target.closest('button'))return;nav('#/edit/'+t.dataset.ti)});

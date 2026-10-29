@@ -18,6 +18,7 @@ async function dbInit(db){
     db.prepare(`CREATE TABLE IF NOT EXISTS lobby(id INTEGER PRIMARY KEY AUTOINCREMENT,fmt TEXT,rule TEXT,pass TEXT,comment TEXT,name TEXT,created_at INTEGER,expires_at INTEGER,hidden INTEGER DEFAULT 0,aid TEXT,ip TEXT)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT,target INTEGER,reason TEXT,aid TEXT,created_at INTEGER,UNIQUE(kind,target,aid))`),
     db.prepare(`CREATE TABLE IF NOT EXISTS users(uid TEXT PRIMARY KEY,handle TEXT UNIQUE COLLATE NOCASE,name TEXT,bio TEXT,created_at INTEGER,updated_at INTEGER,agreed_at INTEGER,banned INTEGER DEFAULT 0)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS user_data(uid TEXT PRIMARY KEY,teams TEXT,updated_at INTEGER)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS posts_t ON posts(thread_id,no)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS threads_b ON threads(board,last_at)`)
   ]);

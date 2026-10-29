@@ -24,7 +24,7 @@ export const sendSignInLinkToEmail=async(a,email,s)=>{window.__sent={email,url:s
 export const isSignInWithEmailLink=(a,h)=>/[?&]oobCode=/.test(h);
 export const signInWithEmailLink=async(a,email)=>{user=mk(email);fire()};`;
 /* にせもののサーバー（/api/me とタイムライン） */
-const users={},notes=[],follows=new Set();
+const users={},cloud={},notes=[],follows=new Set();
 async function social(r,u){
   const h={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json'};
   if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:h});
@@ -44,7 +44,7 @@ async function social(r,u){
   if(P==='/api/notifs/seen')return J({ok:true});
   return J({error:'見つかりません。'},404);
 }
-await pg.route(/^https?:/,async r=>{
+const handler=async r=>{
   const u=new URL(r.request().url());const js={status:200,headers:{'Access-Control-Allow-Origin':'*','Content-Type':'text/javascript'}};
   if(u.host==='www.gstatic.com'&&u.pathname.endsWith('/firebase-app.js'))return r.fulfill({...js,body:FB_APP});
   if(u.host==='www.gstatic.com'&&u.pathname.endsWith('/firebase-auth.js'))return r.fulfill({...js,body:FB_AUTH});
@@ -55,6 +55,8 @@ await pg.route(/^https?:/,async r=>{
     const tok=(r.request().headers().authorization||'').replace(/^Bearer /,'');
     if(!tok.startsWith('tok:'))return r.fulfill({status:401,headers:h,body:JSON.stringify({error:'ログインし直してください。'})});
     const email=tok.slice(4),body=r.request().postDataJSON?.()||{};
+    if(u.pathname==='/api/me/teams'){if(r.request().method()==='GET')return r.fulfill({headers:h,body:JSON.stringify(cloud[email]||{teams:null,updated_at:0})});
+      const c=cloud[email];if(c&&c.updated_at>body.updated_at)return r.fulfill({status:409,headers:h,body:'{"ok":false}'});cloud[email]={teams:body.teams,updated_at:body.updated_at};return r.fulfill({headers:h,body:'{"ok":true}'})}
     if(u.pathname==='/api/me/delete'){delete users[email];return r.fulfill({headers:h,body:'{"ok":true}'})}
     if(r.request().method()==='POST'){
       if(!users[email]&&!body.agree)return r.fulfill({status:400,headers:h,body:JSON.stringify({error:'同意が必要です。'})});
@@ -63,7 +65,8 @@ await pg.route(/^https?:/,async r=>{
     return r.fulfill({headers:h,body:JSON.stringify({user:users[email]||null,email})});
   }
   return r.abort();
-});
+};
+await pg.route(/^https?:/,handler);
 const txt=()=>pg.evaluate(()=>document.querySelector('main')?.innerText||'');
 const wait=ms=>pg.waitForTimeout(ms);
 
@@ -94,6 +97,20 @@ await pg.click('.tw-who');await wait(600);
 ok(/@trainer_01/.test(await txt())&&/1 投稿/.test((await txt()).replace(/\s+/g,' '))&&/プロフィールを編集/.test(await txt()),'自分のページの表示が正しくありません');
 await pg.evaluate(()=>{location.hash='#/notif'});await wait(500);
 ok(/あなたをフォローしました/.test(await txt()),'お知らせが出ません');
+/* パーティの同期：この端末で変えたパーティが、別の端末（B）でログインすると出る */
+await pg.evaluate(()=>{switchTeam(1);team=[{no:445,sel:true},{no:149,sel:true}];TEAMS.list[1].name='ダブル用';saveTeam()});await wait(2200);
+ok(cloud['g@example.com']&&cloud['g@example.com'].teams.list[1].team.length===2,'パーティがサーバーに保存されません');
+const pgB=await (await b.newContext({viewport:{width:390,height:844},locale:'ja-JP'})).newPage();
+pgB.on('pageerror',e=>errs.push('B: '+e.message));await pgB.route(/^https?:/,handler);
+await pgB.goto(URL0+'#/account');await pgB.waitForTimeout(800);await pgB.click('#ac-google');await pgB.waitForTimeout(1200);
+await pgB.evaluate(()=>{location.hash='#/team'});await pgB.waitForTimeout(800);
+const tb=await pgB.evaluate(()=>[TEAMS.cur,team.map(x=>x.no).join(),TEAMS.list[1].name,document.getElementById('tsync')?.innerText||'']);
+ok(tb[0]===1&&tb[1]==='445,149'&&tb[2]==='ダブル用'&&/どの端末でも同じ/.test(tb[3]),'別の端末でパーティが同じになりません: '+JSON.stringify(tb));
+/* 端末Bで変えると、端末Aにも戻ってくる */
+await pgB.evaluate(()=>{addTeam(248)});await pgB.waitForTimeout(2200);
+await pg.evaluate(()=>teamSync(true));await wait(800);
+ok(await pg.evaluate(()=>team.map(x=>x.no).join()==='445,149,248'),'別の端末の変更が戻ってきません');
+await pgB.close();
 /* ログアウト */
 await pg.evaluate(()=>{location.hash='#/account'});await wait(500);
 await pg.click('#ac-out');await wait(500);

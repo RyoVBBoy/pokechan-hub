@@ -14,7 +14,7 @@
 - `src/styles.css`、`src/index.html`（`__JS__`/`__CSS__` を build で置換）。
 - PiP（ピクチャ・イン・ピクチャ）：`19-pip.js`。カードを動画にして端末の PiP で浮かべる（ゲーム中もJSが止まっても動く）。`PIP.mode`＝'battle'（選出アシスト #/assist/pip）／'build'（育成画面 #/edit/N。ゲームの育成画面で見ながら入力する用、「この1匹／パーティ全員」）。画面の言い方は「小窓」ではなく「PiP」。
 - 画像から取り込む（`18-import.js`）：名前が読めない・ニックネーム・フォルム違いのときは `imGuess` が、実数値が種族値と計算で合うか（最重要）・技を覚えるか・特性・メガストーン・名前の似かたで全ポケモンに点数をつけて予測する。ほかの候補はボタンで選び直せる。
-- パーティは3つまで保存（`13-party.js` の `TEAMS`＝localStorage `pcteams`。いま選んでいるものが `team`、`switchTeam(i)` で切り替え、名前を付けられる。古い `pcteam` は1つ目に自動で移す）。
+- パーティは3つまで保存（`13-party.js` の `TEAMS`＝localStorage `pcteams`。ログイン中は `33-sync.js` がサーバー（`/api/me/teams`、D1 の user_data）と同期し、どの端末でも同じになる＝ログインの利点。変更時刻 `TEAMS.updated` が新しい方を残し、置きかえ前の端末の中身は `pcteams_backup` に残す。いま選んでいるものが `team`、`switchTeam(i)` で切り替え、名前を付けられる。古い `pcteam` は1つ目に自動で移す）。
 - ポケモンを選ぶ欄は長い一覧（select）にしない。`monField(属性,番号)`＋`pickMon()`（`11-matchup.js`）＝名前を打って絞り込む（ひらがな・英語OK、パーティ・最近選んだを上に）。
 - PC表示：700px以上で下のタブ→左のメニュー（本文600px）、1280px以上で右に「よく使う機能」（`src/styles.css` の最後・`31-desktop.js`・`index.html` の `.pc-*`/`.pcside`）。スマホ（699px以下）の見た目は変えない。
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
