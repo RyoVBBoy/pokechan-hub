@@ -967,3 +967,9 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .adv p{margin:4px 0 0;font-size:13.5px;line-height:1.7;color:var(--dim)}
 .adv-warn{box-shadow:inset 3px 0 0 var(--w2),inset 0 0 0 1px var(--line)}
 .adv-tip{box-shadow:inset 3px 0 0 var(--acc),inset 0 0 0 1px var(--line)}
+/* 攻略ガイド */
+.gdoc{padding:16px 16px 4px}
+.gdoc h2{margin:8px 0 6px;font-size:22px;font-weight:800}
+.gdoc h3{margin:16px 0 4px;font-size:14px;color:var(--dim);font-weight:700}
+.gdoc p{margin:0;font-size:15px;line-height:1.85}
+.gmega{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;padding:10px 12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-size:15px}

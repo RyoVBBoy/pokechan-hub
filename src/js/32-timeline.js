@@ -220,6 +220,7 @@ async function searchView(a){
   res.innerHTML=`<div id="sr-live"></div>${top?`<a class="sr-mon" href="#/p/${top.no}"><span class="av">${stamp(top)}</span><div class="row-m">${nm(top,{big:true})}<div class="chips" style="margin-top:6px">${top.t.map(chip).join('')}</div>
       <div class="sr-st">${SN.map((n,i)=>`<span><small>${n}</small><b>${top.s[i]}</b></span>`).join('')}<span><small>合計</small><b>${top.bst}</b></span></div><div class="row-s" style="margin-top:4px">図鑑の詳しい画面を見る ›</div></div></a>`:''}
     ${others.length?`<div class="sec"><h2>${top?'ほかのポケモン':'ポケモン'}</h2></div>${others.map(p=>rowP(p)).join('')}`:''}
+    ${guideSearch(q)}
     <div id="sr-users"></div><div class="sec"><h2>投稿</h2></div><div id="sr-list"></div>`;
   await twAuth();
   twFeed(document.getElementById('sr-list'),'/api/search?q='+encodeURIComponent(q),`「${esc(q)}」を含む投稿はまだありません。`);

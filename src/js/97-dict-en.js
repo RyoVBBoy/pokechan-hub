@@ -96,6 +96,8 @@ const EN={
 '☆を押したツールが先頭に':'Starred tools come first',
 '通知をオンにする':'Turn on notifications','テスト通知を送る':'Send a test notification','オフにする':'Turn off','いいね・フォローされたときに、スマホに通知が届くようにできます。':'Get notified on your phone when someone likes or follows you.',
 'このブラウザは、スマホへの通知に対応していません。':'This browser does not support notifications.','通知をオンにしました':'Notifications on','通知をオフにしました':'Notifications off','テスト通知を送りました':'Test notification sent',
+'攻略ガイド（道具・戦術）':'Guide (items & tactics)','ガイド':'Guide','持ち物の効果と使いどころ、戦術・用語を当サイトの言葉で解説':'Item effects and usage, tactics and terms — written by this site',
+'攻略ガイド':'Guide','こだわり系':'Choice items','火力アップ':'Power boost','耐久・回復':'Bulk & recovery','タイプ強化':'Type boost','メガストーン':'Mega Stone','戦術・用語':'Tactics & terms','道具':'Items',
 /* コミュニティ */
 'ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。':'A place to battle and share with other trainers. The lobby and message board can be used anonymously.',
 'タイムライン':'Timeline','トレーナーの投稿を見る・投稿する・フォローする':'Read, post and follow trainers','お知らせ':'Notifications','いいね・フォローされたとき':'Likes and new followers',
@@ -164,6 +166,7 @@ const EN_RE=[
   [/^「(.+)」に切り替えました$/,'Switched to "$1"'],[/^「(.+)」のポケモンをすべて外します。よろしいですか？$/,'Remove all Pokémon from "$1"?'],
   [/^(\d+)匹・タイプや役割で絞り込み$/,'$1 Pokémon · filter by type or role'],[/^(\d+)件の投稿$/,'$1 posts'],[/^「(.+)」を含む投稿はまだありません。$/,'No posts with "$1" yet.'],
   [/^メニューを開く（いまは(.+)）$/,(m,a)=>`Open menu (now: ${enT(a)})`],
+  [/^道具・(.+)$/,(m,a)=>`Item · ${enT(a)}`],
   [/^あと(\d+)分$/,'$1 min left'],
   [/^ポケモン一覧（(\d+)匹）$/,'All Pokémon ($1)'],[/^(\d+)件$/,'$1'],
   [/^データ更新日 (\d+)\/(\d+)\/(\d+)。/,(m,y,mo,d)=>`Data updated ${y}/${mo}/${d}. Base stats, types, learnsets, abilities and Mega Evolutions are based on public data from Pokémon Showdown (Champions data) and PokeAPI. Move power, accuracy and PP are checked against values transcribed from the game. Move and ability descriptions are written by this site. See "Data sources & verification" for details.`],
