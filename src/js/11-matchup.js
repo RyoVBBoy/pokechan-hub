@@ -179,3 +179,41 @@ addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet(true)});
 })();
 document.getElementById('fab').onclick=()=>openSheet();
 
+
+/* ===================== ポケモンを選ぶ（名前を打って絞り込む） =====================
+   長い一覧から探さなくていいように、ボタン → 名前を入れる欄＋候補の一覧（打つたびに絞り込む）。
+   monField(属性, 番号)：見えない <select>（元の処理はそのまま動く）＋ボタン。選ぶと select の change が起きる。 */
+const monRecent=()=>lsJ('pcmonrecent',[]);
+const monField=(attrs,no)=>{const p=byNo[no];return `<span class="mpick-w"><select class="sel" ${attrs} hidden>${P.map(q=>`<option value="${q.no}"${q.no===no?' selected':''}>${q.n}</option>`).join('')}</select>
+  <button type="button" class="mpick" aria-label="ポケモンを選ぶ">${p?`<span class="av">${stamp(p)}</span><b>${p.n}</b>`:'<b>ポケモンを選ぶ</b>'}<span class="mpick-s">${SVG(I.search,17)}</span></button></span>`};
+function pickMon(cur){
+  return new Promise(res=>{
+    const o=document.createElement('div');o.className='psheet mpsheet';
+    o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="ポケモンを選ぶ">
+      <div class="srch">${SVG(I.search,18)}<input id="mp-q" placeholder="ポケモン名を入力（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="ポケモン名"></div>
+      <div class="mp-list" id="mp-list"></div><button class="psheet-x">やめる</button></div>`;
+    document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
+    const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list');
+    const done=v=>{o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
+    const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${p.n}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`;
+    const sec=t=>`<div class="mp-h">${t}</div>`;
+    const draw=()=>{const t=q.value.trim();
+      if(t){const hit=P.filter(p=>nmHit(p,t));
+        /* 名前の先頭が合うものを上に */
+        const k=kata(t).toLowerCase(),head=p=>p.n.toLowerCase().startsWith(k)||(p.ja&&p.ja.startsWith(kata(t)));
+        hit.sort((a,b)=>head(b)-head(a));
+        list.innerHTML=hit.length?hit.slice(0,60).map(row).join(''):'<p class="empty" style="padding:28px 16px">見つかりません</p>';return}
+      const tm=team.map(x=>byNo[x.no]).filter(Boolean),rc=monRecent().map(n=>byNo[n]).filter(p=>p&&!tm.includes(p));
+      list.innerHTML=(tm.length?sec('パーティ')+tm.map(row).join(''):'')+(rc.length?sec('最近選んだ')+rc.map(row).join(''):'')+sec('すべてのポケモン')+P.map(row).join('')};
+    q.oninput=draw;
+    q.onkeydown=e=>{if(e.key==='Enter'){const b=list.querySelector('[data-no]');if(b)done(+b.dataset.no)}};
+    list.onclick=e=>{const b=e.target.closest('[data-no]');if(b)done(+b.dataset.no)};
+    o.querySelector('.psheet-bg').onclick=()=>done(null);o.querySelector('.psheet-x').onclick=()=>done(null);
+    draw();q.focus();
+  });
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('.mpick');if(!b)return;e.preventDefault();
+  const sel=b.parentNode.querySelector('select');const v=await pickMon(+sel.value);
+  if(v&&String(v)!==sel.value){sel.value=String(v);sel.dispatchEvent(new Event('change',{bubbles:true}))}
+});

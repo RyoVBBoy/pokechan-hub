@@ -860,3 +860,16 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
 /* 取り込み：ニックネームのときの予測 */
 .imgs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px;padding:8px 10px;border-radius:10px;background:rgba(29,155,240,.08);font-size:13px;color:var(--dim);line-height:1.5}
 .imgs b{color:var(--acc)}.imgs span{margin-left:4px}.imgs .pill{padding:4px 12px;font-size:13px}
+/* ポケモンを選ぶ（名前で絞り込み） */
+.mpick-w{flex:1;min-width:0;display:block}
+.mpick{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:4px 12px 4px 6px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 15px var(--ff);text-align:left;cursor:pointer}
+.mpick .av{width:32px;height:32px;flex:none}.mpick b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpick-s{color:var(--dim);display:grid}
+.mpick:active{background:var(--prs)}
+.mpsheet .psheet-p{display:flex;flex-direction:column;height:86vh;height:86dvh;padding-top:14px}
+.mpsheet .srch{margin:0 0 6px}
+.mp-list{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0 -16px}
+.mp-r{width:100%;background:none;border:0;border-bottom:1px solid var(--line);color:inherit;font-family:inherit;text-align:left;cursor:pointer;content-visibility:visible}
+.mp-r .av{width:40px;height:40px}.mp-r.on{background:rgba(29,155,240,.1)}
+.mp-h{padding:12px 16px 6px;font-size:13px;font-weight:700;color:var(--dim)}
+@media(min-width:700px){.mpsheet .psheet-p{max-width:520px;height:min(720px,86vh)}}

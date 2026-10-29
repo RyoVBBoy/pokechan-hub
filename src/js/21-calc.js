@@ -68,7 +68,7 @@ function calcSide(key,X,isAtk){
   const st=calcStats(p,X.sp,X.up,X.dn);
   const ks=[...Object.keys(MEGA).filter(k=>itemFor(X.no,k)),...Object.keys(ITEMN).filter(k=>!isStone(k))];
   return `<div class="cside">
-  <div class="natr"><span style="width:62px">${isAtk?'攻撃側':'防御側'}</span><select class="sel" data-c="${key}.no">${monOpts(X.no)}</select></div>
+  <div class="natr"><span style="width:62px">${isAtk?'攻撃側':'防御側'}</span>${monField(`data-c="${key}.no"`,X.no)}</div>
   <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">よくある型</button></div>
   <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}${ABIMPL.has(k)?'':'※計算外'}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
   <div class="natr"><span style="width:62px">持ち物</span><select class="sel" data-c="${key}.item"><option value="">（なし）</option>${ks.map(k=>`<option value="${k}"${k===X.item?' selected':''}>${ITEMN[k]}</option>`).join('')}</select></div>

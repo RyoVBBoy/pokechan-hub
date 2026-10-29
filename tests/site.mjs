@@ -50,6 +50,14 @@ const gs=await pg.evaluate(()=>{const mk=(no,sp,up,dn)=>calcStats(byNo[no],sp,up
     [{nameRaw:'カイリュ',vals:mk(445,[2,32,0,0,0,32],1,3),spr:[2,32,0,0,0,32],mvRaw:['じしん','げきりん','ストーンエッジ','まもる']},445]];
   return cs.map(([sl,want])=>{sl={pos:0,...sl};imResolve(sl);return sl.no===want?'':`${sl.nameRaw}→${sl.no}`}).filter(Boolean)});
 if(gs.length)fail('ニックネームからの予測: '+gs.join(' / '));
+// ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
+await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
+await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
+await pg.keyboard.type('はっさ');await pg.waitForTimeout(150);
+const mpc=await pg.$$eval('.mp-r .row-t',x=>x.map(e=>e.textContent));
+await pg.keyboard.press('Enter');await pg.waitForTimeout(400);
+const mpa=await pg.evaluate(()=>[...document.querySelectorAll('.mpick b')].map(b=>b.textContent)[1]);
+if(mpc.join()!=='ハッサム'||mpa!=='ハッサム')fail('ポケモンの絞り込み選択: '+mpc.join(',')+' → '+mpa);
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);

@@ -84,6 +84,7 @@ const EN={
 '対戦前の画面で見える':'Enter the ','相手の6匹':'opponent\'s 6 Pokémon','を入れると、あなたのパーティから':' shown before battle, and from your team you\'ll get the ','出すべき3匹と先発':'best 3 to bring and your lead',
 '背面タップで相手を入力（β）':'Enter the opponent with Back Tap (beta)','ゲームを開いたまま、背中を2回たたくだけで相手の弱点を通知で表示':'Keep the game open and double-tap the back of your phone to see the opponent\'s weaknesses',
 '相手のポケモン名（ひらがなOK）':'Opponent\'s Pokémon name','先にあなたのパーティを登録してください':'Register your team first','パーティを登録する':'Register your team','先にパーティを登録してください':'Register your team first',
+'ポケモンを選ぶ':'Choose a Pokémon','ポケモン名を入力（ひらがなOK）':'Type a Pokémon name','見つかりません':'No matches','最近選んだ':'Recent','すべてのポケモン':'All Pokémon',
 /* コミュニティ */
 'ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。':'A place to battle and share with other trainers. The lobby and message board can be used anonymously.',
 'タイムライン':'Timeline','トレーナーの投稿を見る・投稿する・フォローする':'Read, post and follow trainers','お知らせ':'Notifications','いいね・フォローされたとき':'Likes and new followers',
