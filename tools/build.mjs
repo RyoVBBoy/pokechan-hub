@@ -34,8 +34,14 @@ fs.writeFileSync(path.join(DIST, 'index.html'), shell.replace('<script src="__JS
 const single = shell.replace('<link rel="stylesheet" href="__CSS__">', `<style>${css}</style>`).replace('<script src="__JS__"></script>', cfgTag + `<script>${js}</script>`);
 fs.writeFileSync(path.join(DIST, 'single.html'), single);
 
-// _headers（Cloudflare Pages）：ハッシュ付きファイルは長くキャッシュ、HTMLは毎回確認
-fs.writeFileSync(path.join(DIST, '_headers'), `/assets/app.*
+// src/static の中身（通知の受け取り sw.js・ホーム画面用の manifest とアイコン）はそのまま dist に置く
+const ST = path.join(SRC, 'static');
+if (fs.existsSync(ST)) for (const f of fs.readdirSync(ST)) fs.copyFileSync(path.join(ST, f), path.join(DIST, f));
+
+// _headers（Cloudflare Pages）：ハッシュ付きファイルは長くキャッシュ、HTMLと sw.js は毎回確認
+fs.writeFileSync(path.join(DIST, '_headers'), `/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+/assets/app.*
   Cache-Control: public, max-age=31536000, immutable
 /*.html
   Cache-Control: public, max-age=0, must-revalidate

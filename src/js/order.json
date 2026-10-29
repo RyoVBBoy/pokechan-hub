@@ -36,6 +36,7 @@
  "32-timeline.js",
  "33-sync.js",
  "34-drawer.js",
+ "35-push.js",
  "97-dict-en.js",
  "98-i18n.js",
  "99-start.js"

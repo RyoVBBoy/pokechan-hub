@@ -85,6 +85,7 @@ async function userApi(req,env,db,path,body,now){
   if(path==='/api/me/delete'&&req.method==='POST'){
     await socialDeleteUser(db,me.uid);
     await db.prepare(`DELETE FROM user_data WHERE uid=?`).bind(me.uid).run();
+    await pushInit(db);await db.prepare(`DELETE FROM push_subs WHERE uid=?`).bind(me.uid).run();
     await db.prepare(`DELETE FROM users WHERE uid=?`).bind(me.uid).run();
     return J({ok:true});
   }

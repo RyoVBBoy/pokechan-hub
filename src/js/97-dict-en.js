@@ -94,6 +94,8 @@ const EN={
 'メニュー':'Menu','ゲームを切り替える':'Switch game','マイツール':'My Tools','設定とプライバシー':'Settings and privacy','ヘルプセンター':'Help Center','明るさ':'Appearance','端末に合わせる':'Match device','ライト':'Light','ダーク':'Dark',
 'パーティをどの端末でも・投稿・フォロー':'Same teams on every device, posting, following','コミュニティの利用ルール':'Community rules','基本ルール（計算式など）':'Basic rules (formulas)','ホーム':'Home',
 '☆を押したツールが先頭に':'Starred tools come first',
+'通知をオンにする':'Turn on notifications','テスト通知を送る':'Send a test notification','オフにする':'Turn off','いいね・フォローされたときに、スマホに通知が届くようにできます。':'Get notified on your phone when someone likes or follows you.',
+'このブラウザは、スマホへの通知に対応していません。':'This browser does not support notifications.','通知をオンにしました':'Notifications on','通知をオフにしました':'Notifications off','テスト通知を送りました':'Test notification sent',
 /* コミュニティ */
 'ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。':'A place to battle and share with other trainers. The lobby and message board can be used anonymously.',
 'タイムライン':'Timeline','トレーナーの投稿を見る・投稿する・フォローする':'Read, post and follow trainers','お知らせ':'Notifications','いいね・フォローされたとき':'Likes and new followers',

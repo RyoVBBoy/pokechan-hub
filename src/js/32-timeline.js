@@ -166,6 +166,7 @@ async function notifView(){
       <div>${n.kind==='like'?'あなたの投稿にいいねしました':'あなたをフォローしました'}<span class="tw-t">　${ago(n.created_at)}</span></div>
       ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいねやフォローされると、ここに届きます。</p>';
     if(j.notifs.some(n=>n.id>j.seen))authFetch('/api/notifs/seen',{}).then(()=>notifBadge(0)).catch(()=>{});
+    V.insertAdjacentHTML('afterbegin','<div id="nf-push"></div>');if(typeof pushRow==='function')pushRow(document.getElementById('nf-push'),true);
   }catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
 }
 /* 未読のお知らせの数を「コミュニティ」タブに出す（ログインしたことがある端末だけ、1分ごと） */

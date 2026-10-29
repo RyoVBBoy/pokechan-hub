@@ -63,7 +63,8 @@ async function api(req,env,u,ctx){
   if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db)).catch(()=>{}));
   let m;
   /* タイムライン・フォロー・通知（social.js） */
-  {const r=await socialApi(req,env,db,path,u,body,now,ip);if(r)return r}
+  {const r=await pushApi(req,env,db,path,body,now);if(r)return r}
+  {const r=await socialApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
   /* ログイン・ユーザー */
   {const r=await userApi(req,env,db,path,body,now);if(r)return r}
   /* 板の一覧 */

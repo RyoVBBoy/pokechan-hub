@@ -43,13 +43,14 @@ async function socialRate(db,uid,now){
   if(r&&r.d>=100)return '1日に投稿できる回数（100件）を超えました。';
   return null;
 }
-async function socialApi(req,env,db,path,u,body,now,ip){
+async function socialApi(req,env,db,path,u,body,now,ip,ctx){
+  const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
   if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags)/.test(path))return null;
   await socialInit(db);
   let m;
   /* ログイン（見るだけなら不要）。書き込みにはプロフィールが必要 */
   const me=fbPid(env)?await authOf(req,env):null;
-  const meRow=me?await db.prepare(`SELECT uid,handle,banned FROM users WHERE uid=?`).bind(me.uid).first():null;
+  const meRow=me?await db.prepare(`SELECT uid,handle,name,banned FROM users WHERE uid=?`).bind(me.uid).first():null;
   const meUid=meRow&&!meRow.banned?meRow.uid:'';
   const need=()=>!me?J({error:'ログインしてください。'},401):!meRow?J({error:'先にプロフィールを作ってください。'},403):meRow.banned?J({error:'このアカウントは利用を停止しています。'},403):null;
   const withMine=rows=>rows.map(r=>({...r,mine:meUid&&r.handle===meRow.handle}));
@@ -94,7 +95,7 @@ async function socialApi(req,env,db,path,u,body,now,ip){
   /* いいね（on:false で取り消し） */
   if((m=path.match(/^\/api\/notes\/(\d+)\/like$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
-    const n=await db.prepare(`SELECT id,uid FROM notes WHERE id=? AND hidden=0`).bind(id).first();
+    const n=await db.prepare(`SELECT id,uid,body FROM notes WHERE id=? AND hidden=0`).bind(id).first();
     if(!n)return J({error:'投稿が見つかりません。'},404);
     if(body.on===false){
       await db.batch([db.prepare(`DELETE FROM likes WHERE uid=? AND note_id=?`).bind(meUid,id),
@@ -106,7 +107,10 @@ async function socialApi(req,env,db,path,u,body,now,ip){
       const q=[db.prepare(`INSERT OR IGNORE INTO likes(uid,note_id,created_at) VALUES(?,?,?)`).bind(meUid,id,now),
         db.prepare(`UPDATE notes SET likes=(SELECT COUNT(*) FROM likes WHERE note_id=?1) WHERE id=?1`).bind(id)];
       if(n.uid!==meUid)q.push(db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'like',?,?,?)`).bind(n.uid,meUid,id,now));
+      const had=await db.prepare(`SELECT 1 AS x FROM likes WHERE uid=? AND note_id=?`).bind(meUid,id).first();
       await db.batch(q);
+      /* はじめてのいいねだけ、相手のスマホに通知 */
+      if(!had&&n.uid!==meUid)await later(pushTo(db,n.uid,{title:`${meRow.name}さんがあなたの投稿にいいねしました`,body:String(n.body||'').slice(0,80),url:'#/n/'+id,tag:'like-'+id},'like:'+meUid+':'+id));
     }
     const r=await db.prepare(`SELECT likes FROM notes WHERE id=?`).bind(id).first();
     return J({ok:true,liked:body.on!==false,likes:r?r.likes:0});
@@ -149,6 +153,8 @@ async function socialApi(req,env,db,path,u,body,now,ip){
       if(c&&c.c>=100)return J({error:'短い時間にフォローしすぎです。少し時間をおいてください。'},429);
       const all=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE src=?`).bind(meUid).first();
       if(all&&all.c>=5000)return J({error:'フォローできるのは5000人までです。'},400);
+      const had=await db.prepare(`SELECT 1 AS x FROM follows WHERE src=? AND dst=?`).bind(meUid,t.uid).first();
+      if(!had)await later(pushTo(db,t.uid,{title:`${meRow.name}さんにフォローされました`,body:'@'+meRow.handle,url:'#/u/'+meRow.handle,tag:'follow-'+meRow.handle},'follow:'+meUid));
       await db.batch([db.prepare(`INSERT OR IGNORE INTO follows(src,dst,created_at) VALUES(?,?,?)`).bind(meUid,t.uid,now),
         db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'follow',?,0,?)`).bind(t.uid,meUid,now)]);
     }

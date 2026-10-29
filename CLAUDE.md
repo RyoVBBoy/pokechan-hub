@@ -18,6 +18,7 @@
 - ポケモンの名前は `nm(p)`（`04-common.js`）で出す：名前を太く大きく＋姿の違いの札（メガ・アローラ/ガラル/ヒスイ/パルデア・オス/メスなど、`formInfo`）＋図鑑番号。公式の画像は使わず、図形（種族値の形）は1つ目のタイプの色で塗り、2つ目のタイプの色で縁どる。
 - ホーム（#/）＝投稿（X のように左「みんな」・右「フォロー中」。`tlView(null,true)`、タブは `tlShow`）。もとのホームの中身（すぐ使う・相性・役割・ランキング）は `07-home.js` の `toolsTopHTML`/`toolsBottomHTML` としてツール画面に出す。
 - 左から出るメニュー（`34-drawer.js`）：左上のマークを押す／ホームの「みんな」で右にスワイプ（指に合わせて出る）。プロフィール・お知らせ・パーティ・マイツール・ゲームを切り替える・対戦募集・掲示板・設定（明るさ・言語・通知）・ヘルプ。ホームでは左右スワイプで「みんな／フォロー中」。
+- スマホに届く通知（Web Push）：サーバー `worker/src/push.js`（送り主の鍵 VAPID はサーバーが初回に作って D1 の push_keys に保存＝合言葉の設定は不要。宛先は push_subs。中身は RFC 8291 aes128gcm で暗号化。いいね・フォローで `pushTo`、同じ相手・同じ内容は24時間に1回）、サイト `35-push.js`（sw.js の登録・通知のオン/オフ・iPhone は「ホーム画面に追加」から開いたときだけ）、`src/static/`（sw.js・manifest・自作アイコン。build で dist にそのまま置く）。テスト `tests/push.mjs` は標準ライブラリ http_ece で復号して確かめる。
 - 明るさ：`00-i18n.js` の THEME（端末のライト／ダークに合わせる。`pctheme`＝auto/light/dark で固定もできる）。色は `styles.css` の変数（--bg・--fg・--glass・--onfg など）を使い、`#000` などを直接書かない。明るい色は最後の `[data-theme=light]`。タイプの文字色 TXT は明るさに合わせて `txtCalc()` で作り直す。
 - 検索（下のメニューの「検索」、旧「図鑑」）：`32-timeline.js` の `searchView`（#/search/言葉）。ポケモン名に合えば一番上にそのポケモン（押すと図鑑）、その下にトレーナーと投稿。図鑑の一覧（#/dex）は検索画面から。ハッシュタグは投稿の本文から `tagsOf` で取り出して D1 の note_tags に入れる（/api/search?q=#タグ、/api/tags/trend）。本文の #タグ は `linkTags` で青い文字＋検索へのリンク。
 - ポケモンを選ぶ欄は長い一覧（select）にしない。`monField(属性,番号)`＋`pickMon()`（`11-matchup.js`）＝名前を打って絞り込む（ひらがな・英語OK、パーティ・最近選んだを上に）。
@@ -28,7 +29,7 @@
 - タイムライン：サイトは `32-timeline.js`（#/tl・#/tl/following・#/u/ID・#/n/番号・#/notif）、サーバーは `worker/src/social.js`（/api/tl・/api/notes・/api/follow・/api/notifs・/api/u）。見るのはログイン不要、書くのはプロフィール作成済みの人だけ。140文字・15秒に1件・1日100件・リンク不可・ログインした人3人の通報で非表示。
 - `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認・タイムライン）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。
-- `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・login＝ログイン〜投稿の画面の流れ・i18n＝英語表示・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
+- `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・push＝通知の暗号化と送信・login＝ログイン〜投稿の画面の流れ・i18n＝英語表示・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
 - `.github/workflows/deploy.yml`：push → 組み立て → テスト → Cloudflare Pages（サイト）→ Cloudflare Workers（サーバー）。runs-on は `ubuntu-24.04` に固定（ubuntu-latest=26.04 は Playwright 非対応）。
 
 ### 手元で確かめる

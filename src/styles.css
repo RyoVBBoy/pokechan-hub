@@ -943,3 +943,8 @@ html[data-theme=light]{color-scheme:light}
 .dr-lab{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-top:4px}
 .dr-s{display:block;padding:10px 0;font-size:15px;color:var(--fg)}
 .dr-set .pills{flex-wrap:wrap}.dr-set .pill{font-size:13px;padding:6px 12px}
+/* 通知の設定 */
+.push-row{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.6;color:var(--dim);box-shadow:inset 0 0 0 1px var(--line)}
+.push-row svg{flex:none;margin-top:2px;color:var(--acc)}.push-row b{color:var(--fg)}
+.push-b{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.push-b .btn{flex:none;height:34px;padding:0 14px;font-size:13px}
+#nf-push .push-row{margin:12px 16px 4px}
