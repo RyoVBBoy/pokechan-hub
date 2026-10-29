@@ -63,8 +63,7 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        run: npx --yes netlify-cli@17 deploy --prod --dir=dist --no-build --message "GitHub ${{ github.sha }}"
-
+       run: npx --yes netlify-cli@17 deploy --prod --dir=dist --message "GitHub ${{ github.sha }}"
       - name: サーバーの設定ファイルを作る
         env:
           WORKER_NAME: ${{ vars.WORKER_NAME || 'pokechan-tap' }}
