@@ -69,4 +69,3 @@ function mvNote(R){
   return o.join('。');
 }
 
-route();

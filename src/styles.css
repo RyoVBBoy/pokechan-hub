@@ -711,3 +711,6 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
 .vt-fallback.fwd{animation:vt-push .3s var(--ease)}
 .vt-fallback.back{animation:vt-pop .3s var(--ease)}
 @media (prefers-reduced-motion:reduce){*,::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){transition:none!important;animation:none!important}}
+
+/* アカウント */
+.ac-card{display:flex;align-items:center;gap:12px;padding:18px 16px 6px}.ac-card b{display:block;font-size:20px}.ac-card small{color:var(--dim);font-size:14px}.ac-av{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:#fff;font-size:24px;font-weight:800;flex:none}.ac-agree{display:flex!important;flex-direction:row!important;gap:8px;align-items:flex-start;font-size:14px}.ac-agree input{width:auto!important;margin-top:3px}.legal h3{font-size:16px;margin:18px 0 6px}.legal ol,.legal ul{padding-left:20px;line-height:1.8}.legal a{color:var(--acc)}

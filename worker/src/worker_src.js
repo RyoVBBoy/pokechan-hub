@@ -272,7 +272,7 @@ async function fromImage(buf,teamNos,env,ctx,opts){
   return top+'\n'+formatOpp(opps,mine,sc)+tail;
 }
 __COMMUNITY__
-const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-App-Token,X-Team,X-Admin-Token'};
+const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-App-Token,X-Team,X-Admin-Token,Authorization'};
 export default{
   async fetch(req,env,ctx){
     if(req.method==='OPTIONS')return new Response(null,{headers:CORS});

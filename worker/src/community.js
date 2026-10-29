@@ -17,6 +17,7 @@ async function dbInit(db){
     db.prepare(`CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY AUTOINCREMENT,thread_id INTEGER,no INTEGER,name TEXT,body TEXT,created_at INTEGER,hidden INTEGER DEFAULT 0,aid TEXT,ip TEXT)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS lobby(id INTEGER PRIMARY KEY AUTOINCREMENT,fmt TEXT,rule TEXT,pass TEXT,comment TEXT,name TEXT,created_at INTEGER,expires_at INTEGER,hidden INTEGER DEFAULT 0,aid TEXT,ip TEXT)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT,target INTEGER,reason TEXT,aid TEXT,created_at INTEGER,UNIQUE(kind,target,aid))`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS users(uid TEXT PRIMARY KEY,handle TEXT UNIQUE COLLATE NOCASE,name TEXT,bio TEXT,created_at INTEGER,updated_at INTEGER,agreed_at INTEGER,banned INTEGER DEFAULT 0)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS posts_t ON posts(thread_id,no)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS threads_b ON threads(board,last_at)`)
   ]);
@@ -57,9 +58,11 @@ async function api(req,env,u,ctx){
   /* 管理者は ADMIN_TOKEN（利用者に配る APP_TOKEN とは別）。未設定なら管理機能は使えない */
   const adminTok=req.headers.get('x-admin-token')||'';
   const isAdmin=!!env.ADMIN_TOKEN&&String(env.ADMIN_TOKEN).length>=12&&adminTok.length===String(env.ADMIN_TOKEN).length&&await sha(adminTok)===await sha(String(env.ADMIN_TOKEN));
-  let body={};if(req.method==='POST'){try{body=await req.json()}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}
+  let body={};if(req.method==='POST'){const t=await req.text();if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
   if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db));
   let m;
+  /* ログイン・ユーザー */
+  {const r=await userApi(req,env,db,path,body,now);if(r)return r}
   /* 板の一覧 */
   if(path==='/api/boards')return J({boards:Object.entries(BOARDS).map(([k,n])=>({k,n}))});
   /* スレッド一覧 */

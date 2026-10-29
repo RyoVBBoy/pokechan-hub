@@ -27,5 +27,8 @@
  "25-admin.js",
  "26-hub.js",
  "27-games.js",
- "28-moves.js"
+ "28-moves.js",
+ "29-account.js",
+ "30-legal.js",
+ "99-start.js"
 ]

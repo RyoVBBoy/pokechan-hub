@@ -33,7 +33,7 @@ document.addEventListener('click',e=>{
   nav(h);
 });
 const NAVG={p:'dex',cmp:'dex',types:'tools',assist:'tools',calc:'tools',meta:'tools',battle:'tools',tap:'tools',guide:'tools',sources:'tools',verify:'tools',
-  games:'-',team:'team',edit:'team',import:'team',report:'team',community:'community',lobby:'community',bbs:'community',thread:'community',rules:'community',admin:'community'};
+  games:'-',team:'team',edit:'team',import:'team',report:'team',community:'community',lobby:'community',bbs:'community',thread:'community',rules:'community',admin:'community',account:'community',terms:'community',privacy:'community'};
 const navGroup=k=>NAVG[k]??(k||'');
 function route(){
   const [k,a]=cur.replace(/^#\/?/,'').split('/');
@@ -42,7 +42,7 @@ function route(){
     on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});
   closeSheet();
   document.getElementById('fabwrap').hidden=(k==='types'||k==='battle');
-  ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView})[k||'']?.(a);
+  ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,terms:termsView,privacy:privacyView})[k||'']?.(a);
   HD.classList.toggle('sc',scrollY>4);
 }
 function onPop(){

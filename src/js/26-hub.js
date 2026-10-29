@@ -26,6 +26,7 @@ function toolsView(){
 function communityView(){
   setHeader('みんな');
   V.innerHTML=`<p class="note" style="padding-top:14px">ほかのトレーナーと対戦したり、情報を交換したりする場所です。匿名で使えます。</p>
+  ${hubRow('#/account','アカウント',typeof AUTH!=='undefined'&&AUTH.profile?`@${esc(AUTH.profile.handle)}・プロフィール`:'ログイン・プロフィール')}
   ${hubRow('#/lobby','対戦募集','プライベート対戦の相手を募集・参加する（あいことばを共有）')}
   ${hubRow('#/bbs','掲示板','雑談・構築相談・質問・大会の情報')}
   ${hubRow('#/rules','利用ルール','禁止していること・通報と削除・保存する情報')}`;
