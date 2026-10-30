@@ -171,5 +171,18 @@ async function api(req,env,u,ctx){
     await db.prepare(`UPDATE ${tb} SET hidden=? WHERE id=?`).bind(body.restore?0:1,id).run();
     return J({ok:true});
   }
+  /* アカウントの停止（on:false で解除）。停止中の人の投稿・プロフィールは表示されず、書き込みもできない */
+  if(path==='/api/admin/ban'&&req.method==='POST'){
+    if(!isAdmin)return J({error:'管理用の合言葉が違います。'},401);
+    const h=String(body.handle||'').replace(/^@/,'');
+    const r=await db.prepare(`UPDATE users SET banned=? WHERE handle=? COLLATE NOCASE`).bind(body.on===false?0:1,h).run();
+    if(!(r.meta&&r.meta.changes))return J({error:'そのユーザーIDの人が見つかりません。'},404);
+    return J({ok:true,banned:body.on!==false});
+  }
+  if(path==='/api/admin/banned'&&req.method==='GET'){
+    if(!isAdmin)return J({error:'管理用の合言葉が違います。'},401);
+    const r=await db.prepare(`SELECT handle,name,updated_at FROM users WHERE banned=1 ORDER BY updated_at DESC LIMIT 200`).all();
+    return J({users:r.results});
+  }
   return J({error:'見つかりません。'},404);
 }

@@ -2,6 +2,8 @@
    ログインしてプロフィールを作った人だけが書き込める（見るのはだれでも）。
    ・投稿は140文字。NGワード・リンク・連投は掲示板と同じく不可。ログインした人3人から通報されると自動で非表示
    ・media 列は将来の画像用（いまは使わない）
+   ・返信は reply_to（返信先の投稿の番号）、リポストは repost_of（元の投稿の番号・本文なし）を持つ1行。
+     リポストもふつうの投稿と同じ行なので、タイムラインの並び・ページングはそのまま使える
    ・タイムラインは「読むときに集める」方式（フォロー中の人の投稿を、そのつど索引で探す）。
      利用者が大きく増えたら「書くときに配る」方式（各自の受け取り箱）に切り替える
    ・ページングは id の小さい方へ（?before=最後のid）。OFFSET は使わない（件数が増えても速さが変わらない） */
@@ -30,12 +32,31 @@ async function socialInit(db){
     db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_note ON note_tags(note_id)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_time ON note_tags(created_at)`)
   ]);
+  /* あとから足した列（返信・リポスト）。すでにあるときのエラーは無視する */
+  for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0']){
+    try{await db.prepare(`ALTER TABLE notes ADD COLUMN ${c}`).run()}catch(e){}}
+  await db.batch([
+    db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
+    db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS notes_repost ON notes(repost_of,uid) WHERE repost_of>0`)
+  ]);
   SOCIAL_READY=true;
 }
 /* 投稿の一覧で返す形（uid やIPアドレスは出さない） */
-const NOTE_COLS=`n.id,n.body,n.created_at,n.likes,u.handle,u.name,EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=n.id) AS liked`;
-const noteOut=r=>({id:r.id,body:r.body,created_at:r.created_at,likes:r.likes||0,liked:!!r.liked,mine:!!r.mine,user:{handle:r.handle,name:r.name}});
-const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].id:null});
+/* リポストの行（n）は、元の投稿（o）の中身を出す。rid は並び・ページング用の行の番号 */
+const NOTE_JOIN=`JOIN users u ON u.uid=n.uid AND u.banned=0 LEFT JOIN notes o ON o.id=n.repost_of AND n.repost_of>0 LEFT JOIN users ou ON ou.uid=o.uid`;
+const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0))`;
+const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
+  COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
+  CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,
+  CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
+  (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
+  EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
+  EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted`;
+const noteOut=r=>({id:r.id,body:r.body,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
+  user:{handle:r.handle,name:r.name},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
+const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
+/* 返信・リポストの数を数え直す */
+const recount=(db,id)=>db.prepare(`UPDATE notes SET replies=(SELECT COUNT(*) FROM notes WHERE reply_to=?1 AND hidden=0),reposts=(SELECT COUNT(*) FROM notes WHERE repost_of=?1) WHERE id=?1`).bind(id);
 const beforeOf=u=>{const b=parseInt(u.searchParams.get('before')||'',10);return b>0?b:9e15};
 async function socialRate(db,uid,now){
   const r=await db.prepare(`SELECT (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?2) AS n,(SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3) AS d`).bind(uid,now-15e3,now-864e5).first();
@@ -60,12 +81,12 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const tab=u.searchParams.get('tab')==='following'?'following':'all',before=beforeOf(u);
     if(tab==='following'){
       const e=need();if(e)return e;
-      const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0
-        WHERE n.hidden=0 AND n.id<?2 AND (n.uid=?1 OR n.uid IN (SELECT dst FROM follows WHERE src=?1)) ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before).all();
+      const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
+        WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND (n.uid=?1 OR n.uid IN (SELECT dst FROM follows WHERE src=?1)) ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before).all();
       return J(pageOut(withMine(r.results)));
     }
-    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0
-      WHERE n.hidden=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before).all();
+    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
+      WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before).all();
     return J(pageOut(withMine(r.results)));
   }
   /* 投稿する */
@@ -75,27 +96,48 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     if(text.length<1)return J({error:'本文を入れてください。'},400);
     if([...text].length>NOTE_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400);
     const ng=ngCheck(text)||await socialRate(db,meUid,now);if(ng)return J({error:ng},400);
-    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip) VALUES(?,?,?,?) RETURNING id`).bind(meUid,text,now,ip).first();
+    /* 返信なら、返信先が見られる投稿か確かめる（リポストの行には返信できない） */
+    const to=parseInt(body.reply_to,10)>0?parseInt(body.reply_to,10):0;
+    const pa=to?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(to).first():null;
+    if(to&&!pa)return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404);
+    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to) VALUES(?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to).first();
     const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
+    if(pa&&r){const q=[recount(db,to)];
+      if(pa.uid!==meUid)q.push(db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'reply',?,?,?)`).bind(pa.uid,meUid,r.id,now));
+      await db.batch(q);
+      if(pa.uid!==meUid)await later(pushTo(db,pa.uid,{title:`${meRow.name}さんがあなたの投稿に返信しました`,body:text.slice(0,80),url:'#/n/'+r.id,tag:'reply-'+r.id},'reply:'+r.id))}
     return J({ok:true,id:r&&r.id});
   }
   /* 1件を読む */
   if((m=path.match(/^\/api\/notes\/(\d+)$/))&&req.method==='GET'){
-    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=?2 AND n.hidden=0`).bind(meUid,+m[1]).first();
-    return r?J({note:noteOut(withMine([r])[0])}):J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
+    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0`).bind(meUid,+m[1]).first();
+    if(!r)return J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
+    /* 返信先の投稿もいっしょに返す */
+    const pa=r.reply_to?await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0`).bind(meUid,r.reply_to).first():null;
+    return J({note:noteOut(withMine([r])[0]),parent:pa?noteOut(withMine([pa])[0]):null});
+  }
+  /* その投稿への返信（新しい順） */
+  if((m=path.match(/^\/api\/notes\/(\d+)\/replies$/))&&req.method==='GET'){
+    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.reply_to=?3 AND n.hidden=0 AND n.repost_of=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),+m[1]).all();
+    return J(pageOut(withMine(r.results)));
   }
   /* 自分の投稿を消す */
   if((m=path.match(/^\/api\/notes\/(\d+)\/delete$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
+    const own=await db.prepare(`SELECT reply_to,repost_of FROM notes WHERE id=? AND uid=?`).bind(id,meUid).first();
     const r=await db.prepare(`DELETE FROM notes WHERE id=? AND uid=?`).bind(id,meUid).run();
     if(!(r.meta&&r.meta.changes))return J({error:'消せる投稿が見つかりません。'},404);
+    /* その投稿のリポストも消し、返信先・リポスト元の数を数え直す */
+    await db.prepare(`DELETE FROM notes WHERE repost_of=?`).bind(id).run();
+    if(own&&own.reply_to)await recount(db,own.reply_to).run();
+    if(own&&own.repost_of)await recount(db,own.repost_of).run();
     await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
     return J({ok:true});
   }
   /* いいね（on:false で取り消し） */
   if((m=path.match(/^\/api\/notes\/(\d+)\/like$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
-    const n=await db.prepare(`SELECT id,uid,body FROM notes WHERE id=? AND hidden=0`).bind(id).first();
+    const n=await db.prepare(`SELECT id,uid,body FROM notes WHERE id=? AND hidden=0 AND repost_of=0`).bind(id).first();
     if(!n)return J({error:'投稿が見つかりません。'},404);
     if(body.on===false){
       await db.batch([db.prepare(`DELETE FROM likes WHERE uid=? AND note_id=?`).bind(meUid,id),
@@ -115,20 +157,40 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const r=await db.prepare(`SELECT likes FROM notes WHERE id=?`).bind(id).first();
     return J({ok:true,liked:body.on!==false,likes:r?r.likes:0});
   }
+  /* リポスト（on:false で取り消し）。元の投稿の番号を指定する */
+  if((m=path.match(/^\/api\/notes\/(\d+)\/repost$/))&&req.method==='POST'){
+    const e=need();if(e)return e;const id=+m[1];
+    const n=await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(id).first();
+    if(!n)return J({error:'投稿が見つかりません。'},404);
+    if(body.on===false){
+      await db.batch([db.prepare(`DELETE FROM notes WHERE uid=? AND repost_of=?`).bind(meUid,id),
+        db.prepare(`DELETE FROM notifs WHERE kind='repost' AND actor=? AND note_id=?`).bind(meUid,id),recount(db,id)]);
+    }else{
+      const c=await db.prepare(`SELECT COUNT(*) AS c FROM notes WHERE uid=? AND repost_of>0 AND created_at>?`).bind(meUid,now-36e5).first();
+      if(c&&c.c>=100)return J({error:'短い時間にリポストしすぎです。少し時間をおいてください。'},429);
+      const had=await db.prepare(`SELECT 1 AS x FROM notes WHERE uid=? AND repost_of=?`).bind(meUid,id).first();
+      if(!had){const q=[db.prepare(`INSERT OR IGNORE INTO notes(uid,body,created_at,ip,repost_of) VALUES(?,'',?,?,?)`).bind(meUid,now,ip,id),recount(db,id)];
+        if(n.uid!==meUid)q.push(db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'repost',?,?,?)`).bind(n.uid,meUid,id,now));
+        await db.batch(q);
+        if(n.uid!==meUid)await later(pushTo(db,n.uid,{title:`${meRow.name}さんがあなたの投稿をリポストしました`,body:String(n.body||'').slice(0,80),url:'#/n/'+id,tag:'repost-'+id},'repost:'+meUid+':'+id))}
+    }
+    const r=await db.prepare(`SELECT reposts FROM notes WHERE id=?`).bind(id).first();
+    return J({ok:true,reposted:body.on!==false,reposts:r?r.reposts:0});
+  }
   /* 通報（ログインした人。3人で自動的に非表示） */
   if((m=path.match(/^\/api\/notes\/(\d+)\/report$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
     const reason=REASONS.includes(body.reason)?body.reason:'その他',rid='u'+(await sha('note|'+meUid)).slice(0,15);
     await db.prepare(`INSERT OR IGNORE INTO reports(kind,target,reason,aid,created_at) VALUES('note',?,?,?,?)`).bind(id,reason,rid,now).run();
     const c=await db.prepare(`SELECT COUNT(*) AS n FROM reports WHERE kind='note' AND target=?`).bind(id).first();
-    if(c&&c.n>=3)await db.prepare(`UPDATE notes SET hidden=1 WHERE id=?`).bind(id).run();
+    if(c&&c.n>=3){await db.prepare(`UPDATE notes SET hidden=1 WHERE id=?`).bind(id).run();const p=await db.prepare(`SELECT reply_to FROM notes WHERE id=?`).bind(id).first();if(p&&p.reply_to)await recount(db,p.reply_to).run()}
     return J({ok:true});
   }
   /* 公開プロフィール（フォロー数つき） */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
     const p=await db.prepare(`SELECT uid,handle,name,bio,created_at,
       (SELECT COUNT(*) FROM follows WHERE dst=users.uid) AS followers,(SELECT COUNT(*) FROM follows WHERE src=users.uid) AS following,
-      (SELECT COUNT(*) FROM notes WHERE uid=users.uid AND hidden=0) AS notes,
+      (SELECT COUNT(*) FROM notes WHERE uid=users.uid AND hidden=0 AND repost_of=0) AS notes,
       EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=users.uid AND dst=?2) AS follows_me
       FROM users WHERE handle=?1 COLLATE NOCASE AND banned=0`).bind(m[1],meUid).first();
     if(!p)return J({error:'ユーザーが見つかりません。'},404);
@@ -136,8 +198,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* その人の投稿 */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/notes$/))&&req.method==='GET'){
-    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0
-      WHERE u.handle=?3 COLLATE NOCASE AND n.hidden=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),m[1]).all();
+    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
+      WHERE u.handle=?3 COLLATE NOCASE AND n.hidden=0 AND ${NOTE_OK} AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),m[1]).all();
     return J(pageOut(withMine(r.results)));
   }
   /* フォロー（on:false でやめる） */
@@ -167,10 +229,10 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     if(!q)return J({notes:[],users:[],next:null});
     const tag=q.match(/^[#＃]([\p{L}\p{N}_ー]{1,30})$/u);
     let r;
-    if(tag)r=await db.prepare(`SELECT ${NOTE_COLS} FROM note_tags g JOIN notes n ON n.id=g.note_id JOIN users u ON u.uid=n.uid AND u.banned=0
+    if(tag)r=await db.prepare(`SELECT ${NOTE_COLS} FROM note_tags g JOIN notes n ON n.id=g.note_id ${NOTE_JOIN}
       WHERE g.tag=?3 AND n.hidden=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,tag[1].normalize('NFKC').toLowerCase()).all();
-    else r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0
-      WHERE n.hidden=0 AND n.id<?2 AND instr(lower(n.body),lower(?3))>0 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,q).all();
+    else r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
+      WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND instr(lower(n.body),lower(?3))>0 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,q).all();
     let users=[];
     if(!tag&&before>=9e15){const like='%'+q.replace(/[%_\\]/g,c=>'\\'+c)+'%';
       users=(await db.prepare(`SELECT handle,name,bio FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like).all()).results.map(x=>({handle:x.handle,name:x.name,bio:x.bio||''}))}
@@ -207,7 +269,10 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
 /* アカウントを消すときに、その人のタイムラインの記録もすべて消す */
 async function socialDeleteUser(db,uid){
   await socialInit(db);
+  /* 先に、この人が返信・リポストした相手の投稿の数を数え直す対象を控える */
+  const tg=(await db.prepare(`SELECT DISTINCT CASE WHEN repost_of>0 THEN repost_of ELSE reply_to END AS id FROM notes WHERE uid=? AND (repost_of>0 OR reply_to>0)`).bind(uid).all()).results.map(x=>x.id);
   await db.batch([
+    db.prepare(`DELETE FROM notes WHERE repost_of IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM likes WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM notifs WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM note_tags WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
@@ -218,6 +283,7 @@ async function socialDeleteUser(db,uid){
     db.prepare(`DELETE FROM notifs WHERE uid=? OR actor=?`).bind(uid,uid),
     db.prepare(`DELETE FROM user_state WHERE uid=?`).bind(uid)
   ]);
+  if(tg.length)await db.batch(tg.map(id=>recount(db,id)));
 }
 async function socialCleanup(db){
   const now=Date.now();

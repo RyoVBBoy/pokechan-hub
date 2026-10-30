@@ -29,7 +29,7 @@
 - `config/public.json`：公開してよい設定（Firebase のウェブ用の値）。build でページの `window.PC_CONFIG` に入る。
 - ゲームの追加：`27-games.js` の `GAMES` に1件足す（`tabs`＝下/左のメニュー、`tools()`＝ツール一覧〔id・sec・href・ic・t・s(短い名前)・d〕、`quick`＝初めての人向けの「すぐ使う」、`fab`＝右下ボタンの有無）。「コミュニティ」タブ（旧「みんな」）は全ゲーム共通で自動で付く。ツール画面・ホームの「すぐ使う」・PCの右の列・最近使った（`pcrecent`）・マイツール（☆、`pctools`）はゲームごとに自動で切りかわる。画面の中身（views）はゲームごとに新しいファイルで作り、`06-router.js` の表に足す。
 - ことば（日本語・英語）：`00-i18n.js`（LANG＝端末の言語→利用者が選ぶと `pclang` に保存、`L('日本語','English')`）、`02-names.js`（ポケモン・技・特性・持ち物・性格・タイプの英語の正式名。`python3 tools/gen-names.py <PokeAPIのCSVフォルダ>` で作る。手で直さない）、`97-dict-en.js`（画面の文字の辞書 `EN` と、数字入りの文の置きかえ `EN_RE`）、`98-i18n.js`（英語のときだけ名前を入れかえ、画面に出た文字を辞書で置きかえる）。利用者が書いたもの（投稿・掲示板・名前）は `data-notr` を付けて訳さない。新しい画面を作ったら `tests/i18n.mjs` が訳し忘れを一覧にするので、辞書に足す。未翻訳：技・特性の説明文（MD・ABDS）、基本ルール・出典・利用規約などの長い文、サーバーのエラー文の一部。韓国語・中国語は `gen-names.py` の LANGS と辞書を足せば増やせる。テスト・検索向けページは `locale:'ja-JP'` で日本語に固定。
-- タイムライン：サイトは `32-timeline.js`（#/tl・#/tl/following・#/u/ID・#/n/番号・#/notif）、サーバーは `worker/src/social.js`（/api/tl・/api/notes・/api/follow・/api/notifs・/api/u）。見るのはログイン不要、書くのはプロフィール作成済みの人だけ。140文字・15秒に1件・1日100件・リンク不可・ログインした人3人の通報で非表示。
+- タイムライン：サイトは `32-timeline.js`（#/tl・#/tl/following・#/u/ID・#/n/番号・#/notif）、サーバーは `worker/src/social.js`（/api/tl・/api/notes・/api/follow・/api/notifs・/api/u）。見るのはログイン不要、書くのはプロフィール作成済みの人だけ。140文字・15秒に1件・1日100件・リンク不可・ログインした人3人の通報で非表示。返信（notes.reply_to・replies 数、#/n/番号 に返信先→投稿→返信の一覧、`twReplySheet`）とリポスト（repost_of を持つ本文なしの1行＝並び・ページングはそのまま。`NOTE_COLS` が元の投稿の中身を出し、rid が行の番号。reposts 数）。お知らせは like・reply・repost・follow。列は `socialInit` が ALTER TABLE で足す（すでにあればエラーを無視）。管理画面（#/admin）から通報された人・最近の投稿の人を停止／「停止中のアカウント」タブで解除（/api/admin/ban・/api/admin/banned、users.banned）。
 - `worker/`：Cloudflare Worker（背面タップ連携・選出画面の読み取り・掲示板/対戦募集・ログイン確認・タイムライン）。`worker/build.py` がサイトの計算関数とデータを `src/js` から取り込んで `worker/dist/worker.js` を作る（計算はサイトと共通）。
 - `tools/build.mjs`（サイト → `dist/`）、`tools/gen-pages.cjs`（検索向け静的ページ。Playwright 使用、`SITE_URL` 必須）。
 - `tests/`：`node tests/run.mjs`（worker・auth・social＝タイムラインのサーバー・site 25画面＋PC表示・push＝通知の暗号化と送信・login＝ログイン〜投稿の画面の流れ・i18n＝英語表示・calc-ref＝@smogon/calc と乱数16段階を照合）。**テストに落ちると公開されない。**
@@ -71,7 +71,7 @@ node tests/run.mjs
 ### 次の作業
 1. 攻略ガイドの続き：ポケモンの解説・構築の型は済。構築の型の静的ページ・型の例の育成まで済。文章は当サイトのオリジナル（他サイトを読まない）。
 2. 攻略ガイド・アドバイスの英語訳（今は日本語のみ）。
-3. タイムラインの改良：画像つき投稿（notes.media 列あり、保存先 R2 想定、不適切画像の見回り方法を要検討）、返信・リポスト、管理画面からのアカウント停止（users.banned あり）。利用者が増えたら「フォロー中」を書くとき配る方式へ。
+3. タイムラインの改良：返信・リポスト・アカウント停止は済（2026/10/30）。残りは画像つき投稿（notes.media 列あり、保存先 R2＝依頼主に Cloudflare で R2 を有効にしてもらう必要あり、不適切画像の見回り方法を要検討）、引用リポスト、ブロック。利用者が増えたら「フォロー中」を書くとき配る方式へ。
 4. iPhone アプリ（別リポジトリ）からのログイン（ネイティブで）。
 5. Worker の URL から学籍番号のようなサブドメインを外す（独自ドメイン or サブドメイン変更 → `COMM_API` 更新）。
 6. お問い合わせ窓口。利用規約・プライバシーポリシーは下書き（公開前に専門家確認を推奨）。

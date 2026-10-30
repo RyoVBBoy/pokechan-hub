@@ -992,3 +992,17 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .gset dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px}
 .gset dt{color:var(--dim);font-size:12.5px;align-self:center}.gset dd{margin:0}
 .gset .gchips{padding:6px 0 0}
+/* タイムライン：返信・リポスト */
+.twn-i--reply{color:var(--acc)}.twn-i--repost{color:#00ba7c}
+.tw-a{gap:18px}
+.tw-rep:hover{color:var(--acc);background:rgba(29,155,240,.1)}
+.tw-rpb:hover,.tw-rpb[aria-pressed=true]{color:#00ba7c}.tw-rpb:hover{background:rgba(0,186,124,.1)}
+.tw-rpb[aria-pressed=true] svg{fill:none}
+.tw-rp{display:flex;align-items:center;gap:4px;margin:-2px 0 4px;font-size:13px;font-weight:700;color:var(--dim)}
+.tw-rp a{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tw-rp a:hover{text-decoration:underline}
+.tw-re{font-size:13.5px;color:var(--dim);margin-top:1px}.tw-re a{color:var(--acc)}
+.tw-b{cursor:pointer}.tw--big .tw-b{cursor:auto;font-size:17px}
+.tw-par .tw{border-bottom:0;position:relative}
+.tw-par .tw::after{content:"";position:absolute;left:35px;top:56px;bottom:-12px;width:2px;background:var(--line2)}
+.twr-q{display:flex;flex-direction:column;gap:2px;padding:4px 2px 10px;font-size:13.5px;color:var(--dim)}.twr-q span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.twr-t{width:100%;box-sizing:border-box;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;background:transparent;color:var(--fg);font:15px/1.5 var(--ff);resize:vertical}

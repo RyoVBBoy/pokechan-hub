@@ -5,6 +5,8 @@
 I.heart='<path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/>';
 I.more='<circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/>';
 I.bell='<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2.2 2.2 0 0 0 4 0"/>';
+I.reply='<path d="M4.5 11.2c0-3.6 3.3-6.4 7.5-6.4s7.5 2.8 7.5 6.4-3.3 6.4-7.5 6.4c-.9 0-1.8-.1-2.6-.4L5 19.5l.9-3.6c-.9-1.3-1.4-2.9-1.4-4.7z"/>';
+I.repost='<path d="M7 7h10.5l-2.5-2.5M17 17H6.5L9 19.5M17.5 7v6M6.5 17v-6"/>';
 I.user='<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-3.6 3.9-5.6 7.5-5.6s6.7 2 7.5 5.6"/>';
 const TW_MAX=140;
 const muted=()=>new Set(lsJ('pcmute',[]));
@@ -18,13 +20,14 @@ const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle
 /* 本文の #タグ を青い文字にして、押すとそのタグの検索へ（先に文字を区切ってから安全な形にする） */
 const TAG_RE=/[#＃]([\p{L}\p{N}_ー]{1,30})/gu;
 function linkTags(t){let out='',i=0;for(const m of String(t).matchAll(TAG_RE)){out+=esc(t.slice(i,m.index))+`<a class="htag" href="#/search/${encodeURIComponent('#'+m[1])}">${esc(m[0])}</a>`;i=m.index+m[0].length}return out+esc(t.slice(i))}
-function twHtml(n){
-  return `<article class="tw" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
+function twHtml(n,big){
+  return `<article class="tw${big?' tw--big':''}" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
     ${twAv(n.user)}
-    <div class="tw-m"><div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
+    <div class="tw-m">${n.rp?`<div class="tw-rp">${SVG(I.repost,14)}<a href="#/u/${esc(n.rp.handle)}" data-notr>${esc(n.rp.name)}</a><span>さんがリポスト</span></div>`:''}<div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
+      ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
       <div class="tw-b" data-notr>${linkTags(n.body)}</div>
-      <div class="tw-a"><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
+      <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(I.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(I.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
     </div></article>`;
 }
 /* 一覧の中のボタン（いいね・…メニュー）。reload は消したときなどの読み直し */
@@ -36,6 +39,16 @@ function twBind(root,reload){
       const on=b.getAttribute('aria-pressed')!=='true',sp=b.querySelector('span'),cnt=(+sp.textContent||0)+(on?1:-1);
       b.setAttribute('aria-pressed',on);sp.textContent=cnt>0?cnt:'';
       try{const j=await authFetch(`/api/notes/${id}/like`,{on});sp.textContent=j.likes||''}
+      catch(err){b.setAttribute('aria-pressed',!on);sp.textContent=Math.max(0,cnt+(on?-1:1))||'';toast(err.message)}};
+    /* 本文を押すと、その投稿の画面（返信も見られる） */
+    el.querySelector('.tw-b').onclick=e=>{if(e.target.closest('a')||el.classList.contains('tw--big')||getSelection().toString())return;nav('#/n/'+id)};
+    el.querySelector('[data-reply]').onclick=()=>{if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'返信するにはログインしてください');nav('#/account');return}
+      twReplySheet(el,id,()=>{const sp=el.querySelector('[data-reply] span');sp.textContent=(+sp.textContent||0)+1;if(keyOf(cur)==='n')noteView(cur.split('/')[2])})};
+    el.querySelector('[data-rp]').onclick=async e=>{
+      const b=e.currentTarget;if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'リポストするにはログインしてください');nav('#/account');return}
+      const on=b.getAttribute('aria-pressed')!=='true',sp=b.querySelector('span'),cnt=(+sp.textContent||0)+(on?1:-1);
+      b.setAttribute('aria-pressed',on);sp.textContent=cnt>0?cnt:'';
+      try{const j=await authFetch(`/api/notes/${id}/repost`,{on});sp.textContent=j.reposts||'';toast(on?'リポストしました':'リポストを取り消しました')}
       catch(err){b.setAttribute('aria-pressed',!on);sp.textContent=Math.max(0,cnt+(on?-1:1))||'';toast(err.message)}};
     el.querySelector('[data-more]').onclick=async()=>{
       const h=el.dataset.h,mine=el.dataset.mine==='1';
@@ -146,11 +159,35 @@ async function userView(h){
   const um=document.getElementById('twp-um');if(um)um.onclick=()=>{const s=muted();s.delete(u.handle.toLowerCase());lsW('pcmute',[...s]);userView(h)};
   if(!isMuted)twFeed(document.getElementById('twp-list'),`/api/u/${u.handle}/notes`,'まだ投稿がありません。');
 }
+/* 返信を書く（下から出る画面）。返信先の投稿を上に小さく見せる */
+function twReplySheet(el,id,onDone){
+  const h=el.dataset.h,body=el.querySelector('.tw-b').textContent;
+  const o=document.createElement('div');o.className='psheet';
+  o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="返信">
+    <div class="twr-q"><b data-notr>@${esc(h)}</b><span data-notr>${esc(body.slice(0,80))}</span></div>
+    <textarea id="twr-t" class="twr-t" rows="3" maxlength="${TW_MAX*2}" placeholder="返信を書く"></textarea>
+    <div class="twc-f"><span class="twc-n" id="twr-n"></span><button class="btn btn-p twc-b" id="twr-b" disabled>返信する</button></div>
+    <button class="psheet-x">やめる</button></div>`;
+  document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
+  const t=o.querySelector('#twr-t'),b=o.querySelector('#twr-b'),c=o.querySelector('#twr-n');
+  const close=()=>{o.classList.remove('on');setTimeout(()=>o.remove(),180)};
+  o.querySelector('.psheet-bg').onclick=close;o.querySelector('.psheet-x').onclick=close;
+  t.oninput=()=>{const left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=!t.value.trim()||left<0};
+  b.onclick=async()=>{b.disabled=true;try{await authFetch('/api/notes',{body:t.value,reply_to:id});toast('返信しました');close();onDone&&onDone()}catch(err){toast(err.message);b.disabled=false}};
+  setTimeout(()=>t.focus(),60);
+}
+/* 1件の投稿：返信先（あれば）→ 投稿 → 返信を書く欄 → 返信の一覧 */
 async function noteView(id){
   setHeader('投稿','#/tl');
   V.innerHTML='<p class="empty">読み込み中…</p>';
-  await twAuth();if(keyOf(cur)!=='n')return;
-  try{const j=await authFetch('/api/notes/'+(+id));V.innerHTML=`<div id="tw-one">${twHtml(j.note)}</div>`;twBind(V,()=>nav('#/tl'))}
+  const prof=await twAuth();if(keyOf(cur)!=='n')return;
+  try{const j=await authFetch('/api/notes/'+(+id));
+    V.innerHTML=`${j.parent?`<div class="tw-par">${twHtml(j.parent)}</div>`:''}<div id="tw-one">${twHtml(j.note,true)}</div>
+      ${prof?`<div class="btns" style="padding:10px 16px"><button class="btn btn-s" id="tw-rb" style="flex:1">${SVG(I.reply,16)}返信する</button></div>`:''}
+      <div class="sec"><h2>返信</h2></div><div id="tw-replies"></div>`;
+    twBind(V,()=>nav('#/tl'));
+    const rb=document.getElementById('tw-rb');if(rb)rb.onclick=()=>twReplySheet(document.querySelector('#tw-one .tw'),+id,()=>noteView(id));
+    twFeed(document.getElementById('tw-replies'),`/api/notes/${+id}/replies`,'まだ返信はありません。');}
   catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
 }
 async function notifView(){
@@ -160,11 +197,12 @@ async function notifView(){
   if(!prof){V.innerHTML=`<div class="bnote" style="margin:16px"><a href="#/account" style="color:var(--acc)">ログイン</a>すると、いいねやフォローのお知らせがここに届きます。</div>`;return}
   try{
     const j=await authFetch('/api/notifs');
-    V.innerHTML=j.notifs.length?j.notifs.map(n=>`<a class="twn${n.id>j.seen?' new':''}" href="${n.kind==='like'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}">
-      <span class="twn-i twn-i--${n.kind}">${SVG(n.kind==='like'?I.heart:I.user,22)}</span>
+    const NK={like:[I.heart,'あなたの投稿にいいねしました'],reply:[I.reply,'あなたの投稿に返信しました'],repost:[I.repost,'あなたの投稿をリポストしました'],follow:[I.user,'あなたをフォローしました']};
+    V.innerHTML=j.notifs.length?j.notifs.map(n=>`<a class="twn${n.id>j.seen?' new':''}" href="${n.kind!=='follow'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}">
+      <span class="twn-i twn-i--${n.kind}">${SVG((NK[n.kind]||NK.follow)[0],22)}</span>
       <div class="tw-m"><div data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></div>
-      <div>${n.kind==='like'?'あなたの投稿にいいねしました':'あなたをフォローしました'}<span class="tw-t">　${ago(n.created_at)}</span></div>
-      ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいねやフォローされると、ここに届きます。</p>';
+      <div>${(NK[n.kind]||NK.follow)[1]}<span class="tw-t">　${ago(n.created_at)}</span></div>
+      ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいね・返信・リポスト・フォローされると、ここに届きます。</p>';
     if(j.notifs.some(n=>n.id>j.seen))authFetch('/api/notifs/seen',{}).then(()=>notifBadge(0)).catch(()=>{});
     V.insertAdjacentHTML('afterbegin','<div id="nf-push"></div>');if(typeof pushRow==='function')pushRow(document.getElementById('nf-push'),true);
   }catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}

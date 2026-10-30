@@ -12,9 +12,9 @@ const tok=async uid=>{const h=enc({alg:'RS256',kid:'k1',typ:'JWT'}),p=enc({iss:'
 globalThis.caches={default:{match:async()=>null,put:async()=>{}}};
 globalThis.fetch=async u=>String(u).includes('securetoken@system.gserviceaccount.com')?new Response(JSON.stringify({keys:[jwk]})):new Response('',{status:404});
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
-const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t'};
+const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123'};
 let ipN=0;
-const call=async(p,{method='GET',tok,body,ip}={})=>{const h={'content-type':'application/json','cf-connecting-ip':ip||('10.0.0.'+(++ipN%250))};if(tok)h.authorization='Bearer '+tok;
+const call=async(p,{method='GET',tok,body,ip,admin}={})=>{const h={'content-type':'application/json','cf-connecting-ip':ip||('10.0.0.'+(++ipN%250))};if(tok)h.authorization='Bearer '+tok;if(admin)h['x-admin-token']=admin;
   const r=await w.fetch(new Request('https://x.dev'+p,{method,headers:h,body:body?JSON.stringify(body):undefined}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
 let bad=0,n=0;const expect=(name,cond,info)=>{n++;if(!cond){bad++;console.error('NG',name,JSON.stringify(info))}};
 /* 投稿の連投制限（15秒）をテストでは時計を進めて回避する */
@@ -87,6 +87,36 @@ r=await call('/api/tags/trend');expect('よく使われているタグ',r[1].tag
 await call(`/api/notes/${nt}/delete`,{method:'POST',tok:B,body:{}});
 r=await call('/api/search?q='+encodeURIComponent('#シングル'));expect('消した投稿はタグからも消える',r[1].notes.length===0,r[1].notes);
 r=await call('/api/search?q='+encodeURIComponent("%' OR 1=1 --"));expect('記号だけの検索でも壊れない',r[0]===200&&r[1].notes.length===0,r);
+/* 返信 */
+const x=(await call('/api/u/bob/notes'))[1].notes[0].id;
+tick();r=await call('/api/notes',{method:'POST',tok:D,body:{body:'返信です',reply_to:x}});expect('返信できる',r[0]===200,r);const rp1=r[1].id;
+tick();r=await call('/api/notes',{method:'POST',tok:D,body:{body:'消えた投稿へ',reply_to:999999}});expect('ない投稿には返信できない',r[0]===404,r);
+r=await call('/api/notes/'+x);expect('返信の数が増える',r[1].note.replies===1,r[1].note);
+r=await call('/api/notes/'+rp1);expect('返信には返信先が付く',r[1].note.reply_to===x&&r[1].note.reply_handle==='bob'&&r[1].parent&&r[1].parent.id===x,r[1]);
+r=await call(`/api/notes/${x}/replies`);expect('返信の一覧',r[0]===200&&r[1].notes.length===1&&r[1].notes[0].body==='返信です',r[1]);
+r=await call('/api/notifs',{tok:B});expect('返信されたらお知らせ',r[1].notifs.some(n=>n.kind==='reply'&&n.note_id===rp1&&n.body==='返信です'),r[1].notifs);
+/* リポスト */
+r=await call(`/api/notes/${x}/repost`,{method:'POST',tok:A,body:{}});expect('リポストできる',r[0]===200&&r[1].reposts===1,r);
+r=await call(`/api/notes/${x}/repost`,{method:'POST',tok:A,body:{}});expect('二重リポストは数えない',r[1].reposts===1,r);
+r=await call('/api/tl',{tok:A});expect('タイムラインにリポストが出る（中身は元の投稿）',r[1].notes[0].id===x&&r[1].notes[0].rp&&r[1].notes[0].rp.handle==='alice'&&r[1].notes[0].user.handle==='bob'&&r[1].notes[0].reposted,r[1].notes[0]);
+await call('/api/follow',{method:'POST',tok:D,body:{handle:'alice'}});
+r=await call('/api/tl?tab=following',{tok:D});expect('フォローしている人のリポストが出る',r[1].notes.some(n=>n.id===x&&n.rp&&n.rp.handle==='alice'),r[1].notes.map(n=>[n.id,n.rp]));
+r=await call('/api/u/alice');expect('リポストは投稿数に数えない',r[1].user.notes===(await call('/api/u/alice/notes'))[1].notes.filter(n=>!n.rp).length,r[1].user);
+r=await call('/api/notifs',{tok:B});expect('リポストされたらお知らせ',r[1].notifs.some(n=>n.kind==='repost'&&n.note_id===x),r[1].notifs);
+r=await call(`/api/notes/${x}/repost`,{method:'POST',tok:A,body:{on:false}});expect('リポストを取り消せる',r[1].reposts===0,r);
+r=await call('/api/tl',{tok:A});expect('取り消したリポストは消える',!r[1].notes.some(n=>n.rp),r[1].notes[0]);
+await call(`/api/notes/${x}/repost`,{method:'POST',tok:A,body:{}});
+r=await call(`/api/notes/${x}/delete`,{method:'POST',tok:B,body:{}});expect('元の投稿を消せる',r[0]===200,r);
+r=await call('/api/tl',{tok:A});expect('元の投稿を消すとリポストも消える',!r[1].notes.some(n=>n.rp||n.id===x),r[1].notes.slice(0,2));
+r=await call('/api/notes/'+rp1);expect('返信先が消えても返信は残る',r[0]===200&&r[1].note.reply_handle===''&&!r[1].parent,r[1]);
+/* 管理者によるアカウント停止 */
+r=await call('/api/admin/ban',{method:'POST',body:{handle:'dave'}});expect('停止は管理者だけ',r[0]===401,r);
+r=await call('/api/admin/ban',{method:'POST',admin:'admin-secret-123',body:{handle:'@dave'}});expect('アカウントを停止できる',r[0]===200,r);
+r=await call('/api/u/dave');expect('停止中の人のプロフィールは出ない',r[0]===404,r);
+tick();r=await call('/api/notes',{method:'POST',tok:D,body:{body:'停止中の投稿'}});expect('停止中は投稿できない',r[0]===403,r);
+r=await call('/api/notes/'+rp1);expect('停止中の人の投稿は出ない',r[0]===404,r);
+r=await call('/api/admin/banned',{admin:'admin-secret-123'});expect('停止中の一覧',r[1].users.some(u=>u.handle==='dave'),r);
+r=await call('/api/admin/ban',{method:'POST',admin:'admin-secret-123',body:{handle:'dave',on:false}});r=await call('/api/u/dave');expect('停止を解除できる',r[0]===200,r);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);
