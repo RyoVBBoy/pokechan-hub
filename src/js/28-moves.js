@@ -4,11 +4,13 @@ const FLN={c:'接触',p:'パンチ',b:'かみつき',l:'波動',s:'切る',o:'�
 function movesPanel(p){
   const el=document.getElementById('mvpanel');if(!el)return;
   MVS.tab4=p.no;
-  const ls=LSD[p.no]?LSD[p.no][1]:[];
-  const use=(LIVE.csv[p.no]&&LIVE.csv[p.no].mv)||[];
+  /* メガシンカの姿は、元の姿の覚える技・使用率を使う。特性はメガシンカ後の1つ */
+  const bn=p.base||p.no;
+  const ls=LSD[bn]?LSD[bn][1]:[];
+  const use=(LIVE.csv[bn]&&LIVE.csv[bn].mv)||[];
   const useOf={};use.forEach(([n,pc])=>{const id=MVKA[nrm(n)];if(id)useOf[id]=pc});
-  const abl=ABD[p.no]||[];
-  const abUse={};((LIVE.csv[p.no]&&LIVE.csv[p.no].ab)||[]).forEach(([n,pc])=>{const k=ABK[nrm(n)];if(k)abUse[k]=pc});
+  const abl=ABD[p.no]||(p.ab?[[p.ab,0]]:[]);
+  const abUse={};((LIVE.csv[bn]&&LIVE.csv[bn].ab)||[]).forEach(([n,pc])=>{const k=ABK[nrm(n)];if(k)abUse[k]=pc});
   const rows=ls.map(id=>{const u=MVU[id]||[],d=MD[id]||[];return{id,n:mName(id),t:u[0],cls:u[1],pow:u[2],acc:u[3],pp:u[4],pri:u[5],tg:u[6],desc:d[1]||'',fl:d[2]||'',calc:!!MV[id]||id===182||id===197,use:useOf[id]}});
   const cnt={all:rows.length,0:rows.filter(r=>r.cls===0).length,1:rows.filter(r=>r.cls===1).length,2:rows.filter(r=>r.cls===2).length};
   const draw=()=>{
@@ -41,7 +43,7 @@ function movesPanel(p){
   document.getElementById('mv-q').oninput=e=>{MVS.q=e.target.value;draw()};
   draw();
   /* 採用率（ランクマッチの集計）を読み込めたら表示し直す */
-  if(!LIVE.csv[p.no]&&LIVE.csv[p.no]!==null)calcEnsure(p.no).then(ch=>{if(ch&&MVS.tab4===p.no&&document.getElementById('mvpanel')&&!document.getElementById('mvpanel').hidden){if(!use.length&&LIVE.csv[p.no])MVS.sort='use';movesPanel(p)}});
+  if(!LIVE.csv[bn]&&LIVE.csv[bn]!==null)calcEnsure(bn).then(ch=>{if(ch&&MVS.tab4===p.no&&document.getElementById('mvpanel')&&!document.getElementById('mvpanel').hidden){if(!use.length&&LIVE.csv[bn])MVS.sort='use';movesPanel(p)}});
 }
 
 /* 計算画面：技ごとの注意書き */

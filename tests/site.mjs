@@ -9,7 +9,7 @@ const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.route(/^https?:/,r=>r.abort());   // 外部への通信はしない
 const fail=m=>{console.error('NG',m);process.exitCode=1};
 await pg.goto(URL0+'#/');await pg.waitForTimeout(600);
-const routes=['#/','#/dex','#/season','#/learn/build','#/arch/rain','#/arch/tr','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone','#/search','#/search/'+encodeURIComponent('#ガブリアス'),'#/learn','#/learn/word','#/item/choicescarf','#/item/garchompitez','#/word/tr','#/learn/move','#/learn/ability','#/move/89','#/ability/intimidate'];
+const routes=['#/','#/dex','#/p/10058','#/season','#/learn/build','#/arch/rain','#/arch/tr','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone','#/search','#/search/'+encodeURIComponent('#ガブリアス'),'#/learn','#/learn/word','#/item/choicescarf','#/item/garchompitez','#/word/tr','#/learn/move','#/learn/ability','#/move/89','#/ability/intimidate'];
 for(const r of routes){
   await pg.evaluate(h=>{location.hash=h},r);await pg.waitForTimeout(250);
   const n=await pg.evaluate(()=>document.querySelector('main')?.innerText.trim().length||0);
@@ -42,6 +42,11 @@ if(!(wr[0]&&wr[1]&&wr[2]===0&&wr[3]))fail('解説（特性と相性・強いと�
 const mg=await pg.evaluate(()=>{const h=monGuide(byNo[445]);return[(h.match(/class="gmeg-band"/g)||[]).length,/メガシンカで変わるところ/.test(h),/弱点がこおり（4倍）・ドラゴン・フェアリーからこおり・ドラゴン・フェアリーになる/.test(h),
   (h.match(/<h2>向いている役割<\/h2>/g)||[]).length,(h.match(/を軸にしたパーティの例/g)||[]).length,AXIS_DATA[445]&&AXIS_DATA[445].list.length,AXIS_DATA[10309]&&AXIS_DATA[10309].list[0].set.it.k]});
 if(!(mg[0]===2&&mg[1]&&mg[2]&&mg[3]===3&&mg[4]===3&&mg[5]===6&&mg[6]==='garchompitez'))fail('メガシンカの解説・軸のパーティ: '+mg.join(','));
+// メガシンカの姿のページ：全部のタブが開け、技はもとの姿のもの
+await pg.evaluate(()=>{location.hash='#/p/10058'});await pg.waitForTimeout(400);
+for(let i=1;i<6;i++){await pg.click(`#seg [data-i="${i}"]`);await pg.waitForTimeout(150)}
+const mp=await pg.evaluate(()=>[document.querySelectorAll('.mvr').length,!!document.querySelector('.fam-pills'),/メガガブリアス/.test(document.getElementById('hdr').textContent)]);
+if(!(mp[0]>=40&&mp[1]&&mp[2]))fail('メガシンカの姿のページ: '+mp.join(','));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）

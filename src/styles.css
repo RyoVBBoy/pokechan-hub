@@ -1079,3 +1079,6 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .gmeg+.gmeg{margin-top:14px}.gmeg-h{margin:0 0 8px!important;font-size:18px!important;color:var(--fg)!important}
 .gmeg-band{margin:22px 16px 0;padding:14px 16px 10px;border-radius:16px 16px 0 0;background:linear-gradient(135deg,rgba(124,77,255,.14),rgba(29,155,240,.10));border-bottom:2px solid var(--line2)}
 .gmeg-band h2{margin:6px 0 0;font-size:20px}
+a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
+.mega-go{margin-top:8px;font-size:13px;font-weight:700;color:var(--acc)}
+.fam-pills{padding:10px 16px 0;flex-wrap:wrap}

@@ -3,7 +3,9 @@ let st={sp:[0,0,0,0,0,0],up:-1,dn:-1},curNo=null;
 function detail(no){
   const p=byNo[no];
   if(!p){setHeader('ポケモン');V.innerHTML='<p class="empty">ポケモンが見つかりません。<br><a href="#/dex" style="color:var(--fg);text-decoration:underline">図鑑へ戻る</a></p>';return}
-  setHeader(p.n,'#/dex');
+  setHeader(p.n,p.base?'#/p/'+p.base:'#/dex');
+  /* 姿の切りかえ（元の姿とメガシンカの姿） */
+  const fam=p.base?[byNo[p.base],...megasOf(p.base)]:megasOf(p.no).length?[p,...megasOf(p.no)]:[];
   curNo=+no;st={sp:[0,0,0,0,0,0],up:-1,dn:-1};
   const wash=p.t.length>1
     ?`linear-gradient(140deg,${COL[p.t[0]]}2e,${COL[p.t[1]]}24 60%,transparent)`
@@ -19,6 +21,7 @@ function detail(no){
     </div>
     <div class="slot" id="artslot">${artHTML(p)}</div>
   </section>
+  ${fam.length?`<div class="pills fam-pills">${fam.map(q=>`<a class="pill" href="#/p/${q.no}" aria-pressed="${q.no===p.no}">${q.base?esc(formInfo(q).tag||'メガ'):'元の姿'}</a>`).join('')}</div>`:''}
   <div class="prof">
     <div><b>${p.bst}</b><span>合計種族値</span></div>
     <div><b>${maxSpe(p)}</b><span>最速 素早さ</span></div>
@@ -38,9 +41,10 @@ function detail(no){
     <p class="note" style="text-align:center">六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。</p>
     <div style="height:6px"></div>
     ${p.s.map((v,i)=>`<div class="stat"><em>${SN[i]}</em><b>${v}</b><div class="bar${i===p.mi?' top':''}"><i style="width:${Math.min(100,Math.round(v/200*100))}%"></i></div><small>${p.rank[i]}位</small></div>`).join('')}
-    ${megasOf(p.no).map(m=>`<div class="mega"><div class="mega-h">${nm(m,{no:false})}${m.t.map(chip).join('')}</div>
+    ${megasOf(p.no).map(m=>`<a class="mega" href="#/p/${m.no}"><div class="mega-h">${nm(m,{no:false})}${m.t.map(chip).join('')}</div>
       <div class="mega-s">${m.s.map((v,i)=>`<span><em>${SN[i]}</em><b>${v}</b>${v!==p.s[i]?`<small class="${v>p.s[i]?'up':'dn'}">${v>p.s[i]?'+':''}${v-p.s[i]}</small>`:''}</span>`).join('')}</div>
-      <div class="mega-f">特性 ${ABN[m.ab]||m.ab}${ABIMPL.has(m.ab)?'':'（計算では効果なし）'}　持ち物 ${ITEMN[m.stone]}　合計 ${m.bst}</div></div>`).join('')}
+      <div class="mega-f">特性 ${ABN[m.ab]||m.ab}${ABIMPL.has(m.ab)?'':'（計算では効果なし）'}　持ち物 ${ITEMN[m.stone]}　合計 ${m.bst}</div><div class="mega-go">種族値・解説・技などを見る ›</div></a>`).join('')}
+    ${p.base?`<p class="note">${esc(byNo[p.base].n)}が${esc(ITEMN[p.stone]||'')}を持つと、バトル中にこの姿にメガシンカします。順位は、メガシンカしていないポケモン${P.length}匹と比べたものです。</p>`:''}
     <p class="note">右端は収録${P.length}匹の中での順位です。金色の棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
   </div>
 
@@ -86,7 +90,9 @@ function detail(no){
     document.getElementById('up').value=-1;document.getElementById('dn').value=-1;updCalc()};
   document.getElementById('up').onchange=e=>{st.up=+e.target.value;updCalc()};
   document.getElementById('dn').onchange=e=>{st.dn=+e.target.value;updCalc()};
-  document.getElementById('addbtn').onclick=()=>addTeam(p.no);
+  /* メガシンカの姿は、元の姿にメガストーンを持たせてパーティに入れる */
+  document.getElementById('addbtn').onclick=()=>{if(!p.base){addTeam(p.no);return}
+    addTeam(p.base);const x=team.find(t=>t.no===p.base);if(x&&p.stone){x.set={...(x.set||{}),it:{n:ITEMN[p.stone],k:p.stone}};saveTeam()}};
   document.getElementById('oppbtn').onclick=()=>openSheet({no:p.no});
   updCalc();
 }

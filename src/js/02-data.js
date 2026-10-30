@@ -1207,6 +1207,8 @@ function describe(p){
   return p.roles.map(r=>d[r]).join('。')+'。';
 }
 P.forEach(p=>{p.roles=roles(p);p.rank=p.s.map((v,i)=>1+P.filter(q=>q.s[i]>v).length)});
+/* メガシンカの姿にも図鑑のページ（#/p/番号）を開けるように、役割と順位（元の姿の一覧の中での順位）を付ける */
+MEGAP.forEach(m=>{m.bst=m.bst||m.s.reduce((x,y)=>x+y,0);m.mi=m.s.indexOf(Math.max(...m.s));m.roles=roles(m);m.rank=m.s.map((v,i)=>1+P.filter(q=>q.s[i]>v).length)});
 const SN=['HP','攻撃','防御','特攻','特防','素早さ'];
 const SP_TOTAL=66,SP_CAP=32;
 
