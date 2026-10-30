@@ -14,6 +14,8 @@ async function ladderInit(db){
     db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS season_teams_user ON season_teams(season_id,fmt,uid) WHERE uid IS NOT NULL`),
     db.prepare(`CREATE INDEX IF NOT EXISTS season_teams_list ON season_teams(season_id,fmt,hidden)`)
   ]);
+  /* あとから足した列：運営者の解説（シーズンのまとめに出す） */
+  try{await db.prepare(`ALTER TABLE seasons ADD COLUMN note TEXT`).run()}catch(e){}
   LADDER_READY=true;
 }
 const isDay=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''));
@@ -25,6 +27,13 @@ function ladderTeam(t){
   const s=JSON.stringify(out);return s.length<=8000?s:null;
 }
 const intOrNull=(v,max)=>{const n=parseInt(v,10);return n>0&&n<=max?n:null};
+/* プロフィールに出す実績（非表示でないもの・新しいシーズン順） */
+async function ladderResults(db,uid){
+  await ladderInit(db);
+  const r=await db.prepare(`SELECT t.fmt,t.rank,t.rate,t.verified,s.name AS season FROM season_teams t JOIN seasons s ON s.id=t.season_id
+    WHERE t.uid=? AND t.hidden=0 ORDER BY COALESCE(s.start,'') DESC,s.id DESC LIMIT 12`).bind(uid).all();
+  return r.results.map(x=>({season:x.season,fmt:x.fmt,rank:x.rank,rate:x.rate,verified:!!x.verified}));
+}
 const ladderOut=(r,meUid)=>{let team=[];try{team=JSON.parse(r.team||'[]')}catch(e){}
   return{id:r.id,fmt:r.fmt,rank:r.rank,rate:r.rate,team,comment:r.comment||'',verified:!!r.verified,by_admin:!!r.by_admin,proof:!!r.proof,
     player:r.handle?{handle:r.handle,name:r.name}:{name:r.player||'（名前なし）'},mine:!!(meUid&&r.uid===meUid),updated_at:r.updated_at}};
@@ -35,7 +44,7 @@ async function ladderApi(req,env,db,path,u,body,now,isAdmin){
   const admErr=()=>J({error:'管理用の合言葉が違います。'},401);
   /* シーズンの一覧（新しい順） */
   if(path==='/api/seasons'&&req.method==='GET'){
-    const r=await db.prepare(`SELECT s.id,s.name,s.start,s.end,(SELECT COUNT(*) FROM season_teams t WHERE t.season_id=s.id AND t.hidden=0) AS n FROM seasons s ORDER BY COALESCE(s.start,'') DESC,s.id DESC`).all();
+    const r=await db.prepare(`SELECT s.id,s.name,s.start,s.end,s.note,(SELECT COUNT(*) FROM season_teams t WHERE t.season_id=s.id AND t.hidden=0) AS n FROM seasons s ORDER BY COALESCE(s.start,'') DESC,s.id DESC`).all();
     return J({seasons:r.results});
   }
   const me=fbPid(env)?await authOf(req,env).catch(()=>null):null;
@@ -44,7 +53,7 @@ async function ladderApi(req,env,db,path,u,body,now,isAdmin){
   /* そのシーズンのパーティと、よく使われたポケモン */
   if((m=path.match(/^\/api\/seasons\/(\d+)\/teams$/))&&req.method==='GET'){
     const fmt=u.searchParams.get('fmt')==='double'?'double':'single';
-    const s=await db.prepare(`SELECT id,name,start,end FROM seasons WHERE id=?`).bind(+m[1]).first();
+    const s=await db.prepare(`SELECT id,name,start,end,note FROM seasons WHERE id=?`).bind(+m[1]).first();
     if(!s)return J({error:'シーズンが見つかりません。'},404);
     const r=await db.prepare(`SELECT t.*,u.handle,u.name FROM season_teams t LEFT JOIN users u ON u.uid=t.uid
       WHERE t.season_id=? AND t.fmt=? AND t.hidden=0 AND (t.uid IS NULL OR (u.uid IS NOT NULL AND u.banned=0))
@@ -98,8 +107,9 @@ async function ladderApi(req,env,db,path,u,body,now,isAdmin){
     const name=clean(body.name,40);if(!name)return J({error:'シーズンの名前を入れてください。'},400);
     const st=isDay(body.start)?body.start:null,en=isDay(body.end)?body.end:null;
     if(st&&en&&st>en)return J({error:'終わりの日が始まりの日より前です。'},400);
-    if(body.id){await db.prepare(`UPDATE seasons SET name=?,start=?,end=? WHERE id=?`).bind(name,st,en,+body.id).run();return J({ok:true,id:+body.id})}
-    const r=await db.prepare(`INSERT INTO seasons(name,start,end,created_at) VALUES(?,?,?,?) RETURNING id`).bind(name,st,en,now).first();
+    const note=clean(body.note,2000)||null;
+    if(body.id){await db.prepare(`UPDATE seasons SET name=?,start=?,end=?,note=? WHERE id=?`).bind(name,st,en,note,+body.id).run();return J({ok:true,id:+body.id})}
+    const r=await db.prepare(`INSERT INTO seasons(name,start,end,note,created_at) VALUES(?,?,?,?,?) RETURNING id`).bind(name,st,en,note,now).first();
     return J({ok:true,id:r.id});
   }
   if(path==='/api/admin/season-teams'&&req.method==='GET'){

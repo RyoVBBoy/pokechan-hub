@@ -24,6 +24,10 @@ const mvn=await pg.$$eval('.mvr',x=>x.length);if(mvn<40)fail('覚える技の表
 const sh=await pg.evaluate(async()=>{const c=document.createElement('canvas');c.width=3000;c.height=1000;c.getContext('2d').fillRect(0,0,10,10);
   const b=await new Promise(r=>c.toBlob(r,'image/png'));const x=await twShrink(new File([b],'a.png',{type:'image/png'}));return[x.w,x.h,x.blob.type,x.blob.size]});
 if(!(sh[0]===1600&&sh[1]===533&&/webp|jpeg/.test(sh[2])&&sh[3]<9e5))fail('画像を縮められません: '+sh.join(','));
+// シーズンのまとめ：登録から傾向の文章を作る（型は特性・技で厳しめに判定）・名前で登録
+const sz=await pg.evaluate(()=>{const tm=n=>({team:n.map(no=>({no})),rank:1});const teams=[tm([279,902,904,134,706,445]),tm([445,1000,149,887,727,812]),tm([445,1000,149,94,130,248]),tm([445,1000,149,6,9,3])];
+  const h=szSummary({season:{name:'S',note:''},fmt:'single',teams,usage:[{no:445,n:4,pc:100}]});return[/ガブリアス/.test(h),/あめパーティ/.test(h),/おいかぜパーティ/.test(h),JSON.stringify(admNames('ガブリアス、カイリュー サーフゴー'))]});
+if(!(sz[0]&&sz[1]&&!sz[2]&&sz[3]==='{"nos":[445,149,1000],"bad":[]}'))fail('シーズンのまとめ: '+sz.join(','));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）

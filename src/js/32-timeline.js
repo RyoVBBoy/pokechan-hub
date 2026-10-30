@@ -193,7 +193,7 @@ async function userView(h){
     <div class="twp-top"><span class="ac-av">${esc((u.name||'?').slice(0,1))}</span>
       ${u.me?'<a class="btn btn-s twp-btn" href="#/account">プロフィールを編集</a>':`<button class="btn ${u.followed?'btn-s':'btn-p'} twp-btn" id="twp-f">${u.followed?'フォロー中':'フォローする'}</button>`}</div>
     <h2 class="twp-n" data-notr>${esc(u.name)}</h2><div class="twp-h">@${esc(u.handle)}${u.follows_me?'<span class="atag" style="margin-left:6px">フォローされています</span>':''}</div>
-    ${u.bio?`<p class="twp-b" data-notr>${esc(u.bio)}</p>`:''}
+    ${u.bio?`<p class="twp-b" data-notr>${esc(u.bio)}</p>`:''}${resultBadges(u.results)}
     <div class="twp-c"><span><b class="num">${u.following}</b> フォロー</span><span><b class="num" id="twp-fc">${u.followers}</b> フォロワー</span><span><b class="num">${u.notes}</b> 投稿</span></div>
     ${isMuted?`<div class="bnote" style="margin:8px 0 0">この人の投稿は、あなたの画面では表示しない設定です。<button class="bback" id="twp-um" style="padding:0">表示する</button></div>`:''}
   </div><div class="sec"><h2>投稿</h2></div><div id="twp-list"></div>`;

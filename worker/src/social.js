@@ -202,7 +202,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
       EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=users.uid AND dst=?2) AS follows_me
       FROM users WHERE handle=?1 COLLATE NOCASE AND banned=0`).bind(m[1],meUid).first();
     if(!p)return J({error:'ユーザーが見つかりません。'},404);
-    return J({user:{...pubUser(p),followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,me:p.uid===meUid}});
+    return J({user:{...pubUser(p),followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,me:p.uid===meUid,results:await ladderResults(db,p.uid)}});
   }
   /* その人の投稿 */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/notes$/))&&req.method==='GET'){

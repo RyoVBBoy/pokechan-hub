@@ -167,6 +167,9 @@ r=await call(`/api/seasons/${S1}/teams`);expect('確認済みにできる',r[1].
 await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,hidden:true}});
 r=await call(`/api/seasons/${S1}/teams`);expect('非表示にできる',!r[1].teams.some(t=>t.id===T1),r[1].teams);
 await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,hidden:false}});
+r=await call('/api/u/alice');expect('プロフィールに実績（確認済み）',r[1].user.results.length===1&&r[1].user.results[0].rank===12&&r[1].user.results[0].verified&&r[1].user.results[0].season==='シーズン1',r[1].user.results);
+await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{id:S1,name:'シーズン1',start:'2026-10-01',end:'2026-10-31',note:'運営者の解説\n2行目'}});
+r=await call(`/api/seasons/${S1}/teams`);expect('運営者の解説が付く',r[1].season.note==='運営者の解説\n2行目',r[1].season);
 r=await call(`/api/seasons/teams/${T1}/delete`,{method:'POST',tok:B,body:{}});expect('他人の登録は消せない',r[0]===404,r);
 r=await call(`/api/seasons/teams/${T1}/delete`,{method:'POST',tok:A,body:{}});expect('自分の登録は消せる',r[0]===200,r);
 r=await getM(pk,ADM);expect('登録を消すとスクショも消える',r[0]===404,r[0]);

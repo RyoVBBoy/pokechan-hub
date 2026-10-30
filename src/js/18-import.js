@@ -159,8 +159,12 @@ function imDraw(){
   <div class="btns"><button class="btn btn-p" id="im-save" ${ok?'':'disabled'}>このパーティを保存（${ok}匹）</button></div>
   <p class="note" style="color:var(--dim)">保存すると、いま選んでいるパーティ（${esc(teamName(TEAMS.cur))}）と入れ替わります。ほかのパーティに入れたいときは、先にパーティの画面で切り替えてください。取り込んだ技・特性・持ち物・能力ポイント・性格は、選出アシストと模擬戦の計算に使われます。</p>`;
 }
+/* シーズンの登録などから来たときは、保存したあとそこへ戻る（41-seasons.js） */
+let IMPORT_NEXT=null;
 function imSave(){
-  const v=getVer();
+  const v=getVer(),back=IMPORT_NEXT;IMPORT_NEXT=null;
+  /* 戻り先があるときは、空いているパーティの枠に入れる（いまのパーティを消さない） */
+  if(back){const e=TEAMS.list.findIndex((x,i)=>i!==TEAMS.cur&&!x.team.length);if(team.length&&e>=0)switchTeam(e)}
   team=IM.slots.filter(s=>s.no).slice(0,6).map((s,i)=>{
     const set={};
     if(s.ab)set.ab={n:s.ab.n,k:s.ab.k};if(s.it)set.it={n:s.it.n,k:s.it.k};
@@ -169,7 +173,9 @@ function imSave(){
       if(!byNo[s.no].ext){const o=v[s.no]||{};o.s=1;o.d=new Date().toISOString().slice(0,10);o.src='screenshot';v[s.no]=o}}
     return{no:s.no,sel:i<PICK(),set};
   });
-  setVer(v);saveTeam();toast('パーティを保存しました');nav('#/team');
+  setVer(v);saveTeam();toast('パーティを保存しました');
+  if(back){SEAS.formSlot=TEAMS.cur;nav(back);return}
+  nav('#/team');
 }
 async function imRun(files){
   const pr=document.getElementById('im-prog');
@@ -196,6 +202,7 @@ function importView(){
   <div class="btns"><label class="btn btn-p" for="im-f" style="cursor:pointer">${SVG(I.share,17)}スクリーンショットを選ぶ（2枚まで）</label></div>
   <input type="file" id="im-f" accept="image/*" multiple hidden>
   <p class="note" style="padding-top:0;color:var(--dim)">画像はこの端末の中だけで読み取り、外部には送りません。読み取りには <a href="https://github.com/naptha/tesseract.js" target="_blank" rel="noopener" style="color:var(--acc)">Tesseract.js</a> を使います。</p>
+  ${IMPORT_NEXT?'<div class="bnote" style="margin:0 16px 8px">読み取って保存すると、シーズンの結果の登録に戻ります（空いているパーティの枠に入れます。空きがなければ、いまのパーティと入れかわります）。</div>':''}
   <div id="im-prog"></div><div id="im-res"></div>
   <datalist id="dl-mon">${MON_C().map(([n])=>`<option value="${n}">`).join('')}</datalist>
   <datalist id="dl-ab">${Object.keys(ABJ).map(n=>`<option value="${n}">`).join('')}</datalist>
