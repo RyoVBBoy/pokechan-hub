@@ -86,6 +86,24 @@ ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp
    out.types.push({t,slug:TSLUG[t],html,desc:`ポケモンチャンピオンズの${t}タイプの弱点・耐性・相性表と、${t}タイプのポケモン${ms.length}匹の一覧。`});
   });
   out.pokeIndex=P.map(q=>`<a class="row" href="__ROOT__pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}<span class="no">#${String(q.dno||q.no).padStart(4,'0')}</span></div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`).join('');
+  /* 構築の型（40-guide-builds.js の ARCHS）：型ごとのページ */
+  out.builds=ARCHS.map(a=>{const R='__ROOT__',ex=archBuild(a),ss=archSets(a,ex);
+   const mA=q=>`<a class="pill gchip" href="${R}pokemon/${q.no}/">${formInfo(q).base}${formInfo(q).tag?'（'+formInfo(q).tag+'）':''}</a>`;
+   const mvIds=a[8].map(k=>Object.keys(MD).map(Number).find(id=>MD[id][3]===k)).filter(Boolean);
+   const html=`<nav class="crumb"><a href="${R}">ホーム</a> › <a href="${R}build/">構築の型</a> › ${a[1]}</nav>
+<div class="sh1"><div><span class="no">構築の型・${a[3]}</span><h1>${a[1]}の組み方</h1></div></div>
+<p class="lead">${a[4]}</p>
+<div class="cta"><a class="btn btn-p" href="${R}#/arch/${a[0]}">このパーティをサイトで使う</a><a class="btn btn-s" href="${R}#/assist">選出アシストで試す</a></div>
+<div class="gdoc"><h3>組み方</h3><ol class="gtips">${a[5].map(x=>`<li>${x}</li>`).join('')}</ol><h3>弱点と、相手に使われたときの対策</h3><ul class="gtips">${a[6].map(x=>`<li>${x}</li>`).join('')}</ul></div>
+<div class="sec"><h2>${a[1]}の例</h2><span style="font-size:12px;color:var(--dim)">データから自動で組んだ例</span></div>
+${ex.map((q,k)=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${nm(q)}</div>${ss[k]?`<div class="row-s">${ABN[ss[k].ab]||''}・${ITEMN[ss[k].item]||''}・${natName(ss[k].up,ss[k].dn).replace(/（.*$/,'')}</div><div class="row-s" style="color:var(--fg)">${ss[k].moves.map(mName).join('・')}</div>`:''}</div></a>`).join('')}
+<p class="note">型に必要な役から選び、残りは弱点が重ならないように選んだ例です。実際によく使われている構築とは違うことがあります。</p>
+<div class="sec"><h2>中心になるポケモンの例</h2></div>
+${a[7].map(pt=>{const l=archMons(pt);return l.length?`<div class="gdoc gsub"><h3>${pt[0]}</h3></div><div class="pills gchips">${l.map(mA).join('')}</div>`:''}).join('')}
+${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills gchips">${mvIds.map(id=>`<a class="pill gchip" href="${R}#/move/${id}">${mName(id)}</a>`).join('')}</div>`:''}
+<div class="sec"><h2>ほかの構築の型</h2></div><div class="pills gchips">${ARCHS.filter(x=>x!==a).map(x=>`<a class="pill gchip" href="${R}build/${x[0]}/">${x[1]}</a>`).join('')}</div>`;
+   return{id:a[0],n:a[1],html,desc:`ポケモンチャンピオンズの${a[1]}（${a[2]}）の組み方・弱点と対策・中心になるポケモンと、データから組んだパーティの例。`}});
+  out.buildIndex=ARCHS.map(a=>`<a class="row" href="__ROOT__build/${a[0]}/"><div class="row-m"><div class="row-t">${a[1]}<span class="atag">${a[3]}</span></div><div class="row-s">${a[2]}</div></div></a>`).join('');
   out.typeIndex=`<div class="tkb tkb--6" style="padding-top:12px">${T.map(t=>`<a class="tk" href="__ROOT__type/${TSLUG[t]}/" style="background:${COL[t]};color:${ONC[t]}">${ticon(t,22)}<small>${t}</small></a>`).join('')}</div>`;
   return out;
  },TSLUG);
@@ -112,11 +130,13 @@ ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp
  const urls=[''];
  D.mons.forEach(m=>{const rel=`pokemon/${m.no}/`;urls.push(rel);write(rel,page({rel,title:`${m.n}の種族値・弱点・対策・覚える技｜ポケモンチャンピオンズ｜${SITE}`,desc:m.desc,body:m.html,crumbs:[['ホーム',''],['ポケモン一覧','pokemon/'],[m.n,rel]]}))});
  D.types.forEach(t=>{const rel=`type/${t.slug}/`;urls.push(rel);write(rel,page({rel,title:`${t.t}タイプの弱点・耐性・相性｜ポケモンチャンピオンズ｜${SITE}`,desc:t.desc,body:t.html,crumbs:[['ホーム',''],['タイプ一覧','type/'],[t.t,rel]]}))});
+ D.builds.forEach(x=>{const rel=`build/${x.id}/`;urls.push(rel);write(rel,page({rel,title:`${x.n}の組み方と例｜ポケモンチャンピオンズ｜${SITE}`,desc:x.desc,body:x.html,crumbs:[['ホーム',''],['構築の型','build/'],[x.n,rel]]}))});
+ write('build/',page({rel:'build/',title:`構築の型（${D.builds.length}種類）｜ポケモンチャンピオンズ｜${SITE}`,desc:'ポケモンチャンピオンズのパーティの組み方の代表的な型（天気・トリックルーム・おいかぜ・対面・サイクル・積み）。',body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › 構築の型</nav><div class="sh1"><h1>構築の型</h1></div><p class="lead">パーティの組み方の代表的な型です。型を選ぶと、組み方・弱点と対策・データから組んだパーティの例が見られます。</p>`+D.buildIndex,crumbs:[['ホーム',''],['構築の型','build/']]}));urls.push('build/');
  write('pokemon/',page({rel:'pokemon/',title:`ポケモン一覧（${D.mons.length}匹）｜ポケモンチャンピオンズ｜${SITE}`,desc:`ポケモンチャンピオンズに登場するポケモン${D.mons.length}匹の一覧。種族値・タイプ・弱点のページへ。`,body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › ポケモン一覧</nav><div class="sh1"><h1>ポケモン一覧</h1></div><p class="lead">${D.mons.length}匹を図鑑番号順に並べています。名前をタップすると、種族値・弱点・覚える技のページに移ります。</p>`+D.pokeIndex,crumbs:[['ホーム',''],['ポケモン一覧','pokemon/']]}));urls.push('pokemon/');
  write('type/',page({rel:'type/',title:`タイプ相性一覧（18タイプ）｜ポケモンチャンピオンズ｜${SITE}`,desc:'ポケモンチャンピオンズの18タイプそれぞれの弱点・耐性・ばつぐんになる相手の一覧。',body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › タイプ一覧</nav><div class="sh1"><h1>タイプ相性一覧</h1></div><p class="lead">タイプを選ぶと、そのタイプの弱点・耐性と、そのタイプのポケモンが見られます。</p>`+D.typeIndex+`<div class="cta"><a class="btn btn-p" href="__ROOT__#/types">相性の早見表を開く</a></div>`,crumbs:[['ホーム',''],['タイプ一覧','type/']]}));urls.push('type/');
  // app index with SEO head + links to static pages
  let idx=app.replace('<meta name="theme-color" content="#000000">',`<meta name="theme-color" content="#000000">\n<link rel="canonical" href="${SITE_URL}/">\n<meta property="og:url" content="${SITE_URL}/">\n<meta name="twitter:card" content="summary">\n<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"WebSite","name":SITE,"url":SITE_URL+'/',"inLanguage":"ja"})}</script>`);
- idx=idx.replace('<main id="view"></main>',`<main id="view"></main>\n  <nav class="seo-links" aria-label="ページ一覧" style="padding:8px 16px 0;font-size:12.5px;color:var(--dim)"><a href="pokemon/" style="color:var(--acc)">ポケモン一覧（${D.mons.length}匹）</a>　<a href="type/" style="color:var(--acc)">タイプ相性一覧</a></nav>`);
+ idx=idx.replace('<main id="view"></main>',`<main id="view"></main>\n  <nav class="seo-links" aria-label="ページ一覧" style="padding:8px 16px 0;font-size:12.5px;color:var(--dim)"><a href="pokemon/" style="color:var(--acc)">ポケモン一覧（${D.mons.length}匹）</a>　<a href="type/" style="color:var(--acc)">タイプ相性一覧</a>　<a href="build/" style="color:var(--acc)">構築の型</a></nav>`);
  fs.writeFileSync(OUT+'/index.html',idx);
  fs.writeFileSync(OUT+'/404.html',page({rel:'404/',title:`ページが見つかりません｜${SITE}`,desc:'',body:`<div class="sh1"><h1>ページが見つかりません</h1></div><div class="cta"><a class="btn btn-p" href="${SITE_URL}/">ホームへ</a></div>`,crumbs:[['ホーム','']]}).replace(/href="\.\.\/assets/,`href="${SITE_URL}/assets`));
  fs.writeFileSync(OUT+'/.nojekyll','');
@@ -124,5 +144,5 @@ ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp
  fs.writeFileSync(OUT+'/robots.txt',`User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
  const today=new Date().toISOString().slice(0,10);
  fs.writeFileSync(OUT+'/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u=>`<url><loc>${SITE_URL}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`);
- console.log('pages',urls.length,'mons',D.mons.length,'types',D.types.length);
+ console.log('pages',urls.length,'mons',D.mons.length,'types',D.types.length,'builds',D.builds.length);
 })();

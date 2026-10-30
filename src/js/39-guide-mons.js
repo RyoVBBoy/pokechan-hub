@@ -52,8 +52,9 @@ function monGuide(p,o={}){
   const atkName=ai===1?'物理':'特殊',atkStat=SN[ai];
   /* ---- 型を組む ---- */
   const lowDef=B<=D?2:4;
-  const mkSet=(title,why,ab,item,up,dn,sp,moves)=>({title,why,ab,item,up,dn,sp,moves:[...new Set(moves)].slice(0,4)});
-  const spOf=(a,b)=>{const s=[0,0,0,0,0,0];s[a]=32;s[b]=32;const r=[0,1,2,3,4,5].find(i=>i!==a&&i!==b&&(i===0||i===lowDef))??0;s[r]=2;return s};
+  /* 技が4つに満たないときは、攻撃技で埋める */
+  const mkSet=(title,why,ab,item,up,dn,sp,moves)=>({title,why,ab,item,up,dn,sp,moves:[...new Set([...moves.filter(Boolean),...pickAtk(4)])].slice(0,4)});
+  const spOf=(a,b)=>{const s=[0,0,0,0,0,0];s[a]=32;s[b]=32;const r=[0,lowDef,4,2,5].find(i=>i!==a&&i!==b);s[r]=2;return s};
   const sets={
     attacker:()=>{const item=spdS<.35?(ai===1?'choiceband':'choicespecs'):spdS<.7?'choicescarf':'lifeorb';
       const why=item==='choicescarf'?`素早さが中くらいなので、${ITEMN.choicescarf}で上から攻撃できる相手を増やす。`:item==='lifeorb'?`素早さが高いので、技を固定されない${ITEMN.lifeorb}で火力を上げる。`:`素早さは低いが${atkStat}が高いので、${ITEMN[item]}でさらに火力を上げ、受けに来た相手も押し切る。`;
@@ -90,6 +91,8 @@ function monGuide(p,o={}){
   const setKeys=[...new Set(roles.map(r=>r.set).filter(Boolean))].slice(0,2);
   if(!setKeys.length&&atk.length)setKeys.push('attacker');
   const SETS=setKeys.map(k=>{try{return sets[k]()}catch(e){return null}}).filter(s=>s&&s.moves.length);
+  /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
+  if(o.raw)return{keys:setKeys,make:k=>{try{const r=sets[k]();return r&&r.moves.length?r:null}catch(e){return null}},key,ai,lowDef,best:n=>pickAtk(n)};
   /* ---- まとめ ---- */
   const spdTxt=sr.rank<=sr.n*.25?'速いほう':sr.rank<=sr.n*.6?'中くらい':'遅いほう';
   const megas=megasOf(p.no);
