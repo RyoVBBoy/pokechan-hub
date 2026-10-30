@@ -106,6 +106,9 @@ async function seasonView(a){
       <div class="sz-use">${j.usage.filter(u=>byNo[u.no]).slice(0,12).map(u=>{const p=byNo[u.no];return `<a class="sz-u" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><span class="sz-un">${esc(formInfo(p).base)}${formInfo(p).tag?`<i class="ftag ftag-${formInfo(p).kind}">${esc(formInfo(p).tag)}</i>`:''}</span><b>${u.pc}%</b></a>`}).join('')}</div>`:'')
       +`<div class="sec"><h2>パーティ</h2><span style="font-size:12px;color:var(--dim)">順位の高い順</span></div>`
       +(j.teams.length?j.teams.map(szCard).join(''):`<p class="empty" style="padding:28px 24px">${FMTN()}の登録はまだありません。<br>上位になったら、ぜひ登録してください。</p>`);
+    body.querySelectorAll('[data-vs]').forEach(b=>b.onclick=()=>{const t=j.teams.find(x=>x.id===+b.dataset.vs),el=document.getElementById('sz-vs-'+b.dataset.vs);if(!t||!el)return;
+      if(el.innerHTML){el.innerHTML='';b.textContent='自分のパーティと比べる';return}
+      el.innerHTML=szVs(t);b.textContent='比べるのをやめる';const g=el.querySelector('[data-goassist]');if(g)g.onclick=()=>{opp6=t.team.map(x=>x.no).filter(n=>byNo[n]).slice(0,6);saveOpp6();nav('#/assist')}});
     body.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{const t=j.teams.find(x=>x.id===+b.dataset.use);if(t)useTeam(`${s.name} ${t.rank?t.rank+'位':''}`.trim(),t.team)});
     body.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('この登録を消します。よろしいですか？'))return;
       try{await authFetch(`/api/seasons/teams/${+b.dataset.del}/delete`,{});SEAS.list=null;toast('消しました');seasonView(String(s.id))}catch(e){toast(e.message)}});
@@ -121,7 +124,8 @@ function szCard(t){
     <div class="sz-mons">${mons.map(({p})=>`<a class="sz-m" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small></a>`).join('')}</div>
     ${t.comment?`<p class="sz-c" data-notr>${esc(t.comment)}</p>`:''}
     ${mons.some(x=>x.s&&(x.s.it||x.s.mv.length))?`<details class="sz-det"><summary>育成を見る</summary>${mons.map(({p,s})=>`<div class="sz-set"><b>${nm(p,{no:false})}</b><span>${s?[s.it&&esc(s.it.n),s.ab&&esc(s.ab.n),s.up>0&&s.dn>0&&esc(natName(s.up,s.dn).replace(/（.*$/,''))].filter(Boolean).join('・'):''}</span><span>${s?s.mv.map(m=>esc(m.n)).join('・'):''}</span></div>`).join('')}</details>`:''}
-    <div class="sz-a"><button class="btn btn-s" data-use="${t.id}">このパーティを使う</button>${t.mine?`<button class="bback" data-del="${t.id}" style="color:var(--w2)">登録を消す</button>`:''}</div></div>`;
+    <div class="sz-vs" id="sz-vs-${t.id}"></div>
+    <div class="sz-a"><button class="btn btn-p" data-vs="${t.id}">自分のパーティと比べる</button><button class="btn btn-s" data-use="${t.id}">このパーティを使う</button>${t.mine?`<button class="bback" data-del="${t.id}" style="color:var(--w2)">登録を消す</button>`:''}</div></div>`;
 }
 /* 自分の結果を登録する欄（保存したパーティから選ぶ） */
 function szForm(s,mine,pre){
@@ -159,3 +163,37 @@ function szShotBind(s){const b=document.getElementById('sz-shot');if(b)b.onclick
 /* プロフィールに出す実績の印 */
 const rankLabel=r=>r.rank?(r.rank<10?'最終1桁':r.rank<100?'最終2桁':r.rank<1000?'最終3桁':`最終${r.rank}位`)+`（${r.rank}位）`:`レート${r.rate}`;
 const resultBadges=rs=>(rs||[]).length?`<div class="sz-badges">${rs.map(r=>`<span class="sz-badge${r.verified?' on':''}">${SVG(I.trophy,14)}<span data-notr>${esc(r.season)}</span> ${r.fmt==='double'?'ダブル':'シングル'} ${rankLabel(r)}${r.verified?'・確認済み':''}</span>`).join('')}</div>`:'';
+/* ---- 自分のパーティと比べる：選出アシストと同じ計算（analyze）で、両方から見た最善の選出と、お互いに何%入るかを出す ----
+   相手の育成は、登録されていればそれを使い、なければ「よくある型」を仮定する */
+function szVs(t){
+  const my=team.map(x=>x.no).filter(n=>byNo[n]),op=t.team.map(x=>x.no).filter(n=>byNo[n]);
+  if(!my.length)return `<div class="bnote" style="margin:8px 0">先に<a href="#/team" style="color:var(--acc)">パーティ</a>を作ってください（いま選んでいるパーティと比べます）。</div>`;
+  const opSet={};t.team.forEach(x=>{const c=cleanSet(x.set);if(c)opSet[x.no]=savedToCalc(x.no,c)});
+  const opSF=n=>opSet[n]||detSet(byNo[n]);
+  let A,P;try{A=analyze(my,op,mySetFor,opSF);P=analyze(op,my,opSF,mySetFor)}catch(e){return `<div class="bnote" style="margin:8px 0">計算できませんでした。</div>`}
+  const d=A.full[0].s-P.full[0].s;
+  const verdict=d>.08?['有利','sz-good','こちらの選出のほうが、お互いに最善を尽くしたときの点数が高くなりました。']:d<-.08?['不利','sz-bad','相手の選出のほうが点数が高くなりました。下の「気をつけたい相手」への対策を考えましょう。']:['五分','','お互いの点数がほぼ同じです。先発と立ち回りで差がつきます。'];
+  const nmS=p=>esc(formInfo(p).base);
+  const pick=A.best.map(i=>A.M[i].p),lead=A.lead.map(i=>A.M[i].p);
+  const opPick=P.best.map(i=>P.M[i].p);
+  /* こちらのだれも半分以上入らない相手・こちらの多くを一撃で倒せる相手 */
+  const wall=A.O.map((o,j)=>({o,j,mx:Math.max(...A.M.map((_,i)=>A.D[i][j].pct))})).filter(x=>x.mx<50);
+  const threat=A.O.map((o,j)=>({o,j,n:A.M.filter((_,i)=>A.R[j][i].pct>=100).length})).filter(x=>x.n>=Math.ceil(A.M.length/2)).sort((a,b)=>b.n-a.n);
+  const cell=v=>{const r=Math.round(v);return `<td class="${r>=100?'k1':r>=50?'k2':''}">${r>=100?'確1':r+'%'}</td>`};
+  const row=i=>`<tr><th>${A.best.includes(i)?'<i class="sz-star">★</i>':''}${nmS(A.M[i].p)}</th>${A.O.map((_,j)=>cell(Math.min(A.D[i][j].pct,999))).join('')}</tr>`;
+  const rowR=j=>`<tr><th>${nmS(A.O[j].p)}</th>${order.map(i=>cell(Math.min(A.R[j][i].pct,999))).join('')}</tr>`;
+  const headOf=ps=>`<thead><tr><th></th>${ps.map(p=>`<th><span class="av">${stamp(p)}</span><small>${nmS(p)}</small></th>`).join('')}</tr></thead>`;
+  const order=[...A.best,...A.M.map((_,i)=>i).filter(i=>!A.best.includes(i))];
+  return `<div class="sz-vsb">
+    <div class="sz-vh"><b class="sz-vd ${verdict[1]}">${verdict[0]}</b><span>${esc(teamName(TEAMS.cur))} と比べた結果</span></div>
+    <p class="sz-vp">${verdict[2]}</p>
+    <p class="sz-vp"><b>おすすめの選出</b>：${pick.map(nmS).join('・')}（先発 ${lead.map(nmS).join('・')}）</p>
+    <p class="sz-vp"><b>相手が選びそうな${PICK()}匹</b>：${opPick.map(nmS).join('・')}</p>
+    ${threat.length?`<p class="sz-vp" style="color:var(--w2)"><b>気をつけたい相手</b>：${threat.slice(0,3).map(x=>`${nmS(x.o.p)}（こちらの${x.n}匹を一撃で倒せる）`).join('、')}</p>`:''}
+    ${wall.length?`<p class="sz-vp" style="color:var(--w2)"><b>崩しにくい相手</b>：${wall.slice(0,3).map(x=>nmS(x.o.p)).join('・')}（こちらのだれも半分以上のダメージを与えられない）</p>`:''}
+    <p class="sz-vp"><b>こちら → 相手</b>（左のポケモンが、上の相手に与えるダメージ）</p>
+    <div class="sz-tw"><table class="sz-tb">${headOf(A.O.map(o=>o.p))}<tbody>${order.map(row).join('')}</tbody></table></div>
+    <details class="sz-det"><summary>相手 → こちら（受けるダメージ）を見る</summary><div class="sz-tw"><table class="sz-tb">${headOf(order.map(i=>A.M[i].p))}<tbody>${A.O.map((_,j)=>rowR(j)).join('')}</tbody></table></div></details>
+    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（★はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「よくある型」）':'「よくある型」'}で計算しています。</p>
+    <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-goassist>選出アシストでくわしく見る</button></div></div>`;
+}

@@ -1052,3 +1052,20 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .sz-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--dim);box-shadow:inset 0 0 0 1px var(--line2)}
 .sz-badge.on{color:#b8860b;box-shadow:inset 0 0 0 1px #d4a72c}
 .sz-use--w{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+/* 上位パーティと比べる */
+.sz-vsb{margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--elev2)}
+.sz-vh{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim)}
+.sz-vd{font:800 17px var(--ff);color:var(--fg)}.sz-vd.sz-good{color:#00a36c}.sz-vd.sz-bad{color:var(--w2)}
+.sz-vp{margin:6px 0 0;font-size:13.5px;line-height:1.65}
+.sz-tw{overflow-x:auto;margin-top:8px}
+.sz-tb{border-collapse:collapse;width:100%;font-size:12px}
+.sz-tb th,.sz-tb td{padding:4px 2px;text-align:center;border-bottom:1px solid var(--line)}
+.sz-tb thead th{font-weight:600;vertical-align:bottom}.sz-tb thead .av{display:block;width:26px;height:26px;margin:0 auto}
+.sz-tb thead small{display:block;font-size:9.5px;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 auto}
+.sz-tb tbody th{text-align:left;font-weight:700;white-space:nowrap;max-width:6.5em;overflow:hidden;text-overflow:ellipsis}
+.sz-tb td{font:600 12px Inter,sans-serif}.sz-tb td.k2{color:#c77700}.sz-tb td.k1{color:var(--w2);font-weight:800}
+.sz-star{font-style:normal;color:#d4a72c;margin-left:2px}
+.sz-a{flex-wrap:wrap}
+.sz-tb{table-layout:fixed}.sz-tb th:first-child{width:5.4em}
+.sz-tb thead small{max-width:100%}
+.sz-tb th:first-child{width:6.2em}.sz-tb tbody th{font-size:11px;letter-spacing:-.02em}.sz-star{margin:0 1px 0 0}

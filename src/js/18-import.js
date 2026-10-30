@@ -224,7 +224,11 @@ function importView(){
 }
 /* 取り込んだ型を、模擬戦・選出アシスト用の型に変換 */
 function teamSet(no){
-  const t=team.find(x=>x.no===no);if(!t||!t.set)return null;const s=t.set,p=byNo[no];
+  const t=team.find(x=>x.no===no);return t&&t.set?savedToCalc(no,t.set):null;
+}
+/* 保存した形の育成（ab・it・mv・sp…）→ 計算用の型。ほかの人のパーティ（シーズンの上位パーティ）にも使う */
+function savedToCalc(no,s){
+  const p=byNo[no];if(!p||!s)return null;
   const base=chooseSet(p,true);let moves=[];
   (s.mv||[]).forEach(m=>{if(!m||!m.id)return;if(m.id===182||m.id===197){if(!moves.some(x=>x.prot))moves.push(PROT)}else if(MV[m.id])moves.push(mvObj(m.id))});
   if(!moves.some(x=>!x.prot))moves=base.moves;
