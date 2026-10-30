@@ -47,6 +47,12 @@ await pg.evaluate(()=>{location.hash='#/p/10058'});await pg.waitForTimeout(400);
 for(let i=1;i<6;i++){await pg.click(`#seg [data-i="${i}"]`);await pg.waitForTimeout(150)}
 const mp=await pg.evaluate(()=>[document.querySelectorAll('.mvr').length,!!document.querySelector('.fam-pills'),/メガガブリアス/.test(document.getElementById('hdr').textContent)]);
 if(!(mp[0]>=40&&mp[1]&&mp[2]))fail('メガシンカの姿のページ: '+mp.join(','));
+// タブごとに最後の画面を覚える（ツール→ダメ計→ホーム→ツールでダメ計に戻る。もう一度押すとツールの最初へ）
+await pg.evaluate(()=>{location.hash='#/tools'});await pg.waitForTimeout(300);await pg.evaluate(()=>nav('#/calc'));await pg.waitForTimeout(300);
+await pg.click('.tb[data-k=""]');await pg.waitForTimeout(300);await pg.click('.tb[data-k="tools"]');await pg.waitForTimeout(300);
+const tm1=await pg.evaluate(()=>location.hash);await pg.click('.tb[data-k="tools"]');await pg.waitForTimeout(300);const tm2=await pg.evaluate(()=>location.hash);
+if(!(tm1==='#/calc'&&tm2==='#/tools'))fail('タブの記憶: '+tm1+' '+tm2);
+await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(400);
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）

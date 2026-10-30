@@ -29,12 +29,21 @@ document.addEventListener('click',e=>{
   e.preventDefault();
   const h=a.getAttribute('href');
   if(a.hasAttribute('data-back')){if(depth>0){history.back()}else{nav(h,'back')}return}
-  if(a.classList.contains('tb')&&h===cur){scrTo({top:0,behavior:reduceMotion?'auto':'smooth'});return}
+  /* 下（PCは左）のタブ：ほかのタブから来たら、そのタブで最後に開いていた画面へ。
+     いるタブをもう一度押したら、そのタブの最初の画面へ（最初の画面にいるなら上までスクロール） */
+  if(a.classList.contains('tb')){
+    const g=a.dataset.k;
+    if(navGroup(keyOf(cur))===g){if(h===cur)scrTo({top:0,behavior:reduceMotion?'auto':'smooth'});else nav(h,'tab');return}
+    const mem=TABMEM[g];nav(mem&&mem!==cur?mem:h,'tab');return;
+  }
   nav(h);
 });
 const NAVG={learn:'tools',arch:'tools',season:'tools',item:'tools',word:'tools',move:'tools',ability:'tools',p:'search',dex:'search',cmp:'search',types:'tools',assist:'tools',calc:'tools',meta:'tools',battle:'tools',tap:'tools',guide:'tools',sources:'tools',verify:'tools',
   games:'-',team:'team',edit:'team',import:'team',report:'team',community:'community',lobby:'community',bbs:'community',thread:'community',rules:'community',admin:'community',account:'community',tl:'community',u:'community',n:'community',notif:'community',terms:'community',privacy:'community'};
 const navGroup=k=>NAVG[k]??(k||'');
+/* タブごとに最後に開いていた画面（このタブを閉じるまで覚える） */
+const TABMEM=(()=>{try{return JSON.parse(sessionStorage.getItem('pctabmem')||'{}')||{}}catch(e){return{}}})();
+function rememberTab(){const g=navGroup(keyOf(cur));if(!ROOTS.includes(g))return;TABMEM[g]=cur||'#/';try{sessionStorage.setItem('pctabmem',JSON.stringify(TABMEM))}catch(e){}}
 function route(){
   const [k,a]=cur.replace(/^#\/?/,'').split('/');
   document.querySelectorAll('.tb').forEach(e=>{
@@ -42,7 +51,7 @@ function route(){
     on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});
   closeSheet();
   document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle');
-  trackTool(cur);drawSide();
+  trackTool(cur);drawSide();rememberTab();
   ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,search:searchView,learn:learnView,arch:archView,season:seasonView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
   HD.classList.toggle('sc',scrY()>4);
 }
