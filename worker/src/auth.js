@@ -83,7 +83,7 @@ async function userApi(req,env,db,path,body,now){
   }
   /* アカウントの削除（Firebase 側のアカウントはサイトから消す） */
   if(path==='/api/me/delete'&&req.method==='POST'){
-    await socialDeleteUser(db,me.uid);
+    await socialDeleteUser(db,me.uid,env);
     await db.prepare(`DELETE FROM user_data WHERE uid=?`).bind(me.uid).run();
     await pushInit(db);await db.prepare(`DELETE FROM push_subs WHERE uid=?`).bind(me.uid).run();
     await db.prepare(`DELETE FROM users WHERE uid=?`).bind(me.uid).run();

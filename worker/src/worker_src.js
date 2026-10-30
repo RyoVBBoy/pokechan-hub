@@ -278,6 +278,7 @@ export default{
     if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
     const u=new URL(req.url);let text=u.searchParams.get('text')||'',team=u.searchParams.get('team')||req.headers.get('x-team')||'',mode=u.searchParams.get('mode')||'';
     const H={...CORS,'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'};
+    if(u.pathname.startsWith('/m/')&&req.method==='GET')return mediaGet(req,env,u.pathname.slice(3));
     if(u.pathname.startsWith('/api/'))return api(req,env,u,ctx);
     if(req.method==='POST'&&env.APP_TOKEN&&(req.headers.get('x-app-token')||u.searchParams.get('token'))!==env.APP_TOKEN)return new Response('合言葉（APP_TOKEN）が違います。',{status:401,headers:H});
     if(req.method==='POST'){const ct=req.headers.get('content-type')||'';

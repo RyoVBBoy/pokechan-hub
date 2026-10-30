@@ -17,13 +17,18 @@ function adminView(){
   if(!tok)return;
   const el=document.getElementById('adm-list');
   const act=async(fn,msg)=>{try{await fn();toast(msg);load()}catch(e){toast(e.message)}};
+  /* 画像は合言葉を付けて読み込む（確認待ちの画像も見られる） */
+  const admMedia=m=>{let a=[];try{a=m?JSON.parse(m):[]}catch(e){}return a.length?`<div class="adm-media" data-keys="${a.map(x=>esc(x.k)).join(',')}"></div>`:''};
+  const loadMedia=()=>el.querySelectorAll('.adm-media[data-keys]').forEach(box=>{const ks=box.dataset.keys.split(',');box.removeAttribute('data-keys');
+    ks.forEach(async k=>{try{const r=await fetch(COMM_API+'/m/'+k,{headers:{'X-Admin-Token':tok}});if(!r.ok)return;const im=document.createElement('img');im.src=URL.createObjectURL(await r.blob());im.alt='';box.appendChild(im)}catch(e){}})});
   const load=async()=>{
     try{
       if(admTab==='reports'){
         const j=await aget('/api/admin/reports');
         el.innerHTML=j.reports.length?j.reports.map(r=>`<div class="lcard">
           <div class="lcard-h"><span class="atag ${r.n>=3?'on':''}">${kindJa[r.kind]||r.kind}</span><b>通報 ${r.n}件</b><span class="lt">${ago(r.last)}</span></div>
-          <div class="lcm" style="white-space:pre-wrap">${r.content==null?'（見つかりません）':esc(r.content)}</div>
+          <div class="lcm" style="white-space:pre-wrap">${r.content==null?'（見つかりません）':esc(r.content)}</div>${admMedia(r.media)}
+          ${r.media_hidden?'<div class="lmeta"><b style="color:var(--w2)">画像は確認待ち（「問題なし」か「元に戻す」で表示に戻ります）</b></div>':''}
           <div class="lmeta">理由：${esc(r.reasons||'')}　ID:${esc(r.aid||'')}　${r.hidden?'<b style="color:var(--w2)">非表示中</b>':'表示中'}</div>
           <div class="btns" style="padding:8px 0 0;flex-wrap:wrap">
             ${r.hidden?`<button class="btn btn-s" data-res="${r.kind}:${r.target}">元に戻す</button>`:`<button class="btn btn-p" data-del="${r.kind}:${r.target}">非表示にする</button>`}
@@ -40,13 +45,14 @@ function adminView(){
           if(confirm(`@${h} を停止します。よろしいですか？`))act(()=>apost('/api/admin/ban',{handle:h}),'停止しました')};
       }else{
         const j=await aget('/api/admin/recent');
-        el.innerHTML=`<div class="sec"><h2>タイムライン</h2></div>`+((j.notes||[]).length?j.notes.map(p=>`<div class="bpost"><div class="bpost-h">${esc(p.name||'（削除済み）')}　@${esc(p.handle||'')}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(p.body).replace(/\n/g,'<br>')}</div>
+        el.innerHTML=`<div class="sec"><h2>タイムライン</h2></div>`+((j.notes||[]).length?j.notes.map(p=>`<div class="bpost"><div class="bpost-h">${esc(p.name||'（削除済み）')}　@${esc(p.handle||'')}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}${p.media_hidden?'　<b style="color:var(--w2)">画像は確認待ち</b>':''}</div><div class="bpost-b">${esc(p.body||'').replace(/\n/g,'<br>')}</div>${admMedia(p.media)}
           <div style="padding-top:6px;display:flex;gap:16px">${p.hidden?`<button class="bback" data-res="note:${p.id}" style="padding:0">元に戻す</button>`:`<button class="bback" data-del="note:${p.id}" style="padding:0;color:var(--w2)">非表示にする</button>`}${p.handle?`<button class="bback" data-ban="${esc(p.handle)}" style="padding:0;color:var(--w2)">このアカウントを停止</button>`:''}</div></div>`).join(''):'<p class="empty">投稿はありません。</p>')
           +`<div class="sec"><h2>掲示板</h2></div>`+(j.posts.length?j.posts.map(p=>`<div class="bpost"><div class="bpost-h"><b>${p.no}</b>「${esc(p.title||'')}」　${esc(p.name)}　ID:${esc(p.aid)}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(p.body).replace(/\n/g,'<br>')}</div>
           <div style="padding-top:6px">${p.hidden?`<button class="bback" data-res="post:${p.id}" style="padding:0">元に戻す</button>`:`<button class="bback" data-del="post:${p.id}" style="padding:0;color:var(--w2)">非表示にする</button>`}</div></div>`).join(''):'<p class="empty">書き込みはありません。</p>')
           +`<div class="sec"><h2>対戦募集</h2></div>`+(j.lobby.length?j.lobby.map(x=>`<div class="bpost"><div class="bpost-h">${x.fmt==='single'?'シングル':'ダブル'}　${esc(x.rule)}　あいことば ${esc(x.pass)}　ID:${esc(x.aid)}　${ago(x.created_at)}${x.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div><div class="bpost-b">${esc(x.comment||'')}</div>
           <div style="padding-top:6px">${x.hidden?`<button class="bback" data-res="lobby:${x.id}" style="padding:0">元に戻す</button>`:`<button class="bback" data-del="lobby:${x.id}" style="padding:0;color:var(--w2)">非表示にする</button>`}</div></div>`).join(''):'<p class="empty">募集はありません。</p>');
       }
+      loadMedia();
       el.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.del.split(':');act(()=>apost('/api/admin/delete',{kind:k,id:+i}),'非表示にしました')});
       el.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.res.split(':');act(()=>apost('/api/admin/delete',{kind:k,id:+i,restore:true}),'元に戻しました')});
       el.querySelectorAll('[data-ban]').forEach(b=>b.onclick=()=>{const h=b.dataset.ban;if(confirm(`@${h} を停止します。投稿とプロフィールが表示されなくなり、書き込みもできなくなります。よろしいですか？`))act(()=>apost('/api/admin/ban',{handle:h}),'停止しました')});

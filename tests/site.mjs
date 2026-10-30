@@ -20,6 +20,10 @@ for(const r of routes){
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(300);
 await pg.click('#seg [data-i="5"]');await pg.waitForTimeout(200);
 const mvn=await pg.$$eval('.mvr',x=>x.length);if(mvn<40)fail('覚える技の表示が少なすぎます: '+mvn);
+// 画像つき投稿：送る前に縮める（長い辺1600px・WebPかJPEG）
+const sh=await pg.evaluate(async()=>{const c=document.createElement('canvas');c.width=3000;c.height=1000;c.getContext('2d').fillRect(0,0,10,10);
+  const b=await new Promise(r=>c.toBlob(r,'image/png'));const x=await twShrink(new File([b],'a.png',{type:'image/png'}));return[x.w,x.h,x.blob.type,x.blob.size]});
+if(!(sh[0]===1600&&sh[1]===533&&/webp|jpeg/.test(sh[2])&&sh[3]<9e5))fail('画像を縮められません: '+sh.join(','));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）

@@ -65,6 +65,19 @@ jobs:
         run: |
           npx --yes wrangler@3 pages project create "$PAGES_PROJECT" --production-branch=main || echo "（プロジェクトはすでにあります）"
           npx --yes wrangler@3 pages deploy dist --project-name="$PAGES_PROJECT" --branch=main --commit-dirty=true --commit-message="GitHub ${{ github.sha }}"
+      # 画像つき投稿の画像の置き場。Cloudflare で R2 が使えるなら R2、使えなければサーバーの D1 に保存する（どちらでも動く）
+      - name: 画像の置き場（R2）を確かめる（失敗しても公開は止めない）
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@3 r2 bucket create pokechan-media 2>&1 | tail -3 || true
+          if npx --yes wrangler@3 r2 bucket list 2>/dev/null | grep -q 'pokechan-media'; then
+            echo "R2_OK=1" >> "$GITHUB_ENV"; echo "画像は R2 に保存します"
+          else
+            echo "R2 は使えないので、画像はサーバーの D1 に保存します"
+          fi
       - name: サーバーの設定ファイルを作る
         env:
           WORKER_NAME: ${{ vars.WORKER_NAME || 'pokechan-tap' }}
@@ -83,6 +96,14 @@ jobs:
           database_name = "${D1_DATABASE_NAME}"
           database_id = "${D1_DATABASE_ID}"
           TOML
+          if [ "$R2_OK" = "1" ]; then
+          cat >> wrangler.toml <<TOML
+
+          [[r2_buckets]]
+          binding = "MEDIA"
+          bucket_name = "pokechan-media"
+          TOML
+          fi
 
       - name: サーバーを公開（Cloudflare Workers）
         uses: cloudflare/wrangler-action@v3

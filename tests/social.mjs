@@ -117,6 +117,28 @@ tick();r=await call('/api/notes',{method:'POST',tok:D,body:{body:'停止中の�
 r=await call('/api/notes/'+rp1);expect('停止中の人の投稿は出ない',r[0]===404,r);
 r=await call('/api/admin/banned',{admin:'admin-secret-123'});expect('停止中の一覧',r[1].users.some(u=>u.handle==='dave'),r);
 r=await call('/api/admin/ban',{method:'POST',admin:'admin-secret-123',body:{handle:'dave',on:false}});r=await call('/api/u/dave');expect('停止を解除できる',r[0]===200,r);
+/* 画像つき投稿 */
+const up=async(t,bytes,q='w=4&h=3')=>{const h={'content-type':'application/octet-stream','cf-connecting-ip':'10.9.9.9'};if(t)h.authorization='Bearer '+t;
+  const r=await w.fetch(new Request('https://x.dev/api/media?'+q,{method:'POST',headers:h,body:bytes}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
+const getM=async(k,admin)=>{const r=await w.fetch(new Request('https://x.dev/m/'+k,{headers:admin?{'x-admin-token':admin}:{}}),env,{waitUntil(){}});return[r.status,r.headers.get('content-type'),new Uint8Array(await r.arrayBuffer())]};
+const JPG=new Uint8Array([0xFF,0xD8,0xFF,0xE0,...Array(300).fill(7)]);
+r=await up(null,JPG);expect('画像：ログインなしは拒否',r[0]===401,r);
+r=await up(B,new Uint8Array([60,115,99,114,105,112,116,62,...Array(300).fill(1)]));expect('画像：画像でないものは拒否',r[0]===400,r);
+r=await up(B,new Uint8Array(1.3e6).fill(0xFF));expect('画像：大きすぎるものは拒否',r[0]===413,r);
+r=await up(B,JPG);expect('画像：送れる',r[0]===200&&/^[0-9a-f]{32}$/.test(r[1].key),r);const k1=r[1].key;
+r=await getM(k1);expect('画像：投稿に付く前は見えない',r[0]===404,r[0]);
+tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'',media:[k1]}});expect('画像：ほかの人の画像は付けられない',r[0]===400,r);
+tick();r=await call('/api/notes',{method:'POST',tok:B,body:{body:'',media:[k1]}});expect('画像だけの投稿ができる',r[0]===200,r);const nm1=r[1].id;
+r=await call('/api/notes/'+nm1);expect('画像が投稿に付く',r[1].note.media.length===1&&r[1].note.media[0].k===k1&&r[1].note.media[0].w===4,r[1].note);
+r=await getM(k1);expect('画像：見られる',r[0]===200&&r[1]==='image/jpeg'&&r[2].length===JPG.length,r.slice(0,2));
+tick();r=await call('/api/notes',{method:'POST',tok:B,body:{body:'使い回し',media:[k1]}});expect('画像：1つの画像は1つの投稿だけ',r[0]===400,r);
+r=await call(`/api/notes/${nm1}/report`,{method:'POST',tok:A,body:{reason:'その他'}});
+r=await call('/api/notes/'+nm1);expect('通報1件で画像は確認待ち',r[0]===200&&r[1].note.media.length===0&&r[1].note.media_hidden===1,r[1].note);
+r=await getM(k1);expect('確認待ちの画像は見えない',r[0]===404,r[0]);
+r=await getM(k1,'admin-secret-123');expect('管理者は確認待ちの画像を見られる',r[0]===200,r[0]);
+r=await call('/api/admin/dismiss',{method:'POST',admin:'admin-secret-123',body:{kind:'note',id:nm1}});
+r=await getM(k1);expect('問題なしにすると画像が戻る',r[0]===200,r[0]);
+r=await call(`/api/notes/${nm1}/delete`,{method:'POST',tok:B,body:{}});r=await getM(k1,'admin-secret-123');expect('投稿を消すと画像も消える',r[0]===404,r[0]);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

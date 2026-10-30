@@ -46,13 +46,14 @@ async function socialInit(db){
 const NOTE_JOIN=`JOIN users u ON u.uid=n.uid AND u.banned=0 LEFT JOIN notes o ON o.id=n.repost_of AND n.repost_of>0 LEFT JOIN users ou ON ou.uid=o.uid`;
 const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0))`;
 const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
-  COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
+  COALESCE(o.media,n.media) AS media,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
   CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,
   CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
   (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
   EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
   EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted`;
-const noteOut=r=>({id:r.id,body:r.body,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
+const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
+const noteOut=r=>({id:r.id,body:r.body,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
   user:{handle:r.handle,name:r.name},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
@@ -93,14 +94,18 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   if(path==='/api/notes'&&req.method==='POST'){
     const e=need();if(e)return e;
     const text=clean(body.body,NOTE_MAX*2+2);
-    if(text.length<1)return J({error:'本文を入れてください。'},400);
+    /* 画像（先に /api/media で送ったもの）。画像だけの投稿もできる */
+    const med=await mediaAttach(db,meUid,body.media,0);
+    if(Array.isArray(body.media)&&body.media.length&&!med.length)return J({error:'画像を送り直してください（時間がたって消えた可能性があります）。'},400);
+    if(text.length<1&&!med.length)return J({error:'本文を入れてください。'},400);
     if([...text].length>NOTE_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400);
-    const ng=ngCheck(text)||await socialRate(db,meUid,now);if(ng)return J({error:ng},400);
+    const ng=(text&&ngCheck(text))||await socialRate(db,meUid,now);if(ng)return J({error:ng},400);
     /* 返信なら、返信先が見られる投稿か確かめる（リポストの行には返信できない） */
     const to=parseInt(body.reply_to,10)>0?parseInt(body.reply_to,10):0;
     const pa=to?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(to).first():null;
     if(to&&!pa)return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404);
-    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to) VALUES(?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to).first();
+    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null).first();
+    if(r&&med.length)await mediaAttach(db,meUid,med.map(x=>x.k),r.id);
     const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
     if(pa&&r){const q=[recount(db,to)];
       if(pa.uid!==meUid)q.push(db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'reply',?,?,?)`).bind(pa.uid,meUid,r.id,now));
@@ -129,6 +134,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     if(!(r.meta&&r.meta.changes))return J({error:'消せる投稿が見つかりません。'},404);
     /* その投稿のリポストも消し、返信先・リポスト元の数を数え直す */
     await db.prepare(`DELETE FROM notes WHERE repost_of=?`).bind(id).run();
+    await mediaDrop(env,db,'note_id=?',id);
     if(own&&own.reply_to)await recount(db,own.reply_to).run();
     if(own&&own.repost_of)await recount(db,own.repost_of).run();
     await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
@@ -183,6 +189,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const reason=REASONS.includes(body.reason)?body.reason:'その他',rid='u'+(await sha('note|'+meUid)).slice(0,15);
     await db.prepare(`INSERT OR IGNORE INTO reports(kind,target,reason,aid,created_at) VALUES('note',?,?,?,?)`).bind(id,reason,rid,now).run();
     const c=await db.prepare(`SELECT COUNT(*) AS n FROM reports WHERE kind='note' AND target=?`).bind(id).first();
+    /* 画像つきの投稿は、通報1件で画像を確認待ちにする（運営者が確認して戻す） */
+    await db.prepare(`UPDATE notes SET media_hidden=1 WHERE id=? AND media IS NOT NULL`).bind(id).run();
     if(c&&c.n>=3){await db.prepare(`UPDATE notes SET hidden=1 WHERE id=?`).bind(id).run();const p=await db.prepare(`SELECT reply_to FROM notes WHERE id=?`).bind(id).first();if(p&&p.reply_to)await recount(db,p.reply_to).run()}
     return J({ok:true});
   }
@@ -267,8 +275,9 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   return null;
 }
 /* アカウントを消すときに、その人のタイムラインの記録もすべて消す */
-async function socialDeleteUser(db,uid){
-  await socialInit(db);
+async function socialDeleteUser(db,uid,env){
+  await socialInit(db);await mediaInit(db);
+  await mediaDrop(env,db,'uid=?',uid);
   /* 先に、この人が返信・リポストした相手の投稿の数を数え直す対象を控える */
   const tg=(await db.prepare(`SELECT DISTINCT CASE WHEN repost_of>0 THEN repost_of ELSE reply_to END AS id FROM notes WHERE uid=? AND (repost_of>0 OR reply_to>0)`).bind(uid).all()).results.map(x=>x.id);
   await db.batch([
@@ -285,9 +294,11 @@ async function socialDeleteUser(db,uid){
   ]);
   if(tg.length)await db.batch(tg.map(id=>recount(db,id)));
 }
-async function socialCleanup(db){
+async function socialCleanup(db,env){
   const now=Date.now();
-  await socialInit(db);
+  await socialInit(db);await mediaInit(db);
+  /* 投稿に付かなかった画像は1日で消す */
+  await mediaDrop(env,db,'note_id=0 AND created_at<?',now-864e5);
   await db.batch([
     db.prepare(`UPDATE notes SET ip='' WHERE created_at<? AND ip!=''`).bind(now-90*864e5),
     db.prepare(`DELETE FROM notifs WHERE created_at<?`).bind(now-90*864e5)

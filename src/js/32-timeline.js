@@ -20,13 +20,50 @@ const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle
 /* 本文の #タグ を青い文字にして、押すとそのタグの検索へ（先に文字を区切ってから安全な形にする） */
 const TAG_RE=/[#＃]([\p{L}\p{N}_ー]{1,30})/gu;
 function linkTags(t){let out='',i=0;for(const m of String(t).matchAll(TAG_RE)){out+=esc(t.slice(i,m.index))+`<a class="htag" href="#/search/${encodeURIComponent('#'+m[1])}">${esc(m[0])}</a>`;i=m.index+m[0].length}return out+esc(t.slice(i))}
+/* ---- 画像（サーバーは worker/src/media.js） ---- */
+const mediaUrl=k=>COMM_API+'/m/'+k;
+function twMediaHTML(n){
+  if(n.media_hidden)return `<div class="tw-mh">画像は確認中です（通報があったため、運営者が確認するまで表示しません）</div>`;
+  const m=n.media||[];if(!m.length)return'';
+  const ar=m.length===1?Math.max(.6,Math.min(1.9,(m[0].w||4)/(m[0].h||3))):0;
+  return `<div class="tw-md tw-md--${m.length}" data-mk="${m.map(x=>x.k).join(',')}"${ar?` style="aspect-ratio:${ar.toFixed(3)}"`:''}>${m.map((x,i)=>`<button class="tw-mi" data-mi="${i}" aria-label="画像${i+1}を大きく見る"><img src="${mediaUrl(x.k)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>`;
+}
+/* 画像を画面いっぱいに見る（左右の矢印・キーで切りかえ、背景かボタンで閉じる） */
+function twViewer(keys,i){
+  const o=document.createElement('div');o.className='tw-view';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
+  o.innerHTML=`<img alt=""><button class="tw-vx" aria-label="閉じる">${SVG(I.x,22)}</button>${keys.length>1?`<button class="tw-vp" aria-label="前の画像">‹</button><button class="tw-vn" aria-label="次の画像">›</button><span class="tw-vc"></span>`:''}`;
+  const img=o.querySelector('img'),show=()=>{img.src=mediaUrl(keys[i]);const c=o.querySelector('.tw-vc');if(c)c.textContent=`${i+1} / ${keys.length}`};
+  const close=()=>{removeEventListener('keydown',key);o.remove()};
+  const step=d=>{i=(i+d+keys.length)%keys.length;show()};
+  const key=e=>{if(e.key==='Escape')close();else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1)};
+  o.onclick=e=>{if(e.target===o||e.target.closest('.tw-vx'))close();else if(e.target.closest('.tw-vp'))step(-1);else if(e.target.closest('.tw-vn'))step(1)};
+  addEventListener('keydown',key);document.body.appendChild(o);show();
+}
+/* 画像を縮める：長い辺1600px・WebP（使えなければ JPEG）。描き直すので、撮影場所などの情報（EXIF）は残らない */
+async function twShrink(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めませんでした（対応していない形式かもしれません）。'));i.src=url});
+    const sc=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*sc)),h=Math.max(1,Math.round(img.naturalHeight*sc));
+    const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
+    let q=.82,blob=null;
+    for(let k=0;k<5;k++){blob=await new Promise(r=>c.toBlob(r,'image/webp',q));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>c.toBlob(r,'image/jpeg',q));if(blob&&blob.size<9e5)break;q-=.12}
+    if(!blob)throw new Error('画像を縮められませんでした。');
+    return{blob,w,h};
+  }finally{URL.revokeObjectURL(url)}
+}
+async function twUpload(x){
+  const h={'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()};
+  let r;try{r=await fetch(`${COMM_API}/api/media?w=${x.w}&h=${x.h}`,{method:'POST',headers:h,body:x.blob})}catch(e){throw new Error('画像を送れませんでした。電波のよいところでもう一度試してください。')}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'画像を送れませんでした。');return j.key;
+}
 function twHtml(n,big){
   return `<article class="tw${big?' tw--big':''}" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
     ${twAv(n.user)}
     <div class="tw-m">${n.rp?`<div class="tw-rp">${SVG(I.repost,14)}<a href="#/u/${esc(n.rp.handle)}" data-notr>${esc(n.rp.name)}</a><span>さんがリポスト</span></div>`:''}<div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
       ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
-      <div class="tw-b" data-notr>${linkTags(n.body)}</div>
+      <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}
       <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(I.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(I.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
     </div></article>`;
 }
@@ -42,6 +79,7 @@ function twBind(root,reload){
       catch(err){b.setAttribute('aria-pressed',!on);sp.textContent=Math.max(0,cnt+(on?-1:1))||'';toast(err.message)}};
     /* 本文を押すと、その投稿の画面（返信も見られる） */
     el.querySelector('.tw-b').onclick=e=>{if(e.target.closest('a')||el.classList.contains('tw--big')||getSelection().toString())return;nav('#/n/'+id)};
+    el.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>twViewer(b.closest('.tw-md').dataset.mk.split(','),+b.dataset.mi));
     el.querySelector('[data-reply]').onclick=()=>{if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'返信するにはログインしてください');nav('#/account');return}
       twReplySheet(el,id,()=>{const sp=el.querySelector('[data-reply] span');sp.textContent=(+sp.textContent||0)+1;if(keyOf(cur)==='n')noteView(cur.split('/')[2])})};
     el.querySelector('[data-rp]').onclick=async e=>{
@@ -94,13 +132,22 @@ function twFeed(el,path,emptyMsg){
 function twComposer(prof,onDone){
   return{html:`<div class="twc">${twAv(prof)}<div class="twc-m">
       <textarea id="twc-t" rows="2" maxlength="${TW_MAX*2}" placeholder="いまどうしてる？（#タグ を付けると、みんなが探しやすくなります）"></textarea>
-      <div class="twc-f"><span class="twc-n" id="twc-n"></span><button class="btn btn-p twc-b" id="twc-b" disabled>投稿する</button></div></div></div>`,
+      <div class="twc-pv" id="twc-pv"></div>
+      <div class="twc-f"><label class="twc-img" aria-label="画像を付ける（4枚まで）">${SVG(I.image,20)}<input type="file" id="twc-f" accept="image/*" multiple hidden></label><span class="twc-n" id="twc-n"></span><button class="btn btn-p twc-b" id="twc-b" disabled>投稿する</button></div></div></div>`,
     bind(){
-      const t=document.getElementById('twc-t'),b=document.getElementById('twc-b'),c=document.getElementById('twc-n');
-      const upd=()=>{const n=[...t.value.trim()].length,left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=n<1||left<0;t.style.height='auto';t.style.height=t.scrollHeight+'px'};
+      const t=document.getElementById('twc-t'),b=document.getElementById('twc-b'),c=document.getElementById('twc-n'),fi=document.getElementById('twc-f'),pv=document.getElementById('twc-pv');
+      let imgs=[];
+      const upd=()=>{const n=[...t.value.trim()].length,left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=(n<1&&!imgs.length)||left<0;t.style.height='auto';t.style.height=t.scrollHeight+'px'};
+      const drawPv=()=>{pv.innerHTML=imgs.map((x,i)=>`<span class="twc-th"><img src="${x.url}" alt=""><button data-rm="${i}" aria-label="この画像を外す">${SVG(I.x,14)}</button></span>`).join('');
+        pv.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{URL.revokeObjectURL(imgs[+x.dataset.rm].url);imgs.splice(+x.dataset.rm,1);drawPv();upd()})};
+      fi.onchange=async()=>{const fs=[...fi.files].slice(0,4-imgs.length);fi.value='';if(!fs.length){toast('画像は4枚までです');return}
+        for(const f of fs){try{const x=await twShrink(f);x.url=URL.createObjectURL(x.blob);imgs.push(x)}catch(err){toast(err.message)}}drawPv();upd()};
       t.oninput=upd;
       b.onclick=async()=>{b.disabled=true;
-        try{await authFetch('/api/notes',{body:t.value});t.value='';upd();toast('投稿しました');onDone()}catch(err){toast(err.message);upd()}};
+        try{const media=[];for(let i=0;i<imgs.length;i++){b.textContent=`画像を送信中 ${i+1}/${imgs.length}`;media.push(await twUpload(imgs[i]))}
+          b.textContent='投稿する';await authFetch('/api/notes',{body:t.value,media});
+          t.value='';imgs.forEach(x=>URL.revokeObjectURL(x.url));imgs=[];drawPv();upd();toast('投稿しました');onDone()}
+        catch(err){b.textContent='投稿する';toast(err.message);upd()}};
     }};
 }
 let tlTab='all',TLP=null;
