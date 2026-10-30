@@ -9,7 +9,7 @@ const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.route(/^https?:/,r=>r.abort());   // 外部への通信はしない
 const fail=m=>{console.error('NG',m);process.exitCode=1};
 await pg.goto(URL0+'#/');await pg.waitForTimeout(600);
-const routes=['#/','#/dex','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone','#/search','#/search/'+encodeURIComponent('#ガブリアス'),'#/learn','#/learn/word','#/item/choicescarf','#/item/garchompitez','#/word/tr','#/learn/move','#/learn/ability','#/move/89','#/ability/intimidate'];
+const routes=['#/','#/dex','#/learn/build','#/arch/rain','#/arch/tr','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone','#/search','#/search/'+encodeURIComponent('#ガブリアス'),'#/learn','#/learn/word','#/item/choicescarf','#/item/garchompitez','#/word/tr','#/learn/move','#/learn/ability','#/move/89','#/ability/intimidate'];
 for(const r of routes){
   await pg.evaluate(h=>{location.hash=h},r);await pg.waitForTimeout(250);
   const n=await pg.evaluate(()=>document.querySelector('main')?.innerText.trim().length||0);

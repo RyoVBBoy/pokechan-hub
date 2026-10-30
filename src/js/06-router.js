@@ -32,7 +32,7 @@ document.addEventListener('click',e=>{
   if(a.classList.contains('tb')&&h===cur){scrTo({top:0,behavior:reduceMotion?'auto':'smooth'});return}
   nav(h);
 });
-const NAVG={learn:'tools',item:'tools',word:'tools',move:'tools',ability:'tools',p:'search',dex:'search',cmp:'search',types:'tools',assist:'tools',calc:'tools',meta:'tools',battle:'tools',tap:'tools',guide:'tools',sources:'tools',verify:'tools',
+const NAVG={learn:'tools',arch:'tools',item:'tools',word:'tools',move:'tools',ability:'tools',p:'search',dex:'search',cmp:'search',types:'tools',assist:'tools',calc:'tools',meta:'tools',battle:'tools',tap:'tools',guide:'tools',sources:'tools',verify:'tools',
   games:'-',team:'team',edit:'team',import:'team',report:'team',community:'community',lobby:'community',bbs:'community',thread:'community',rules:'community',admin:'community',account:'community',tl:'community',u:'community',n:'community',notif:'community',terms:'community',privacy:'community'};
 const navGroup=k=>NAVG[k]??(k||'');
 function route(){
@@ -43,7 +43,7 @@ function route(){
   closeSheet();
   document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle');
   trackTool(cur);drawSide();
-  ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,search:searchView,learn:learnView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
+  ({'':home,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,tap:tapView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,search:searchView,learn:learnView,arch:archView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
   HD.classList.toggle('sc',scrY()>4);
 }
 function onPop(){
