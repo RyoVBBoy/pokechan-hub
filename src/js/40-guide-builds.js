@@ -69,9 +69,35 @@ const archOf=id=>ARCHS.find(a=>a[0]===id);
 const archMons=(part,n=8)=>{const top=p=>part[3]&&bAbIs(p,part[3])?1:0;return P.filter(p=>{try{return part[1](p)}catch(e){return false}}).sort((a,b)=>top(b)-top(a)||b.bst-a.bst).slice(0,n)};
 /* いまのパーティがどれだけその型に合うか（必須のパーツは2倍で数える） */
 function archFit(a,mons){
-  const parts=a[7].map(pt=>({name:pt[0],need:!!pt[2],who:mons.filter(p=>{try{return pt[1](p)}catch(e){return false}})}));
+  const parts=a[7].map(pt=>({name:pt[0],need:!!pt[2],ab:pt[3],who:mons.filter(p=>{try{return pt[1](p)}catch(e){return false}})}));
   const tot=parts.reduce((s,x)=>s+(x.need?2:1),0),got=parts.reduce((s,x)=>s+(x.who.length?(x.need?2:1):0),0);
   return{parts,score:tot?got/tot:0,ok:parts.filter(x=>x.need).every(x=>x.who.length)};
+}
+/* 型からパーティの例を6匹組む：必須の役→あるとよい役の順に選び、残りは弱点が重なったタイプを受けられるポケモンで埋める */
+function archBuild(a){
+  const ch=[],base=new Set(),ok=(pt,p)=>{try{return pt[1](p)}catch(e){return false}};
+  const multi=p=>a[7].filter(pt=>ok(pt,p)).length;
+  const tdup=p=>p.t.reduce((s,t)=>s+(ch.filter(c=>c.t.includes(t)).length>=1?.5:0),0);
+  const add=p=>{ch.push(p);base.add(formInfo(p).base)};
+  const parts=[...a[7].filter(pt=>pt[2]),...a[7].filter(pt=>!pt[2])];
+  for(const pt of parts){const n=pt[2]?(pt[3]?1:2):1;
+    for(let i=0;i<n&&ch.length<6;i++){
+      const top=p=>pt[3]&&bAbIs(p,pt[3])?3:0;
+      const c=P.filter(p=>!base.has(formInfo(p).base)&&ok(pt,p)).map(p=>({p,v:top(p)+multi(p)*.5+p.bst/600-tdup(p)})).sort((x,y)=>y.v-x.v)[0];
+      if(c)add(c.p)}}
+  while(ch.length<6){
+    const wc=t=>ch.filter(c=>mult(t,c.t)>=2).length;
+    const c=P.filter(p=>!base.has(formInfo(p).base)).map(p=>({p,v:T.reduce((s,t)=>s+(wc(t)>=2?(mult(t,p.t)<1?1:mult(t,p.t)>=2?-1:0):0),0)+p.bst/600+multi(p)*.3-tdup(p)})).sort((x,y)=>y.v-x.v)[0];
+    if(!c)break;add(c.p)}
+  return ch;
+}
+function archUse(a,nos){
+  let i=TEAMS.cur;
+  if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
+    if(e>=0)i=e;else if(!confirm(`「${teamName(TEAMS.cur)}」を、${a[1]}の例に入れかえます。よろしいですか？`))return}
+  if(i!==TEAMS.cur)switchTeam(i);
+  team=nos.map((no,k)=>({no,sel:k<PICK()}));if(!TEAMS.list[i].name)TEAMS.list[i].name=a[1].slice(0,20);
+  saveTeam();toast(`「${teamName(i)}」に入れました`);nav('#/team');
 }
 const teamMons=()=>(typeof team!=='undefined'?team:[]).map(x=>byNo[x.no]).filter(Boolean);
 function learnBuildsHTML(){
@@ -84,18 +110,23 @@ function learnBuildsHTML(){
 function archView(id){
   const a=archOf(id);if(!a){V.innerHTML='<p class="empty">見つかりません。</p>';return}
   setHeader(esc(a[1]),'#/learn/build');
-  const ms=teamMons(),fit=ms.length?archFit(a,ms):null;
+  const ms=teamMons(),fit=ms.length?archFit(a,ms):null,ex=archBuild(a);
   const mvIds=a[8].map(k=>Object.keys(MD).map(Number).find(id=>MD[id][3]===k)).filter(Boolean);
   const mA=p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`;
   V.innerHTML=`<div class="gdoc"><span class="atag">構築の型</span><span class="atag">${esc(a[3])}</span><h2>${esc(a[1])}</h2><p>${esc(a[4])}</p>
     <h3>組み方</h3><ol class="gtips">${a[5].map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
     <h3>弱点と、相手に使われたときの対策</h3><ul class="gtips">${a[6].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
     ${fit?`<div class="sec"><h2>いまのパーティでは</h2><span style="font-size:12px;color:var(--dim)">${esc(teamName(TEAMS.cur))}</span></div>
-      <div class="gdoc" style="padding-top:0">${fit.parts.map(x=>`<div class="adv ${x.who.length?'adv-tip':x.need?'adv-warn':''}" style="margin:8px 0"><b>${x.who.length?'○':'×'} ${esc(x.name)}${x.need?'':'<span class="atag">あるとよい</span>'}</b><p>${x.who.length?x.who.map(p=>esc(p.n)).join('・'):'まだいません。下の例から探せます。'}</p></div>`).join('')}</div>`:''}
+      <div class="gdoc" style="padding-top:0">${fit.parts.map(x=>`<div class="adv ${x.who.length?'adv-tip':x.need?'adv-warn':''}" style="margin:8px 0"><b>${x.who.length?'○':'×'} ${esc(x.name)}${x.need?'':'<span class="atag">あるとよい</span>'}</b><p>${x.who.length?x.who.map(p=>esc(p.n)+(x.ab&&!bAbIs(p,x.ab)?'（技で）':'')).join('・'):'まだいません。下の例から探せます。'}</p></div>`).join('')}</div>`:''}
+    <div class="sec"><h2>この型のパーティの例</h2><span style="font-size:12px;color:var(--dim)">データから自動で組んだ例</span></div>
+    ${ex.map(p=>`<a class="row" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="row-s">${esc(a[7].filter(pt=>{try{return pt[1](p)}catch(e){return false}}).map(pt=>pt[0]+(pt[3]&&!bAbIs(p,pt[3])?'（技で）':'')).join('・')||'弱点を補う')}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}
+    <div class="btns"><button class="btn btn-p" id="ar-use">このパーティを使う</button></div>
+    <p class="note" style="padding-top:0;color:var(--mute)">型に必要な役から選び、残りは弱点が重ならないように選んでいます。パーティの画面で入れかえられます。${team.length?'空いているパーティの枠に入れます（空きがなければ、いまのパーティを入れかえます）。':''}</p>
     <div class="sec"><h2>中心になるポケモンの例</h2><span style="font-size:12px;color:var(--dim)">特性・技・種族値から</span></div>
     ${a[7].map(pt=>{const l=archMons(pt);return l.length?`<div class="gdoc gsub"><h3>${esc(pt[0])}</h3></div><div class="pills gchips">${l.map(mA).join('')}</div>`:''}).join('')}
     ${mvIds.length?`<div class="sec"><h2>この型でよく使う技</h2></div><div class="pills gchips">${mvIds.map(mvChip).join('')}</div>`:''}
     ${a[9].length?`<div class="sec"><h2>関係する言葉</h2></div>${a[9].map(wordOf).filter(Boolean).map(w=>`<a class="row" href="#/word/${w[0]}"><div class="row-m"><div class="row-t">${esc(w[1])}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`:''}
     <div class="btns"><a class="btn btn-p" href="#/team">パーティを組む</a><a class="btn btn-s" href="#/assist">選出アシストで試す</a></div>
     <p class="note" style="color:var(--mute)">当サイトが書いた説明です。ポケモンの例は、当サイトのデータ（特性・覚える技・種族値）から機械的に選んでいます。</p>`;
+  document.getElementById('ar-use').onclick=()=>archUse(a,ex.map(p=>p.no));
 }

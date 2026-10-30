@@ -20,6 +20,8 @@ for(const r of routes){
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(300);
 await pg.click('#seg [data-i="5"]');await pg.waitForTimeout(200);
 const mvn=await pg.$$eval('.mvr',x=>x.length);if(mvn<40)fail('覚える技の表示が少なすぎます: '+mvn);
+// 構築の型：例のパーティを6匹組める
+const ab=await pg.evaluate(()=>ARCHS.filter(a=>archBuild(a).length!==6).map(a=>a[0]));if(ab.length)fail('構築の型の例が6匹になりません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）
 await pg.click('#seg [data-i="1"]');await pg.waitForTimeout(200);
 if(!(await pg.$('#gmpanel .gset')))fail('解説タブに型の例が出ません');
