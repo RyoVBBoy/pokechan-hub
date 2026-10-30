@@ -36,7 +36,8 @@ async function ladderResults(db,uid){
 }
 const ladderOut=(r,meUid)=>{let team=[];try{team=JSON.parse(r.team||'[]')}catch(e){}
   return{id:r.id,fmt:r.fmt,rank:r.rank,rate:r.rate,team,comment:r.comment||'',verified:!!r.verified,by_admin:!!r.by_admin,proof:!!r.proof,
-    player:r.handle?{handle:r.handle,name:r.name}:{name:r.player||'（名前なし）'},mine:!!(meUid&&r.uid===meUid),updated_at:r.updated_at}};
+    player:r.handle?{handle:r.handle,name:r.name}:{name:r.player||'（名前なし）'},mine:!!(meUid&&r.uid===meUid),updated_at:r.updated_at,
+    auto:!!r.auto,sources:(()=>{try{return(JSON.parse(r.sources||'[]')||[]).filter(u=>/^https?:\/\//.test(u)).slice(0,8)}catch(e){return[]}})()}};
 async function ladderApi(req,env,db,path,u,body,now,isAdmin){
   if(!/^\/api\/(seasons|admin\/season)/.test(path))return null;
   await ladderInit(db);await mediaInit(db);

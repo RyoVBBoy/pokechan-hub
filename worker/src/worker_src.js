@@ -274,6 +274,8 @@ async function fromImage(buf,teamNos,env,ctx,opts){
 __COMMUNITY__
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-App-Token,X-Team,X-Admin-Token,Authorization'};
 export default{
+  /* 毎日1回（wrangler.toml の crons）：上位パーティの自動集計 */
+  async scheduled(ev,env,ctx){ctx.waitUntil(collectDaily(env).catch(()=>{}))},
   async fetch(req,env,ctx){
     if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
     const u=new URL(req.url);let text=u.searchParams.get('text')||'',team=u.searchParams.get('team')||req.headers.get('x-team')||'',mode=u.searchParams.get('mode')||'';

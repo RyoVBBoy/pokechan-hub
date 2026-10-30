@@ -32,6 +32,9 @@ if(!(sz[0]&&sz[1]&&!sz[2]&&sz[3]==='{"nos":[445,149,1000],"bad":[]}'))fail('シ�
 const vs=await pg.evaluate(()=>{const keep=team;team=[{no:445},{no:6},{no:9},{no:130}];const h=szVs({team:[{no:149,set:{it:{k:'choicescarf'},mv:[{id:89}]}},{no:1000},{no:727}]});team=keep;
   return[/おすすめの選出/.test(h),/相手が選びそうな/.test(h),(h.match(/<tr>/g)||[]).length,/有利|不利|五分/.test(h)]});
 if(!(vs[0]&&vs[1]&&vs[2]>=8&&vs[3]))fail('上位パーティと比べる: '+vs.join(','));
+// 自動集計のパーティ：印と出典のリンク（nofollow・https だけ）
+const cd=await pg.evaluate(()=>szCard({id:1,fmt:'single',rank:1,rate:null,team:[{no:445},{no:149}],comment:'',verified:false,auto:true,sources:['https://a.example/x','javascript:alert(1)'],player:{name:'Taro'},mine:false}));
+if(!(/自動集計・出典2件/.test(cd)&&/href="https:\/\/a\.example\/x"[^>]*nofollow/.test(cd)&&!/javascript:/.test(cd)))fail('自動集計の印・出典: '+cd.slice(0,200));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）

@@ -95,6 +95,10 @@ jobs:
           binding = "DB"
           database_name = "${D1_DATABASE_NAME}"
           database_id = "${D1_DATABASE_ID}"
+
+          # 毎日 3:23（日本時間）：上位パーティの自動集計
+          [triggers]
+          crons = ["23 18 * * *"]
           TOML
           if [ "$R2_OK" = "1" ]; then
           cat >> wrangler.toml <<TOML

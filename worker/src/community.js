@@ -69,6 +69,8 @@ async function api(req,env,u,ctx){
   {const r=await socialApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
   /* シーズンごとの上位パーティ（ladder.js） */
   {const r=await ladderApi(req,env,db,path,u,body,now,isAdmin);if(r)return r}
+  /* 記事から事実だけを集めて照らし合わせる（collect.js） */
+  {const r=await collectApi(req,env,db,path,body,now,isAdmin);if(r)return r}
   /* ログイン・ユーザー */
   {const r=await userApi(req,env,db,path,body,now);if(r)return r}
   /* 板の一覧 */

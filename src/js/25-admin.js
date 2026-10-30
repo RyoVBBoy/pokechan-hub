@@ -54,6 +54,11 @@ function adminView(){
             <div style="display:flex;gap:16px;padding-top:6px"><button class="bback" data-ssave style="padding:0">保存する</button><button class="bback" data-sdel style="padding:0;color:var(--w2)">消す</button><span class="lmeta">登録 ${x.n}件</span></div></div>`).join('')}
           <div class="bpost"><b>新しいシーズン</b><div class="cform" style="padding:0"><label>名前<input id="as-nn" placeholder="例：シーズン1"></label><label>始まり<input type="date" id="as-ns"></label><label>終わり<input type="date" id="as-ne"></label></div>
             <div class="btns" style="padding:8px 0 0"><button class="btn btn-p" id="as-add">シーズンを登録する</button></div></div>
+          <div class="sec"><h2>記事から自動で集める</h2></div>
+          ${ss.length?`<div class="bpost"><p class="note" style="padding:0 0 8px">Gemini がページを読み、上位のパーティの<b>事実（順位・6匹・持ち物など）だけ</b>を取り出します。<b>2つ以上のページで一致したものだけ</b>自動で載せ、1つのページにしかないものは下の「確認待ち」に出ます。文章は書かせません。毎日1回、期間中と終わって14日以内のシーズンを自動で集め直します。</p>
+            <div class="cform" style="padding:0"><label>シーズン<select class="sel" id="col-s">${ss.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
+            <label>形式<select class="sel" id="col-f"><option value="single">シングル</option><option value="double">ダブル</option></select></label></div>
+            <div id="col-box"><p class="empty">読み込み中…</p></div></div>`:'<p class="note">先にシーズンを登録してください。</p>'}
           <div class="sec"><h2>運営者としてパーティを登録</h2></div>
           ${ss.length?`<div class="bpost"><div class="cform" style="padding:0">
             <label>シーズン<select class="sel" id="at-s">${ss.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
@@ -86,6 +91,31 @@ function adminView(){
         el.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.th.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,hidden:v==='1'}),v==='1'?'非表示にしました':'表示に戻しました')});
         el.querySelectorAll('[data-tx]').forEach(b=>b.onclick=()=>{if(confirm('この登録を消します（スクリーンショットも消えます）。よろしいですか？'))act(()=>apost('/api/admin/season-teams',{id:+b.dataset.tx,delete:true}),'消しました')});
         if(typeof SEAS!=='undefined')SEAS.list=null;
+        /* 記事から自動で集める（collect.js） */
+        const colBox=document.getElementById('col-box');
+        const colLoad=async()=>{if(!colBox)return;const sid=+document.getElementById('col-s').value,fmt=document.getElementById('col-f').value;
+          colBox.innerHTML='<p class="empty">読み込み中…</p>';
+          try{const c=await aget(`/api/admin/collect?season_id=${sid}&fmt=${fmt}`);
+            const stJa={ok:'読めた',err:'読めなかった',new:'まだ',off:'止めた'};
+            colBox.innerHTML=`<div class="sec" style="padding-left:0"><h2>出典のページ</h2><span style="font-size:12px;color:var(--dim)">${c.sources.length}</span></div>
+              ${c.sources.map(x=>`<div class="lmeta" style="padding:4px 0"><a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(x.title||hostOf(x.url))}</a>　${x.kind==='found'?'（検索で発見）':''}${stJa[x.status]||''}${x.status==='ok'?` ${x.n}件`:''}${x.err?`<br><span style="color:var(--w2)">${esc(x.err)}</span>`:''}
+                <button class="bback" data-cdel="${x.id}" style="padding:0 0 0 10px;color:var(--w2)">外す</button></div>`).join('')||'<p class="note" style="padding:0">まだありません。「記事を探す」か、アドレスを貼ってください。</p>'}
+              <div class="cform" style="padding:8px 0 0"><label>ページのアドレスを足す<input id="col-u" placeholder="https://…"></label></div>
+              <div class="btns" style="padding:8px 0 0;flex-wrap:wrap"><button class="btn btn-s" id="col-add">足す</button><button class="btn btn-s" id="col-find">記事を探す（Google検索）</button><button class="btn btn-p" id="col-run">集めて照らし合わせる</button></div>
+              <div id="col-msg"></div>
+              <div class="sec" style="padding-left:0"><h2>確認待ち</h2><span style="font-size:12px;color:var(--dim)">出典が1つだけ</span></div>
+              ${c.pending.map(g=>`<div class="bpost" style="padding:8px 0"><div class="bpost-h">${g.rank?g.rank+'位':''} ${g.rate?'レート'+g.rate:''} ${esc(g.player||'（名前なし）')}</div>
+                <div class="bpost-b">${g.team.map(x=>byNo[x.no]?esc(byNo[x.no].n):'').join('・')}</div><div class="lmeta">${(g.urls||[]).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(hostOf(u))}</a>`).join('、')}</div>
+                <div style="display:flex;gap:16px;padding-top:6px"><button class="bback" data-cpub="${esc(g.gkey)}" style="padding:0">確かめたので載せる</button><button class="bback" data-cskip="${esc(g.gkey)}" style="padding:0;color:var(--w2)">載せない</button></div></div>`).join('')||'<p class="note" style="padding:0">ありません。</p>'}`;
+            const post=async(path,body,msg)=>{try{const r=await apost(path,{season_id:sid,fmt,...body});toast(msg(r));colLoad()}catch(e){toast(e.message)}};
+            document.getElementById('col-add').onclick=()=>post('/api/admin/collect/source',{url:document.getElementById('col-u').value.trim()},()=>'足しました');
+            document.getElementById('col-find').onclick=e=>{e.target.disabled=true;e.target.textContent='探しています…';post('/api/admin/collect/find',{},r=>`${r.found}件見つかりました`)};
+            document.getElementById('col-run').onclick=e=>{e.target.disabled=true;e.target.textContent='集めています（1〜2分）…';post('/api/admin/collect/run',{},r=>`自動で${r.published}件を載せました（確認待ち ${r.pending}件）`)};
+            colBox.querySelectorAll('[data-cdel]').forEach(b=>b.onclick=()=>post('/api/admin/collect/source',{delete:true,id:+b.dataset.cdel},()=>'外しました'));
+            colBox.querySelectorAll('[data-cpub]').forEach(b=>b.onclick=()=>post('/api/admin/collect/decide',{gkey:b.dataset.cpub,publish:true},()=>'載せました'));
+            colBox.querySelectorAll('[data-cskip]').forEach(b=>b.onclick=()=>post('/api/admin/collect/decide',{gkey:b.dataset.cskip,publish:false},()=>'載せないことにしました'));
+          }catch(e){colBox.innerHTML=`<div class="bnote">${esc(e.message)}</div>`}};
+        if(colBox){document.getElementById('col-s').onchange=colLoad;document.getElementById('col-f').onchange=colLoad;colLoad()}
       }else if(admTab==='banned'){
         const j=await aget('/api/admin/banned');
         el.innerHTML=`<p class="note" style="padding-top:0">停止したアカウントは、投稿・プロフィールが表示されず、書き込みもできなくなります。解除すると元に戻ります。</p>

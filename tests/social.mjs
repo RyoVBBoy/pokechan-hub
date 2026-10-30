@@ -10,9 +10,25 @@ const now=Math.floor(Date.now()/1000);
 const tok=async uid=>{const h=enc({alg:'RS256',kid:'k1',typ:'JWT'}),p=enc({iss:'https://securetoken.google.com/'+PID,aud:PID,sub:uid,iat:now-10,exp:now+3600,auth_time:now-10,email:uid+'@example.com'});
   return h+'.'+p+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',kp.privateKey,new TextEncoder().encode(h+'.'+p))).toString('base64url')};
 globalThis.caches={default:{match:async()=>null,put:async()=>{}}};
-globalThis.fetch=async u=>String(u).includes('securetoken@system.gserviceaccount.com')?new Response(JSON.stringify({keys:[jwk]})):new Response('',{status:404});
+/* にせものの Gemini：出典ごとに決まった「事実」を返す（記事から事実だけを集める仕組みの確認用） */
+const PM=(n,x={})=>({name:n,item:null,ability:null,moves:[],...x});
+const GEM_PAGES={
+  'https://a.example/1':{page_format:'single',teams:[{player:'Taro',rank:1,rate:2100,pokemon:[PM('ガブリアス',{item:'こだわりスカーフ',moves:['じしん']}),PM('カイリュー'),PM('サーフゴー'),PM('ドラパルト'),PM('ガオガエン'),PM('ゴリランダー')]},
+    {player:'Solo',rank:50,pokemon:[PM('バンギラス'),PM('メタグロス'),PM('ペリッパー'),PM('イダイトウ'),PM('アローラライチュウ'),PM('ゴーゴート')]}]},
+  'https://b.example/2':{page_format:'single',teams:[{player:'taro',rank:1,pokemon:[PM('ガブリアス',{item:'こだわりスカーフ'}),PM('カイリュー'),PM('サーフゴー'),PM('ドラパルト'),PM('ガオガエン'),PM('シャワーズ')]},
+    {player:'Hanako',rank:3,pokemon:[PM('ペリッパー'),PM('イダイトウ'),PM('ハリーマン'),PM('シャワーズ'),PM('ヌメルゴン'),PM('ゴーゴート')]}]},
+  'https://c.example/3':{page_format:'double',teams:[{player:'X',rank:2,pokemon:[PM('ガブリアス'),PM('カイリュー'),PM('サーフゴー'),PM('ドラパルト'),PM('ガオガエン'),PM('ゴリランダー')]}]}
+};
+const gemReply=t=>new Response(JSON.stringify({candidates:[{content:{parts:[{text:t}]}}]}));
+globalThis.fetch=async(u,o)=>{u=String(u);
+  if(u.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[jwk]}));
+  if(u.includes('generativelanguage')&&u.includes('/models?'))return new Response(JSON.stringify({models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']}]}));
+  if(u.includes('generativelanguage')&&u.includes(':generateContent')){const b=JSON.parse(o.body);
+    if(b.tools&&b.tools[0].google_search)return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'C'}]},groundingMetadata:{groundingChunks:[{web:{uri:'https://c.example/3',title:'C'}},{web:{uri:'javascript:alert(1)',title:'bad'}}]}}]}));
+    const url=(b.contents[0].parts[0].text.match(/ページ：(\S+)/)||[])[1];return gemReply('```json\n'+JSON.stringify(GEM_PAGES[url]||{teams:[]})+'\n```')}
+  return new Response('',{status:404})};
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
-const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123'};
+const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key'};
 let ipN=0;
 const call=async(p,{method='GET',tok,body,ip,admin}={})=>{const h={'content-type':'application/json','cf-connecting-ip':ip||('10.0.0.'+(++ipN%250))};if(tok)h.authorization='Bearer '+tok;if(admin)h['x-admin-token']=admin;
   const r=await w.fetch(new Request('https://x.dev'+p,{method,headers:h,body:body?JSON.stringify(body):undefined}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
@@ -174,6 +190,28 @@ r=await call(`/api/seasons/teams/${T1}/delete`,{method:'POST',tok:B,body:{}});ex
 r=await call(`/api/seasons/teams/${T1}/delete`,{method:'POST',tok:A,body:{}});expect('自分の登録は消せる',r[0]===200,r);
 r=await getM(pk,ADM);expect('登録を消すとスクショも消える',r[0]===404,r[0]);
 r=await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{id:S1,delete:true}});expect('パーティのあるシーズンは消せない',r[0]===400,r);
+/* 記事から事実だけを集めて照らし合わせる（collect.js） */
+r=await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{name:'シーズン2',start:'2026-11-01',end:'2026-11-30'}});const S2=r[1].id;
+r=await call('/api/admin/collect/source',{method:'POST',body:{season_id:S2,fmt:'single',url:'https://a.example/1'}});expect('自動集計は管理者だけ',r[0]===401,r);
+r=await call('/api/admin/collect/source',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url:'javascript:alert(1)'}});expect('出典は https のアドレスだけ',r[0]===400,r);
+for(const url of ['https://a.example/1','https://b.example/2','https://c.example/3'])await call('/api/admin/collect/source',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url}});
+r=await call('/api/admin/collect/run',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single'}});
+expect('集めて照らし合わせる：2つの出典で一致した1件だけ自動で載る',r[0]===200&&r[1].published===1&&r[1].pending===2,r[1]);
+expect('違う形式のページは数えない',r[1].log.find(x=>x.url==='https://c.example/3').n===0,r[1].log);
+r=await call(`/api/seasons/${S2}/teams?fmt=single`);const at=r[1].teams[0];
+expect('自動で載ったパーティ：順位・出典2つ・6匹',r[1].teams.length===1&&at.auto&&at.rank===1&&at.sources.length===2&&at.team.length===6&&!at.verified,at);
+expect('自動で載ったパーティ：持ち物も事実から',at.team.find(x=>x.no===445).set.it.k==='choicescarf',at.team);
+r=await call(`/api/admin/collect?season_id=${S2}&fmt=single`,{admin:ADM});
+expect('出典が1つだけのものは確認待ち（地方の姿の名前も読める）',r[1].pending.length===2&&r[1].pending.some(g=>g.player==='Solo'&&g.team.some(x=>x.no===10100)),r[1].pending.map(g=>[g.player,g.team.map(x=>x.no)]));
+const hk=r[1].pending.find(g=>g.player==='Hanako').gkey,sk=r[1].pending.find(g=>g.player==='Solo').gkey;
+await call('/api/admin/collect/decide',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',gkey:hk,publish:true}});
+await call('/api/admin/collect/decide',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',gkey:sk,publish:false}});
+r=await call(`/api/admin/collect?season_id=${S2}&fmt=single`,{admin:ADM});expect('確認待ちを載せる／載せないを決められる',r[1].pending.length===0,r[1].pending);
+r=await call(`/api/seasons/${S2}/teams?fmt=single`);expect('運営者が載せたものも並ぶ',r[1].teams.length===2&&r[1].teams[1].player.name==='Hanako',r[1].teams.map(t=>t.player.name));
+r=await call('/api/admin/collect/run',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single'}});
+r=await call(`/api/seasons/${S2}/teams?fmt=single`);expect('集め直しても同じパーティは増えない',r[1].teams.length===2,r[1].teams.map(t=>t.player.name));
+r=await call('/api/admin/collect/find',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'double'}});expect('Google検索で出典を探す（変なアドレスは除く）',r[0]===200&&r[1].found===1,r);
+r=await call(`/api/admin/collect?season_id=${S2}&fmt=double`,{admin:ADM});expect('見つけた出典が入る',r[1].sources.length===1&&r[1].sources[0].kind==='found',r[1].sources);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

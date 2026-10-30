@@ -80,6 +80,7 @@ function szSummary(j){
     +(tri.length||pr.length?`<div class="gdoc gsub"><h3>よく見られた軸（一緒に使われた組み合わせ）</h3></div>${[...tri,...pr].slice(0,5).map(x=>`<div class="sz-axis">${monsRow(x.ps)}<b>${x.c}件<small>${pc(x.c)}%</small></b></div>`).join('')}`:'')
     +(ar.length?`<div class="gdoc gsub"><h3>構築の型（場づくり）</h3><p class="note" style="padding:0">天気を作る特性と天気で強くなる特性の組み合わせ、登録された技（トリックルーム・おいかぜ）から判定しています。</p></div>${ar.map(x=>`<a class="sz-bar" href="#/arch/${x.a[0]}"><span>${esc(x.a[1])}</span><i style="--w:${pc(x.c)}%"></i><b>${pc(x.c)}%</b></a>`).join('')}<div class="sz-bar"><span>場づくりなし</span><i style="--w:${pc(plain)}%"></i><b>${pc(plain)}%</b></div>`:'')
     +(stand.length?`<div class="gdoc gsub"><h3>上位で目立ったポケモン</h3><p class="note" style="padding:0">${up.length<n&&up.some(x=>x.t.rank&&x.t.rank<=100)?'100位以内':'上位'}のパーティでの採用率と、全体での採用率の差が大きいものです。</p></div><div class="sz-use sz-use--w">${stand.map(x=>`<a class="sz-u" href="#/p/${x.p.no}"><span class="av">${stamp(x.p)}</span><span class="sz-un">${esc(formInfo(x.p).base)}</span><b>${Math.round(x.u*100)}%<small style="color:var(--dim);font-weight:500"> / ${Math.round(x.a*100)}%</small></b></a>`).join('')}</div>`:'')
+    +(()=>{const us=[...new Set(j.teams.flatMap(x=>x.sources||[]))];return us.length?`<div class="gdoc gsub"><h3>出典</h3><p class="note" style="padding:0">一部のパーティは、次のページに書かれた事実（順位・6匹など）を当サイトが自動で集め、2つ以上のページで一致したものだけを載せています。文章は当サイトが集計から作ったものです。</p>${srcLinks(us)}</div>`:''})()
     +`<p class="note" style="color:var(--mute)">登録されたパーティから当サイトが自動で集計した傾向です。登録が少ないうちは、実際の流行とずれることがあります。</p>`;
 }
 async function seasonView(a){
@@ -120,9 +121,9 @@ function szCard(t){
   const mons=t.team.map(x=>({p:byNo[x.no],s:cleanSet(x.set)})).filter(x=>x.p);
   const who=t.player.handle?`<a href="#/u/${esc(t.player.handle)}" data-notr>${esc(t.player.name)}</a>`:`<span data-notr>${esc(t.player.name)}</span>`;
   return `<div class="sz-card">
-    <div class="sz-h">${t.rank?`<b class="sz-rk">${t.rank}位</b>`:''}${t.rate?`<span class="sz-rt">レート ${t.rate}</span>`:''}<span class="sz-who">${who}</span>${t.verified?'<span class="atag on">確認済み</span>':''}</div>
+    <div class="sz-h">${t.rank?`<b class="sz-rk">${t.rank}位</b>`:''}${t.rate?`<span class="sz-rt">レート ${t.rate}</span>`:''}<span class="sz-who">${who}</span>${t.verified?'<span class="atag on">確認済み</span>':''}${t.auto?`<span class="atag">自動集計・出典${t.sources.length}件</span>`:''}</div>
     <div class="sz-mons">${mons.map(({p})=>`<a class="sz-m" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small></a>`).join('')}</div>
-    ${t.comment?`<p class="sz-c" data-notr>${esc(t.comment)}</p>`:''}
+    ${t.comment?`<p class="sz-c" data-notr>${esc(t.comment)}</p>`:''}${srcLinks(t.sources)}
     ${mons.some(x=>x.s&&(x.s.it||x.s.mv.length))?`<details class="sz-det"><summary>育成を見る</summary>${mons.map(({p,s})=>`<div class="sz-set"><b>${nm(p,{no:false})}</b><span>${s?[s.it&&esc(s.it.n),s.ab&&esc(s.ab.n),s.up>0&&s.dn>0&&esc(natName(s.up,s.dn).replace(/（.*$/,''))].filter(Boolean).join('・'):''}</span><span>${s?s.mv.map(m=>esc(m.n)).join('・'):''}</span></div>`).join('')}</details>`:''}
     <div class="sz-vs" id="sz-vs-${t.id}"></div>
     <div class="sz-a"><button class="btn btn-p" data-vs="${t.id}">自分のパーティと比べる</button><button class="btn btn-s" data-use="${t.id}">このパーティを使う</button>${t.mine?`<button class="bback" data-del="${t.id}" style="color:var(--w2)">登録を消す</button>`:''}</div></div>`;
@@ -197,3 +198,6 @@ function szVs(t){
     <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（★はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「よくある型」）':'「よくある型」'}で計算しています。</p>
     <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-goassist>選出アシストでくわしく見る</button></div></div>`;
 }
+/* 出典のリンク（アドレスの名前だけを出す。リンク先の評価はしない＝nofollow） */
+const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return''}};
+const srcLinks=us=>(us||[]).length?`<div class="sz-src">出典：${us.filter(u=>/^https?:\/\//.test(u)).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener nofollow ugc">${esc(hostOf(u))}</a>`).join('、')}</div>`:'';
