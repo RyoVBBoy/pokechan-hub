@@ -45,7 +45,7 @@ function detail(no){
       <div class="mega-s">${m.s.map((v,i)=>`<span><em>${SN[i]}</em><b>${v}</b>${v!==p.s[i]?`<small class="${v>p.s[i]?'up':'dn'}">${v>p.s[i]?'+':''}${v-p.s[i]}</small>`:''}</span>`).join('')}</div>
       <div class="mega-f">特性 ${ABN[m.ab]||m.ab}${ABIMPL.has(m.ab)?'':'（計算では効果なし）'}　持ち物 ${ITEMN[m.stone]}　合計 ${m.bst}</div><div class="mega-go">種族値・解説・技などを見る ›</div></a>`).join('')}
     ${p.base?`<p class="note">${esc(byNo[p.base].n)}が${esc(ITEMN[p.stone]||'')}を持つと、バトル中にこの姿にメガシンカします。順位は、メガシンカしていないポケモン${P.length}匹と比べたものです。</p>`:''}
-    <p class="note">右端は収録${P.length}匹の中での順位です。金色の棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
+    <p class="note">右端は収録${P.length}匹の中での順位です。青い棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
   </div>
 
   <div data-panel="1" hidden id="gmpanel"></div>

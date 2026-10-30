@@ -152,7 +152,7 @@ const EN_RE=[
   [/^([A-Za-z].*)の(.+) → (.+)$/,"$1's $2 → $3"],
   [/^([A-Za-z][^぀-ヿ]*)に$/,'Pokémon that can hit $1 '],
   [/^を取れるポケモンです（合計種族値の高い順・上位(\d+)匹）。$/,' (highest base stat total first, top $1).'],
-  [/^右端は収録(\d+)匹の中での順位です。金色の棒は$/,'The number on the right is the rank among all $1 Pokémon. The gold bar is '],
+  [/^右端は収録(\d+)匹の中での順位です。青い棒は$/,'The number on the right is the rank among all $1 Pokémon. The blue bar is '],
   [/^は、収録(\d+)匹のうち$/,' is faster than the max Speed (boosting nature, 32 points) of '],
   [/^の最速（性格で上げ・ポイント32）より速いです。$/,' of them.'],
   [/^：(\d+)匹選出・先発(\d+)匹）で、選出・予想・使用率を計算します。$/,': bring $1, lead with $2).'],
