@@ -1075,3 +1075,5 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .gpt{margin:8px 0 0;padding:10px 12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
 .gpt b{display:block;font-size:15px}.gpt p{margin:4px 0 0!important;font-size:14px!important;line-height:1.75!important;color:var(--dim)}
 .gnum{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:6px 0 0;font-size:14px}.gnum dt{color:var(--dim);font-size:13px}.gnum dd{margin:0}
+.gmeg{margin:10px 0 0;padding:12px 14px 6px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--line2)}
+.gmeg+.gmeg{margin-top:14px}.gmeg-h{margin:0 0 8px!important;font-size:18px!important;color:var(--fg)!important}

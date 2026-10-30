@@ -17,7 +17,7 @@ const AB_DEF={'levitate':{'じめん':0},'flash-fire':{'ほのお':0},'well-bake
   'thick-fat':{'ほのお':.5,'こおり':.5},'heatproof':{'ほのお':.5},'water-bubble':{'ほのお':.5},'purifying-salt':{'ゴースト':.5},'fluffy':{'ほのお':2}};
 /* 特性も入れたタイプ相性：どの特性でも同じように変わるなら確定（by）、特性しだいなら maybe に変わったあとの倍率 */
 function monDef(p){
-  const abs=(ABD[p.no]||[]).map(a=>a[0]);
+  const abs=(ABD[p.no]||(p.ab?[[p.ab,0]]:[])).map(a=>a[0]);
   return defTable(p.t).map(([t,m])=>{
     const vals=abs.map(k=>AB_DEF[k]&&AB_DEF[k][t]!=null?(AB_DEF[k][t]===0?0:m*AB_DEF[k][t]):m);
     const all=abs.length>0&&vals.every(v=>v===vals[0])&&vals[0]!==m,some=!all&&vals.some(v=>v!==m);
@@ -29,7 +29,10 @@ const defNotes=p=>monDef(p).filter(x=>x.by||x.maybeBy).map(x=>{const k=x.by||x.m
   return `${x.by?'':'特性が'}${x.by?'特性'+(ABN[k]||k)+'で':(ABN[k]||k)+'なら'}、${x.t}技は${v===0?'効かない':v<x.base?'受けるダメージが半分になる':'受けるダメージが増える'}`});
 function monGuide(p,o={}){
   const mon=o.mon||(no=>'#/p/'+no),lk=o.link||(h=>h);
-  const ls=LSD[p.no]?LSD[p.no][1]:[];
+  /* メガシンカの姿は、元のポケモンの覚える技と、メガシンカ後の特性1つで考える */
+  const base=p.base?byNo[p.base]:null;
+  const ls=LSD[p.no]?LSD[p.no][1]:base&&LSD[base.no]?LSD[base.no][1]:[];
+  const rk=i=>p.rank?p.rank[i]:1+P.filter(q=>q.s[i]>p.s[i]).length;
   const key=id=>MD[id]&&MD[id][3];
   const have=keys=>ls.filter(id=>keys.includes(key(id))).sort((a,b)=>keys.indexOf(key(a))-keys.indexOf(key(b)));
   const share=f=>{const v=f(p);return P.filter(q=>q.no!==p.no&&f(q)<v).length/Math.max(1,P.length-1)};
@@ -38,10 +41,10 @@ function monGuide(p,o={}){
   const side=A>=C+10?0:C>=A+10?1:2,ai=side===1?3:side===0?1:(A>=C?1:3);
   const offS=share(q=>Math.max(q.s[1],q.s[3])),spdS=share(q=>q.s[5]);
   const pbS=share(q=>(q.s[0]+75)*(q.s[2]+20)),sbS=share(q=>(q.s[0]+75)*(q.s[4]+20)),bulkS=Math.max(pbS,sbS);
-  const sr=spdRank(maxSpe(p),p.no);
+  const sr=spdRank(maxSpe(p),p.no);if(p.base)sr.n=P.length;
   /* タイプ相性は特性の分も入れる（ふゆうのじめん無効など。特性しだいのものは入れない） */
   const md=monDef(p),tb=md.map(x=>[x.t,x.m]),weak=tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),res=tb.filter(x=>x[1]<1),imm=tb.filter(x=>x[1]===0);
-  const abl=ABD[p.no]||[],abK=abl.map(a=>a[0]);
+  const abl=ABD[p.no]||(p.ab?[[p.ab,0]]:[]),abK=abl.map(a=>a[0]);
   const mvA=id=>`<a class="pill gchip" href="${lk('#/move/'+id)}">${esc(mName(id))}</a>`;
   const abA=k=>`<a href="${lk('#/ability/'+k)}" style="color:var(--acc)">${esc(ABN[k]||k)}</a>`;
   const itA=k=>`<a href="${lk('#/item/'+k)}" style="color:var(--acc)">${esc(ITEMN[k]||k)}</a>`;
@@ -91,7 +94,7 @@ function monGuide(p,o={}){
   };
   /* ---- 向いている役割 ---- */
   const roles=[];const R=(k,sc,name,text,set)=>roles.push({k,sc,name,text,set});
-  if(offS>=.45&&bestStab.length)R('attacker',offS+.3,`${atkName}アタッカー`,`${atkStat}が${p.s[ai]}（収録${P.length}匹中${p.rank[ai]}位）と${lvl(offS)}。タイプ一致の${list(bestStab.slice(0,2).map(m=>m.n))}が主な攻撃手段になる。`,'attacker');
+  if(offS>=.45&&bestStab.length)R('attacker',offS+.3,`${atkName}アタッカー`,`${atkStat}が${p.s[ai]}（収録${P.length}匹中${rk(ai)}位）と${lvl(offS)}。タイプ一致の${list(bestStab.slice(0,2).map(m=>m.n))}が主な攻撃手段になる。`,'attacker');
   if(setup.length&&offS>=.35&&atk.length)R('setup',offS+.42,'積んで勝負を決める役',`${list(setup.slice(0,3).map(mName))}を覚える。相手が交代したときや、壁・まひで作った安全なターンに積むと、そのまま何匹も倒せることがある。`,'setup');
   if(bulkS>=.65&&(heal.length||abK.includes('regenerator')||piv.length))R('bulky',bulkS+.2,'受けて粘る役（サイクル）',`耐久は${lvl(pbS)===lvl(sbS)?'物理・特殊ともに'+lvl(pbS):'物理が'+lvl(pbS)+'・特殊が'+lvl(sbS)}。${heal.length?mName(heal[0])+'で回復でき、':''}${abK.includes('regenerator')?ABN.regenerator+'で引っ込むたびに回復できるので、':''}交代を繰り返す戦い方に向く。`,'bulky');
   if(sup.length>=2)R('support',.4+.08*sup.length,'起点作り',`${list(sup.slice(0,4).map(mName))}など、味方を助ける技が多い。自分は倒れてもよいので、後ろのアタッカーが動きやすい状況を作る。`,'support');
@@ -112,7 +115,7 @@ function monGuide(p,o={}){
   if(o.raw)return{keys:setKeys,make:k=>{try{const r=sets[k]();return r&&r.moves.length?r:null}catch(e){return null}},key,ai,lowDef,best:n=>pickAtk(n)};
   /* ---- まとめ ---- */
   const spdTxt=sr.rank<=sr.n*.25?'速いほう':sr.rank<=sr.n*.6?'中くらい':'遅いほう';
-  const megas=megasOf(p.no);
+  const megas=base?[]:megasOf(p.no);
   /* 強いところ・弱いところ：「見出し」＋「なぜそうなのか」＋「対戦ではどうなるか」の順で書く */
   const topPct=x=>Math.max(1,Math.round((1-x)*100));
   const abImm=md.filter(x=>x.by&&x.m===0).map(x=>({t:x.t,k:x.by}));
@@ -121,7 +124,7 @@ function monGuide(p,o={}){
     `${list(p.t)}タイプ${abImm.length?`に加えて、特性${esc(ABN[abImm[0].k]||abImm[0].k)}で${list(abImm.map(x=>x.t))}技が効かない`:''}ため、${weak.length?`弱点は${weak[0][0]}の1つだけ`:'弱点がない'}。半減以下で受けられるタイプも${res.length}つあるので、相手の攻撃を受けながら、交代で出しやすい。`,3,'def']);
   else if(res.length>=8)pros.push(['受けられるタイプが多い',`半減以下で受けられるタイプが${res.length}つ${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}ある。相手の技を読めば、交代で出してダメージを抑えやすい。`,2,'def']);
   if(spdS>=.75)pros.push(['素早さが高い',`素早さ${S}（最速で${maxSpe(p)}）は、収録${sr.n}匹のうち上から${topPct(spdS)}%ほど。多くの相手より先に攻撃できるので、削れた相手を先に倒しやすい。`,2.5,'off']);
-  if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${p.s[ai]}は収録${P.length}匹で${p.rank[ai]}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
+  if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${p.s[ai]}は収録${P.length}匹で${rk(ai)}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
   if(pbS>=.7&&pbS>=sbS)pros.push(['物理技に強い',`HP${h}・防御${B}で、物理技を受けても倒れにくい。物理アタッカーの多い相手に出しやすい。`,2,'def']);
   else if(sbS>=.7)pros.push(['特殊技に強い',`HP${h}・特防${D}で、特殊技を受けても倒れにくい。特殊アタッカーの多い相手に出しやすい。`,2,'def']);
   if(piv.length)pros.push(['交代しながら攻撃できる',`${esc(list(piv.slice(0,2).map(mName)))}で、攻撃や補助のあとに有利な味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
@@ -190,7 +193,25 @@ function monGuide(p,o={}){
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
       <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div></div>`};
-  return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2>${sum}${megaTxt?`<p style="margin-top:8px">${megaTxt}</p>`:''}</div>
+  /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */
+  if(base){
+    const stone=Object.keys(MEGA).find(k=>MEGA[k][base.no]===p.no);
+    const wl=a=>a.length?list(a.map(x=>x[0]+(x[1]>=4?'（4倍）':''))):'なし';
+    const bw=wl(monDef(base).filter(x=>x.m>=2).sort((a,b)=>b.m-a.m).map(x=>[x.t,x.m])),mw=wl(weak);
+    const up=SN.map((n,i)=>({n,d:p.s[i]-base.s[i]})).filter(x=>x.d).sort((a,b)=>b.d-a.d);
+    const ch=[];
+    ch.push(`${itA(stone)}を持たせると、バトル中に1回だけメガシンカできる（1試合に1匹まで）。`);
+    ch.push(`種族値の合計が${base.bst}から${p.bst}に上がる（${up.map(x=>`${x.n}${x.d>0?'+':''}${x.d}`).join('・')}）。`);
+    if(p.t.join()!==base.t.join()||bw!==mw)ch.push(`${p.t.join()!==base.t.join()?`タイプが${list(base.t)}から${list(p.t)}に変わり、`:'特性が変わるため、'}${bw===mw?`弱点は${mw}のまま`:`弱点が${bw}から${mw}になる`}。`);
+    ch.push(`特性は${abA(p.ab)}になる${ABDS[p.ab]?`（${esc(ABDS[p.ab])}）`:''}。`);
+    const bs=maxSpe(base),ms=maxSpe(p);
+    if(ms!==bs)ch.push(`素早さは最速で${bs}から${ms}に${ms>bs?'上がる':'下がる'}。メガシンカしたターンから速さが変わるので、先に動ける相手も変わる。`);
+    ch.push('メガストーンを持たせると、ほかの持ち物は持てない。持ち物の効果とメガシンカのどちらが強いかで選ぶ。');
+    return `<div class="gmeg"><h3 class="gmeg-h">${nm(p,{no:false})}</h3>${sum}<h3>メガシンカで変わるところ</h3><ul class="gtips">${ch.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  }
+  const megaHTML=megas.map(m=>monGuide(m,o)).join('');
+  return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2>${sum}</div>
+  ${megaHTML?`<div class="sec"><h2>メガシンカすると</h2></div><div class="gdoc" style="padding-top:0">${megaHTML}</div>`:''}
   ${topRoles.length?`<div class="sec"><h2>向いている役割</h2></div><div class="gdoc" style="padding-top:0">${topRoles.map(r=>`<div class="adv adv-tip" style="margin:8px 0"><b>${esc(r.name)}</b><p>${r.text.replace(/[<>]/g,'')}</p></div>`).join('')}</div>`:''}
   ${SETS.length?`<div class="sec"><h2>型の例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>${SETS.map(setHTML).join('')}
     <p class="note" style="padding-top:2px;color:var(--mute)">種族値・覚える技・特性から当サイトが計算で組んだ例です。実際によく使われている型とは違うことがあります。</p>`:''}
