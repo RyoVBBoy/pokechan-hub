@@ -1026,3 +1026,19 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 .twc-img{margin-right:auto;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--acc);cursor:pointer}
 .twc-img:hover{background:rgba(29,155,240,.1)}
 .adm-media{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.adm-media img{width:96px;height:96px;object-fit:cover;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line)}
+/* シーズンの上位パーティ */
+.sz-pills{overflow-x:auto;flex-wrap:nowrap;padding-top:12px}.sz-pills .pill{flex:none}
+.sz-use{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;padding:0 16px 8px}
+.sz-u{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);min-width:0}
+.sz-u .av{width:32px;height:32px;flex:none}.sz-un{flex:1;min-width:0;font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sz-u b{font:700 13px Inter,sans-serif}
+.sz-card{margin:8px 16px;padding:12px 14px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--line)}
+.sz-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.sz-rk{font:800 18px Inter,var(--ff)}.sz-rt{color:var(--dim);font-size:13px}.sz-who{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis}.sz-who a{color:var(--fg)}
+.sz-mons{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:10px}
+.sz-m{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--fg);min-width:0}.sz-m .av{width:44px;height:44px}
+.sz-m small{font-size:10.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sz-c{margin:8px 0 0;font-size:14px;line-height:1.6}
+.sz-det{margin-top:8px}.sz-det summary{cursor:pointer;font-size:13px;color:var(--acc)}
+.sz-set{display:flex;flex-direction:column;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--dim)}.sz-set b{color:var(--fg);font-size:14px}
+.sz-a{display:flex;align-items:center;gap:14px;margin-top:10px}.sz-a .btn{flex:none;height:36px;min-height:0;padding:0 16px;font-size:13px}
+.sz-f{margin:4px 16px 8px;padding:4px 14px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--line2)}

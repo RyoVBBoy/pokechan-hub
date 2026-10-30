@@ -10,7 +10,7 @@ function adminView(){
   <p class="note" style="padding-top:14px">通報された書き込みの確認と削除ができます。サーバーに設定した<b>管理用の合言葉（ADMIN_TOKEN）</b>を入れてください。アプリや背面タップ用の合言葉（APP_TOKEN）では入れません。合言葉はこの端末にだけ保存されます。</p>
   <div class="cform" style="padding:0 16px"><label>管理用の合言葉<input type="password" id="adm-tok" value="${esc(tok)}" autocomplete="off"></label></div>
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
-  <div class="pills" style="padding:0 16px 8px"><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button></div>
+  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button></div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
   document.getElementById('adm-save').onclick=()=>{try{localStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
@@ -35,6 +35,44 @@ function adminView(){
             <button class="btn btn-s" data-dis="${r.kind}:${r.target}">問題なし（通報を消す）</button>
             ${r.kind==='note'&&r.aid?`<button class="btn btn-s" data-ban="${esc(String(r.aid).replace(/^@/,''))}" style="color:var(--w2)">${esc(r.aid)} を停止</button>`:''}
             ${r.kind==='note'?'':r.thread_id?`<a class="btn btn-s" href="#/thread/${r.thread_id}">スレッドを開く</a>`:''}</div></div>`).join(''):'<p class="empty" style="padding:28px 24px">通報はありません。</p>';
+      }else if(admTab==='season'){
+        /* シーズンの登録・上位パーティの登録と確認（ladder.js） */
+        const [sj,tj]=await Promise.all([fetch(COMM_API+'/api/seasons').then(r=>r.json()),aget('/api/admin/season-teams')]);
+        const ss=sj.seasons||[],slots=TEAMS.list.map((x,i)=>({i,t:i===TEAMS.cur?team:x.team})).filter(x=>x.t.length);
+        const day=v=>`<input type="date" value="${esc(v||'')}">`;
+        el.innerHTML=`<div class="sec"><h2>シーズン</h2></div>
+          ${ss.map(x=>`<div class="bpost" data-sid="${x.id}"><div class="cform" style="padding:0"><label>名前<input class="as-n" value="${esc(x.name)}"></label><label>始まり${day(x.start).replace('<input','<input class="as-s"')}</label><label>終わり${day(x.end).replace('<input','<input class="as-e"')}</label></div>
+            <div style="display:flex;gap:16px;padding-top:6px"><button class="bback" data-ssave style="padding:0">保存する</button><button class="bback" data-sdel style="padding:0;color:var(--w2)">消す</button><span class="lmeta">登録 ${x.n}件</span></div></div>`).join('')}
+          <div class="bpost"><b>新しいシーズン</b><div class="cform" style="padding:0"><label>名前<input id="as-nn" placeholder="例：シーズン1"></label><label>始まり<input type="date" id="as-ns"></label><label>終わり<input type="date" id="as-ne"></label></div>
+            <div class="btns" style="padding:8px 0 0"><button class="btn btn-p" id="as-add">シーズンを登録する</button></div></div>
+          <div class="sec"><h2>運営者としてパーティを登録</h2></div>
+          ${ss.length&&slots.length?`<div class="bpost"><div class="cform" style="padding:0">
+            <label>シーズン<select class="sel" id="at-s">${ss.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
+            <label>形式<select class="sel" id="at-f"><option value="single">シングル</option><option value="double">ダブル</option></select></label>
+            <label>プレイヤーの名前<input id="at-p" maxlength="30"></label><label>最終順位<input type="number" id="at-r"></label><label>レート<input type="number" id="at-rt"></label>
+            <label>パーティ（あなたが保存したもの）<select class="sel" id="at-t">${slots.map(x=>`<option value="${x.i}">${esc(teamName(x.i))}：${x.t.map(y=>byNo[y.no]?esc(byNo[y.no].n):'').join('・')}</option>`).join('')}</select></label>
+            <label>ひとこと<input id="at-c" maxlength="140"></label></div><div class="btns" style="padding:8px 0 0"><button class="btn btn-p" id="at-add">登録する</button></div>
+            <p class="note" style="padding:6px 0 0">上位の人のパーティを、先にパーティの画面で作って保存しておくと、ここで選べます。運営者の登録は「確認済み」になります。</p></div>`
+            :'<p class="note">シーズンを登録し、パーティの画面でパーティを保存すると、ここから登録できます。</p>'}
+          <div class="sec"><h2>登録されたパーティ</h2><span style="font-size:12px;color:var(--dim)">確認待ちが上</span></div>
+          ${(tj.teams||[]).length?tj.teams.map(t=>`<div class="bpost"><div class="bpost-h"><b>${esc(t.season)}</b>　${t.fmt==='double'?'ダブル':'シングル'}　${t.rank?t.rank+'位':''}　${t.rate?'レート'+t.rate:''}　${esc(t.player.name)}${t.player.handle?'（@'+esc(t.player.handle)+'）':''}
+            ${t.verified?'　<b>確認済み</b>':t.proof_key?'　<b style="color:var(--w2)">確認待ち</b>':''}${t.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div>
+            <div class="bpost-b">${t.team.map(x=>byNo[x.no]?esc(byNo[x.no].n):'').join('・')}${t.comment?'<br>'+esc(t.comment):''}</div>
+            ${t.proof_key?`<div class="adm-media" data-keys="${esc(t.proof_key)}"></div>`:''}
+            <div style="display:flex;gap:16px;padding-top:6px;flex-wrap:wrap"><button class="bback" data-tv="${t.id}:${t.verified?0:1}" style="padding:0">${t.verified?'確認済みを外す':'確認済みにする'}</button>
+              <button class="bback" data-th="${t.id}:${t.hidden?0:1}" style="padding:0;color:var(--w2)">${t.hidden?'表示に戻す':'非表示にする'}</button>
+              <button class="bback" data-tx="${t.id}" style="padding:0;color:var(--w2)">消す</button></div></div>`).join(''):'<p class="empty">まだ登録はありません。</p>'}`;
+        const sp=b=>{const r=b.closest('[data-sid]');return{id:+r.dataset.sid,name:r.querySelector('.as-n').value,start:r.querySelector('.as-s').value,end:r.querySelector('.as-e').value}};
+        el.querySelectorAll('[data-ssave]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/seasons',sp(b)),'保存しました'));
+        el.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{if(confirm('このシーズンを消します。よろしいですか？'))act(()=>apost('/api/admin/seasons',{id:sp(b).id,delete:true}),'消しました')});
+        document.getElementById('as-add').onclick=()=>act(()=>apost('/api/admin/seasons',{name:document.getElementById('as-nn').value,start:document.getElementById('as-ns').value,end:document.getElementById('as-ne').value}),'シーズンを登録しました');
+        const ta=document.getElementById('at-add');if(ta)ta.onclick=()=>{const sl=slots.find(x=>x.i===+document.getElementById('at-t').value);
+          act(()=>apost('/api/admin/season-teams',{season_id:+document.getElementById('at-s').value,fmt:document.getElementById('at-f').value,player:document.getElementById('at-p').value,
+            rank:document.getElementById('at-r').value,rate:document.getElementById('at-rt').value,comment:document.getElementById('at-c').value,team:sl.t.map(x=>({no:x.no,set:x.set||undefined}))}),'登録しました')};
+        el.querySelectorAll('[data-tv]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.tv.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,verified:v==='1'}),v==='1'?'確認済みにしました':'確認済みを外しました')});
+        el.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.th.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,hidden:v==='1'}),v==='1'?'非表示にしました':'表示に戻しました')});
+        el.querySelectorAll('[data-tx]').forEach(b=>b.onclick=()=>{if(confirm('この登録を消します（スクリーンショットも消えます）。よろしいですか？'))act(()=>apost('/api/admin/season-teams',{id:+b.dataset.tx,delete:true}),'消しました')});
+        if(typeof SEAS!=='undefined')SEAS.list=null;
       }else if(admTab==='banned'){
         const j=await aget('/api/admin/banned');
         el.innerHTML=`<p class="note" style="padding-top:0">停止したアカウントは、投稿・プロフィールが表示されず、書き込みもできなくなります。解除すると元に戻ります。</p>

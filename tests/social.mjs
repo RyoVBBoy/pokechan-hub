@@ -139,6 +139,38 @@ r=await getM(k1,'admin-secret-123');expect('管理者は確認待ちの画像を
 r=await call('/api/admin/dismiss',{method:'POST',admin:'admin-secret-123',body:{kind:'note',id:nm1}});
 r=await getM(k1);expect('問題なしにすると画像が戻る',r[0]===200,r[0]);
 r=await call(`/api/notes/${nm1}/delete`,{method:'POST',tok:B,body:{}});r=await getM(k1,'admin-secret-123');expect('投稿を消すと画像も消える',r[0]===404,r[0]);
+/* シーズンごとの上位パーティ */
+const ADM='admin-secret-123',TM6=[445,149,887,1000,727,812].map(no=>({no,set:{it:{k:'choicescarf'}}}));
+r=await call('/api/admin/seasons',{method:'POST',body:{name:'シーズン1'}});expect('シーズン：登録は管理者だけ',r[0]===401,r);
+r=await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{name:'シーズン1',start:'2026-10-01',end:'2026-10-31'}});expect('シーズン：登録できる',r[0]===200&&r[1].id>0,r);const S1=r[1].id;
+r=await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{name:'おかしい',start:'2026-11-30',end:'2026-11-01'}});expect('シーズン：期間が逆なら拒否',r[0]===400,r);
+r=await call('/api/seasons');expect('シーズンの一覧（だれでも）',r[0]===200&&r[1].seasons.some(x=>x.id===S1&&x.name==='シーズン1'),r);
+r=await call(`/api/seasons/${S1}/teams`,{method:'POST',body:{fmt:'single',rank:10,team:TM6}});expect('結果の登録はログインが必要',r[0]===401,r);
+r=await call(`/api/seasons/${S1}/teams`,{method:'POST',tok:A,body:{fmt:'single',team:TM6}});expect('順位もレートもなければ拒否',r[0]===400,r);
+r=await call(`/api/seasons/${S1}/teams`,{method:'POST',tok:A,body:{fmt:'single',rank:3,team:[{no:445},{no:445}]}});expect('同じポケモン2匹は拒否',r[0]===400,r);
+r=await up(A,JPG);const pk=r[1].key;
+r=await call(`/api/seasons/${S1}/teams`,{method:'POST',tok:A,body:{fmt:'single',rank:30,rate:1850,team:TM6,comment:'初めての上位',proof:pk}});expect('結果を登録できる',r[0]===200,r);const T1=r[1].id;
+r=await call(`/api/seasons/${S1}/teams`,{method:'POST',tok:B,body:{fmt:'single',rank:5,team:TM6.slice(0,3)}});expect('別の人も登録できる',r[0]===200,r);
+r=await call(`/api/seasons/${S1}/teams`,{method:'POST',tok:A,body:{fmt:'single',rank:12,rate:1900,team:TM6,comment:'更新'}});expect('同じシーズンは上書き',r[0]===200&&r[1].id===T1,r);
+r=await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{season_id:S1,fmt:'single',player:'有名な人',rank:1,rate:2100,team:TM6.slice(0,6)}});expect('運営者が登録できる',r[0]===200,r);
+r=await call(`/api/seasons/${S1}/teams?fmt=single`,{tok:A});
+expect('順位の小さい順に並ぶ',r[0]===200&&r[1].teams.map(t=>t.rank).join()==='1,5,12',r[1].teams&&r[1].teams.map(t=>t.rank));
+expect('運営者の登録は確認済み・自分のには mine',r[1].teams[0].verified&&r[1].teams[0].player.name==='有名な人'&&r[1].teams[2].mine&&!r[1].teams[1].mine,r[1].teams);
+expect('よく使われたポケモン',r[1].usage[0].n===3&&r[1].usage[0].pc===100&&r[1].total===3,r[1].usage);
+expect('証拠のスクショの中身・uid は出さない',!JSON.stringify(r[1]).includes(pk)&&!JSON.stringify(r[1]).includes('userA'),'');
+r=await getM(pk);expect('証拠のスクショはだれでも見られるわけではない',r[0]===404,r[0]);
+r=await getM(pk,ADM);expect('運営者は証拠のスクショを見られる',r[0]===200,r[0]);
+r=await call(`/api/seasons/${S1}/teams?fmt=double`);expect('形式ごとに分かれる',r[1].teams.length===0,r[1]);
+r=await call('/api/admin/season-teams',{admin:ADM});expect('運営者の一覧に証拠の鍵',r[1].teams.some(t=>t.id===T1&&t.proof_key===pk),r[1].teams.map(t=>[t.id,t.proof_key]));
+await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,verified:true}});
+r=await call(`/api/seasons/${S1}/teams`);expect('確認済みにできる',r[1].teams.find(t=>t.id===T1).verified,r[1].teams);
+await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,hidden:true}});
+r=await call(`/api/seasons/${S1}/teams`);expect('非表示にできる',!r[1].teams.some(t=>t.id===T1),r[1].teams);
+await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,hidden:false}});
+r=await call(`/api/seasons/teams/${T1}/delete`,{method:'POST',tok:B,body:{}});expect('他人の登録は消せない',r[0]===404,r);
+r=await call(`/api/seasons/teams/${T1}/delete`,{method:'POST',tok:A,body:{}});expect('自分の登録は消せる',r[0]===200,r);
+r=await getM(pk,ADM);expect('登録を消すとスクショも消える',r[0]===404,r[0]);
+r=await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{id:S1,delete:true}});expect('パーティのあるシーズンは消せない',r[0]===400,r);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

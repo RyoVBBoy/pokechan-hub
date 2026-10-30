@@ -278,6 +278,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
 async function socialDeleteUser(db,uid,env){
   await socialInit(db);await mediaInit(db);
   await mediaDrop(env,db,'uid=?',uid);
+  await ladderInit(db);await db.prepare(`DELETE FROM season_teams WHERE uid=?`).bind(uid).run();
   /* 先に、この人が返信・リポストした相手の投稿の数を数え直す対象を控える */
   const tg=(await db.prepare(`SELECT DISTINCT CASE WHEN repost_of>0 THEN repost_of ELSE reply_to END AS id FROM notes WHERE uid=? AND (repost_of>0 OR reply_to>0)`).bind(uid).all()).results.map(x=>x.id);
   await db.batch([

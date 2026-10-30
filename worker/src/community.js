@@ -67,6 +67,8 @@ async function api(req,env,u,ctx){
   /* タイムライン・フォロー・通知（social.js） */
   {const r=await pushApi(req,env,db,path,body,now);if(r)return r}
   {const r=await socialApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
+  /* シーズンごとの上位パーティ（ladder.js） */
+  {const r=await ladderApi(req,env,db,path,u,body,now,isAdmin);if(r)return r}
   /* ログイン・ユーザー */
   {const r=await userApi(req,env,db,path,body,now);if(r)return r}
   /* 板の一覧 */
