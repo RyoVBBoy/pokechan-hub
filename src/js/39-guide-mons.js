@@ -33,6 +33,7 @@ function monGuide(p,o={}){
   const base=p.base?byNo[p.base]:null;
   const ls=LSD[p.no]?LSD[p.no][1]:base&&LSD[base.no]?LSD[base.no][1]:[];
   const rk=i=>p.rank?p.rank[i]:1+P.filter(q=>q.s[i]>p.s[i]).length;
+  const stoneK=base?Object.keys(MEGA).find(k=>MEGA[k][base.no]===p.no):null;
   const key=id=>MD[id]&&MD[id][3];
   const have=keys=>ls.filter(id=>keys.includes(key(id))).sort((a,b)=>keys.indexOf(key(a))-keys.indexOf(key(b)));
   const share=f=>{const v=f(p);return P.filter(q=>q.no!==p.no&&f(q)<v).length/Math.max(1,P.length-1)};
@@ -111,6 +112,8 @@ function monGuide(p,o={}){
   const setKeys=[...new Set(roles.map(r=>r.set).filter(Boolean))].slice(0,2);
   if(!setKeys.length&&atk.length)setKeys.push('attacker');
   const SETS=setKeys.map(k=>{try{return sets[k]()}catch(e){return null}}).filter(s=>s&&s.moves.length);
+  /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
+  if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;st.why=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。')+(st.why?'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
   if(o.raw)return{keys:setKeys,make:k=>{try{const r=sets[k]();return r&&r.moves.length?r:null}catch(e){return null}},key,ai,lowDef,best:n=>pickAtk(n)};
   /* ---- まとめ ---- */
@@ -194,8 +197,9 @@ function monGuide(p,o={}){
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
       <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div></div>`};
   /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */
+  let megaHead='';
   if(base){
-    const stone=Object.keys(MEGA).find(k=>MEGA[k][base.no]===p.no);
+    const stone=stoneK;
     const wl=a=>a.length?list(a.map(x=>x[0]+(x[1]>=4?'（4倍）':''))):'なし';
     const bw=wl(monDef(base).filter(x=>x.m>=2).sort((a,b)=>b.m-a.m).map(x=>[x.t,x.m])),mw=wl(weak);
     const up=SN.map((n,i)=>({n,d:p.s[i]-base.s[i]})).filter(x=>x.d).sort((a,b)=>b.d-a.d);
@@ -207,11 +211,30 @@ function monGuide(p,o={}){
     const bs=maxSpe(base),ms=maxSpe(p);
     if(ms!==bs)ch.push(`素早さは最速で${bs}から${ms}に${ms>bs?'上がる':'下がる'}。メガシンカしたターンから速さが変わるので、先に動ける相手も変わる。`);
     ch.push('メガストーンを持たせると、ほかの持ち物は持てない。持ち物の効果とメガシンカのどちらが強いかで選ぶ。');
-    return `<div class="gmeg"><h3 class="gmeg-h">${nm(p,{no:false})}</h3>${sum}<h3>メガシンカで変わるところ</h3><ul class="gtips">${ch.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+    megaHead=`<div class="gmeg-band" id="gm-${p.no}"><span class="atag">メガシンカすると</span><h2>${esc(p.n)}</h2><div class="chips" style="margin-top:6px">${p.t.map(chip).join('')}</div></div>
+      <div class="gdoc" style="padding-top:4px">${sum}<h3>メガシンカで変わるところ</h3><ul class="gtips">${ch.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
   }
-  const megaHTML=megas.map(m=>monGuide(m,o)).join('');
-  return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2>${sum}</div>
-  ${megaHTML?`<div class="sec"><h2>メガシンカすると</h2></div><div class="gdoc" style="padding-top:0">${megaHTML}</div>`:''}
+  /* ---- このポケモンを軸にしたパーティの例（攻撃・耐久・場づくりのどれかで軸になれるときだけ） ---- */
+  let axisHTML='';
+  if(!o.noAxis&&(offS>=.55||bulkS>=.6||wset||wspd||tr.length)){
+    const team=axisTeam(p,{wset,wspd,slow:spdS<.25&&offS>=.5});
+    if(team.length>=6){
+      const ss=archSets(['axis'],team);
+      if(stoneK&&ss[0])ss[0].item=stoneK;
+      const name=(base?'メガ':'')+formInfo(base||p).base+'軸';
+      const lst=team.map((q,i)=>({no:i===0&&base?base.no:q.no,set:ss[i]?toSaved(ss[i]):undefined}));
+      if(typeof AXIS_DATA!=='undefined')AXIS_DATA[p.no]={name,list:lst};
+      const why=q=>{const w=weak.map(x=>x[0]).filter(t=>monDef(q).find(x=>x.t===t).m<1);const sy=[];
+        if(wset&&(ABD[q.no]||[]).some(a=>WSPD[a[0]]===WSET[wset]))sy.push(`${GM_WN[WSET[wset]]}で速くなる`);
+        if(wspd&&(ABD[q.no]||[]).some(a=>WSET[a[0]]===WSPD[wspd]))sy.push(`天気を${GM_WN[WSPD[wspd]]}にできる`);
+        return [...sy,w.length?`${list(w.slice(0,3))}を受けられる`:''].filter(Boolean).join('・')||'苦手な相手を補う'};
+      axisHTML=`<div class="sec"><h2>${esc(base?p.n:p.n)}を軸にしたパーティの例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>
+        <p class="note" style="padding-top:0">${esc(p.n)}の弱点を受けられる味方、${esc(p.n)}が苦手な相手に強い味方、天気やトリックルームで助け合える味方から選びました。</p>
+        ${team.map((q,i)=>{const st=ss[i];return `<a class="row" href="${mon(i===0&&base?base.no:q.no)}"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${nm(q)}</div><div class="row-s">${i===0?'軸':esc(why(q))}</div>${st?`<div class="row-s" style="color:var(--fg)">${esc(ITEMN[st.item]||'')}／${esc(st.moves.map(mName).join('・'))}</div>`:''}</div></a>`}).join('')}
+        <div class="btns">${o.link?`<a class="btn btn-s" href="${lk('#/p/'+(base?base.no:p.no))}">サイトでこのパーティを使う</a>`:`<button class="btn btn-p" data-axis="${p.no}">このパーティを使う</button>`}</div>`;
+    }
+  }
+  const sections=`
   ${topRoles.length?`<div class="sec"><h2>向いている役割</h2></div><div class="gdoc" style="padding-top:0">${topRoles.map(r=>`<div class="adv adv-tip" style="margin:8px 0"><b>${esc(r.name)}</b><p>${r.text.replace(/[<>]/g,'')}</p></div>`).join('')}</div>`:''}
   ${SETS.length?`<div class="sec"><h2>型の例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>${SETS.map(setHTML).join('')}
     <p class="note" style="padding-top:2px;color:var(--mute)">種族値・覚える技・特性から当サイトが計算で組んだ例です。実際によく使われている型とは違うことがあります。</p>`:''}
@@ -220,5 +243,33 @@ function monGuide(p,o={}){
   ${partners.length?`<div class="sec"><h2>相性のいい味方の例</h2></div><p class="note" style="padding-top:0">${esc(p.n)}の弱点を受けられるか、天気・トリックルームで助け合えるポケモンです（タイプと特性から計算）。</p>
     ${partners.map(({q,why})=>`<a class="row" href="${mon(q.no)}"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${nm(q)}</div><div class="row-s">${why.slice(0,2).join('。')}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`:''}
   ${good.length?`<div class="sec"><h2>有利に戦いやすい相手</h2></div><p class="note" style="padding-top:0">こちらのタイプ一致技で弱点を突けて、相手のタイプ一致技では弱点を突かれない相手です（合計種族値の高い順）。</p><div class="pills gchips">${good.map(mA).join('')}</div>`:''}
+  ${axisHTML}`;
+  if(base)return megaHead+sections;
+  const megaHTML=megas.map(m=>monGuide(m,o)).join('');
+  return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2>${sum}${megas.length?`<p class="note" style="padding:8px 0 0">下に、${megas.map(m=>esc(m.n)).join('・')}の解説もあります。</p>`:''}</div>
+  ${sections}${megaHTML}
   <p class="note" style="color:var(--mute)">この解説は、当サイトのデータ（種族値・タイプ相性・覚える技・特性）から当サイトが組み立てたものです。</p>`;
+}
+/* 軸のポケモンから6匹を組む：軸と今の味方の弱点を受けられるか・まだ弱点を突けないタイプを突けるか・天気/トリルの組み合わせ */
+const AXIS_DATA={};
+function axisTeam(p,f){
+  const team=[p],seen=new Set([formInfo(p).base]),abOf=q=>q.ab?[q.ab]:(ABD[q.no]||[]).map(a=>a[0]);
+  const mdC=new Map(),md=q=>{if(!mdC.has(q.no))mdC.set(q.no,monDef(q));return mdC.get(q.no)};
+  const learns=(q,k)=>!!LSD[q.no]&&LSD[q.no][1].some(id=>MD[id]&&MD[id][3]===k);
+  while(team.length<6){
+    const weakTo=T.map(t=>({t,n:team.filter(m=>md(m).find(x=>x.t===t).m>=2).length})).filter(x=>x.n);
+    const hits=new Set();team.forEach(m=>m.t.forEach(a=>T.forEach(d=>{if(mult(a,[d])>=2)hits.add(d)})));
+    let best=null;
+    for(const q of P){if(seen.has(formInfo(q).base))continue;
+      const d=md(q);let v=q.bst/600*1.2;
+      weakTo.forEach(({t,n})=>{const m=d.find(x=>x.t===t).m;if(m<1)v+=n*(m===0?1.3:1);else if(m>=2)v-=n*.8});
+      v+=T.filter(x=>!hits.has(x)&&q.t.some(a=>mult(a,[x])>=2)).length*.25;
+      const qa=abOf(q);
+      if(f.wset&&qa.some(k=>WSPD[k]===WSET[f.wset]))v+=2;
+      if(f.wspd&&qa.some(k=>WSET[k]===WSPD[f.wspd]))v+=3;
+      if(f.slow&&learns(q,'trickroom'))v+=1.5;
+      if(!best||v>best.v)best={q,v}}
+    if(!best)break;team.push(best.q);seen.add(formInfo(best.q).base);
+  }
+  return team;
 }

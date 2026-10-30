@@ -39,8 +39,9 @@ if(!(/自動集計・出典2件/.test(cd)&&/href="https:\/\/a\.example\/x"[^>]*n
 const wr=await pg.evaluate(()=>{const p=P.find(x=>/ウォッシュ/.test(x.n));const h=monGuide(p);return[/弱点がくさだけ/.test(h),/HPが低め/.test(h),monDef(p).find(x=>x.t==='じめん').m,/強いところ/.test(monGuide(byNo[445]))]});
 if(!(wr[0]&&wr[1]&&wr[2]===0&&wr[3]))fail('解説（特性と相性・強いところ）: '+wr.join(','));
 // メガシンカの姿も同じ形で解説する（メガガブリアスZはタイプと弱点の変化を書く）
-const mg=await pg.evaluate(()=>{const h=monGuide(byNo[445]);return[(h.match(/class="gmeg"/g)||[]).length,/メガシンカで変わるところ/.test(h),/弱点がこおり（4倍）・ドラゴン・フェアリーからこおり・ドラゴン・フェアリーになる/.test(h)]});
-if(!(mg[0]===2&&mg[1]&&mg[2]))fail('メガシンカの解説: '+mg.join(','));
+const mg=await pg.evaluate(()=>{const h=monGuide(byNo[445]);return[(h.match(/class="gmeg-band"/g)||[]).length,/メガシンカで変わるところ/.test(h),/弱点がこおり（4倍）・ドラゴン・フェアリーからこおり・ドラゴン・フェアリーになる/.test(h),
+  (h.match(/<h2>向いている役割<\/h2>/g)||[]).length,(h.match(/を軸にしたパーティの例/g)||[]).length,AXIS_DATA[445]&&AXIS_DATA[445].list.length,AXIS_DATA[10309]&&AXIS_DATA[10309].list[0].set.it.k]});
+if(!(mg[0]===2&&mg[1]&&mg[2]&&mg[3]===3&&mg[4]===3&&mg[5]===6&&mg[6]==='garchompitez'))fail('メガシンカの解説・軸のパーティ: '+mg.join(','));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）
