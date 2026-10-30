@@ -84,28 +84,88 @@ function teamRender(){
   document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();teamRender()});
 
   const out=document.getElementById('tout');
-  let act=team.filter(x=>x.sel).map(x=>byNo[x.no]);
-  if(!act.length)act=team.slice(0,4).map(x=>byNo[x.no]);
-  if(!act.length){out.innerHTML='<p class="empty">ポケモンを追加すると診断が始まります。</p>';return}
-  const rows=T.map(a=>{const ms=act.map(p=>mult(a,p.t));
-    return{a,w:ms.filter(m=>m>1).length,r:ms.filter(m=>m<1).length,x4:ms.some(m=>m>=4)}});
-  const danger=rows.filter(r=>r.w>=2&&r.r===0),warn=rows.filter(r=>r.w>=2&&r.r>0);
-  const miss=T.filter(d=>!act.some(p=>p.t.some(t=>mult(t,[d])>=2)));
-  let score=100-danger.length*14-warn.length*5-miss.length*3-rows.filter(r=>r.x4).length*2;
-  if(act.length<4)score-=8;
-  score=Math.max(0,Math.min(100,score));
-  const g=score>=85?['S','#4ec98a']:score>=70?['A','#e8b33f']:score>=50?['B','#5aa9e6']:['C','#ff5d62'];
-  const adv=[];
-  if(danger.length)adv.push(`<b>${danger.map(r=>r.a).join('・')}</b>の技は複数が弱点で、受けられる仲間がいません。崩されやすい構成です。`);
-  if(warn.length)adv.push(`<b>${warn.map(r=>r.a).join('・')}</b>の技は弱点が重なっています。耐性を持つ仲間に交代して受けましょう。`);
-  if(miss.length)adv.push(`タイプ一致技で抜群を取れない相手は<b>${miss.join('・')}</b>です。サブ技か補完役で埋めましょう。`);
-  if(!adv.length)adv.push('弱点の重なりも攻撃範囲の穴も目立ちません。バランスの取れた構成です。');
-  const spd=[...act].sort((a,b)=>maxSpe(b)-maxSpe(a));
+  if(!team.length){out.innerHTML='<p class="empty">ポケモンを追加すると、パーティのチェックが始まります。</p>';return}
+  const C=partyCheck(team);
+  const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
   out.innerHTML=`
-  ${srcLine('calc')}<div class="score"><div class="g" style="background:${g[1]}">${g[0]}</div>
-    <div><div class="l">総合スコア（選出${act.length}匹で診断）</div><div class="n" style="color:${g[1]}">${score}<i> / 100</i></div></div></div>
-  <div class="advs">${adv.map(a=>`<p><span>${a}</span></p>`).join('')}</div>
+  <div class="sec"><h2>パーティのチェック</h2></div>
+  <p class="note" style="padding-top:0">${C.scope}を、タイプ相性（特性も入れて）・組み合わせ・持ち物・技・素早さの面から見ています。点数はつけず、気になる点にはそれぞれ直し方を書いています。</p>
+  ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
+  ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   <div class="btns"><a class="btn btn-p" href="#/report">強み・弱み・警戒をくわしく見る</a></div>
   ${adSlot('診断結果下')}`;
+}
+/* ---- パーティのチェック：タイプだけでなく、組み合わせ・持ち物・技・素早さも見て、直し方を添える（点数はつけない） ---- */
+function partyCheck(entries){
+  /* 選出（★）が決まっていれば（${PICK()}匹）その匹で、決まっていなければパーティ全体で見る */
+  const sel=entries.filter(x=>x.sel),full=sel.length===Math.min(PICK(),entries.length);
+  const use=full?sel:entries;
+  const scope=full?`★を付けた選出の${sel.length}匹（${FMTN()}）`:`パーティの${entries.length}匹全体（★を${PICK()}匹付けると、選出の${PICK()}匹で見ます${sel.length?`。いま★は${sel.length}匹`:''}）`;
+  const allMs=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
+  const ms=use.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
+  const inTeam=new Set(entries.map(x=>formInfo(byNo[x.no]||{n:''}).base));
+  const ab=o=>o.x.set&&o.x.set.ab&&o.x.set.ab.k?[o.x.set.ab.k]:(ABD[o.p.no]||[]).map(a=>a[0]);
+  const mvKeys=o=>((o.x.set&&o.x.set.mv)||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).filter(Boolean);
+  const learns=(o,k)=>{const ls=LSD[o.p.no]?LSD[o.p.no][1]:[];return ls.some(id=>MD[id]&&MD[id][3]===k)};
+  const hasSets=ms.some(o=>o.x.set&&o.x.set.mv&&o.x.set.mv.length);
+  const good=[],fix=[];
+  const names=a=>a.map(o=>esc(o.p.n)).join('・');
+  /* 1. 弱点の重なり（特性も入れる） */
+  const md=new Map(ms.map(o=>[o.p.no,monDef(o.p)]));
+  const m=(o,t)=>md.get(o.p.no).find(z=>z.t===t).m;
+  const rows=T.map(t=>({t,w:ms.filter(o=>m(o,t)>=2),r:ms.filter(o=>m(o,t)<1)}));
+  const need=Math.max(2,Math.ceil(ms.length/2));
+  const danger=rows.filter(r=>r.w.length>=need&&!r.r.length);
+  const cands=types=>P.filter(p=>!inTeam.has(formInfo(p).base)&&types.every(t=>monDef(p).find(z=>z.t===t).m<1)).sort((a,b)=>b.bst-a.bst).slice(0,4);
+  if(danger.length)danger.slice(0,2).forEach(r=>fix.push({t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
+    how:`${r.t}技を半減以下で受けられるポケモンを1匹入れるか、${r.t}技を使う相手を先に倒せる味方を用意します。候補：`,c:cands([r.t])}));
+  else if(ms.length>=3)good.push({t:'弱点が大きく重なっていない',d:`${need}匹以上が同じ弱点で、受けられる味方もいない、というタイプはありません。`});
+  /* 2. 攻撃の範囲：登録した技があればその技、なければタイプ一致技で */
+  const atkTypes=o=>{const mv=((o.x.set&&o.x.set.mv)||[]).map(z=>z&&mvInfo(z.id)).filter(i=>i&&i.pow>0).map(i=>i.t);return mv.length?mv:o.p.t};
+  const hits=new Set();ms.forEach(o=>atkTypes(o).forEach(a=>T.forEach(d=>{if(mult(a,[d])>=2)hits.add(d)})));
+  const miss=T.filter(d=>!hits.has(d));
+  if(miss.length>=3){const sub=[];
+    ms.forEach(o=>{const ls=LSD[o.p.no]?LSD[o.p.no][1]:[];const best=ls.map(id=>({id,i:mvInfo(id)})).filter(z=>z.i&&z.i.pow>=70&&z.i.cls<2&&miss.some(d=>mult(z.i.t,[d])>=2)).sort((a,b)=>miss.filter(d=>mult(b.i.t,[d])>=2).length-miss.filter(d=>mult(a.i.t,[d])>=2).length||b.i.pow-a.i.pow)[0];
+      if(best)sub.push(`${esc(o.p.n)}の${esc(mName(best.id))}（${best.i.t}）`)});
+    fix.push({t:`効果ばつぐんを取れないタイプが${miss.length}タイプある`,d:`${hasSets?'登録した技':'タイプ一致の技'}では、${miss.join('・')}タイプの相手に効果ばつぐんを取れません。`,how:sub.length?`サブの技を入れると範囲が広がります。例：${sub.slice(0,3).join('、')}。`:'ほかのタイプの技を持つポケモンを入れます。'})}
+  else good.push({t:'攻撃の範囲が広い',d:`${hasSets?'登録した技':'タイプ一致の技'}で、18タイプのうち${18-miss.length}タイプに効果ばつぐんを取れます。`});
+  /* 3. 組み合わせ：天気・トリックルーム・物理/特殊の偏り */
+  const setter=ms.filter(o=>ab(o).some(k=>WSET[k])),abuser=ms.filter(o=>ab(o).some(k=>WSPD[k]));
+  setter.forEach(o=>{const w=WSET[ab(o).find(k=>WSET[k])];const ok=abuser.some(a=>ab(a).some(k=>WSPD[k]===w));
+    if(ok)good.push({t:`天気（${GM_WN[w]}）の組み合わせがある`,d:`${esc(o.p.n)}が${GM_WN[w]}にし、${names(abuser.filter(a=>ab(a).some(k=>WSPD[k]===w)))}がその天気で速くなります。`})});
+  abuser.forEach(o=>{const w=WSPD[ab(o).find(k=>WSPD[k])];if(setter.some(s=>ab(s).some(k=>WSET[k]===w))||ms.some(s=>mvKeys(s).includes({rain:'raindance',sun:'sunnyday',sand:'sandstorm',snow:'snowscape'}[w])))return;
+    const inParty=allMs.filter(s=>!ms.includes(s)&&ab(s).some(k=>WSET[k]===w));
+    if(inParty.length){fix.push({t:`${esc(o.p.n)}の特性が活きにくい`,d:`${esc(o.p.n)}は${GM_WN[w]}のときに素早さが2倍になりますが、選出に天気を${GM_WN[w]}にできる味方がいません。`,how:`パーティにいる${names(inParty)}を一緒に選出すると、組み合わせで強くなります。`});return}
+    fix.push({t:`${esc(o.p.n)}の特性が活きにくい`,d:`${esc(o.p.n)}は${GM_WN[w]}のときに素早さが2倍になりますが、天気を${GM_WN[w]}にできる味方がいません。`,how:`天気を${GM_WN[w]}にする特性のポケモンを入れると、組み合わせで強くなります。候補：`,c:P.filter(p=>!inTeam.has(formInfo(p).base)&&(ABD[p.no]||[]).some(a=>WSET[a[0]]===w)).sort((a,b)=>b.bst-a.bst).slice(0,3)})});
+  const trS=ms.filter(o=>hasSets?mvKeys(o).includes('trickroom'):false),slow=ms.filter(o=>o.p.s[5]<=50&&Math.max(o.p.s[1],o.p.s[3])>=100);
+  if(trS.length&&slow.length)good.push({t:'トリックルームの組み合わせがある',d:`${names(trS)}がトリックルームを使い、遅くて強い${names(slow)}が先に動けます。`});
+  else if(slow.length>=2&&!trS.length)fix.push({t:'遅いポケモンが多い',d:`${names(slow)}は遅いぶん、相手に先に攻撃されやすくなります。`,how:`トリックルームを使える味方を入れると、遅さが強みに変わります。${ms.filter(o=>learns(o,'trickroom')).length?`${names(ms.filter(o=>learns(o,'trickroom')))}も覚えられます。`:'候補：'}`,c:ms.some(o=>learns(o,'trickroom'))?[]:P.filter(p=>!inTeam.has(formInfo(p).base)&&LSD[p.no]&&LSD[p.no][1].some(id=>MD[id]&&MD[id][3]==='trickroom')).sort((a,b)=>(a.s[5]-b.s[5])||(b.bst-a.bst)).slice(0,3)});
+  const phys=ms.filter(o=>o.p.s[1]>=o.p.s[3]+15).length,spec=ms.filter(o=>o.p.s[3]>=o.p.s[1]+15).length;
+  if(ms.length>=3&&(phys===ms.length||spec===ms.length))fix.push({t:`${phys===ms.length?'物理':'特殊'}アタッカーばかり`,d:`全員が${phys===ms.length?'攻撃':'特攻'}で戦うので、${phys===ms.length?'いかく・おにび・リフレクター':'ひかりのかべ・特防の高い相手'}でまとめて止められやすくなります。`,how:`${phys===ms.length?'特殊':'物理'}で攻めるポケモンを1匹入れると、受けられにくくなります。`});
+  /* 交代で受け合える組み合わせ（Aの弱点をBが、Bの弱点をAが半減以下で受けられる） */
+  let pair=null;
+  for(let a=0;a<ms.length;a++)for(let b=a+1;b<ms.length;b++){const A=ms[a],B=ms[b];
+    const wa=T.filter(t=>m(A,t)>=2),wb=T.filter(t=>m(B,t)>=2);if(!wa.length||!wb.length)continue;
+    const v=wa.filter(t=>m(B,t)<1).length/wa.length+wb.filter(t=>m(A,t)<1).length/wb.length;if(!pair||v>pair.v)pair={A,B,v,wa,wb}}
+  if(pair&&pair.v>=1.4)good.push({t:`${esc(pair.A.p.n)}と${esc(pair.B.p.n)}が弱点を受け合える`,d:`${esc(pair.A.p.n)}の弱点（${pair.wa.join('・')}）の多くを${esc(pair.B.p.n)}が、${esc(pair.B.p.n)}の弱点（${pair.wb.join('・')}）の多くを${esc(pair.A.p.n)}が受けられます。不利な相手が出てきたら、交代で受け合えます。`});
+  else if(ms.length>=3&&T.some(t=>m(ms[0],t)>=2))fix.push({t:'交代で受け合える組み合わせが少ない',d:'お互いの弱点を受け合える2匹がいないので、不利な相手が出てきたときに、交代で受けにくい形です。',how:`${esc(ms[0].p.n)}の弱点（${T.filter(t=>m(ms[0],t)>=2).join('・')||'なし'}）を受けられるポケモンを入れると、交代しやすくなります。候補：`,c:cands(T.filter(t=>m(ms[0],t)>=2))});
+  /* 4. 持ち物（何を持たせているか） */
+  const it=o=>o.x.set&&o.x.set.it&&o.x.set.it.k;
+  const megas=ms.filter(o=>it(o)&&isStone(it(o)));
+  if(megas.length>=2)fix.push({t:'メガストーンが2匹以上',d:`メガシンカできるのは1試合に1匹だけです（${names(megas)}）。`,how:'メガシンカさせる1匹を決め、ほかの1匹には別の持ち物を持たせると、持ち物の効果をむだにしません。'});
+  ms.forEach(o=>{const k=it(o);if(!k)return;const mv=mvKeys(o);
+    if(/^choice/.test(k)&&mv.some(z=>[...GM_PSET,...GM_SSET,...GM_BSET].includes(z)))fix.push({t:`${esc(o.p.n)}：こだわり系と積み技`,d:`${esc(ITEMN[k])}を持つと最初に選んだ技しか出せないので、積み技を使うと攻撃できなくなります。`,how:'積み技を外して攻撃技にするか、持ち物をいのちのたまなどに変えます。'});
+    if(k==='assaultvest'&&mv.some(z=>{const id=Object.keys(MD).find(i=>MD[i][3]===z);const i=id&&mvInfo(+id);return i&&i.cls===2}))fix.push({t:`${esc(o.p.n)}：とつげきチョッキと変化技`,d:'とつげきチョッキを持つと、変化技（攻撃しない技）が使えません。',how:'変化技を攻撃技に変えるか、持ち物を変えます。'});});
+  const items=ms.map(it).filter(Boolean);
+  if(items.length>=3&&new Set(items).size===items.length)good.push({t:'持ち物が分かれている',d:`${items.length}匹の持ち物が重なっていません。`});
+  if(!items.length&&ms.length)fix.push({t:'持ち物がまだ決まっていない',d:'育成で持ち物を入れると、こだわり系・メガストーンなどを含めてチェックできます。',how:'パーティの「育成」から、それぞれの持ち物を入れます（画像から取り込むこともできます）。'});
+  /* 5. 素早さ：先に動く手段があるか */
+  const fastest=Math.max(...ms.map(o=>maxSpe(o.p)));
+  const scarf=ms.some(o=>it(o)==='choicescarf'),prio=ms.some(o=>((o.x.set&&o.x.set.mv)||[]).some(z=>{const i=z&&mvInfo(z.id);return i&&i.pri>0&&i.pow>0}));
+  const tw=ms.some(o=>mvKeys(o).includes('tailwind'));
+  if(fastest>=165)good.push({t:'速いポケモンがいる',d:`いちばん速いポケモンは最速で${fastest}。多くの相手より先に動けます。`});
+  else if(!scarf&&!prio&&!tw&&!trS.length)fix.push({t:'先に動く手段が少ない',d:`いちばん速いポケモンでも最速で${fastest}で、速い相手には先に攻撃されます。`,how:'こだわりスカーフ・先制技（でんこうせっか など）・おいかぜ・トリックルームのどれかを用意すると、速い相手にも対応しやすくなります。'});
+  if(ms.length<entries.length||entries.length<6){}
+  return{scope,good,fix};
 }
 

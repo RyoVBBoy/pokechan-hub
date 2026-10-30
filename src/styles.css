@@ -1082,3 +1082,9 @@ body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-w
 a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
 .mega-go{margin-top:8px;font-size:13px;font-weight:700;color:var(--acc)}
 .fam-pills{padding:10px 16px 0;flex-wrap:wrap}
+/* パーティのチェック */
+.pc-h{margin:14px 16px 4px;font-size:14px;color:var(--dim)}
+.pc-i{margin:8px 16px;padding:10px 12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.pc-i>b{display:block;font-size:14.5px}.pc-i p{margin:4px 0 0;font-size:13.5px;line-height:1.7;color:var(--dim)}
+.pc-fix{box-shadow:inset 3px 0 0 #e8a33f,inset 0 0 0 1px var(--line)}.pc-ok{box-shadow:inset 3px 0 0 #3fb97a,inset 0 0 0 1px var(--line)}
+.pc-how{color:var(--fg)!important}

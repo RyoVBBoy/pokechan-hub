@@ -53,6 +53,12 @@ await pg.click('.tb[data-k=""]');await pg.waitForTimeout(300);await pg.click('.t
 const tm1=await pg.evaluate(()=>location.hash);await pg.click('.tb[data-k="tools"]');await pg.waitForTimeout(300);const tm2=await pg.evaluate(()=>location.hash);
 if(!(tm1==='#/calc'&&tm2==='#/tools'))fail('タブの記憶: '+tm1+' '+tm2);
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(400);
+// パーティのチェック：点数をつけない・シングルの選出は3匹・持ち物の組み合わせ・直し方を書く
+const pcx=await pg.evaluate(()=>{const st=(it,mv)=>({it:{n:'',k:it},mv:mv.map(id=>({id,n:''}))});
+  const C=partyCheck([{no:445,sel:true,set:st('choicescarf',[14,89])},{no:6,sel:true,set:st('charizarditey',[53])},{no:130,sel:true,set:st('gyaradosite',[127])},{no:9},{no:94}]);
+  const C2=partyCheck([{no:902,sel:true},{no:279},{no:130}]);
+  return[/選出の3匹/.test(C.scope),C.fix.some(x=>/メガストーン/.test(x.t)),C.fix.some(x=>/こだわり系と積み技/.test(x.t)),C.fix.every(x=>x.how),C2.good.some(x=>/あめ/.test(x.t))]});
+if(pcx.some(v=>!v))fail('パーティのチェック: '+pcx.join(','));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）

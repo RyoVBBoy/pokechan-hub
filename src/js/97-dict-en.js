@@ -58,7 +58,7 @@ const EN={
 /* パーティ */
 '6匹まで登録し、':'Register up to 6 Pokémon and ','★で選出する3匹':'pick 3 with ★','を決めます（シングルの形式）。':' to bring (Singles).',
 '画像から取り込む':'Import from screenshot','ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る':'Read moves, items and stat points from a screenshot of your in-game team (Japanese game screen)',
-'URLをコピー':'Copy URL','ポケモンを追加すると診断が始まります。':'Add Pokémon to start the team check.','ポケモンを追加':'Add Pokémon','追加するポケモンを検索':'Search a Pokémon to add',
+'URLをコピー':'Copy URL','ポケモンを追加すると診断が始まります。':'Add Pokémon to start the team check.','ポケモンを追加すると、パーティのチェックが始まります。':'Add Pokémon to start the team check.','ポケモンを追加':'Add Pokémon','追加するポケモンを検索':'Search a Pokémon to add',
 /* ツール */
 '対戦の形式':'Format','対戦形式':'Format','シングル':'Singles','ダブル':'Doubles','選んだ形式（いまは':'Selection, predictions and usage are calculated for the chosen format (now ',
 'マイツール':'My Tools','☆を押すと追加':'Tap ☆ to add','よく使うツールの☆を押すと、ここと':'Tap ☆ on tools you use often to show them here and ','ホームの一番上':'at the top of Home','に並びます。':'.',
