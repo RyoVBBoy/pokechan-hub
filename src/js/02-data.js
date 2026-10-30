@@ -1214,5 +1214,6 @@ const SP_TOTAL=66,SP_CAP=32;
 const natM=(i,up,dn)=>up===dn?1:i===up?1.1:i===dn?.9:1;
 const calcStats=(p,sp,up,dn)=>p.s.map((b,i)=>i===0?b+sp[i]+75:Math.floor((b+sp[i]+20)*natM(i,up,dn)));
 const maxSpe=p=>Math.floor((p.s[5]+SP_CAP+20)*1.1);
-const weakCount=p=>defTable(p.t).filter(x=>x[1]>=2).length;
+/* 弱点の数（特性で無効になるものは数えない。monDef は 39-guide-mons.js） */
+const weakCount=p=>(typeof monDef==='function'?monDef(p).map(x=>x.m):defTable(p.t).map(x=>x[1])).filter(v=>v>=2).length;
 

@@ -11,6 +11,22 @@ const GM_DBL=['fakeout','followme','ragepowder','helpinghand','allyswitch','wide
 const GM_PIV=['uturn','voltswitch','flipturn','partingshot'];
 const GM_RECH=new Set(['hyperbeam','gigaimpact','blastburn','hydrocannon','frenzyplant','rockwrecker','roaroftime','prismaticlaser','eternabeam','meteorassault']);
 const GM_WN={sun:'はれ',rain:'あめ',sand:'すなあらし',snow:'ゆき'};
+/* 特性で変わるタイプ相性（受ける側）。0＝無効、数字＝倍率にかける */
+const AB_DEF={'levitate':{'じめん':0},'flash-fire':{'ほのお':0},'well-baked-body':{'ほのお':0},'water-absorb':{'みず':0},'storm-drain':{'みず':0},'dry-skin':{'みず':0,'ほのお':1.25},
+  'volt-absorb':{'でんき':0},'lightning-rod':{'でんき':0},'motor-drive':{'でんき':0},'sap-sipper':{'くさ':0},'earth-eater':{'じめん':0},
+  'thick-fat':{'ほのお':.5,'こおり':.5},'heatproof':{'ほのお':.5},'water-bubble':{'ほのお':.5},'purifying-salt':{'ゴースト':.5},'fluffy':{'ほのお':2}};
+/* 特性も入れたタイプ相性：どの特性でも同じように変わるなら確定（by）、特性しだいなら maybe に変わったあとの倍率 */
+function monDef(p){
+  const abs=(ABD[p.no]||[]).map(a=>a[0]);
+  return defTable(p.t).map(([t,m])=>{
+    const vals=abs.map(k=>AB_DEF[k]&&AB_DEF[k][t]!=null?(AB_DEF[k][t]===0?0:m*AB_DEF[k][t]):m);
+    const all=abs.length>0&&vals.every(v=>v===vals[0])&&vals[0]!==m,some=!all&&vals.some(v=>v!==m);
+    return{t,m:all?vals[0]:m,base:m,by:all?abs[0]:null,maybeBy:some?abs[vals.findIndex(v=>v!==m)]:null,maybe:some?vals.find(v=>v!==m):null};
+  });
+}
+/* 特性の分も入れた弱点の説明（「特性ふゆうで、じめん技は効かない」など） */
+const defNotes=p=>monDef(p).filter(x=>x.by||x.maybeBy).map(x=>{const k=x.by||x.maybeBy,v=x.by?x.m:x.maybe;
+  return `${x.by?'':'特性が'}${x.by?'特性'+(ABN[k]||k)+'で':(ABN[k]||k)+'なら'}、${x.t}技は${v===0?'効かない':v<x.base?'受けるダメージが半分になる':'受けるダメージが増える'}`});
 function monGuide(p,o={}){
   const mon=o.mon||(no=>'#/p/'+no),lk=o.link||(h=>h);
   const ls=LSD[p.no]?LSD[p.no][1]:[];
@@ -23,7 +39,8 @@ function monGuide(p,o={}){
   const offS=share(q=>Math.max(q.s[1],q.s[3])),spdS=share(q=>q.s[5]);
   const pbS=share(q=>(q.s[0]+75)*(q.s[2]+20)),sbS=share(q=>(q.s[0]+75)*(q.s[4]+20)),bulkS=Math.max(pbS,sbS);
   const sr=spdRank(maxSpe(p),p.no);
-  const tb=defTable(p.t),weak=tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),res=tb.filter(x=>x[1]<1),imm=tb.filter(x=>x[1]===0);
+  /* タイプ相性は特性の分も入れる（ふゆうのじめん無効など。特性しだいのものは入れない） */
+  const md=monDef(p),tb=md.map(x=>[x.t,x.m]),weak=tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),res=tb.filter(x=>x[1]<1),imm=tb.filter(x=>x[1]===0);
   const abl=ABD[p.no]||[],abK=abl.map(a=>a[0]);
   const mvA=id=>`<a class="pill gchip" href="${lk('#/move/'+id)}">${esc(mName(id))}</a>`;
   const abA=k=>`<a href="${lk('#/ability/'+k)}" style="color:var(--acc)">${esc(ABN[k]||k)}</a>`;
@@ -96,10 +113,48 @@ function monGuide(p,o={}){
   /* ---- まとめ ---- */
   const spdTxt=sr.rank<=sr.n*.25?'速いほう':sr.rank<=sr.n*.6?'中くらい':'遅いほう';
   const megas=megasOf(p.no);
-  const sum=`${esc(p.n)}は${list(p.t)}タイプ。いちばん高い能力は${SN[p.mi]}（${p.s[p.mi]}）で、${side===2?'攻撃と特攻のどちらも使える':atkName+'技で攻めるのに向いた'}能力をしている。`
-    +`素早さは最速で${maxSpe(p)}、収録${sr.n}匹の中で${sr.rank}位と${spdTxt}。耐久は${lvl(pbS)===lvl(sbS)?'物理・特殊ともに'+lvl(pbS):'物理が'+lvl(pbS)+'・特殊が'+lvl(sbS)}。`
-    +(weak.length?`弱点は${list(weak.map(x=>x[0]+(x[1]>=4?'（4倍）':'')))}の${weak.length}つ。`:'弱点がない。')
-    +`半減以下で受けられるタイプは${res.length}つ${imm.length?'（'+list(imm.map(x=>x[0]))+'は無効）':''}。`;
+  /* 強いところ・弱いところ：「見出し」＋「なぜそうなのか」＋「対戦ではどうなるか」の順で書く */
+  const topPct=x=>Math.max(1,Math.round((1-x)*100));
+  const abImm=md.filter(x=>x.by&&x.m===0).map(x=>({t:x.t,k:x.by}));
+  const pros=[],cons=[];
+  if(weak.length<=1)pros.push([weak.length?`弱点が${weak[0][0]}だけ`:'弱点がない',
+    `${list(p.t)}タイプ${abImm.length?`に加えて、特性${esc(ABN[abImm[0].k]||abImm[0].k)}で${list(abImm.map(x=>x.t))}技が効かない`:''}ため、${weak.length?`弱点は${weak[0][0]}の1つだけ`:'弱点がない'}。半減以下で受けられるタイプも${res.length}つあるので、相手の攻撃を受けながら、交代で出しやすい。`,3,'def']);
+  else if(res.length>=8)pros.push(['受けられるタイプが多い',`半減以下で受けられるタイプが${res.length}つ${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}ある。相手の技を読めば、交代で出してダメージを抑えやすい。`,2,'def']);
+  if(spdS>=.75)pros.push(['素早さが高い',`素早さ${S}（最速で${maxSpe(p)}）は、収録${sr.n}匹のうち上から${topPct(spdS)}%ほど。多くの相手より先に攻撃できるので、削れた相手を先に倒しやすい。`,2.5,'off']);
+  if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${p.s[ai]}は収録${P.length}匹で${p.rank[ai]}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
+  if(pbS>=.7&&pbS>=sbS)pros.push(['物理技に強い',`HP${h}・防御${B}で、物理技を受けても倒れにくい。物理アタッカーの多い相手に出しやすい。`,2,'def']);
+  else if(sbS>=.7)pros.push(['特殊技に強い',`HP${h}・特防${D}で、特殊技を受けても倒れにくい。特殊アタッカーの多い相手に出しやすい。`,2,'def']);
+  if(piv.length)pros.push(['交代しながら攻撃できる',`${esc(list(piv.slice(0,2).map(mName)))}で、攻撃や補助のあとに有利な味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
+  const weakenMv=have(['willowisp','thunderwave','toxic','yawn','taunt','knockoff','trick']);
+  if(weakenMv.length)pros.push(['相手を弱らせる技がある',`${esc(list(weakenMv.slice(0,3).map(mName)))}を覚える。相手の攻撃を下げたり、動きを止めたりして、味方が戦いやすくなる。`,1.6,'def']);
+  if(h<=65&&Math.max(B,D)>=95)cons.push(['HPが低め',`${B>=D?'防御':'特防'}${Math.max(B,D)}は高いが、HP${h}が低いので、思ったほどは耐えない。等倍の強い技を続けて受けると倒れやすいので、受けに出すときは半減以下で受けられる相手を選ぶ。`,3,'HPが低く、思ったほどは耐えない']);
+  const x4=weak.filter(x=>x[1]>=4);
+  if(x4.length)cons.push([`${list(x4.map(x=>x[0]))}が4倍の弱点`,`${list(x4.map(x=>x[0]))}タイプの技は4倍のダメージになり、耐久があっても一撃で倒されやすい。${list(x4.map(x=>x[0]))}技を持つ相手の前には出さないようにする。`,3,`${list(x4.map(x=>x[0]))}技を4倍で受ける`]);
+  if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}つが弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
+  if(spdS<.25)cons.push(['素早さが低い',`最速にしても${maxSpe(p)}で、多くの相手に先に攻撃される。トリックルームを使うか、先に攻撃を受けても耐えられる相手に合わせて出す。`,2,'素早さが低く、先に攻撃されやすい']);
+  if(offS<.3)cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
+  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。先に動ける場面や、きあいのタスキで確実に1回動く使い方が向く。`,2,'打たれ弱い']);
+  if(!cons.length&&weak.length)cons.push([`${weak[0][0]}技に弱い`,`${list(weak.map(x=>x[0]))}が弱点。${weak[0][0]}技を持つ相手が出てきたら、受けられる味方に交代する。`,1,`${weak[0][0]}技に弱い`]);
+  pros.sort((a,b)=>b[2]-a[2]);cons.sort((a,b)=>b[2]-a[2]);
+  /* ひとこと：いちばんの強みと、それに合う役割（守りの強みなら受け・交代・補助、攻めの強みならアタッカー・積み） */
+  const want=pros[0]&&pros[0][3]==='def'?['bulky','pivot','support','intim','tr','double']:['attacker','setup','prio','slow','wspd','pivot'];
+  const role=roles.find(r=>want.includes(r.k))||topRoles[0];
+  /* 「向いている役割」も、ひとことで挙げた役割を先頭にする */
+  if(role&&topRoles.includes(role)){topRoles.splice(topRoles.indexOf(role),1);topRoles.unshift(role)}else if(role){topRoles.pop();topRoles.unshift(role)}
+  const strong=pros[0]?pros[0][0].replace(/が高い$/,'の高さ').replace(/に強い$/,'への強さ').replace(/^弱点が(.+)だけ$/,'弱点が$1だけという耐性').replace(/^弱点がない$/,'弱点のない耐性').replace(/^受けられるタイプが多い$/,'受けられるタイプの多さ').replace(/^交代しながら攻撃できる$/,'交代しながら戦える器用さ').replace(/^相手を弱らせる技がある$/,'相手を弱らせる技'):'';
+  const lead=`${esc(p.n)}は、${strong?strong+'を活かして、':''}${role?esc(role.name).replace(/（.*$/,'')+'として活躍しやすいポケモン':'いろいろな役をこなせるポケモン'}。${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+  const item=([t,d])=>`<div class="gpt"><b>${esc(t)}</b><p>${d}</p></div>`;
+  const dn=defNotes(p);
+  const sum=`<p class="glead">${lead}</p>
+    ${pros.length?`<h3>強いところ</h3>${pros.slice(0,3).map(item).join('')}`:''}
+    ${cons.length?`<h3>弱いところ</h3>${cons.slice(0,3).map(item).join('')}`:''}
+    <h3>数字で見ると</h3><dl class="gnum">
+      <dt>タイプ</dt><dd>${list(p.t)}</dd>
+      <dt>種族値</dt><dd>${SN.map((n,i)=>`${n}${p.s[i]}`).join('・')}（合計${p.bst}）</dd>
+      <dt>素早さ</dt><dd>最速で${maxSpe(p)}（収録${sr.n}匹の中で${sr.rank}位・${spdTxt}）</dd>
+      <dt>弱点</dt><dd>${weak.length?list(weak.map(x=>x[0]+(x[1]>=4?'（4倍）':''))):'なし'}</dd>
+      <dt>受けられる</dt><dd>半減以下${res.length}タイプ${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}</dd>
+      ${dn.length?`<dt>特性</dt><dd>${esc(dn.join('。'))}</dd>`:''}</dl>`;
   const megaTxt=megas.map(m=>{const st=Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no);return `${itA(st)}を持たせるとメガシンカできる（合計種族値${m.bst}${m.t.join('')!==p.t.join('')?'・タイプが'+list(m.t)+'に変わる':''}・特性${esc(ABN[m.ab]||m.ab)}）。`}).join('');
   /* ---- 技の選び方 ---- */
   const stabTypes=[...new Set(stab.map(m=>m.t))];
@@ -135,7 +190,7 @@ function monGuide(p,o={}){
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
       <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div></div>`};
-  return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2><p>${sum}</p>${megaTxt?`<p style="margin-top:8px">${megaTxt}</p>`:''}</div>
+  return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2>${sum}${megaTxt?`<p style="margin-top:8px">${megaTxt}</p>`:''}</div>
   ${topRoles.length?`<div class="sec"><h2>向いている役割</h2></div><div class="gdoc" style="padding-top:0">${topRoles.map(r=>`<div class="adv adv-tip" style="margin:8px 0"><b>${esc(r.name)}</b><p>${r.text.replace(/[<>]/g,'')}</p></div>`).join('')}</div>`:''}
   ${SETS.length?`<div class="sec"><h2>型の例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>${SETS.map(setHTML).join('')}
     <p class="note" style="padding-top:2px;color:var(--mute)">種族値・覚える技・特性から当サイトが計算で組んだ例です。実際によく使われている型とは違うことがあります。</p>`:''}

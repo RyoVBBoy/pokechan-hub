@@ -34,7 +34,7 @@ const TSLUG={'ノーマル':'normal','ほのお':'fire','みず':'water','でん
   const rowL=(q,root)=>`<a class="row" href="${root}pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}<span class="no">#${String(q.dno||q.no).padStart(4,'0')}</span></div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`;
   const badge=(lab,c)=>`<span class="srcb" style="--c:${c};cursor:default"><i></i>${lab}</span>`;
   P.forEach((p,k)=>{
-   const tb=defTable(p.t),weak=tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),res=tb.filter(x=>x[1]<1);
+   const tb=monDef(p).map(x=>[x.t,x.m]),weak=tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),res=tb.filter(x=>x[1]<1);
    const w4=weak.filter(x=>x[1]>=4).map(x=>x[0]);
    const abl=(ABD[p.no]||[]).map(([kk,h])=>`<b>${ABN[kk]||kk}</b>${h?'（隠れ特性）':''}${ABDS[kk]?`<br><small>${ABDS[kk]}</small>`:''}`);
    const mvs=(LSD[p.no]?LSD[p.no][1]:[]).filter(id=>MVU[id]&&MD[id]).map(id=>({id,u:MVU[id],d:MD[id]})).sort((x,y)=>x.u[1]-y.u[1]||(y.u[2]||0)-(x.u[2]||0)||x.d[0].localeCompare(y.d[0],'ja'));
@@ -56,6 +56,7 @@ ${p.s.map((v,i)=>{const r=lvRange(p,i);return `<tr><td>${SN[i]}</td><td><b>${v}<
 <p class="note">Lv50・個体値31。最低＝能力ポイント0・性格で下降、無振り＝ポイント0・補正なし、最高＝ポイント32・性格で上昇（HPは性格の影響なし）。</p>
 <div class="sec"><h2>弱点と耐性</h2><span style="font-size:12px;color:var(--dim)">受けるダメージの倍率</span></div>
 ${mxBlocks(p.t)}
+${defNotes(p).length?`<p class="note">特性による違い：${defNotes(p).join('。')}。</p>`:''}
 <div class="sec"><h2>特性</h2></div>
 <div class="advs" style="border-top:1px solid var(--line)">${abl.length?abl.map(x=>`<p><span>${x}</span></p>`).join(''):'<p><span>データなし</span></p>'}</div>
 <div class="sec"><h2>覚える技</h2><span style="font-size:12px;color:var(--dim)">全${mvs.length}種類・物理→特殊→変化の順</span></div>

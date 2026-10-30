@@ -57,7 +57,7 @@ function detail(no){
   </div></div>
 
   <div data-panel="3" hidden>${srcLine('typechart')}${mxBlocks(p.t)}
-    <p class="note">相手のタイプ一致技を受けたときの倍率です。</p></div>
+    <p class="note">相手のタイプ一致技を受けたときの倍率です（タイプだけで計算）。</p>${defNotes(p).length?`<div class="bnote" style="margin:0 16px 12px">特性による違い：${esc(defNotes(p).join('。'))}。</div>`:''}</div>
 
   <div data-panel="4" hidden>
     <p class="note" style="padding:14px 16px 6px">${p.n}に<b>タイプ一致で抜群</b>を取れるポケモンです（合計種族値の高い順・上位12匹）。</p>
