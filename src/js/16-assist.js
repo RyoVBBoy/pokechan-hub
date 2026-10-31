@@ -154,7 +154,7 @@ function assistView(arg){
   <div class="mx2" style="margin-bottom:6px">切り替えの間隔</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${[3,4,6,8].map(n=>`<button class="pill" data-ps="${n}">${n}秒</button>`).join('')}</div></div>
   <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="as-pip" disabled>カードを準備中…</button></div>
   <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>
-  <a class="row" href="#/tap" style="margin-top:10px;border-top:1px solid var(--line)"><div class="row-m"><div class="row-t">背面タップで相手を入力（β・うまく動かないことがあります）</div><div class="row-s">ショートカットを使い、ゲームを開いたまま相手の弱点を通知で表示</div></div><span class="chev">${SVG(I.chev,18)}</span></a>  
+  
   <div class="srch" style="margin-top:10px">${SVG(I.search,18)}<input id="as-q" placeholder="相手のポケモン名（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="相手のポケモン名"></div>
   <div id="as-sg"></div>
   <div id="as-res"></div></div>`;

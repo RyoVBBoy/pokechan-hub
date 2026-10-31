@@ -68,7 +68,7 @@ function editView(a){
     <div class="btns"><button class="btn btn-p" id="ed-solve">能力ポイントを計算</button></div>
   </details>
   <div class="btns" style="flex-wrap:wrap"><a class="btn btn-p" href="#/team">完了</a><button class="btn btn-s" id="ed-clear" style="flex:none;padding:0 18px">未設定に戻す</button></div>
-  <p class="note" style="color:var(--mute)">背面タップを使っている場合は、育成を変えたあと<a href="#/tap" style="color:var(--acc)">パーティコード</a>をショートカットに入れ直すと通知にも反映されます。<br>入力した内容はこの端末の中だけに保存されます。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
+  <p class="note" style="color:var(--mute)">入力した内容はこの端末の中だけに保存されます。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
   </div>`;
   const save=()=>{const cur=team[ED.idx];if(!cur||cur.no!==ED.no)return;
     const o=ED.s;cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual'};saveTeam()};
