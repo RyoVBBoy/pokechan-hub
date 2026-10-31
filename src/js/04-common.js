@@ -49,5 +49,7 @@ const spdRankHTML=(v,self)=>{const r=spdRank(v,self);return L(`収録${r.n}匹�
 const rowP=(p,metric)=>{const v=metric==null?p.bst:p.s[metric],lb=metric==null?'合計':SN[metric];
   return `<a class="row" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}<span class="rt">${p.roles.join('・')}</span></div></div><div class="row-n"><b>${v}</b><span>${lb}</span></div><span class="chev">${SVG(I.chev,18)}</span></a>`};
 const counters=types=>P.filter(p=>p.t.some(t=>mult(t,types)>=2)).sort((a,b)=>b.bst-a.bst);
-const adSlot=l=>`<div class="ad">広告枠（${l}）</div>`;
+/* 広告の置き場所。広告を始めるまでは何も出さない（ADS_ON を true にすると枠が出る） */
+const ADS_ON=false;
+const adSlot=l=>ADS_ON?`<div class="ad">広告枠（${l}）</div>`:'';
 
