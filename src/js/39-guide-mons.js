@@ -33,6 +33,15 @@ const gmOpps=()=>{if(GM_OPPS)return GM_OPPS;const bst=a=>a.s.reduce((x,y)=>x+y,0
   return GM_OPPS=[...top(P,60),...top(MEGAP,20)]};
 const gsetIndex=(S,no)=>['single','double'].map(f=>{const a=S.map((x,i)=>[x,i]).filter(([x])=>x.fmt===f);return a.length?`<div class="gidx"><span>${f==='single'?'シングル':'ダブル'}</span>${a.map(([x,i])=>`<a href="javascript:void 0" data-gjump="gset-${no}-${i}">${esc(x.title)}${x.rec?'<i>おすすめ</i>':''}</a>`).join('')}</div>`:''}).join('');
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-gjump]');if(!a)return;e.preventDefault();const t=document.getElementById(a.dataset.gjump);if(t)t.scrollIntoView({behavior:'smooth',block:'start'})});
+/* ランクバトルの使用率（LIVE）の上位：持ち物・特性・技・性格 */
+function gmLiveHTML(p,lk){
+  const d=LIVE.csv[p.no];if(!d)return '';
+  const row=(t,a,f)=>a.length?`<div class="gus"><b>${t}</b><div>${a.map(x=>`<span>${f(x)} <i>${x[x.length-1]}%</i></span>`).join('')}</div></div>`:'';
+  const itK=n=>ITEMN[nrm(n)]?nrm(n):null,abK=n=>ABK[nrm(n)],mvK=n=>MVKA[nrm(n)];
+  return `<div class="sec"><h2>ランクバトルでの使われ方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
+    <div class="gdoc" style="padding-top:0">${row('持ち物',d.it.slice(0,5),x=>{const k=itK(x[0]);return k?`<a href="${lk('#/item/'+k)}" style="color:var(--acc)">${esc(ITEMN[k])}</a>`:esc(x[0])})}${row('特性',d.ab.slice(0,3),x=>{const k=abK(x[0]);return esc(k?ABN[k]:x[0])})}${row('技',d.mv.slice(0,8),x=>{const id=mvK(x[0]);return id?`<a href="${lk('#/move/'+id)}" style="color:var(--acc)">${esc(mName(id))}</a>`:esc(x[0])})}</div>
+    <p class="note" style="padding-top:0;color:var(--mute)">出典：<a href="https://championsbattledata.com" target="_blank" rel="noopener" style="color:var(--acc)">Pokémon Champions Battle Data</a>の集計（${FMTN()}）。形式は上のメニューや流行の画面で切りかえられます。</p>`;
+}
 function monGuide(p,o={}){
   const mon=o.mon||(no=>'#/p/'+no),lk=o.link||(h=>h);
   /* メガシンカの姿は、元のポケモンの覚える技と、メガシンカ後の特性1つで考える */
@@ -132,7 +141,12 @@ function monGuide(p,o={}){
     if(d.moves.length){d.k=supMode?'dsup':'double';d.fmt='double';SETS.push(d)}
   }catch(e){}
   /* 当サイトの利用者の育成が5件以上あれば、それをもとにした型を先頭に置く（43-usage.js） */
-  if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
+  /* ランクバトルの集計（championsbattledata.com、15-battle.js の LIVE）があれば、いちばん多い組み合わせの型を先頭に置く */
+  const liveF=!o.raw&&!base&&typeof LIVE!=='undefined'&&LIVE.csv[p.no]?FMT:null;
+  if(liveF)try{const d=LIVE.csv[p.no],b=buildSet(p,d,true),lsl=LSD[p.no]?LSD[p.no][1]:[],mv=[...new Set(d.mv.map(([n])=>MVKA[nrm(n)]).filter(id=>id&&(lsl.includes(id)||id===182)))];
+    if(mv.length>=2&&b.sp){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルでよく使われている型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計で、それぞれいちばん多い持ち物・特性・技・性格・能力ポイントを組み合わせたものです。`,
+      ab:b.ab,item:b.item,up:b.up,dn:b.dn,sp:b.sp,moves:mv.slice(0,4),fmt:liveF,k:/^choice|lifeorb|focussash|expertbelt/.test(it)?'attacker':it==='leftovers'?'bulky':'attacker',live:true})}}catch(e){}
+  if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].filter(f=>f!==liveF).forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
   SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;st.why=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。')+(st.why?'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
@@ -305,8 +319,8 @@ function monGuide(p,o={}){
   const sections=`
   ${topRoles.length?`<div class="sec"><h2>向いている役割</h2></div><div class="gdoc" style="padding-top:0">${topRoles.map(r=>`<div class="adv adv-tip" style="margin:8px 0"><b>${esc(r.name)}</b><p>${r.text.replace(/[<>]/g,'')}</p></div>`).join('')}</div>`:''}
   ${SETS.length?`<div class="sec"><h2>型の例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>${gsetIndex(SETS,p.no)}${SETS.map(setHTML).join('')}
-    <p class="note" style="padding-top:2px;color:var(--mute)">種族値・覚える技・特性から当サイトが計算で組んだ例です。実際によく使われている型とは違うことがあります。</p>`:''}
-  ${base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk)}
+    <p class="note" style="padding-top:2px;color:var(--mute)">${SETS.some(x=>x.live||x.usage)?'「よく使われている型」は使用率の集計から、それ以外は':''}種族値・覚える技・特性から当サイトが計算で組んだ例です。${SETS.some(x=>x.live||x.usage)?'集計の型は項目ごとにいちばん多いものを組み合わせたので、実在の1人の型と同じとは限りません。':'実際によく使われている型とは違うことがあります。'}</p>`:''}
+  ${liveF?gmLiveHTML(p,lk):''}  ${base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk)}
   ${mvParts.length?`<div class="sec"><h2>技の選び方</h2></div>${mvParts.map(([t,d,ids])=>`<div class="gdoc gsub"><h3>${t}</h3>${d?`<p>${d}</p>`:''}</div>${ids.length?`<div class="pills gchips">${ids.map(mvA).join('')}</div>`:''}`).join('')}`:''}
   ${abl.length?`<div class="sec"><h2>特性</h2></div><div class="gdoc" style="padding-top:0">${abl.map(([k,hid])=>{const rs=abRoles(k);return `<div class="gtag" style="margin-top:6px"><b>${abA(k)}${hid?'<span class="atag">隠れ特性</span>':''}${rs.length?`<span class="atag">${esc(rs[0][1].replace(/特性$/,''))}</span>`:''}</b><small>${esc(ABDS[k]||'')}</small></div>`}).join('')}</div>`:''}
   ${partners.length?`<div class="sec"><h2>相性のいい味方の例</h2></div><p class="note" style="padding-top:0">${esc(p.n)}の弱点を受けられるか、天気・トリックルームで助け合えるポケモンです（タイプと特性から計算）。</p>

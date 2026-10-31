@@ -79,7 +79,11 @@ function detail(no){
     ind.style.transform=`translateX(${i*100}%)`;
     V.querySelectorAll('[data-panel]').forEach(pn=>pn.hidden=+pn.dataset.panel!==i);
     if(i===5)movesPanel(p);
-    if(i===1){const g=document.getElementById('gmpanel');if(g&&!g.innerHTML){g.innerHTML=monGuide(p);g.querySelectorAll('[data-axis]').forEach(b=>b.onclick=()=>{const d=AXIS_DATA[b.dataset.axis];if(d)useTeam(d.name,d.list)})}}
+    if(i===1){const g=document.getElementById('gmpanel');
+      const fill=()=>{g.innerHTML=monGuide(p);g.querySelectorAll('[data-axis]').forEach(b=>b.onclick=()=>{const d=AXIS_DATA[b.dataset.axis];if(d)useTeam(d.name,d.list)})};
+      if(g&&!g.innerHTML){fill();
+        /* ランクバトルの集計をまだ読んでいなければ読み、届いたら解説を作り直す（メガシンカの姿は元の姿の解説の中で扱う） */
+        if(!p.base&&LIVE.csv[p.no]===undefined)liveInit().then(ok=>ok&&liveMon(p.no)).then(d=>{if(d&&g.isConnected)fill()}).catch(()=>{})}}
   });
   if(MVS.tab4===p.no){seg.querySelector('[data-i="5"]').click()}
   /* 計算 */
