@@ -41,11 +41,24 @@ async function replayApi(req,env,db,path,now){
     let b;try{b=JSON.parse(await req.text())}catch(e){return J({error:'送信内容を読めませんでした。'},400)}
     const fr=(Array.isArray(b.frames)?b.frames:[]).slice(0,30).filter(f=>f&&typeof f.d==='string'&&f.d.length<400000&&/^[A-Za-z0-9+/=]+$/.test(f.d.slice(0,100)));
     if(fr.length<3)return J({error:'動画から静止画を取り出せませんでした。'},400);
-    const parts=[];fr.forEach(f=>{parts.push({text:`${Math.round(+f.t||0)}秒`});parts.push({inline_data:{mime_type:'image/jpeg',data:f.d}})});parts.push({text:REPLAY_PROMPT});
-    const t0=Date.now();let text;
-    try{({text}=await gemText(env,{contents:[{parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}},true))}catch(e){return J({error:String(e.message||e)},502)}
+    /* 1回で全部送ると時間切れ（524）になりやすいので、9枚ずつに分けて同時に読み、あとで合わせる */
+    const chunks=[];for(let i=0;i<fr.length;i+=9)chunks.push(fr.slice(i,i+9));
+    const t0=Date.now();
+    const rs=await Promise.allSettled(chunks.map(async ch=>{
+      const parts=[];ch.forEach(f=>{parts.push({text:`${Math.round(+f.t||0)}秒`});parts.push({inline_data:{mime_type:'image/jpeg',data:f.d}})});parts.push({text:REPLAY_PROMPT});
+      const {text}=await gemText(env,{contents:[{parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}},true);
+      try{return JSON.parse((String(text).match(/\{[\s\S]*\}/)||['{}'])[0])}catch(e){return{}}
+    }));
+    const ok=rs.filter(r=>r.status==='fulfilled').map(r=>r.value);
+    if(!ok.length)return J({error:String((rs[0].reason&&rs[0].reason.message)||rs[0].reason)},502);
     await db.prepare(`INSERT INTO replay_reads(uid,created_at) VALUES(?,?)`).bind(me.uid,now).run();
-    let o;try{o=JSON.parse((String(text).match(/\{[\s\S]*\}/)||['{}'])[0])}catch(e){o={}}
+    /* 合わせ方：6匹は最初に読めたもの、場に出たのは順に足す、勝ち負けは最後の方の画像から */
+    const A=k=>ok.map(x=>Array.isArray(x[k])?x[k]:[]),O=k=>Object.assign({},...ok.map(x=>x[k]&&typeof x[k]==='object'&&!Array.isArray(x[k])?x[k]:{}));
+    const o={format:(ok.find(x=>x.format==='single'||x.format==='double')||{}).format,
+      result:([...ok].reverse().find(x=>x.result==='win'||x.result==='lose')||{}).result,
+      opponent_team:A('opponent_team').sort((a,b)=>b.length-a.length)[0]||[],my_team:A('my_team').sort((a,b)=>b.length-a.length)[0]||[],
+      opponent_used:A('opponent_used').flat(),my_used:A('my_used').flat(),opponent_moves:{},opponent_items:O('opponent_items')};
+    ok.forEach(x=>{for(const [n,mv] of Object.entries(x.opponent_moves||{}))o.opponent_moves[n]=[...new Set([...(o.opponent_moves[n]||[]),...(Array.isArray(mv)?mv:[])])]});
     const R=revMaps(),info={};
     for(const [n,mv] of Object.entries(o.opponent_moves||{})){const mm=monOf(n);if(!mm)continue;(info[mm.no]=info[mm.no]||{}).mv=(Array.isArray(mv)?mv:[]).map(x=>R.mv[kkey(x)]).filter(Boolean).slice(0,4)}
     for(const [n,it] of Object.entries(o.opponent_items||{})){const mm=monOf(n);const k=it&&R.it[kkey(it)];if(mm&&k)(info[mm.no]=info[mm.no]||{}).it=k}
