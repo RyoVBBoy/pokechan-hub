@@ -113,14 +113,26 @@ async function listGemini(env){
   return GEM_LIST=ms;
 }
 async function askGemini(env,buf,mt){
-  const call=m=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',
-    headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mt,data:b64(buf)}},{text:PROMPT}]}],generationConfig:{responseMimeType:'application/json',temperature:0}})});
+  /* 速くするために：考える時間（thinking）を使わない・1回20秒で打ち切って次のモデルへ。画像の変換は1回だけ */
+  const data=b64(buf);
+  const call=async(m,noThink)=>{const gc={responseMimeType:'application/json',temperature:0};
+    if(!noThink&&/gemini-2\.5-flash/.test(m))gc.thinkingConfig={thinkingBudget:0};
+    const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),20000);
+    try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',signal:ctl.signal,
+      headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mt,data}},{text:PROMPT}]}],generationConfig:gc})});
+      /* thinking の設定を受け付けないモデルなら、設定なしでもう一度 */
+      if(r.status===400&&!noThink&&gc.thinkingConfig){const t=await r.clone().text();if(/thinking/i.test(t))return call(m,true)}
+      return r}
+    catch(e){return new Response(JSON.stringify({error:{message:'20秒で応答がありませんでした'}}),{status:503})}
+    finally{clearTimeout(tm)}};
   /* 混雑（503）・回数制限（429）・使えない（404）なら、次のモデルで最大3回まで試す */
   let cands=env.GEMINI_MODEL?[env.GEMINI_MODEL]:[];
   try{cands=[...new Set([...cands,...await listGemini(env)])]}catch(e){if(!cands.length)throw e}
   let r,last='',busy=false;
+  const start=Date.now();
   for(const m of cands.slice(0,3)){
+    if(r&&Date.now()-start>22000)break; /* 全体で20秒あまりを超えたら、次のモデルは試さない（ショートカットが待ちきれなくなるため） */
     r=await call(m);if(r.ok)break;
     const t=await r.text();try{last=JSON.parse(t).error.message}catch(e){last=t}
     if(r.status===400&&/API key/i.test(last))throw new Error('GEMINI_API_KEY が正しくありません');
@@ -213,7 +225,9 @@ async function ladder(m,ctx){
     const d=digest(await r.text());LADDER[m.no]=LADDER[key]=d.mv.length?d:null;return LADDER[m.no];
   }catch(e){LADDER[m.no]=LADDER[key]=null;return null}
 }
-const detSet=p=>LADDER[p.no]?buildSet(p,LADDER[p.no],true):chooseSet(p,true);
+/* 計算用の型は同じポケモンなら毎回同じなので、覚えておいて使い回す（サーバーの計算時間を減らす。無料プランは1回あたりの計算時間が短い） */
+const DETC=new Map();
+const detSet=p=>{const k=p.no+(LADDER[p.no]?'L':'');let v=DETC.get(k);if(!v){v=LADDER[p.no]?buildSet(p,LADDER[p.no],true):chooseSet(p,true);DETC.set(k,v)}return v};
 let MYSETS={};
 const mySetFor=n=>MYSETS[n]||detSet(BYNO[n]);
 function oppPredict(myNos,opNos){
@@ -228,6 +242,7 @@ const sn=n=>n.slice(0,3);
 async function battleNote(opps,team,ctx,demo){
   const known=[];opps.forEach((o,i)=>{if(o.mon&&!known.some(k=>k.mon.no===o.mon.no))known.push({...o,i})});
   Object.keys(LADDER).forEach(k=>{if(/^\d+$/.test(k))delete LADDER[k]});
+  for(const k of DETC.keys())if(/L$/.test(k))DETC.delete(k);
   await Promise.all([...known.map(o=>ladder(o.mon,ctx)),...team.filter(t=>!t.set).map(t=>ladder(BYNO[t.no],ctx))]);
   MYSETS={};team.forEach(t=>{if(t.set)MYSETS[t.no]=t.set});
   const myNos=team.map(t=>t.no),opNos=known.map(o=>o.mon.no);
@@ -287,8 +302,10 @@ export default{
       /* 画像そのものが送られてきた場合 */
       if(/^image\/|octet-stream/.test(ct)||(!ct.includes('json')&&!ct.includes('form')&&!ct.includes('text'))){
         const buf=await req.arrayBuffer();
-        if(buf.byteLength>200){const teamNos={list:parseTeam(team)};
-          try{return new Response(await fromImage(buf,teamNos,env,ctx,{retry:u.searchParams.get('retry')!=='0',ladder:u.searchParams.get('ladder')!=='0'}),{headers:H})}
+        if(buf.byteLength>200){const teamNos={list:parseTeam(team)},t0=Date.now();
+          /* 最後に、かかった時間を小さく付ける（遅いときに原因を探しやすくするため） */
+          try{const out=await fromImage(buf,teamNos,env,ctx,{retry:u.searchParams.get('retry')!=='0',ladder:u.searchParams.get('ladder')!=='0'});
+            return new Response(out+`\n（${((Date.now()-t0)/1000).toFixed(1)}秒${buf.byteLength>700000?'・画像が大きめ':''}）`,{headers:H})}
           catch(e){return new Response('読み取りでエラー：'+(e.message||e),{status:200,headers:H})}}
       }
       try{if(ct.includes('json')){const j=await req.json();text=j.text??text;team=String(j.team??team);mode=j.mode??mode}
