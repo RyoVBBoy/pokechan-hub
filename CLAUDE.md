@@ -71,7 +71,7 @@ node tests/run.mjs
 
 ### 依頼主に確認・お願い中のこと（新しいチャットでまず確かめる）
 - Google ログイン：2026/10/30 に解決（原因は Firebase の承認済みドメインに `pokechan-hub.pages.dev` が無かったこと。依頼主が追加し、ログインできたと回答）。承認済みドメインは `https://identitytoolkit.googleapis.com/v1/projects?key=<public.json の apiKey>` でこの環境からも確かめられる。iPhone のホーム画面のアイコンから開いたときに動くかは未確認。
-- GitHub Variables の `SITE_URL` を `https://pokechan-hub.pages.dev` に変えたか未確認（検索向けページの URL に使う）。
+- GitHub Variables の `SITE_URL`：2026/10/31 に依頼主が `https://pokechan-hub.pages.dev` に変更（それまで netlify のままだった）。gen-pages は https:// が抜けていても補う。残り：旧 Netlify サイトの削除、Worker のサブドメイン（学校のメールの前半と同じ文字）の変更。
 - 選出アドバイスの参考記事（`ADV_REFS`）：候補（AppMedia・BlueStacks・VGC Guide）を依頼主が確かめてから追加する。この環境からは外部サイトを開けない。
 
 ### 次の作業

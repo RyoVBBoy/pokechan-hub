@@ -1,5 +1,6 @@
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
-const SITE_URL=(process.env.SITE_URL||'').replace(/\/$/,'');
+/* 先頭の https:// が抜けていても補う */
+const SITE_URL=(process.env.SITE_URL||'').trim().replace(/\/$/,'').replace(/^(?!https?:\/\/)(?=.)/,'https://');
 if(!SITE_URL){console.error('SITE_URL を指定してください（例：SITE_URL=https://pokechan-hub.pages.dev）');process.exit(1)}
 
 // 検索エンジン向けの静的ページ（ポケモン別・タイプ別・一覧）を dist/ に作る
