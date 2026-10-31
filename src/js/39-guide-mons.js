@@ -27,6 +27,12 @@ function monDef(p){
 /* 特性の分も入れた弱点の説明（「特性ふゆうで、じめん技は効かない」など） */
 const defNotes=p=>monDef(p).filter(x=>x.by||x.maybeBy).map(x=>{const k=x.by||x.maybeBy,v=x.by?x.m:x.maybe;
   return `${x.by?'':'特性が'}${x.by?'特性'+(ABN[k]||k)+'で':(ABN[k]||k)+'なら'}、${x.t}技は${v===0?'効かない':v<x.base?'受けるダメージが半分になる':'受けるダメージが増える'}`});
+/* 苦手な相手を探すときの相手：合計種族値の高い60匹＋メガシンカの姿20匹 */
+let GM_OPPS=null;
+const gmOpps=()=>{if(GM_OPPS)return GM_OPPS;const bst=a=>a.s.reduce((x,y)=>x+y,0),top=(a,n)=>a.filter(q=>q&&q.s).sort((x,y)=>bst(y)-bst(x)).slice(0,n);
+  return GM_OPPS=[...top(P,60),...top(MEGAP,20)]};
+const gsetIndex=(S,no)=>['single','double'].map(f=>{const a=S.map((x,i)=>[x,i]).filter(([x])=>x.fmt===f);return a.length?`<div class="gidx"><span>${f==='single'?'シングル':'ダブル'}</span>${a.map(([x,i])=>`<a href="javascript:void 0" data-gjump="gset-${no}-${i}">${esc(x.title)}${x.rec?'<i>おすすめ</i>':''}</a>`).join('')}</div>`:''}).join('');
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-gjump]');if(!a)return;e.preventDefault();const t=document.getElementById(a.dataset.gjump);if(t)t.scrollIntoView({behavior:'smooth',block:'start'})});
 function monGuide(p,o={}){
   const mon=o.mon||(no=>'#/p/'+no),lk=o.link||(h=>h);
   /* メガシンカの姿は、元のポケモンの覚える技と、メガシンカ後の特性1つで考える */
@@ -111,7 +117,21 @@ function monGuide(p,o={}){
   const topRoles=roles.slice(0,4);
   const setKeys=[...new Set(roles.map(r=>r.set).filter(Boolean))].slice(0,2);
   if(!setKeys.length&&atk.length)setKeys.push('attacker');
-  const SETS=setKeys.map(k=>{try{return sets[k]()}catch(e){return null}}).filter(s=>s&&s.moves.length);
+  const SETS=setKeys.map(k=>{try{const r=sets[k]();if(r)r.k=k;return r}catch(e){return null}}).filter(s=>s&&s.moves.length);
+  /* ダブル用の型：ねこだまし・まもる・相手2匹に当たる技を優先する */
+  if(!o.raw&&atk.length)try{
+    const fo=have(['fakeout'])[0],pr=have(['protect','detect'])[0],sp2=bestStab.filter(m=>m.tg&&sc(m)>=sc(bestStab[0])*.7)[0];
+    const helper=have(['followme','ragepowder'])[0],tw=have(['tailwind','trickroom'])[0];
+    const supMode=!!helper&&offS<.55;
+    const mv=supMode?[helper,fo,tw,pr,...have(['helpinghand','wideguard'])]:[fo,sp2&&sp2.id,pr].filter(Boolean);
+    const item=supMode?'sitrusberry':fo&&bulkS<.45?'focussash':offS>=.6?'lifeorb':'sitrusberry';
+    const d=mkSet(supMode?'ダブル用サポート':'ダブル用アタッカー',
+      supMode?`${mName(helper)}で相手の攻撃を自分に集め、そのあいだに味方に攻撃や積みをさせる。${tw?mName(tw)+'で味方を先に動かすこともできる。':''}`
+        :`${fo?mName(fo)+'で出てすぐに相手1匹を止め、':''}${sp2?'相手2匹に当たる'+esc(sp2.n)+'で両方を削る。':'味方と同じ相手を狙って、1匹ずつ確実に倒す。'}${pr?mName(pr)+'で相手の攻撃を避けながら、味方の動きを待てる。':''}`,
+      pickAb(supMode?['weaken','bulk','field']:['power','speed','weaken']),item,supMode?lowDef:offS>=.6&&spdS>=.4?5:ai,ai===1?3:1,supMode?spOf(0,lowDef):spOf(ai,spdS>=.4?5:0),mv);
+    if(d.moves.length){d.k=supMode?'dsup':'double';d.fmt='double';SETS.push(d)}
+  }catch(e){}
+  SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;st.why=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。')+(st.why?'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
@@ -191,11 +211,57 @@ function monGuide(p,o={}){
   if(hard.length)mvParts.push(['タイプ一致技では倒しにくい相手',`${list(hard)}タイプには、タイプ一致技がどれも等倍より低い。${covM.length?'次の技で弱点を突ける。':'弱点を突ける技がないので、味方に任せる。'}`,covM.map(m=>m.id)]);
   if(prio.length)mvParts.push(['先制技','素早さに関係なく先に攻撃できる。削れた相手へのとどめに。',prio.slice(0,3).map(m=>m.id)]);
   if(aux.length)mvParts.push(['補助に使える技','能力を上げる・回復する・相手を邪魔するなど、攻撃以外で役立つ技。',aux]);
-  const setHTML=s=>{const nat=natName(s.up,s.dn);
-    return `<div class="gset"><b>${esc(s.title)}</b><p>${esc(s.why)}</p><dl>
+  /* 型ごとのくわしい説明：実数値・この型の役割・技の入れ替え候補・苦手な相手（ダメージ計算から） */
+  const mvCard=(id,why)=>{const u=MVU[id]||[],d=MD[id]||[];return `<div class="mvr gmvr"><div class="mvr-h"><a href="${lk('#/move/'+id)}" style="color:var(--fg)"><b>${esc(mName(id))}</b></a>${u[0]?chip(u[0]):''}<span class="mvc c${u[1]}">${['物理','特殊','変化'][u[1]]||''}</span></div>
+    <div class="mvr-s">${u[1]<2?`<span>威力 <b>${u[2]||'—'}</b></span>`:''}<span>命中 <b>${u[3]||'—'}</b></span><span>PP <b>${u[4]||'—'}</b></span>${u[5]?`<span>優先度 <b>${u[5]>0?'+':''}${u[5]}</b></span>`:''}</div>
+    ${d[1]?`<div class="mvr-d">${esc(d[1])}</div>`:''}${why?`<div class="mvr-d" style="color:var(--acc)">${esc(why)}</div>`:''}</div>`};
+  const covOf=ids=>{const c=new Set();ids.forEach(id=>{const m=MV[id]&&mvObj(id);if(m&&m.pow>0&&m.cls<2)T.forEach(d=>{if(mult(m.t,[d])>=2)c.add(d)})});return c};
+  const ALT_WHY={taunt:'相手の積み技・回復・壁を止められる',protect:'相手の動きを1回見られる。ダブルでは攻撃を避けながら味方を待てる',detect:'相手の動きを1回見られる',uturn:'不利な相手から、削りながら交代できる',voltswitch:'不利な相手から、削りながら交代できる',flipturn:'不利な相手から、削りながら交代できる',
+    knockoff:'相手の持ち物をなくして、長く戦う相手を弱らせる',willowisp:'物理アタッカーの攻撃を半分にできる',thunderwave:'速い相手を遅くできる',toxic:'受けに来る相手を少しずつ削れる',toxicspikes:'交代してくる相手をどく状態にできる',spikes:'交代するたびに相手を削れる',stealthrock:'交代するたびに相手を削れる',
+    substitute:'状態異常や補助技を防ぎながら動ける',trick:'こだわり系の道具を相手に押しつけて動きを縛れる',encore:'相手を同じ技に縛り、その間に交代や積みができる',yawn:'相手に交代をうながし、場を動かせる',swordsdance:'相手が交代したときに火力を2倍にできる',nastyplot:'相手が交代したときに火力を2倍にできる',
+    fakeout:'出てすぐに相手1匹を止められる（ダブルで特に強い）',helpinghand:'味方の技の威力を上げられる（ダブル）',tailwind:'4ターンのあいだ味方全員を速くできる',trickroom:'遅い味方を先に動かせる'};
+  const altOf=s=>{
+    const cov=covOf(s.moves),out=[];
+    const cands=pickAtk(8).filter(id=>!s.moves.includes(id));
+    cands.forEach(id=>{if(out.length>=2)return;const m=mvObj(id),nw=T.filter(d=>!cov.has(d)&&mult(m.t,[d])>=2);
+      if(nw.length)out.push([id,`今の技では弱点を突けない${list(nw)}タイプに弱点を突ける。`]);
+      else if(m.pri>0)out.push([id,'優先度があり、削れた速い相手にも先にとどめを刺せる。'])});
+    have(Object.keys(ALT_WHY)).filter(id=>!s.moves.includes(id)&&(MD[id]&&MVU[id]&&MVU[id][1]===2||key(id)==='knockoff'||key(id)==='fakeout'||GM_PIV.includes(key(id)))).filter(id=>s.fmt==='double'||!['helpinghand'].includes(key(id))).slice(0,6)
+      .forEach(id=>{if(out.length<4&&!out.some(x=>x[0]===id))out.push([id,ALT_WHY[key(id)]+'。'])});
+    /* どの枠と入れかえるか：タイプ一致でない攻撃技のうち、いちばん点の低いもの */
+    const rep=s.moves.filter(id=>MV[id]&&!p.t.includes(MV[id][1])&&MV[id][2]>0).sort((a,b)=>sc(mvObj(a))-sc(mvObj(b)))[0];
+    return{out,rep}};
+  const roleOf=s=>{const mv=s.moves.map(key),pv=s.moves.filter(id=>GM_PIV.includes(key(id))),pr=s.moves.filter(id=>MV[id]&&MV[id][5]>0&&MV[id][2]>0);
+    const base={attacker:s.item==='choicescarf'?'素早さを上げて上から攻撃し、相手の速いアタッカーを止める役（ストッパー）。先に出して削る役もこなせる。':
+        /^choice(band|specs)$/.test(s.item)?'高い火力で、受けに来た相手ごと押し切る役。技が1つに固定されるので、相手の交代先を読んで技を選ぶ。':'速さと火力で、先に相手の数を減らしていくエース。',
+      setup:'相手が交代したときや、攻撃の弱い相手の前で能力を上げ、そのまま後ろの相手まで倒していくエース。積む前に倒されないよう、出す場面を選ぶ。',
+      bulky:'相手の攻撃を受けて、交代を繰り返しながら少しずつ削る役。不利な相手からは早めに交代する。',
+      support:'先発で場を整え、後ろのアタッカーが戦いやすい状況を作る役。倒れる前に補助技を使い切る。',
+      tr:'トリックルームを張り、その中で先に攻撃する役。トリックルームが終わるターンを数えて動く。',
+      double:'味方と2匹で同じ相手を狙い、1ターンに1匹ずつ倒していく役。',dsup:'相手の攻撃を自分に集めて、味方を守る役。'}[s.k]||'';
+    return base+(pv.length?`不利な相手の前では${esc(mName(pv[0]))}で交代し、有利な味方につなぐ。`:'')+(pr.length?`${esc(mName(pr[0]))}で、削れた相手に先にとどめを刺せる。`:'')+(s.item==='focussash'?'きあいのタスキで1回は確実に動ける。':'')};
+  const hardOf=s=>{try{
+    const me=mkMon(p,'me',{ab:s.ab,item:s.item,moves:s.moves.filter(id=>MV[id]).map(mvObj),sp:s.sp,up:s.up,dn:s.dn});
+    const rows=gmOpps().filter(q=>q.no!==p.no&&q.no!==(base&&base.no)).map(q=>{const op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));const a=estHit(me,op),b=estHit(op,me);
+      return{q,my:a.pct,their:b.pct,mv:a.mv,resist:!!a.mv&&mult(a.mv.t,q.t)<1}});
+    const bad=rows.filter(r=>r.my<45&&r.their>=35).sort((x,y)=>(y.their-y.my)-(x.their-x.my)).slice(0,3);
+    if(!bad.length)return null;
+    const res=bad.filter(r=>r.resist).length>=2,top=s.moves.filter(id=>MV[id]&&p.t.includes(MV[id][1]))[0];
+    const head=res&&top?`${MV[top][1]}技を半減以下で受けるポケモン`:'耐久が高く、ダメージが通りにくいポケモン';
+    const why=res&&top?`この型のいちばんの攻撃手段である${mName(top)}を半減以下で受けられ、ほかの技でも大きなダメージを与えにくい。相手の攻撃は受けきれないので、対面したら有利な味方に交代する。`
+      :'この型の技では大きなダメージを与えにくく、相手からはしっかりダメージを受ける。対面したら無理に戦わず、有利な味方に交代する。';
+    return{head,why,bad}}catch(e){return null}};
+  const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
+    return `<div class="gset" id="gset-${p.no}-${i}"><b>${esc(s.title)}${s.rec?'<span class="atag">おすすめ</span>':''}</b><p>${esc(s.why)}</p><dl>
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
-      <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div></div>`};
+      <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div>
+      <table class="gstat"><tr>${SN.map(n=>`<th>${n}</th>`).join('')}</tr><tr>${st.map(v=>`<td>${v}</td>`).join('')}</tr><tr class="gsp">${s.sp.map(v=>`<td>${v||'-'}</td>`).join('')}</tr></table>
+      <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
+      <h4>この型の役割</h4><p>${roleOf(s)}</p>
+      ${alt.out.length?`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`:''}
+      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>`:''}
+      </div>`};
   /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */
   let megaHead='';
   if(base){
@@ -236,7 +302,7 @@ function monGuide(p,o={}){
   }
   const sections=`
   ${topRoles.length?`<div class="sec"><h2>向いている役割</h2></div><div class="gdoc" style="padding-top:0">${topRoles.map(r=>`<div class="adv adv-tip" style="margin:8px 0"><b>${esc(r.name)}</b><p>${r.text.replace(/[<>]/g,'')}</p></div>`).join('')}</div>`:''}
-  ${SETS.length?`<div class="sec"><h2>型の例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>${SETS.map(setHTML).join('')}
+  ${SETS.length?`<div class="sec"><h2>型の例</h2><span style="font-size:12px;color:var(--dim)">データから組んだ例</span></div>${gsetIndex(SETS,p.no)}${SETS.map(setHTML).join('')}
     <p class="note" style="padding-top:2px;color:var(--mute)">種族値・覚える技・特性から当サイトが計算で組んだ例です。実際によく使われている型とは違うことがあります。</p>`:''}
   ${mvParts.length?`<div class="sec"><h2>技の選び方</h2></div>${mvParts.map(([t,d,ids])=>`<div class="gdoc gsub"><h3>${t}</h3>${d?`<p>${d}</p>`:''}</div>${ids.length?`<div class="pills gchips">${ids.map(mvA).join('')}</div>`:''}`).join('')}`:''}
   ${abl.length?`<div class="sec"><h2>特性</h2></div><div class="gdoc" style="padding-top:0">${abl.map(([k,hid])=>{const rs=abRoles(k);return `<div class="gtag" style="margin-top:6px"><b>${abA(k)}${hid?'<span class="atag">隠れ特性</span>':''}${rs.length?`<span class="atag">${esc(rs[0][1].replace(/特性$/,''))}</span>`:''}</b><small>${esc(ABDS[k]||'')}</small></div>`}).join('')}</div>`:''}

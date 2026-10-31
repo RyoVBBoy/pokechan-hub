@@ -249,6 +249,9 @@ function simF(b,mv){
   if(MSELFKO.has(k))return .2;
   if(MCHG.has(k)){const w=B.weather&&B.weather.k;if((k==='solarbeam'||k==='solarblade')&&(w==='sun'||(b&&b.ab==='mega-sol')))return 1;if(k==='electroshot'&&w==='rain')return 1;return .45}
   if(MRECH.has(k))return .6;
+  /* 型を組むとき（b なし）：必ず急所の技は1.5倍、イカサマは相手の攻撃しだいなので低めに見る */
+  if(!b&&['flowertrick','wickedblow','surgingstrikes','frostbreath','stormthrow'].includes(k))return 1.5;
+  if(!b&&k==='foulplay')return .55;
   return 1;
 }
 function varPow(a,mv,d,o){
