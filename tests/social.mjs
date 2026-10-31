@@ -25,6 +25,7 @@ globalThis.fetch=async(u,o)=>{u=String(u);
   if(u.includes('generativelanguage')&&u.includes('/models?'))return new Response(JSON.stringify({models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']}]}));
   if(u.includes('generativelanguage')&&u.includes(':generateContent')){const b=JSON.parse(o.body);
     if(b.tools&&b.tools[0].google_search)return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'C'}]},groundingMetadata:{groundingChunks:[{web:{uri:'https://c.example/3',title:'C'}},{web:{uri:'javascript:alert(1)',title:'bad'}}]}}]}));
+    if(b.contents[0].parts[0].inline_data)return gemReply(JSON.stringify({opponent:[{name:'ガブリアス',types:['ドラゴン','じめん'],confidence:.9},{name:'カイリュー',types:['ドラゴン','ひこう'],confidence:.9},{name:'サーフゴー',types:['はがね','ゴースト'],confidence:.4},{name:'？？？',types:['ほのお'],confidence:.2}]}));
     const url=(b.contents[0].parts[0].text.match(/ページ：(\S+)/)||[])[1];return gemReply('```json\n'+JSON.stringify(GEM_PAGES[url]||{teams:[]})+'\n```')}
   return new Response('',{status:404})};
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
@@ -212,6 +213,11 @@ r=await call('/api/admin/collect/run',{method:'POST',admin:ADM,body:{season_id:S
 r=await call(`/api/seasons/${S2}/teams?fmt=single`);expect('集め直しても同じパーティは増えない',r[1].teams.length===2,r[1].teams.map(t=>t.player.name));
 r=await call('/api/admin/collect/find',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'double'}});expect('Google検索で出典を探す（変なアドレスは除く）',r[0]===200&&r[1].found===1,r);
 r=await call(`/api/admin/collect?season_id=${S2}&fmt=double`,{admin:ADM});expect('見つけた出典が入る',r[1].sources.length===1&&r[1].sources[0].kind==='found',r[1].sources);
+/* 選出画面のスクショから相手を読む（読むだけ。計算はスマホ側） */
+const shot=async(t,bytes)=>{const h={'content-type':'image/jpeg'};if(t)h.authorization='Bearer '+t;const r=await w.fetch(new Request('https://x.dev/api/opp-read',{method:'POST',headers:h,body:bytes}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
+r=await shot(null,JPG);expect('スクショ読み取りはログインが必要',r[0]===401,r);
+r=await shot(A,new Uint8Array([1,2,3,...Array(300).fill(0)]));expect('画像でないものは拒否',r[0]===400,r);
+r=await shot(A,JPG);expect('スクショから相手を読める（番号・自信）',r[0]===200&&r[1].opps.filter(o=>o.no).map(o=>o.no).join()==='445,149,1000'&&r[1].opps.find(o=>o.no===445).sure&&!r[1].opps.find(o=>o.no===1000).sure,r[1]);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

@@ -271,6 +271,24 @@ const READERS={
   gemini:{label:'AI（Gemini）',read:(env,buf,mt)=>askGemini(env,buf,mt)},
   demo:{label:'見本モード',read:async()=>[{name:'ガブリアス',types:['ドラゴン','じめん'],confidence:1},{name:'ルカリオ',types:['かくとう','はがね'],confidence:1},{name:'ソウブレイズ',types:['ほのお','ゴースト'],confidence:1},{name:'ジャローダ',types:['くさ'],confidence:1},{name:'ピクシー',types:['フェアリー'],confidence:1},{name:'',types:['みず','むし'],confidence:0}]}
 };
+/* サイトの選出アシストから：スクリーンショットの相手の6匹を読むだけ（選出の計算はスマホ側でする＝サーバーの計算時間の上限にかからない）。
+   ログインした人だけ・1日100回まで。画像は読み取りに使うだけで保存しない */
+async function oppReadApi(req,env,db,now){
+  const me=fbPid(env)?await authOf(req,env):null;
+  if(!me)return J({error:'スクショから読むには、ログインしてください。'},401);
+  if(!env.GEMINI_API_KEY&&!env.ANTHROPIC_API_KEY)return J({error:'AIの読み取りがまだ設定されていません（運営者の設定が必要です）。'},503);
+  await db.prepare(`CREATE TABLE IF NOT EXISTS opp_reads(uid TEXT NOT NULL,created_at INTEGER)`).run();
+  const c=await db.prepare(`SELECT COUNT(*) AS c FROM opp_reads WHERE uid=? AND created_at>?`).bind(me.uid,now-864e5).first();
+  if(c&&c.c>=100)return J({error:'1日に読み取れる回数（100回）を超えました。'},429);
+  const buf=await req.arrayBuffer();
+  if(buf.byteLength<200||buf.byteLength>4e6)return J({error:'画像を読めませんでした。'},400);
+  const mt=mediaType(buf);if(!mt)return J({error:'JPEGかPNGの画像を選んでください。'},400);
+  const key=env.ANTHROPIC_API_KEY?'anthropic':'gemini',t0=Date.now();
+  let list;try{list=checkOpp(await READERS[key].read(env,buf,mt,false))}catch(e){return J({error:String(e.message||e)},502)}
+  await db.prepare(`INSERT INTO opp_reads(uid,created_at) VALUES(?,?)`).bind(me.uid,now).run();
+  if(Math.random()<.05)await db.prepare(`DELETE FROM opp_reads WHERE created_at<?`).bind(now-2*864e5).run();
+  return J({opps:list.map(o=>({no:o.mon?o.mon.no:null,name:String(o.name||'').slice(0,20),sure:!!o.sure,types:o.types||[]})),sec:Math.round((Date.now()-t0)/100)/10});
+}
 async function fromImage(buf,teamNos,env,ctx,opts){
   const mt=mediaType(buf);if(!mt)return '画像の形式が読めませんでした（JPEGかPNGで送ってください）。';
   const key=env.READER||(env.ANTHROPIC_API_KEY?'anthropic':env.GEMINI_API_KEY?'gemini':'demo'),R=READERS[key]||READERS.demo;

@@ -15,6 +15,7 @@ function tapView(){
   const code=tapCode();const tok=(()=>{try{return localStorage.getItem('pctaptok')||''}catch(e){return''}})();
   const step=(n,t,b)=>`<div class="tstep"><span class="tn">${n}</span><div><b>${t}</b><div class="row-s" style="margin-top:4px;line-height:1.75">${b}</div></div></div>`;
   V.innerHTML=`<div id="tap-root">
+  <div class="bnote" style="margin:14px 16px 0"><b>おすすめ：選出アシストの「スクショから読む」</b><br>背面タップはiPhoneのショートカットの動きに左右され、うまく動かないことがあります。ゲームでふつうにスクリーンショットを撮り、<a href="#/assist" style="color:var(--acc)">選出アシスト</a>で「選出画面のスクショから読む」を押すほうが確実です。結果はPiPでゲームの上に浮かべられます。</div>
   <p class="note" style="padding-top:14px">ゲームを開いたまま、<b>iPhoneの背面を2回たたく</b>だけで、相手の6匹の弱点・素早さ・こちらの攻め役が<b>通知でゲームの上に</b>出ます。Safariに切り替えないので、切断の心配がありません。</p>
   <div class="bnote" style="margin-top:12px"><b>しくみ</b><br>背面タップ → 選出画面のスクリーンショット → 計算用サーバー → 画像を理解できるAI（Claude）が相手のポケモンとタイプを読む → タイプで検算 → 通知<br><span style="color:var(--mute)">相手側の画面には名前が出ないため、絵とタイプのアイコンで判別します。</span></div>
   <div class="bnote" style="margin-top:10px;box-shadow:inset 0 0 0 1px #ff7a00"><b>いまは「見本モード」です</b><br>AI読み取りはまだつないでいません。サーバー・ショートカット・背面タップ・通知までの流れは全部動き、通知には「画像を受け取りました」と<b>見本の相手</b>が出ます。ゲームが切断されないか、通知が見やすいかを先に確かめられます。AIはあとから「6. AI読み取りをつなぐ」で追加でき、ほかの部分は作り直さずに済みます。</div>

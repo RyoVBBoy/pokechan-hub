@@ -141,6 +141,9 @@ function asDraw(){
 function assistView(arg){
   setHeader('選出アシスト','#/tools');
   V.innerHTML=`<div id="as-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">対戦前の画面で見える<b>相手の6匹</b>を入れると、あなたのパーティから<b>出すべき${PICK()}匹と先発</b>を出します（${FMTN()}）。実戦中にスマホを横に置いて使う想定です。</p>
+  <div class="as-read"><label class="btn btn-p" for="as-shot" style="cursor:pointer">${SVG(I.image,18)}選出画面のスクショから読む</label><input type="file" id="as-shot" accept="image/*" hidden>
+    <p class="vcap">ゲームの選出画面でスクリーンショットを撮り、ここで選びます（いちばん新しい写真が先頭に出ます）。相手の6匹を読み取り、すぐにおすすめ選出を出します。下の「PiPで見る」を使うと、結果をゲームの上に浮かべておけます。</p>
+    <div id="as-read-msg"></div></div>
   <div class="sec" style="padding-top:16px"><h2>相手の6匹</h2><span id="as-cnt" style="font:700 15px Inter,sans-serif;color:var(--dim)">${opp6.length}/6</span></div>
   <div id="as-opp"></div>
 
@@ -151,13 +154,33 @@ function assistView(arg){
   <div class="mx2" style="margin-bottom:6px">切り替えの間隔</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${[3,4,6,8].map(n=>`<button class="pill" data-ps="${n}">${n}秒</button>`).join('')}</div></div>
   <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="as-pip" disabled>カードを準備中…</button></div>
   <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>
-  <a class="row" href="#/tap" style="margin-top:10px;border-top:1px solid var(--line)"><div class="row-m"><div class="row-t">背面タップで相手を入力（β）</div><div class="row-s">ゲームを開いたまま、背中を2回たたくだけで相手の弱点を通知で表示</div></div><span class="chev">${SVG(I.chev,18)}</span></a>  
+  <a class="row" href="#/tap" style="margin-top:10px;border-top:1px solid var(--line)"><div class="row-m"><div class="row-t">背面タップで相手を入力（β・うまく動かないことがあります）</div><div class="row-s">ショートカットを使い、ゲームを開いたまま相手の弱点を通知で表示</div></div><span class="chev">${SVG(I.chev,18)}</span></a>  
   <div class="srch" style="margin-top:10px">${SVG(I.search,18)}<input id="as-q" placeholder="相手のポケモン名（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="相手のポケモン名"></div>
   <div id="as-sg"></div>
   <div id="as-res"></div></div>`;
   const q=document.getElementById('as-q'),sg=document.getElementById('as-sg');
   const sug=()=>{const t=q.value.trim();const l=t?P.filter(p=>nmHit(p,t)&&!opp6.includes(p.no)).slice(0,6):[];
     sg.innerHTML=l.map(p=>`<button class="row" data-add="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join('')||(t?'<p class="empty" style="padding:16px">見つかりません</p>':'')};
+  /* スクショから相手の6匹を読む（読むのはサーバー＝AI、選出の計算はこのスマホでする） */
+  document.getElementById('as-shot').onchange=async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    const msg=document.getElementById('as-read-msg'),say=(t,bad)=>{msg.innerHTML=`<div class="bnote" style="margin:8px 0 0${bad?';box-shadow:inset 0 0 0 1px var(--w2)':''}">${t}</div>`};
+    try{
+      say('読み取りの準備中…');
+      try{await fbLoad();await AUTH.wait}catch(err){}
+      if(!AUTH.user){say('スクショから読むには<a href="#/account" style="color:var(--acc)">ログイン</a>が必要です（AIの利用回数を守るため）。',true);return}
+      const x=await twShrink(f,1100);say('相手の6匹を読み取っています…（数秒かかります）');
+      let r;try{r=await fetch(COMM_API+'/api/opp-read',{method:'POST',headers:{'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()},body:x.blob})}
+      catch(err){say('通信できませんでした。電波のよいところで、もう一度選んでください。',true);return}
+      const j=await r.json().catch(()=>({}));if(!r.ok){say(esc(j.error||'読み取れませんでした。')+'<br>もう一度選ぶか、下の欄から名前で入れてください。',true);return}
+      const got=(j.opps||[]).filter(o=>o.no&&byNo[o.no]),nos=[...new Set(got.map(o=>o.no))].slice(0,6);
+      if(!nos.length){say('相手のポケモンを読み取れませんでした。選出画面（相手の6匹が並ぶ画面）のスクリーンショットか確かめて、もう一度選んでください。',true);return}
+      opp6=nos;saveOpp6();q.value='';sug();asDraw();asFetch();
+      const unsure=got.filter(o=>!o.sure).map(o=>byNo[o.no].n),miss=(j.opps||[]).length-got.length;
+      say(`${nos.length}匹を読み取りました（${j.sec}秒）。${unsure.length?`<b>${esc(unsure.join('・'))}</b>は自信が低めです。`:''}${miss?`読めなかったポケモンが${miss}匹います。`:''}違っていたら、下の「相手の6匹」で×を押して入れ直してください。`);
+      const res=document.getElementById('as-res');if(res)res.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
+    }catch(err){say(esc(err.message||'読み取れませんでした。'),true)}
+  };
   const add=n=>{if(opp6.length>=6){toast('相手は6匹までです');return}if(!opp6.includes(n)){opp6.push(n);saveOpp6()}q.value='';sug();asDraw();asFetch();q.focus()};
   q.oninput=sug;
   q.onkeydown=e=>{if(e.key==='Enter'){const f=P.find(p=>nmHit(p,q.value.trim())&&!opp6.includes(p.no));if(f)add(f.no)}};

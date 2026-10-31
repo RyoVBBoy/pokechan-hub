@@ -40,11 +40,11 @@ function twViewer(keys,i){
   addEventListener('keydown',key);document.body.appendChild(o);show();
 }
 /* 画像を縮める：長い辺1600px・WebP（使えなければ JPEG）。描き直すので、撮影場所などの情報（EXIF）は残らない */
-async function twShrink(file){
+async function twShrink(file,maxSide=1600){
   const url=URL.createObjectURL(file);
   try{
     const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めませんでした（対応していない形式かもしれません）。'));i.src=url});
-    const sc=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*sc)),h=Math.max(1,Math.round(img.naturalHeight*sc));
+    const sc=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*sc)),h=Math.max(1,Math.round(img.naturalHeight*sc));
     const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
     let q=.82,blob=null;
     for(let k=0;k<5;k++){blob=await new Promise(r=>c.toBlob(r,'image/webp',q));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>c.toBlob(r,'image/jpeg',q));if(blob&&blob.size<9e5)break;q-=.12}
