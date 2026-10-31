@@ -1,6 +1,6 @@
 /* ===================== コミュニティ（対戦募集・掲示板） ===================== */
 /* 書き込みはサーバー（Cloudflare Worker＋D1）に保存。匿名。通報3件で自動非表示、NGワード・リンク・連投は不可。 */
-const COMM_API=(()=>{try{return localStorage.getItem('pccomm')||''}catch(e){return''}})()||'https://pokechan-tap.22311328rn.workers.dev';
+const COMM_API=(()=>{try{return localStorage.getItem('pccomm')||''}catch(e){return''}})()||'https://pokechan-tap.pokechan.workers.dev';
 const BOARDS_JA=[['zatsu','雑談'],['kouchiku','構築相談'],['shitsumon','質問'],['taikai','大会・イベント']];
 const lsJ=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catch(e){return d}};
 const lsW=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};

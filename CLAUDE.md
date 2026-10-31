@@ -52,7 +52,7 @@ node tests/run.mjs
 ## 公開先・設定
 - サイト：Cloudflare Pages（プロジェクト `pokechan-hub`＝Variables の `PAGES_PROJECT` で変更可、アドレス `https://pokechan-hub.pages.dev`）。2026/10/29 に Netlify から移した（Netlify の無料枠は月20回ほどの公開で止まるため）。`SITE_URL` は GitHub の Variables。旧 Netlify のサイトは古い版のまま残っている。
 - 公開は1回ごとに数分かかる。細かい修正は、まとめて push する。
-- サーバー：Cloudflare Worker `pokechan-tap`（URL に学籍番号のようなサブドメイン `22311328rn` が入っている → 変更したい、未対応）。D1（binding `DB`）に threads/posts/lobby/reports/users、タイムライン用に notes/follows/likes/notifs/user_state（表は初回アクセスで自動作成）。
+- サーバー：Cloudflare Worker `pokechan-tap`（`https://pokechan-tap.pokechan.workers.dev`。2026/10/31 にサブドメインを学籍番号のようなものから `pokechan` に変更）。D1（binding `DB`）に threads/posts/lobby/reports/users、タイムライン用に notes/follows/likes/notifs/user_state（表は初回アクセスで自動作成）。
 - 合言葉（APP_TOKEN・ADMIN_TOKEN・GEMINI_API_KEY 等）は **Cloudflare 側にだけ**置く。GitHub やチャットに書かない。ADMIN_TOKEN は APP_TOKEN と別・12文字以上。
 - スマホのログイン：スマホ（とホーム画面に追加したとき）は、ログインの窓口をサイトと同じアドレス（`/__/auth/…`）にして画面切りかえ方式（signInWithRedirect）でログインする。`functions/__/[[path]].js`（Cloudflare Pages Functions）が pokechan-hub.firebaseapp.com に取り次ぐ。Google Cloud の OAuth クライアントの「承認済みのリダイレクト URI」に `https://pokechan-hub.pages.dev/__/auth/handler` が必要。パソコンは別の窓（popup）のまま。
 - ログイン：Firebase Authentication（プロジェクト `pokechan-hub`）。Google・メールリンクを有効化済み。Apple は Apple Developer 登録後。サーバーは RS256 の IDトークンを Google の公開鍵で検証（`worker/src/auth.js`）。
@@ -71,7 +71,7 @@ node tests/run.mjs
 
 ### 依頼主に確認・お願い中のこと（新しいチャットでまず確かめる）
 - Google ログイン：2026/10/30 に解決（原因は Firebase の承認済みドメインに `pokechan-hub.pages.dev` が無かったこと。依頼主が追加し、ログインできたと回答）。承認済みドメインは `https://identitytoolkit.googleapis.com/v1/projects?key=<public.json の apiKey>` でこの環境からも確かめられる。iPhone のホーム画面のアイコンから開いたときに動くかは未確認。
-- GitHub Variables の `SITE_URL`：2026/10/31 に依頼主が `https://pokechan-hub.pages.dev` に変更（それまで netlify のままだった）。gen-pages は https:// が抜けていても補う。残り：旧 Netlify サイトの削除、Worker のサブドメイン（学校のメールの前半と同じ文字）の変更。
+- GitHub Variables の `SITE_URL`：2026/10/31 に依頼主が `https://pokechan-hub.pages.dev` に変更（それまで netlify のままだった）。gen-pages は https:// が抜けていても補う。旧 Netlify サイトは削除済み、Worker のサブドメインも `pokechan` に変更済み（2026/10/31）。
 - 選出アドバイスの参考記事（`ADV_REFS`）：候補（AppMedia・BlueStacks・VGC Guide）を依頼主が確かめてから追加する。この環境からは外部サイトを開けない。
 
 ### 次の作業
@@ -79,7 +79,7 @@ node tests/run.mjs
 2. 攻略ガイド・アドバイスの英語訳（今は日本語のみ）。
 3. タイムラインの改良：返信・リポスト・アカウント停止は済（2026/10/30）。画像つき投稿も済（2026/10/30、保存先は D1。R2 を有効にすると自動で R2 へ。D1 の無料枠は1つ500MBほどなので、画像が増えたら依頼主に R2 を有効にしてもらう）。残りは引用リポスト、ブロック。利用者が増えたら「フォロー中」を書くとき配る方式へ。
 4. iPhone アプリ（別リポジトリ）からのログイン（ネイティブで）。
-5. Worker の URL から学籍番号のようなサブドメインを外す（独自ドメイン or サブドメイン変更 → `COMM_API` 更新）。
+5. （済）Worker のサブドメインを `pokechan` に変更。独自ドメインにするかは依頼主が決める。
 6. お問い合わせ窓口。利用規約・プライバシーポリシーは下書き（公開前に専門家確認を推奨）。
 7. 計算できない技：カウンター・ミラーコート・メタルバースト・一撃必殺・なげつける・ふくろだたき・はきだす。
 8. eFootball など他ゲーム（`27-games.js` の GAMES に足す）。サイト名（ポケチャン攻略Hub）を総合向けに変えるかは依頼主が決める。
