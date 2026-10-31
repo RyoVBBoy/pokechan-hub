@@ -12,7 +12,8 @@ await pg.goto(URL0+'#/');await pg.waitForTimeout(600);
 const routes=['#/','#/dex','#/replay','#/p/10058','#/season','#/learn/build','#/arch/rain','#/arch/tr','#/p/445','#/p/10230','#/types','#/team','#/tools','#/calc','#/assist','#/meta','#/report','#/community','#/lobby','#/bbs','#/games','#/sources','#/battle','#/edit/0','#/cmp/445','#/account','#/terms','#/privacy','#/tl','#/notif','#/u/someone','#/search','#/search/'+encodeURIComponent('#ガブリアス'),'#/learn','#/learn/word','#/item/choicescarf','#/item/garchompitez','#/word/tr','#/learn/move','#/learn/ability','#/move/89','#/ability/intimidate'];
 for(const r of routes){
   await pg.evaluate(h=>{location.hash=h},r);await pg.waitForTimeout(250);
-  const n=await pg.evaluate(()=>document.querySelector('main')?.innerText.trim().length||0);
+  /* 通信して表示する画面（シーズンなど）は、読み込み中の表示が消えるまで少し待つ */
+  let n=0;for(let k=0;k<12;k++){n=await pg.evaluate(()=>document.querySelector('main')?.innerText.trim().length||0);if(n>=20)break;await pg.waitForTimeout(250)}
   if(n<20)fail(`${r} の中身が空です`);
   if(await pg.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))fail(`${r} が横にはみ出しています`);
 }
