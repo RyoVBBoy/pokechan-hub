@@ -7,6 +7,7 @@
      fab   … 右下の丸いボタン（ポケチャンは「相性を調べる」）。無いゲームは出さない */
 I.target='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>';
 I.trend='<path d="M3.5 17.5 9 12l4 4 7.5-8"/><path d="M15 8h5.5v5.5"/>';
+I.replay='<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4.5v3.5h3.5"/><path d="m10.5 9 4.5 3-4.5 3z"/>';
 I.shield='<path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6z"/><path d="m9 12 2 2 4-4"/>';
 I.calc='<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01M8.5 18h.01M12 18h.01M15.5 18h.01"/>';
 I.cmp='<path d="M8 4v16M16 4v16M4 8h4M4 14h4M16 10h4M16 16h4"/>';
@@ -24,7 +25,7 @@ const GAMES=[
       {id:'assist',sec:'対戦の準備',href:'#/assist',ic:I.target,t:'選出アシスト',s:'選出',d:`相手の6匹から、出すべき${PICK()}匹と先発・相手の予想選出を出す`},
       {id:'meta',sec:'対戦の準備',href:'#/meta',ic:I.trend,t:'流行のポケモンとパーティ',s:'流行',d:`${FMTN()}の使用率ランキングと、よく使われる組み合わせ`},
       {id:'season',sec:'対戦の準備',href:'#/season',ic:I.trophy,t:'シーズンの上位パーティ',s:'上位パーティ',d:'シーズンごとに、上位になった人のパーティと育成、よく使われたポケモン'},
-      {id:'replay',sec:'対戦の準備',href:'#/replay',ic:I.trend,t:'対戦の振り返り（動画から）',s:'振り返り',d:'画面収録の動画から、相手・選出・勝ち負けを記録して、勝率と苦手な相手を出す'},
+      {id:'replay',sec:'対戦の準備',href:'#/replay',ic:I.replay,t:'対戦の振り返り（動画から）',s:'振り返り',d:'画面収録の動画から、相手・選出・勝ち負けを記録して、勝率と苦手な相手を出す'},
       {id:'report',sec:'対戦の準備',href:'#/report',ic:I.shield,t:'パーティの強みと弱み',s:'パーティ診断',d:'あなたのパーティの強み・弱み・警戒すべき相手をまとめて'},
       {id:'pip',sec:'計算',href:'#/assist/pip',ic:I.pip,t:'PiP（ピクチャ・イン・ピクチャ）',s:'PiP',d:'選出・ダメージ・素早さや育成のカードを、ゲームの上にPiPで浮かべる（バトル中・育成中）'},
       {id:'calc',sec:'計算',href:'#/calc',ic:I.calc,t:'ダメージ計算',s:'ダメ計',d:'あなたの育成やよくある型で、乱数16段階・確定数まで'},
