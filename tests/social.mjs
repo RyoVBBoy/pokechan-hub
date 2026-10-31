@@ -134,6 +134,11 @@ r=await call('/api/u/dave');expect('停止中の人のプロフィールは出�
 tick();r=await call('/api/notes',{method:'POST',tok:D,body:{body:'停止中の投稿'}});expect('停止中は投稿できない',r[0]===403,r);
 r=await call('/api/notes/'+rp1);expect('停止中の人の投稿は出ない',r[0]===404,r);
 r=await call('/api/admin/banned',{admin:'admin-secret-123'});expect('停止中の一覧',r[1].users.some(u=>u.handle==='dave'),r);
+/* アクセス解析：画面ごとの回数だけを数え、管理者だけが見られる */
+await call('/api/hit',{method:'POST',body:{k:'assist',v:1,d:'sp',r:'search'}});await call('/api/hit',{method:'POST',body:{k:'assist'}});await call('/api/hit',{method:'POST',body:{k:'bad key!'}});
+r=await call('/api/admin/hits');expect('アクセス解析：管理者以外は見られない',r[0]===401,r);
+r=await call('/api/admin/hits',{admin:'admin-secret-123'});const hitN=k=>(r[1].rows.find(x=>x.k===k)||{}).n;
+expect('アクセス解析：画面・訪問・端末・来た場所を数える',hitN('p:assist')===2&&hitN('_visit')===1&&hitN('d:sp')===1&&hitN('r:search')===1&&!r[1].rows.some(x=>/bad/.test(x.k)),r[1]);
 r=await call('/api/admin/ban',{method:'POST',admin:'admin-secret-123',body:{handle:'dave',on:false}});r=await call('/api/u/dave');expect('停止を解除できる',r[0]===200,r);
 /* 画像つき投稿 */
 const up=async(t,bytes,q='w=4&h=3')=>{const h={'content-type':'application/octet-stream','cf-connecting-ip':'10.9.9.9'};if(t)h.authorization='Bearer '+t;

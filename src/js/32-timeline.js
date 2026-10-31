@@ -306,8 +306,12 @@ async function searchView(a){
       <div class="sr-st">${SN.map((n,i)=>`<span><small>${n}</small><b>${top.s[i]}</b></span>`).join('')}<span><small>合計</small><b>${top.bst}</b></span></div><div class="row-s" style="margin-top:4px">図鑑の詳しい画面を見る ›</div></div></a>`:''}
     ${others.length?`<div class="sec"><h2>${top?'ほかのポケモン':'ポケモン'}</h2></div>${others.map(p=>rowP(p)).join('')}`:''}
     ${guideSearch(q)}
-    <div id="sr-users"></div><div class="sec"><h2>投稿</h2></div><div id="sr-list"></div>`;
-  await twAuth();
+    <div id="sr-users"></div><div class="sec"><h2>投稿</h2></div><div id="sr-comp"></div><div id="sr-list"></div>`;
+  const prof=await twAuth();
+  /* #タグ の検索では、そのタグを入れた投稿欄を出す（対戦募集・構築相談などはここから投稿する） */
+  if(/^[#＃]/.test(q)){const box=document.getElementById('sr-comp');
+    if(box&&prof){const c=twComposer(prof,()=>searchView(a));box.innerHTML=c.html;c.bind();const ta=document.getElementById('twc-t');if(ta&&!ta.value){ta.value='#'+t+' ';ta.dispatchEvent(new Event('input'))}}
+    else if(box)box.innerHTML=`<p class="note" style="padding-top:0"><a href="#/account" style="color:var(--acc)">ログインしてプロフィールを作る</a>と、このタグで投稿できます。</p>`}
   twFeed(document.getElementById('sr-list'),'/api/search?q='+encodeURIComponent(q),`「${esc(q)}」を含む投稿はまだありません。`);
   try{const j=await authFetch('/api/search?q='+encodeURIComponent(q));const el=document.getElementById('sr-users');
     if(el&&j.users&&j.users.length)el.innerHTML=`<div class="sec"><h2>トレーナー</h2></div>`+j.users.map(x=>`<a class="row" href="#/u/${esc(x.handle)}">${twAv(x)}<div class="row-m" data-notr><div class="row-t">${esc(x.name)}</div><div class="row-s">@${esc(x.handle)}${x.bio?'　'+esc(x.bio.slice(0,40)):''}</div></div></a>`).join('')}catch(e){}

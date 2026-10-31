@@ -26,16 +26,12 @@ const GAMES=[
       {id:'meta',sec:'対戦の準備',href:'#/meta',ic:I.trend,t:'流行のポケモンとパーティ',s:'流行',d:`${FMTN()}の使用率ランキングと、よく使われる組み合わせ`},
       {id:'season',sec:'対戦の準備',href:'#/season',ic:I.trophy,t:'シーズンの上位パーティ',s:'上位パーティ',d:'シーズンごとに、上位になった人のパーティと育成、よく使われたポケモン'},
       {id:'replay',sec:'対戦の準備',href:'#/replay',ic:I.replay,t:'対戦の振り返り（動画から）',s:'振り返り',d:'画面収録の動画から、相手・選出・勝ち負けを記録して、勝率と苦手な相手を出す'},
-      {id:'report',sec:'対戦の準備',href:'#/report',ic:I.shield,t:'パーティの強みと弱み',s:'パーティ診断',d:'あなたのパーティの強み・弱み・警戒すべき相手をまとめて'},
       {id:'pip',sec:'計算',href:'#/assist/pip',ic:I.pip,t:'PiP（ピクチャ・イン・ピクチャ）',s:'PiP',d:'選出・ダメージ・素早さや育成のカードを、ゲームの上にPiPで浮かべる（バトル中・育成中）'},
       {id:'calc',sec:'計算',href:'#/calc',ic:I.calc,t:'ダメージ計算',s:'ダメ計',d:'あなたの育成やよくある型で、乱数16段階・確定数まで'},
       {id:'types',sec:'計算',href:'#/types',ic:I.zap,t:'タイプ相性',s:'相性',d:'相手のポケモンやタイプから、効く技と出すべきポケモン'},
       {id:'cmp',sec:'計算',href:'#/cmp',ic:I.cmp,t:'ポケモン比較',s:'比較',d:'2匹の種族値とタイプ相性を重ねて比べる'},
-      {id:'battle',sec:'練習',href:'#/battle',ic:I.swords,t:'模擬戦',s:'模擬戦',d:'技・特性つきの対戦で練習（今はダブルのみ）',badge:'β'},
       {id:'import',sec:'連携',href:'#/import',ic:I.image,t:'画像から取り込む',s:'取り込み',d:'ゲームのチーム画面のスクショから、技・持ち物・能力ポイントまで'},
       {id:'learn',sec:'資料',href:'#/learn',ic:I.book,t:'攻略ガイド（道具・技・特性・構築・戦術）',s:'ガイド',d:'持ち物・技・特性の使いどころ、構築の型、戦術・用語を当サイトの言葉で解説'},
-      {id:'guide',sec:'資料',href:'#/guide',ic:I.book,t:'基本ルール',s:'ルール',d:'能力ポイント・性格・計算式など'},
-      {id:'sources',sec:'資料',href:'#/sources',ic:I.info,t:'データの出典と確認状況',s:'出典',d:'数値の出どころと、どこまで確かめたか'}
     ]},
   {id:'efootball',name:'eFootball',short:'イーフト',home:null,status:'soon',color:'#1d9bf0',desc:'育成・スカッド作成など（準備中）'}
 ];

@@ -92,7 +92,6 @@ function teamRender(){
   <p class="note" style="padding-top:0">${C.scope}を、タイプ相性（特性も入れて）・組み合わせ・持ち物・技・素早さの面から見ています。点数はつけず、気になる点にはそれぞれ直し方を書いています。</p>
   ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
-  <div class="btns"><a class="btn btn-p" href="#/report">強み・弱み・警戒をくわしく見る</a></div>
   ${adSlot('診断結果下')}`;
 }
 /* ---- パーティのチェック：タイプだけでなく、組み合わせ・持ち物・技・素早さも見て、直し方を添える（点数はつけない） ---- */

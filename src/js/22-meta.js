@@ -64,7 +64,7 @@ function metaView(){
     ${META.teams.map((t,k)=>`<div class="mteam">
       <div class="mteam-h"><b>パーティ${k+1}</b><span>${byNo[t[0]].n}軸</span></div>
       <div class="mteam-m">${t.map(n=>`<a href="#/p/${n}" class="mmon"><span class="av">${stamp(byNo[n])}</span><b>${byNo[n].n}</b><small>${metaSetLine(n)}</small></a>`).join('')}</div>
-      <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-opp="${k}">選出アシストで対策</button><button class="btn btn-s" data-sim="${k}">模擬戦で戦う</button></div>
+      <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-opp="${k}">選出アシストで対策</button></div>
     </div>`).join('')}
     <div class="sec"><h2>使用率ランキング（上位）</h2><span style="font-size:13px;color:var(--dim)">${FMTN()}・現在のシーズン</span></div>
     ${META.rank.slice(0,30).map(x=>`<a class="row" href="#/p/${x.no}"><span class="rk">${x.rank}</span><span class="av">${stamp(byNo[x.no])}</span><div class="row-m"><div class="row-t">${byNo[x.no].n}</div><div class="row-s">${metaSetLine(x.no)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}

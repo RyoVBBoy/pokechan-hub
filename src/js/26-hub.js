@@ -18,12 +18,14 @@ function toolsView(){
 }
 function communityView(){
   setHeader('コミュニティ');
-  V.innerHTML=`<p class="note" style="padding-top:14px">ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集と掲示板は匿名で使えます。</p>
+  V.innerHTML=`<p class="note" style="padding-top:14px">ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集・相談・質問は、タイムラインにタグを付けて投稿します（タグを押すと、そのタグの投稿と投稿欄が開きます）。</p>
   ${hubRow('#/tl','タイムライン','トレーナーの投稿を見る・投稿する・フォローする')}
   ${hubRow('#/notif','お知らせ','いいね・フォローされたとき<span id="cm-notif-n" style="color:var(--acc);margin-left:6px">'+(notifN?'未読 '+notifN+'件':'')+'</span>')}
   ${hubRow('#/account','アカウント',typeof AUTH!=='undefined'&&AUTH.profile?`@${esc(AUTH.profile.handle)}・プロフィール`:'ログイン・プロフィール')}
-  ${hubRow('#/lobby','対戦募集','プライベート対戦の相手を募集・参加する（あいことばを共有）')}
-  ${hubRow('#/bbs','掲示板','雑談・構築相談・質問・大会の情報')}
+  ${hubRow('#/search/'+encodeURIComponent('#対戦募集'),'<span data-notr>#対戦募集</span>','プライベート対戦の相手を募集する（形式・ルール・あいことばを書いて投稿）')}
+  ${hubRow('#/search/'+encodeURIComponent('#構築相談'),'<span data-notr>#構築相談</span>','パーティの組み方を相談する')}
+  ${hubRow('#/search/'+encodeURIComponent('#質問'),'<span data-notr>#質問</span>','わからないことを聞く')}
+  ${hubRow('#/search/'+encodeURIComponent('#雑談'),'<span data-notr>#雑談</span>','なんでも話す')}
   ${hubRow('#/rules','利用ルール','禁止していること・通報と削除・保存する情報')}`;
 }
 

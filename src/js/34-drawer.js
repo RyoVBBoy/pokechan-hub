@@ -18,8 +18,8 @@ function drawerHTML(){
     ${it('#/team',I.grid,'パーティ')}
     ${it('#/tools',I.star,'マイツール')}
     ${MULTI_GAME?`<button class="dr-i" data-dr="game">${SVG(I.swap,24)}<span>ゲームを切り替える</span><span class="dr-g">${gameMark(g,22)}</span></button>`:''}
-    ${it('#/lobby',I.swords||I.chat,'対戦募集')}
-    ${it('#/bbs',I.chat,'掲示板')}
+    ${it('#/search/'+encodeURIComponent('#対戦募集'),I.swords||I.chat,'対戦募集')}
+    ${it('#/search/'+encodeURIComponent('#構築相談'),I.chat,'構築相談・質問')}
     <div class="dr-sep"></div>
     <details class="dr-d"><summary>${SVG(I.gear,22)}<span>設定とプライバシー</span></summary>
       <div class="dr-set"><div class="dr-lab">${SVG(I.moon,18)}明るさ</div>

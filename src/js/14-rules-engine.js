@@ -1,6 +1,6 @@
 /* ===================== ルール ===================== */
 function guide(){
-  setHeader('基本ルール','#/tools');
+  setHeader('基本ルール','#/learn');
   const _srcTop=`<a class="row" href="#/sources" style="border-bottom:1px solid var(--line)"><div class="row-m"><div class="row-t">データの出典と確認状況</div><div class="row-s">数値の出どころと、どこまで確かめたか</div></div><span class="chev">${SVG(I.chev,18)}</span></a>${srcLine('formula','regulation','typechart')}`;
   const f=[
     ['タイプ相性の基本','「ばつぐん」かどうかは、攻撃する技のタイプと、受ける側のタイプで決まります。受ける側が2タイプのときは倍率をかけ算し、×2と×2で4倍、×2と×½で等倍になります。効かない組み合わせ（例：でんき技→じめん）は倍率0です。「相性」ボタン（スマホは右下・パソコンは左のメニュー）から相手を選ぶと、効く技を自動で表示します。'],
