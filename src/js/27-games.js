@@ -39,12 +39,15 @@ const GAMES=[
     ]},
   {id:'efootball',name:'eFootball',short:'イーフト',home:null,status:'soon',color:'#1d9bf0',desc:'育成・スカッド作成など（準備中）'}
 ];
+/* いまはポケモンチャンピオンズ専用のサイトとして運営する（2026/10/31 依頼主の方針）。
+   true にすると、ゲームの切り替え（左のメニュー・#/games・起動時の選択）が出る。ゲームを増やすときに true にする */
+const MULTI_GAME=false;
 const COMMON_TAB=['community',I.chat,'コミュニティ'];
 const BRAND={logo:null}; /* ロゴ画像のURLを入れると、左上の丸の中に表示される（例：'img/logo.png'） */
 const gpGet=()=>{const d={pins:['pokechamp'],start:'last',last:'pokechamp'};try{return{...d,...JSON.parse(localStorage.getItem('pcgames')||'{}')}}catch(e){return d}};
 const gpSet=o=>{try{localStorage.setItem('pcgames',JSON.stringify({...gpGet(),...o}))}catch(e){}};
 const gameOf=id=>GAMES.find(g=>g.id===id);
-const curGame=()=>gameOf(gpGet().last)||GAMES[0];
+const curGame=()=>MULTI_GAME?(gameOf(gpGet().last)||GAMES[0]):GAMES[0];
 /* ---- ツール：マイツール（☆）・最近使った（この端末に保存。ゲームごと） ---- */
 const toolsOf=g=>(g&&g.tools?g.tools():[]);
 const tlsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){return{}}};
@@ -81,6 +84,7 @@ function openGame(g){
   const ch=curGame().id!==g.id;gpSet({last:g.id});if(ch)drawNav();nav(g.home);
 }
 function gameSheet(){
+  if(!MULTI_GAME)return;
   const gp=gpGet(),cg=curGame();
   const list=(gp.pins.length?gp.pins.map(gameOf).filter(Boolean):GAMES.filter(g=>g.status==='ready'));
   const o=document.createElement('div');o.className='psheet';
@@ -95,6 +99,7 @@ function gameSheet(){
   o.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{done();openGame(gameOf(b.dataset.g))});
 }
 function gamesView(){
+  if(!MULTI_GAME){nav('#/');return}
   setHeader('ゲームを選ぶ',curGame().home||'#/');
   const gp=gpGet();
   const pins=gp.pins.map(gameOf).filter(Boolean);
@@ -120,7 +125,7 @@ function gamesView(){
 /* 起動時：設定に合わせて最初の画面を決める（URLで特定のページが指定されているときはそのまま） */
 (function(){
   if(cur&&cur!=='#'&&cur!=='#/')return;
-  const gp=gpGet();
+  const gp=gpGet();if(!MULTI_GAME)return;
   const target=gp.start==='picker'?'#/games':gp.start==='last'?(curGame().home||'#/'):((gameOf(gp.start)||{}).home||'#/');
   if(target!=='#/'){cur=target;setUrl(target)}
 })();

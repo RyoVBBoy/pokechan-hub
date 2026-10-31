@@ -5,7 +5,7 @@ I.chat='<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 
 const V=document.getElementById('view'),HI=document.getElementById('hdr-in'),HD=document.getElementById('hdr');
 function setHeader(title,back){
   HI.innerHTML=(back?`<a class="ibtn" href="${back}" data-back aria-label="戻る">${SVG(I.back,22)}</a>`
-    :`<button class="mark mbtn" id="brand" aria-label="メニューを開く（いまは${esc(curGame().name)}）">${BRAND.logo?`<img src="${BRAND.logo}" alt="">`:gameMark(curGame(),32)}<i aria-hidden="true">▾</i></button>`)+`<h1>${title}</h1>`;
+    :`<button class="mark mbtn" id="brand" aria-label="メニューを開く">${BRAND.logo?`<img src="${BRAND.logo}" alt="">`:gameMark(curGame(),32)}${MULTI_GAME?'<i aria-hidden="true">▾</i>':''}</button>`)+`<h1>${title}</h1>`;
 }
 let lastY=0;
 SCROLLER.addEventListener('scroll',()=>{

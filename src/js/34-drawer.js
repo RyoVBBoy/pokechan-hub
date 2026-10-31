@@ -17,7 +17,7 @@ function drawerHTML(){
     ${it('#/notif',I.bell,'お知らせ')}
     ${it('#/team',I.grid,'パーティ')}
     ${it('#/tools',I.star,'マイツール')}
-    <button class="dr-i" data-dr="game">${SVG(I.swap,24)}<span>ゲームを切り替える</span><span class="dr-g">${gameMark(g,22)}</span></button>
+    ${MULTI_GAME?`<button class="dr-i" data-dr="game">${SVG(I.swap,24)}<span>ゲームを切り替える</span><span class="dr-g">${gameMark(g,22)}</span></button>`:''}
     ${it('#/lobby',I.swords||I.chat,'対戦募集')}
     ${it('#/bbs',I.chat,'掲示板')}
     <div class="dr-sep"></div>
