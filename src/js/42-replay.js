@@ -1,9 +1,10 @@
 /* ===================== 対戦の振り返り（#/replay） =====================
-   iPhone の画面収録の動画を選ぶと、この端末の中で静止画を20枚ほど取り出し、その静止画だけをサーバー（worker/src/replay.js）へ送る。
+   iPhone の画面収録の動画を選ぶと、この端末の中で画面が変わった場面の静止画を取り出し、その静止画だけをサーバー（worker/src/replay.js）へ送る。
    AI が読んだ事実（相手の6匹・お互いの選出・相手の技と持ち物・勝ち負け）を直してから記録し、記録から勝率や苦手な相手を出す。
    動画そのものはどこにも送らない・保存しない */
 const RP={read:null,list:null};
-/* 動画から静止画を取り出す：最初の80秒は5秒ごと（選出画面を逃さない）、そのあとは間をあけて、最後は結果の画面 */
+/* 動画から静止画を取り出す：1秒ごとに見て、画面が変わったとき（技・持ち物の文字が出た、ポケモンが入れかわった等）だけ残す。
+   同じ画面が続くあいだ（技を選んでいる間など）は送らない。最後は結果の画面 */
 async function rpFrames(file,onp){
   const url=URL.createObjectURL(file),v=document.createElement('video');
   v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
@@ -11,18 +12,24 @@ async function rpFrames(file,onp){
     await new Promise((res,rej)=>{v.onloadedmetadata=res;v.onerror=()=>rej(new Error('動画を開けませんでした（対応していない形式かもしれません）。'))});
     try{await v.play();v.pause()}catch(e){}
     const dur=Math.min(v.duration||0,1200);if(!(dur>2))throw new Error('動画が短すぎるか、長さを読めませんでした。');
-    const ts=[];for(let t=1;t<Math.min(dur,80);t+=5)ts.push(t);
-    if(dur>80)for(let i=1;i<=8;i++)ts.push(80+(dur-80)*i/9);
-    ts.push(Math.max(0,dur-4),Math.max(0,dur-.6));
-    const list=[...new Set(ts.map(t=>Math.round(t*10)/10))].sort((a,b)=>a-b).slice(0,26);
-    const sc=Math.min(1,512/Math.max(v.videoWidth||512,v.videoHeight||512)),c=document.createElement('canvas');
-    c.width=Math.round((v.videoWidth||512)*sc);c.height=Math.round((v.videoHeight||288)*sc);const g=c.getContext('2d');
-    const out=[];
-    for(let i=0;i<list.length;i++){
-      await new Promise(res=>{const done=()=>{v.removeEventListener('seeked',done);res()};v.addEventListener('seeked',done);v.currentTime=list[i];setTimeout(done,4000)});
-      g.drawImage(v,0,0,c.width,c.height);out.push({t:list[i],d:c.toDataURL('image/jpeg',.62).split(',')[1]});onp&&onp(i+1,list.length);
+    const step=Math.max(1,dur/700),ts=[];for(let t=.5;t<dur-.7;t+=step)ts.push(t);ts.push(Math.max(0,dur-.6));
+    const W=v.videoWidth||512,H=v.videoHeight||288,sc=Math.min(1,512/Math.max(W,H)),c=document.createElement('canvas');
+    c.width=Math.round(W*sc);c.height=Math.round(H*sc);const g=c.getContext('2d');
+    const tw=48,th=27,tc=document.createElement('canvas');tc.width=tw;tc.height=th;const tg=tc.getContext('2d',{willReadFrequently:true});
+    const thumb=()=>{tg.drawImage(v,0,0,tw,th);const d=tg.getImageData(0,0,tw,th).data,a=new Float32Array(tw*th);for(let i=0;i<a.length;i++)a[i]=(d[i*4]+d[i*4+1]+d[i*4+2])/3;return a};
+    /* 画面を横4×縦3に分け、いちばん変わったところの変わり具合（0〜255）。文字の帯やポケモンの入れかわりのような一部の変化も拾う */
+    const diff=(x,y)=>{const S=new Float32Array(12);for(let i=0;i<x.length;i++){const cx=Math.min(3,Math.floor((i%tw)/(tw/4))),cy=Math.min(2,Math.floor(Math.floor(i/tw)/(th/3)));S[cy*4+cx]+=Math.abs(x[i]-y[i])}return Math.max(...S)/(x.length/12)};
+    let out=[],last=null;
+    for(let i=0;i<ts.length;i++){
+      await new Promise(res=>{const done=()=>{v.removeEventListener('seeked',done);res()};v.addEventListener('seeked',done);v.currentTime=ts[i];setTimeout(done,3000)});
+      const th1=thumb(),sc1=last?diff(th1,last):999;
+      if(sc1>=12||i===ts.length-1){g.drawImage(v,0,0,c.width,c.height);out.push({t:Math.round(ts[i]*10)/10,d:c.toDataURL('image/jpeg',.6).split(',')[1],s:sc1});last=th1}
+      onp&&onp(i+1,ts.length,out.length);
     }
-    return out;
+    /* 多すぎるときは、変わり方の小さいものから減らす（最初と最後は残す） */
+    const MAX=96;
+    if(out.length>MAX){const keep=new Set([out[0],out[out.length-1],...out.slice(1,-1).sort((a,b)=>b.s-a.s).slice(0,MAX-2)]);out=out.filter(f=>keep.has(f))}
+    return out.map(({t,d})=>({t,d}));
   }finally{URL.revokeObjectURL(url)}
 }
 const rpChips=(nos,key)=>nos.map(n=>byNo[n]?`<span class="aop"><span class="aopi"><span class="av">${stamp(byNo[n])}</span><b>${esc(byNo[n].n)}</b></span><button class="aox" data-rprm="${key}:${n}" aria-label="${esc(byNo[n].n)}を外す">${SVG(I.x,14)}</button></span>`:'').join('');
@@ -34,14 +41,14 @@ async function replayView(){
   if(!AUTH.user){V.innerHTML=`<div class="bnote" style="margin:16px">対戦の振り返りは、記録を自分だけのものとして残すため、<a href="#/account" style="color:var(--acc)">ログイン</a>が必要です。</div>`;return}
   V.innerHTML=`<div id="rp-root"><p class="note" style="padding-top:14px">iPhoneの<b>画面収録</b>で対戦を録画し、その動画を選ぶと、相手の6匹・お互いの選出・相手が使った技と持ち物・勝ち負けを読み取って記録します。記録がたまると、勝率や苦手な相手が分かります。</p>
     <div class="as-read"><label class="btn btn-p" for="rp-file" style="cursor:pointer">${SVG(I.image,18)}対戦の動画を選ぶ</label><input type="file" id="rp-file" accept="video/*" hidden>
-      <p class="vcap">動画はこの端末の中で静止画を20枚ほど取り出すだけで、動画そのものは送りません（静止画も読み取りに使うだけで保存しません）。選出画面から結果の画面まで入っている動画がいちばん正確です。1日20本まで。</p><div id="rp-msg"></div></div>
+      <p class="vcap">動画はこの端末の中で、画面が変わった場面の静止画だけを取り出して送ります。、動画そのものは送りません（静止画も読み取りに使うだけで保存しません）。選出画面から結果の画面まで入っている動画がいちばん正確です。1日20本まで。</p><div id="rp-msg"></div></div>
     <div id="rp-edit"></div><div id="rp-stats"><p class="empty">記録を読み込み中…</p></div></div>`;
   const msg=(t,bad)=>{document.getElementById('rp-msg').innerHTML=t?`<div class="bnote" style="margin:8px 0 0${bad?';box-shadow:inset 0 0 0 1px var(--w2)':''}">${t}</div>`:''};
   document.getElementById('rp-file').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
     try{msg('動画から静止画を取り出しています…');
-      const fr=await rpFrames(f,(i,n)=>msg(`動画から静止画を取り出しています… ${i}/${n}`));
-      msg('AIが読み取っています…（10〜30秒ほど）');
+      const fr=await rpFrames(f,(i,n,k)=>msg(`動画を確かめています… ${Math.round(i/n*100)}%（画面が変わった場面 ${k}枚）`));
+      msg(`AIが読み取っています…（${fr.length}枚・30〜60秒ほど）`);
       const j=await authFetch('/api/replay-read',{frames:fr});
       RP.read={fmt:j.fmt||FMT,result:j.result,opp:j.opp,my:j.my.length?j.my:team.map(x=>x.no),opp_sel:j.opp_sel,my_sel:j.my_sel,info:j.info||{}};
       msg(`読み取りました（${j.sec}秒）。違うところがあれば直してから「記録する」を押してください。`);rpEdit();

@@ -1,15 +1,15 @@
 /* ===================== 対戦の振り返り（画面収録の動画から） =====================
-   サイトが動画から静止画を20枚ほど取り出し（スマホの中）、その静止画だけを送ってくる。動画は受け取らない・静止画も保存しない。
+   サイトが動画から画面の変わった場面の静止画（最大96枚）を取り出し（スマホの中）、その静止画だけを送ってくる。動画は受け取らない・静止画も保存しない。
    ・POST /api/replay-read：Gemini で事実（相手の6匹・自分の6匹・お互いの選出・相手が使った技と持ち物・勝ち負け）を読む
    ・POST /api/battles（保存）・GET /api/battles（自分の記録）・POST /api/battles/番号/delete
    ログインした人だけ。読み取りは1日20回まで */
-const REPLAY_PROMPT=`これは「ポケモンチャンピオンズ」の対戦を画面収録した動画から、時間の順に取り出した静止画です（各画像の前に秒数があります）。
+const REPLAY_PROMPT=`これは「ポケモンチャンピオンズ」の対戦を画面収録した動画から、時間の順に取り出した静止画の一部です（選出画面や結果の画面が入っていないこともあります）（各画像の前に秒数があります）。
 画面に映っている事実だけを読み取ってください。推測はしないでください。わからない項目は null や空にします。
 - opponent_team：対戦前の選出画面で、右側（赤いパネル）に並ぶ相手の6匹の名前
 - my_team：同じ画面で、左側（青いパネル）に並ぶ自分の6匹の名前
 - opponent_used：対戦中に場に出てきた相手のポケモンの名前（出てきた順）
 - my_used：対戦中に場に出てきた自分のポケモンの名前（出てきた順）
-- opponent_moves：相手のポケモンごとに、使ったと画面に出た技の名前
+- opponent_moves：相手のポケモンごとに、使ったと画面に出た技の名前（「相手の 〇〇の △△！」のような文字。自分のポケモンの技は入れない）
 - opponent_items：相手のポケモンごとに、画面に出た持ち物（メガシンカしたらメガストーンの名前）
 - result：最後に勝ったなら "win"、負けたなら "lose"、わからなければ "unknown"
 - format：シングルなら "single"、ダブルなら "double"
@@ -39,10 +39,10 @@ async function replayApi(req,env,db,path,now){
     const c=await db.prepare(`SELECT COUNT(*) AS c FROM replay_reads WHERE uid=? AND created_at>?`).bind(me.uid,now-864e5).first();
     if(c&&c.c>=20)return J({error:'1日に読み取れる回数（20回）を超えました。'},429);
     let b;try{b=JSON.parse(await req.text())}catch(e){return J({error:'送信内容を読めませんでした。'},400)}
-    const fr=(Array.isArray(b.frames)?b.frames:[]).slice(0,30).filter(f=>f&&typeof f.d==='string'&&f.d.length<400000&&/^[A-Za-z0-9+/=]+$/.test(f.d.slice(0,100)));
+    const fr=(Array.isArray(b.frames)?b.frames:[]).slice(0,100).filter(f=>f&&typeof f.d==='string'&&f.d.length<400000&&/^[A-Za-z0-9+/=]+$/.test(f.d.slice(0,100)));
     if(fr.length<3)return J({error:'動画から静止画を取り出せませんでした。'},400);
-    /* 1回で全部送ると時間切れ（524）になりやすいので、9枚ずつに分けて同時に読み、あとで合わせる */
-    const chunks=[];for(let i=0;i<fr.length;i+=9)chunks.push(fr.slice(i,i+9));
+    /* 1回で全部送ると時間切れ（524）になりやすいので、12枚ずつに分けて同時に読み、あとで合わせる */
+    const chunks=[];for(let i=0;i<fr.length;i+=12)chunks.push(fr.slice(i,i+12));
     const t0=Date.now();
     const rs=await Promise.allSettled(chunks.map(async ch=>{
       const parts=[];ch.forEach(f=>{parts.push({text:`${Math.round(+f.t||0)}秒`});parts.push({inline_data:{mime_type:'image/jpeg',data:f.d}})});parts.push({text:REPLAY_PROMPT});
