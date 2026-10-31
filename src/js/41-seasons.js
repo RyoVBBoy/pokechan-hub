@@ -17,7 +17,7 @@ function useTeam(name,list){
   if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
     if(e>=0)i=e;else if(!confirm(`「${teamName(TEAMS.cur)}」を、このパーティに入れかえます。よろしいですか？`))return}
   if(i!==TEAMS.cur)switchTeam(i);
-  team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const o={no:x.no,sel:k<PICK()},s=cleanSet(x.set);if(s&&(s.sp||s.mv.length))o.set=s;return o});
+  team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const o={no:x.no,sel:k<PICK()},s=cleanSet(x.set);if(s&&(s.sp||s.mv.length))o.set={...s,src:'copy'};return o});
   if(!TEAMS.list[i].name)TEAMS.list[i].name=String(name||'').slice(0,20);
   saveTeam();toast(`「${teamName(i)}」に入れました`);nav('#/team');
 }

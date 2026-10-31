@@ -230,6 +230,15 @@ r=await call('/api/battles',{method:'POST',tok:B,body:rd});expect('振り返り�
 r=await call('/api/battles',{tok:B});expect('振り返り：自分の記録だけ見える',r[1].battles.length===1&&r[1].battles[0].result==='win',r[1]);
 r=await call('/api/battles',{tok:A});expect('振り返り：ほかの人の記録は見えない',r[1].battles.length===0,r[1]);
 await call(`/api/battles/${bid}/delete`,{method:'POST',tok:B,body:{}});r=await call('/api/battles',{tok:B});expect('振り返り：消せる',r[1].battles.length===0,r[1]);
+/* 当サイトの使用率：3人が同じ相手を記録すると集計に出る。保存した育成（写したものは数えない）も集計 */
+{const opp6=[445,887,1000,6,149,248];
+for(const t of [A,C,D])await call('/api/battles',{method:'POST',tok:t,body:{...rd,opp:opp6,fmt:'single',info:{445:{mv:[89],it:'choicescarf'}}}});
+const tm=(no,s)=>({cur:0,list:[{name:'x',team:[{no,set:{it:{k:'choicescarf'},ab:{k:'roughskin'},mv:[{id:89},{id:200}],sp:[2,32,0,0,0,32],up:1,dn:3,src:s}}]}]});
+for(const u of ['us1','us2','us3']){const t=await tok(u);await call('/api/me/teams',{method:'POST',tok:t,body:{teams:tm(445,'manual'),updated_at:Date.now()}});await call('/api/me/teams',{method:'POST',tok:await tok(u+'c'),body:{teams:tm(6,'copy'),updated_at:Date.now()}})}
+r=await call('/api/usage?fmt=single',{});const g=r[1].seen.find(x=>x[0]===445);
+expect('使用率：3人が見た相手が集計に出る',r[0]===200&&r[1].previews>=3&&g&&g[2]>0,r[1]);
+const b=r[1].builds[445];expect('使用率：育成の集計（写した型は数えない）',b&&b.it[0][0]==='choicescarf'&&b.mv[0][0]===89&&!r[1].builds[6],r[1].builds);
+r=await call('/api/usage?fmt=double',{});expect('使用率：形式ごとに分かれる',r[1].previews===0,r[1]);}
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

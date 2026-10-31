@@ -166,7 +166,7 @@ function imSave(){
   /* 戻り先があるときは、空いているパーティの枠に入れる（いまのパーティを消さない） */
   if(back){const e=TEAMS.list.findIndex((x,i)=>i!==TEAMS.cur&&!x.team.length);if(team.length&&e>=0)switchTeam(e)}
   team=IM.slots.filter(s=>s.no).slice(0,6).map((s,i)=>{
-    const set={};
+    const set={src:'import'};
     if(s.ab)set.ab={n:s.ab.n,k:s.ab.k};if(s.it)set.it={n:s.it.n,k:s.it.k};
     if(s.mv)set.mv=s.mv.map(m=>({n:m.n,id:m.id}));
     if(s.solve){set.sp=s.solve.sp;set.up=s.solve.up;set.dn=s.solve.dn;set.vals=s.vals;

@@ -170,7 +170,7 @@ function assistView(arg){
       try{await fbLoad();await AUTH.wait}catch(err){}
       if(!AUTH.user){say('スクショから読むには<a href="#/account" style="color:var(--acc)">ログイン</a>が必要です（AIの利用回数を守るため）。',true);return}
       const x=await twShrink(f,1100);say('相手の6匹を読み取っています…（数秒かかります）');
-      let r;try{r=await fetch(COMM_API+'/api/opp-read',{method:'POST',headers:{'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()},body:x.blob})}
+      let r;try{r=await fetch(COMM_API+'/api/opp-read?fmt='+FMT,{method:'POST',headers:{'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()},body:x.blob})}
       catch(err){say('通信できませんでした。電波のよいところで、もう一度選んでください。',true);return}
       const j=await r.json().catch(()=>({}));if(!r.ok){say(esc(j.error||'読み取れませんでした。')+'<br>もう一度選ぶか、下の欄から名前で入れてください。',true);return}
       const got=(j.opps||[]).filter(o=>o.no&&byNo[o.no]),nos=[...new Set(got.map(o=>o.no))].slice(0,6);

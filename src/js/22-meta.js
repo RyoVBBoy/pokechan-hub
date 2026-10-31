@@ -54,11 +54,12 @@ function metaSetLine(no){
 }
 function metaView(){
   setHeader('流行のポケモンとパーティ','#/tools');
+  usageGet(FMT,()=>{if(keyOf(cur)==='meta')metaView()});
   const draw=()=>{
     if(META.st!=='ready'){
-      V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">${FMTN()}のランクバトルで、いま多く使われているポケモンと、その組み合わせから作った<b>流行パーティ</b>を表示します。</p>
+      V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">${FMTN()}のランクバトルで、いま多く使われているポケモンと、その組み合わせから作った<b>流行パーティ</b>を表示します。</p>${usageMetaHTML()}
       <div class="bnote" style="margin:12px 16px">${META.st==='fail'?'集計データを取得できませんでした。通信できる環境で、もう一度開いてください。':'集計データを読み込んでいます…'}<span id="meta-n"></span></div>`;bindFmt(V,()=>metaView());return}
-    V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">${FMTN()}のランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ<b>代表的な組み合わせ</b>です（実在の特定のプレイヤーの構築ではありません）。</p>
+    V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">${FMTN()}のランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ<b>代表的な組み合わせ</b>です（実在の特定のプレイヤーの構築ではありません）。</p>${usageMetaHTML()}
     <div class="sec"><h2>流行パーティ</h2><span style="font-size:13px;color:var(--dim)">${META.teams.length}組</span></div>
     ${META.teams.map((t,k)=>`<div class="mteam">
       <div class="mteam-h"><b>パーティ${k+1}</b><span>${byNo[t[0]].n}軸</span></div>

@@ -73,6 +73,7 @@ async function replayApi(req,env,db,path,now){
     const info={};for(const [k,v] of Object.entries(b.info||{})){const no=+k;if(!opp.includes(no)||!v)continue;info[no]={mv:(Array.isArray(v.mv)?v.mv:[]).map(Number).filter(n=>n>0).slice(0,4),it:typeof v.it==='string'?v.it.slice(0,40):undefined}}
     const r=await db.prepare(`INSERT INTO battles(uid,fmt,result,my,opp,my_sel,opp_sel,opp_info,created_at) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id`)
       .bind(me.uid,b.fmt==='double'?'double':'single',['win','lose'].includes(b.result)?b.result:null,JSON.stringify(noList(b.my)),JSON.stringify(opp),JSON.stringify(noList(b.my_sel)),JSON.stringify(noList(b.opp_sel)),JSON.stringify(info),now).first();
+    await usageSeen(db,me.uid,b.fmt,opp,'battle',now);
     return J({ok:true,id:r.id});
   }
   if(path==='/api/battles'&&req.method==='GET'){

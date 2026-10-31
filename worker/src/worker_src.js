@@ -286,6 +286,7 @@ async function oppReadApi(req,env,db,now){
   const key=env.ANTHROPIC_API_KEY?'anthropic':'gemini',t0=Date.now();
   let list;try{list=checkOpp(await READERS[key].read(env,buf,mt,false))}catch(e){return J({error:String(e.message||e)},502)}
   await db.prepare(`INSERT INTO opp_reads(uid,created_at) VALUES(?,?)`).bind(me.uid,now).run();
+  await usageSeen(db,me.uid,new URL(req.url).searchParams.get('fmt'),list.filter(o=>o.mon&&o.sure!==false).map(o=>o.mon.no),'read',now);
   if(Math.random()<.05)await db.prepare(`DELETE FROM opp_reads WHERE created_at<?`).bind(now-2*864e5).run();
   return J({opps:list.map(o=>({no:o.mon?o.mon.no:null,name:String(o.name||'').slice(0,20),sure:!!o.sure,types:o.types||[]})),sec:Math.round((Date.now()-t0)/100)/10});
 }
@@ -308,7 +309,7 @@ __COMMUNITY__
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-App-Token,X-Team,X-Admin-Token,Authorization'};
 export default{
   /* 毎日1回（wrangler.toml の crons）：上位パーティの自動集計 */
-  async scheduled(ev,env,ctx){ctx.waitUntil(collectDaily(env).catch(()=>{}))},
+  async scheduled(ev,env,ctx){ctx.waitUntil(collectDaily(env).catch(()=>{}));ctx.waitUntil(usageDaily(env).catch(()=>{}))},
   async fetch(req,env,ctx){
     if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
     const u=new URL(req.url);let text=u.searchParams.get('text')||'',team=u.searchParams.get('team')||req.headers.get('x-team')||'',mode=u.searchParams.get('mode')||'';
