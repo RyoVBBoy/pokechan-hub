@@ -25,6 +25,7 @@ globalThis.fetch=async(u,o)=>{u=String(u);
   if(u.includes('generativelanguage')&&u.includes('/models?'))return new Response(JSON.stringify({models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']}]}));
   if(u.includes('generativelanguage')&&u.includes(':generateContent')){const b=JSON.parse(o.body);
     if(b.tools&&b.tools[0].google_search)return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'C'}]},groundingMetadata:{groundingChunks:[{web:{uri:'https://c.example/3',title:'C'}},{web:{uri:'javascript:alert(1)',title:'bad'}}]}}]}));
+    if(b.contents[0].parts.length>2&&b.contents[0].parts.some(p=>/画面収録/.test(p.text||'')))return gemReply(JSON.stringify({format:'single',result:'win',opponent_team:['ガブリアス','カイリュー','サーフゴー','ドラパルト','ガオガエン','ゴリランダー'],my_team:['リザードン','カメックス'],opponent_used:['ガブリアス','サーフゴー'],my_used:['リザードン'],opponent_moves:{'ガブリアス':['じしん','げきりん']},opponent_items:{'ガブリアス':'こだわりスカーフ'}}));
     if(b.contents[0].parts[0].inline_data)return gemReply(JSON.stringify({opponent:[{name:'ガブリアス',types:['ドラゴン','じめん'],confidence:.9},{name:'カイリュー',types:['ドラゴン','ひこう'],confidence:.9},{name:'サーフゴー',types:['はがね','ゴースト'],confidence:.4},{name:'？？？',types:['ほのお'],confidence:.2}]}));
     const url=(b.contents[0].parts[0].text.match(/ページ：(\S+)/)||[])[1];return gemReply('```json\n'+JSON.stringify(GEM_PAGES[url]||{teams:[]})+'\n```')}
   return new Response('',{status:404})};
@@ -218,6 +219,17 @@ const shot=async(t,bytes)=>{const h={'content-type':'image/jpeg'};if(t)h.authori
 r=await shot(null,JPG);expect('スクショ読み取りはログインが必要',r[0]===401,r);
 r=await shot(A,new Uint8Array([1,2,3,...Array(300).fill(0)]));expect('画像でないものは拒否',r[0]===400,r);
 r=await shot(A,JPG);expect('スクショから相手を読める（番号・自信）',r[0]===200&&r[1].opps.filter(o=>o.no).map(o=>o.no).join()==='445,149,1000'&&r[1].opps.find(o=>o.no===445).sure&&!r[1].opps.find(o=>o.no===1000).sure,r[1]);
+/* 対戦の振り返り */
+const fr=Array.from({length:4},(_,i)=>({t:i*3,d:'QUJD'+'A'.repeat(100)}));
+r=await call('/api/replay-read',{method:'POST',body:{frames:fr}});expect('振り返り：ログインが必要',r[0]===401,r);
+r=await call('/api/replay-read',{method:'POST',tok:B,body:{frames:fr.slice(0,1)}});expect('振り返り：静止画が少なすぎると拒否',r[0]===400,r);
+r=await call('/api/replay-read',{method:'POST',tok:B,body:{frames:fr}});
+expect('振り返り：動画の静止画から読み取る',r[0]===200&&r[1].opp.length===6&&r[1].opp[0]===445&&r[1].result==='win'&&r[1].opp_sel.join()==='445,1000'&&r[1].info[445].it==='choicescarf'&&r[1].info[445].mv.length===2,r[1]);
+const rd=r[1];
+r=await call('/api/battles',{method:'POST',tok:B,body:rd});expect('振り返り：記録できる',r[0]===200&&r[1].id>0,r);const bid=r[1].id;
+r=await call('/api/battles',{tok:B});expect('振り返り：自分の記録だけ見える',r[1].battles.length===1&&r[1].battles[0].result==='win',r[1]);
+r=await call('/api/battles',{tok:A});expect('振り返り：ほかの人の記録は見えない',r[1].battles.length===0,r[1]);
+await call(`/api/battles/${bid}/delete`,{method:'POST',tok:B,body:{}});r=await call('/api/battles',{tok:B});expect('振り返り：消せる',r[1].battles.length===0,r[1]);
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);
 r=await call('/api/me/teams',{method:'POST',body:{teams:{cur:0,list:[]},updated_at:clock}});expect('パーティ：ログインなしは拒否',r[0]===401,r);

@@ -55,12 +55,14 @@ function teamOf(list){
   return{team:out,unknown};
 }
 /* ---- Gemini（文章を書かせない。事実だけ JSON で） ---- */
-async function gemText(env,body){
+async function gemText(env,body,fast){
   let cands=env.GEMINI_MODEL?[env.GEMINI_MODEL]:[];
   try{cands=[...new Set([...cands,...await listGemini(env)])]}catch(e){if(!cands.length)throw e}
   let last='';
   for(const m of cands.slice(0,3)){
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},body:JSON.stringify(body)});
+    /* fast：考える時間（thinking）を使わない（2.5 Flash のとき） */
+    const bd=fast&&/gemini-2\.5-flash/.test(m)?{...body,generationConfig:{...(body.generationConfig||{}),thinkingConfig:{thinkingBudget:0}}}:body;
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},body:JSON.stringify(bd)});
     if(r.ok){const j=await r.json();const c=(j.candidates||[])[0]||{};return{text:(c.content&&c.content.parts||[]).map(p=>p.text||'').join(''),meta:c.groundingMetadata||null}}
     const t=await r.text();try{last=JSON.parse(t).error.message}catch(e){last=t}
     if(![404,429,500,503].includes(r.status))throw new Error(`Gemini ${r.status} ${String(last).slice(0,80)}`);

@@ -63,6 +63,8 @@ async function api(req,env,u,ctx){
   if(path==='/api/media'&&req.method==='POST')return mediaUpload(req,env,db,now);
   /* 選出画面のスクショから相手の6匹を読む（worker_src.js の oppReadApi） */
   if(path==='/api/opp-read'&&req.method==='POST')return oppReadApi(req,env,db,now);
+  /* 対戦の振り返り（replay.js）：大きな JSON を自分で読むので、ここで分ける */
+  {const r=await replayApi(req,env,db,path,now);if(r)return r}
   let body={};if(req.method==='POST'){const t=await req.text();if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
   if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db,env)).catch(()=>{}));
   let m;
