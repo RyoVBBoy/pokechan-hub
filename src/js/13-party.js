@@ -94,6 +94,7 @@ function teamRender(){
   ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   ${adSlot('診断結果下')}`;
+  out.querySelectorAll('[data-axis-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.axisPick,on=!team[i].axis;team.forEach(x=>delete x.axis);if(on)team[i].axis=true;saveTeam();toast(on?`${byNo[team[i].no].n}を軸にしました`:'軸を外しました');teamRender()});
   const pb=out.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出に★を付けました');teamRender()};
   out.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}の選出に★を付けました`);teamRender()});
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
@@ -108,14 +109,37 @@ function planHTML(entries){
   if(!P0)return '';
   const nmI=i=>esc(byNo[entries[i].no].n),chipsOf=a=>a.slice(0,5).map(q=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}${formInfo(q).tag?'（'+esc(formInfo(q).tag)+'）':''}</a>`).join('');
   const isSel=P0.sel.length===P0.base.length&&P0.base.every(i=>P0.sel.includes(i));
-  return `<div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
+  const kd=teamKind(entries),R=P0.roles,mons=a=>chipsOf(a.slice(0,4));
+  const finTxt=P0.finWhy?{prio:`先制技の${esc(P0.finWhy[1])}`,scarf:`${esc(P0.finWhy[1])}`,setup:`積み技の${esc(P0.finWhy[1])}`}[P0.finWhy[0]]:'';
+  const mid=P0.base.filter(i=>!P0.lead.includes(i)&&i!==P0.finisher);
+  /* 読まれにくさ：ランクバトルの集計と比べて、あまり使われていない持ち物・技 */
+  const zur=[];entries.forEach(x=>{const d=typeof LIVE!=='undefined'&&LIVE.csv[x.no];if(!d||!x.set)return;const p=byNo[x.no];
+    const it=x.set.it&&x.set.it.k,top2=d.it.slice(0,2).map(([nn])=>nrm(nn));if(it&&!isStone(it)&&!top2.includes(it)&&d.it.length)zur.push(`${esc(p.n)}の${esc(ITEMN[it]||it)}（よく使われるのは${esc(d.it.slice(0,2).map(([nn])=>ITEMN[nrm(nn)]||nn).join('・'))}）`);
+    const use={};d.mv.forEach(([nn,pc])=>{const id=MVKA[nrm(nn)];if(id)use[id]=pc});(x.set.mv||[]).forEach(m=>{if(m&&m.id&&(use[m.id]||0)<10)zur.push(`${esc(p.n)}の${esc(mName(m.id))}（使われているのは${use[m.id]?use[m.id]+'%':'ほとんどなし'}）`)})});
+  return `<div class="sec"><h2>構築の診断</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
+  <div class="pc-i pc-plan"><b>軸のポケモン</b><p>いちばん使いたい1匹を選ぶと、基本選出に必ず入れ、入れかえ案でも外しません。</p>
+    <div class="pills gchips" style="padding:4px 0 0">${entries.map((x,i)=>`<button class="pill" data-axis-pick="${i}" aria-pressed="${!!x.axis}">${esc(byNo[x.no].n)}</button>`).join('')}</div>
+    ${kd?`<h4>構築のタイプ</h4><p><b>${kd.name}</b>${kd.why.length?`<br><span class="vcap">理由：${esc(kd.why.join('・'))}</span>`:''}${kd.mix&&kd.mix.length?`<br><span class="vcap">${esc(kd.mix.join('・'))}の要素も同じくらいあります。方向をそろえると、選出で迷いにくくなります。</span>`:''}</p>`:'<p class="vcap">育成（持ち物・技）を3匹以上登録すると、構築のタイプ（対面・サイクル・積み）も診断します。</p>'}
+  </div>
+  <div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
   <p class="note" style="padding-top:0">${P0.live?'ランクバトルの使用率の上位':'種族値の高い'}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました（育成を登録した匹はその育成で計算）。</p>
   <div class="pc-i pc-plan" data-base="${P0.base.join(',')}"><b>基本選出</b>
     <p class="pc-mons">${P0.base.map(i=>`<span${P0.lead.includes(i)?' class="lead"':''}>${nmI(i)}${P0.lead.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
     <p>${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。</p>
+    <h4>勝ち筋</h4><ol class="pc-story"><li>先発の<b>${P0.lead.map(nmI).join('・')}</b>で、相手の先発に有利をとって削る。${R[P0.lead[0]].go.length?`（有利な相手：${R[P0.lead[0]].go.slice(0,3).map(q=>esc(q.n)).join('・')}）`:''}</li>
+      ${mid.length?`<li>不利な相手が出てきたら<b>${mid.map(nmI).join('・')}</b>に任せて、数を減らす。</li>`:''}
+      <li>${P0.finWhy?`最後は<b>${nmI(P0.finisher)}</b>の${finTxt}で、削れた相手を詰める。`:`最後の詰め役がはっきりしません。いちばん速い<b>${nmI(P0.finisher)}</b>で詰めることになりますが、先制技・こだわりスカーフ・積み技のどれかを持たせると、終盤に競り負けにくくなります。`}</li></ol>
     ${isSel?'<p class="vcap">いま★を付けている選出です。</p>':`<button class="bback" data-plan="${P0.base.join(',')}" style="padding:0;color:var(--acc)">この選出に★を付ける</button>`}
     ${P0.situ.length?`<h4>こういう相手のときは入れかえる</h4>${P0.situ.map(x=>`<div class="pc-situ"><p>相手に ${chipsOf(x.opps)}${x.opps.length>5?` など${x.opps.length}匹`:''} がいるとき</p><div class="pc-sw"><span><b>${nmI(x.out)}</b> → <b style="color:var(--acc)">${nmI(x.in)}</b></span><button class="bback" data-plsw="${x.out}:${x.in}">この選出にする</button></div></div>`).join('')}`:''}
   </div>
+  <div class="pc-i pc-plan"><b>よく使われる相手への答え</b><p>${P0.live?'ランクバトルの使用率':'種族値'}の上位8匹に、パーティのだれが有利に戦えるかです。</p>
+    ${P0.top.map(({q,ans})=>`<div class="pc-top"><a href="#/p/${q.no}">${esc(q.n)}</a><span>${ans.length?ans.slice(0,2).map(i=>`<b>${nmI(i)}</b>`).join('・')+'が有利':'<b style="color:var(--w2)">有利に戦える匹がいない</b>'}</span></div>`).join('')}
+    ${P0.top.some(x=>!x.ans.length)?'<p class="vcap">答えがいない相手には、受けられる匹か、上から倒せる匹を1匹用意すると安定します。</p>':''}
+  </div>
+  <div class="pc-i pc-plan"><b>1匹ずつの役割</b><p>それぞれ「どの相手に出すか・出さないか」です。出す相手がいない匹は、役割がはっきりしていない匹です。</p>
+    ${entries.map((x,i)=>`<div class="pc-role"><b>${nmI(i)}${i===P0.ax?'<small>軸</small>':''}</b>${R[i].go.length?`<p>出す：${mons(R[i].go)}</p>`:'<p style="color:var(--w2)">出す相手がはっきりしません（パーティのほかの匹の方が有利な相手ばかり）。</p>'}${R[i].no.length?`<p>出さない：${mons(R[i].no)}</p>`:''}</div>`).join('')}
+  </div>
+  ${zur.length?`<div class="pc-i pc-ok"><b>✓ 読まれにくい要素</b><p>ランクバトルであまり使われていない持ち物・技です。相手が型を読み違えやすくなります。</p><p>${zur.slice(0,4).join('<br>')}</p></div>`:''}
   ${P0.sel.length===P0.base.length&&!isSel&&P0.selWeak.length?`<div class="pc-i pc-fix"><b>いまの★の選出が苦手な相手</b><p>${P0.selWeak.map(({q})=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}</a>`).join('')}</p><p>選出のだれも有利に戦いにくい相手です。この相手が見えたら、上の基本選出や入れかえを考えます。</p></div>`:''}`;
 }
 /* ---- パーティのチェック：タイプだけでなく、組み合わせ・持ち物・技・素早さも見て、直し方を添える（点数はつけない） ---- */
@@ -144,7 +168,7 @@ function partyCheck(entries){
   /* 入れかえ案（だれ→だれ）：外す1匹は、問題に関わる匹のうちメガストーンを持たない・合計種族値の低い方。
      選出（★）で見ているときは、まずパーティの中の★なしの匹との入れかえ、その次に新しいポケモン */
   const stoneOf=o=>{const k=o.x.set&&o.x.set.it&&o.x.set.it.k;return !!k&&isStone(k)};
-  const outOf=f=>[...ms.filter(f)].sort((a,b)=>stoneOf(a)-stoneOf(b)||a.p.bst-b.p.bst)[0];
+  const outOf=f=>[...ms.filter(o=>!o.x.axis).filter(f)].sort((a,b)=>stoneOf(a)-stoneOf(b)||a.p.bst-b.p.bst)[0];
   const bench=allMs.filter(o=>!use.includes(o.x));
   const swaps=(out,okP,news)=>{if(!out)return[];const r=[];
     if(full)bench.filter(o=>okP(o.p)).slice(0,2).forEach(o=>r.push({out,inP:o.p,inX:o.x}));
@@ -226,7 +250,9 @@ function selPlan(entries){
   /* メガシンカは1試合に1匹なので、メガストーンを持つ匹は選出に1匹まで */
   const stone=i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return !!k&&isStone(k)};
   const okSub=c=>c.filter(stone).length<=1;
-  const all=combos([...Array(n).keys()],K).filter(okSub);if(!all.length)return null;
+  /* 軸（利用者が決めた、外さない1匹）は必ず選出に入れる */
+  const ax=entries.findIndex(x=>x.axis);
+  const all=combos([...Array(n).keys()],K).filter(c=>okSub(c)&&(ax<0||c.includes(ax)));if(!all.length)return null;
   const base=all.reduce((b,c)=>{const v=val(c);return !b||v>b.v?{c,v}:b},null).c;
   const avg=i=>S[i].reduce((t,v,j)=>t+v*w[j],0);
   const lead=[...base].sort((a,b)=>avg(b)-avg(a)).slice(0,LEADN());
@@ -236,12 +262,38 @@ function selPlan(entries){
   const situ=[];
   [...Array(n).keys()].filter(i=>!base.includes(i)).forEach(b=>{
     const js=weakJ.filter(j=>S[b][j]>=1&&S[b][j]>=bm(j)+1);if(!js.length)return;
-    const out=[...base].filter(x=>okSub([...base.filter(y=>y!==x),b])).sort((x,y)=>js.reduce((t,j)=>t+S[x][j],0)-js.reduce((t,j)=>t+S[y][j],0)||avg(x)-avg(y))[0];if(out==null)return;
+    const out=[...base].filter(x=>x!==ax&&okSub([...base.filter(y=>y!==x),b])).sort((x,y)=>js.reduce((t,j)=>t+S[x][j],0)-js.reduce((t,j)=>t+S[y][j],0)||avg(x)-avg(y))[0];if(out==null)return;
     situ.push({out,in:b,opps:js.map(j=>opps[j])})});
   situ.sort((a,b)=>b.opps.length-a.opps.length);
   /* ★で選んでいる選出が苦手な相手 */
   const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);
   const selWeak=sel.length===K?opps.map((q,j)=>({q,j})).filter(({j})=>Math.max(...sel.map(i=>S[i][j]))<.5).slice(0,6):[];
-  return{base,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps};
+  /* 1匹ずつの役割：出す相手（パーティでいちばん有利に戦える相手）・出さない相手（不利な相手） */
+  const roles=[...Array(n).keys()].map(i=>{
+    const go=opps.map((q,j)=>({q,j})).filter(({j})=>S[i][j]>=1&&S[i][j]>=Math.max(...S.map(r=>r[j]))).map(x=>x.q);
+    const no=opps.map((q,j)=>({q,j})).filter(({j})=>S[i][j]<=-1).map(x=>x.q);return{go,no}});
+  /* 詰め役：先制技・こだわりスカーフ・積み技、なければいちばん速い匹 */
+  const fin=i=>{const a=me[i];if(!a)return null;const pr=a.moves.find(m=>m&&m.pri>0&&m.pow>0);if(pr)return['prio',pr.n];if(a.item==='choicescarf')return['scarf',ITEMN.choicescarf];
+    const k=((entries[i].set&&entries[i].set.mv)||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).find(z=>[...GM_PSET,...GM_SSET,...GM_BSET].includes(z));if(k){const id=Object.keys(MD).find(x=>MD[x][3]===k);return['setup',mName(+id)]}return null};
+  const fins=base.filter(i=>fin(i));
+  const finisher=fins.length?fins.sort((a,b)=>spd(me[b])-spd(me[a]))[0]:[...base].sort((a,b)=>spd(me[b])-spd(me[a]))[0];
+  /* 環境の上位8匹に、だれが有利に戦えるか */
+  const top=opps.slice(0,8).map((q,j)=>({q,ans:[...Array(n).keys()].filter(i=>S[i][j]>=1).sort((a,b)=>S[b][j]-S[a][j])}));
+  return{base,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps,roles,finisher,finWhy:fin(finisher),top,ax,me};
+}
+/* 構築のタイプ（対面・攻めサイクル・受けサイクル・積み）：登録した育成の持ち物・技・特性から数える */
+function teamKind(entries){
+  const sc={tm:0,ac:0,dc:0,su:0},why={tm:[],ac:[],dc:[],su:[]};let withSet=0;
+  entries.forEach(x=>{const p=byNo[x.no];if(!p||!x.set)return;const it=x.set.it&&x.set.it.k,mv=(x.set.mv||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).filter(Boolean),ab=x.set.ab&&x.set.ab.k;
+    if(it||mv.length)withSet++;
+    const add=(k,w)=>{sc[k]+=1;why[k].push(p.n+'の'+w)};
+    if(['focussash','choiceband','choicespecs','choicescarf','lifeorb'].includes(it))add('tm',ITEMN[it]);
+    const pv=mv.find(k=>GM_PIV.includes(k));if(pv)add('ac',mName(+Object.keys(MD).find(i=>MD[i][3]===pv)));
+    const hl=mv.find(k=>GM_HEAL.includes(k));if(hl||ab==='regenerator'||it==='leftovers')add('dc',hl?mName(+Object.keys(MD).find(i=>MD[i][3]===hl)):ab==='regenerator'?ABN.regenerator:ITEMN.leftovers);
+    const st=mv.find(k=>[...GM_PSET,...GM_SSET,...GM_BSET].includes(k));if(st)add('su',mName(+Object.keys(MD).find(i=>MD[i][3]===st)))});
+  if(withSet<3)return null;
+  const k=Object.keys(sc).sort((a,b)=>sc[b]-sc[a]||['tm','ac','dc','su'].indexOf(a)-['tm','ac','dc','su'].indexOf(b))[0];
+  if(!sc[k])return{name:'まだはっきりしない',why:[]};
+  return{name:{tm:'対面（有利な相手にぶつけて押し切る）',ac:'攻めのサイクル（攻撃しながら交代して有利を取る）',dc:'受けのサイクル（受けて回復しながら削る）',su:'積み（能力を上げて一気に抜く）'}[k],why:why[k].slice(0,4),mix:Object.keys(sc).filter(z=>z!==k&&sc[z]>=sc[k]-0).map(z=>({tm:'対面',ac:'攻めのサイクル',dc:'受けのサイクル',su:'積み'}[z]))};
 }
 
