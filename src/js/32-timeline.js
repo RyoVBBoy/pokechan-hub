@@ -287,7 +287,7 @@ async function searchView(a){
   if(!q){
     const rc=srRecent();
     res.innerHTML=`<div id="sr-live"></div>
-      <a class="row" href="#/dex"><span class="ttile-i">${SVG(I.dex,22)}</span><div class="row-m"><div class="row-t">図鑑をすべて見る</div><div class="row-s">${P.length}匹・タイプや役割で絞り込み</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
+      <a class="row" href="#/dex"><span class="ttile-i">${SVG(I.dex,22)}</span><div class="row-m"><div class="row-t">図鑑をすべて見る</div><div class="row-s">${P.length}匹＋メガシンカ${MEGAP.length}種・タイプや役割で絞り込み</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
       ${rc.length?`<div class="sec"><h2>最近の検索</h2><button class="bback" id="sr-clr" style="padding:0">消す</button></div><div class="pills" style="flex-wrap:wrap;padding-top:0">${rc.map(x=>`<a class="pill" href="#/search/${encodeURIComponent(x)}" data-notr>${esc(x)}</a>`).join('')}</div>`:''}
       <div class="sec"><h2>よく使われているタグ</h2><span style="font-size:12px;color:var(--dim)">この7日間</span></div><div id="sr-trend"><p class="empty" style="padding:16px">読み込み中…</p></div>`;
     const c=document.getElementById('sr-clr');if(c)c.onclick=()=>{lsW('pcsearch',[]);searchView('')};

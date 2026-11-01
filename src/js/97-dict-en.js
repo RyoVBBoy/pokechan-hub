@@ -163,7 +163,7 @@ const EN_RE=[
   [/^(\d+)匹の種族値と$/,'Base stats for $1 Pokémon &'],
   [/^レギュレーション (.+?) ／ (\d+)年(\d+)月(\d+)日から$/,'Regulation $1 / from $3/$4/$2'],
   [/^「(.+)」に切り替えました$/,'Switched to "$1"'],[/^「(.+)」のポケモンをすべて外します。よろしいですか？$/,'Remove all Pokémon from "$1"?'],
-  [/^(\d+)匹・タイプや役割で絞り込み$/,'$1 Pokémon · filter by type or role'],[/^(\d+)件の投稿$/,'$1 posts'],[/^「(.+)」を含む投稿はまだありません。$/,'No posts with "$1" yet.'],
+  [/^(\d+)匹・タイプや役割で絞り込み$/,'$1 Pokémon · filter by type or role'],[/^(\d+)匹＋メガシンカ(\d+)種・タイプや役割で絞り込み$/,'$1 Pokémon + $2 Mega forms · filter by type or role'],[/^(\d+)件の投稿$/,'$1 posts'],[/^「(.+)」を含む投稿はまだありません。$/,'No posts with "$1" yet.'],
   [/^メニューを開く（いまは(.+)）$/,(m,a)=>`Open menu (now: ${enT(a)})`],
   [/^道具・(.+)$/,(m,a)=>`Item · ${enT(a)}`],
   [/^あと(\d+)分$/,'$1 min left'],
