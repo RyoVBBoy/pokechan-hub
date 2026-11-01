@@ -20,6 +20,9 @@ function addTeam(no){
   if(team.length>=6){toast('パーティは6匹までです');return}
   team.push({no,sel:team.filter(x=>x.sel).length<PICK()});saveTeam();nav('#/team');
 }
+/* パーティの画面の下半分はタブで分ける（育成・チェック・構築と選出）。重い計算（構築と選出）は開いたときだけ */
+const TTABS=[['sets','育成'],['check','チェック'],['plan','構築と選出']];
+let TTAB=(()=>{try{return sessionStorage.getItem('pcttab')||'sets'}catch(e){return 'sets'}})();
 function teamView(arg){
   setHeader('パーティ');
   if(arg){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
@@ -28,24 +31,25 @@ function teamView(arg){
   <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
   <p class="note" style="padding:6px 16px 12px">6匹まで登録し、<b>★で選出する${PICK()}匹</b>を決めます（${FMTN()}の形式）。</p>
   <div class="grid3" id="slots"></div>
+  <div class="seg" id="tt-seg" style="margin-top:14px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
+  <div data-tp="sets"${TTAB!=='sets'?' hidden':''}>
   <div id="tsets"></div>
   <a class="row" href="#/import" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
   <div class="btns">
     <button class="btn btn-p" id="shr">${SVG(I.share,17)}URLをコピー</button>
     <button class="btn btn-s" id="clr" style="flex:none;padding:0 20px">クリア</button></div>
   <div class="btns" style="padding-top:0"><button class="btn btn-s" id="tren">${SVG(I.list,16)}このパーティの名前を変える</button></div>
-
-
-  <div id="tout"></div>
-  <div class="sec"><h2>ポケモンを追加</h2></div>
-  <div class="srch">${SVG(I.search,18)}<input id="tq" value="${tq}" placeholder="ポケモン名で検索" autocomplete="off" aria-label="追加するポケモンを検索"></div>
-  <div id="tp" style="margin-top:8px"></div>`;
-  document.getElementById('tq').oninput=e=>{tq=e.target.value;tpRender()};
+  </div>
+  <div data-tp="check"${TTAB!=='check'?' hidden':''}><div id="tout"></div></div>
+  <div data-tp="plan"${TTAB!=='plan'?' hidden':''}><div id="tplan"></div></div>`;
+  V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{TTAB=b.dataset.tt;try{sessionStorage.setItem('pcttab',TTAB)}catch(e){}
+    V.querySelectorAll('[data-tt]').forEach(x=>x.setAttribute('aria-selected',x===b));V.querySelector('#tt-seg .seg-i').style.transform=`translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)`;
+    V.querySelectorAll('[data-tp]').forEach(x=>x.hidden=x.dataset.tp!==TTAB);teamRender()});
   document.getElementById('shr').onclick=shareTeam;
   document.getElementById('clr').onclick=()=>{if(team.length&&!confirm(`「${teamName(TEAMS.cur)}」のポケモンをすべて外します。よろしいですか？`))return;team=[];saveTeam();teamRender()};
   document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
   document.getElementById('tslots').onclick=e=>{const b=e.target.closest('[data-tslot]');if(!b)return;switchTeam(+b.dataset.tslot);toast(`「${teamName(TEAMS.cur)}」に切り替えました`);teamRender()};
-  teamRender();tpRender();syncBadge();if(PCF)teamSync();
+  teamRender();syncBadge();if(PCF)teamSync();
 }
 function tpRender(){
   const q=tq.trim(),l=P.filter(p=>!q||nmHit(p,q)).slice(0,30);
@@ -71,11 +75,12 @@ function teamRender(){
       <button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
       <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${nm(p,{no:false})}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div>
       <button class="t-sel${x.sel?' lit':''}" data-sel="${i}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${SVG(I.star,16).replace('fill="none"',x.sel?'fill="currentColor"':'fill="none"')}<span>${x.sel?L('選出','Picked'):L('選出する','Pick')}</span></button></div>`
-    :`<div class="tile empty">枠 ${i+1}</div>`}).join('');
-  document.getElementById('tsets').innerHTML=team.length?`<div class="sec" style="padding-top:18px"><h2>育成</h2><span style="font-size:13px;color:var(--dim)">タップで編集</span></div>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
+    :`<button class="tile empty tadd" data-add="1">${SVG(I.plus,22)}<span>追加する</span></button>`}).join('');
+  document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
       :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（よくある型で計算中）</div>`;
     return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
+  document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=async()=>{const no=await pickMon();if(no)addTeam(no)});
   document.querySelectorAll('#slots .tile[data-ti]').forEach(t=>t.onclick=e=>{if(e.target.closest('button'))return;nav('#/edit/'+t.dataset.ti)});
   document.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>{
     const x=team[+b.dataset.sel];
@@ -83,26 +88,29 @@ function teamRender(){
     x.sel=!x.sel;saveTeam();teamRender()});
   document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();teamRender()});
 
-  const out=document.getElementById('tout');
-  if(!team.length){out.innerHTML='<p class="empty">ポケモンを追加すると、パーティのチェックが始まります。</p>';return}
+  const out=document.getElementById('tout'),pl=document.getElementById('tplan');
+  if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと選出の考え方が出ます。</p>';return}
+  if(TTAB==='plan'){pl.innerHTML=planHTML(team)||'<p class="empty">選出を考えるには、選出する数（'+PICK()+'匹）より多くポケモンを入れてください。</p>';planBind(pl)}
+  if(TTAB!=='check'){out.innerHTML='';return}
   const C=partyCheck(team);
   const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
   out.innerHTML=`
   <div class="sec"><h2>パーティのチェック</h2></div>
   <p class="note" style="padding-top:0">${C.scope}を、タイプ相性（特性も入れて）・組み合わせ・持ち物・技・素早さの面から見ています。点数はつけず、気になる点にはそれぞれ直し方を書いています。</p>
-  ${planHTML(team)}
   ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   ${adSlot('診断結果下')}`;
-  out.querySelectorAll('[data-axis-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.axisPick,on=!team[i].axis;team.forEach(x=>delete x.axis);if(on)team[i].axis=true;saveTeam();toast(on?`${byNo[team[i].no].n}を軸にしました`:'軸を外しました');teamRender()});
-  const pb=out.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出に★を付けました');teamRender()};
-  out.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}の選出に★を付けました`);teamRender()});
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
   out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=()=>{
     const [i,v]=b.dataset.psw.split(':'),o=team[+i];if(!o)return;
     if(v[0]==='x'){const n=team[+v.slice(1)];if(!n)return;n.sel=o.sel;o.sel=false;saveTeam();toast(`${byNo[o.no].n} → ${byNo[n.no].n}（★を付けかえました）`);teamRender();return}
     const q=byNo[+v];if(!q||!confirm(`${byNo[o.no].n}を${q.n}に入れかえます。${byNo[o.no].n}の育成は消えます。よろしいですか？`))return;
     team[+i]={no:q.no,sel:o.sel};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
+}
+function planBind(pl){
+  pl.querySelectorAll('[data-axis-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.axisPick,on=!team[i].axis;team.forEach(x=>delete x.axis);if(on)team[i].axis=true;saveTeam();toast(on?`${byNo[team[i].no].n}を軸にしました`:'軸を外しました');teamRender()});
+  const pb=pl.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出に★を付けました');teamRender()};
+  pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}の選出に★を付けました`);teamRender()});
 }
 function planHTML(entries){
   let P0;try{P0=selPlan(entries)}catch(e){return ''}

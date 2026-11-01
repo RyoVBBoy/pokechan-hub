@@ -8,6 +8,7 @@
 I.target='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>';
 I.trend='<path d="M3.5 17.5 9 12l4 4 7.5-8"/><path d="M15 8h5.5v5.5"/>';
 I.replay='<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4.5v3.5h3.5"/><path d="m10.5 9 4.5 3-4.5 3z"/>';
+I.plus='<path d="M12 5v14M5 12h14"/>';
 I.shield='<path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6z"/><path d="m9 12 2 2 4-4"/>';
 I.calc='<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01M8.5 18h.01M12 18h.01M15.5 18h.01"/>';
 I.cmp='<path d="M8 4v16M16 4v16M4 8h4M4 14h4M16 10h4M16 16h4"/>';
