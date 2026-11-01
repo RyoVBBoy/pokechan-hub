@@ -53,3 +53,23 @@ const counters=types=>P.filter(p=>p.t.some(t=>mult(t,types)>=2)).sort((a,b)=>b.b
 const ADS_ON=false;
 const adSlot=l=>ADS_ON?`<div class="ad">広告枠（${l}）</div>`:'';
 
+
+/* タブの中身を左右のスワイプで切りかえる（パーティ・図鑑で共通）。
+   指に合わせて中身と下線（ind）が動き、幅の4分の1以上か速く動かすと隣のタブへ。上下のスクロール・入力欄・横にスクロールする部品の上では動かない */
+function segSwipe(area,o){
+  let sx=0,sy=0,dx=0,mode=0,t0=0;
+  const cur=()=>area.querySelector(':scope>[data-sw]:not([hidden])');
+  const hscroll=t=>{for(let e=t;e&&e!==area;e=e.parentElement){if(e.matches('input,textarea,select,.hscroll'))return true;if(e.scrollWidth>e.clientWidth+2){const ox=getComputedStyle(e).overflowX;if(ox==='auto'||ox==='scroll')return true}}return false};
+  area.addEventListener('touchstart',e=>{if(e.touches.length!==1){mode=-1;return}sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;mode=0;t0=Date.now()},{passive:true});
+  area.addEventListener('touchmove',e=>{if(mode<0)return;const x=e.touches[0].clientX-sx,y=e.touches[0].clientY-sy;
+    if(!mode){if(Math.abs(x)<10&&Math.abs(y)<10)return;if(Math.abs(y)>Math.abs(x)||hscroll(e.target)){mode=-1;return}mode=1}
+    const i=o.idx(),edge=(x>0&&i===0)||(x<0&&i===o.n-1);dx=edge?x/4:x;
+    const pn=cur();if(pn){pn.style.transition='none';pn.style.transform=`translateX(${dx}px)`}
+    if(o.ind){o.ind.style.transition='none';o.ind.style.transform=`translateX(${(i-dx/area.offsetWidth)*100}%)`}},{passive:true});
+  area.addEventListener('touchend',()=>{if(mode!==1){mode=0;return}mode=0;const i=o.idx(),w=area.offsetWidth,fast=Math.abs(dx)>40&&Date.now()-t0<300,j=i+(dx<0?1:-1);
+    if((Math.abs(dx)>w*.25||fast)&&j>=0&&j<o.n){o.go(j,dx<0?1:-1);return}
+    const pn=cur();if(pn){pn.style.transition='transform .2s ease-out';pn.style.transform=''}
+    if(o.ind){o.ind.style.transition='';o.ind.style.transform=`translateX(${i*100}%)`}},{passive:true});
+}
+/* 新しく出したタブの中身を、進む向きからすべり込ませる */
+function segSlideIn(pn,dir){if(!pn)return;pn.style.transform='';pn.style.transition='';pn.classList.remove('tt-in-l','tt-in-r');void pn.offsetWidth;pn.classList.add(dir>0?'tt-in-r':'tt-in-l')}

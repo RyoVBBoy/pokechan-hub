@@ -33,7 +33,7 @@ function teamView(arg){
   <div class="grid3" id="slots"></div>
   <div class="seg" id="tt-seg" style="margin-top:14px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
   <div id="tt-pages" class="tt-pages">
-  <div data-tp="sets"${TTAB!=='sets'?' hidden':''}>
+  <div data-sw data-tp="sets"${TTAB!=='sets'?' hidden':''}>
   <div id="tsets"></div>
   <a class="row" href="#/import" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
   <div class="btns">
@@ -41,8 +41,8 @@ function teamView(arg){
     <button class="btn btn-s" id="clr" style="flex:none;padding:0 20px">クリア</button></div>
   <div class="btns" style="padding-top:0"><button class="btn btn-s" id="tren">${SVG(I.list,16)}このパーティの名前を変える</button></div>
   </div>
-  <div data-tp="check"${TTAB!=='check'?' hidden':''}><div id="tout"></div></div>
-  <div data-tp="plan"${TTAB!=='plan'?' hidden':''}><div id="tplan"></div></div>
+  <div data-sw data-tp="check"${TTAB!=='check'?' hidden':''}><div id="tout"></div></div>
+  <div data-sw data-tp="plan"${TTAB!=='plan'?' hidden':''}><div id="tplan"></div></div>
   </div>`;
   /* タブの切りかえ：押す・左右にスワイプ。新しい中身は進む向きからすべり込む */
   const ttIdx=()=>TTABS.findIndex(x=>x[0]===TTAB),ind=V.querySelector('#tt-seg .seg-i');
@@ -50,21 +50,9 @@ function teamView(arg){
     V.querySelectorAll('[data-tt]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tt===k));ind.style.transition='';ind.style.transform=`translateX(${ttIdx()*100}%)`;
     V.querySelectorAll('[data-tp]').forEach(x=>{x.hidden=x.dataset.tp!==k;x.style.transform='';x.style.transition=''});
     teamRender();
-    const pn=V.querySelector(`[data-tp="${k}"]`),d=dir||(ttIdx()>from?1:-1);
-    pn.classList.remove('tt-in-l','tt-in-r');void pn.offsetWidth;pn.classList.add(d>0?'tt-in-r':'tt-in-l')};
+    segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1))};
   V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>ttGo(b.dataset.tt));
-  /* 指に合わせて中身と下線が動き、離したときに一定以上動いていれば隣のタブへ */
-  {let sx=0,sy=0,dx=0,mode=0,t0=0;const area=V.querySelector('#tt-pages');
-    area.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;mode=0;t0=Date.now()},{passive:true});
-    area.addEventListener('touchmove',e=>{if(mode<0)return;const x=e.touches[0].clientX-sx,y=e.touches[0].clientY-sy;
-      if(!mode){if(Math.abs(x)<10&&Math.abs(y)<10)return;if(Math.abs(y)>Math.abs(x)||e.target.closest('input,textarea,select,.hscroll')){mode=-1;return}mode=1}
-      const i=ttIdx(),edge=(x>0&&i===0)||(x<0&&i===TTABS.length-1);dx=edge?x/4:x;
-      const pn=V.querySelector(`[data-tp="${TTAB}"]`);pn.style.transition='none';pn.style.transform=`translateX(${dx}px)`;
-      ind.style.transition='none';ind.style.transform=`translateX(${(i-dx/area.offsetWidth)*100}%)`},{passive:true});
-    area.addEventListener('touchend',()=>{if(mode!==1)return;mode=0;const i=ttIdx(),w=area.offsetWidth,fast=Math.abs(dx)>40&&Date.now()-t0<300;
-      const pn=V.querySelector(`[data-tp="${TTAB}"]`);
-      if((Math.abs(dx)>w*.25||fast)&&TTABS[i+(dx<0?1:-1)]){ttGo(TTABS[i+(dx<0?1:-1)][0],dx<0?1:-1);return}
-      pn.style.transition='transform .2s ease-out';pn.style.transform='';ind.style.transition='';ind.style.transform=`translateX(${i*100}%)`},{passive:true})}
+  segSwipe(V.querySelector('#tt-pages'),{n:TTABS.length,idx:ttIdx,ind,go:(j,d)=>ttGo(TTABS[j][0],d)});
   document.getElementById('shr').onclick=shareTeam;
   document.getElementById('clr').onclick=()=>{if(team.length&&!confirm(`「${teamName(TEAMS.cur)}」のポケモンをすべて外します。よろしいですか？`))return;team=[];saveTeam();teamRender()};
   document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
