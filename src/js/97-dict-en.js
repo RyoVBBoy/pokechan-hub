@@ -153,6 +153,8 @@ const EN_RE=[
   [/^([A-Za-z][^぀-ヿ]*)に$/,'Pokémon that can hit $1 '],
   [/^を取れるポケモンです（合計種族値の高い順・上位(\d+)匹）。$/,' (highest base stat total first, top $1).'],
   [/^右端は収録(\d+)匹の中での順位です。青い棒は$/,'The number on the right is the rank among all $1 Pokémon. The blue bar is '],
+  [/^右端は、メガシンカの姿も入れた(\d+)匹の中での順位です（種族値が同じ姿は1匹と数え、同じ値は同じ順位）。青い棒は$/,'The number on the right is the rank among all $1 Pokémon including Mega forms (forms with identical stats count once; equal values share a rank). The blue bar is '],
+  [/^順位は、メガシンカの姿も入れた(\d+)匹と比べたものです。$/,'Ranks compare against all $1 Pokémon including Mega forms.'],
   [/^は、収録(\d+)匹のうち$/,' is faster than the max Speed (boosting nature, 32 points) of '],
   [/^の最速（性格で上げ・ポイント32）より速いです。$/,' of them.'],
   [/^：(\d+)匹選出・先発(\d+)匹）で、選出・予想・使用率を計算します。$/,': bring $1, lead with $2).'],

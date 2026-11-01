@@ -1187,7 +1187,7 @@ const SPXM={};SPX.trim().split('\n').forEach(l=>{const a=l.split(',');SPXM[+a[0]
 function ensureMon(no){
   if(byNo[no])return byNo[no];const a=SPXM[no];if(!a)return null;
   const p={no:+a[0],n:a[1],t:[...a[2]].map(c=>TC[c]),s:a.slice(3).map(Number),ext:true};
-  p.bst=p.s.reduce((x,y)=>x+y,0);p.mi=p.s.indexOf(Math.max(...p.s));p.roles=roles(p);p.rank=p.s.map((v,i)=>1+P.filter(q=>q.s[i]>v).length);
+  p.bst=p.s.reduce((x,y)=>x+y,0);p.mi=p.s.indexOf(Math.max(...p.s));p.roles=roles(p);p.rank=typeof RANKP!=='undefined'?rankOf(p.s):p.s.map((v,i)=>1+P.filter(q=>q.s[i]>v).length);
   byNo[no]=p;return p;
 }
 /* 画像の差し込み口：公式の許諾を得たら 'img/{no}.png' のように設定すると、個別ページ上部の枠に表示されます */
@@ -1206,9 +1206,13 @@ function describe(p){
   const d={高速:'素早さが高く、先手を取りやすい',物理:'物理技で攻める役割に向く',特殊:'特殊技で攻める役割に向く',両刀:'物理・特殊のどちらも火力がある',耐久:'体力と防御面が厚く、受けにも向く',バランス:'突出した能力はなく、技構成で役割が決まる'};
   return p.roles.map(r=>d[r]).join('。')+'。';
 }
-P.forEach(p=>{p.roles=roles(p);p.rank=p.s.map((v,i)=>1+P.filter(q=>q.s[i]>v).length)});
-/* メガシンカの姿にも図鑑のページ（#/p/番号）を開けるように、役割と順位（元の姿の一覧の中での順位）を付ける */
-MEGAP.forEach(m=>{m.bst=m.bst||m.s.reduce((x,y)=>x+y,0);m.mi=m.s.indexOf(Math.max(...m.s));m.roles=roles(m);m.rank=m.s.map((v,i)=>1+P.filter(q=>q.s[i]>v).length)});
+/* 順位：バトルで使える姿すべて（メガシンカの姿も入れる）の中で、上に何匹いるか。
+   同じ種類で種族値がまったく同じ姿（ロトム以外の色違いの姿・オスメスで同じ能力など）は1匹として数える（2026/11/01 ほかのサイトとの照合で修正） */
+const RANKP=(()=>{const seen=new Set();return [...P,...MEGAP].filter(q=>{const k=(DNO[q.no]||q.base&&(DNO[q.base]||q.base)||q.no)+':'+q.s.join(',');if(seen.has(k))return false;seen.add(k);return true})})();
+const rankOf=s=>s.map((v,i)=>1+RANKP.filter(q=>q.s[i]>v).length);
+P.forEach(p=>{p.roles=roles(p);p.rank=rankOf(p.s)});
+/* メガシンカの姿にも図鑑のページ（#/p/番号）を開けるように、役割と順位を付ける */
+MEGAP.forEach(m=>{m.bst=m.bst||m.s.reduce((x,y)=>x+y,0);m.mi=m.s.indexOf(Math.max(...m.s));m.roles=roles(m);m.rank=rankOf(m.s)});
 const SN=['HP','攻撃','防御','特攻','特防','素早さ'];
 const SP_TOTAL=66,SP_CAP=32;
 
