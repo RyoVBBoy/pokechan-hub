@@ -1109,3 +1109,10 @@ a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
 .mpsheet.mpfull .psheet-p{height:100%;max-width:none;border-radius:0;padding:calc(10px + env(safe-area-inset-top)) 16px 0;transform:translateY(16px);opacity:0;transition:transform .16s ease-out,opacity .16s}
 .mpsheet.mpfull.on .psheet-p{transform:none;opacity:1}
 .mp-x{flex:none;margin:0 0 6px;padding:8px 4px;font-size:15px;color:var(--acc);background:none;border:0;font-weight:700}
+/* パーティのタブ：スワイプで切りかえ、新しい中身は進む向きからすべり込む */
+.tt-pages{overflow:hidden;min-height:50vh;touch-action:pan-y}
+.tt-pages>[data-tp]{will-change:transform}
+.tt-in-r{animation:ttInR .22s ease-out}.tt-in-l{animation:ttInL .22s ease-out}
+@keyframes ttInR{from{transform:translateX(36%);opacity:.2}to{transform:none;opacity:1}}
+@keyframes ttInL{from{transform:translateX(-36%);opacity:.2}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.tt-in-r,.tt-in-l{animation:none}}
