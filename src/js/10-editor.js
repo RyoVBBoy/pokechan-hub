@@ -44,7 +44,7 @@ function editView(a){
     return h+abl.map(([k,hid])=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ABN[k]||k}${hid?'（隠れ特性）':''}${ABIMPL.has(k)?'':'　※計算では効果なし'}</option>`).join('')};
   V.innerHTML=`<div id="ed-root">
   <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></div>
-  ${fresh?`<div class="bnote" style="margin:12px 16px 0">いまは<b>自動で決めた型</b>（よくある型）で計算しています。下の値を変えると、<b>あなたの育成</b>として保存され、選出アシストや模擬戦の計算に使われます。</div>`:''}
+  ${fresh?`<div class="bnote" style="margin:12px 16px 0">いまは<b>自動で決めた型</b>（よくある型）で計算しています。下の値を変えると、<b>あなたの育成</b>として保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</div>`:''}
   <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}よく使われている型を入れる</button></div>
   <div class="sec"><h2>特性・持ち物</h2></div>
   <div class="natr"><span style="width:56px">特性</span><select class="sel" id="ed-ab">${abOpts()}</select></div>
@@ -52,7 +52,7 @@ function editView(a){
   <div class="natr"><span style="width:56px">持ち物</span><select class="sel" id="ed-it">${itOpts()}</select></div>
   <div class="sec"><h2>技</h2><span style="font-size:13px;color:var(--dim)">覚える攻撃技から選ぶ</span></div>
   ${[0,1,2,3].map(k=>`<div class="natr"><span style="width:56px">技${k+1}</span><select class="sel" data-mv="${k}">${mvOpts(ED.s.mv[k])}</select></div>`).join('')}
-  <p class="note" style="padding-top:2px;color:var(--mute)">変化技（おにび・トリックルームなど）も選べます。変化技と、カウンター・一撃必殺技など一部の技は育成として保存されますが、ダメージ計算・模擬戦では使いません。${LS_EST.has(p.no)?'<br><b>このポケモンの覚える技は、チャンピオンズ版のデータがまだ公開されていないため、本編のデータから推定しています。</b>':''}</p>
+  <p class="note" style="padding-top:2px;color:var(--mute)">変化技（おにび・トリックルームなど）も選べます。変化技と、カウンター・一撃必殺技など一部の技は育成として保存されますが、ダメージ計算では使いません。${LS_EST.has(p.no)?'<br><b>このポケモンの覚える技は、チャンピオンズ版のデータがまだ公開されていないため、本編のデータから推定しています。</b>':''}</p>
   <div class="sec"><h2>能力ポイント・性格</h2></div>
   <div class="calc">
     <div class="spbar"><div><div style="font-size:12px;color:var(--dim)">能力ポイント 残り</div><span class="big" id="ed-left">66</span><span style="color:var(--mute);font-size:12px"> / ${SP_TOTAL}</span></div>

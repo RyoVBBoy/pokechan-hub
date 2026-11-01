@@ -139,13 +139,13 @@ function imResolve(sl){
 function imCard(sl,i){
   const p=sl.no?byNo[sl.no]:null,w=c=>c<.75?' warn':'';
   const st=sl.vals?(sl.solve?(sl.fixed!=null?`<span class="imng">1か所を計算で補正</span>`:`<span class="imok">種族値と一致</span>`):`<span class="imng">数値が合いません</span>`):'<span class="imng">ステータス画面なし</span>';
-  const sup=m=>m&&m.id?(m.id===182||m.id===197||MV[m.id]||MVX[m.id]?'':'<em>模擬戦では未対応</em>'):'';
+  const sup=m=>m&&m.id?(m.id===182||m.id===197||MV[m.id]||MVX[m.id]?'':'<em>ダメージ計算では使いません</em>'):'';
   return `<div class="imc" data-i="${i}">
    <div class="imh"><span class="av">${p?stamp(p):''}</span><div style="flex:1;min-width:0"><input class="imi${p?w(sl.nameConf):' bad'}" data-f="name" list="dl-mon" value="${p?p.n:sl.nameRaw.replace(/\s/g,'')}" aria-label="ポケモン名">
    <div class="chips">${p?p.t.map(chip).join(''):''}${p&&p.ext?'<span class="rt">図鑑に未収録（取り込みのみ対応）</span>':''}</div></div>${st}</div>
    ${sl.guess?`<div class="imgs"><b>予測</b> ${L('名前だけでは決まらないため、','Name alone was not enough — guessed from ')}${esc(sl.guess.why.join('・'))}${L('から予測しました（ニックネーム・フォルム違いなど）。',' (nickname, form, etc.).')}${sl.guess.alts.length?`<span>${L('ほかの候補','Other candidates')}：</span>${sl.guess.alts.map(n=>`<button class="pill" data-alt="${n}">${esc(byNo[n].n)}</button>`).join('')}`:''}</div>`:''}
    ${sl.ab?`<div class="imr"><span>特性</span><input class="imi${w(sl.ab.c)}" data-f="ab" list="dl-ab" value="${sl.ab.n}"></div>`:''}
-   ${sl.it?`<div class="imr"><span>持ち物</span><input class="imi${w(sl.it.c)}" data-f="it" list="dl-it" value="${sl.it.n}">${sl.it.k&&!ITEMN[sl.it.k]?'<em>模擬戦では効果なし</em>':''}</div>`:''}
+   ${sl.it?`<div class="imr"><span>持ち物</span><input class="imi${w(sl.it.c)}" data-f="it" list="dl-it" value="${sl.it.n}">${sl.it.k&&!ITEMN[sl.it.k]?'<em>ダメージ計算では効果なし</em>':''}</div>`:''}
    ${sl.mv?sl.mv.map((m,k)=>`<div class="imr"><span>技${k+1}</span><input class="imi${w(m.c)}" data-f="mv${k}" list="dl-mv" value="${m.n}">${m.id?`<div class="imtag">${tagHTML(m.id)}</div>`:''}${sup(m)}</div>`).join(''):''}
    ${sl.vals?`<div class="imst">${sl.vals.map((v,k)=>`<div${sl.fixed===k?' class="fx" title="読み取れなかったため計算で補いました"':''}><em>${SN[k]}</em><b>${v??'?'}</b><small>${sl.solve?`${sl.solve.sp[k]}pt${sl.solve.up===k?' ↑':sl.solve.dn===k?' ↓':''}`:(sl.spr[k]??'?')+'pt'}</small></div>`).join('')}</div>`:''}
   </div>`;
@@ -157,7 +157,7 @@ function imDraw(){
   <p class="note" style="padding-top:0">オレンジの欄は自信の低い読み取りです。違っていたら直してください（候補から選べます）。</p>
   ${IM.slots.map(imCard).join('')}
   <div class="btns"><button class="btn btn-p" id="im-save" ${ok?'':'disabled'}>このパーティを保存（${ok}匹）</button></div>
-  <p class="note" style="color:var(--dim)">保存すると、いま選んでいるパーティ（${esc(teamName(TEAMS.cur))}）と入れ替わります。ほかのパーティに入れたいときは、先にパーティの画面で切り替えてください。取り込んだ技・特性・持ち物・能力ポイント・性格は、選出アシストと模擬戦の計算に使われます。</p>`;
+  <p class="note" style="color:var(--dim)">保存すると、いま選んでいるパーティ（${esc(teamName(TEAMS.cur))}）と入れ替わります。ほかのパーティに入れたいときは、先にパーティの画面で切り替えてください。取り込んだ技・特性・持ち物・能力ポイント・性格は、ダメージ計算・選出アシスト・パーティのチェックに使われます。</p>`;
 }
 /* シーズンの登録などから来たときは、保存したあとそこへ戻る（41-seasons.js） */
 let IMPORT_NEXT=null;
@@ -222,7 +222,7 @@ function importView(){
     const a=e.target.closest('[data-alt]');if(a&&IM){const sl=IM.slots[+a.closest('.imc').dataset.i];sl.noFix=+a.dataset.alt;sl.ab=null;imResolve(sl);imDraw()}});
   if(IM)imDraw();
 }
-/* 取り込んだ型を、模擬戦・選出アシスト用の型に変換 */
+/* 取り込んだ型を、計算・選出アシスト用の型に変換 */
 function teamSet(no){
   const t=team.find(x=>x.no===no);return t&&t.set?savedToCalc(no,t.set):null;
 }
