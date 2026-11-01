@@ -186,29 +186,34 @@ document.getElementById('fab').onclick=()=>openSheet();
 const monRecent=()=>lsJ('pcmonrecent',[]);
 const monField=(attrs,no)=>{const p=byNo[no];return `<span class="mpick-w"><select class="sel" ${attrs} hidden>${P.map(q=>`<option value="${q.no}"${q.no===no?' selected':''}>${q.n}</option>`).join('')}</select>
   <button type="button" class="mpick" aria-label="ポケモンを選ぶ">${p?`<span class="av">${stamp(p)}</span><span class="mpick-n">${nm(p)}</span>`:'<b>ポケモンを選ぶ</b>'}<span class="mpick-s">${SVG(I.search,17)}</span></button></span>`};
-function pickMon(cur){
+/* opt.add：パーティに追加するとき（パーティにいる匹は出さない）
+   スマホは画面いっぱいに開き、キーボードが出ても見える高さ（visualViewport）に合わせる。iPhone でキーボードを出すと、下から出る形だと上がずれて空白ができるため */
+function pickMon(cur,opt={}){
   return new Promise(res=>{
-    const o=document.createElement('div');o.className='psheet mpsheet';
+    const full=!matchMedia('(min-width:700px)').matches;
+    const o=document.createElement('div');o.className='psheet mpsheet'+(full?' mpfull':'');
     o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="ポケモンを選ぶ">
-      <div class="srch">${SVG(I.search,18)}<input id="mp-q" placeholder="ポケモン名を入力（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="ポケモン名"></div>
-      <div class="mp-list" id="mp-list"></div><button class="psheet-x">やめる</button></div>`;
+      <div class="mp-top"><div class="srch">${SVG(I.search,18)}<input id="mp-q" placeholder="ポケモン名を入力（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="ポケモン名"></div>${full?'<button class="mp-x">やめる</button>':''}</div>
+      <div class="mp-list" id="mp-list"></div>${full?'':'<button class="psheet-x">やめる</button>'}</div>`;
+    const vv=window.visualViewport,fit=()=>{if(!full||!vv)return;o.style.top=vv.offsetTop+'px';o.style.height=vv.height+'px'};
+    if(full&&vv){fit();vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit)}
     document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
     const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list');
-    const done=v=>{o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
+    const done=v=>{if(full&&vv){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit)}o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
     const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`;
     const sec=t=>`<div class="mp-h">${t}</div>`;
     const draw=()=>{const t=q.value.trim();
-      if(t){const hit=P.filter(p=>nmHit(p,t));
+      if(t){const hit=P.filter(p=>nmHit(p,t)&&!(opt.add&&team.some(x=>x.no===p.no)));
         /* 名前の先頭が合うものを上に */
         const k=kata(t).toLowerCase(),head=p=>p.n.toLowerCase().startsWith(k)||(p.ja&&p.ja.startsWith(kata(t)));
         hit.sort((a,b)=>head(b)-head(a));
         list.innerHTML=hit.length?hit.slice(0,60).map(row).join(''):'<p class="empty" style="padding:28px 16px">見つかりません</p>';return}
-      const tm=team.map(x=>byNo[x.no]).filter(Boolean),rc=monRecent().map(n=>byNo[n]).filter(p=>p&&!tm.includes(p));
-      list.innerHTML=(tm.length?sec('パーティ')+tm.map(row).join(''):'')+(rc.length?sec('最近選んだ')+rc.map(row).join(''):'')+sec('すべてのポケモン')+P.map(row).join('')};
+      const inT=team.map(x=>byNo[x.no]).filter(Boolean),tm=opt.add?[]:inT,rc=monRecent().map(n=>byNo[n]).filter(p=>p&&!inT.includes(p));
+      list.innerHTML=(tm.length?sec('パーティ')+tm.map(row).join(''):'')+(rc.length?sec('最近選んだ')+rc.map(row).join(''):'')+sec('すべてのポケモン')+P.filter(p=>!(opt.add&&team.some(x=>x.no===p.no))).map(row).join('')};
     q.oninput=draw;
     q.onkeydown=e=>{if(e.key==='Enter'){const b=list.querySelector('[data-no]');if(b)done(+b.dataset.no)}};
     list.onclick=e=>{const b=e.target.closest('[data-no]');if(b)done(+b.dataset.no)};
-    o.querySelector('.psheet-bg').onclick=()=>done(null);o.querySelector('.psheet-x').onclick=()=>done(null);
+    o.querySelector('.psheet-bg').onclick=()=>done(null);o.querySelector('.psheet-x,.mp-x').onclick=()=>done(null);
     draw();q.focus();
   });
 }
