@@ -1110,7 +1110,7 @@ a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
 .mpsheet.mpfull.on .psheet-p{transform:none;opacity:1}
 .mp-x{flex:none;margin:0 0 6px;padding:8px 4px;font-size:15px;color:var(--acc);background:none;border:0;font-weight:700}
 /* パーティのタブ：スワイプで切りかえ、新しい中身は進む向きからすべり込む */
-.tt-pages{overflow-x:clip;min-height:50vh;touch-action:pan-y pinch-zoom}
+.tt-pages{overflow-x:clip;min-height:50vh;touch-action:pan-y}
 .tt-pages>[data-tp]{will-change:transform}
 .tt-in-r{animation:ttInR .22s ease-out}.tt-in-l{animation:ttInL .22s ease-out}
 @keyframes ttInR{from{transform:translateX(36%);opacity:.2}to{transform:none;opacity:1}}
@@ -1166,4 +1166,18 @@ body::before{content:'';position:fixed;inset:-20vh -20vw;z-index:-1;pointer-even
   .fabwrap{bottom:calc(env(safe-area-inset-bottom) + 84px)!important}
   .toast{bottom:calc(env(safe-area-inset-bottom) + 86px)!important}
   .fab{-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+}
+
+/* ===================== ズームさせない・浮いた下のメニューの下を隠す（2026/11/03 依頼主の要望） ===================== */
+/* ダブルタップ・2本指でのズームを止める（iPhone は 00-start.js の gesturestart でも止める） */
+html,body{touch-action:pan-x pan-y}
+a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation}
+@media(max-width:699px){
+  /* iPhone は文字が16pxより小さい入力欄を押すと拡大するので、入力欄はすべて16px以上 */
+  input,textarea,select{font-size:16px}
+  .cgrid input,.cform input,.cform textarea,.srch input,.sel{font-size:16px!important}
+  /* 浮いたメニューの下（画面の下の端まで）に記事が見えないよう、背景色でふさぐ */
+  body::after{content:'';position:fixed;left:0;right:0;bottom:0;z-index:44;pointer-events:none;
+    height:calc(env(safe-area-inset-bottom) + 44px);
+    background:linear-gradient(to bottom,transparent,var(--bg) 18px)}
 }
