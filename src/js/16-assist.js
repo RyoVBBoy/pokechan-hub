@@ -24,7 +24,9 @@ function analyze(myNos,opNos,mySF,opSF,W){
     const defV=i=>O.reduce((a,_,j)=>a+w[j]*Math.min(R[j][i].pct*R[j][i].acc/100,100)/100,0)/wt;
     const score=idx=>O.reduce((a,_,j)=>a+w[j]*Math.max(...idx.map(i=>offV(i,j))),0)/wt-.6*idx.reduce((a,i)=>a+defV(i),0)/idx.length;
     const k=Math.min(PICK(),M.length);
-    const all=combos(M.map((_,i)=>i),k).map(c=>({c,s:score(c)})).sort((a,b)=>b.s-a.s);
+    /* メガシンカは1試合に1匹なので、メガシンカの姿（メガストーンを持つ匹）は選出に1匹まで */
+    const cs=combos(M.map((_,i)=>i),k),cs1=cs.filter(c=>c.filter(i=>M[i].p.base).length<=1);
+    const all=(cs1.length?cs1:cs).map(c=>({c,s:score(c)})).sort((a,b)=>b.s-a.s);
     const best=all[0].c;
     const leads=combos(best,Math.min(LEADN(),best.length)).map(c=>({c,s:score(c)+c.reduce((a,i)=>a+fast[i].reduce((x,f,j)=>x+(f?w[j]:0),0)/wt*.15,0)})).sort((a,b)=>b.s-a.s);
     const lead=leads[0].c,back=best.filter(i=>!lead.includes(i));
@@ -118,6 +120,7 @@ function asDraw(){
   el.innerHTML=`<div class="sec"><h2>おすすめ選出</h2><span style="font-size:13px;color:var(--dim)">${FMTN()}・先発${LEADN()}匹＋控え${PICK()-LEADN()}匹</span></div>
   ${A.lead.map(i=>mrow(i,'先発')).join('')}${A.back.map(i=>mrow(i,'控え')).join('')}
   <p class="note">この${A.best.length}匹で、相手${A.O.length}匹のうち<b>${covered}匹</b>に推定50%以上のダメージを与えられます。${opp6.length>PICK()?'相手が<b>出してきそうなポケモンほど重く見て</b>選んでいます。':''}</p>
+  ${typeof threeStepHTML==='function'?threeStepHTML(myNos,PR):''}
   ${asAdviceHTML(A,PR)}
   ${predHTML}
   <div class="sec"><h2>警戒する相手</h2></div>${thr}

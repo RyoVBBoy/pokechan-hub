@@ -98,7 +98,7 @@ function teamRender(){
 
   const out=document.getElementById('tout'),pl=document.getElementById('tplan');
   if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと選出の考え方が出ます。</p>';return}
-  if(TTAB==='plan'){pl.innerHTML=planHTML(team)||'<p class="empty">選出を考えるには、選出する数（'+PICK()+'匹）より多くポケモンを入れてください。</p>';planBind(pl)}
+  if(TTAB==='plan'){pl.innerHTML=planHTML(team);planBind(pl)}
   if(TTAB!=='check'){out.innerHTML='';return}
   const C=partyCheck(team);
   const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
@@ -116,13 +116,17 @@ function teamRender(){
     team[+i]={no:q.no,sel:o.sel};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
 }
 function planBind(pl){
+  const fb=pl.querySelector('[data-bdfill]');if(fb)fb.onclick=()=>bdFill();
   pl.querySelectorAll('[data-axis-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.axisPick,on=!team[i].axis;team.forEach(x=>delete x.axis);if(on)team[i].axis=true;saveTeam();toast(on?`${byNo[team[i].no].n}を軸にしました`:'軸を外しました');teamRender()});
   const pb=pl.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出に★を付けました');teamRender()};
   pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}の選出に★を付けました`);teamRender()});
 }
 function planHTML(entries){
   let P0;try{P0=selPlan(entries)}catch(e){return ''}
-  if(!P0)return '';
+  const axCard=`<div class="pc-i pc-plan"><b>軸のポケモン</b><p>いちばん使いたい1匹を選ぶと、基本選出に必ず入れ、入れかえ案でも外しません。</p>
+    <div class="pills gchips" style="padding:4px 0 0">${entries.map((x,i)=>`<button class="pill" data-axis-pick="${i}" aria-pressed="${!!x.axis}">${esc(byNo[x.no].n)}</button>`).join('')}</div>
+    ${entries.some(x=>x.axis)&&entries.length<6?`<button class="btn btn-s" data-bdfill style="margin-top:10px;width:100%">軸に合わせて、空いている${6-entries.length}枠を埋める</button><p class="vcap">軸の弱点を受けられる・まだ突けないタイプを突ける匹を選び、育成も計算で組みます（実際の型とは違うことがあります）。</p>`:''}</div>`;
+  if(!P0)return entries.length?`<div class="sec"><h2>構築の診断</h2></div>${axCard}<p class="empty">選出を考えるには、選出する数（${PICK()}匹）より多くポケモンを入れてください。</p>`:'';
   const nmI=i=>esc(byNo[entries[i].no].n),chipsOf=a=>a.slice(0,5).map(q=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}${formInfo(q).tag?'（'+esc(formInfo(q).tag)+'）':''}</a>`).join('');
   const isSel=P0.sel.length===P0.base.length&&P0.base.every(i=>P0.sel.includes(i));
   const kd=teamKind(entries),R=P0.roles,mons=a=>chipsOf(a.slice(0,4));
@@ -133,8 +137,7 @@ function planHTML(entries){
     const it=x.set.it&&x.set.it.k,top2=d.it.slice(0,2).map(([nn])=>nrm(nn));if(it&&!isStone(it)&&!top2.includes(it)&&d.it.length)zur.push(`${esc(p.n)}の${esc(ITEMN[it]||it)}（よく使われるのは${esc(d.it.slice(0,2).map(([nn])=>ITEMN[nrm(nn)]||nn).join('・'))}）`);
     const use={};d.mv.forEach(([nn,pc])=>{const id=MVKA[nrm(nn)];if(id)use[id]=pc});(x.set.mv||[]).forEach(m=>{if(m&&m.id&&(use[m.id]||0)<10)zur.push(`${esc(p.n)}の${esc(mName(m.id))}（使われているのは${use[m.id]?use[m.id]+'%':'ほとんどなし'}）`)})});
   return `<div class="sec"><h2>構築の診断</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
-  <div class="pc-i pc-plan"><b>軸のポケモン</b><p>いちばん使いたい1匹を選ぶと、基本選出に必ず入れ、入れかえ案でも外しません。</p>
-    <div class="pills gchips" style="padding:4px 0 0">${entries.map((x,i)=>`<button class="pill" data-axis-pick="${i}" aria-pressed="${!!x.axis}">${esc(byNo[x.no].n)}</button>`).join('')}</div>
+  ${axCard.replace(/<\/div>$/,'')}
     ${kd?`<h4>構築のタイプ</h4><p><b>${kd.name}</b>${kd.why.length?`<br><span class="vcap">理由：${esc(kd.why.join('・'))}</span>`:''}${kd.mix&&kd.mix.length?`<br><span class="vcap">${esc(kd.mix.join('・'))}の要素も同じくらいあります。方向をそろえると、選出で迷いにくくなります。</span>`:''}</p>`:'<p class="vcap">育成（持ち物・技）を3匹以上登録すると、構築のタイプ（対面・サイクル・積み）も診断します。</p>'}
   </div>
   <div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
@@ -155,6 +158,7 @@ function planHTML(entries){
   <div class="pc-i pc-plan"><b>1匹ずつの役割</b><p>それぞれ「どの相手に出すか・出さないか」です。出す相手がいない匹は、役割がはっきりしていない匹です。</p>
     ${entries.map((x,i)=>`<div class="pc-role"><b>${nmI(i)}${i===P0.ax?'<small>軸</small>':''}</b>${R[i].go.length?`<p>出す：${mons(R[i].go)}</p>`:'<p style="color:var(--w2)">出す相手がはっきりしません（パーティのほかの匹の方が有利な相手ばかり）。</p>'}${R[i].no.length?`<p>出さない：${mons(R[i].no)}</p>`:''}</div>`).join('')}
   </div>
+  ${typeof buildDiagHTML==='function'?buildDiagHTML(entries,P0):''}
   ${zur.length?`<div class="pc-i pc-ok"><b>✓ 読まれにくい要素</b><p>ランクバトルであまり使われていない持ち物・技です。相手が型を読み違えやすくなります。</p><p>${zur.slice(0,4).join('<br>')}</p></div>`:''}
   ${P0.sel.length===P0.base.length&&!isSel&&P0.selWeak.length?`<div class="pc-i pc-fix"><b>いまの★の選出が苦手な相手</b><p>${P0.selWeak.map(({q})=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}</a>`).join('')}</p><p>選出のだれも有利に戦いにくい相手です。この相手が見えたら、上の基本選出や入れかえを考えます。</p></div>`:''}`;
 }
