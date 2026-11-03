@@ -2,9 +2,9 @@
    ポケモンチャンピオンズの公式のお知らせを見つけたら、「お知らせbot」（@news_bot、非公式）が題名とリンクだけを投稿する。本文は写さない。
    ・見つけ方：運営者が管理画面で登録した「お知らせの一覧ページ」を Gemini の url_context で読み、題名・日付・アドレスだけを JSON で取り出す。
      登録がなければ Google 検索（google_search）で探し、見つかったページのアドレス（転送先を開いて本来のアドレスにする）を使う。
-   ・公式のサイト（pokemon.co.jp / pokemon.com / nintendo.co.jp / nintendo.com）のアドレスだけを載せる。
+   ・公式のサイト（pokemonchampions.jp / pokemon.co.jp / pokemon.com / nintendo.co.jp / nintendo.com など）のアドレスだけを載せる。
    ・同じアドレスは1回だけ（news_seen）。1回に3件まで。cron（6時間ごと）と管理画面の「今すぐ確認」で動く */
-const NEWS_UID='bot:news',NEWS_HOST=/(^|\.)(pokemon\.co\.jp|pokemon\.com|nintendo\.co\.jp|nintendo\.com)$/i;
+const NEWS_UID='bot:news',NEWS_HOST=/(^|\.)(pokemonchampions\.jp|pokemonchampions\.com|pokemon\.co\.jp|pokemon\.com|nintendo\.co\.jp|nintendo\.com)$/i;
 let NEWS_READY=false;
 async function newsInit(db){
   if(NEWS_READY)return;
@@ -70,7 +70,7 @@ async function newsApi(req,env,db,path,now,isAdmin){
   }
   if(path==='/api/admin/news/src'&&req.method==='POST'){
     const url=newsOk(b.url);if(b.del){await db.prepare(`DELETE FROM news_src WHERE url=?`).bind(String(b.url||'')).run();return J({ok:true})}
-    if(!url)return J({error:'公式サイト（pokemon.co.jp・pokemon.com・nintendo.co.jp・nintendo.com）の https のアドレスを入れてください。'},400);
+    if(!url)return J({error:'公式サイト（pokemonchampions.jp・pokemon.co.jp・pokemon.com・nintendo.co.jp・nintendo.com）の https のアドレスを入れてください。'},400);
     await db.prepare(`INSERT OR IGNORE INTO news_src(url,created_at) VALUES(?,?)`).bind(url,now).run();return J({ok:true});
   }
   if(path==='/api/admin/news/run'&&req.method==='POST'){

@@ -45,7 +45,7 @@ function adminView(){
             ${r.kind==='note'?'':r.thread_id?`<a class="btn btn-s" href="#/thread/${r.thread_id}">スレッドを開く</a>`:''}</div></div>`).join(''):'<p class="empty" style="padding:28px 24px">通報はありません。</p>';
       }else if(admTab==='news'){
         const j=await aget('/api/admin/news');
-        el.innerHTML=`<p class="note" style="padding-top:0">公式サイトの新しいお知らせを、「お知らせbot（非公式）」が題名とリンクだけでタイムラインに自動投稿します（6時間ごと）。本文は写しません。公式サイト（pokemon.co.jp・pokemon.com・nintendo.co.jp・nintendo.com）のアドレスだけを載せます。</p>
+        el.innerHTML=`<p class="note" style="padding-top:0">公式サイトの新しいお知らせを、「お知らせbot（非公式）」が題名とリンクだけでタイムラインに自動投稿します（6時間ごと）。本文は写しません。公式サイト（pokemonchampions.jp・pokemon.co.jp・pokemon.com・nintendo.co.jp・nintendo.com）のアドレスだけを載せます。</p>
           <div class="sec"><h2>お知らせの一覧ページ</h2></div>
           <p class="note" style="padding-top:0">ポケモンチャンピオンズの公式のお知らせが並んでいるページのアドレスを入れると、そこから探します（いちばん確実です）。入れていないときは、Google 検索で探します。</p>
           ${j.src.map(u=>`<div class="bpost"><div style="word-break:break-all">${esc(u)}</div><button class="bback" data-nsdel="${esc(u)}" style="padding:0;color:var(--w2)">外す</button></div>`).join('')}

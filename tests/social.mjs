@@ -137,6 +137,7 @@ r=await call('/api/admin/banned',{admin:'admin-secret-123'});expect('停止中�
 /* 公式のお知らせ：管理者だけ。公式サイト以外のアドレスは断る。投稿はリンク付きでタイムラインに出る */
 r=await call('/api/admin/news');expect('お知らせ：管理者以外は使えない',r[0]===401,r);
 r=await call('/api/admin/news/src',{method:'POST',admin:'admin-secret-123',body:{url:'https://example.com/news'}});expect('お知らせ：公式以外の一覧ページは断る',r[0]===400,r);
+r=await call('/api/admin/news/src',{method:'POST',admin:'admin-secret-123',body:{url:'https://www.pokemonchampions.jp/ja/news/'}});expect('お知らせ：ポケモンチャンピオンズ公式サイトの一覧ページを登録できる',r[0]===200,r);
 r=await call('/api/admin/news/post',{method:'POST',admin:'admin-secret-123',body:{title:'ver1.2 のお知らせ',url:'https://www.pokemon.co.jp/info/test'}});expect('お知らせ：手で投稿できる',r[0]===200,r);
 r=await call('/api/tl');{const n=r[1].notes.find(x=>x.user.handle==='news_bot');expect('お知らせ：リンク付きでタイムラインに出る',n&&n.link==='https://www.pokemon.co.jp/info/test'&&/公式のお知らせ/.test(n.body),r[1].notes[0])}
 /* アクセス解析：画面ごとの回数だけを数え、管理者だけが見られる */
