@@ -1216,3 +1216,10 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 .ptr.ptr-load .ptr-a{display:none}
 .ptr.ptr-load .ptr-s{display:block;transform-origin:12px 12px;animation:ptrspin .7s linear infinite}
 @keyframes ptrspin{to{transform:rotate(360deg)}}
+
+/* ===================== 右下のボタンから出す投稿の画面（46-ptr.js の fabPost） ===================== */
+.psheet-post .psheet-p{padding:8px 0 calc(12px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+.psheet-post .ps-h{display:flex;justify-content:flex-start;padding:0 8px}
+.ps-x{border:0;background:none;color:var(--fg);font:600 15px var(--ff);padding:10px 8px;cursor:pointer}
+.psheet-post .twc{border-bottom:0}
+.psheet-post .twc textarea{min-height:120px}

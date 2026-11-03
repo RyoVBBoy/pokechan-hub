@@ -176,7 +176,7 @@ async function tlView(a,home){
   const prof=await twAuth();if(keyOf(cur)!==myKey)return;TLP=prof;
   if(tlTab==='following'&&!prof)tlTab='all';
   const tabs=[['all','みんな'],['following','フォロー中']];
-  const comp=prof?twComposer(prof,()=>tlShow(tlTab,true)):null;
+  const comp=prof?twComposer(prof,()=>{postSheetClose();tlShow(tlTab,true)}):null;
   V.innerHTML=`<div class="seg" id="tl-seg">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}">${l}</button>`).join('')}<span class="seg-i" style="width:50%"></span></div>
     ${comp?comp.html:`<div class="bnote" style="margin:12px 16px">${AUTH.user?'投稿するには、<a href="#/account" style="color:var(--acc)">プロフィールを作って</a>ください。':'<a href="#/account" style="color:var(--acc)">ログイン</a>すると、投稿・いいね・フォローができます。見るだけならログインは不要です。'}</div>`}
     <div id="tl-list" class="tl-list"></div>`;

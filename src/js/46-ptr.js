@@ -90,3 +90,36 @@ async function ptrEnd(){
 }
 SCROLLER.addEventListener('touchend',ptrEnd,{passive:true});
 SCROLLER.addEventListener('touchcancel',ptrEnd,{passive:true});
+
+/* ===================== 右下の青いボタン：ホームでは投稿する（2026/11/03 依頼主の要望。X と同じ） =====================
+   ・ホーム（#/）と #/tl では、ボタンの絵をペンにして、押すと下から投稿の画面を出す
+   ・投稿の画面は、ホームの上にある投稿欄（.twc）をそのまま移して使う（画像の追加なども同じに使える）。閉じたら元の場所に戻す
+   ・ログインしていない／プロフィールがないときは、アカウントの画面へ */
+I.pen='<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>';
+const FAB_BOLT='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/></svg><span class="fl">相性</span>';
+const fabIsPost=()=>{const k=keyOf(cur);return k===''||k==='tl'};
+function fabMode(){
+  const b=document.getElementById('fab');if(!b)return;const post=fabIsPost();
+  if(b.dataset.mode===(post?'post':'bolt'))return;b.dataset.mode=post?'post':'bolt';
+  b.innerHTML=post?`${SVG(I.pen,24)}<span class="fl">投稿</span>`:FAB_BOLT;
+  b.setAttribute('aria-label',post?'投稿する':'相性をワンタップで調べる');b.title=post?'投稿する':'相性を調べる';
+}
+let PS=null;
+function fabPost(){
+  const c=document.querySelector('#view .twc');
+  if(!c){toast(AUTH&&AUTH.user?'投稿するには、先にプロフィールを作ってください':'投稿するにはログインしてください');nav('#/account');return}
+  if(PS)return;
+  const o=document.createElement('div');o.className='psheet psheet-post';
+  o.innerHTML='<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="投稿する"><div class="ps-h"><button class="ps-x" type="button">やめる</button></div><div class="ps-c"></div></div>';
+  const mark=document.createComment('twc');c.parentNode.insertBefore(mark,c);
+  o.querySelector('.ps-c').appendChild(c);document.body.appendChild(o);
+  PS={o,c,mark};requestAnimationFrame(()=>o.classList.add('on'));
+  o.querySelector('.psheet-bg').onclick=o.querySelector('.ps-x').onclick=()=>postSheetClose();
+  const t=c.querySelector('textarea');setTimeout(()=>t&&t.focus(),60);
+}
+function postSheetClose(){
+  if(!PS)return;const {o,c,mark}=PS;PS=null;
+  if(mark.parentNode)mark.parentNode.replaceChild(c,mark);
+  o.classList.remove('on');setTimeout(()=>o.remove(),180);
+}
+addEventListener('hashchange',()=>{if(PS)postSheetClose()});
