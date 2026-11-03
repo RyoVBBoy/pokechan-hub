@@ -6,6 +6,9 @@
    ・公式のサイト（pokemonchampions.jp / pokemon.co.jp / pokemon.com / nintendo.co.jp / nintendo.com など）のアドレスだけを載せる。
    ・同じアドレスは1回だけ（news_seen）。1回に3件まで。cron（6時間ごと）と管理画面の「今すぐ確認」で動く */
 const NEWS_UID='bot:news',NEWS_HOST=/(^|\.)(pokemonchampions\.jp|pokemonchampions\.com|pokemon\.co\.jp|pokemon\.com|nintendo\.co\.jp|nintendo\.com)$/i;
+/* 公式サイトのお知らせの種類（2026/11/03 依頼主の指定） */
+const NEWS_CATS=['お知らせ','連携ソフト','メンテナンス','アップデート','不具合','アンケート'];
+const newsCat=v=>{const t=typeof v==='string'?v:v&&typeof v==='object'?(v.name||v.label||v.title||v.ja||''):'';const s=String(t).trim();return NEWS_CATS.find(c=>s===c||s.includes(c))||null};
 let NEWS_READY=false;
 async function newsInit(db){
   if(NEWS_READY)return;
@@ -13,7 +16,7 @@ async function newsInit(db){
     db.prepare(`CREATE TABLE IF NOT EXISTS news_seen(url TEXT PRIMARY KEY,title TEXT,note_id INTEGER,created_at INTEGER)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS news_src(url TEXT PRIMARY KEY,created_at INTEGER)`)
   ]);
-  try{await db.prepare(`ALTER TABLE notes ADD COLUMN link TEXT`).run()}catch(e){}
+  for(const c of ['notes ADD COLUMN link TEXT','news_seen ADD COLUMN cat TEXT','news_seen ADD COLUMN date TEXT'])try{await db.prepare(`ALTER TABLE ${c}`).run()}catch(e){}
   NEWS_READY=true;
 }
 const newsOk=u=>{try{const x=new URL(String(u));return x.protocol==='https:'&&NEWS_HOST.test(x.hostname)&&x.href.length<=500?x.href:null}catch(e){return null}};
@@ -37,9 +40,12 @@ function newsFromHtml(html,src){
     const ok=newsOk(url.href);if(!ok)continue;
     let t=newsStrip(m[2]);const d=t.match(/(20\d\d)[.\/年-]\s*(\d{1,2})[.\/月-]\s*(\d{1,2})日?/);
     const date=d?`${d[1]}-${String(d[2]).padStart(2,'0')}-${String(d[3]).padStart(2,'0')}`:null;
-    if(d)t=t.replace(d[0],' ');t=t.replace(/\s+/g,' ').trim();
+    if(d)t=t.replace(d[0],' ');
+    /* 題名の前後にある種類の札（お知らせ・メンテナンス など）を取り出して、題名から外す */
+    let cat=null;for(const c of NEWS_CATS){const re=new RegExp('(^|\\s)'+c+'(\\s|$)');if(re.test(t)){cat=c;t=t.replace(re,' ');break}}
+    t=t.replace(/\s+/g,' ').trim();
     if(t.length<4)continue;
-    out.push({title:t.slice(0,100),date,url:ok});
+    out.push({title:t.slice(0,100),date,url:ok,cat});
   }
   return out;
 }
@@ -59,7 +65,8 @@ function newsWalk(o,src,out,depth=0){
     if(!url&&id)url=new URL(String(id).replace(/^\//,'')+'/',src.replace(/[#?].*$/,'').replace(/\/?$/,'/')).href;
     const ok=url&&newsOk(url);
     const dm=d&&String(d).match(/(20\d\d)[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
-    if(ok)out.push({title:newsStrip(t).slice(0,100),date:dm?`${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}`:null,url:ok});
+    let cat=null;for(const k of ['category','categories','tag','tags','type','label','genre','kind']){const v=o[k];const a=Array.isArray(v)?v:[v];for(const x of a){cat=newsCat(x);if(cat)break}if(cat)break}
+    if(ok)out.push({title:newsStrip(t).slice(0,100),date:dm?`${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}`:null,url:ok,cat});
   }
   for(const k in o)if(o[k]&&typeof o[k]==='object')newsWalk(o[k],src,out,depth+1);
 }
@@ -102,12 +109,13 @@ async function newsFind(env,db,dbg){
     if(html){try{const j=await newsFromData(html,s,d);if(j.length){out.push(...j);d.via='data';continue}}catch(e){d.dataErr=String(e.message||e).slice(0,100)}}
     /* HTML にリンクがない（あとから読み込むページなど）ときは、AI にページの文字かページそのものを読ませる */
     const ask=(page)=>`次は「ポケモンチャンピオンズ」の公式のお知らせの一覧ページ（${s}）${page?'の文字です':'です'}。お知らせのうち、新しいものから最大10件の「題名」「日付」「お知らせのページのアドレス」だけを取り出してください。題名はページに書かれたとおり。本文の要約や感想は書かないでください。
-次の JSON だけを返してください：{"items":[{"title":"","date":"YYYY-MM-DD か null","url":""}]}${page?'\n---\n'+page:''}`;
+ページに種類（${NEWS_CATS.join("・")}）が書かれていれば category に入れてください。
+次の JSON だけを返してください：{"items":[{"title":"","date":"YYYY-MM-DD か null","url":"","category":"種類か null"}]}${page?'\n---\n'+page:''}`;
     try{const txt=html?html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi,'').replace(/\s+/g,' ').slice(0,60000):'';
       const {text}=await gemText(env,txt?{contents:[{parts:[{text:ask(txt)}]}],generationConfig:{temperature:0}}:{contents:[{parts:[{text:ask('')}]}],tools:[{url_context:{}}],generationConfig:{temperature:0}});
       let o={};try{o=JSON.parse((String(text).match(/\{[\s\S]*\}/)||['{}'])[0])}catch(e){}
       const before=out.length;
-      (Array.isArray(o.items)?o.items:[]).forEach(it=>{let url=null;try{url=newsOk(new URL(String(it.url||''),s).href)}catch(e){}if(url&&it.title)out.push({title:String(it.title).slice(0,100),date:/^\d{4}-\d\d-\d\d$/.test(it.date||'')?it.date:null,url})});
+      (Array.isArray(o.items)?o.items:[]).forEach(it=>{let url=null;try{url=newsOk(new URL(String(it.url||''),s).href)}catch(e){}if(url&&it.title)out.push({title:String(it.title).slice(0,100),date:/^\d{4}-\d\d-\d\d$/.test(it.date||'')?it.date:null,url,cat:newsCat(it.category)})});
       d.via=txt?'ai-text':'ai-url';d.ai=out.length-before}catch(e){d.aiErr=String(e.message||e).slice(0,120)}
     if(!out.length){try{const h=new URL(s);const r=await newsFromSearch(env,`site:${h.hostname}${h.pathname} お知らせ`,d);out.push(...r);if(r.length)d.via='search'}catch(e){d.searchErr=String(e.message||e).slice(0,100)}}
   }
@@ -117,6 +125,8 @@ async function newsFind(env,db,dbg){
   }
   const seen=new Set();return out.filter(x=>!seen.has(x.url)&&seen.add(x.url));
 }
+/* 投稿の本文：【公式・種類】題名（日付） #公式のお知らせ（タグで公式のお知らせだけを検索できる） */
+const newsBody=(title,cat,date)=>{const tail=' #公式のお知らせ',head=`【公式・${cat||'お知らせ'}】`,d=date?`（${String(date).replace(/-/g,'/')}）`:'';return head+String(title).slice(0,140-head.length-d.length-tail.length)+d+tail};
 async function newsRun(env,db,now,max=3){
   await newsInit(db);await socialInit(db);
   if(!env.GEMINI_API_KEY)return{posted:0,found:0,error:'GEMINI_API_KEY がありません'};
@@ -124,24 +134,32 @@ async function newsRun(env,db,now,max=3){
   /* 初めて動いたときは、いまあるお知らせを「見たもの」として記録だけする（古いお知らせをまとめて投稿しない） */
   const first=!(await db.prepare(`SELECT 1 FROM news_seen LIMIT 1`).first());
   for(const it of items){
-    const dup=await db.prepare(`SELECT 1 FROM news_seen WHERE url=?`).bind(it.url).first();if(dup)continue;
-    if(first||posted>=max){await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at) VALUES(?,?,0,?)`).bind(it.url,it.title,now).run();continue}
+    const dup=await db.prepare(`SELECT 1 FROM news_seen WHERE url=?`).bind(it.url).first();
+    /* もう見たお知らせでも、種類・日付が分かったら足しておく */
+    if(dup){if(it.cat||it.date)await db.prepare(`UPDATE news_seen SET cat=COALESCE(cat,?),date=COALESCE(date,?) WHERE url=?`).bind(it.cat||null,it.date||null,it.url).run();continue}
+    if(first||posted>=max){await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,0,?,?,?)`).bind(it.url,it.title,now,it.cat||null,it.date||null).run();continue}
     await newsBot(db,now);
-    const body=`【公式のお知らせ】${it.title}${it.date?`（${it.date.replace(/-/g,'/')}）`:''}`.slice(0,140);
+    const body=newsBody(it.title,it.cat,it.date);
     const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media,link) VALUES(?,?,?,?,0,NULL,?) RETURNING id`).bind(NEWS_UID,body,now,'bot',it.url).first();
-    await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at) VALUES(?,?,?,?)`).bind(it.url,it.title,r.id,now).run();
+    await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,?,?,?,?)`).bind(it.url,it.title,r.id,now,it.cat||null,it.date||null).run();
     posted++;list.push(it);
   }
   return{posted,found:items.length,first,items:list,dbg};
 }
 async function newsApi(req,env,db,path,now,isAdmin){
+  /* だれでも見られる一覧：GET /api/news?cat=種類（公式のお知らせのページ用） */
+  if(path==='/api/news'&&req.method==='GET'){
+    await newsInit(db);const cat=newsCat(new URL(req.url).searchParams.get('cat'));
+    const r=await db.prepare(`SELECT url,title,cat,date,created_at FROM news_seen ${cat?'WHERE cat=?':''} ORDER BY COALESCE(date,'') DESC,created_at DESC LIMIT 100`).bind(...(cat?[cat]:[])).all();
+    return J({cats:NEWS_CATS,items:r.results});
+  }
   if(!/^\/api\/admin\/news/.test(path))return null;
   if(!isAdmin)return J({error:'管理用の合言葉が違います。'},401);
   await newsInit(db);
   let b={};if(req.method==='POST'){try{b=JSON.parse(await req.text()||'{}')}catch(e){}}
   if(path==='/api/admin/news'&&req.method==='GET'){
     const src=(await db.prepare(`SELECT url FROM news_src ORDER BY created_at`).all()).results.map(r=>r.url);
-    const seen=(await db.prepare(`SELECT url,title,note_id,created_at FROM news_seen ORDER BY created_at DESC LIMIT 30`).all()).results;
+    const seen=(await db.prepare(`SELECT url,title,note_id,created_at,cat,date FROM news_seen ORDER BY created_at DESC LIMIT 30`).all()).results;
     return J({src,seen});
   }
   if(path==='/api/admin/news/src'&&req.method==='POST'){
@@ -154,11 +172,11 @@ async function newsApi(req,env,db,path,now,isAdmin){
   }
   /* 手で投稿する（自動で見つからなかったとき用）：題名とアドレス */
   if(path==='/api/admin/news/post'&&req.method==='POST'){
-    const url=newsOk(b.url),title=String(b.title||'').trim().slice(0,100);
+    const url=newsOk(b.url),title=String(b.title||'').trim().slice(0,100),cat=newsCat(b.cat);
     if(!url||!title)return J({error:'題名と、公式サイトのアドレスを入れてください。'},400);
     await newsBot(db,now);await socialInit(db);
-    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media,link) VALUES(?,?,?,?,0,NULL,?) RETURNING id`).bind(NEWS_UID,`【公式のお知らせ】${title}`.slice(0,140),now,'bot',url).first();
-    await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at) VALUES(?,?,?,?)`).bind(url,title,r.id,now).run();
+    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media,link) VALUES(?,?,?,?,0,NULL,?) RETURNING id`).bind(NEWS_UID,newsBody(title,cat,null),now,'bot',url).first();
+    await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,?,?,?,?)`).bind(url,title,r.id,now,cat,null).run();
     return J({ok:true,id:r.id});
   }
   return J({error:'見つかりません。'},404);

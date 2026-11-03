@@ -22,6 +22,7 @@ function communityView(){
   ${hubRow('#/tl','タイムライン','トレーナーの投稿を見る・投稿する・フォローする')}
   ${hubRow('#/notif','お知らせ','いいね・フォローされたとき<span id="cm-notif-n" style="color:var(--acc);margin-left:6px">'+(notifN?'未読 '+notifN+'件':'')+'</span>')}
   ${hubRow('#/account','アカウント',typeof AUTH!=='undefined'&&AUTH.profile?`@${esc(AUTH.profile.handle)}・プロフィール`:'ログイン・プロフィール')}
+  ${hubRow('#/news','公式のお知らせ','お知らせ・連携ソフト・メンテナンス・アップデート・不具合・アンケート（公式サイトへのリンク）')}
   ${hubRow('#/search/'+encodeURIComponent('#対戦募集'),'<span data-notr>#対戦募集</span>','プライベート対戦の相手を募集する（形式・ルール・あいことばを書いて投稿）')}
   ${hubRow('#/search/'+encodeURIComponent('#構築相談'),'<span data-notr>#構築相談</span>','パーティの組み方を相談する')}
   ${hubRow('#/search/'+encodeURIComponent('#質問'),'<span data-notr>#質問</span>','わからないことを聞く')}

@@ -53,13 +53,13 @@ function adminView(){
           <div class="btns"><button class="btn btn-s" id="adm-nsadd">追加する</button><button class="btn btn-p" id="adm-nrun">今すぐ確認して投稿</button></div>
           <div id="adm-nmsg"></div>
           <div class="sec"><h2>手で投稿する</h2></div>
-          <div class="cform" style="padding:0 16px"><label>題名<input id="adm-nt" maxlength="100"></label><label>公式サイトのアドレス<input id="adm-nu" placeholder="https://…"></label></div>
+          <div class="cform" style="padding:0 16px"><label>種類<select class="sel" id="adm-nc">${['お知らせ','連携ソフト','メンテナンス','アップデート','不具合','アンケート'].map(c=>`<option>${c}</option>`).join('')}</select></label><label>題名<input id="adm-nt" maxlength="100"></label><label>公式サイトのアドレス<input id="adm-nu" placeholder="https://…"></label></div>
           <div class="btns"><button class="btn btn-s" id="adm-npost">お知らせbotとして投稿</button></div>
           <div class="sec"><h2>見つけたお知らせ</h2></div>
-          ${j.seen.length?j.seen.map(x=>`<div class="bpost"><div class="bpost-h">${ago(x.created_at)}${x.note_id?'　投稿済み':'　記録だけ（初回）'}</div><div>${esc(x.title||'')}</div><div class="vcap" style="word-break:break-all">${esc(x.url)}</div></div>`).join(''):'<p class="empty">まだありません。</p>'}`;
+          ${j.seen.length?j.seen.map(x=>`<div class="bpost"><div class="bpost-h">${ago(x.created_at)}${x.note_id?'　投稿済み':'　記録だけ（初回）'}${x.cat?'　'+esc(x.cat):''}${x.date?'　'+esc(x.date):''}</div><div>${esc(x.title||'')}</div><div class="vcap" style="word-break:break-all">${esc(x.url)}</div></div>`).join(''):'<p class="empty">まだありません。</p>'}`;
         el.querySelectorAll('[data-nsdel]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/news/src',{url:b.dataset.nsdel,del:true}),'外しました'));
         document.getElementById('adm-nsadd').onclick=()=>act(()=>apost('/api/admin/news/src',{url:document.getElementById('adm-nsrc').value.trim()}),'追加しました');
-        document.getElementById('adm-npost').onclick=()=>act(()=>apost('/api/admin/news/post',{title:document.getElementById('adm-nt').value,url:document.getElementById('adm-nu').value.trim()}),'投稿しました');
+        document.getElementById('adm-npost').onclick=()=>act(()=>apost('/api/admin/news/post',{cat:document.getElementById('adm-nc').value,title:document.getElementById('adm-nt').value,url:document.getElementById('adm-nu').value.trim()}),'投稿しました');
         document.getElementById('adm-nrun').onclick=async()=>{const m=document.getElementById('adm-nmsg');m.innerHTML='<p class="note">確認しています…（30秒ほど）</p>';
           try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、${r.posted}件投稿しました。${r.first?'初めての確認なので、いまあるお知らせは記録だけしました（次から新しいものを投稿します）。':''}</p>${r.found?'':`<p class="vcap" style="padding:0 16px;word-break:break-all">調べた結果（開発者向け）：${esc(JSON.stringify(r.dbg||{}))}</p>`}`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
       }else if(admTab==='hits'){

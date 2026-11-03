@@ -138,8 +138,10 @@ r=await call('/api/admin/banned',{admin:'admin-secret-123'});expect('停止中�
 r=await call('/api/admin/news');expect('お知らせ：管理者以外は使えない',r[0]===401,r);
 r=await call('/api/admin/news/src',{method:'POST',admin:'admin-secret-123',body:{url:'https://example.com/news'}});expect('お知らせ：公式以外の一覧ページは断る',r[0]===400,r);
 r=await call('/api/admin/news/src',{method:'POST',admin:'admin-secret-123',body:{url:'https://www.pokemonchampions.jp/ja/news/'}});expect('お知らせ：ポケモンチャンピオンズ公式サイトの一覧ページを登録できる',r[0]===200,r);
-r=await call('/api/admin/news/post',{method:'POST',admin:'admin-secret-123',body:{title:'ver1.2 のお知らせ',url:'https://www.pokemon.co.jp/info/test'}});expect('お知らせ：手で投稿できる',r[0]===200,r);
-r=await call('/api/tl');{const n=r[1].notes.find(x=>x.user.handle==='news_bot');expect('お知らせ：リンク付きでタイムラインに出る',n&&n.link==='https://www.pokemon.co.jp/info/test'&&/公式のお知らせ/.test(n.body),r[1].notes[0])}
+r=await call('/api/admin/news/post',{method:'POST',admin:'admin-secret-123',body:{cat:'メンテナンス',title:'ver1.2 のお知らせ',url:'https://www.pokemon.co.jp/info/test'}});expect('お知らせ：手で投稿できる',r[0]===200,r);
+r=await call('/api/tl');{const n=r[1].notes.find(x=>x.user.handle==='news_bot');expect('お知らせ：リンク付きでタイムラインに出る',n&&n.link==='https://www.pokemon.co.jp/info/test'&&/【公式・メンテナンス】/.test(n.body)&&/#公式のお知らせ/.test(n.body),r[1].notes[0])}
+r=await call('/api/news?cat='+encodeURIComponent('メンテナンス'));expect('お知らせ：種類ごとの一覧',r[0]===200&&r[1].items.length===1&&r[1].items[0].cat==='メンテナンス',r[1]);
+r=await call('/api/news?cat='+encodeURIComponent('不具合'));expect('お知らせ：ほかの種類には出ない',r[1].items.length===0,r[1]);
 /* アクセス解析：画面ごとの回数だけを数え、管理者だけが見られる */
 await call('/api/hit',{method:'POST',body:{k:'assist',v:1,d:'sp',r:'search'}});await call('/api/hit',{method:'POST',body:{k:'assist'}});await call('/api/hit',{method:'POST',body:{k:'bad key!'}});
 r=await call('/api/admin/hits');expect('アクセス解析：管理者以外は見られない',r[0]===401,r);
