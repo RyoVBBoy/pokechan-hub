@@ -1144,6 +1144,7 @@ body::before{content:'';position:fixed;inset:-20vh -20vw;z-index:-1;pointer-even
 @media(min-width:700px){
   .pcside .card,.pcside>section,.pcside>div{background:var(--glass)!important;-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
 }
+@media(min-width:700px){.tb-pill{display:none}}
 @media(max-width:699px){
   /* 浮いた丸いメニュー：アイコンと名前を出し、選んでいるタブは「丸い下地＋太い名前＋濃いアイコン」 */
   .tabbar{left:10px!important;right:10px!important;bottom:calc(env(safe-area-inset-bottom) + 8px)!important;padding-bottom:0!important;border-radius:28px;
@@ -1156,12 +1157,17 @@ body::before{content:'';position:fixed;inset:-20vh -20vw;z-index:-1;pointer-even
   .tb::before{content:'';position:absolute;top:7px;left:50%;width:56px;height:30px;margin-left:-28px;border-radius:15px;background:var(--tb-on);
     opacity:0;transform:scaleX(.5);transition:opacity .2s,transform .25s var(--ease)}
   .tb[aria-current=page]{color:var(--fg)!important}
-  .tb[aria-current=page]::before{opacity:1;transform:none}
+  .tb[aria-current=page]::before{opacity:0}
+  .tb{transition:color .25s}
+  .tb svg{transition:stroke-width .25s}
+  /* 選んでいるタブの丸い下地（1つだけ。moveTbPill が横にすべらせる） */
+  .tabbar-in{position:relative}
+  .tb-pill{display:block;position:absolute;top:7px;left:0;width:56px;height:30px;border-radius:15px;background:var(--tb-on);pointer-events:none;opacity:0;transition:opacity .2s;will-change:transform}
   .tb[aria-current=page]::after{display:none!important}
   .tb[aria-current=page] svg{stroke-width:2.5}
   .tb[aria-current=page] svg path{fill:currentColor;fill-opacity:.18}
   .tb[aria-current=page] span{font-weight:800}
-  .tb:active::before{opacity:1;transform:scale(.92)}
+  .tb:not([aria-current]):active::before{opacity:.6;transform:scale(.92)}
   .app{padding-bottom:calc(110px + env(safe-area-inset-bottom))!important}
   .fabwrap{bottom:calc(env(safe-area-inset-bottom) + 84px)!important}
   .toast{bottom:calc(env(safe-area-inset-bottom) + 86px)!important}

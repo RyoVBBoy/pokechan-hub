@@ -49,6 +49,7 @@ function route(){
   document.querySelectorAll('.tb').forEach(e=>{
     const on=e.dataset.k===navGroup(k);
     on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});
+  moveTbPill();
   closeSheet();
   document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle');
   trackTool(cur);drawSide();rememberTab();if(typeof hitSend==='function')hitSend(k);

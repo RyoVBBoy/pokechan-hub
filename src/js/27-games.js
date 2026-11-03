@@ -180,3 +180,21 @@ function calcVerBind(R,draw){
   if(cl)cl.onclick=async()=>{if(await askConfirm({title:'照合の記録をすべて消しますか？',text:'この操作は取り消せません。',ok:'消す'})){dvSet([]);const y=scrY();draw();scrTo(0,y)}};
 }
 
+
+/* スマホの下のメニュー：選んでいるタブの丸い下地を1つにして、タブを切りかえると横にすべって動く（2026/11/03 依頼主の要望）。
+   動いている間だけ少し横にのびて、止まるときに元の形に戻る */
+let TBPILL_X=null;
+function moveTbPill(anim=true){
+  const nv=document.getElementById('nav');if(!nv)return;
+  let p=nv.querySelector('.tb-pill');
+  if(!p){p=document.createElement('i');p.className='tb-pill';p.setAttribute('aria-hidden','true');nv.prepend(p);TBPILL_X=null}
+  const a=nv.querySelector('.tb[aria-current=page]');
+  if(!a||!a.offsetWidth){p.style.opacity='0';return}
+  const x=a.offsetLeft+a.offsetWidth/2-p.offsetWidth/2;
+  const from=TBPILL_X;TBPILL_X=x;p.style.opacity='1';p.style.transform=`translateX(${x}px)`;
+  if(!anim||from===null||from===x||reduceMotion||!p.animate)return;
+  const mid=(from+x)/2,st=1+Math.min(.5,Math.abs(x-from)/400);
+  p.animate([{transform:`translateX(${from}px)`},{transform:`translateX(${mid}px) scaleX(${st}) scaleY(.92)`,offset:.45},{transform:`translateX(${x}px)`}],
+    {duration:420,easing:'cubic-bezier(.25,.8,.25,1)'});
+}
+addEventListener('resize',()=>moveTbPill(false));
