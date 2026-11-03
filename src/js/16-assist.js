@@ -55,11 +55,22 @@ const mvNameEn=n=>{const k=nrm(n),id=MVK[k];if(id===0)return'まもる';if(id&&M
 const itNameEn=n=>{const k=nrm(n);return itemJa(k)||ITEMN[k]||n};
 const abNameEn=n=>{const k=ABK[nrm(n)];return k&&ABN[k]||n};
 const natNameEn=(u,d)=>{const f=x=>STI[nrm(x).replace(/^spatk$/,'sp.atk').replace(/^spdef$/,'sp.def')]??-1;const r=natName(f(u),f(d));return r?r.replace(/（.*$/,''):'補正なし'};
+/* 相手の6匹の役のめやす：メガシンカできる（メガ枠）・場を作る技を2つ以上覚える（起点作り）・合計種族値525以上で攻撃か特攻120以上（高数値アタッカー） */
+function oppRoleTags(opNos){
+  const SUPK=typeof GM_SUP!=='undefined'?GM_SUP:[];
+  return opNos.map(n=>{const p=byNo[n],ls=LSD[n]?LSD[n][1]:[];
+    return{mega:typeof megasOf==='function'&&megasOf(n).length>0,setup:ls.filter(id=>MD[id]&&SUPK.includes(MD[id][3])).length>=2,ace:p.bst>=525&&Math.max(p.s[1],p.s[3])>=120}});
+}
 function oppPredict(myNos,opNos){
   if(opNos.length<=PICK())return{w:opNos.map(()=>1),top:[{c:opNos.map((_,j)=>j),p:1}],lead:null,P:null};
   const P=analyze(opNos,myNos,n=>detSet(byNo[n]),n=>detSet(byNo[n]));
-  const mx=P.full[0].s,ex=P.full.map(x=>Math.exp((x.s-mx)/.06)),tot=ex.reduce((a,b)=>a+b,0);
-  const pr=P.full.map((x,i)=>({c:x.c,p:ex[i]/tot}));
+  /* 選出の組み立てとしてよくある形を少し重く見る（2026/11/03 依頼主の資料）：
+     メガシンカできる匹は1匹まで・場を作る匹（起点作り）と数値の高いアタッカーを組み合わせた選出 */
+  const rk=oppRoleTags(opNos);
+  const adj=c=>{const mg=c.filter(j=>rk[j].mega).length,su=c.some(j=>rk[j].setup),at=c.some(j=>rk[j].ace);return(mg>=2?-.05:0)+(mg===1?.01:0)+(su&&at?.03:su||at?.01:0)};
+  const full=P.full.map(x=>({c:x.c,s:x.s+adj(x.c)})).sort((a,b)=>b.s-a.s);
+  const mx=full[0].s,ex=full.map(x=>Math.exp((x.s-mx)/.06)),tot=ex.reduce((a,b)=>a+b,0);
+  const pr=full.map((x,i)=>({c:x.c,p:ex[i]/tot}));
   const w=opNos.map((_,j)=>pr.reduce((a,x)=>a+(x.c.includes(j)?x.p:0),0));
   return{w,top:pr.slice(0,3),lead:P.lead,P};
 }

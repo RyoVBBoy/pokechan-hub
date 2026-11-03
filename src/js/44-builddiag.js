@@ -110,6 +110,8 @@ function threeStepHTML(myNos,PR){
   return `<div class="sec"><h2>選出の3ステップ</h2></div>
   <div class="pc-i pc-plan"><b>① 相手の選出の予想</b>
     ${scen.map((s,k)=>`<p><b>${k+1}.</b> ${s.oNos.map(nm1).join('・')} <span class="vcap">（${Math.round(s.p*100)}%）</span></p>`).join('')}
+    ${(()=>{const t=oppRoleTags(opp6),g=f=>opp6.filter((_,j)=>t[j][f]).map(nm1);const a=[['メガ枠',g('mega')],['起点作り',g('setup')],['高数値アタッカー',g('ace')]].filter(x=>x[1].length);
+      return a.length?`<p class="vcap">相手の役のめやす：${a.map(([l,v])=>`${l}＝${v.join('・')}`).join('／')}。メガシンカできる匹は1匹まで、起点作りとアタッカーを組み合わせた選出を、少し来やすいものとして見ています。</p>`:''})()}
     <h4>② それぞれへの通し筋</h4>
     ${scen.map((s,k)=>`<div class="pc-situ"><p><b>${k+1}で来たら</b>：${s.A.best.map(i=>`<b>${esc(s.A.M[i].p.n)}</b>`).join('・')}（先発 ${s.A.lead.map(i=>esc(s.A.M[i].p.n)).join('・')}）</p>
       <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.d.mv?esc(x.d.mv.n)+'で':''}${Math.round(Math.min(x.d.pct,999))>=100?'一撃':'約'+Math.round(x.d.pct)+'%'}${x.d.pct<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
