@@ -73,3 +73,17 @@ function segSwipe(area,o){
 }
 /* 新しく出したタブの中身を、進む向きからすべり込ませる */
 function segSlideIn(pn,dir){if(!pn)return;pn.style.transform='';pn.style.transition='';pn.classList.remove('tt-in-l','tt-in-r');void pn.offsetWidth;pn.classList.add(dir>0?'tt-in-r':'tt-in-l')}
+/* 確認の画面（X と同じ形：中央のカード・太い見出し・説明・赤い実行ボタンと枠だけの「キャンセル」を縦に並べる）。
+   askConfirm({title,text,ok,danger}) → Promise<true/false>。端末の confirm() の代わりに使う */
+function askConfirm(o){
+  if(typeof o==='string')o={title:o};
+  return new Promise(res=>{
+    const d=document.createElement('div');d.className='xc';
+    d.innerHTML=`<div class="xc-bg"></div><div class="xc-p" role="alertdialog" aria-modal="true" aria-labelledby="xc-t"><h3 id="xc-t">${esc(o.title||'よろしいですか？')}</h3>${o.text?`<p>${esc(o.text)}</p>`:''}
+      <button class="xc-ok${o.danger===false?' xc-plain':''}">${esc(o.ok||'削除')}</button><button class="xc-no">キャンセル</button></div>`;
+    document.body.appendChild(d);requestAnimationFrame(()=>d.classList.add('on'));
+    const done=v=>{d.classList.remove('on');document.removeEventListener('keydown',key);setTimeout(()=>d.remove(),150);res(v)};
+    const key=e=>{if(e.key==='Escape')done(false)};document.addEventListener('keydown',key);
+    d.querySelector('.xc-ok').onclick=()=>done(true);d.querySelector('.xc-no').onclick=()=>done(false);d.querySelector('.xc-bg').onclick=()=>done(false);
+  });
+}

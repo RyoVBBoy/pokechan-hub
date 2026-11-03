@@ -126,10 +126,10 @@ function archSet(a,p,pt,used){
 }
 const archSets=(a,mons)=>{const used=new Set();return mons.map(p=>archSet(a,p,mons.part&&mons.part[p.no],used))};
 const toSaved=s=>s?{ab:s.ab?{n:ABN[s.ab]||s.ab,k:s.ab}:null,it:s.item?{n:ITEMN[s.item]||s.item,k:s.item}:null,mv:s.moves.map(id=>({n:mName(id),id})),sp:[...s.sp],up:s.up,dn:s.dn}:undefined;
-function archUse(a,nos,sets){
+async function archUse(a,nos,sets){
   let i=TEAMS.cur;
   if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
-    if(e>=0)i=e;else if(!confirm(`「${teamName(TEAMS.cur)}」を、${a[1]}の例に入れかえます。よろしいですか？`))return}
+    if(e>=0)i=e;else if(!await askConfirm({title:'パーティを入れかえますか？',text:`パーティの枠がいっぱいです。「${teamName(TEAMS.cur)}」を、${a[1]}の例に入れかえます。`,ok:'入れかえる',danger:false}))return}
   if(i!==TEAMS.cur)switchTeam(i);
   team=nos.map((no,k)=>{const x={no,sel:k<PICK()},sv=sets&&toSaved(sets[k]);if(sv)x.set=sv;return x});if(!TEAMS.list[i].name)TEAMS.list[i].name=a[1].slice(0,20);
   saveTeam();toast(`「${teamName(i)}」に入れました`);nav('#/team');

@@ -92,7 +92,7 @@ function twBind(root,reload){
       const h=el.dataset.h,mine=el.dataset.mine==='1';
       const opts=mine?['この投稿を削除する']:['この投稿を通報する',`@${h} の投稿を表示しない`];
       const c=await pickSheet(mine?'あなたの投稿':`@${h} の投稿`,opts);if(!c)return;
-      if(c===opts[0]&&mine){if(!confirm('この投稿を削除します。元に戻せません。'))return;
+      if(c===opts[0]&&mine){if(!await askConfirm({title:'ポストを削除しますか？',text:'この操作は取り消せません。プロフィール、あなたをフォローしているアカウントのタイムライン、検索結果からポストが削除されます。',ok:'削除'}))return;
         try{await authFetch(`/api/notes/${id}/delete`,{});toast('削除しました');el.remove()}catch(err){toast(err.message)}}
       else if(c===opts[0]){
         if(!AUTH.profile){toast('通報するにはログインしてください');return}

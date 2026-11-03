@@ -104,5 +104,5 @@ async function rpLoad(){
     <div class="sec"><h2>最近の対戦</h2></div>${bs.slice(0,20).map(b=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${b.result==='win'?'<b style="color:#00a36c">勝ち</b>':b.result==='lose'?'<b style="color:var(--w2)">負け</b>':'—'}　${b.fmt==='double'?'ダブル':'シングル'}　${new Date(b.at).toLocaleDateString('ja-JP')}</div><div class="row-s">相手：${b.opp.map(n=>byNo[n]?esc(byNo[n].n):'').join('・')}</div></div><button class="bback" data-rpdel="${b.id}" style="color:var(--w2)">消す</button></div>`).join('')}
     <p class="note" style="color:var(--mute)">勝率は「勝ち・負け」が分かっている対戦だけで計算しています。記録はあなただけが見られます。</p>`;
   const h=document.getElementById('rp-hard');if(h)h.onclick=()=>{opp6=hard.map(o=>o.n).slice(0,6);saveOpp6();nav('#/assist')};
-  el.querySelectorAll('[data-rpdel]').forEach(b=>b.onclick=async()=>{if(!confirm('この記録を消します。よろしいですか？'))return;try{await authFetch(`/api/battles/${b.dataset.rpdel}/delete`,{});rpLoad()}catch(e){toast(e.message)}});
+  el.querySelectorAll('[data-rpdel]').forEach(b=>b.onclick=async()=>{if(!await askConfirm({title:'記録を削除しますか？',text:'この対戦の記録を消します。この操作は取り消せません。',ok:'削除'}))return;try{await authFetch(`/api/battles/${b.dataset.rpdel}/delete`,{});rpLoad()}catch(e){toast(e.message)}});
 }

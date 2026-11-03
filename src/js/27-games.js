@@ -177,6 +177,6 @@ function calcVerBind(R,draw){
     try{await navigator.clipboard.writeText(txt);toast('コピーしました')}catch(e){toast('コピーできませんでした')}
   };
   const cl=document.getElementById('c-vclr');
-  if(cl)cl.onclick=()=>{if(confirm('照合の記録をすべて消しますか？')){dvSet([]);const y=scrY();draw();scrTo(0,y)}};
+  if(cl)cl.onclick=async()=>{if(await askConfirm({title:'照合の記録をすべて消しますか？',text:'この操作は取り消せません。',ok:'消す'})){dvSet([]);const y=scrY();draw();scrTo(0,y)}};
 }
 

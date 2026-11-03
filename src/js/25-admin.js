@@ -100,7 +100,7 @@ function adminView(){
               <button class="bback" data-tx="${t.id}" style="padding:0;color:var(--w2)">消す</button></div></div>`).join(''):'<p class="empty">まだ登録はありません。</p>'}`;
         const sp=b=>{const r=b.closest('[data-sid]');return{id:+r.dataset.sid,name:r.querySelector('.as-n').value,start:r.querySelector('.as-s').value,end:r.querySelector('.as-e').value,note:r.querySelector('.as-t').value}};
         el.querySelectorAll('[data-ssave]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/seasons',sp(b)),'保存しました'));
-        el.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{if(confirm('このシーズンを消します。よろしいですか？'))act(()=>apost('/api/admin/seasons',{id:sp(b).id,delete:true}),'消しました')});
+        el.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=async()=>{if(await askConfirm({title:'シーズンを削除しますか？',text:'このシーズンを消します。',ok:'削除'}))act(()=>apost('/api/admin/seasons',{id:sp(b).id,delete:true}),'消しました')});
         document.getElementById('as-add').onclick=()=>act(()=>apost('/api/admin/seasons',{name:document.getElementById('as-nn').value,start:document.getElementById('as-ns').value,end:document.getElementById('as-ne').value}),'シーズンを登録しました');
         const ta=document.getElementById('at-add');if(ta)ta.onclick=()=>{
           const ts=document.getElementById('at-t'),sl=ts&&ts.value!==''?slots.find(x=>x.i===+ts.value):null;let tm;
@@ -110,7 +110,7 @@ function adminView(){
             rank:document.getElementById('at-r').value,rate:document.getElementById('at-rt').value,comment:document.getElementById('at-c').value,team:tm}),'登録しました')};
         el.querySelectorAll('[data-tv]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.tv.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,verified:v==='1'}),v==='1'?'確認済みにしました':'確認済みを外しました')});
         el.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.th.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,hidden:v==='1'}),v==='1'?'非表示にしました':'表示に戻しました')});
-        el.querySelectorAll('[data-tx]').forEach(b=>b.onclick=()=>{if(confirm('この登録を消します（スクリーンショットも消えます）。よろしいですか？'))act(()=>apost('/api/admin/season-teams',{id:+b.dataset.tx,delete:true}),'消しました')});
+        el.querySelectorAll('[data-tx]').forEach(b=>b.onclick=async()=>{if(await askConfirm({title:'登録を削除しますか？',text:'スクリーンショットも消えます。',ok:'削除'}))act(()=>apost('/api/admin/season-teams',{id:+b.dataset.tx,delete:true}),'消しました')});
         if(typeof SEAS!=='undefined')SEAS.list=null;
         /* 記事から自動で集める（collect.js） */
         const colBox=document.getElementById('col-box');
@@ -143,8 +143,8 @@ function adminView(){
           <div class="cform" style="padding:0 16px"><label>停止するユーザーID<input id="adm-bh" placeholder="例：trainer_01" autocomplete="off" autocapitalize="off"></label></div>
           <div class="btns"><button class="btn btn-p" id="adm-bb">停止する</button></div><div class="sec"><h2>停止中</h2></div>`
           +(j.users.length?j.users.map(u=>`<div class="bpost"><div class="bpost-h"><b>${esc(u.name||'')}</b>　@${esc(u.handle)}</div><div style="padding-top:6px"><button class="bback" data-unban="${esc(u.handle)}" style="padding:0">停止を解除する</button></div></div>`).join(''):'<p class="empty">停止中のアカウントはありません。</p>');
-        document.getElementById('adm-bb').onclick=()=>{const h=document.getElementById('adm-bh').value.trim().replace(/^@/,'');if(!h)return;
-          if(confirm(`@${h} を停止します。よろしいですか？`))act(()=>apost('/api/admin/ban',{handle:h}),'停止しました')};
+        document.getElementById('adm-bb').onclick=async()=>{const h=document.getElementById('adm-bh').value.trim().replace(/^@/,'');if(!h)return;
+          if(await askConfirm({title:`@${h} を停止しますか？`,text:'投稿とプロフィールが表示されなくなり、書き込みもできなくなります。あとで解除できます。',ok:'停止する'}))act(()=>apost('/api/admin/ban',{handle:h}),'停止しました')};
       }else{
         const j=await aget('/api/admin/recent');
         el.innerHTML=`<div class="sec"><h2>タイムライン</h2></div>`+((j.notes||[]).length?j.notes.map(p=>`<div class="bpost"><div class="bpost-h">${esc(p.name||'（削除済み）')}　@${esc(p.handle||'')}　${ago(p.created_at)}${p.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}${p.media_hidden?'　<b style="color:var(--w2)">画像は確認待ち</b>':''}</div><div class="bpost-b">${esc(p.body||'').replace(/\n/g,'<br>')}</div>${admMedia(p.media)}
@@ -157,7 +157,7 @@ function adminView(){
       loadMedia();
       el.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.del.split(':');act(()=>apost('/api/admin/delete',{kind:k,id:+i}),'非表示にしました')});
       el.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.res.split(':');act(()=>apost('/api/admin/delete',{kind:k,id:+i,restore:true}),'元に戻しました')});
-      el.querySelectorAll('[data-ban]').forEach(b=>b.onclick=()=>{const h=b.dataset.ban;if(confirm(`@${h} を停止します。投稿とプロフィールが表示されなくなり、書き込みもできなくなります。よろしいですか？`))act(()=>apost('/api/admin/ban',{handle:h}),'停止しました')});
+      el.querySelectorAll('[data-ban]').forEach(b=>b.onclick=async()=>{const h=b.dataset.ban;if(await askConfirm({title:`@${h} を停止しますか？`,text:'投稿とプロフィールが表示されなくなり、書き込みもできなくなります。あとで解除できます。',ok:'停止する'}))act(()=>apost('/api/admin/ban',{handle:h}),'停止しました')});
       el.querySelectorAll('[data-unban]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/ban',{handle:b.dataset.unban,on:false}),'停止を解除しました'));
       el.querySelectorAll('[data-dis]').forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.dis.split(':');act(()=>apost('/api/admin/dismiss',{kind:k,id:+i}),'通報を消しました')});
     }catch(e){el.innerHTML=`<div class="bnote" style="margin:12px 16px">${esc(e.message)}</div>`}

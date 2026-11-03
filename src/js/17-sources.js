@@ -142,7 +142,7 @@ function verifyView(){
     if(e.target.closest('#vf-exp')){const txt=JSON.stringify({site:'pc-hub',v:1,exported:new Date().toISOString(),items:getVer()});ta.value=txt;
       (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('確認結果をコピーしました')).catch(()=>{ta.select();toast('下の欄からコピーしてください')});return}
     if(e.target.closest('#vf-imp')){try{const o=JSON.parse(ta.value);const items=o.items||o;const all=getVer();Object.entries(items).forEach(([k,v])=>{all[k]={...(all[k]||{}),...v}});setVer(all);toast('読み込みました');vList()}catch(err){toast('データの形式が正しくありません')}return}
-    if(e.target.closest('#vf-del')){if(confirm('この端末に保存した確認結果をすべて消します。よろしいですか？')){setVer({});vList();toast('消しました')}}
+    if(e.target.closest('#vf-del')){askConfirm({title:'確認結果をすべて消しますか？',text:'この端末に保存した確認結果をすべて消します。',ok:'消す'}).then(ok=>{if(!ok)return;setVer({});vList();toast('消しました')})}
   });
   root.addEventListener('change',e=>{
     const x=e.target.closest('[data-fix]');if(!x||vOpen==null)return;

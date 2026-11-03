@@ -1118,3 +1118,15 @@ a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
 @media (prefers-reduced-motion:reduce){.tt-in-r,.tt-in-l{animation:none}}
 .bd-list{margin:0 16px}.bd-c{padding:10px 12px;border-radius:12px;margin:6px 0;box-shadow:inset 0 0 0 1px var(--line)}.bd-c b{font-size:14px}.bd-c p{margin:4px 0 0;font-size:13px;line-height:1.65}.bd-c.ng{box-shadow:inset 3px 0 0 #f5a524,inset 0 0 0 1px var(--line)}.bd-c.ok b{color:var(--dim)}
 .tw-link{display:flex;flex-direction:column;gap:2px;margin-top:8px;padding:10px 12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg)}.tw-link b{font-size:14px;color:var(--acc)}.tw-link b::after{content:" ↗"}.tw-link small{font-size:12px;color:var(--dim)}
+/* 確認の画面（X と同じ形） */
+.xc{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:24px}
+.xc-bg{position:absolute;inset:0;background:rgba(91,112,131,.4);opacity:0;transition:opacity .15s}
+.xc-p{position:relative;width:100%;max-width:320px;background:var(--bg);border-radius:16px;padding:32px 32px 28px;transform:scale(.96);opacity:0;transition:transform .15s,opacity .15s;box-shadow:0 0 15px rgba(0,0,0,.2)}
+.xc.on .xc-bg{opacity:1}.xc.on .xc-p{transform:none;opacity:1}
+.xc-p h3{margin:0 0 8px;font-size:20px;font-weight:800;line-height:1.3}
+.xc-p p{margin:0 0 24px;font-size:15px;line-height:1.45;color:var(--dim)}
+.xc-p button{display:block;width:100%;min-height:44px;border-radius:9999px;font:700 15px var(--ff);cursor:pointer}
+.xc-ok{background:#f4212e;color:#fff;border:0;margin-bottom:12px}.xc-ok:active{filter:brightness(.9)}
+.xc-ok.xc-plain{background:var(--fg);color:var(--bg)}
+.xc-no{background:transparent;color:var(--fg);border:1px solid var(--line2,#536471)}
+.xc-p button:focus:not(:focus-visible){outline:none}

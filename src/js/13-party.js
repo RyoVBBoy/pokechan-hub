@@ -54,7 +54,7 @@ function teamView(arg){
   V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>ttGo(b.dataset.tt));
   segSwipe(V.querySelector('#tt-pages'),{n:TTABS.length,idx:ttIdx,ind,go:(j,d)=>ttGo(TTABS[j][0],d)});
   document.getElementById('shr').onclick=shareTeam;
-  document.getElementById('clr').onclick=()=>{if(team.length&&!confirm(`「${teamName(TEAMS.cur)}」のポケモンをすべて外します。よろしいですか？`))return;team=[];saveTeam();teamRender()};
+  document.getElementById('clr').onclick=async()=>{if(team.length&&!await askConfirm({title:'パーティをクリアしますか？',text:`「${teamName(TEAMS.cur)}」のポケモンと育成をすべて外します。この操作は取り消せません。`,ok:'クリア'}))return;team=[];saveTeam();teamRender()};
   document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
   document.getElementById('tslots').onclick=e=>{const b=e.target.closest('[data-tslot]');if(!b)return;switchTeam(+b.dataset.tslot);toast(`「${teamName(TEAMS.cur)}」に切り替えました`);teamRender()};
   teamRender();syncBadge();if(PCF)teamSync();
@@ -109,10 +109,10 @@ function teamRender(){
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   ${adSlot('診断結果下')}`;
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
-  out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=()=>{
+  out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=async()=>{
     const [i,v]=b.dataset.psw.split(':'),o=team[+i];if(!o)return;
     if(v[0]==='x'){const n=team[+v.slice(1)];if(!n)return;n.sel=o.sel;o.sel=false;saveTeam();toast(`${byNo[o.no].n} → ${byNo[n.no].n}（★を付けかえました）`);teamRender();return}
-    const q=byNo[+v];if(!q||!confirm(`${byNo[o.no].n}を${q.n}に入れかえます。${byNo[o.no].n}の育成は消えます。よろしいですか？`))return;
+    const q=byNo[+v];if(!q||!await askConfirm({title:`${byNo[o.no].n}を${q.n}に入れかえますか？`,text:`${byNo[o.no].n}の育成は消えます。`,ok:'入れかえる',danger:false}))return;
     team[+i]={no:q.no,sel:o.sel};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
 }
 function planBind(pl){

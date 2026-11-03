@@ -12,10 +12,10 @@ function cleanSet(s){
   return{ab,it,mv,sp:sp&&sp.reduce((a,b)=>a+b,0)<=SP_TOTAL?sp:null,up:nat(s.up),dn:nat(s.dn)};
 }
 /* ほかから持ってきたパーティを、空いているパーティの枠に入れる（空きがなければ確認していまのパーティを入れかえる） */
-function useTeam(name,list){
+async function useTeam(name,list){
   let i=TEAMS.cur;
   if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
-    if(e>=0)i=e;else if(!confirm(`「${teamName(TEAMS.cur)}」を、このパーティに入れかえます。よろしいですか？`))return}
+    if(e>=0)i=e;else if(!await askConfirm({title:'パーティを入れかえますか？',text:`パーティの枠がいっぱいです。「${teamName(TEAMS.cur)}」を、このパーティに入れかえます。`,ok:'入れかえる',danger:false}))return}
   if(i!==TEAMS.cur)switchTeam(i);
   team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const o={no:x.no,sel:k<PICK()},s=cleanSet(x.set);if(s&&(s.sp||s.mv.length))o.set={...s,src:'copy'};return o});
   if(!TEAMS.list[i].name)TEAMS.list[i].name=String(name||'').slice(0,20);
@@ -111,7 +111,7 @@ async function seasonView(a){
       if(el.innerHTML){el.innerHTML='';b.textContent='自分のパーティと比べる';return}
       el.innerHTML=szVs(t);b.textContent='比べるのをやめる';const g=el.querySelector('[data-goassist]');if(g)g.onclick=()=>{opp6=t.team.map(x=>x.no).filter(n=>byNo[n]).slice(0,6);saveOpp6();nav('#/assist')}});
     body.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{const t=j.teams.find(x=>x.id===+b.dataset.use);if(t)useTeam(`${s.name} ${t.rank?t.rank+'位':''}`.trim(),t.team)});
-    body.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('この登録を消します。よろしいですか？'))return;
+    body.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!await askConfirm({title:'登録を削除しますか？',text:'このシーズンのあなたの登録を消します。',ok:'削除'}))return;
       try{await authFetch(`/api/seasons/teams/${+b.dataset.del}/delete`,{});SEAS.list=null;toast('消しました');seasonView(String(s.id))}catch(e){toast(e.message)}});
     /* スクショから読み取って戻ってきたとき：登録欄をそのパーティで開く */
     if(SEAS.formSlot!=null&&prof){const sl=SEAS.formSlot;SEAS.formSlot=null;szForm(s,mine,sl)}
