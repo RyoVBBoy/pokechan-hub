@@ -106,6 +106,9 @@ const gs=await pg.evaluate(()=>{const mk=(no,sp,up,dn)=>calcStats(byNo[no],sp,up
     [{nameRaw:'カイリュ',vals:mk(445,[2,32,0,0,0,32],1,3),spr:[2,32,0,0,0,32],mvRaw:['じしん','げきりん','ストーンエッジ','まもる']},445]];
   return cs.map(([sl,want])=>{sl={pos:0,...sl};imResolve(sl);return sl.no===want?'':`${sl.nameRaw}→${sl.no}`}).filter(Boolean)});
 if(gs.length)fail('ニックネームからの予測: '+gs.join(' / '));
+// 技の読みまちがい（濁点が別の文字に読まれる）：ポケモンが決まったら覚える技の中から選び直す（2026/11/03 依頼主の指摘）
+const tx=await pg.evaluate(()=>{const sl={pos:0,nameRaw:'フシギバナ',mvRaw:['とこぐとこぐぐく','つるぎのまい','のしかかり','すてみタックル']};imResolve(sl);return sl.mv[0].n});
+if(tx!=='どくどく')fail('技の読みまちがいの補正: とこぐとこぐぐく→'+tx);
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);

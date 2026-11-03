@@ -26,6 +26,15 @@ function fuzzy(text,cands){/* cands: [[表示名, 値]] */
     const sc=1-(d+.5*Math.max(0,t.length-k.length-1))/k.length;if(!best||sc>best.sc||(sc===best.sc&&k.length>kkey(best.name).length))best={name,val,sc}}
   return best;
 }
+/* 覚える技の中から選ぶときの比べ方：ふつうのあいまい一致と、「技名の文字が順番どおりに読めた文字に入っている割合」（余分な文字は少しだけ減点）の高い方 */
+function lcsLen(a,b){let p=new Array(b.length+1).fill(0);for(let i=1;i<=a.length;i++){const c=[0];for(let j=1;j<=b.length;j++)c[j]=a[i-1]===b[j-1]?p[j-1]+1:Math.max(p[j],c[j-1]);p=c}return p[b.length]}
+function mvOwn(text,own){
+  const t=kkey(text);if(!t)return null;let best=null;
+  for(const [name,val] of own){const k=kkey(name);if(!k)continue;
+    const f=fuzzy(text,[[name,val]]),sub=lcsLen(t,k)/k.length-.12*Math.max(0,t.length-k.length)/k.length,sc=Math.max(f?f.sc:0,sub);
+    if(!best||sc>best.sc||(sc===best.sc&&k.length>kkey(best.name).length))best={name,val,sc}}
+  return best;
+}
 /* ---- 種族の一覧（図鑑の208匹＋取り込み用の全国図鑑） ---- */
 const MON_C=()=>[...P.map(p=>[p.n,p.no]),...Object.values(SPXM).map(a=>[a[1],+a[0]])];
 let MV_C0=null;const mvC=()=>MV_C0||(MV_C0=Object.entries(MVJ).filter(([,id])=>MVU[id]));const AB_C=Object.entries(ABJ),IT_C=Object.entries(ITJ);
@@ -132,6 +141,11 @@ function imResolve(sl){
       sl.guess={why:top.why,alts:g.slice(1,4).filter(x=>x.s>=top.s-4).map(x=>x.no)}}
   }
   const p=sl.no?ensureMon(sl.no):null;
+  /* 技は、ポケモンが決まったら「そのポケモンが覚える技」の中から選び直す（2026/11/03 依頼主の指摘：どくどく が「とこぐとこぐぐく」と読まれて当たらなかった。
+     ゲームの文字の濁点が別の文字に読まれやすいので、覚える技の中では「読めた文字の中に技名の文字が順番どおりに入っているか」でも比べる） */
+  if(p&&sl.mvRaw&&sl.mv&&LSD[p.no]){const own=mvC().filter(([,id])=>id===182||id===197||LSD[p.no][1].includes(id));
+    sl.mvRaw.forEach((t,i)=>{const cur=sl.mv[i];if(!own.length||(cur&&cur.id&&cur.c>=.75&&own.some(x=>x[1]===cur.id)))return;
+      const a=mvOwn(t,own);if(a&&a.sc>=.5&&(!cur||!cur.id||a.sc>cur.c||!own.some(x=>x[1]===cur.id)))sl.mv[i]={n:a.name,id:a.val,c:Math.min(.9,a.sc)}})}
   if(sl.abRaw!=null&&sl.ab==null){const own=p&&ABD[p.no]?ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]):[];
     let a=own.length?fuzzy(sl.abRaw,own):null;if(!a||a.sc<.5)a=fuzzy(sl.abRaw,AB_C);sl.ab=a&&a.sc>=.45?{n:a.name,k:a.val,c:a.sc}:{n:kkey(sl.abRaw)?sl.abRaw.replace(/\s/g,''):'',k:null,c:0}}
   sl.fixed=null;sl.solve=p&&sl.vals?solveRobust(p,sl):null;
