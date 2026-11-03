@@ -1193,9 +1193,9 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 .hd-av--none{background:var(--elev2)!important;color:var(--dim)!important}
 .hdr-in{position:relative}
 .hd-logo{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;display:block}
-.hd-logo img{width:100%;height:100%;display:block;filter:drop-shadow(0 0 6px rgba(29,155,240,.35))}
-/* 明るい色のときは光る白い星が見えにくいので、濃い青にする */
-[data-theme=light] .hd-logo img{filter:brightness(.42) saturate(2.2)}
+.hd-logo img{width:100%;height:100%;display:block}
+/* マークは白一色（2026/11/03 依頼主の新しい画像）。明るい色のときは黒くする */
+[data-theme=light] .hd-logo img{filter:brightness(0)}
 .mark.mbtn,[data-theme=light] .mark.mbtn{background:none;box-shadow:none}
 
 /* ===================== プロフィールの写真（2026/11/03） ===================== */
