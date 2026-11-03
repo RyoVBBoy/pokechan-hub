@@ -61,7 +61,7 @@ function adminView(){
         document.getElementById('adm-nsadd').onclick=()=>act(()=>apost('/api/admin/news/src',{url:document.getElementById('adm-nsrc').value.trim()}),'追加しました');
         document.getElementById('adm-npost').onclick=()=>act(()=>apost('/api/admin/news/post',{title:document.getElementById('adm-nt').value,url:document.getElementById('adm-nu').value.trim()}),'投稿しました');
         document.getElementById('adm-nrun').onclick=async()=>{const m=document.getElementById('adm-nmsg');m.innerHTML='<p class="note">確認しています…（30秒ほど）</p>';
-          try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、${r.posted}件投稿しました。${r.first?'初めての確認なので、いまあるお知らせは記録だけしました（次から新しいものを投稿します）。':''}</p>`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
+          try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、${r.posted}件投稿しました。${r.first?'初めての確認なので、いまあるお知らせは記録だけしました（次から新しいものを投稿します）。':''}</p>${r.found?'':`<p class="vcap" style="padding:0 16px;word-break:break-all">調べた結果（開発者向け）：${esc(JSON.stringify(r.dbg||{}))}</p>`}`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
       }else if(admTab==='hits'){
         const j=await aget('/api/admin/hits?days=30');el.innerHTML=hitsHTML(j.rows);
       }else if(admTab==='season'){
