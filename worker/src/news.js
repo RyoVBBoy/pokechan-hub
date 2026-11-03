@@ -43,6 +43,52 @@ function newsFromHtml(html,src){
   }
   return out;
 }
+/* ページが「あとから読み込む」作り（HTML にお知らせが無い）のときの探し方：
+   ① HTML の中の JSON（__NEXT_DATA__・__NUXT__・application/json など）
+   ② HTML と、同じサイトのスクリプトの中に書かれた「news を含むデータのアドレス（.json や /api/）」を開いて JSON を読む
+   JSON の中から「題名らしい項目」と「日付」「アドレスか番号」を持つものを集める */
+const NEWS_T=['title','name','subject','headline','heading','text'],NEWS_D=['date','publishedAt','published_at','publishDate','publish_date','releaseDate','release_date','startAt','start_at','createdAt','created_at','postDate','day','datetime'],NEWS_U=['url','link','href','path','permalink','uri'],NEWS_ID=['slug','id','key','code','newsId','news_id'];
+function newsWalk(o,src,out,depth=0){
+  if(!o||depth>8||out.length>60)return;
+  if(Array.isArray(o)){o.forEach(x=>newsWalk(x,src,out,depth+1));return}
+  if(typeof o!=='object')return;
+  const pick=ks=>{for(const k of ks){const v=o[k];if(typeof v==='string'&&v.trim())return v.trim();if(v&&typeof v==='object'){for(const kk of ['ja','jp','ja-JP','value','text','rendered'])if(typeof v[kk]==='string')return v[kk]}}return null};
+  const t=pick(NEWS_T),d=pick(NEWS_D);let u=pick(NEWS_U);const id=pick(NEWS_ID)||(typeof o.id==='number'?String(o.id):null);
+  if(t&&t.length>=4&&t.length<=120&&(d||u)&&(u||id)){
+    let url=null;try{url=u?new URL(u,src).href:null}catch(e){}
+    if(!url&&id)url=new URL(String(id).replace(/^\//,'')+'/',src.replace(/[#?].*$/,'').replace(/\/?$/,'/')).href;
+    const ok=url&&newsOk(url);
+    const dm=d&&String(d).match(/(20\d\d)[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+    if(ok)out.push({title:newsStrip(t).slice(0,100),date:dm?`${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}`:null,url:ok});
+  }
+  for(const k in o)if(o[k]&&typeof o[k]==='object')newsWalk(o[k],src,out,depth+1);
+}
+async function newsFromData(html,src,d){
+  const out=[],tried=[];
+  for(const m of String(html).matchAll(/<script[^>]*(?:id="__NEXT_DATA__"|type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/gi)){try{newsWalk(JSON.parse(m[1]),src,out)}catch(e){}}
+  const nu=String(html).match(/__NUXT_DATA__[^>]*>([\s\S]*?)<\/script>/);if(nu){try{newsWalk(JSON.parse(nu[1]),src,out)}catch(e){}}
+  if(out.length){d.data='inline';return out}
+  const origin=new URL(src).origin,cand=new Set();
+  const grab=txt=>{for(const m of String(txt).matchAll(/["'`]((?:https?:\/\/[^"'`\s]+)?\/[^"'`\s<>]*?(?:news|info|notice|topics)[^"'`\s<>]*?(?:\.json|\/api\/[^"'`\s<>]*|\?[^"'`\s<>]*)?)["'`]/gi)){let u;try{u=new URL(m[1],src)}catch(e){continue}
+    if(/\.(png|jpe?g|webp|gif|svg|css|woff2?|mp4)(\?|$)/i.test(u.pathname))continue;if(/\.json$|\/api\//i.test(u.pathname)||/\.json\?|api/i.test(u.href))cand.add(u.href)}};
+  grab(html);
+  const scripts=[...String(html).matchAll(/<script[^>]*src="([^"]+)"/gi)].map(m=>{try{return new URL(m[1],src)}catch(e){return null}}).filter(u=>u&&u.origin===origin).slice(0,6);
+  for(const u of scripts){try{const r=await fetch(u.href);if(r.ok){const t=await r.text();if(t.length<3e6)grab(t)}}catch(e){}}
+  d.scripts=scripts.length;d.cand=[...cand].slice(0,8);
+  for(const c of [...cand].slice(0,6)){try{const r=await fetch(c,{headers:{accept:'application/json,*/*'}});tried.push(c+' '+r.status);if(!r.ok)continue;const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){continue}const before=out.length;newsWalk(j,src,out);if(out.length>before){d.data=c;break}}catch(e){tried.push(c+' err')}}
+  d.tried=tried;return out;
+}
+/* 検索で探す：Google 検索の結果のアドレスを本来のアドレスにし、題名はそのページの <title> から（取れなければ検索結果の題名） */
+async function newsFromSearch(env,q,d){
+  const out=[];
+  const {meta}=await gemText(env,{contents:[{parts:[{text:`次の言葉で検索して、見つけたお知らせの題名だけを1行ずつ書いてください：${q}`}]}],tools:[{google_search:{}}],generationConfig:{temperature:0}});
+  const ch=((meta&&meta.groundingChunks)||[]).slice(0,10);d.search=ch.length;
+  for(const c of ch){const w=c.web;if(!w)continue;const url=newsOk(await newsResolve(w.uri));if(!url)continue;
+    let title=String(w.title||'');
+    try{const r=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (compatible; PokechanHub/1.0)'}});if(r.ok){const h=await r.text();const m=h.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||h.match(/<title>([^<]+)<\/title>/i);if(m)title=newsStrip(m[1]).replace(/\s*[|｜\-–]\s*(Pok[eé]mon Champions|ポケモンチャンピオンズ).*$/i,'')}}catch(e){}
+    if(title.length>=4&&!/^(www\.)?[a-z0-9.-]+\.[a-z]+$/i.test(title))out.push({title:title.slice(0,100),date:null,url})}
+  return out;
+}
 async function newsFind(env,db,dbg){
   const srcs=(await db.prepare(`SELECT url FROM news_src ORDER BY created_at`).all()).results.map(r=>r.url);
   const out=[];dbg=dbg||{};dbg.src=[];
@@ -53,6 +99,7 @@ async function newsFind(env,db,dbg){
       d.status=r.status;html=r.ok?await r.text():'';d.len=html.length}catch(e){d.err=String(e.message||e)}
     const a=html?newsFromHtml(html,s):[];d.links=a.length;
     if(a.length){out.push(...a);d.via='html';continue}
+    if(html){try{const j=await newsFromData(html,s,d);if(j.length){out.push(...j);d.via='data';continue}}catch(e){d.dataErr=String(e.message||e).slice(0,100)}}
     /* HTML にリンクがない（あとから読み込むページなど）ときは、AI にページの文字かページそのものを読ませる */
     const ask=(page)=>`次は「ポケモンチャンピオンズ」の公式のお知らせの一覧ページ（${s}）${page?'の文字です':'です'}。お知らせのうち、新しいものから最大10件の「題名」「日付」「お知らせのページのアドレス」だけを取り出してください。題名はページに書かれたとおり。本文の要約や感想は書かないでください。
 次の JSON だけを返してください：{"items":[{"title":"","date":"YYYY-MM-DD か null","url":""}]}${page?'\n---\n'+page:''}`;
@@ -62,6 +109,7 @@ async function newsFind(env,db,dbg){
       const before=out.length;
       (Array.isArray(o.items)?o.items:[]).forEach(it=>{let url=null;try{url=newsOk(new URL(String(it.url||''),s).href)}catch(e){}if(url&&it.title)out.push({title:String(it.title).slice(0,100),date:/^\d{4}-\d\d-\d\d$/.test(it.date||'')?it.date:null,url})});
       d.via=txt?'ai-text':'ai-url';d.ai=out.length-before}catch(e){d.aiErr=String(e.message||e).slice(0,120)}
+    if(!out.length){try{const h=new URL(s);const r=await newsFromSearch(env,`site:${h.hostname}${h.pathname} お知らせ`,d);out.push(...r);if(r.length)d.via='search'}catch(e){d.searchErr=String(e.message||e).slice(0,100)}}
   }
   if(!srcs.length){
     try{const {meta}=await gemText(env,{contents:[{parts:[{text:'ポケモンチャンピオンズ（Pokémon Champions）の公式サイトの新しいお知らせ（アップデート・レギュレーション・イベント・大会・メンテナンス）を検索してください。見つけたお知らせの題名だけを1行ずつ書いてください。'}]}],tools:[{google_search:{}}],generationConfig:{temperature:0}});
