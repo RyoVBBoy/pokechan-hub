@@ -4,10 +4,32 @@
      リンクが見つからない（あとから読み込むページなど）ときは、ページの文字か、ページそのもの（url_context）を Gemini に読ませて題名・日付・アドレスだけを JSON で取り出す。
      登録がなければ Google 検索（google_search）で探し、見つかったページのアドレス（転送先を開いて本来のアドレスにする）を使う。
    ・公式のサイト（pokemonchampions.jp / pokemon.co.jp / pokemon.com / nintendo.co.jp / nintendo.com など）のアドレスだけを載せる。
-   ・同じアドレスは1回だけ（news_seen）。1回に3件まで。cron（6時間ごと）と管理画面の「今すぐ確認」で動く */
-const NEWS_UID='bot:news',NEWS_HOST=/(^|\.)(pokemonchampions\.jp|pokemonchampions\.com|pokemon\.co\.jp|pokemon\.com|nintendo\.co\.jp|nintendo\.com)$/i;
+   ・同じアドレスは1回だけ（news_seen）。1回に新しいものから3件まで投稿し、それより古い未投稿のものは記録だけ（まとめて投稿しない）。cron（6時間ごと）と管理画面の「今すぐ確認」で動く */
+const NEWS_UID='bot:news',NEWS_HOST=/(^|\.)(pokemon-home\.com|pokemonchampions\.jp|pokemonchampions\.com|pokemon\.co\.jp|pokemon\.com|nintendo\.co\.jp|nintendo\.com)$/i;
 /* 公式サイトのお知らせの種類（2026/11/03 依頼主の指定） */
-const NEWS_CATS=['お知らせ','連携ソフト','メンテナンス','アップデート','不具合','アンケート'];
+const NEWS_CATS=['お知らせ','連携ソフト','メンテナンス','アップデート','不具合','アンケート','ランクバトル','レギュレーション','セレクト','バトルパス','キャンペーン','チャンピオンシップス','オンライン大会','オフライン大会'];
+/* 公式サイト（pokemonchampions.jp/ja/news/）が読み込んでいるお知らせのデータ（2026/11/03 公式サイトのスクリプトから確認）：
+   ① https://champions-news.pokemon-home.com/ja/json/list.json … {data:[{id,title,infoKind,kindTxt,stAt(秒),link:'page/865.html'}]}。記事は https://news.pokemon-home.com/ja/ ＋ link
+   ② https://www.pokemonchampions.jp/news/ja.json … {news:[{id,title,kindTxt,stAt:'2026/03/24 23:00',link}]}。link はサイト内の相対か https
+   infoKind 9（その他）は公式サイトと同じく「お知らせ」として扱う */
+const NEWS_OFFICIAL=[{url:'https://champions-news.pokemon-home.com/ja/json/list.json',key:'data',base:'https://news.pokemon-home.com/ja/'},{url:'https://www.pokemonchampions.jp/news/ja.json',key:'news',base:'https://www.pokemonchampions.jp/'}];
+const newsYmd=v=>{let t=0;if(typeof v==='number'||/^\d+$/.test(String(v||'')))t=+v*1000;else if(v){const d=new Date(String(v).replace(/\./g,'/')+' +0900');t=isNaN(d)?0:d.getTime()}return t?new Date(t+9*36e5).toISOString().slice(0,10):null};
+async function newsFromOfficial(d){
+  const out=[];d.official=[];
+  for(const o of NEWS_OFFICIAL){
+    try{const r=await fetch(o.url,{headers:{'user-agent':'Mozilla/5.0 (compatible; PokechanHub/1.0; +https://pokechan-hub.pages.dev)',accept:'application/json'},cf:{cacheTtl:600}});
+      d.official.push(o.url.replace(/^https:\/\//,'')+' '+r.status);if(!r.ok)continue;
+      const j=await r.json();
+      for(const x of (Array.isArray(j[o.key])?j[o.key]:[])){
+        if(!x||!x.title||!x.link)continue;
+        let url=null;try{url=newsOk(String(x.link).startsWith('https://')?x.link:new URL(String(x.link).replace(/^\//,''),o.base).href)}catch(e){}
+        if(!url)continue;
+        const kind=Number(x.infoKind)===9?'お知らせ':String(x.kindTxt||'');
+        out.push({title:newsStrip(x.title).slice(0,100),date:newsYmd(x.stAt),url,cat:newsCat(kind)||null,ts:Number(x.stAt)||Date.parse(String(x.stAt||'').replace(/\./g,'/'))/1000||0})}
+    }catch(e){d.official.push(o.url.replace(/^https:\/\//,'')+' err '+String(e.message||e).slice(0,60))}
+  }
+  return out.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.ts-a.ts);
+}
 const newsCat=v=>{const t=typeof v==='string'?v:v&&typeof v==='object'?(v.name||v.label||v.title||v.ja||''):'';const s=String(t).trim();return NEWS_CATS.find(c=>s===c||s.includes(c))||null};
 let NEWS_READY=false;
 async function newsInit(db){
@@ -97,8 +119,11 @@ async function newsFromSearch(env,q,d){
   return out;
 }
 async function newsFind(env,db,dbg){
+  dbg=dbg||{};
+  /* まず公式サイトのお知らせのデータを直接読む（いちばん確実） */
+  try{const o=await newsFromOfficial(dbg);if(o.length){dbg.via='official';return o}}catch(e){dbg.officialErr=String(e.message||e).slice(0,100)}
   const srcs=(await db.prepare(`SELECT url FROM news_src ORDER BY created_at`).all()).results.map(r=>r.url);
-  const out=[];dbg=dbg||{};dbg.src=[];
+  const out=[];dbg.src=[];
   for(const s of srcs.slice(0,3)){
     const d={url:s};dbg.src.push(d);
     let html='';
@@ -129,15 +154,13 @@ async function newsFind(env,db,dbg){
 const newsBody=(title,cat,date)=>{const tail=' #公式のお知らせ',head=`【公式・${cat||'お知らせ'}】`,d=date?`（${String(date).replace(/-/g,'/')}）`:'';return head+String(title).slice(0,140-head.length-d.length-tail.length)+d+tail};
 async function newsRun(env,db,now,max=3){
   await newsInit(db);await socialInit(db);
-  if(!env.GEMINI_API_KEY)return{posted:0,found:0,error:'GEMINI_API_KEY がありません'};
   const dbg={};const items=await newsFind(env,db,dbg);let posted=0;const list=[];
-  /* 初めて動いたときは、いまあるお知らせを「見たもの」として記録だけする（古いお知らせをまとめて投稿しない） */
   const first=!(await db.prepare(`SELECT 1 FROM news_seen LIMIT 1`).first());
-  for(const it of items){
-    const dup=await db.prepare(`SELECT 1 FROM news_seen WHERE url=?`).bind(it.url).first();
-    /* もう見たお知らせでも、種類・日付が分かったら足しておく */
-    if(dup){if(it.cat||it.date)await db.prepare(`UPDATE news_seen SET cat=COALESCE(cat,?),date=COALESCE(date,?) WHERE url=?`).bind(it.cat||null,it.date||null,it.url).run();continue}
-    if(first||posted>=max){await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,0,?,?,?)`).bind(it.url,it.title,now,it.cat||null,it.date||null).run();continue}
+  /* 新しいものから max 件を投稿する（タイムラインで新しいものが上に来るように、古い順に投稿）。初回は残りを記録だけ */
+  const fresh=[];for(const it of items){const dup=await db.prepare(`SELECT 1 FROM news_seen WHERE url=?`).bind(it.url).first();if(dup){if(it.cat||it.date)await db.prepare(`UPDATE news_seen SET cat=COALESCE(cat,?),date=COALESCE(date,?) WHERE url=?`).bind(it.cat||null,it.date||null,it.url).run();continue}fresh.push(it)}
+  const toPost=new Set(fresh.slice(0,max));
+  for(const it of [...fresh].reverse()){
+    if(!toPost.has(it)){await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,0,?,?,?)`).bind(it.url,it.title,now,it.cat||null,it.date||null).run();continue}
     await newsBot(db,now);
     const body=newsBody(it.title,it.cat,it.date);
     const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media,link) VALUES(?,?,?,?,0,NULL,?) RETURNING id`).bind(NEWS_UID,body,now,'bot',it.url).first();
