@@ -28,18 +28,24 @@ function ptrSound(kind){
   const c=ptrCtx();if(!c||c.state!=='running')return;
   const t=c.currentTime,g=c.createGain();g.connect(c.destination);
   if(kind==='swish'){
-    /* シュッ：短い雑音を、高い音から低い音へ流すように絞る */
-    const n=Math.floor(c.sampleRate*.16),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);
+    /* シュッ：ごく短い雑音を、高い音から低い音へ流すように絞る（約0.08秒） */
+    const n=Math.floor(c.sampleRate*.085),bf=c.createBuffer(1,n,c.sampleRate),d=bf.getChannelData(0);
     for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
-    const s=c.createBufferSource();s.buffer=b;
-    const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=1.4;f.frequency.setValueAtTime(5200,t);f.frequency.exponentialRampToValueAtTime(1400,t+.15);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.16);
-    s.connect(f);f.connect(g);s.start(t);s.stop(t+.17);
+    const s=c.createBufferSource();s.buffer=bf;
+    const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=1.6;f.frequency.setValueAtTime(5600,t);f.frequency.exponentialRampToValueAtTime(1800,t+.08);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.5,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+.085);
+    s.connect(f);f.connect(g);s.start(t);s.stop(t+.09);
   }else{
-    /* パッ：短く高い「ポン」 */
-    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(1250,t);o.frequency.exponentialRampToValueAtTime(620,t+.07);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+.11);
-    o.connect(g);o.start(t);o.stop(t+.12);
+    /* パッ：唇をはじいたような音（約0.05秒）。
+       はじいた瞬間の「プ」＝ごく短い雑音を中くらいの高さで絞ったもの＋口の中で響く「ポ」＝高さがすぐ下がる低めの音 */
+    const n=Math.floor(c.sampleRate*.012),bf=c.createBuffer(1,n,c.sampleRate),d=bf.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
+    const s=c.createBufferSource();s.buffer=bf;
+    const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1100;f.Q.value=.9;
+    const g1=c.createGain();g1.gain.value=.35;s.connect(f);f.connect(g1);g1.connect(c.destination);s.start(t);s.stop(t+.015);
+    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(560,t);o.frequency.exponentialRampToValueAtTime(170,t+.04);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.05);
+    o.connect(g);o.start(t);o.stop(t+.055);
   }
 }
 /* iPhone は、画面に触れたあとでないと音を出せないので、最初に触れたときに音の準備をしておく */
