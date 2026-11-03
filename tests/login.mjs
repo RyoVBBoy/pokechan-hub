@@ -54,9 +54,12 @@ const handler=async r=>{
     if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:h});
     const tok=(r.request().headers().authorization||'').replace(/^Bearer /,'');
     if(!tok.startsWith('tok:'))return r.fulfill({status:401,headers:h,body:JSON.stringify({error:'ログインし直してください。'})});
-    const email=tok.slice(4),body=r.request().postDataJSON?.()||{};
+    const email=tok.slice(4);let body={};if(u.pathname!=='/api/media')try{body=r.request().postDataJSON?.()||{}}catch(e){}
     if(u.pathname==='/api/me/teams'){if(r.request().method()==='GET')return r.fulfill({headers:h,body:JSON.stringify(cloud[email]||{teams:null,updated_at:0})});
       const c=cloud[email];if(c&&c.updated_at>body.updated_at)return r.fulfill({status:409,headers:h,body:'{"ok":false}'});cloud[email]={teams:body.teams,updated_at:body.updated_at};return r.fulfill({headers:h,body:'{"ok":true}'})}
+    /* プロフィールの写真（2026/11/03） */
+    if(u.pathname==='/api/media')return r.fulfill({headers:h,body:JSON.stringify({ok:true,key:'a'.repeat(32),w:400,h:400})});
+    if(u.pathname==='/api/me/avatar'){users[email]={...users[email],av:body.remove?null:body.key};return r.fulfill({headers:h,body:JSON.stringify({ok:true,user:users[email]})})}
     if(u.pathname==='/api/me/delete'){delete users[email];return r.fulfill({headers:h,body:'{"ok":true}'})}
     if(r.request().method()==='POST'){
       if(!users[email]&&!body.agree)return r.fulfill({status:400,headers:h,body:JSON.stringify({error:'同意が必要です。'})});
@@ -84,6 +87,15 @@ ok(/g@example\.com/.test(await txt()),'ログイン中のメールアドレス�
 /* 編集 */
 await pg.fill('#ac-b','ガブリアス使いです');await pg.click('#ac-save');await wait(500);
 ok(/ガブリアス使いです/.test(await txt()),'自己紹介の保存が反映されません');
+/* プロフィールの写真：選ぶと縮めて送り、自分のアイコン（プロフィール・左上）が写真になる */
+{const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGP4z8DAwMDAxMDAwAAAH/4CAR2T8lEAAAAASUVORK5CYII=','base64');
+await pg.setInputFiles('#ac-pf',{name:'me.png',mimeType:'image/png',buffer:png});await wait(800);
+ok(await pg.$('.ac-card .ac-av img'),'写真を選んでもプロフィールに出ません');
+ok(await pg.$('#ac-prm'),'「写真を外す」が出ません');
+await pg.evaluate(()=>{location.hash='#/'});await wait(500);
+ok(await pg.$('#brand img'),'写真を選んでも左上のアイコンが写真になりません');
+await pg.evaluate(()=>{location.hash='#/account'});await wait(500);
+}
 /* タイムライン：投稿 → 表示 → いいね → 自分のページ */
 await pg.evaluate(()=>{location.hash='#/tl'});await wait(600);
 ok(await pg.$('#twc-t'),'タイムラインに投稿する欄が出ません');

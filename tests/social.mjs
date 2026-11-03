@@ -170,6 +170,17 @@ r=await getM(k1,'admin-secret-123');expect('管理者は確認待ちの画像を
 r=await call('/api/admin/dismiss',{method:'POST',admin:'admin-secret-123',body:{kind:'note',id:nm1}});
 r=await getM(k1);expect('問題なしにすると画像が戻る',r[0]===200,r[0]);
 r=await call(`/api/notes/${nm1}/delete`,{method:'POST',tok:B,body:{}});r=await getM(k1,'admin-secret-123');expect('投稿を消すと画像も消える',r[0]===404,r[0]);
+/* プロフィールの写真（2026/11/03） */
+r=await up(B,JPG);const av1=r[1].key;
+r=await call('/api/me/avatar',{method:'POST',tok:A,body:{key:av1}});expect('写真：ほかの人の画像は使えない',r[0]===400,r);
+r=await call('/api/me/avatar',{method:'POST',tok:B,body:{key:av1}});expect('写真：付けられる',r[0]===200&&r[1].user.av===av1,r);
+r=await getM(av1);expect('写真：だれでも見られる',r[0]===200,r[0]);
+r=await call('/api/u/'+(await call('/api/me',{tok:B}))[1].user.handle);expect('写真：プロフィールに出る',r[1].user.av===av1,r[1].user);
+r=await call('/api/tl');expect('写真：投稿の一覧に出る',r[1].notes.some(n=>n.user.av===av1),r[1].notes.map(n=>n.user));
+r=await up(B,JPG);const av2=r[1].key;r=await call('/api/me/avatar',{method:'POST',tok:B,body:{key:av2}});
+r=await getM(av1,'admin-secret-123');expect('写真：変えると前の写真は消える',r[0]===404,r[0]);
+r=await call('/api/me/avatar',{method:'POST',tok:B,body:{remove:true}});expect('写真：外せる',r[0]===200&&r[1].user.av===null,r);
+r=await getM(av2);expect('写真：外した写真は見えない',r[0]===404,r[0]);
 /* シーズンごとの上位パーティ */
 const ADM='admin-secret-123',TM6=[445,149,887,1000,727,812].map(no=>({no,set:{it:{k:'choicescarf'}}}));
 r=await call('/api/admin/seasons',{method:'POST',body:{name:'シーズン1'}});expect('シーズン：登録は管理者だけ',r[0]===401,r);

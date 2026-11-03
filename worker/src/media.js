@@ -7,6 +7,8 @@
    ・見せる：GET /m/鍵。投稿が非表示・画像が確認待ち（media_hidden）・停止中の人なら出さない（管理者は X-Admin-Token で見られる）
    ・見回り：画像つきの投稿は、通報1件で画像だけ隠して確認待ちにする（3件で投稿ごと非表示は今までどおり） */
 const MEDIA_MAX=1.2e6,MEDIA_PER_NOTE=4,MEDIA_PER_DAY=30;
+/* プロフィールの写真として使っている画像の note_id（投稿・シーズンの証拠と重ならない値） */
+const AV_NOTE=-2000000000;
 let MEDIA_READY=false;
 async function mediaInit(db){
   if(MEDIA_READY)return;
@@ -66,12 +68,14 @@ async function mediaDrop(env,db,where,...args){
 /* 画像を見せる */
 async function mediaGet(req,env,key){
   if(!env.DB||!/^[0-9a-f]{32}$/.test(key))return new Response('見つかりません',{status:404,headers:CORS});
-  const db=env.DB;await mediaInit(db);
+  const db=env.DB;await mediaInit(db);await socialInit(db);
   const adminTok=req.headers.get('x-admin-token')||'';
   const isAdmin=!!env.ADMIN_TOKEN&&String(env.ADMIN_TOKEN).length>=12&&adminTok.length===String(env.ADMIN_TOKEN).length&&await sha(adminTok)===await sha(String(env.ADMIN_TOKEN));
   /* 管理者は、投稿に付いていない画像（シーズンの結果の証拠のスクリーンショットなど）も見られる */
   const r=isAdmin?await db.prepare(`SELECT key,ctype,store,data,0 AS hidden,0 AS media_hidden,0 AS banned FROM media WHERE key=?`).bind(key).first()
-    :await db.prepare(`SELECT m.key,m.ctype,m.store,m.data,n.hidden,n.media_hidden,u.banned FROM media m JOIN notes n ON n.id=m.note_id JOIN users u ON u.uid=n.uid WHERE m.key=?`).bind(key).first();
+    :await db.prepare(`SELECT m.key,m.ctype,m.store,m.data,n.hidden,n.media_hidden,u.banned FROM media m JOIN notes n ON n.id=m.note_id JOIN users u ON u.uid=n.uid WHERE m.key=?`).bind(key).first()
+      /* プロフィールの写真：いま使っている人が停止中でなければ見せる */
+      ||await db.prepare(`SELECT m.key,m.ctype,m.store,m.data,0 AS hidden,0 AS media_hidden,u.banned FROM media m JOIN users u ON u.avatar=m.key AND u.uid=m.uid WHERE m.key=? AND m.note_id=${AV_NOTE}`).bind(key).first();
   if(!r||(!isAdmin&&(r.hidden||r.media_hidden||r.banned)))return new Response('見つかりません',{status:404,headers:{...CORS,'Cache-Control':'no-store'}});
   let body=null;
   if(r.store==='r2'&&env.MEDIA){const o=await env.MEDIA.get(key);if(o)body=o.body}

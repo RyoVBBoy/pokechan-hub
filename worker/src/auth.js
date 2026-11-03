@@ -39,7 +39,7 @@ function handleError(h){
   const l=h.toLowerCase();if(HANDLE_NG.some(x=>l===x||l.startsWith('official')||l.includes('pokemon')||l.includes('nintendo')))return 'このユーザーIDは使えません。';
   return null;
 }
-const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',created_at:u.created_at};
+const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',av:u.avatar||null,created_at:u.created_at};
 async function userApi(req,env,db,path,body,now){
   /* 公開プロフィール（/api/u/…）は social.js */
   if(!path.startsWith('/api/me'))return null;
@@ -80,6 +80,24 @@ async function userApi(req,env,db,path,body,now){
     if(r&&r.updated_at>at)return J({ok:false,newer:true,updated_at:r.updated_at},409);
     await db.prepare(`INSERT INTO user_data(uid,teams,updated_at) VALUES(?,?,?) ON CONFLICT(uid) DO UPDATE SET teams=excluded.teams,updated_at=excluded.updated_at`).bind(me.uid,txt,at).run();
     return J({ok:true,updated_at:at});
+  }
+  /* プロフィールの写真（2026/11/03）：先に /api/media で送った画像の鍵を付ける。{remove:true} で外す。
+     付けた画像は note_id=AV_NOTE にして、投稿に付かなかった画像の掃除で消えないようにする。前の写真は消す */
+  if(path==='/api/me/avatar'&&req.method==='POST'){
+    if(!row)return J({error:'先にプロフィールを作ってください。'},403);
+    await socialInit(db);await mediaInit(db);
+    const old=(await db.prepare(`SELECT avatar FROM users WHERE uid=?`).bind(me.uid).first()||{}).avatar;
+    let key=null;
+    if(!body.remove){
+      key=String(body.key||'');
+      const m=/^[0-9a-f]{32}$/.test(key)?await db.prepare(`SELECT key FROM media WHERE key=? AND uid=? AND note_id=0`).bind(key,me.uid).first():null;
+      if(!m)return J({error:'写真が見つかりません。もう一度選んでください。'},400);
+      await db.prepare(`UPDATE media SET note_id=? WHERE key=?`).bind(AV_NOTE,key).run();
+    }
+    await db.prepare(`UPDATE users SET avatar=?,updated_at=? WHERE uid=?`).bind(key,now,me.uid).run();
+    if(old&&old!==key)await mediaDrop(env,db,'key=? AND uid=?',old,me.uid);
+    const u=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
+    return J({ok:true,user:pubUser(u)});
   }
   /* アカウントの削除（Firebase 側のアカウントはサイトから消す） */
   if(path==='/api/me/delete'&&req.method==='POST'){

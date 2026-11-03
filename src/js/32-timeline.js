@@ -16,7 +16,22 @@ async function twAuth(){
   try{await fbLoad();await AUTH.wait;if(!AUTH.user)return null;await loadProfile();try{localStorage.setItem('pcin','1')}catch(e){}return AUTH.profile||null}
   catch(e){return null}
 }
-const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${esc((u.name||'?').slice(0,1))}</a>`;
+/* アイコンの中身：写真（u.av＝画像の鍵）があれば写真、なければ名前の1文字（2026/11/03） */
+const avIn=u=>u&&u.av&&/^[0-9a-f]{32}$/.test(u.av)?`<img src="${COMM_API}/m/${u.av}" alt="" loading="lazy" decoding="async">`:esc(((u&&u.name)||'?').slice(0,1));
+const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${avIn(u)}</a>`;
+/* プロフィールの写真：真ん中を正方形に切り取って 400px に縮める */
+async function avShrink(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めませんでした（対応していない形式かもしれません）。'));i.src=url});
+    const s=Math.min(img.naturalWidth,img.naturalHeight),S=Math.min(400,s);
+    const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,S,S);
+    g.drawImage(img,(img.naturalWidth-s)/2,(img.naturalHeight-s)/2,s,s,0,0,S,S);
+    let blob=await new Promise(r=>c.toBlob(r,'image/webp',.85));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.85));
+    if(!blob)throw new Error('画像を縮められませんでした。');
+    return{blob,w:S,h:S};
+  }finally{URL.revokeObjectURL(url)}
+}
 /* 本文の #タグ を青い文字にして、押すとそのタグの検索へ（先に文字を区切ってから安全な形にする） */
 const TAG_RE=/[#＃]([\p{L}\p{N}_ー]{1,30})/gu;
 function linkTags(t){let out='',i=0;for(const m of String(t).matchAll(TAG_RE)){out+=esc(t.slice(i,m.index))+`<a class="htag" href="#/search/${encodeURIComponent('#'+m[1])}">${esc(m[0])}</a>`;i=m.index+m[0].length}return out+esc(t.slice(i))}
@@ -103,7 +118,7 @@ function twBind(root,reload){
   });
 }
 /* 下までスクロールすると続きを読み込む一覧。path は ?before= を付けて呼ぶAPI */
-function twFeed(el,path,emptyMsg){
+function twFeed(el,path,emptyMsg,o={}){
   let next=null,busy=false,done=false,io=null;
   const mu=muted();
   const more=async first=>{
@@ -125,8 +140,9 @@ function twFeed(el,path,emptyMsg){
     }catch(e){if(first)el.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`;else toast(e.message);el.querySelector('.tw-sent')?.remove()}
     finally{busy=false}
   };
-  el.innerHTML='<p class="empty">読み込み中…</p>';
-  more(true);
+  /* o.keep：引っぱって更新するときは、新しい中身が届くまで今の中身を残す */
+  if(!o.keep)el.innerHTML='<p class="empty">読み込み中…</p>';
+  return more(true);
 }
 /* 投稿する欄 */
 function twComposer(prof,onDone){
@@ -169,6 +185,9 @@ async function tlView(a,home){
   tlShow(tlTab,true);
 }
 /* タブを切りかえる（一覧だけ入れかえて、横にすべらせる） */
+const TL_EMPTY=tab=>tab==='following'?'フォローしている人の投稿がここに出ます。<br>「みんな」から気になるトレーナーを探してフォローしてみましょう。':'まだ投稿がありません。最初の投稿をしてみましょう。';
+/* 引っぱって更新（46-ptr.js）：いまのタブの投稿を読み直す */
+function tlReload(){const el=document.getElementById('tl-list');return el?twFeed(el,'/api/tl?tab='+tlTab,TL_EMPTY(tlTab),{keep:true}):Promise.resolve()}
 function tlShow(tab,first){
   if(tab==='following'&&!TLP){toast('フォロー中を見るにはログインしてください');return false}
   const dir=tab==='following'?1:-1,changed=tab!==tlTab;tlTab=tab;
@@ -178,7 +197,7 @@ function tlShow(tab,first){
   if(keyOf(cur)==='tl'){const h='#/tl/'+tab;if(cur!==h){cur=h;setUrl(h)}}
   const el=document.getElementById('tl-list');if(!el)return false;
   if(changed&&!first&&!reduceMotion){el.animate([{transform:`translateX(${dir*40}px)`,opacity:.2},{transform:'none',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})}
-  twFeed(el,'/api/tl?tab='+tab,tab==='following'?'フォローしている人の投稿がここに出ます。<br>「みんな」から気になるトレーナーを探してフォローしてみましょう。':'まだ投稿がありません。最初の投稿をしてみましょう。');
+  twFeed(el,'/api/tl?tab='+tab,TL_EMPTY(tab));
   return true;
 }
 async function userView(h){
@@ -190,7 +209,7 @@ async function userView(h){
   setHeader(esc(u.name),'#/tl');
   const isMuted=muted().has(u.handle.toLowerCase());
   V.innerHTML=`<div class="twp">
-    <div class="twp-top"><span class="ac-av">${esc((u.name||'?').slice(0,1))}</span>
+    <div class="twp-top"><span class="ac-av" data-notr>${avIn(u)}</span>
       ${u.me?'<a class="btn btn-s twp-btn" href="#/account">プロフィールを編集</a>':`<button class="btn ${u.followed?'btn-s':'btn-p'} twp-btn" id="twp-f">${u.followed?'フォロー中':'フォローする'}</button>`}</div>
     <h2 class="twp-n" data-notr>${esc(u.name)}</h2><div class="twp-h">@${esc(u.handle)}${u.follows_me?'<span class="atag" style="margin-left:6px">フォローされています</span>':''}</div>
     ${u.bio?`<p class="twp-b" data-notr>${esc(u.bio)}</p>`:''}${resultBadges(u.results)}

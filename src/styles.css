@@ -1197,3 +1197,22 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 /* 明るい色のときは光る白い星が見えにくいので、濃い青にする */
 [data-theme=light] .hd-logo img{filter:brightness(.42) saturate(2.2)}
 .mark.mbtn,[data-theme=light] .mark.mbtn{background:none;box-shadow:none}
+
+/* ===================== プロフィールの写真（2026/11/03） ===================== */
+.tw-av,.ac-av{overflow:hidden}
+.tw-av img,.ac-av img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
+.ac-photo{display:flex;align-items:center;gap:14px;padding:6px 16px 8px}
+.ac-photo .ac-av{width:72px;height:72px;font-size:30px}
+.ac-photo-b{display:flex;gap:8px;flex-wrap:wrap}
+.ac-busy{opacity:.45;animation:acpulse 1s ease-in-out infinite alternate}
+@keyframes acpulse{to{opacity:.8}}
+
+/* ===================== 引っぱって更新の矢印（46-ptr.js） ===================== */
+.ptr{position:fixed;left:50%;z-index:39;width:36px;height:36px;margin-top:4px;border-radius:50%;display:grid;place-items:center;color:var(--acc);
+  background:var(--glass-p);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);border:1px solid var(--glass-b);opacity:0;pointer-events:none}
+.ptr .ptr-a{transition:transform .2s;transform-origin:12px 12px}
+.ptr.ptr-arm .ptr-a{transform:rotate(180deg)}
+.ptr .ptr-s{display:none}
+.ptr.ptr-load .ptr-a{display:none}
+.ptr.ptr-load .ptr-s{display:block;transform-origin:12px 12px;animation:ptrspin .7s linear infinite}
+@keyframes ptrspin{to{transform:rotate(360deg)}}

@@ -111,15 +111,28 @@ async function accountView(){
     bindSave(true);document.getElementById('ac-out').onclick=()=>au.signOut(auth);return;
   }
   V.innerHTML=`<div id="ac-root">
-    <div class="ac-card"><span class="ac-av">${esc((prof.name||'?').slice(0,1))}</span><div data-notr><b>${esc(prof.name)}</b><small>@${esc(prof.handle)}</small></div></div>
+    <div class="ac-card"><span class="ac-av" data-notr>${avIn(prof)}</span><div data-notr><b>${esc(prof.name)}</b><small>@${esc(prof.handle)}</small></div></div>
     ${prof.bio?`<p class="note" style="padding-top:4px;white-space:pre-wrap" data-notr>${esc(prof.bio)}</p>`:''}
     <p class="note" style="color:var(--mute);padding-top:0">ログイン中：${esc(AUTH.email||AUTH.user.email||'')}（ほかの人には表示されません）</p>
     <div class="btns" style="padding-top:4px"><a class="btn btn-s" href="#/u/${esc(prof.handle)}">自分のページを見る</a><a class="btn btn-s" href="#/tl">タイムライン</a></div>
-    <div class="sec"><h2>プロフィールを編集</h2></div>${form(prof,false)}
+    <div class="sec"><h2>プロフィールを編集</h2></div>
+    <div class="ac-photo"><span class="ac-av" id="ac-pv" data-notr>${avIn(prof)}</span><div class="ac-photo-b">
+      <label class="btn btn-s" style="cursor:pointer">${prof.av?'写真を変える':'写真を選ぶ'}<input type="file" accept="image/*" id="ac-pf" hidden></label>
+      ${prof.av?'<button class="btn btn-s" id="ac-prm">写真を外す</button>':''}</div></div>
+    <p class="note" style="color:var(--mute);padding-top:0">写真は真ん中が正方形に切り取られ、丸く表示されます。ほかの人も見られます。</p>
+    ${form(prof,false)}
     <div class="sec"><h2>そのほか</h2></div>
     <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ac-out">ログアウト</button><button class="btn btn-s" id="ac-del" style="color:var(--w2)">アカウントを削除</button></div>
     <p class="note" style="color:var(--mute)"><a href="#/terms" style="color:var(--acc)">利用規約</a>・<a href="#/privacy" style="color:var(--acc)">プライバシーポリシー</a></p></div>`;
   bindSave(false);
+  /* プロフィールの写真（2026/11/03） */
+  const setAv=async b=>{const j=await authFetch('/api/me/avatar',b);AUTH.profile=j.user;refreshBrand();accountView()};
+  document.getElementById('ac-pf').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+    const pv=document.getElementById('ac-pv');pv.classList.add('ac-busy');
+    try{const x=await avShrink(f);const key=await twUpload(x);await setAv({key});toast('写真を変えました')}
+    catch(er){pv.classList.remove('ac-busy');toast(er.message)}};
+  const prm=document.getElementById('ac-prm');
+  if(prm)prm.onclick=async()=>{if(!await askConfirm({title:'写真を外しますか？',text:'名前の1文字の表示に戻ります。',ok:'外す'}))return;try{await setAv({remove:true});toast('写真を外しました')}catch(er){toast(er.message)}};
   document.getElementById('ac-out').onclick=async()=>{await au.signOut(auth);toast('ログアウトしました')};
   document.getElementById('ac-del').onclick=async()=>{
     const v=await askText(`削除すると元に戻せません。確認のため、ユーザーID（${prof.handle}）を入れてください`,'ユーザーID');

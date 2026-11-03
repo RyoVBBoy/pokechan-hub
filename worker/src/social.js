@@ -35,6 +35,8 @@ async function socialInit(db){
   /* あとから足した列（返信・リポスト）。すでにあるときのエラーは無視する */
   for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0','link TEXT']){
     try{await db.prepare(`ALTER TABLE notes ADD COLUMN ${c}`).run()}catch(e){}}
+  /* プロフィールの写真（media の鍵。2026/11/03） */
+  try{await db.prepare(`ALTER TABLE users ADD COLUMN avatar TEXT`).run()}catch(e){}
   await db.batch([
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
     db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS notes_repost ON notes(repost_of,uid) WHERE repost_of>0`)
@@ -47,14 +49,14 @@ const NOTE_JOIN=`JOIN users u ON u.uid=n.uid AND u.banned=0 LEFT JOIN notes o ON
 const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0))`;
 const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
   COALESCE(o.media,n.media) AS media,COALESCE(o.link,n.link) AS link,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
-  CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,
+  CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,CASE WHEN o.id IS NULL THEN u.avatar ELSE ou.avatar END AS av,
   CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
   (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
   EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
   EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
 const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
-  user:{handle:r.handle,name:r.name},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
+  user:{handle:r.handle,name:r.name,av:r.av||null},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
 const recount=(db,id)=>db.prepare(`UPDATE notes SET replies=(SELECT COUNT(*) FROM notes WHERE reply_to=?1 AND hidden=0),reposts=(SELECT COUNT(*) FROM notes WHERE repost_of=?1) WHERE id=?1`).bind(id);
@@ -196,7 +198,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 公開プロフィール（フォロー数つき） */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const p=await db.prepare(`SELECT uid,handle,name,bio,created_at,
+    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,
       (SELECT COUNT(*) FROM follows WHERE dst=users.uid) AS followers,(SELECT COUNT(*) FROM follows WHERE src=users.uid) AS following,
       (SELECT COUNT(*) FROM notes WHERE uid=users.uid AND hidden=0 AND repost_of=0) AS notes,
       EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=users.uid AND dst=?2) AS follows_me
@@ -243,7 +245,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
       WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND instr(lower(n.body),lower(?3))>0 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,q).all();
     let users=[];
     if(!tag&&before>=9e15){const like='%'+q.replace(/[%_\\]/g,c=>'\\'+c)+'%';
-      users=(await db.prepare(`SELECT handle,name,bio FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like).all()).results.map(x=>({handle:x.handle,name:x.name,bio:x.bio||''}))}
+      users=(await db.prepare(`SELECT handle,name,bio,avatar FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like).all()).results.map(x=>({handle:x.handle,name:x.name,bio:x.bio||'',av:x.avatar||null}))}
     return J({...pageOut(withMine(r.results)),users});
   }
   /* よく使われているハッシュタグ（この7日間） */
@@ -259,11 +261,11 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   if(path==='/api/notifs'&&req.method==='GET'){
     const e=need();if(e)return e;
-    const r=await db.prepare(`SELECT n.id,n.kind,n.note_id,n.created_at,a.handle,a.name,substr(t.body,1,80) AS body
+    const r=await db.prepare(`SELECT n.id,n.kind,n.note_id,n.created_at,a.handle,a.name,a.avatar,substr(t.body,1,80) AS body
       FROM notifs n JOIN users a ON a.uid=n.actor AND a.banned=0 LEFT JOIN notes t ON t.id=n.note_id
       WHERE n.uid=?1 AND n.id<?2 ORDER BY n.id DESC LIMIT 30`).bind(meUid,beforeOf(u)).all();
     const seen=await db.prepare(`SELECT notif_seen FROM user_state WHERE uid=?`).bind(meUid).first();
-    return J({notifs:r.results.map(x=>({id:x.id,kind:x.kind,note_id:x.note_id||null,body:x.body,created_at:x.created_at,user:{handle:x.handle,name:x.name}})),
+    return J({notifs:r.results.map(x=>({id:x.id,kind:x.kind,note_id:x.note_id||null,body:x.body,created_at:x.created_at,user:{handle:x.handle,name:x.name,av:x.avatar||null}})),
       seen:seen?seen.notif_seen:0,next:r.results.length===30?r.results[29].id:null});
   }
   if(path==='/api/notifs/seen'&&req.method==='POST'){

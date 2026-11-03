@@ -7,7 +7,7 @@ const V=document.getElementById('view'),HI=document.getElementById('hdr-in'),HD=
    押すと左のメニューが開くのは同じ。ホームでは見出しの文字を出さず、真ん中にサイトのマーク（logo.png）を出す */
 function meMark(){
   const pr=typeof AUTH!=='undefined'&&AUTH.profile;
-  return pr?`<span class="tw-av hd-av" data-notr>${esc((pr.name||'?').slice(0,1))}</span>`
+  return pr?`<span class="tw-av hd-av" data-notr>${avIn(pr)}</span>`
     :`<span class="tw-av hd-av hd-av--none">${SVG(I.user,18)}</span>`;
 }
 function refreshBrand(){const b=document.getElementById('brand');if(b)b.innerHTML=meMark()+(MULTI_GAME?'<i aria-hidden="true">▾</i>':'')}
