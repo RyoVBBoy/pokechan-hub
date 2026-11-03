@@ -134,6 +134,11 @@ r=await call('/api/u/dave');expect('停止中の人のプロフィールは出�
 tick();r=await call('/api/notes',{method:'POST',tok:D,body:{body:'停止中の投稿'}});expect('停止中は投稿できない',r[0]===403,r);
 r=await call('/api/notes/'+rp1);expect('停止中の人の投稿は出ない',r[0]===404,r);
 r=await call('/api/admin/banned',{admin:'admin-secret-123'});expect('停止中の一覧',r[1].users.some(u=>u.handle==='dave'),r);
+/* 公式のお知らせ：管理者だけ。公式サイト以外のアドレスは断る。投稿はリンク付きでタイムラインに出る */
+r=await call('/api/admin/news');expect('お知らせ：管理者以外は使えない',r[0]===401,r);
+r=await call('/api/admin/news/src',{method:'POST',admin:'admin-secret-123',body:{url:'https://example.com/news'}});expect('お知らせ：公式以外の一覧ページは断る',r[0]===400,r);
+r=await call('/api/admin/news/post',{method:'POST',admin:'admin-secret-123',body:{title:'ver1.2 のお知らせ',url:'https://www.pokemon.co.jp/info/test'}});expect('お知らせ：手で投稿できる',r[0]===200,r);
+r=await call('/api/tl');{const n=r[1].notes.find(x=>x.user.handle==='news_bot');expect('お知らせ：リンク付きでタイムラインに出る',n&&n.link==='https://www.pokemon.co.jp/info/test'&&/公式のお知らせ/.test(n.body),r[1].notes[0])}
 /* アクセス解析：画面ごとの回数だけを数え、管理者だけが見られる */
 await call('/api/hit',{method:'POST',body:{k:'assist',v:1,d:'sp',r:'search'}});await call('/api/hit',{method:'POST',body:{k:'assist'}});await call('/api/hit',{method:'POST',body:{k:'bad key!'}});
 r=await call('/api/admin/hits');expect('アクセス解析：管理者以外は見られない',r[0]===401,r);

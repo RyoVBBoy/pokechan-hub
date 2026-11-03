@@ -18,7 +18,7 @@ function adminView(){
   <p class="note" style="padding-top:14px">通報された書き込みの確認と削除ができます。サーバーに設定した<b>管理用の合言葉（ADMIN_TOKEN）</b>を入れてください。アプリや背面タップ用の合言葉（APP_TOKEN）では入れません。合言葉はこの端末にだけ保存されます。</p>
   <div class="cform" style="padding:0 16px"><label>管理用の合言葉<input type="password" id="adm-tok" value="${esc(tok)}" autocomplete="off"></label></div>
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
-  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button></div>
+  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button></div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
   document.getElementById('adm-save').onclick=()=>{try{localStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
@@ -43,6 +43,25 @@ function adminView(){
             <button class="btn btn-s" data-dis="${r.kind}:${r.target}">問題なし（通報を消す）</button>
             ${r.kind==='note'&&r.aid?`<button class="btn btn-s" data-ban="${esc(String(r.aid).replace(/^@/,''))}" style="color:var(--w2)">${esc(r.aid)} を停止</button>`:''}
             ${r.kind==='note'?'':r.thread_id?`<a class="btn btn-s" href="#/thread/${r.thread_id}">スレッドを開く</a>`:''}</div></div>`).join(''):'<p class="empty" style="padding:28px 24px">通報はありません。</p>';
+      }else if(admTab==='news'){
+        const j=await aget('/api/admin/news');
+        el.innerHTML=`<p class="note" style="padding-top:0">公式サイトの新しいお知らせを、「お知らせbot（非公式）」が題名とリンクだけでタイムラインに自動投稿します（6時間ごと）。本文は写しません。公式サイト（pokemon.co.jp・pokemon.com・nintendo.co.jp・nintendo.com）のアドレスだけを載せます。</p>
+          <div class="sec"><h2>お知らせの一覧ページ</h2></div>
+          <p class="note" style="padding-top:0">ポケモンチャンピオンズの公式のお知らせが並んでいるページのアドレスを入れると、そこから探します（いちばん確実です）。入れていないときは、Google 検索で探します。</p>
+          ${j.src.map(u=>`<div class="bpost"><div style="word-break:break-all">${esc(u)}</div><button class="bback" data-nsdel="${esc(u)}" style="padding:0;color:var(--w2)">外す</button></div>`).join('')}
+          <div class="cform" style="padding:0 16px"><label>一覧ページのアドレス<input id="adm-nsrc" placeholder="https://…" autocomplete="off"></label></div>
+          <div class="btns"><button class="btn btn-s" id="adm-nsadd">追加する</button><button class="btn btn-p" id="adm-nrun">今すぐ確認して投稿</button></div>
+          <div id="adm-nmsg"></div>
+          <div class="sec"><h2>手で投稿する</h2></div>
+          <div class="cform" style="padding:0 16px"><label>題名<input id="adm-nt" maxlength="100"></label><label>公式サイトのアドレス<input id="adm-nu" placeholder="https://…"></label></div>
+          <div class="btns"><button class="btn btn-s" id="adm-npost">お知らせbotとして投稿</button></div>
+          <div class="sec"><h2>見つけたお知らせ</h2></div>
+          ${j.seen.length?j.seen.map(x=>`<div class="bpost"><div class="bpost-h">${ago(x.created_at)}${x.note_id?'　投稿済み':'　記録だけ（初回）'}</div><div>${esc(x.title||'')}</div><div class="vcap" style="word-break:break-all">${esc(x.url)}</div></div>`).join(''):'<p class="empty">まだありません。</p>'}`;
+        el.querySelectorAll('[data-nsdel]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/news/src',{url:b.dataset.nsdel,del:true}),'外しました'));
+        document.getElementById('adm-nsadd').onclick=()=>act(()=>apost('/api/admin/news/src',{url:document.getElementById('adm-nsrc').value.trim()}),'追加しました');
+        document.getElementById('adm-npost').onclick=()=>act(()=>apost('/api/admin/news/post',{title:document.getElementById('adm-nt').value,url:document.getElementById('adm-nu').value.trim()}),'投稿しました');
+        document.getElementById('adm-nrun').onclick=async()=>{const m=document.getElementById('adm-nmsg');m.innerHTML='<p class="note">確認しています…（30秒ほど）</p>';
+          try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、${r.posted}件投稿しました。${r.first?'初めての確認なので、いまあるお知らせは記録だけしました（次から新しいものを投稿します）。':''}</p>`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
       }else if(admTab==='hits'){
         const j=await aget('/api/admin/hits?days=30');el.innerHTML=hitsHTML(j.rows);
       }else if(admTab==='season'){

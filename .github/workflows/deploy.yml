@@ -98,7 +98,7 @@ jobs:
 
           # 毎日 3:23（日本時間）：上位パーティの自動集計
           [triggers]
-          crons = ["23 18 * * *"]
+          crons = ["23 18 * * *", "47 1,7,13 * * *"]
           TOML
           if [ "$R2_OK" = "1" ]; then
           cat >> wrangler.toml <<TOML

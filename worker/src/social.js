@@ -33,7 +33,7 @@ async function socialInit(db){
     db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_time ON note_tags(created_at)`)
   ]);
   /* あとから足した列（返信・リポスト）。すでにあるときのエラーは無視する */
-  for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0']){
+  for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0','link TEXT']){
     try{await db.prepare(`ALTER TABLE notes ADD COLUMN ${c}`).run()}catch(e){}}
   await db.batch([
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
@@ -46,14 +46,14 @@ async function socialInit(db){
 const NOTE_JOIN=`JOIN users u ON u.uid=n.uid AND u.banned=0 LEFT JOIN notes o ON o.id=n.repost_of AND n.repost_of>0 LEFT JOIN users ou ON ou.uid=o.uid`;
 const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0))`;
 const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
-  COALESCE(o.media,n.media) AS media,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
+  COALESCE(o.media,n.media) AS media,COALESCE(o.link,n.link) AS link,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
   CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,
   CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
   (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
   EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
   EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
-const noteOut=r=>({id:r.id,body:r.body,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
+const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
   user:{handle:r.handle,name:r.name},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
