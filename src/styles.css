@@ -1133,7 +1133,7 @@ a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
 
 /* ===================== すりガラスの見た目＋スマホの下のメニュー（2026/11/03 依頼主の要望。今の YouTube アプリのように、選んでいるタブがひと目で分かる形） ===================== */
 :root{--glass:rgba(10,12,14,.55);--glass-p:rgba(22,26,30,.72);--glass-b:rgba(255,255,255,.10);--glass-blur:blur(24px) saturate(180%);--tb-on:rgba(255,255,255,.14)}
-:root[data-theme=light]{--glass:rgba(255,255,255,.62);--glass-p:rgba(255,255,255,.76);--glass-b:rgba(15,20,25,.08);--tb-on:rgba(15,20,25,.08)}
+:root[data-theme=light]{--glass:rgba(255,255,255,.74);--glass-p:rgba(255,255,255,.76);--glass-b:rgba(15,20,25,.08);--tb-on:rgba(15,20,25,.08)}
 /* うしろにうすい色のにじみを置いて、すりガラスの質感が見えるようにする（文字の読みやすさを変えないよう、ごくうすく） */
 body::before{content:'';position:fixed;inset:-20vh -20vw;z-index:-1;pointer-events:none;
   background:radial-gradient(40vmax 40vmax at 15% 10%,rgba(29,155,240,.10),transparent 60%),radial-gradient(38vmax 38vmax at 90% 30%,rgba(120,86,255,.08),transparent 60%),radial-gradient(42vmax 42vmax at 40% 95%,rgba(0,186,124,.07),transparent 60%)}
