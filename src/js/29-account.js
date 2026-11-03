@@ -20,7 +20,7 @@ async function fbLoad(){
   const a=app.initializeApp(cfg);const auth=au.getAuth(a);auth.languageCode='ja';
   AUTH.redir=AUTH_SAMEORIGIN&&au.getRedirectResult?au.getRedirectResult(auth).catch(e=>{AUTH.redirectErr=e}):Promise.resolve();
   AUTH.fb={au,auth};
-  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch)AUTH.profile=undefined;if(u){try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
+  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch){AUTH.profile=u?undefined:null;refreshBrand()}if(u){try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
   return AUTH.fb;
 }
 async function authFetch(path,body){
@@ -30,9 +30,9 @@ async function authFetch(path,body){
   const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||'通信エラー'),{status:r.status});return j;
 }
 async function loadProfile(force){
-  if(!AUTH.user){AUTH.profile=null;return null}
+  if(!AUTH.user){AUTH.profile=null;refreshBrand();return null}
   if(AUTH.profile!==undefined&&!force)return AUTH.profile;
-  const j=await authFetch('/api/me');AUTH.profile=j.user||null;AUTH.email=j.email||AUTH.user.email;return AUTH.profile;
+  const j=await authFetch('/api/me');AUTH.profile=j.user||null;AUTH.email=j.email||AUTH.user.email;refreshBrand();return AUTH.profile;
 }
 const authErr=e=>{const c=e&&e.code||'';return({
   'auth/popup-closed-by-user':'ログインの画面が閉じられました。','auth/cancelled-popup-request':'ログインの画面が閉じられました。',
@@ -103,7 +103,7 @@ async function accountView(){
   const bindSave=first=>{document.getElementById('ac-save').onclick=async()=>{
     const b={handle:document.getElementById('ac-h').value.trim(),name:document.getElementById('ac-n').value.trim(),bio:document.getElementById('ac-b').value.trim()};
     if(first){if(!document.getElementById('ac-ag').checked){document.getElementById('ac-msg').innerHTML='<div class="bnote" style="margin:8px 16px">同意のチェックを入れてください。</div>';return}b.agree=true}
-    try{const j=await authFetch('/api/me',b);AUTH.profile=j.user;toast(first?'プロフィールを作りました':'保存しました');accountView()}
+    try{const j=await authFetch('/api/me',b);AUTH.profile=j.user;refreshBrand();toast(first?'プロフィールを作りました':'保存しました');accountView()}
     catch(e){document.getElementById('ac-msg').innerHTML=`<div class="bnote" style="margin:8px 16px">${esc(e.message)}</div>`}}};
   if(!prof){
     V.innerHTML=`<div id="ac-root"><p class="note" style="padding-top:16px">ログインできました。最後に、ほかの人に表示されるプロフィールを作りましょう。ユーザーIDはあとから変えられます。</p>${form(null,true)}
@@ -124,7 +124,7 @@ async function accountView(){
   document.getElementById('ac-del').onclick=async()=>{
     const v=await askText(`削除すると元に戻せません。確認のため、ユーザーID（${prof.handle}）を入れてください`,'ユーザーID');
     if(v!==prof.handle){if(v!=null)toast('ユーザーIDが一致しませんでした');return}
-    try{await authFetch('/api/me/delete',{});await AUTH.user.delete();AUTH.profile=null;toast('アカウントを削除しました')}
+    try{await authFetch('/api/me/delete',{});await AUTH.user.delete();AUTH.profile=null;refreshBrand();toast('アカウントを削除しました')}
     catch(e){toast(authErr(e));if(e.code==='auth/requires-recent-login'){await au.signOut(auth)}}
   };
 }

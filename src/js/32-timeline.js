@@ -155,7 +155,7 @@ let tlTab='all',TLP=null;
 async function tlView(a,home){
   if(a==='following'||a==='all')tlTab=a;
   const myKey=keyOf(cur);
-  if(home)setHeader(L('ホーム','Home'));else setHeader('タイムライン','#/community');
+  if(home)setHeader('',null,{logo:true});else setHeader('タイムライン','#/community');
   V.innerHTML='<p class="empty">読み込み中…</p>';
   const prof=await twAuth();if(keyOf(cur)!==myKey)return;TLP=prof;
   if(tlTab==='following'&&!prof)tlTab='all';

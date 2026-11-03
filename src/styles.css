@@ -1187,3 +1187,13 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
     height:calc(env(safe-area-inset-bottom) + 44px);
     background:linear-gradient(to bottom,transparent,var(--bg) 18px)}
 }
+
+/* ===================== 左上の自分のアイコン・ホームの真ん中のマーク（2026/11/03 依頼主の要望。X と同じ形） ===================== */
+.mbtn .hd-av{width:32px;height:32px;font-size:15px}
+.hd-av--none{background:var(--elev2)!important;color:var(--dim)!important}
+.hdr-in{position:relative}
+.hd-logo{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;display:block}
+.hd-logo img{width:100%;height:100%;display:block;filter:drop-shadow(0 0 6px rgba(29,155,240,.35))}
+/* 明るい色のときは光る白い星が見えにくいので、濃い青にする */
+[data-theme=light] .hd-logo img{filter:brightness(.42) saturate(2.2)}
+.mark.mbtn,[data-theme=light] .mark.mbtn{background:none;box-shadow:none}
