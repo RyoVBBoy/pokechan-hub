@@ -29,7 +29,7 @@ function drawerHTML(){
         <div id="dr-push"></div>
         <a class="dr-s" href="#/account">アカウント</a><a class="dr-s" href="#/privacy">プライバシーポリシー</a><a class="dr-s" href="#/terms">利用規約</a></div></details>
     <details class="dr-d"><summary>${SVG(I.help,22)}<span>ヘルプセンター</span></summary>
-      <div class="dr-set"><a class="dr-s" href="#/rules">コミュニティの利用ルール</a><a class="dr-s" href="#/guide">基本ルール（計算式など）</a><a class="dr-s" href="#/sources">データの出典と確認状況</a></div></details>
+      <div class="dr-set"><a class="dr-s" href="#/rules">コミュニティの利用ルール</a><a class="dr-s" href="#/guide">基本ルール（計算式など）</a><a class="dr-s" href="#/sources">データの出典と確認状況</a><a class="dr-s" href="#/contact">お問い合わせ</a><a class="dr-s" href="#/contact" data-report>この画面の間違いを報告</a></div></details>
   </nav>`;
 }
 function drawerEnsure(){

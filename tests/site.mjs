@@ -132,6 +132,11 @@ if(lr.join()!=='true,true,true')fail('負けやすい理由: '+lr.join());
 const itc=await pg.evaluate(()=>[CH_ITEMS.size,[...CH_ITEMS].filter(k=>!ITEMN[k]).join(),['choiceband','choicespecs','assaultvest','heavydutyboots'].filter(k=>ITEMN[k]||Object.values(ITJ).includes(k)).join(),
   Object.keys(ITEMN).filter(k=>!CH_ITEMS.has(k)&&!isStone(k)).join(),[...CH_ITEMS].filter(k=>!ITEM_GUIDE[k]).join()]);
 if(!(itc[0]===85&&!itc[1]&&!itc[2]&&!itc[3]&&!itc[4]))fail('持ち物の一覧: '+JSON.stringify(itc));
+// 間違いを報告（50-contact.js）：図鑑のページから押すと、その画面の名前を付けて報告の画面が開く
+await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(500);
+await pg.click('#view [data-report]');await pg.waitForTimeout(400);
+const ctv=await pg.evaluate(()=>[location.hash,document.querySelector('.ct .note')&&document.querySelector('.ct .note').textContent.includes('ガブリアスの図鑑'),!!document.getElementById('ct-send')]);
+if(!(ctv[0]==='#/contact/'+encodeURIComponent('#/p/445')&&ctv[1]&&ctv[2]))fail('間違いを報告: '+ctv.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);

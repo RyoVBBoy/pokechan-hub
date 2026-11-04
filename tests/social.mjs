@@ -181,6 +181,18 @@ r=await up(B,JPG);const av2=r[1].key;r=await call('/api/me/avatar',{method:'POST
 r=await getM(av1,'admin-secret-123');expect('写真：変えると前の写真は消える',r[0]===404,r[0]);
 r=await call('/api/me/avatar',{method:'POST',tok:B,body:{remove:true}});expect('写真：外せる',r[0]===200&&r[1].user.av===null,r);
 r=await getM(av2);expect('写真：外した写真は見えない',r[0]===404,r[0]);
+/* お問い合わせ・間違いの報告（2026/11/04） */
+r=await call('/api/contact',{method:'POST',body:{kind:'data',body:'短い'}});expect('問い合わせ：短すぎるものは拒否',r[0]===400,r);
+r=await call('/api/contact',{method:'POST',body:{kind:'data',body:'ガブリアスの素早さの種族値が違う気がします',page:'#/p/445',reply:'x@example.com'}});expect('問い合わせ：ログインなしで送れる',r[0]===200,r);
+r=await call('/api/contact',{method:'POST',tok:A,body:{kind:'bug',body:'ボタンが押せません。iPhoneです'}});expect('問い合わせ：ログインしていても送れる',r[0]===200,r);
+r=await call('/api/admin/contacts');expect('問い合わせ：一覧は管理者だけ',r[0]===401,r);
+r=await call('/api/admin/contacts',{admin:'admin-secret-123'});
+expect('問い合わせ：管理者は内容・画面・連絡先を見られる',r[0]===200&&r[1].unread===2&&r[1].contacts.some(x=>x.page==='#/p/445'&&x.reply==='x@example.com'&&x.kind==='data')&&r[1].contacts.some(x=>x.login),r[1]);
+expect('問い合わせ：IPアドレスは返さない',!JSON.stringify(r[1]).includes('10.'),'');
+{const id=r[1].contacts[0].id;await call('/api/admin/contacts',{method:'POST',admin:'admin-secret-123',body:{id,st:'done',note:'直した'}});
+ r=await call('/api/admin/contacts',{admin:'admin-secret-123'});expect('問い合わせ：対応済みにできる',r[1].unread===1&&!r[1].contacts.some(x=>x.id===id),r[1])}
+for(let i=0;i<6;i++)r=await call('/api/contact',{method:'POST',ip:'10.9.8.7',body:{kind:'other',body:'連続で送る試し'+i}});
+expect('問い合わせ：1時間に5件まで',r[0]===429,r);
 /* シーズンごとの上位パーティ */
 const ADM='admin-secret-123',TM6=[445,149,887,1000,727,812].map(no=>({no,set:{it:{k:'choicescarf'}}}));
 r=await call('/api/admin/seasons',{method:'POST',body:{name:'シーズン1'}});expect('シーズン：登録は管理者だけ',r[0]===401,r);

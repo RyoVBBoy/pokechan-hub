@@ -70,7 +70,7 @@ function detail(no){
   <div data-sw data-panel="5" hidden id="mvpanel"></div>
   </div>
 
-  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/pair/${byNo[p.base]?p.base:p.no}">${SVG(I.plus,16)}このポケモンから組む（相性のいい仲間を探す）</a><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a></div>
+  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/pair/${byNo[p.base]?p.base:p.no}">${SVG(I.plus,16)}このポケモンから組む（相性のいい仲間を探す）</a><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a><a class="btn btn-s" style="flex-basis:100%" href="#/contact" data-report>このページの間違いを報告</a></div>
   ${adSlot('記事下')}`;
 
   /* タブ */

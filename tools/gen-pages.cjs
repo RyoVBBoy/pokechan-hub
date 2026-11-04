@@ -148,7 +148,7 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
 <script type="application/ld+json">${JSON.stringify(ld)}</script></head>
 <body><div class="app sp"><header class="hdr"><div class="hdr-in"><a href="${root}" style="display:flex;align-items:center;gap:20px;min-width:0"><span class="mark" aria-hidden="true">PC</span><b style="font-size:20px;font-weight:800;white-space:nowrap">${SITE}</b></a></div></header>
 <main>${body.replace(/__ROOT__/g,root)}</main>
-<footer class="foot"><a href="${root}#/sources" style="color:var(--acc)">データの出典と確認状況</a><br>非公式のファンサイトです。ポケモンおよび関連する名称は各権利者の商標です。画像は使用していません。</footer></div>
+<footer class="foot"><a href="${root}#/sources" style="color:var(--acc)">データの出典と確認状況</a>　<a href="${root}#/contact/${encodeURIComponent('#/'+(rel.startsWith('pokemon/')?'p/'+rel.split('/')[1]:rel.startsWith('counter/')?'counter/'+rel.split('/')[1]:''))}" style="color:var(--acc)">このページの間違いを報告</a>　<a href="${root}#/contact" style="color:var(--acc)">お問い合わせ</a><br>非公式のファンサイトです。ポケモンおよび関連する名称は各権利者の商標です。画像は使用していません。</footer></div>
 <nav class="tabbar"><div class="tabbar-in">${NAV.map(([h,l,ic])=>`<a class="tb" href="${root}${h}" aria-label="${l}" title="${l}"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg><span>${l}</span></a>`).join('')}</div></nav>
 </body></html>`;};
  const write=(rel,html)=>{const f=path.join(OUT,rel,'index.html');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,html)};

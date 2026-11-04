@@ -1256,3 +1256,8 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 .ls-chk summary{cursor:pointer;font-weight:700;font-size:14px}
 .ls-chk ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px;line-height:1.7}
 .ls-chk li{display:flex;gap:8px;align-items:flex-start}.ls-chk .ls-ph{margin-top:3px}
+
+/* ===================== お問い合わせ（50-contact.js） ===================== */
+.ct-k{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 12px}
+.ct-done{text-align:center;padding:40px 24px}.ct-done h2{margin:12px 0 8px;font-size:22px}.ct-done p{color:var(--dim);line-height:1.7;margin:0 0 16px}
+.ct-ok{width:56px;height:56px;margin:0 auto;border-radius:50%;background:#00ba7c;color:#fff;display:grid;place-items:center;font-size:28px;font-weight:800}

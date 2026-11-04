@@ -18,7 +18,7 @@ function adminView(){
   <p class="note" style="padding-top:14px">通報された書き込みの確認と削除ができます。サーバーに設定した<b>管理用の合言葉（ADMIN_TOKEN）</b>を入れてください。アプリや背面タップ用の合言葉（APP_TOKEN）では入れません。合言葉はこの端末にだけ保存されます。</p>
   <div class="cform" style="padding:0 16px"><label>管理用の合言葉<input type="password" id="adm-tok" value="${esc(tok)}" autocomplete="off"></label></div>
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
-  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button></div>
+  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button></div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
   document.getElementById('adm-save').onclick=()=>{try{localStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
@@ -62,6 +62,18 @@ function adminView(){
         document.getElementById('adm-npost').onclick=()=>act(()=>apost('/api/admin/news/post',{cat:document.getElementById('adm-nc').value,title:document.getElementById('adm-nt').value,url:document.getElementById('adm-nu').value.trim()}),'投稿しました');
         document.getElementById('adm-nrun').onclick=async()=>{const m=document.getElementById('adm-nmsg');m.innerHTML='<p class="note">確認しています…（30秒ほど）</p>';
           try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、${r.posted}件投稿しました。${r.found>r.posted?'それより古いものは記録だけしました（「公式のお知らせ」の画面には出ます）。':''}</p>${r.found?'':`<p class="vcap" style="padding:0 16px;word-break:break-all">調べた結果（開発者向け）：${esc(JSON.stringify(r.dbg||{}))}</p>`}`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
+      }else if(admTab==='contact'){
+        const st=sessionStorage.getItem('pcadmct')||'new',j=await aget('/api/admin/contacts?st='+st);
+        const KN={data:'データの間違い',bug:'不具合',idea:'要望',other:'そのほか'};
+        el.innerHTML=`<div class="pills" style="padding:0 16px 8px">${[['new',`未対応（${j.unread}）`],['done','対応済み'],['all','すべて']].map(([k,l])=>`<button class="pill" data-cst="${k}" aria-pressed="${k===st}">${l}</button>`).join('')}</div>`+
+          (j.contacts.length?j.contacts.map(c=>`<div class="lcard"><div class="lcard-h"><span class="atag ${c.kind==='data'||c.kind==='bug'?'on':''}">${KN[c.kind]||c.kind}</span><b>${c.page?esc(pageLabel(c.page)):'お問い合わせ'}</b><span class="lt">${ago(c.created_at)}</span></div>
+            <div class="lcm" style="white-space:pre-wrap" data-notr>${esc(c.body)}</div>
+            <div class="lmeta">${c.page?`<a href="${esc(c.page)}" style="color:var(--acc)">画面を開く</a>　`:''}${c.reply?`連絡先：<span data-notr>${esc(c.reply)}</span>　`:''}${c.login?'ログイン中　':''}${c.note?'メモ：'+esc(c.note):''}</div>
+            <div class="lmeta" style="color:var(--mute);font-size:11px">${esc(c.ua||'')}</div>
+            <div class="btns" style="padding:6px 0 0">${c.st==='new'?`<button class="btn btn-s" data-cdone="${c.id}">対応済みにする</button>`:`<button class="btn btn-s" data-cnew="${c.id}">未対応に戻す</button>`}</div></div>`).join(''):'<p class="empty">ありません。</p>');
+        el.querySelectorAll('[data-cst]').forEach(b=>b.onclick=()=>{sessionStorage.setItem('pcadmct',b.dataset.cst);load()});
+        el.querySelectorAll('[data-cdone]').forEach(b=>b.onclick=async()=>{const note=await askText('対応のメモ（任意）','メモ');if(note===null)return;act(()=>apost('/api/admin/contacts',{id:+b.dataset.cdone,st:'done',note:note||''}),'対応済みにしました')});
+        el.querySelectorAll('[data-cnew]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/contacts',{id:+b.dataset.cnew,st:'new'}),'未対応に戻しました'));
       }else if(admTab==='hits'){
         const j=await aget('/api/admin/hits?days=30');el.innerHTML=hitsHTML(j.rows);
       }else if(admTab==='season'){
