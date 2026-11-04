@@ -30,7 +30,7 @@ const mxBlocks=types=>{const tb=defTable(types);return LAB.map(([v,m,l,c])=>{con
 /* ポケモンの名前の表示（公式の画像を使わずに、ひと目で分かるように）：名前を太く大きく＋姿の違いの札＋図鑑番号
    札：メガ（X/Y/Z）・地方の姿（アローラ・ガラル・ヒスイ・パルデア）・そのほか（オス／メス・サイズなど） */
 const FORM_EN={アローラ:'Alola',ガラル:'Galar',ヒスイ:'Hisui','パルデア・コンバット種':'Paldea Combat','パルデア・ブレイズ種':'Paldea Blaze','パルデア・ウォーター種':'Paldea Aqua','パルデア・アクア種':'Paldea Aqua',
-  オス:'Male',メス:'Female',たそがれ:'Dusk',まよなかのすがた:'Midnight',ハイなすがた:'Amped',ローなすがた:'Low Key',ブルーフェザー:'Blue',イエローフェザー:'Yellow',ホワイトフェザー:'White',えいえんのはな:'Eternal Flower',ちいさいサイズ:'Small',おおきいサイズ:'Large',とくだいサイズ:'Super Size'};
+  オス:'Male',メス:'Female',たそがれ:'Dusk',まよなかのすがた:'Midnight',ハイなすがた:'Amped',ローなすがた:'Low Key',ブルーフェザー:'Blue',イエローフェザー:'Yellow',ホワイトフェザー:'White',えいえんのはな:'Eternal Flower',ちいさいサイズ:'Small',おおきいサイズ:'Large',とくだいサイズ:'Super Size',こだましゅ:'Small',ちゅうだましゅ:'Average',おおだましゅ:'Large',ギガだましゅ:'Super Size',まひるのすがた:'Midday',たそがれのすがた:'Dusk',グリーンフェザー:'Green'};
 function formInfo(p){
   if(p._f)return p._f;
   const ja=p.ja||p.n;let base=p.n,tag=null,kind='';

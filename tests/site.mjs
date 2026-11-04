@@ -140,6 +140,10 @@ if(!(ctv[0]==='#/contact/'+encodeURIComponent('#/p/445')&&ctv[1]&&ctv[2]))fail('
 // 強いポケモンランキング（51-tier.js）：S〜Cに分かれ、どれにも理由が付く
 const tier=await pg.evaluate(()=>{const T=tierCompute();return[T.n,['S','A','B','C'].every(t=>T.rows.some(r=>r.tier===t)),T.rows.every(r=>tierWhy(r,T).length>=2),T.rows[0].score>=T.rows[T.n-1].score]});
 if(!(tier[0]>=40&&tier[1]&&tier[2]&&tier[3]))fail('強いポケモンランキング: '+tier.join());
+// 戦闘中に変わる姿（2026/11/04 依頼主のリストとの照らし合わせ）：ギルガルドは攻撃をブレードフォルム、受けをシールドフォルムで、イルカマンはマイティフォルムで計算。名前の直し
+const bfm=await pg.evaluate(()=>{const a=mkMon(byNo[681],'me',{ab:'stance-change',sp:[0,0,0,0,0,0],up:-1,dn:-1,moves:[]}),h=mkMon(byNo[964],'me',{ab:'zero-to-hero',sp:[0,0,0,0,0,0],up:-1,dn:-1,moves:[]});
+  return[a.stAtk[1],a.st[2],h.st[1],byNo[678].n,byNo[711].n,byNo[745].n,byNo[931].n,!!battleFormHTML(byNo[351])]});
+if(bfm.join()!=='160,160,180,ニャオニクス（オス）,パンプジン（ちゅうだましゅ）,ルガルガン（まひるのすがた）,イキリンコ（グリーンフェザー）,true')fail('戦闘中の姿・名前: '+bfm.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);

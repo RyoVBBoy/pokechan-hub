@@ -192,15 +192,26 @@ function chooseSet(p,det){
   else{let best=null;pool.forEach(m=>{if(chosen.includes(m))return;const v=sc(m)*nz();if(!best||v>best.v)best={m,v}});if(best)chosen.push(best.m)}
   return{ab:abk,moves:chosen};
 }
+/* 戦闘中にだけ変わる姿の能力（種族値） */
+const BATTLE_FORM={'zero-to-hero':{no:964,s:[100,160,97,106,87,100],always:true,name:'マイティフォルム'},'stance-change':{no:681,s:[60,140,50,140,50,60],name:'ブレードフォルム'}};
+/* 図鑑に出す「戦闘中に変わる姿」（パーティには入れられない姿。2026/11/04 依頼主のリストとの照らし合わせで追加） */
+const BATTLE_FORMS={351:{why:'特性てんきやで、天気によってタイプが変わります（能力は変わりません）。',forms:[['たいようのすがた','ほのお','はれ'],['あまみずのすがた','みず','あめ'],['ゆきぐものすがた','こおり','ゆき']]},
+  681:{why:'特性バトルスイッチで、攻撃技を使うとブレードフォルム、キングシールドを使うとシールドフォルムになります。当サイトの計算では、攻撃するときはブレードフォルム、攻撃を受けるときはシールドフォルムの能力を使います。',forms:[['ブレードフォルム',null,null,[60,140,50,140,50,60]]]},
+  964:{why:'特性マイティチェンジで、一度控えに戻るとマイティフォルムになります。当サイトの計算は、マイティフォルムの能力で行います。',forms:[['マイティフォルム',null,null,[100,160,97,106,87,100]]]}};
+function battleFormHTML(p){const b=BATTLE_FORMS[p.no];if(!b)return '';
+  return `<div class="sec"><h2>戦闘中に変わる姿</h2></div><p class="note" style="padding-top:0">${b.why}</p>
+  ${b.forms.map(([n,t,w,s])=>`<div class="row" style="cursor:default"><div class="row-m"><div class="row-t">${p.n.replace(/（.*$/,'')}（${n}）</div><div class="chips">${(t?[t]:p.t).map(chip).join('')}${w?`<span class="rt">${w}のとき</span>`:''}</div>${s?`<div class="row-s">${SN.map((x,i)=>`${x}${s[i]}`).join('・')}（合計${s.reduce((a,c)=>a+c,0)}）</div>`:''}</div></div>`).join('')}`}
 function mkMon(p,side,set){
   set=set||chooseSet(p);
   /* メガストーンを持っていれば、メガシンカ後の姿で計算する（1回の対戦でメガシンカできるのは1匹だけ） */
   const mg=megaOf(p.no,set.item);
   if(mg){p=mg;set={...set,ab:mg.ab}}
-  let st;
-  if(set.sp)st=calcStats(p,set.sp,set.up??-1,set.dn??-1);
-  else{const phys=p.s[1]>=p.s[3],ai=phys?1:3,sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;st=calcStats(p,sp,ai,phys?3:1)}
-  return{p,side,st,hp:st[0],max:st[0],moves:set.moves,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise'};
+  const stOf=q=>{if(set.sp)return calcStats(q,set.sp,set.up??-1,set.dn??-1);const phys=p.s[1]>=p.s[3],ai=phys?1:3,sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;return calcStats(q,sp,ai,phys?3:1)};
+  let st=stOf(p),stAtk=null;
+  /* 戦闘中に変わる姿（2026/11/04 データの見直し）：イルカマンは一度交代するとマイティフォルムになるので、その能力で計算。
+     ギルガルドは攻撃するときだけブレードフォルム（攻撃・特攻140／防御・特防50）になるので、攻撃側の能力を別に持つ（受けるときはシールドフォルム） */
+  const bf=BATTLE_FORM[set.ab];if(bf&&bf.no===p.no){const q={...p,s:bf.s};if(bf.always)st=stOf(q);else stAtk=stOf(q)}
+  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise'};
 }
 let B={phase:'menu'};
 const alive=S=>S.act.filter(i=>i!=null).map(i=>S.mons[i]).filter(m=>!m.fainted);
@@ -350,7 +361,8 @@ function bcalc(a,mv,d,o){
   /* メテオビーム・エレクトロビームは、ためるターンに特攻が1段階上がってから攻撃する */
   if((mk==='meteorbeam'||mk==='electroshot')&&!o.roll)as=Math.min(6,as+1);
   if(crit&&as<0)as=0;
-  let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?a.st[1]:a.st[3]),as),am=4096;
+  const ast=a.stAtk||a.st;
+  let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?ast[1]:ast[3]),as),am=4096;
   if(phys&&(a.ab==='huge-power'||a.ab==='pure-power'))am=chM(am,8192);
   if(PINCH[a.ab]===t&&a.hp*3<=a.max)am=chM(am,6144);
   if(a.ab==='water-bubble'&&t==='みず')am=chM(am,8192);
