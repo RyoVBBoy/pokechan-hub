@@ -1,6 +1,6 @@
 /* ===================== 種族値のグラフを滑らかに変える（2026/11/04 依頼主の要望） =====================
    ・同じポケモンの姿の切りかえ（元の姿⇔メガシンカ など、図鑑の上の切りかえ）では、前の姿のグラフ・数字・棒から新しい姿へ動かす
-   ・ギルガルドは「バトルスイッチ」のトグルスイッチで、シールドフォルム⇔ブレードフォルムを切りかえる
+   ・ギルガルドは「バトルスイッチ」、イルカマンは「マイティチェンジ」のトグルスイッチで、戦闘中の姿に切りかえる
      （スイッチの地の色：シールドは青、ブレードは赤。つまみは白）
    ・動きは約0.6秒。グラフは少しだけ行き過ぎて戻る（はずむ）動き、数字と棒はなめらかに止まる動き。動きを減らす設定の端末では、すぐ切りかえる */
 let DP_LAST=null,DP_KEEP_TAB=0;
@@ -28,11 +28,17 @@ function statMorph(root,from,to,ms=620){
     if(t<1)requestAnimationFrame(step);else statPaint(root,to,null,rank,mi)};
   requestAnimationFrame(step);
 }
-/* ギルガルドのバトルスイッチ */
-const AEGIS_BLADE=[60,140,50,140,50,60];
-const aegisSwitchHTML=p=>p.no===681?`<div class="bsw"><span class="bsw-l" data-side="0">シールドフォルム</span>
-  <button class="bsw-t" id="bsw" role="switch" aria-checked="false" aria-label="バトルスイッチ（ブレードフォルムにする）"><i></i></button>
-  <span class="bsw-l" data-side="1">ブレードフォルム</span></div><p class="note bsw-n" id="bsw-n">特性バトルスイッチ：攻撃技を使うとブレードフォルム、キングシールドでシールドフォルムに戻ります。</p>`:'';
+/* 戦闘中に変わる姿のトグルスイッチ（ギルガルドのバトルスイッチ・イルカマンのマイティチェンジ）。
+   地の色：元の姿は青、変わった姿は赤。つまみは白 */
+const FORM_SWITCH={
+  681:{a:'シールドフォルム',b:'ブレードフォルム',s:[60,140,50,140,50,60],ab:'バトルスイッチ',
+    note:'特性バトルスイッチ：攻撃技を使うとブレードフォルム、キングシールドでシールドフォルムに戻ります。'},
+  964:{a:'ナイーブフォルム',b:'マイティフォルム',s:[100,160,97,106,87,100],ab:'マイティチェンジ',
+    note:'特性マイティチェンジ：一度引っこめて出し直すとマイティフォルムになり、その対戦の終わりまで戻りません。当サイトのダメージ計算はマイティフォルムの能力で行います。'}};
+const fsLabel=(f,on)=>`${f.ab}（${on?f.a+'にもどす':f.b+'にする'}）`;
+const aegisSwitchHTML=p=>{const f=FORM_SWITCH[p.no];return f?`<div class="bsw"><span class="bsw-l" data-side="0">${f.a}</span>
+  <button class="bsw-t" id="bsw" role="switch" aria-checked="false" aria-label="${fsLabel(f,false)}"><i></i></button>
+  <span class="bsw-l" data-side="1">${f.b}</span></div><p class="note bsw-n" id="bsw-n">${f.note}</p>`:''};
 function statFx(p){
   const root=document.querySelector('#dp-pages [data-panel="0"]');if(!root)return;
   const fam=p.base||p.no;
@@ -41,9 +47,9 @@ function statFx(p){
   DP_LAST={fam,no:p.no,s:p.s.slice()};
   const sw=document.getElementById('bsw');if(!sw)return;
   sw.onclick=()=>{const on=sw.getAttribute('aria-checked')!=='true';sw.setAttribute('aria-checked',String(on));
-    sw.setAttribute('aria-label',on?'バトルスイッチ（シールドフォルムにもどす）':'バトルスイッチ（ブレードフォルムにする）');
+    const f=FORM_SWITCH[p.no];sw.setAttribute('aria-label',fsLabel(f,on));
     document.querySelector('.bsw').classList.toggle('on',on);
-    const from=DP_LAST&&DP_LAST.no===p.no?DP_LAST.s:p.s,to=on?AEGIS_BLADE:p.s;
+    const from=DP_LAST&&DP_LAST.no===p.no?DP_LAST.s:p.s,to=on?f.s:p.s;
     statMorph(root,from,to);DP_LAST={fam,no:p.no,s:to.slice()};
     if(navigator.vibrate)try{navigator.vibrate(10)}catch(e){}};
 }

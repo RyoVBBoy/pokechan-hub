@@ -152,6 +152,10 @@ await pg.evaluate(()=>{location.hash='#/p/681'});await pg.waitForTimeout(500);
 await pg.evaluate(()=>document.getElementById('bsw').click());await pg.waitForTimeout(900);
 const bsw=await pg.evaluate(()=>[document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="0"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
 if(bsw.join()!=='true,60-140-50-140-50-60')fail('バトルスイッチ: '+bsw.join());
+await pg.evaluate(()=>{location.hash='#/p/964'});await pg.waitForTimeout(500);
+await pg.evaluate(()=>document.getElementById('bsw').click());await pg.waitForTimeout(900);
+const bsw2=await pg.evaluate(()=>[document.querySelector('.bsw .bsw-l[data-side="1"]').textContent,document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="0"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
+if(bsw2.join()!=='マイティフォルム,true,100-160-97-106-87-100')fail('マイティチェンジ: '+bsw2.join());
 // 図鑑の「元の姿・メガ」の切りかえはその場で（ページを移さない・スクロールとタブはそのまま・戻る履歴を増やさない）
 await pg.evaluate(()=>{location.hash='#/p/6'});await pg.waitForTimeout(500);
 const fam=await pg.evaluate(async()=>{document.querySelector('#seg [data-i="3"]').click();await new Promise(r=>setTimeout(r,300));SCROLLER.scrollTop=200;const h0=history.length,y0=scrY();
