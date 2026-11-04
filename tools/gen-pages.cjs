@@ -136,7 +136,8 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  await pg.unroute(/championsbattledata|googleapis|gstatic/);await pg.route(/googleapis|gstatic/,r=>r.abort());
  const TIER=await pg.evaluate(async()=>{try{await Promise.race([metaLoad(),new Promise(r=>setTimeout(r,90000))])}catch(e){}
    const T=tierCompute(),R='__ROOT__';
-   return{live:T.live,n:T.n,html:tierHTML(T,q=>byNo[q.no]&&!q.base&&P.includes(q)?R+'counter/'+q.no+'/':R+'#/p/'+q.no),top:T.rows.filter(r=>r.tier==='S').map(r=>formInfo(r.p).base)}}).catch(e=>({err:String(e)}));
+   const json={at:T.at,live:T.live,fmt:T.fmt,rows:T.rows.map(r=>({no:r.p.no,name:formInfo(r.p).base+(formInfo(r.p).tag?'（'+formInfo(r.p).tag+'）':''),tier:r.tier,u:r.u}))};
+   return{json,live:T.live,n:T.n,html:tierHTML(T,q=>byNo[q.no]&&!q.base&&P.includes(q)?R+'counter/'+q.no+'/':R+'#/p/'+q.no),top:T.rows.filter(r=>r.tier==='S').map(r=>formInfo(r.p).base)}}).catch(e=>({err:String(e)}));
  await b.close();
  const esc=s=>s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
  const NAV=[['','ホーム','<path d="M3 10.9 12 3.7l9 7.2V20a1 1 0 0 1-1 1h-5.1v-6.1H9.1V21H4a1 1 0 0 1-1-1z"/>'],['#/dex','図鑑','<path d="M4 5.3c3.6-.8 6.3-.3 8 1.4 1.7-1.7 4.4-2.2 8-1.4v13.1c-3.6-.8-6.3-.3-8 1.4-1.7-1.7-4.4-2.2-8-1.4z"/><path d="M12 6.7v13.1"/>'],['#/types','相性','<path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/>'],['#/team','編成','<path d="M4.2 4.4h6.2v6.2H4.2zM13.6 4.4h6.2v6.2h-6.2zM4.2 13.4h6.2v6.2H4.2zM13.6 13.4h6.2v6.2h-6.2z"/>'],['#/guide','ルール','<path d="M5 7h14M5 12h14M5 17h9"/>']];
@@ -161,6 +162,8 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  D.mons.forEach(m=>{const rel=`pokemon/${m.no}/`;urls.push(rel);write(rel,page({rel,title:`${m.n}の種族値・弱点・対策・覚える技｜ポケモンチャンピオンズ｜${SITE}`,desc:m.desc,body:m.html,crumbs:[['ホーム',''],['ポケモン一覧','pokemon/'],[m.n,rel]]}))});
  D.counters.forEach(m=>{const rel=`counter/${m.no}/`;urls.push(rel);write(rel,page({rel,title:`${m.n}の対策・倒し方（勝てるポケモン）｜ポケモンチャンピオンズ｜${SITE}`,desc:m.desc,body:m.html,crumbs:[['ホーム',''],['ポケモン一覧','pokemon/'],[m.n,`pokemon/${m.no}/`],['対策',rel]]}))});
  fs.writeFileSync(OUT+'/assets/mon-names.json',JSON.stringify(D.names));
+ /* ランキングbot（worker/src/rankbot.js）が毎日読む */
+ if(TIER&&TIER.json)fs.writeFileSync(OUT+'/assets/tier.json',JSON.stringify(TIER.json));
  if(TIER&&TIER.html){const rel='ranking/';urls.push(rel);write(rel,page({rel,title:`強いポケモンランキング（最新）｜ポケモンチャンピオンズ｜${SITE}`,desc:`ポケモンチャンピオンズの強いポケモンをS〜Cに分けたランキング。${TIER.top.length?'いまの環境の中心は'+TIER.top.slice(0,5).join('・')+'。':''}使用率と、上位のポケモンとの1対1のダメージ計算から、理由つきで毎日更新。`,
    body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › 強いポケモンランキング</nav><div class="sh1"><h1>強いポケモンランキング</h1></div>`+TIER.html+`<div class="cta"><a class="btn btn-p" href="__ROOT__#/tier">サイトで最新の結果を見る</a></div>`,crumbs:[['ホーム',''],['強いポケモンランキング',rel]]}))}
  else console.log('ranking: skip',TIER&&TIER.err);

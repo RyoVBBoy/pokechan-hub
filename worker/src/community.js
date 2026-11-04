@@ -72,6 +72,8 @@ async function api(req,env,u,ctx){
   if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db,env)).catch(()=>{}));
   let m;
   /* タイムライン・フォロー・通知（social.js） */
+  /* ランキングbot（rankbot.js） */
+  {const r=await rankApi(req,env,db,path,body,now,isAdmin);if(r)return r}
   /* お問い合わせ・間違いの報告（contact.js） */
   {const r=await contactApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
   {const r=await pushApi(req,env,db,path,body,now);if(r)return r}

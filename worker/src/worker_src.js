@@ -312,7 +312,9 @@ export default{
   async scheduled(ev,env,ctx){
     /* 毎日 3:23 は上位パーティの集め直しと使用率。お知らせは6時間ごと（どの cron でも） */
     if(!ev.cron||ev.cron==='23 18 * * *'){ctx.waitUntil(collectDaily(env).catch(()=>{}));ctx.waitUntil(usageDaily(env).catch(()=>{}))}
-    ctx.waitUntil(newsCron(env))},
+    ctx.waitUntil(newsCron(env));
+    /* ランキングbot：毎朝の公開で作った tier.json を読み、1日1回（10:47 の回から）投稿する */
+    ctx.waitUntil(rankCron(env))},
   async fetch(req,env,ctx){
     if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
     const u=new URL(req.url);let text=u.searchParams.get('text')||'',team=u.searchParams.get('team')||req.headers.get('x-team')||'',mode=u.searchParams.get('mode')||'';

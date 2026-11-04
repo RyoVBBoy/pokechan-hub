@@ -28,7 +28,9 @@ globalThis.fetch=async(u,o)=>{u=String(u);
     if(b.contents[0].parts.length>2&&b.contents[0].parts.some(p=>/画面収録/.test(p.text||'')))return gemReply(JSON.stringify({format:'single',result:'win',opponent_team:['ガブリアス','カイリュー','サーフゴー','ドラパルト','ガオガエン','ゴリランダー'],my_team:['リザードン','カメックス'],opponent_used:['ガブリアス','サーフゴー'],my_used:['リザードン'],opponent_moves:{'ガブリアス':['じしん','げきりん']},opponent_items:{'ガブリアス':'こだわりスカーフ'}}));
     if(b.contents[0].parts[0].inline_data)return gemReply(JSON.stringify({opponent:[{name:'ガブリアス',types:['ドラゴン','じめん'],confidence:.9},{name:'カイリュー',types:['ドラゴン','ひこう'],confidence:.9},{name:'サーフゴー',types:['はがね','ゴースト'],confidence:.4},{name:'？？？',types:['ほのお'],confidence:.2}]}));
     const url=(b.contents[0].parts[0].text.match(/ページ：(\S+)/)||[])[1];return gemReply('```json\n'+JSON.stringify(GEM_PAGES[url]||{teams:[]})+'\n```')}
+  if(u.endsWith('/assets/tier.json'))return new Response(JSON.stringify(TIERJ));
   return new Response('',{status:404})};
+let TIERJ={at:Date.now(),live:true,fmt:'single',rows:[{no:445,name:'ガブリアス',tier:'S',u:1},{no:149,name:'カイリュー',tier:'A',u:2},{no:887,name:'ドラパルト',tier:'B',u:3}]};
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
 const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key'};
 let ipN=0;
@@ -193,6 +195,16 @@ expect('問い合わせ：IPアドレスは返さない',!JSON.stringify(r[1]).i
  r=await call('/api/admin/contacts',{admin:'admin-secret-123'});expect('問い合わせ：対応済みにできる',r[1].unread===1&&!r[1].contacts.some(x=>x.id===id),r[1])}
 for(let i=0;i<6;i++)r=await call('/api/contact',{method:'POST',ip:'10.9.8.7',body:{kind:'other',body:'連続で送る試し'+i}});
 expect('問い合わせ：1時間に5件まで',r[0]===429,r);
+/* ランキングbot（rankbot.js） */
+TIERJ.at=Date.now();
+r=await call('/api/admin/rankbot',{method:'POST',body:{}});expect('ランキングbot：管理者だけ',r[0]===401,r);
+r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{}});expect('ランキングbot：投稿する',r[0]===200&&r[1].posted&&/Sランク：ガブリアス/.test(r[1].body)&&/#強いポケモンランキング/.test(r[1].body),r[1]);
+r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{}});expect('ランキングbot：同じ日は1回だけ',r[1].posted===false,r[1]);
+TIERJ={...TIERJ,rows:[{no:445,name:'ガブリアス',tier:'A',u:1},{no:149,name:'カイリュー',tier:'S',u:2},{no:887,name:'ドラパルト',tier:'B',u:3}]};
+r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{force:true}});expect('ランキングbot：上がった・下がったを書く',r[1].posted&&/上がった：カイリュー（A→S）/.test(r[1].body)&&/下がった：ガブリアス（S→A）/.test(r[1].body)&&[...r[1].body].length<=140,r[1]);
+r=await call('/api/tl');{const n=r[1].notes.find(x=>x.user.handle==='ranking_bot');expect('ランキングbot：タイムラインに出てランキングへのリンク',n&&/\/ranking\/$/.test(n.link),n)}
+r=await call('/api/search?q='+encodeURIComponent('#強いポケモンランキング'));expect('ランキングbot：タグで探せる',r[1].notes.some(x=>x.user.handle==='ranking_bot'),r[1]);
+TIERJ={...TIERJ,live:false};r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{force:true}});expect('ランキングbot：集計がない日は投稿しない',r[1].posted===false,r[1]);
 /* シーズンごとの上位パーティ */
 const ADM='admin-secret-123',TM6=[445,149,887,1000,727,812].map(no=>({no,set:{it:{k:'choicescarf'}}}));
 r=await call('/api/admin/seasons',{method:'POST',body:{name:'シーズン1'}});expect('シーズン：登録は管理者だけ',r[0]===401,r);
