@@ -128,6 +128,10 @@ if(!(pr[0]>=1&&pr[0]<=8&&pr[1]>=1&&pr[1]<=8))fail('相性のいい仲間の順�
 const lr=await pg.evaluate(()=>{const base=[445,6,130,94,59,887].map(no=>({no}));const a=loseReasons(base).map(r=>r.t);
   const b=loseReasons(base.map((x,i)=>i?x:{...x,set:{it:{k:'choicescarf'},mv:[]}})).map(r=>r.t);return[a.some(t=>/止める手段/.test(t)),a.some(t=>/ステルスロック/.test(t)),!b.some(t=>/止める手段/.test(t))]});
 if(lr.join()!=='true,true,true')fail('負けやすい理由: '+lr.join());
+// 持ち物（2026/11/04 依頼主の完全なリスト）：ゲームにある85種はすべて選べて、ないもの（こだわりハチマキ・こだわりメガネ・とつげきチョッキ）は選べない。読み取りの表にもない
+const itc=await pg.evaluate(()=>[CH_ITEMS.size,[...CH_ITEMS].filter(k=>!ITEMN[k]).join(),['choiceband','choicespecs','assaultvest','heavydutyboots'].filter(k=>ITEMN[k]||Object.values(ITJ).includes(k)).join(),
+  Object.keys(ITEMN).filter(k=>!CH_ITEMS.has(k)&&!isStone(k)).join(),[...CH_ITEMS].filter(k=>!ITEM_GUIDE[k]).join()]);
+if(!(itc[0]===85&&!itc[1]&&!itc[2]&&!itc[3]&&!itc[4]))fail('持ち物の一覧: '+JSON.stringify(itc));
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);

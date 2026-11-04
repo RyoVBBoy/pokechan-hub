@@ -112,15 +112,14 @@ function archSet(a,p,pt,used){
   /* トリックルームの型：みんな遅いほうがよい（素早さを下げる性格・素早さに振らない） */
   if(a[0]==='tr'){if(!kiten&&mv.some(id=>{const i=mvInfo(id);return i&&i.pow>0})){up=g.ai;sp=[0,0,0,0,0,0];sp[0]=32;sp[g.ai]=32;sp[g.lowDef]=2}
     else if(sp[5]){sp[0]=32;sp[5]=0;sp[g.lowDef]=Math.max(sp[g.lowDef],2);if(up===5)up=g.lowDef}dn=5;
-    if(item==='choicescarf')item=g.ai===1?'choiceband':'choicespecs';if(item==='focussash')item='sitrusberry'}
+    if(item==='choicescarf')item='lifeorb';if(item==='focussash')item='sitrusberry'}
   /* 天気・おいかぜで速くなるなら、こだわりスカーフはいらない */
   if(item==='choicescarf'&&(a[0]==='tailwind'||bAbIs(p,['swift-swim','chlorophyll','sand-rush','slush-rush'])))item='lifeorb';
-  /* 持ち物はパーティの中で重ならないように。変化技があるときは、とつげきチョッキは持たせない */
-  const hasSt=mv.some(id=>{const i=mvInfo(id);return i&&i.cls===2});
-  const okIt=k=>ITEMN[k]&&!used.has(k)&&!(k==='assaultvest'&&hasSt);
+  /* 持ち物はパーティの中で重ならないように（ゲームにある持ち物だけ：CH_ITEMS） */
+  const okIt=k=>ITEMN[k]&&(CH_ITEMS.has(k)||isStone(k))&&!used.has(k);
   if(!okIt(item)){const def=['leftovers','sitrusberry','focussash'].includes(item);
-    item=(def?['leftovers','sitrusberry','assaultvest','expertbelt','lifeorb']:['lifeorb','expertbelt',g.ai===1?'choiceband':'choicespecs','choicescarf','sitrusberry','focussash']).find(okIt)
-      ||[TYPE_ITEM[p.t[0]],TYPE_ITEM[p.t[1]],g.ai===1?'muscleband':'wiseglasses','focussash','choicescarf','choiceband','choicespecs','assaultvest','expertbelt'].find(k=>k&&okIt(k))||item}
+    item=(def?['leftovers','sitrusberry','rockyhelmet','lumberry','expertbelt','lifeorb']:['lifeorb','expertbelt',g.ai===1?'muscleband':'wiseglasses','choicescarf','sitrusberry','focussash']).find(okIt)
+      ||[TYPE_ITEM[p.t[0]],TYPE_ITEM[p.t[1]],g.ai===1?'muscleband':'wiseglasses','focussash','choicescarf','lumberry','rockyhelmet','expertbelt','leftovers'].find(k=>k&&okIt(k))||item}
   used.add(item);
   return{ab:s.ab,item,up,dn,sp,moves:mv,title:s.title};
 }

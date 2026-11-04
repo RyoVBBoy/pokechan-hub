@@ -13,7 +13,7 @@ order = json.load(open(os.path.join(ROOT, 'src/js/order.json'), encoding='utf-8'
 s = ''.join(open(os.path.join(ROOT, 'src/js', f), encoding='utf-8').read() for f in order)
 
 # 取り込む関数・定数（この順に並べる）
-NAMES = ('PICK LEADN FMTDIR stgM natM calcStats mvObj PROT ABSORB PINCH SKIN WSET WSPD ABIMPL ITEMN ITEMT STI nrm rnd wpick '
+NAMES = ('PICK LEADN FMTDIR stgM natM calcStats mvObj PROT ABSORB PINCH SKIN WSET WSPD ABIMPL ITEMN ITEMT RES_BERRY STI nrm rnd wpick '
          'chooseSet buildSet digest MDK mkey WT wtOf MCHG MRECH MSELFKO MFIRST MFAIL MCOND MCOUNT simF varPow fixedDmg hitType '
          'pR chM apM stgV MEGA MEGAP isStone megaOf megasOf itemFor MFL mfl bcalc accOf estHit combos analyze effSpd mkMon').split()
 DATA = ['MV', 'LSD', 'ABD', 'MVK', 'ABK', 'ABN']

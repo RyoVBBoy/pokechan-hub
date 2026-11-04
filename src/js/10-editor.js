@@ -3,7 +3,7 @@ const NATS=[['補正なし',-1,-1],['さみしがり',1,2],['いじっぱり',1,
  ['ひかえめ',3,1],['おっとり',3,2],['うっかりや',3,4],['れいせい',3,5],['おだやか',4,1],['おとなしい',4,2],['しんちょう',4,3],['なまいき',4,5],['おくびょう',5,1],['せっかち',5,2],['ようき',5,3],['むじゃき',5,4]];
 const natName=(u,d)=>u>0&&d>0?((NATS.find(x=>x[1]===u&&x[2]===d)||[''])[0]+`（${SN[u]}↑${SN[d]}↓）`):'';
 const spLine=sp=>sp.map((v,i)=>v?['H','A','B','C','D','S'][i]+v:'').filter(Boolean).join(' ')||'ポイントなし';
-const ITEM_ORDER=['choicescarf','choiceband','choicespecs','lifeorb','focussash','sitrusberry','assaultvest','leftovers'];
+const ITEM_ORDER=['choicescarf','focussash','lifeorb','sitrusberry','leftovers','lumberry','rockyhelmet','expertbelt'];
 /* 計算用の型（ab:キー, item:キー, moves:技オブジェクト）→ 保存形式 */
 function setToSaved(p,c){
   let sp=c.sp,up=c.up??-1,dn=c.dn??-1;

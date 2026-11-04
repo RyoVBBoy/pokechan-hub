@@ -23,7 +23,7 @@ const cases=await pg.evaluate(N=>{
     const sp=()=>{const s=[0,0,0,0,0,0];let left=66;for(let k=0;k<6&&left>0;k++){const v=Math.min(32,R(left+1));s[R(6)]=Math.min(32,s[R(6)]+v);left-=v}return s};
     const nat=()=>{const n=pick(NATS);return[n[1],n[2]]};const [au,ad]=nat(),[du,dd]=nat();const st=Math.random()<.4;
     const a=mkMon(pa,'me',{ab:pick(AAB),item:pick(AIT),moves:[mv],sp:sp(),up:au,dn:ad});
-    const d=mkMon(pd,'op',{ab:pick(DAB),item:pick([null,null,'assaultvest']),moves:[mv],sp:sp(),up:du,dn:dd});
+    const d=mkMon(pd,'op',{ab:pick(DAB),item:pick([null,null,'assaultvest','occaberry','shucaberry','yacheberry','chilanberry','roseliberry']),moves:[mv],sp:sp(),up:du,dn:dd});
     const sg=()=>st?R(13)-6:0;a.stg={atk:sg(),def:0,spa:sg(),spd:0,spe:0};d.stg={atk:0,def:sg(),spa:0,spd:sg(),spe:0};
     if(Math.random()<.1)a.status='brn';
     const o={crit:Math.random()<.2,spread:Math.random()<.15,screen:Math.random()<.15};
@@ -38,7 +38,7 @@ await b.close();
 const gen=Generations.get(9);
 const oc=Pokemon.prototype.clone;Pokemon.prototype.clone=function(){const c=oc.call(this);c.types=[...this.types];c.rawStats={...this.rawStats};c.stats={...this.stats};c.originalCurHP=this.originalCurHP;return c};
 const TY={ノーマル:'Normal',ほのお:'Fire',みず:'Water',でんき:'Electric',くさ:'Grass',こおり:'Ice',かくとう:'Fighting',どく:'Poison',じめん:'Ground',ひこう:'Flying',エスパー:'Psychic',むし:'Bug',いわ:'Rock',ゴースト:'Ghost',ドラゴン:'Dragon',あく:'Dark',はがね:'Steel',フェアリー:'Fairy'};
-const IT={choiceband:'Choice Band',choicespecs:'Choice Specs',lifeorb:'Life Orb',expertbelt:'Expert Belt',muscleband:'Muscle Band',wiseglasses:'Wise Glasses',charcoal:'Charcoal',mysticwater:'Mystic Water',fairyfeather:'Fairy Feather',silkscarf:'Silk Scarf',magnet:'Magnet',softsand:'Soft Sand',assaultvest:'Assault Vest'};
+const IT={choiceband:'Choice Band',choicespecs:'Choice Specs',lifeorb:'Life Orb',expertbelt:'Expert Belt',muscleband:'Muscle Band',wiseglasses:'Wise Glasses',charcoal:'Charcoal',mysticwater:'Mystic Water',fairyfeather:'Fairy Feather',silkscarf:'Silk Scarf',magnet:'Magnet',softsand:'Soft Sand',assaultvest:'Assault Vest',occaberry:'Occa Berry',shucaberry:'Shuca Berry',yacheberry:'Yache Berry',chilanberry:'Chilan Berry',roseliberry:'Roseli Berry'};
 const AB=a=>a?a.split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join(' '):'Synchronize';
 const W={sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'};
 const FL={c:'contact',p:'punch',b:'bite',l:'pulse',s:'slicing',o:'sound',w:'wind',x:'bullet',d:'dance'};
