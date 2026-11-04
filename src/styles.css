@@ -1244,3 +1244,15 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 .pr-pivot{background:rgba(255,173,31,.2);color:#d98e00}.pr-relay{background:rgba(120,86,255,.2);color:#8b6cff}
 .pr-wx{background:rgba(255,122,0,.18);color:#ff7a00}.pr-focus{background:rgba(249,24,128,.16);color:#f91880}.pr-bad{background:rgba(244,33,46,.16);color:#f4212e}
 .pr-live{background:rgba(255,212,0,.2);color:#c9a400}
+
+/* ===================== 負けやすい理由（49-lose.js） ===================== */
+.ls-i{margin:8px 16px 10px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--elev)}
+.ls-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ls-h b{font-size:15.5px;line-height:1.5}
+.ls-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#f4212e;color:#fff;font:800 12px Inter,sans-serif;flex:none}
+.ls-ph{font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;background:var(--elev2);color:var(--dim);flex:none}
+.ls-i>p{margin:8px 0 0;font-size:14px;line-height:1.7}
+.ls-a{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.ls-a .btn{flex:1 1 140px}
+.ls-chk{margin:4px 16px 12px;padding:10px 14px;border:1px dashed var(--line);border-radius:14px}
+.ls-chk summary{cursor:pointer;font-weight:700;font-size:14px}
+.ls-chk ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px;line-height:1.7}
+.ls-chk li{display:flex;gap:8px;align-items:flex-start}.ls-chk .ls-ph{margin-top:3px}

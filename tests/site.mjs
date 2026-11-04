@@ -123,6 +123,11 @@ const pr=await pg.evaluate(()=>{const sv={files:LIVE.files,c1:LIVE.csv[823],c2:L
   LIVE.files=sv.files;LIVE.csv[823]=sv.c1;LIVE.csv[908]=sv.c2;
   const one=prScore(byNo[445],[byNo[823]]).R.find(r=>r.k==='cover');return[...r,one?one.txt:'']});
 if(!(pr[0]>=1&&pr[0]<=8&&pr[1]>=1&&pr[1]<=8))fail('相性のいい仲間の順位: '+pr.join());
+// 負けやすい理由（49-lose.js）：先制技・スカーフ・タスキのないパーティは「止める手段がない」、
+// こだわりスカーフを持たせると消える。いわ4倍（リザードン）で設置技を消す手段がなければ指摘
+const lr=await pg.evaluate(()=>{const base=[445,6,130,94,59,887].map(no=>({no}));const a=loseReasons(base).map(r=>r.t);
+  const b=loseReasons(base.map((x,i)=>i?x:{...x,set:{it:{k:'choicescarf'},mv:[]}})).map(r=>r.t);return[a.some(t=>/止める手段/.test(t)),a.some(t=>/ステルスロック/.test(t)),!b.some(t=>/止める手段/.test(t))]});
+if(lr.join()!=='true,true,true')fail('負けやすい理由: '+lr.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
