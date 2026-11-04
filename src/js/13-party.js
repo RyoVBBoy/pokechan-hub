@@ -37,7 +37,7 @@ function teamView(arg){
   <div id="tsets"></div>
   <a class="row" href="#/import" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
   <div class="btns">
-    <button class="btn btn-p" id="shr">${SVG(I.share,17)}URLをコピー</button>
+    <button class="btn btn-p" id="shr-img">${SVG(I.share,17)}画像で共有</button><button class="btn btn-s" id="shr">URLをコピー</button>
     <button class="btn btn-s" id="clr" style="flex:none;padding:0 20px">クリア</button></div>
   <div class="btns" style="padding-top:0"><button class="btn btn-s" id="tren">${SVG(I.list,16)}このパーティの名前を変える</button></div>
   </div>
@@ -53,7 +53,7 @@ function teamView(arg){
     segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1))};
   V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>ttGo(b.dataset.tt));
   segSwipe(V.querySelector('#tt-pages'),{n:TTABS.length,idx:ttIdx,ind,go:(j,d)=>ttGo(TTABS[j][0],d)});
-  document.getElementById('shr').onclick=shareTeam;
+  document.getElementById('shr').onclick=shareTeam;document.getElementById('shr-img').onclick=shareTeamImage;
   document.getElementById('clr').onclick=async()=>{if(team.length&&!await askConfirm({title:'パーティをクリアしますか？',text:`「${teamName(TEAMS.cur)}」のポケモンと育成をすべて外します。この操作は取り消せません。`,ok:'クリア'}))return;team=[];saveTeam();teamRender()};
   document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
   document.getElementById('tslots').onclick=e=>{const b=e.target.closest('[data-tslot]');if(!b)return;switchTeam(+b.dataset.tslot);toast(`「${teamName(TEAMS.cur)}」に切り替えました`);teamRender()};
@@ -70,7 +70,8 @@ function tpRender(){
 }
 function shareTeam(){
   if(!team.length){toast('パーティが空です');return}
-  const u=location.href.split('#')[0]+'#/team/'+team.map(x=>x.no).join('-');
+  /* 共有のリンク（/t/番号-番号…）。開いた人のパーティは書きかえず、見るだけの画面（#/share）になる */
+  const u=shareLink(shareNos(team));
   (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject())
     .then(()=>toast('URLをコピーしました')).catch(()=>prompt('URLをコピーしてください',u));
 }

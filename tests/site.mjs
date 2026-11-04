@@ -109,6 +109,12 @@ if(gs.length)fail('ニックネームからの予測: '+gs.join(' / '));
 // 技の読みまちがい（濁点が別の文字に読まれる）：ポケモンが決まったら覚える技の中から選び直す（2026/11/03 依頼主の指摘）
 const tx=await pg.evaluate(()=>{const sl={pos:0,nameRaw:'フシギバナ',mvRaw:['とこぐとこぐぐく','つるぎのまい','のしかかり','すてみタックル']};imResolve(sl);return sl.mv[0].n});
 if(tx!=='どくどく')fail('技の読みまちがいの補正: とこぐとこぐぐく→'+tx);
+// 共有されたパーティ（#/share）は見るだけ：自分のパーティを書きかえない（2026/11/04）
+const shv=await pg.evaluate(async()=>{const before=JSON.stringify(team.map(x=>x.no));location.hash='#/share/445-149-248';await new Promise(r=>setTimeout(r,400));
+  return[before===JSON.stringify(team.map(x=>x.no)),document.querySelectorAll('#view .row').length,!!document.getElementById('sh-use'),shareLink([445,149])]});
+if(!(shv[0]&&shv[1]===3&&shv[2]&&/\/t\/445-149$/.test(shv[3])))fail('共有されたパーティの画面: '+shv.join());
+const cnt=await pg.evaluate(()=>{const c=monCounters(byNo[445]);return[c.ohko.length+c.strong.length,c.spd>0]});
+if(!(cnt[0]>0&&cnt[1]))fail('対策の計算（monCounters）: '+cnt.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
