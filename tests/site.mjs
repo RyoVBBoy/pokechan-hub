@@ -144,6 +144,9 @@ if(!(tier[0]>=40&&tier[1]&&tier[2]&&tier[3]))fail('強いポケモンランキ�
 const bfm=await pg.evaluate(()=>{const a=mkMon(byNo[681],'me',{ab:'stance-change',sp:[0,0,0,0,0,0],up:-1,dn:-1,moves:[]}),h=mkMon(byNo[964],'me',{ab:'zero-to-hero',sp:[0,0,0,0,0,0],up:-1,dn:-1,moves:[]});
   return[a.stAtk[1],a.st[2],h.st[1],byNo[678].n,byNo[711].n,byNo[745].n,byNo[931].n,!!battleFormHTML(byNo[351])]});
 if(bfm.join()!=='160,160,180,ニャオニクス（オス）,パンプジン（ちゅうだましゅ）,ルガルガン（まひるのすがた）,イキリンコ（グリーンフェザー）,true')fail('戦闘中の姿・名前: '+bfm.join());
+// 特性（2026/11/04 依頼主のリストと照らし合わせ）：ゲッコウガに「きずなへんげ」はない。メガの特性3つは日本語の名前
+const abc=await pg.evaluate(()=>[(ABD[658]||[]).some(a=>a[0]==='battle-bond'),ABN['eelevate'],ABN['fire-mane'],ABN['aura-guard']].join());
+if(abc!=='false,うなぎのぼり,ほのおのたてがみ,はどうのぼうご')fail('特性の照らし合わせ: '+abc);
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
