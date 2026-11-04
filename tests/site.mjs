@@ -137,6 +137,9 @@ await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(500);
 await pg.click('#view [data-report]');await pg.waitForTimeout(400);
 const ctv=await pg.evaluate(()=>[location.hash,document.querySelector('.ct .note')&&document.querySelector('.ct .note').textContent.includes('ガブリアスの図鑑'),!!document.getElementById('ct-send')]);
 if(!(ctv[0]==='#/contact/'+encodeURIComponent('#/p/445')&&ctv[1]&&ctv[2]))fail('間違いを報告: '+ctv.join());
+// 強いポケモンランキング（51-tier.js）：S〜Cに分かれ、どれにも理由が付く
+const tier=await pg.evaluate(()=>{const T=tierCompute();return[T.n,['S','A','B','C'].every(t=>T.rows.some(r=>r.tier===t)),T.rows.every(r=>tierWhy(r,T).length>=2),T.rows[0].score>=T.rows[T.n-1].score]});
+if(!(tier[0]>=40&&tier[1]&&tier[2]&&tier[3]))fail('強いポケモンランキング: '+tier.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);

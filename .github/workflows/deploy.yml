@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # 毎朝（日本時間 5:07）作り直す：強いポケモンランキングなど、ランクバトルの集計を使う検索向けのページを新しくする
+  schedule:
+    - cron: '7 20 * * *'
 
 concurrency:
   group: deploy

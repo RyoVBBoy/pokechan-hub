@@ -24,6 +24,7 @@ const GAMES=[
     quick:['assist','calc','types','meta'],
     tools:()=>[
       {id:'assist',sec:'対戦の準備',href:'#/assist',ic:I.target,t:'選出アシスト',s:'選出',d:`相手の6匹から、出すべき${PICK()}匹と先発・相手の予想選出を出す`},
+      {id:'tier',sec:'対戦の準備',href:'#/tier',ic:I.trophy,t:'強いポケモンランキング',s:'ランキング',d:`${FMTN()}の使用率と、上位のポケモンとの1対1の計算から、S〜Cに分けて理由つきで並べる（毎日更新）`},
       {id:'meta',sec:'対戦の準備',href:'#/meta',ic:I.trend,t:'流行のポケモンとパーティ',s:'流行',d:`${FMTN()}の使用率ランキングと、よく使われる組み合わせ`},
       {id:'season',sec:'対戦の準備',href:'#/season',ic:I.trophy,t:'シーズンの上位パーティ',s:'上位パーティ',d:'シーズンごとに、上位になった人のパーティと育成、よく使われたポケモン'},
       {id:'replay',sec:'対戦の準備',href:'#/replay',ic:I.replay,t:'対戦の振り返り（動画から）',s:'振り返り',d:'画面収録の動画から、相手・選出・勝ち負けを記録して、勝率と苦手な相手を出す'},

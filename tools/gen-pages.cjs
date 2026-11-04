@@ -132,6 +132,11 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
   out.typeIndex=`<div class="tkb tkb--6" style="padding-top:12px">${T.map(t=>`<a class="tk" href="__ROOT__type/${TSLUG[t]}/" style="background:${COL[t]};color:${ONC[t]}">${ticon(t,22)}<small>${t}</small></a>`).join('')}</div>`;
   return out;
  },TSLUG);
+ /* 強いポケモンランキング（51-tier.js）：ランクバトルの集計を読めればそれを使う（読めなければ計算だけ） */
+ await pg.unroute(/championsbattledata|googleapis|gstatic/);await pg.route(/googleapis|gstatic/,r=>r.abort());
+ const TIER=await pg.evaluate(async()=>{try{await Promise.race([metaLoad(),new Promise(r=>setTimeout(r,90000))])}catch(e){}
+   const T=tierCompute(),R='__ROOT__';
+   return{live:T.live,n:T.n,html:tierHTML(T,q=>byNo[q.no]&&!q.base&&P.includes(q)?R+'counter/'+q.no+'/':R+'#/p/'+q.no),top:T.rows.filter(r=>r.tier==='S').map(r=>formInfo(r.p).base)}}).catch(e=>({err:String(e)}));
  await b.close();
  const esc=s=>s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
  const NAV=[['','ホーム','<path d="M3 10.9 12 3.7l9 7.2V20a1 1 0 0 1-1 1h-5.1v-6.1H9.1V21H4a1 1 0 0 1-1-1z"/>'],['#/dex','図鑑','<path d="M4 5.3c3.6-.8 6.3-.3 8 1.4 1.7-1.7 4.4-2.2 8-1.4v13.1c-3.6-.8-6.3-.3-8 1.4-1.7-1.7-4.4-2.2-8-1.4z"/><path d="M12 6.7v13.1"/>'],['#/types','相性','<path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/>'],['#/team','編成','<path d="M4.2 4.4h6.2v6.2H4.2zM13.6 4.4h6.2v6.2h-6.2zM4.2 13.4h6.2v6.2H4.2zM13.6 13.4h6.2v6.2h-6.2z"/>'],['#/guide','ルール','<path d="M5 7h14M5 12h14M5 17h9"/>']];
@@ -156,6 +161,9 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  D.mons.forEach(m=>{const rel=`pokemon/${m.no}/`;urls.push(rel);write(rel,page({rel,title:`${m.n}の種族値・弱点・対策・覚える技｜ポケモンチャンピオンズ｜${SITE}`,desc:m.desc,body:m.html,crumbs:[['ホーム',''],['ポケモン一覧','pokemon/'],[m.n,rel]]}))});
  D.counters.forEach(m=>{const rel=`counter/${m.no}/`;urls.push(rel);write(rel,page({rel,title:`${m.n}の対策・倒し方（勝てるポケモン）｜ポケモンチャンピオンズ｜${SITE}`,desc:m.desc,body:m.html,crumbs:[['ホーム',''],['ポケモン一覧','pokemon/'],[m.n,`pokemon/${m.no}/`],['対策',rel]]}))});
  fs.writeFileSync(OUT+'/assets/mon-names.json',JSON.stringify(D.names));
+ if(TIER&&TIER.html){const rel='ranking/';urls.push(rel);write(rel,page({rel,title:`強いポケモンランキング（最新）｜ポケモンチャンピオンズ｜${SITE}`,desc:`ポケモンチャンピオンズの強いポケモンをS〜Cに分けたランキング。${TIER.top.length?'いまの環境の中心は'+TIER.top.slice(0,5).join('・')+'。':''}使用率と、上位のポケモンとの1対1のダメージ計算から、理由つきで毎日更新。`,
+   body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › 強いポケモンランキング</nav><div class="sh1"><h1>強いポケモンランキング</h1></div>`+TIER.html+`<div class="cta"><a class="btn btn-p" href="__ROOT__#/tier">サイトで最新の結果を見る</a></div>`,crumbs:[['ホーム',''],['強いポケモンランキング',rel]]}))}
+ else console.log('ranking: skip',TIER&&TIER.err);
  D.types.forEach(t=>{const rel=`type/${t.slug}/`;urls.push(rel);write(rel,page({rel,title:`${t.t}タイプの弱点・耐性・相性｜ポケモンチャンピオンズ｜${SITE}`,desc:t.desc,body:t.html,crumbs:[['ホーム',''],['タイプ一覧','type/'],[t.t,rel]]}))});
  D.builds.forEach(x=>{const rel=`build/${x.id}/`;urls.push(rel);write(rel,page({rel,title:`${x.n}の組み方と例｜ポケモンチャンピオンズ｜${SITE}`,desc:x.desc,body:x.html,crumbs:[['ホーム',''],['構築の型','build/'],[x.n,rel]]}))});
  write('build/',page({rel:'build/',title:`構築の型（${D.builds.length}種類）｜ポケモンチャンピオンズ｜${SITE}`,desc:'ポケモンチャンピオンズのパーティの組み方の代表的な型（天気・トリックルーム・おいかぜ・対面・サイクル・積み）。',body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › 構築の型</nav><div class="sh1"><h1>構築の型</h1></div><p class="lead">パーティの組み方の代表的な型です。型を選ぶと、組み方・弱点と対策・データから組んだパーティの例が見られます。</p>`+D.buildIndex,crumbs:[['ホーム',''],['構築の型','build/']]}));urls.push('build/');
@@ -163,7 +171,7 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  write('type/',page({rel:'type/',title:`タイプ相性一覧（18タイプ）｜ポケモンチャンピオンズ｜${SITE}`,desc:'ポケモンチャンピオンズの18タイプそれぞれの弱点・耐性・ばつぐんになる相手の一覧。',body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › タイプ一覧</nav><div class="sh1"><h1>タイプ相性一覧</h1></div><p class="lead">タイプを選ぶと、そのタイプの弱点・耐性と、そのタイプのポケモンが見られます。</p>`+D.typeIndex+`<div class="cta"><a class="btn btn-p" href="__ROOT__#/types">相性の早見表を開く</a></div>`,crumbs:[['ホーム',''],['タイプ一覧','type/']]}));urls.push('type/');
  // app index with SEO head + links to static pages
  let idx=app.replace('<meta name="theme-color" content="#000000">',`<meta name="theme-color" content="#000000">\n<link rel="canonical" href="${SITE_URL}/">\n<meta property="og:url" content="${SITE_URL}/">\n<meta property="og:image" content="${SITE_URL}/og-site.png">\n<meta name="twitter:card" content="summary_large_image">\n<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"WebSite","name":SITE,"url":SITE_URL+'/',"inLanguage":"ja"})}</script>`);
- idx=idx.replace('<main id="view"></main>',`<main id="view"></main>\n  <nav class="seo-links" aria-label="ページ一覧" style="padding:8px 16px 0;font-size:12.5px;color:var(--dim)"><a href="pokemon/" style="color:var(--acc)">ポケモン一覧（${D.mons.length}匹）</a>　<a href="type/" style="color:var(--acc)">タイプ相性一覧</a>　<a href="build/" style="color:var(--acc)">構築の型</a></nav>`);
+ idx=idx.replace('<main id="view"></main>',`<main id="view"></main>\n  <nav class="seo-links" aria-label="ページ一覧" style="padding:8px 16px 0;font-size:12.5px;color:var(--dim)"><a href="pokemon/" style="color:var(--acc)">ポケモン一覧（${D.mons.length}匹）</a>　<a href="ranking/" style="color:var(--acc)">強いポケモンランキング</a>　<a href="type/" style="color:var(--acc)">タイプ相性一覧</a>　<a href="build/" style="color:var(--acc)">構築の型</a></nav>`);
  fs.writeFileSync(OUT+'/index.html',idx);
  fs.writeFileSync(OUT+'/404.html',page({rel:'404/',title:`ページが見つかりません｜${SITE}`,desc:'',body:`<div class="sh1"><h1>ページが見つかりません</h1></div><div class="cta"><a class="btn btn-p" href="${SITE_URL}/">ホームへ</a></div>`,crumbs:[['ホーム','']]}).replace(/href="\.\.\/assets/,`href="${SITE_URL}/assets`));
  fs.writeFileSync(OUT+'/.nojekyll','');
@@ -171,5 +179,5 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  fs.writeFileSync(OUT+'/robots.txt',`User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
  const today=new Date().toISOString().slice(0,10);
  fs.writeFileSync(OUT+'/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u=>`<url><loc>${SITE_URL}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`);
- console.log('pages',urls.length,'mons',D.mons.length,'counters',D.counters.length,'types',D.types.length,'builds',D.builds.length);
+ console.log('ranking',TIER&&TIER.live?'live':'offline','pages',urls.length,'mons',D.mons.length,'counters',D.counters.length,'types',D.types.length,'builds',D.builds.length);
 })();
