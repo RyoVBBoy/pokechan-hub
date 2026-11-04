@@ -1292,10 +1292,9 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 :root[data-theme=light]{--bg:#EEF0F5;--elev:#ffffff;--elev2:#F3F4F8;--line:#E2E5EE;--line2:#CDD1DD;--fg:#1E2030;--dim:#646a80;--mute:#9095A8;
   --glass:rgba(255,255,255,.62);--glass-p:rgba(255,255,255,.82);--glass-b:rgba(255,255,255,.85);
   --card:rgba(255,255,255,.68);--card-b:rgba(255,255,255,.95);--card-s:0 4px 20px rgba(30,32,60,.05);--soft:rgba(30,32,60,.045);--tb-on:var(--acc-t)}
+/* 光は右上だけ（2026/11/05 依頼主：左や下の光は投稿の文字を読みにくくする） */
 body::before{inset:0;background:
-  radial-gradient(48vmax 36vmax at 100% 4%,rgba(var(--glow-rgb),calc(.42*var(--glow-k))),transparent 70%),
-  radial-gradient(40vmax 32vmax at 0% 58%,rgba(var(--glow-rgb),calc(.26*var(--glow-k))),transparent 70%),
-  radial-gradient(40vmax 28vmax at 88% 100%,rgba(var(--glow-rgb),calc(.2*var(--glow-k))),transparent 70%)}
+  radial-gradient(52vmax 38vmax at 100% 0%,rgba(var(--glow-rgb),calc(.44*var(--glow-k))),transparent 70%)}
 [data-theme=light] body::before{opacity:.8}
 [data-glow=off] body::before{display:none}
 @media(min-width:482px){.app{border-color:transparent!important}}
