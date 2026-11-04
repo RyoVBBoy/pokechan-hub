@@ -1330,3 +1330,23 @@ body::before{inset:0;background:
 .fab:hover{filter:brightness(1.08)}
 /* 見出しの「すべて見る」などのリンク・ハッシュタグ */
 .htag,.sec a{color:var(--acc)}
+
+/* ===================== 残りの画面もカードの形に（2026/11/05 依頼主の要望） =====================
+   一覧の行（.row など）は、続けて並んだものを1枚のカードにまとめる（上の行の上だけ・下の行の下だけ角を丸める。間は細い線）。
+   画面の中（#view）だけ。下から出る画面やポケモンを選ぶ画面の行は変えない */
+:root{--line-in:rgba(255,255,255,.07)}
+:root[data-theme=light]{--line-in:rgba(30,32,60,.07)}
+#view .row,#view .mx,#view .mvr,#view .bpost,#view .advs,#view .tstep,#view .trow,#view .pr-c,#view .score,#view .spbar,#view .gus,#view .stat{margin-left:10px;margin-right:10px;background:var(--card);border:1px solid var(--card-b);border-top:0;border-bottom:1px solid var(--line-in)}
+#view .row:not(.row + .row),#view .mx:not(.mx + .mx),#view .mvr:not(.mvr + .mvr),#view .bpost:not(.bpost + .bpost),#view .advs:not(.advs + .advs),#view .tstep:not(.tstep + .tstep),#view .trow:not(.trow + .trow),#view .pr-c:not(.pr-c + .pr-c),#view .score:not(.score + .score),#view .spbar:not(.spbar + .spbar),#view .gus:not(.gus + .gus),#view .stat:not(.stat + .stat){border-top:1px solid var(--card-b);border-top-left-radius:18px;border-top-right-radius:18px;margin-top:8px}
+#view .row:not(:has(+ .row)),#view .mx:not(:has(+ .mx)),#view .mvr:not(:has(+ .mvr)),#view .bpost:not(:has(+ .bpost)),#view .advs:not(:has(+ .advs)),#view .tstep:not(:has(+ .tstep)),#view .trow:not(:has(+ .trow)),#view .pr-c:not(:has(+ .pr-c)),#view .score:not(:has(+ .score)),#view .spbar:not(:has(+ .spbar)),#view .gus:not(:has(+ .gus)),#view .stat:not(:has(+ .stat)){border-bottom:1px solid var(--card-b);border-bottom-left-radius:18px;border-bottom-right-radius:18px;margin-bottom:8px;box-shadow:var(--card-s)}
+#view .row:active{background:linear-gradient(var(--prs),var(--prs)),var(--card)}
+@media(hover:hover){#view .row:hover{background:linear-gradient(var(--hov),var(--hov)),var(--card)}}
+#view .stat{padding-top:7px;padding-bottom:7px}
+/* 1つで完結しているかたまりもカードに */
+#view .lcard,#view .art,#view .radarbox,#view .prof,#view .tips{margin:8px 10px;border:1px solid var(--card-b)!important;border-radius:18px;background:var(--card);box-shadow:var(--card-s)}
+#view .radarbox{padding:10px 16px 6px}
+#view .prof>div+div{border-left-color:var(--line-in)}
+#view .phead{margin:8px 10px 0;border:1px solid var(--card-b);border-radius:22px;background:var(--card)}
+/* 攻略ガイド・解説などの文章のかたまり */
+#view .gdoc{margin:8px 10px;padding:14px 16px 10px;border:1px solid var(--card-b);border-radius:20px;background:var(--card);box-shadow:var(--card-s)}
+#view .gdoc .row,#view .gdoc .mx,#view .gdoc .mvr{margin-left:-6px;margin-right:-6px}
