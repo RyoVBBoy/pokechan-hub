@@ -77,7 +77,8 @@ function detail(no){
 
   /* タブ */
   const seg=document.getElementById('seg'),ind=seg.querySelector('.seg-i');
-  let dpI=0;
+  /* 姿の切りかえ（52-statmorph.js の famSwap）では、開いていたタブのまま動かさずに出す */
+  let dpI=DP_KEEP_TAB||0;
   const dpGo=(i,dir)=>seg.querySelector(`[data-i="${i}"]`).onclick(null,dir);
   seg.querySelectorAll('button').forEach(b=>b.onclick=(e,dir)=>{
     const i=+b.dataset.i,from=dpI;dpI=i;
@@ -93,7 +94,8 @@ function detail(no){
         /* ランクバトルの集計をまだ読んでいなければ読み、届いたら解説を作り直す（メガシンカの姿は元の姿の解説の中で扱う） */
         if(!p.base&&LIVE.csv[p.no]===undefined)liveInit().then(ok=>ok&&liveMon(p.no)).then(d=>{if(d&&g.isConnected)fill()}).catch(()=>{})}}
   });
-  if(MVS.tab4===p.no){seg.querySelector('[data-i="5"]').click()}
+  if(dpI){ind.style.transition='none';ind.style.transform=`translateX(${dpI*100}%)`;seg.querySelector(`[data-i="${dpI}"]`).onclick();DP_KEEP_TAB=0}
+  else if(MVS.tab4===p.no){seg.querySelector('[data-i="5"]').click()}
   segSwipe(document.getElementById('dp-pages'),{n:6,idx:()=>dpI,ind,go:dpGo});
   /* 計算 */
   SN.forEach((_,i)=>document.getElementById('sp'+i).oninput=e=>setSP(i,+e.target.value));

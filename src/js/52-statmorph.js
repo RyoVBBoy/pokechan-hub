@@ -3,12 +3,14 @@
    ・ギルガルドは「バトルスイッチ」のトグルスイッチで、シールドフォルム⇔ブレードフォルムを切りかえる
      （スイッチの地の色：シールドは青、ブレードは赤。つまみは白）
    ・動きは約0.6秒。グラフは少しだけ行き過ぎて戻る（はずむ）動き、数字と棒はなめらかに止まる動き。動きを減らす設定の端末では、すぐ切りかえる */
-let DP_LAST=null;
+let DP_LAST=null,DP_KEEP_TAB=0;
 const radarPts=(s,R=80)=>AXO.map((si,k)=>polar(k,R*Math.min(1,Math.max(.07,s[si]/150))).map(n=>n.toFixed(1)).join(',')).join(' ');
 const easeOutBack=t=>{const c=1.25,d=t-1;return 1+(c+1)*d*d*d+c*d*d};
 const easeOutQuart=t=>1-Math.pow(1-t,4);
 /* その場の見た目を、種族値 s で描く（グラフ・グラフの数字・棒・順位） */
 function statPaint(root,s,ss,rank,mi){
+  /* 上の「合計種族値」「最速 素早さ」も数える */
+  const pb=document.querySelectorAll('#view .prof b');if(pb[0])pb[0].textContent=Math.round(s.reduce((a,c)=>a+c,0));if(pb[1])pb[1].textContent=maxSpe({s:s.map(Math.round)});
   const poly=root.querySelector('.radarbox svg polygon[fill^="url"]');if(poly)poly.setAttribute('points',radarPts(ss||s));
   /* ページの上の小さな図形も同じ形に */
   const art=document.querySelector('#artslot svg polygon[fill^="url"]');if(art)art.setAttribute('points',radarPts(ss||s,39));
@@ -45,3 +47,13 @@ function statFx(p){
     statMorph(root,from,to);DP_LAST={fam,no:p.no,s:to.slice()};
     if(navigator.vibrate)try{navigator.vibrate(10)}catch(e){}};
 }
+
+/* 図鑑の「元の姿・メガ」の切りかえ：ページを移さず、その場で入れかえる（2026/11/04 依頼主の指摘：画面がぶれる）。
+   画面のすべり込み・いちばん上へのスクロール・戻る履歴の追加をしない。開いているタブとスクロールの位置はそのまま。
+   グラフ・数字・名前の横の図形は statFx が前の姿から動かし、名前とタイプは軽くふわっと入れかえる */
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('.fam-pills a[href^="#/p/"]');if(!a||e.metaKey||e.ctrlKey)return;
+  e.preventDefault();e.stopPropagation();const h=a.getAttribute('href');if(h===cur)return;
+  const y=scrY(),sel=document.querySelector('#seg [aria-selected="true"]');DP_KEEP_TAB=sel?+sel.dataset.i:0;
+  cur=h;setUrl(h,false);route();scrTo(0,y);
+  if(!reduceMotion)V.querySelectorAll('.phead h2,.phead .chips,.phead .wash,.fam-pills').forEach(el=>el.animate([{opacity:.25,transform:'translateY(3px)'},{opacity:1,transform:'none'}],{duration:320,easing:'cubic-bezier(.2,.8,.2,1)'}));
+},true);

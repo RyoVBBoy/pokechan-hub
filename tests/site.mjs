@@ -152,6 +152,12 @@ await pg.evaluate(()=>{location.hash='#/p/681'});await pg.waitForTimeout(500);
 await pg.evaluate(()=>document.getElementById('bsw').click());await pg.waitForTimeout(900);
 const bsw=await pg.evaluate(()=>[document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="0"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
 if(bsw.join()!=='true,60-140-50-140-50-60')fail('バトルスイッチ: '+bsw.join());
+// 図鑑の「元の姿・メガ」の切りかえはその場で（ページを移さない・スクロールとタブはそのまま・戻る履歴を増やさない）
+await pg.evaluate(()=>{location.hash='#/p/6'});await pg.waitForTimeout(500);
+const fam=await pg.evaluate(async()=>{document.querySelector('#seg [data-i="3"]').click();await new Promise(r=>setTimeout(r,300));SCROLLER.scrollTop=200;const h0=history.length,y0=scrY();
+  document.querySelectorAll('.fam-pills a')[1].click();await new Promise(r=>setTimeout(r,800));
+  return[history.length===h0,Math.abs(scrY()-y0)<5,document.querySelector('#seg [aria-selected="true"]').dataset.i,!!byNo[+location.hash.split('/')[2]].base]});
+if(fam.join()!=='true,true,3,true')fail('姿の切りかえ: '+fam.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
