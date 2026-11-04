@@ -24,6 +24,10 @@ function drawerHTML(){
     <details class="dr-d"><summary>${SVG(I.gear,22)}<span>設定とプライバシー</span></summary>
       <div class="dr-set"><div class="dr-lab">${SVG(I.moon,18)}明るさ</div>
         <div class="pills" style="padding:4px 0 10px">${[['auto','端末に合わせる'],['light','ライト'],['dark','ダーク']].map(([k,n])=>`<button class="pill" data-theme-set="${k}" aria-pressed="${THEME_PREF===k}">${n}</button>`).join('')}</div>
+        <div class="dr-lab">${SVG(I.star,18)}テーマの色</div>
+        <div class="dr-sw" role="group" aria-label="テーマの色">${Object.entries(ACCENTS).map(([k,a])=>`<button class="dr-swc" data-acc-set="${k}" aria-pressed="${ACCENT===k}" aria-label="${L(a[0],a[1])}" title="${L(a[0],a[1])}" style="background:${THEME==='light'?a[3]:a[5]}"></button>`).join('')}</div>
+        <div class="dr-lab">${SVG(I.moon,18)}背景の光</div>
+        <div class="pills" style="padding:4px 0 10px">${[['strong','強め'],['normal','ふつう'],['off','なし']].map(([k,n])=>`<button class="pill" data-glow-set="${k}" aria-pressed="${GLOW===k}">${n}</button>`).join('')}</div>
         <div class="dr-lab">${SVG(I.globe,18)}言語 / Language</div>
         <div class="pills" style="padding:4px 0 10px">${LANGS.map(([k,n])=>`<button class="pill" data-lang-set="${k}" aria-pressed="${LANG===k}">${n}</button>`).join('')}</div>
         <div id="dr-push"></div>
@@ -38,6 +42,8 @@ function drawerEnsure(){
   o.addEventListener('click',e=>{
     if(e.target.closest('.dr-bg')){drawerClose();return}
     const ts=e.target.closest('[data-theme-set]');if(ts){setTheme(ts.dataset.themeSet);return}
+    const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)setAccent('pcaccent',as.dataset.accSet);return}
+    const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)setAccent('pcglow',gs.dataset.glowSet);return}
     const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)setLang(ls.dataset.langSet);return}
     if(e.target.closest('[data-dr=game]')){drawerClose();setTimeout(gameSheet,200);return}
     if(e.target.closest('a[href^="#/"]'))drawerClose();

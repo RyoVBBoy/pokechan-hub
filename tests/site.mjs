@@ -198,7 +198,7 @@ await pg.emulateMedia({colorScheme:'light'});await pg.waitForTimeout(200);
 const lt=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
 await pg.emulateMedia({colorScheme:'dark'});await pg.waitForTimeout(200);
 const dk=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
-if(lt[0]!=='light'||lt[1]!=='rgb(255, 255, 255)'||dk[0]!=='dark'||dk[1]!=='rgb(0, 0, 0)')fail('ライト／ダークの切りかえ: '+lt.join()+' / '+dk.join());
+if(lt[0]!=='light'||lt[1]!=='rgb(238, 240, 245)'||dk[0]!=='dark'||dk[1]!=='rgb(0, 0, 0)')fail('ライト／ダークの切りかえ: '+lt.join()+' / '+dk.join());
 // PC（広い画面）：左のメニュー・右の列が出て、横にはみ出さず、「相性を調べる」が開く
 for(const [w,side] of [[1440,true],[1024,false]]){
   await pg.setViewportSize({width:w,height:900});await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(300);

@@ -18,7 +18,10 @@ async function twAuth(){
 }
 /* アイコンの中身：写真（u.av＝画像の鍵）があれば写真、なければ名前の1文字（2026/11/03） */
 const avIn=u=>u&&u.av&&/^[0-9a-f]{32}$/.test(u.av)?`<img src="${COMM_API}/m/${u.av}" alt="" loading="lazy" decoding="async">`:esc(((u&&u.name)||'?').slice(0,1));
-const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${avIn(u)}</a>`;
+/* 写真のない人のアイコンの色（2026/11/05 新しい見た目）：名前ごとに決まった落ち着いた色。人は丸、ポケモンは六角形 */
+const AV_COLS=['#E39B5A','#6FA8D6','#9C8FE6','#4FB892','#E07F97','#C49A4E','#7F93B5','#D27FD0'];
+const avCol=h=>{let n=0;for(const c of String(h||''))n=(n*31+c.charCodeAt(0))>>>0;return AV_COLS[n%AV_COLS.length]};
+const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" style="background:${avCol(u&&u.handle)}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${avIn(u)}</a>`;
 /* プロフィールの写真：真ん中を正方形に切り取って 400px に縮める */
 async function avShrink(file){
   const url=URL.createObjectURL(file);

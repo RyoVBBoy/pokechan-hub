@@ -16,6 +16,23 @@ const THEME_PREF=(()=>{try{const v=localStorage.getItem('pctheme');return['auto'
 const themeMQ=window.matchMedia?matchMedia('(prefers-color-scheme: light)'):null;
 const themeNow=()=>THEME_PREF==='light'||(THEME_PREF==='auto'&&themeMQ&&themeMQ.matches)?'light':'dark';
 let THEME=themeNow();
-function themeApply(){document.documentElement.dataset.theme=THEME;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=THEME==='light'?'#ffffff':'#000000'}
+/* テーマの色（2026/11/05 依頼主と決めた新しい見た目）：ボタン・選んでいるタブ・#タグ・背景の光の色。pcaccent に保存。はじめは紫。
+   1色ごとに [名前, 英語, ライトの文字の色, ライトの塗りの色, ダークの文字の色, ダークの塗りの色, 塗りの上の文字の色(ダーク)]。
+   背景の光の強さは pcglow＝'strong'・'normal'（はじめ）・'off' */
+const ACCENTS={purple:['紫','Purple','#5B57D9','#5B57D9','#A99CFF','#7C6CF0','#fff'],blue:['青','Blue','#2563D9','#2F6FE0','#6AAEFF','#3B82F6','#fff'],
+  green:['緑','Green','#12805F','#138A66','#4AD3A0','#17A07A','#fff'],pink:['ピンク','Pink','#C93360','#D63B63','#FF7A99','#E5476F','#fff'],
+  orange:['オレンジ','Orange','#B85E08','#C76A0A','#FFAD5C','#E07B12','#fff'],mono:['灰色','Gray','#1E2030','#1E2030','#D5D7DE','#E8E9EE','#000']};
+const ACCENT=(()=>{try{const v=localStorage.getItem('pcaccent');return ACCENTS[v]?v:'purple'}catch(e){return'purple'}})();
+const GLOW=(()=>{try{const v=localStorage.getItem('pcglow');return['strong','normal','off'].includes(v)?v:'normal'}catch(e){return'normal'}})();
+const hexRgb=h=>{const n=parseInt(h.slice(1),16);return `${n>>16},${n>>8&255},${n&255}`};
+function accentApply(){const a=ACCENTS[ACCENT],L=THEME==='light',s=document.documentElement.style;
+  const tx=L?a[2]:a[4],fill=L?a[3]:a[5],glow=a[5];
+  s.setProperty('--acc',tx);s.setProperty('--acc2',tx);s.setProperty('--accf',fill);s.setProperty('--onacc',L?'#fff':a[6]);
+  s.setProperty('--acc-rgb',hexRgb(tx));s.setProperty('--glow-rgb',hexRgb(glow));
+  s.setProperty('--acc-t',`rgba(${hexRgb(tx)},${L?.12:.18})`);
+  const g={strong:L?1.3:1.45,normal:1,off:0}[GLOW];s.setProperty('--glow-k',g);
+  document.documentElement.dataset.glow=GLOW}
+function themeApply(){document.documentElement.dataset.theme=THEME;accentApply();const m=document.querySelector('meta[name=theme-color]');if(m)m.content=THEME==='light'?'#EEF0F5':'#000000'}
 themeApply();
 function setTheme(v){try{localStorage.setItem('pctheme',v)}catch(e){}location.reload()}
+function setAccent(k,v){try{localStorage.setItem(k,v)}catch(e){}location.reload()}
