@@ -1267,3 +1267,17 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 .tr-S{background:linear-gradient(135deg,#ff5d62,#ff9f45)}.tr-A{background:linear-gradient(135deg,#ff9f45,#e8b33f)}.tr-B{background:linear-gradient(135deg,#1d9bf0,#5aa9e6)}.tr-C{background:var(--elev2);color:var(--fg)}
 .tr-r{align-items:flex-start}.tr-r .av{margin-top:2px}
 .tr-why{margin:6px 0 0;padding:0 0 0 16px;font-size:12.5px;line-height:1.6;color:var(--dim)}
+
+/* ===================== ギルガルドのバトルスイッチ（52-statmorph.js） ===================== */
+.bsw{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 16px 4px;user-select:none}
+.bsw-l{font-size:13px;font-weight:700;color:var(--mute);transition:color .3s}
+.bsw:not(.on) .bsw-l[data-side="0"]{color:#1d9bf0}.bsw.on .bsw-l[data-side="1"]{color:#f4212e}
+.bsw-t{position:relative;width:64px;height:34px;border:0;border-radius:17px;padding:0;cursor:pointer;flex:none;
+  background:#1d9bf0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15),0 4px 14px rgba(29,155,240,.35);transition:background .35s,box-shadow .35s;-webkit-tap-highlight-color:transparent}
+.bsw.on .bsw-t{background:#f4212e;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15),0 4px 14px rgba(244,33,46,.4)}
+.bsw-t i{position:absolute;top:3px;left:3px;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .42s cubic-bezier(.34,1.56,.64,1)}
+.bsw.on .bsw-t i{transform:translateX(30px)}
+.bsw-t:active i{width:32px}.bsw.on .bsw-t:active i{transform:translateX(26px)}
+.bsw-t:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
+.bsw-n{text-align:center;padding-top:2px;font-size:12px}
+.radarbox svg polygon{transition:none}

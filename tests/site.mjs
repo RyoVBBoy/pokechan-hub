@@ -147,6 +147,11 @@ if(bfm.join()!=='160,160,180,ニャオニクス（オス）,パンプジン（�
 // 特性（2026/11/04 依頼主のリストと照らし合わせ）：ゲッコウガに「きずなへんげ」はない。メガの特性3つは日本語の名前
 const abc=await pg.evaluate(()=>[(ABD[658]||[]).some(a=>a[0]==='battle-bond'),ABN['eelevate'],ABN['fire-mane'],ABN['aura-guard']].join());
 if(abc!=='false,うなぎのぼり,ほのおのたてがみ,はどうのぼうご')fail('特性の照らし合わせ: '+abc);
+// ギルガルドのバトルスイッチ（52-statmorph.js）：スイッチでブレードフォルムの種族値に変わる
+await pg.evaluate(()=>{location.hash='#/p/681'});await pg.waitForTimeout(500);
+await pg.evaluate(()=>document.getElementById('bsw').click());await pg.waitForTimeout(900);
+const bsw=await pg.evaluate(()=>[document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="0"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
+if(bsw.join()!=='true,60-140-50-140-50-60')fail('バトルスイッチ: '+bsw.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);

@@ -38,7 +38,7 @@ function detail(no){
     <div class="who"><div class="rtags">${p.roles.map(r=>`<span class="rtag">${r}</span>`).join('')}</div>
       <p>${describe(p)}</p></div>
     <p class="note" style="padding-top:4px;color:var(--mute)">種族値から機械的に判定した目安です。実際の役割は技・特性・持ち物で変わります。</p>
-    <div class="radarbox">${stamp(p,true)}</div>
+    ${aegisSwitchHTML(p)}<div class="radarbox">${stamp(p,true)}</div>
     <p class="note" style="text-align:center">六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。</p>
     <div style="height:6px"></div>
     ${p.s.map((v,i)=>`<div class="stat"><em>${SN[i]}</em><b>${v}</b><div class="bar${i===p.mi?' top':''}"><i style="width:${Math.min(100,Math.round(v/200*100))}%"></i></div><small>${p.rank[i]}位</small></div>`).join('')}
@@ -72,6 +72,8 @@ function detail(no){
   ${battleFormHTML(p)}
   <div class="btns" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/pair/${byNo[p.base]?p.base:p.no}">${SVG(I.plus,16)}このポケモンから組む（相性のいい仲間を探す）</a><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a><a class="btn btn-s" style="flex-basis:100%" href="#/contact" data-report>このページの間違いを報告</a></div>
   ${adSlot('記事下')}`;
+  /* 姿の切りかえでグラフを滑らかに動かす・ギルガルドのバトルスイッチ（52-statmorph.js） */
+  statFx(p);
 
   /* タブ */
   const seg=document.getElementById('seg'),ind=seg.querySelector('.seg-i');
