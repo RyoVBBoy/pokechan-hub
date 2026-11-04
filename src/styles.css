@@ -1226,3 +1226,21 @@ a,button,.tb,[role=button],input,textarea,select,label{touch-action:manipulation
 
 /* ===================== パーティを画像で共有（47-share.js） ===================== */
 .shr-img{display:block;width:100%;height:auto;border-radius:12px;margin:6px 0 10px;border:1px solid var(--line)}
+
+/* ===================== 相性のいい仲間を探す（48-pair.js） ===================== */
+.pr-team{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:14px 12px 4px}
+.pr-m{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);border-radius:14px;background:var(--elev);color:var(--fg);padding:8px 2px 6px;min-width:0;cursor:pointer}
+.pr-m .av{width:40px;height:40px}.pr-m small{font-size:10.5px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr-m i{position:absolute;top:2px;right:5px;font-style:normal;font-size:12px;color:var(--dim)}
+.pr-m--e{border-style:dashed;background:none;min-height:70px;cursor:default}
+.pr-hole{margin:10px 16px 0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--elev)}
+.pr-hole b{display:block;font-size:14px;margin-bottom:6px}.pr-hole small{display:block;color:var(--dim);font-size:12px;margin-top:6px;line-height:1.6}
+.pr-c{border-bottom:1px solid var(--line)}.pr-c .row{border-bottom:0}
+.pr-rank{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font:800 12px Inter,sans-serif;margin-right:6px;vertical-align:1px}
+.pr-why{list-style:none;margin:0;padding:0 16px 10px 16px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;line-height:1.6}
+.pr-why li{display:flex;gap:8px;align-items:flex-start}
+.pr-tag{flex:none;font-size:11px;font-weight:800;padding:1px 7px;border-radius:999px;background:var(--elev2);color:var(--fg);margin-top:2px}
+.pr-cover{background:rgba(29,155,240,.18);color:var(--acc)}.pr-answer{background:rgba(0,186,124,.18);color:#00ba7c}
+.pr-pivot{background:rgba(255,173,31,.2);color:#d98e00}.pr-relay{background:rgba(120,86,255,.2);color:#8b6cff}
+.pr-wx{background:rgba(255,122,0,.18);color:#ff7a00}.pr-focus{background:rgba(249,24,128,.16);color:#f91880}.pr-bad{background:rgba(244,33,46,.16);color:#f4212e}
+.pr-live{background:rgba(255,212,0,.2);color:#c9a400}

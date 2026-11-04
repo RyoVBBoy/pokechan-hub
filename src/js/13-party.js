@@ -35,7 +35,8 @@ function teamView(arg){
   <div id="tt-pages" class="tt-pages">
   <div data-sw data-tp="sets"${TTAB!=='sets'?' hidden':''}>
   <div id="tsets"></div>
-  <a class="row" href="#/import" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
+  <a class="row" href="#/pair" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">相性のいい仲間を探す</div><div class="row-s">いまのパーティに合うポケモンを、理由つきで順番に出します。1匹から組むときにも</div></div><span class="row-n" aria-hidden="true">›</span></a>
+  <a class="row" href="#/import"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
   <div class="btns">
     <button class="btn btn-p" id="shr-img">${SVG(I.share,17)}画像で共有</button><button class="btn btn-s" id="shr">URLをコピー</button>
     <button class="btn btn-s" id="clr" style="flex:none;padding:0 20px">クリア</button></div>

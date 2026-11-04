@@ -115,6 +115,14 @@ const shv=await pg.evaluate(async()=>{const before=JSON.stringify(team.map(x=>x.
 if(!(shv[0]&&shv[1]===3&&shv[2]&&/\/t\/445-149$/.test(shv[3])))fail('共有されたパーティの画面: '+shv.join());
 const cnt=await pg.evaluate(()=>{const c=monCounters(byNo[445]);return[c.ohko.length+c.strong.length,c.spd>0]});
 if(!(cnt[0]>0&&cnt[1]))fail('対策の計算（monCounters）: '+cnt.join());
+// 相性のいい仲間を探す（48-pair.js）：依頼主の資料の例（アーマーガア＋ブリジュラス、マスカーニャ＋アシレーヌ）は、
+// ランクバトルで一緒に使われている情報があれば上位8匹に入る。無効で受ける方が半減より高い点になる
+const pr=await pg.evaluate(()=>{const sv={files:LIVE.files,c1:LIVE.csv[823],c2:LIVE.csv[908]};
+  LIVE.files={};P.forEach(q=>{if(ENSP[q.no])LIVE.files[ENSP[q.no]]='x'});LIVE.csv[823]={tm:['Archaludon']};LIVE.csv[908]={tm:['Primarina']};
+  const rk=(a,w)=>prRank([byNo[a]]).findIndex(o=>o.c.no===w)+1;const r=[rk(823,1018),rk(908,730)];
+  LIVE.files=sv.files;LIVE.csv[823]=sv.c1;LIVE.csv[908]=sv.c2;
+  const one=prScore(byNo[445],[byNo[823]]).R.find(r=>r.k==='cover');return[...r,one?one.txt:'']});
+if(!(pr[0]>=1&&pr[0]<=8&&pr[1]>=1&&pr[1]<=8))fail('相性のいい仲間の順位: '+pr.join());
 // ダメージ計算：ポケモンは名前を打って絞り込んで選ぶ
 await pg.evaluate(()=>{location.hash='#/calc'});await pg.waitForTimeout(400);
 await pg.click('.mpick >> nth=1');await pg.waitForTimeout(250);
