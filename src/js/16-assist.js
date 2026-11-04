@@ -7,7 +7,9 @@ const detSet=p=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):chooseSet(p,true)
 function estHit(a,d){
   let best={pct:0,mv:null,acc:100};
   a.moves.forEach(mv=>{if(mv.prot)return;const r=bcalc(a,mv,d,{});
-    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,pct=r.dmg*h/d.max*100,acc=accOf(a,mv,d);
+    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,acc=accOf(a,mv,d);
+    /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
+    let pct=r.dmg*h/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
     if(pct*acc>best.pct*best.acc)best={pct,mv,acc}});
   return best;
 }

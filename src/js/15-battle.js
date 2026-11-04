@@ -242,7 +242,7 @@ const MDK={"709":"accelerock|c","151":"acidarmor|","491":"acidspray|x","512":"ac
 const mkey=mv=>(MDK[mv.id]||'').split('|')[0];
 const wtOf=m=>{let w=WT[m.p.no]||WT[m.p.base]||50;if(m.ab==='heavy-metal')w*=2;if(m.ab==='light-metal')w/=2;return w};
 const MCHG=new Set(['solarbeam','solarblade','meteorbeam','electroshot','skyattack','fly','dig','dive','bounce','phantomforce']);
-const MRECH=new Set(['hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker']);
+const MRECH=new Set(['hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker','meteorassault']);
 const MSELFKO=new Set(['explosion','selfdestruct','mistyexplosion','finalgambit']);
 const MFIRST=new Set(['fakeout','firstimpression']);
 const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
@@ -290,6 +290,9 @@ function fixedDmg(a,mv,d){
     case 'superfang':case 'ruination':return Math.max(1,Math.floor(d.hp/2));
     case 'endeavor':return Math.max(0,d.hp-a.hp);
     case 'finalgambit':return a.hp;
+    /* 一撃必殺：当たれば倒す（がんじょうなら効かない、ぜったいれいどはこおりタイプに効かない。当たる確率は命中30%で別に見る） */
+    case 'guillotine':case 'fissure':case 'horndrill':case 'sheercold':
+      if(d.ab==='sturdy'||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
   }
   return null;
 }
