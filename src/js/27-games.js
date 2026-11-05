@@ -191,9 +191,22 @@ function moveTbPill(anim=true){
   if(!p){p=document.createElement('i');p.className='tb-pill';p.setAttribute('aria-hidden','true');nv.prepend(p);TBPILL_X=null}
   const a=nv.querySelector('.tb[aria-current=page]');
   if(!a||!a.offsetWidth){p.style.opacity='0';return}
+  /* スマホの浮いたメニュー（2026/11/05 依頼主の動画：新しい iPhone のガラスのメニュー）：下地はタブの幅いっぱいの丸い形。
+     動くあいだだけ、透明なレンズ（ふちに虹色）になって少し大きくふくらみ、止まると濃い下地にもどる */
+  const big=matchMedia('(max-width:699px)').matches;
+  if(big)p.style.width=Math.max(48,a.offsetWidth-6)+'px';else p.style.width='';
   const x=a.offsetLeft+a.offsetWidth/2-p.offsetWidth/2;
   const from=TBPILL_X;TBPILL_X=x;p.style.opacity='1';p.style.transform=`translateX(${x}px)`;
   if(!anim||from===null||from===x||reduceMotion||!p.animate)return;
+  if(big){
+    const d=x-from,sx=1.14,sy=1.32;
+    p.classList.add('lens');
+    const an=p.animate([{transform:`translateX(${from}px)`},{transform:`translateX(${from+d*.08}px) scale(${sx},${sy})`,offset:.18},
+      {transform:`translateX(${x+Math.sign(d)*6}px) scale(${sx+.04},${sy})`,offset:.72},{transform:`translateX(${x}px)`}],
+      {duration:560,easing:'cubic-bezier(.3,.7,.2,1)'});
+    an.onfinish=an.oncancel=()=>p.classList.remove('lens');
+    return;
+  }
   const mid=(from+x)/2,st=1+Math.min(.5,Math.abs(x-from)/400);
   p.animate([{transform:`translateX(${from}px)`},{transform:`translateX(${mid}px) scaleX(${st}) scaleY(.92)`,offset:.45},{transform:`translateX(${x}px)`}],
     {duration:420,easing:'cubic-bezier(.25,.8,.25,1)'});
