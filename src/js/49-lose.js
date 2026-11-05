@@ -21,7 +21,9 @@ function loseReasons(entries){
   const pr=ms.map(o=>({o,...LS_PRIO(o)}));
   const stop=pr.filter(r=>['choicescarf','focussash'].includes(item(r.o))||r.reg.length);
   const aces=opps.filter(q=>{const b=byNo[q.base]||q;return prKnows(b,LS_SETUP).length&&Math.max(q.s[1],q.s[3])>=110}).slice(0,3);
-  if(!stop.length&&aces.length){
+  /* 技を決めていない匹がいるうちは判定しない（2026/11/05：先制技を覚えさせる前に「ない」と言わない。進み具合の案内で技を決めてもらう） */
+  const undecided=ms.some(o=>!(o.x.set&&o.x.set.mv&&o.x.set.mv.length));
+  if(!stop.length&&aces.length&&!undecided){
     /* 先制技はほとんど物理なので、攻撃の高い匹から */
     const canPr=pr.filter(r=>r.can.length).sort((a,b)=>b.o.p.s[1]-a.o.p.s[1]);
     out.push({ph:'構築',w:3,t:'相手に1回能力を上げられると、止める手段がない',

@@ -34,7 +34,7 @@ function teamView(arg){
   <div class="seg" id="tt-seg" style="margin-top:14px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
   <div id="tt-pages" class="tt-pages">
   <div data-sw data-tp="sets"${TTAB!=='sets'?' hidden':''}>
-  <div id="tsets"></div>
+  <div id="tsteps"></div><div id="tsets"></div>
   <a class="row" href="#/pair" style="border-top:1px solid var(--line);margin-top:12px"><div class="row-m"><div class="row-t">相性のいい仲間を探す</div><div class="row-s">いまのパーティに合うポケモンを、理由つきで順番に出します。1匹から組むときにも</div></div><span class="row-n" aria-hidden="true">›</span></a>
   <a class="row" href="#/import"><div class="row-m"><div class="row-t">画像から取り込む</div><div class="row-s">ゲームのチーム画面のスクリーンショットから、技・持ち物・能力ポイントまで読み取る</div></div><span class="chev">${SVG(I.chev,18)}</span></a>
   <div class="btns">
@@ -98,18 +98,19 @@ function teamRender(){
     x.sel=!x.sel;saveTeam();teamRender()});
   document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();teamRender()});
 
+  {const st=document.getElementById('tsteps');if(st){st.innerHTML=teamStepsHTML();teamStepsBind(st)}}
   const out=document.getElementById('tout'),pl=document.getElementById('tplan');
   if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと選出の考え方が出ます。</p>';return}
   if(TTAB==='plan'){pl.innerHTML=planHTML(team);planBind(pl)}
   if(TTAB!=='check'){out.innerHTML='';return}
   const C=partyCheck(team);
   const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
-  out.innerHTML=`${loseHTML()}
+  out.innerHTML=`${teamStepsHTML()}${loseHTML()}
   <div class="sec"><h2>パーティのチェック</h2></div>
   <p class="note" style="padding-top:0">${C.scope}を、タイプ相性（特性も入れて）・組み合わせ・持ち物・技・素早さの面から見ています。点数はつけず、気になる点にはそれぞれ直し方を書いています。</p>
   ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
-  ${adSlot('診断結果下')}`;
+  ${adSlot('診断結果下')}`;teamStepsBind(out);
   setTimeout(()=>loseFill(team),20);
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
   out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=async()=>{
@@ -245,7 +246,7 @@ function partyCheck(entries){
     if(k==='assaultvest'&&mv.some(z=>{const id=Object.keys(MD).find(i=>MD[i][3]===z);const i=id&&mvInfo(+id);return i&&i.cls===2}))fix.push({t:`${esc(o.p.n)}：とつげきチョッキと変化技`,d:'とつげきチョッキを持つと、変化技（攻撃しない技）が使えません。',how:'変化技を攻撃技に変えるか、持ち物を変えます。'});});
   const items=ms.map(it).filter(Boolean);
   if(items.length>=3&&new Set(items).size===items.length)good.push({t:'持ち物が分かれている',d:`${items.length}匹の持ち物が重なっていません。`});
-  if(!items.length&&ms.length)fix.push({t:'持ち物がまだ決まっていない',d:'育成で持ち物を入れると、こだわり系・メガストーンなどを含めてチェックできます。',how:'パーティの「育成」から、それぞれの持ち物を入れます（画像から取り込むこともできます）。'});
+  /* 持ち物がまだ無いことは「気になる点」にしない（2026/11/05：パーティ作りの進み具合 teamStepsHTML で、次にやることとして案内する） */
   /* 5. 素早さ：先に動く手段があるか */
   const fastest=Math.max(...ms.map(o=>maxSpe(o.p)));
   const scarf=ms.some(o=>it(o)==='choicescarf'),prio=ms.some(o=>((o.x.set&&o.x.set.mv)||[]).some(z=>{const i=z&&mvInfo(z.id);return i&&i.pri>0&&i.pow>0}));
