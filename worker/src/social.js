@@ -37,6 +37,9 @@ async function socialInit(db){
     try{await db.prepare(`ALTER TABLE notes ADD COLUMN ${c}`).run()}catch(e){}}
   /* プロフィールの写真（media の鍵。2026/11/03） */
   try{await db.prepare(`ALTER TABLE users ADD COLUMN avatar TEXT`).run()}catch(e){}
+  /* トレーナーカード（2026/11/05）：相棒のポケモン（番号）と看板パーティ（JSON {n:名前,t:[番号…]}） */
+  try{await db.prepare(`ALTER TABLE users ADD COLUMN partner INTEGER`).run()}catch(e){}
+  try{await db.prepare(`ALTER TABLE users ADD COLUMN showcase TEXT`).run()}catch(e){}
   await db.batch([
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
     db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS notes_repost ON notes(repost_of,uid) WHERE repost_of>0`)
@@ -198,18 +201,20 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 公開プロフィール（フォロー数つき） */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,
+    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,partner,showcase,
+      (SELECT COALESCE(SUM(likes),0) FROM notes WHERE uid=users.uid AND hidden=0 AND repost_of=0) AS liked,
       (SELECT COUNT(*) FROM follows WHERE dst=users.uid) AS followers,(SELECT COUNT(*) FROM follows WHERE src=users.uid) AS following,
       (SELECT COUNT(*) FROM notes WHERE uid=users.uid AND hidden=0 AND repost_of=0) AS notes,
       EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=users.uid AND dst=?2) AS follows_me
       FROM users WHERE handle=?1 COLLATE NOCASE AND banned=0`).bind(m[1],meUid).first();
     if(!p)return J({error:'ユーザーが見つかりません。'},404);
-    return J({user:{...pubUser(p),followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,me:p.uid===meUid,results:await ladderResults(db,p.uid)}});
+    let sc=null;try{sc=p.showcase?JSON.parse(p.showcase):null}catch(e){}
+    return J({user:{...pubUser(p),partner:p.partner||null,showcase:sc,liked:p.liked||0,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,me:p.uid===meUid,results:await ladderResults(db,p.uid)}});
   }
   /* その人の投稿 */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/notes$/))&&req.method==='GET'){
     const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
-      WHERE u.handle=?3 COLLATE NOCASE AND n.hidden=0 AND ${NOTE_OK} AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),m[1]).all();
+      WHERE u.handle=?3 COLLATE NOCASE AND n.hidden=0 AND ${NOTE_OK} AND n.id<?2${u.searchParams.get('media')==='1'?" AND n.repost_of=0 AND n.media IS NOT NULL AND n.media<>'' AND n.media<>'[]'":''} ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),m[1]).all();
     return J(pageOut(withMine(r.results)));
   }
   /* フォロー（on:false でやめる） */

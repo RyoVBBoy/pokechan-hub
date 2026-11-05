@@ -64,6 +64,20 @@ async function userApi(req,env,db,path,body,now){
     const u=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
     return J({ok:true,user:pubUser(u)});
   }
+  /* トレーナーカード（2026/11/05）：相棒のポケモンと看板パーティ（6匹まで・名前20文字）をプロフィールに出す */
+  if(path==='/api/me/card'&&req.method==='POST'){
+    if(!row)return J({error:'先にプロフィールを作ってください。'},400);
+    const okNo=x=>Number.isInteger(x)&&x>0&&x<20000;
+    const partner=body.partner==null?null:+body.partner;
+    if(partner!=null&&!okNo(partner))return J({error:'相棒のポケモンが正しくありません。'},400);
+    let sc=null;
+    if(body.showcase){const s=body.showcase,tt=Array.isArray(s.t)?s.t.map(Number):[];
+      if(!tt.length||tt.length>6||!tt.every(okNo))return J({error:'看板パーティが正しくありません。'},400);
+      const n=clean(s.n||'',20);const ng=n&&ngCheck('x',n,'');if(ng)return J({error:ng},400);
+      sc=JSON.stringify({n,t:tt})}
+    await db.prepare(`UPDATE users SET partner=?,showcase=?,updated_at=? WHERE uid=?`).bind(partner,sc,now,me.uid).run();
+    return J({ok:true});
+  }
   /* パーティ（3つまで）をどの端末でも同じにする。中身はその人だけが読める。新しい方（updated_at）を残す */
   if(path==='/api/me/teams'&&req.method==='GET'){
     const r=await db.prepare(`SELECT teams,updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();

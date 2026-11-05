@@ -203,31 +203,7 @@ function tlShow(tab,first){
   twFeed(el,'/api/tl?tab='+tab,TL_EMPTY(tab));
   return true;
 }
-async function userView(h){
-  setHeader('プロフィール','#/tl');
-  if(!/^[A-Za-z0-9_]{3,15}$/.test(h||'')){V.innerHTML='<p class="empty">ユーザーが見つかりません。</p>';return}
-  V.innerHTML='<p class="empty">読み込み中…</p>';
-  await twAuth();if(keyOf(cur)!=='u')return;
-  let u;try{u=(await authFetch('/api/u/'+h)).user}catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`;return}
-  setHeader(esc(u.name),'#/tl');
-  const isMuted=muted().has(u.handle.toLowerCase());
-  V.innerHTML=`<div class="twp">
-    <div class="twp-top"><span class="ac-av" data-notr>${avIn(u)}</span>
-      ${u.me?'<a class="btn btn-s twp-btn" href="#/account">プロフィールを編集</a>':`<button class="btn ${u.followed?'btn-s':'btn-p'} twp-btn" id="twp-f">${u.followed?'フォロー中':'フォローする'}</button>`}</div>
-    <h2 class="twp-n" data-notr>${esc(u.name)}</h2><div class="twp-h">@${esc(u.handle)}${u.follows_me?'<span class="atag" style="margin-left:6px">フォローされています</span>':''}</div>
-    ${u.bio?`<p class="twp-b" data-notr>${esc(u.bio)}</p>`:''}${resultBadges(u.results)}
-    <div class="twp-c"><span><b class="num">${u.following}</b> フォロー</span><span><b class="num" id="twp-fc">${u.followers}</b> フォロワー</span><span><b class="num">${u.notes}</b> 投稿</span></div>
-    ${isMuted?`<div class="bnote" style="margin:8px 0 0">この人の投稿は、あなたの画面では表示しない設定です。<button class="bback" id="twp-um" style="padding:0">表示する</button></div>`:''}
-  </div><div class="sec"><h2>投稿</h2></div><div id="twp-list"></div>`;
-  const fb=document.getElementById('twp-f');
-  if(fb)fb.onclick=async()=>{
-    if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'フォローするにはログインしてください');nav('#/account');return}
-    const on=fb.textContent!=='フォロー中';fb.disabled=true;
-    try{const j=await authFetch('/api/follow',{handle:u.handle,on});fb.textContent=j.followed?'フォロー中':'フォローする';fb.className='btn '+(j.followed?'btn-s':'btn-p')+' twp-btn';document.getElementById('twp-fc').textContent=j.followers}
-    catch(e){toast(e.message)}finally{fb.disabled=false}};
-  const um=document.getElementById('twp-um');if(um)um.onclick=()=>{const s=muted();s.delete(u.handle.toLowerCase());lsW('pcmute',[...s]);userView(h)};
-  if(!isMuted)twFeed(document.getElementById('twp-list'),`/api/u/${u.handle}/notes`,'まだ投稿がありません。');
-}
+/* プロフィール（userView）は 53-profile.js（トレーナーカード） */
 /* 返信を書く（下から出る画面）。返信先の投稿を上に小さく見せる */
 function twReplySheet(el,id,onDone){
   const h=el.dataset.h,body=el.querySelector('.tw-b').textContent;
