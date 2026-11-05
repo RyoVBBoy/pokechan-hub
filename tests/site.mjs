@@ -134,6 +134,11 @@ if(lr.join()!=='true,true,true,true')fail('負けやすい理由: '+lr.join());
 // 画像の読み取り：特性は、そのポケモンが持てる特性から選ぶ（2026/11/05：いかく が「いかがかぐく」と読まれた件）
 const abr=await pg.evaluate(()=>{const sl={nameRaw:'ボーマンダ',noFix:373,abRaw:'いかがかぐく',itRaw:'',mvRaw:[]};try{imResolve(sl)}catch(e){return 'ERR '+e.message}return sl.ab&&sl.ab.k});
 if(abr!=='intimidate')fail('画像の読み取りの特性: '+abr);
+// 画像の読み取り：覚えない技・読めない文字は出さない（2026/11/05 依頼主：ない技が表示されるのはまずい）。あとから足した43技も名前から引ける
+const mvr=await pg.evaluate(()=>{const sl={nameRaw:'ゴリランダー',noFix:812,abRaw:'グラスメイカー',itRaw:'1用矢了)た圭',mvRaw:['にコルムルデアウッワ','|すれ拓か','ドラムアタック','つるぎのまい']};imResolve(sl);
+  const ls=LSD[812][1];const bad=sl.mv.filter(m=>m.id&&!(ls.includes(m.id)||m.id===182||m.id===197));
+  return [bad.length,sl.mv.every(m=>m.id||m.n===''),!!MVJ['うたかたのアリア'],!!MVJ['アクセルロック'],sl.it.k===null||!!ITEMN[sl.it.k]||!!ITJ[sl.it.n]].join()});
+if(mvr!=='0,true,true,true,true')fail('画像の読み取りの技: '+mvr);
 // 持ち物（2026/11/04 依頼主の完全なリスト）：ゲームにある85種はすべて選べて、ないもの（こだわりハチマキ・こだわりメガネ・とつげきチョッキ）は選べない。読み取りの表にもない
 const itc=await pg.evaluate(()=>[CH_ITEMS.size,[...CH_ITEMS].filter(k=>!ITEMN[k]).join(),['choiceband','choicespecs','assaultvest','heavydutyboots'].filter(k=>ITEMN[k]||Object.values(ITJ).includes(k)).join(),
   Object.keys(ITEMN).filter(k=>!CH_ITEMS.has(k)&&!isStone(k)).join(),[...CH_ITEMS].filter(k=>!ITEM_GUIDE[k]).join()]);
