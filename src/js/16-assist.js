@@ -170,10 +170,18 @@ function assistView(arg){
   <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>
   
   <div class="srch" style="margin-top:10px">${SVG(I.search,18)}<input id="as-q" placeholder="相手のポケモン名（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="相手のポケモン名"></div>
+  <details class="as-ty" id="as-ty"><summary>タイプで探す（画面のタイプのマークを押す）</summary>
+    <div class="as-tyg">${T.map(t=>`<button class="as-tyb" data-ty="${t}" style="--tc:${COL[t]}" aria-pressed="false">${t}</button>`).join('')}</div></details>
   <div id="as-sg"></div>
   <div id="as-res"></div></div>`;
   const q=document.getElementById('as-q'),sg=document.getElementById('as-sg');
-  const sug=()=>{const t=q.value.trim();const l=t?P.filter(p=>nmHit(p,t)&&!opp6.includes(p.no)).slice(0,6):[];
+  /* タイプで探す（2026/11/05）：AI の読み取りが混み合って使えないときも、選出画面のタイプのマーク（1〜2個）を押せば候補がしぼれる。
+     候補はランクバトルでよく使われている順（集計がなければ合計種族値の高い順） */
+  let asTy=[];
+  const tyRank=p=>{const r=typeof META!=='undefined'&&META.rank?META.rank.findIndex(x=>x.no===p.no||x.no===p.base):-1;return r<0?1e4-(p.bst||0):r};
+  const sug=()=>{const t=q.value.trim();
+    const l=t?P.filter(p=>nmHit(p,t)&&!opp6.includes(p.no)).slice(0,6)
+      :asTy.length?P.filter(p=>!opp6.includes(p.no)&&asTy.every(x=>p.t.includes(x))&&(asTy.length<2||p.t.length===2)).sort((a,b)=>tyRank(a)-tyRank(b)).slice(0,8):[];
     sg.innerHTML=l.map(p=>`<button class="row" data-add="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join('')||(t?'<p class="empty" style="padding:16px">見つかりません</p>':'')};
   /* スクショから相手の6匹を読む（読むのはサーバー＝AI、選出の計算はこのスマホでする） */
   document.getElementById('as-shot').onchange=async e=>{
@@ -186,7 +194,8 @@ function assistView(arg){
       const x=await twShrink(f,1100);say('相手の6匹を読み取っています…（数秒かかります）');
       let r;try{r=await fetch(COMM_API+'/api/opp-read?fmt='+FMT,{method:'POST',headers:{'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()},body:x.blob})}
       catch(err){say('通信できませんでした。電波のよいところで、もう一度選んでください。',true);return}
-      const j=await r.json().catch(()=>({}));if(!r.ok){say(esc(j.error||'読み取れませんでした。')+'<br>もう一度選ぶか、下の欄から名前で入れてください。',true);return}
+      const j=await r.json().catch(()=>({}));if(!r.ok){say(esc(j.error||'読み取れませんでした。')+(j.busy?'<br><b>下の「タイプで探す」で、画面のタイプのマークを押すと、すぐに入れられます。</b>選出の計算はこれまでどおり使えます。':'<br>もう一度選ぶか、下の欄から名前か「タイプで探す」で入れてください。'),true);
+        const d=document.getElementById('as-ty');if(d){d.open=true;d.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'center'})}return}
       const got=(j.opps||[]).filter(o=>o.no&&byNo[o.no]),nos=[...new Set(got.map(o=>o.no))].slice(0,6);
       if(!nos.length){say('相手のポケモンを読み取れませんでした。選出画面（相手の6匹が並ぶ画面）のスクリーンショットか確かめて、もう一度選んでください。',true);return}
       opp6=nos;saveOpp6();q.value='';sug();asDraw();asFetch();
@@ -195,8 +204,12 @@ function assistView(arg){
       const res=document.getElementById('as-res');if(res)res.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
     }catch(err){say(esc(err.message||'読み取れませんでした。'),true)}
   };
-  const add=n=>{if(opp6.length>=6){toast('相手は6匹までです');return}if(!opp6.includes(n)){opp6.push(n);saveOpp6()}q.value='';sug();asDraw();asFetch();q.focus()};
+  const add=n=>{if(opp6.length>=6){toast('相手は6匹までです');return}if(!opp6.includes(n)){opp6.push(n);saveOpp6()}q.value='';
+    if(asTy.length){asTy=[];document.querySelectorAll('#as-ty [data-ty]').forEach(x=>x.setAttribute('aria-pressed','false'))}else q.focus();sug();asDraw();asFetch()};
   q.oninput=sug;
+  document.getElementById('as-ty').addEventListener('click',e=>{const b=e.target.closest('[data-ty]');if(!b)return;const ty=b.dataset.ty;
+    asTy=asTy.includes(ty)?asTy.filter(x=>x!==ty):[...asTy,ty].slice(-2);
+    document.querySelectorAll('#as-ty [data-ty]').forEach(x=>x.setAttribute('aria-pressed',String(asTy.includes(x.dataset.ty))));q.value='';sug()});
   q.onkeydown=e=>{if(e.key==='Enter'){const f=P.find(p=>nmHit(p,q.value.trim())&&!opp6.includes(p.no));if(f)add(f.no)}};
   document.getElementById('as-root').addEventListener('click',e=>{
     const a=e.target.closest('[data-add]');if(a){add(+a.dataset.add);return}

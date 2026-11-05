@@ -23,6 +23,7 @@ const gemReply=t=>new Response(JSON.stringify({candidates:[{content:{parts:[{tex
 globalThis.fetch=async(u,o)=>{u=String(u);
   if(u.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[jwk]}));
   if(u.includes('generativelanguage')&&u.includes('/models?'))return new Response(JSON.stringify({models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']}]}));
+  if(u.includes('generativelanguage')&&u.includes(':generateContent')&&globalThis.GEM_BUSY)return new Response(JSON.stringify({error:{message:'quota'}}),{status:429});
   if(u.includes('generativelanguage')&&u.includes(':generateContent')){const b=JSON.parse(o.body);
     if(b.tools&&b.tools[0].google_search)return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'C'}]},groundingMetadata:{groundingChunks:[{web:{uri:'https://c.example/3',title:'C'}},{web:{uri:'javascript:alert(1)',title:'bad'}}]}}]}));
     if(b.contents[0].parts.length>2&&b.contents[0].parts.some(p=>/画面収録/.test(p.text||'')))return gemReply(JSON.stringify({format:'single',result:'win',opponent_team:['ガブリアス','カイリュー','サーフゴー','ドラパルト','ガオガエン','ゴリランダー'],my_team:['リザードン','カメックス'],opponent_used:['ガブリアス','サーフゴー'],my_used:['リザードン'],opponent_moves:{'ガブリアス':['じしん','げきりん']},opponent_items:{'ガブリアス':'こだわりスカーフ'}}));
@@ -267,6 +268,8 @@ const shot=async(t,bytes)=>{const h={'content-type':'image/jpeg'};if(t)h.authori
 r=await shot(null,JPG);expect('スクショ読み取りはログインが必要',r[0]===401,r);
 r=await shot(A,new Uint8Array([1,2,3,...Array(300).fill(0)]));expect('画像でないものは拒否',r[0]===400,r);
 r=await shot(A,JPG);expect('スクショから相手を読める（番号・自信）',r[0]===200&&r[1].opps.filter(o=>o.no).map(o=>o.no).join()==='445,149,1000'&&r[1].opps.find(o=>o.no===445).sure&&!r[1].opps.find(o=>o.no===1000).sure,r[1]);
+/* AI が混み合っている・無料枠を使い切ったとき（2026/11/05）：busy を付けて返し、サイトは「タイプで探す」に案内する */
+globalThis.GEM_BUSY=true;r=await shot(A,JPG);globalThis.GEM_BUSY=false;expect('AIが混み合っているときは busy を返す',r[0]===503&&r[1].busy===true,r);
 /* 対戦の振り返り */
 const fr=Array.from({length:4},(_,i)=>({t:i*3,d:'QUJD'+'A'.repeat(100)}));
 r=await call('/api/replay-read',{method:'POST',body:{frames:fr}});expect('振り返り：ログインが必要',r[0]===401,r);

@@ -1474,3 +1474,12 @@ body::before{inset:0;background:
 .ts-why{margin:12px 0 0;font-size:13px;line-height:1.7;color:var(--dim)}
 .ts-btns{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .ts-go{width:100%!important;flex:none!important;height:44px!important}
+
+/* 選出アシストの「タイプで探す」（2026/11/05） */
+.as-ty{margin:10px 16px 0}.as-ty summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--acc);padding:6px 2px;list-style:none}.as-ty summary::-webkit-details-marker{display:none}
+.as-ty summary::before{content:'▸ ';}.as-ty[open] summary::before{content:'▾ '}
+.as-tyg{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:6px 0 4px}
+.as-tyb{height:34px;border:0;border-radius:10px;font-size:11.5px;font-weight:800;color:#fff;cursor:pointer;background:color-mix(in srgb,var(--tc) 55%,var(--card));opacity:.85}
+.as-tyb[aria-pressed=true]{background:var(--tc);opacity:1;box-shadow:0 0 0 2px var(--fg)}
+.as-tyb{white-space:nowrap;font-size:10.5px;letter-spacing:-.04em;padding:0 2px}
+#as-sg .row{width:auto!important;margin-left:16px!important;margin-right:16px!important}

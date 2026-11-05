@@ -131,7 +131,7 @@ async function askGemini(env,buf,mt){
   try{cands=[...new Set([...cands,...await listGemini(env)])]}catch(e){if(!cands.length)throw e}
   let r,last='',busy=false;
   const start=Date.now();
-  for(const m of cands.slice(0,3)){
+  for(const m of cands.slice(0,4)){   /* モデルごとに回数の枠が別なので、混雑・回数制限なら次のモデルへ（4つまで） */
     if(r&&Date.now()-start>22000)break; /* 全体で20秒あまりを超えたら、次のモデルは試さない（ショートカットが待ちきれなくなるため） */
     r=await call(m);if(r.ok)break;
     const t=await r.text();try{last=JSON.parse(t).error.message}catch(e){last=t}
@@ -139,7 +139,7 @@ async function askGemini(env,buf,mt){
     if(![404,429,500,503].includes(r.status))throw new Error(`Gemini ${r.status}（${m}）${last.slice(0,80)}`);
     if(r.status!==404)busy=true;
   }
-  if(!r.ok)throw new Error(busy?'Geminiが混雑中か、無料枠の回数制限です。少し待ってからもう一度背面タップしてください':'使えるGeminiのモデルが見つかりませんでした');
+  if(!r.ok)throw new Error(busy?'Geminiが混雑中か、無料枠の回数制限です。少し待ってからもう一度試してください':'使えるGeminiのモデルが見つかりませんでした');
   const j=await r.json();const t=((j.candidates||[])[0]?.content?.parts||[]).map(p=>p.text||'').join('');const mm=t.match(/\{[\s\S]*\}/);if(!mm)throw new Error('Geminiの返答を読めませんでした');
   const o=JSON.parse(mm[0]);return Array.isArray(o.opponent)?o.opponent:[];
 }
@@ -284,7 +284,14 @@ async function oppReadApi(req,env,db,now){
   if(buf.byteLength<200||buf.byteLength>4e6)return J({error:'画像を読めませんでした。'},400);
   const mt=mediaType(buf);if(!mt)return J({error:'JPEGかPNGの画像を選んでください。'},400);
   const key=env.ANTHROPIC_API_KEY?'anthropic':'gemini',t0=Date.now();
-  let list;try{list=checkOpp(await READERS[key].read(env,buf,mt,false))}catch(e){return J({error:String(e.message||e)},502)}
+  /* AI が混み合っている・無料枠を使い切ったときは、もう1つの AI（ANTHROPIC_API_KEY があれば）に切りかえる。
+     それでもだめなら busy を付けて返し、サイトは「タイプで探す」に案内する（2026/11/05 利用者が増えても使えなくならないように） */
+  let list,busy=false;
+  try{list=checkOpp(await READERS[key].read(env,buf,mt,false))}
+  catch(e){busy=/混雑|回数制限|20秒/.test(String(e.message||e));
+    const other=key==='gemini'?(env.ANTHROPIC_API_KEY&&'anthropic'):(env.GEMINI_API_KEY&&'gemini');
+    if(other){try{list=checkOpp(await READERS[other].read(env,buf,mt,false));busy=false}catch(e2){}}
+    if(!list)return J({error:busy?'いまAIの読み取りが混み合っています。':String(e.message||e),busy},busy?503:502)}
   await db.prepare(`INSERT INTO opp_reads(uid,created_at) VALUES(?,?)`).bind(me.uid,now).run();
   await usageSeen(db,me.uid,new URL(req.url).searchParams.get('fmt'),list.filter(o=>o.mon&&o.sure!==false).map(o=>o.mon.no),'read',now);
   if(Math.random()<.05)await db.prepare(`DELETE FROM opp_reads WHERE created_at<?`).bind(now-2*864e5).run();
