@@ -199,12 +199,23 @@ function moveTbPill(anim=true){
   const from=TBPILL_X;TBPILL_X=x;p.style.opacity='1';p.style.transform=`translateX(${x}px)`;
   if(!anim||from===null||from===x||reduceMotion||!p.animate)return;
   if(big){
-    const d=x-from,sx=1.14,sy=1.32;
-    p.classList.add('lens');
-    const an=p.animate([{transform:`translateX(${from}px)`},{transform:`translateX(${from+d*.08}px) scale(${sx},${sy})`,offset:.18},
-      {transform:`translateX(${x+Math.sign(d)*6}px) scale(${sx+.04},${sy})`,offset:.72},{transform:`translateX(${x}px)`}],
-      {duration:560,easing:'cubic-bezier(.3,.7,.2,1)'});
-    an.onfinish=an.oncancel=()=>p.classList.remove('lens');
+    /* 依頼主の動画（新しい iPhone のメニュー）をコマ送りで測った動き。押してから：
+       0〜0.02秒 濃い下地が透明なレンズに変わってふくらむ・メニュー全体も4%ふくらむ
+       〜0.19秒 レンズが目的のタブまで滑る（はじめ速く、着く前にゆるむ）
+       〜0.42秒 着いたレンズがゆっくり縮みながら、濃い下地にもどる（ここが「柔らかさ」）
+       〜0.47秒 メニュー全体が元の大きさにもどる */
+    let L=nv.querySelector('.tb-lens');
+    if(!L){L=document.createElement('i');L.className='tb-lens';L.setAttribute('aria-hidden','true');nv.prepend(L)}
+    L.style.width=p.style.width;
+    const D=470,sx=1.24,sy=1.14,slide='cubic-bezier(.35,.55,.35,1)',settle='cubic-bezier(.42,0,.3,1)';
+    const tr=[{offset:0,transform:`translateX(${from}px)`,easing:'ease-out'},{offset:.045,transform:`translateX(${from}px) scale(${sx},${sy})`,easing:slide},
+      {offset:.4,transform:`translateX(${x}px) scale(${sx},${sy})`,easing:settle},{offset:.88,transform:`translateX(${x}px)`},{offset:1,transform:`translateX(${x}px)`}];
+    L.animate(tr,{duration:D});p.animate(tr,{duration:D});
+    /* 透明なレンズ→濃い下地への切りかえは、着いてからしばらくレンズのまま（〜0.31秒）、そのあと0.1秒で濃くなる */
+    const op=(a,b)=>[{offset:0,opacity:a},{offset:.045,opacity:b},{offset:.66,opacity:b,easing:'ease-in-out'},{offset:.87,opacity:a},{offset:1,opacity:a}];
+    L.animate(op(0,1),{duration:D});p.animate(op(1,0),{duration:D});
+    const bar=nv.closest('.tabbar');
+    if(bar)bar.animate([{transform:'scale(1)',easing:'ease-out'},{transform:'scale(1.04)',offset:.12},{transform:'scale(1.04)',offset:.84,easing:'ease-in-out'},{transform:'scale(1)'}],{duration:D});
     return;
   }
   const mid=(from+x)/2,st=1+Math.min(.5,Math.abs(x-from)/400);

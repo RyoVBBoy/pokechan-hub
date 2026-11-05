@@ -1144,6 +1144,7 @@ body::before{content:'';position:fixed;inset:-20vh -20vw;z-index:-1;pointer-even
 @media(min-width:700px){
   .pcside .card,.pcside>section,.pcside>div{background:var(--glass)!important;-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
 }
+.tb-lens{display:none}
 @media(min-width:700px){.tb-pill{display:none}}
 @media(max-width:699px){
   /* 浮いた丸いメニュー：アイコンと名前を出し、選んでいるタブは「丸い下地＋太い名前＋濃いアイコン」 */
@@ -1367,13 +1368,13 @@ body::before{inset:0;background:
   .tb{position:relative;z-index:1}
   .tb-pill{top:4px!important;height:54px!important;border-radius:27px!important;background:var(--lg-sel)!important;
     transition:opacity .2s,background .25s,box-shadow .25s;transform-origin:center}
-  /* 動いているあいだのレンズ */
-  .tb-pill.lens{background:rgba(255,255,255,.06)!important;
+  /* 動いているあいだのレンズ（濃い下地とは別の部品。moveTbPill が重ねて動かす） */
+  .tb-lens{display:block;position:absolute;top:4px;left:0;height:54px;border-radius:27px;pointer-events:none;opacity:0;z-index:0;will-change:transform,opacity;background:rgba(255,255,255,.06)!important;
     -webkit-backdrop-filter:brightness(1.25) saturate(1.7) contrast(1.05);backdrop-filter:brightness(1.25) saturate(1.7) contrast(1.05);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),inset 2px 3px 5px rgba(255,255,255,.28),
-      inset 4px 0 5px -2px rgba(255,70,170,.55),inset -4px 0 5px -2px rgba(60,200,255,.55),inset 0 -3px 5px -2px rgba(255,220,80,.4),
-      0 6px 16px rgba(0,0,0,.28)}
-  [data-theme=light] .tb-pill.lens{background:rgba(255,255,255,.35)!important}
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),inset 1px 2px 4px rgba(255,255,255,.18),
+      inset 3px 0 4px -2px rgba(255,90,180,.28),inset -3px 0 4px -2px rgba(80,200,255,.28),inset 0 -2px 4px -2px rgba(255,220,90,.22),
+      0 4px 12px rgba(0,0,0,.22)}
+  [data-theme=light] .tb-lens{background:rgba(255,255,255,.35)!important}
 }
 @media(max-width:699px){
   /* ガラスの後ろが見えるよう、下をふさぐ部分はメニューより下のすき間だけにする */
