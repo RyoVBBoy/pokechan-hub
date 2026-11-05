@@ -40,6 +40,7 @@ const ST = path.join(SRC, 'static');
 if (fs.existsSync(ST)) for (const f of fs.readdirSync(ST)) fs.copyFileSync(path.join(ST, f), path.join(DIST, f));
 
 // _headers（Cloudflare Pages）：キャッシュ＋セキュリティの決まり（2026/11/05 セキュリティ対策）
+//   /__/（Firebase のログインの窓口を取り次ぐ所）は Firebase 自身の決まりで動くので、ここの決まりを外す（自分のページの中に埋め込まれるため）
 //   CSP＝このページが読み込んでよい場所の一覧。書かれていない場所のスクリプト・通信・埋め込みはブラウザが止める（XSS の被害を小さくする最後の壁）
 //   ページの中に直接書いたスクリプトは PC_CONFIG の1つだけで、その中身の指紋（sha256）だけを許す
 const sha = s => crypto.createHash('sha256').update(s).digest('base64');
@@ -73,7 +74,12 @@ const SEC = `  Content-Security-Policy: ${CSP}
   X-Permitted-Cross-Domain-Policies: none
 `;
 fs.writeFileSync(path.join(DIST, '_headers'), `/*
-${SEC}/sw.js
+${SEC}/__/*
+  ! Content-Security-Policy
+  ! X-Frame-Options
+  ! Cross-Origin-Resource-Policy
+  ! Cross-Origin-Opener-Policy
+/sw.js
   Cache-Control: public, max-age=0, must-revalidate
 /assets/app.*
   Cache-Control: public, max-age=31536000, immutable
