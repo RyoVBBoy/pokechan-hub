@@ -131,6 +131,9 @@ const lr=await pg.evaluate(()=>{const base=[445,6,130,94,59,887].map(no=>({no,se
   const c=loseReasons(base.map(x=>({no:x.no}))).map(r=>r.t);
   return[a.some(t=>/止める手段/.test(t)),a.some(t=>/ステルスロック/.test(t)),!b.some(t=>/止める手段/.test(t)),!c.some(t=>/止める手段/.test(t))]});
 if(lr.join()!=='true,true,true,true')fail('負けやすい理由: '+lr.join());
+// 画像の読み取り：特性は、そのポケモンが持てる特性から選ぶ（2026/11/05：いかく が「いかがかぐく」と読まれた件）
+const abr=await pg.evaluate(()=>{const sl={nameRaw:'ボーマンダ',noFix:373,abRaw:'いかがかぐく',itRaw:'',mvRaw:[]};try{imResolve(sl)}catch(e){return 'ERR '+e.message}return sl.ab&&sl.ab.k});
+if(abr!=='intimidate')fail('画像の読み取りの特性: '+abr);
 // 持ち物（2026/11/04 依頼主の完全なリスト）：ゲームにある85種はすべて選べて、ないもの（こだわりハチマキ・こだわりメガネ・とつげきチョッキ）は選べない。読み取りの表にもない
 const itc=await pg.evaluate(()=>[CH_ITEMS.size,[...CH_ITEMS].filter(k=>!ITEMN[k]).join(),['choiceband','choicespecs','assaultvest','heavydutyboots'].filter(k=>ITEMN[k]||Object.values(ITJ).includes(k)).join(),
   Object.keys(ITEMN).filter(k=>!CH_ITEMS.has(k)&&!isStone(k)).join(),[...CH_ITEMS].filter(k=>!ITEM_GUIDE[k]).join()]);

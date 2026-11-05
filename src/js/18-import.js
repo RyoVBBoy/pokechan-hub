@@ -119,7 +119,7 @@ function imGuess(sl){
   const sc=P.map(p=>{let s=0;const why=[];
     const st=imCanSolve(p,sl);if(st===true){s+=6;why.push('実数値')}else if(st===false)s-=6;
     const ls=LSD[p.no];if(ls&&mvs.length){let ok=0;mvs.forEach(m=>{if(m.id===182||m.id===197||ls[1].includes(m.id)){s+=1.5;ok++}else s-=2});if(ok)why.push(`技${ok}つ`)}
-    if(abT&&ABD[p.no]){const own=ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]);const a=own.length?fuzzy(abT,own):null;
+    if(abT&&ABD[p.no]){const own=ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]);const a=own.length?mvOwn(abT,own):null;
       if(a&&a.sc>=.6){s+=2.5*a.sc;why.push('特性')}else s-=1}
     if(it&&isStone(it)){if(itemFor(p.no,it)){s+=4;why.push('メガストーン')}else s-=4}
     if(nmT){const n=fuzzy(nmT,[[p.ja||p.n,p.no]]);if(n&&n.sc>.3)s+=3*(n.sc-.3)}
@@ -147,7 +147,14 @@ function imResolve(sl){
     sl.mvRaw.forEach((t,i)=>{const cur=sl.mv[i];if(!own.length||(cur&&cur.id&&cur.c>=.75&&own.some(x=>x[1]===cur.id)))return;
       const a=mvOwn(t,own);if(a&&a.sc>=.5&&(!cur||!cur.id||a.sc>cur.c||!own.some(x=>x[1]===cur.id)))sl.mv[i]={n:a.name,id:a.val,c:Math.min(.9,a.sc)}})}
   if(sl.abRaw!=null&&sl.ab==null){const own=p&&ABD[p.no]?ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]):[];
-    let a=own.length?fuzzy(sl.abRaw,own):null;if(!a||a.sc<.5)a=fuzzy(sl.abRaw,AB_C);sl.ab=a&&a.sc>=.45?{n:a.name,k:a.val,c:a.sc}:{n:kkey(sl.abRaw)?sl.abRaw.replace(/\s/g,''):'',k:null,c:0}}
+    /* 特性は、そのポケモンが持てる特性（2〜3個）のどれかに必ずなる。技と同じく「特性名の文字が順番どおりに読めた文字に入っている割合」でも比べ（mvOwn）、
+       いちばん近いものを選ぶ（2026/11/05：いかく が「いかがかぐく」と読まれて、そのまま出ていた件）。読めた文字がほとんど合わないときだけ、ほかの特性からも探す */
+    let a=own.length?mvOwn(sl.abRaw,own):null;
+    if(own.length&&a&&a.sc>=.34)sl.ab={n:a.name,k:a.val,c:Math.min(.95,a.sc)};
+    else{const g=fuzzy(sl.abRaw,AB_C);
+      if(g&&g.sc>=.6)sl.ab={n:g.name,k:g.val,c:g.sc};
+      else if(own.length&&a)sl.ab={n:a.name,k:a.val,c:.3};
+      else sl.ab={n:kkey(sl.abRaw)?sl.abRaw.replace(/\s/g,''):'',k:null,c:0}}}
   sl.fixed=null;sl.solve=p&&sl.vals?solveRobust(p,sl):null;
 }
 function imCard(sl,i){
