@@ -1483,3 +1483,9 @@ body::before{inset:0;background:
 .as-tyb[aria-pressed=true]{background:var(--tc);opacity:1;box-shadow:0 0 0 2px var(--fg)}
 .as-tyb{white-space:nowrap;font-size:10.5px;letter-spacing:-.04em;padding:0 2px}
 #as-sg .row{width:auto!important;margin-left:16px!important;margin-right:16px!important}
+
+/* 管理画面の使用量（2026/11/05） */
+.qt+.qt{margin-top:14px}.qt-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}.qt-h span{color:var(--dim);font-size:13px;white-space:nowrap}
+.qt-b{height:8px;border-radius:99px;background:var(--soft);margin-top:6px;overflow:hidden}.qt-b i{display:block;height:100%;border-radius:99px}
+.qt p{margin:6px 0 0;font-size:12.5px;color:var(--dim);line-height:1.6}
+.qt-t{margin:0 10px;overflow-x:auto}.qt-t table{width:100%;border-collapse:collapse;font-size:13px}.qt-t th,.qt-t td{padding:6px 4px;text-align:right;border-bottom:1px solid var(--line-in)}.qt-t th:first-child,.qt-t td:first-child{text-align:left}

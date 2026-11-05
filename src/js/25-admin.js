@@ -19,7 +19,7 @@ function adminView(){
   <p class="note" style="padding-top:14px">通報された書き込みの確認と削除ができます。サーバーに設定した<b>管理用の合言葉（ADMIN_TOKEN）</b>を入れてください。アプリや背面タップ用の合言葉（APP_TOKEN）では入れません。合言葉はこの端末にだけ保存されます。</p>
   <div class="cform" style="padding:0 16px"><label>管理用の合言葉<input type="password" id="adm-tok" value="${esc(tok)}" autocomplete="off"></label></div>
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
-  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button></div>
+  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="quota" aria-pressed="${admTab==='quota'}">使用量</button><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button></div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
   document.getElementById('adm-save').onclick=()=>{try{sessionStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
@@ -75,6 +75,8 @@ function adminView(){
         el.querySelectorAll('[data-cst]').forEach(b=>b.onclick=()=>{sessionStorage.setItem('pcadmct',b.dataset.cst);load()});
         el.querySelectorAll('[data-cdone]').forEach(b=>b.onclick=async()=>{const note=await askText('対応のメモ（任意）','メモ');if(note===null)return;act(()=>apost('/api/admin/contacts',{id:+b.dataset.cdone,st:'done',note:note||''}),'対応済みにしました')});
         el.querySelectorAll('[data-cnew]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/contacts',{id:+b.dataset.cnew,st:'new'}),'未対応に戻しました'));
+      }else if(admTab==='quota'){
+        const j=await aget('/api/admin/quota');el.innerHTML=quotaHTML(j);
       }else if(admTab==='hits'){
         const j=await aget('/api/admin/hits?days=30');el.innerHTML=hitsHTML(j.rows);
       }else if(admTab==='season'){
@@ -179,3 +181,26 @@ function adminView(){
 }
 
 
+
+/* 使用量（2026/11/05）：無料枠の目安と、今日・7日間の使い方。8割を超えたら赤 */
+function quotaHTML(j){
+  const d=j.days||{},td=d[j.today]||{req:0,ai:0,ai_ng:0,visit:0,view:0};
+  const MB=b=>b==null?'—':b>=1e9?(b/1e9).toFixed(2)+' GB':(b/1e6).toFixed(1)+' MB';
+  const bar=(label,v,max,unit,note)=>{const p=max?Math.min(100,v/max*100):0,c=p>=80?'var(--w4)':p>=50?'var(--w2)':'var(--accf)';
+    return `<div class="qt"><div class="qt-h"><b>${label}</b><span class="num">${unit(v)} / ${unit(max)}</span></div><div class="qt-b"><i style="width:${p.toFixed(1)}%;background:${c}"></i></div>${note?`<p>${note}</p>`:''}</div>`};
+  const n=v=>Math.round(v).toLocaleString();
+  const days=Object.keys(d).sort();
+  const dbB=j.db_bytes,medD1=j.media?j.media.d1:0;
+  return `<p class="note" style="padding-top:0">無料で使える量の目安と比べています。赤くなったら、有料プランへの切りかえ（月数百円〜）か、使い方の見直しを考えます。</p>
+  <div class="pc-i pc-plan">
+    ${bar('サーバーへのアクセス（今日・見積もり）',td.req,100000,n,'Cloudflare Workers の無料枠は1日10万回。20回に1回だけ数えて見積もっています（この表は日本時間の0時、Cloudflare の数え直しは朝9時）。')}
+    ${bar('データベースの大きさ',dbB||0,5e9,MB,'Cloudflare D1 の無料枠は5GB。'+(j.r2?'':'画像もここに入っているので、画像が増えたら R2（画像の保存場所）に移します。'))}
+    ${j.r2?bar('画像の保存場所（R2）',j.media.r2||0,1e10,MB,'R2 の無料枠は10GB。'):`<div class="qt"><div class="qt-h"><b>画像（データベースの中）</b><span class="num">${MB(medD1)}・${n(j.media?j.media.n:0)}枚</span></div></div>`}
+    <div class="qt"><div class="qt-h"><b>AI（Gemini）を呼んだ回数（今日）</b><span class="num">${n(td.ai)}回</span></div>
+      <p>${td.ai_ng?`<b style="color:var(--w4)">混雑・回数制限で断られた：${n(td.ai_ng)}回</b>。続くようなら、Google AI Studio で有料の枠に切りかえるか、もう1つの AI（Claude）の合言葉を設定します。`:'今日は断られていません。'}無料枠の回数はモデル・時期で変わるため、正確な上限は Google AI Studio の画面で確かめます。${j.ai2?'もう1つの AI（Claude）も設定済み。':''}</p></div>
+  </div>
+  <div class="sec"><h2>今日の使われ方</h2></div>
+  <div class="pc-i pc-plan"><p>訪問 <b class="num">${n(td.visit)}</b>・画面の表示 <b class="num">${n(td.view)}</b>・投稿 <b class="num">${n(j.notes)}</b>（24時間）・スクショ読み取り <b class="num">${n(j.opp_reads)}</b>・対戦の振り返り <b class="num">${n(j.replay_reads)}</b>・登録した人 <b class="num">${n(j.users||0)}</b></p></div>
+  <div class="sec"><h2>7日間</h2></div>
+  <div class="qt-t"><table><tr><th>日付</th><th>アクセス</th><th>AI</th><th>断られた</th><th>訪問</th></tr>${days.map(k=>`<tr><td>${k.slice(5)}</td><td class="num">${n(d[k].req)}</td><td class="num">${n(d[k].ai)}</td><td class="num">${n(d[k].ai_ng)}</td><td class="num">${n(d[k].visit)}</td></tr>`).join('')||'<tr><td colspan="5">まだ記録がありません</td></tr>'}</table></div>`;
+}

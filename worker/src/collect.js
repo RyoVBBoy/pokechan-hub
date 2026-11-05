@@ -63,6 +63,7 @@ async function gemText(env,body,fast){
     /* fast：考える時間（thinking）を使わない（2.5 Flash のとき） */
     const bd=fast&&/gemini-2\.5-flash/.test(m)?{...body,generationConfig:{...(body.generationConfig||{}),thinkingConfig:{thinkingBudget:0}}}:body;
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},body:JSON.stringify(bd)});
+    await aiTick(env,r.status);
     if(r.ok){const j=await r.json();const c=(j.candidates||[])[0]||{};return{text:(c.content&&c.content.parts||[]).map(p=>p.text||'').join(''),meta:c.groundingMetadata||null}}
     const t=await r.text();try{last=JSON.parse(t).error.message}catch(e){last=t}
     if(![404,429,500,502,503,504,524].includes(r.status))throw new Error(`Gemini ${r.status} ${String(last).slice(0,80)}`);

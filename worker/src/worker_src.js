@@ -121,6 +121,7 @@ async function askGemini(env,buf,mt){
     try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',signal:ctl.signal,
       headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mt,data}},{text:PROMPT}]}],generationConfig:gc})});
+      await aiTick(env,r.status);
       /* thinking の設定を受け付けないモデルなら、設定なしでもう一度 */
       if(r.status===400&&!noThink&&gc.thinkingConfig){const t=await r.clone().text();if(/thinking/i.test(t))return call(m,true)}
       return r}
@@ -345,7 +346,8 @@ export default{
   /* すべての返事にセキュリティの見出しを付け、呼び出してよいサイトを限る（2026/11/05 セキュリティ対策） */
   async fetch(req,env,ctx){
     let res;
-    try{res=await this.handle(req,env,ctx)}catch(e){res=new Response(JSON.stringify({error:'サーバーでエラーが起きました。'}),{status:500,headers:{'Content-Type':'application/json; charset=utf-8'}})}
+    if(Math.random()<.05&&ctx&&ctx.waitUntil)ctx.waitUntil(useTick(env,'_req',20));
+    try{res=await this.handle(req,env,ctx)}catch(e){if(env&&env.DEBUG_ERR)console.error(e);res=new Response(JSON.stringify({error:'サーバーでエラーが起きました。'}),{status:500,headers:{'Content-Type':'application/json; charset=utf-8'}})}
     return secureRes(res,req,env);
   },
   async handle(req,env,ctx){

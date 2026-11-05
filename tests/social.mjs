@@ -302,6 +302,10 @@ r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{team
 r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{name:'x'.repeat(40000),team:[]}]},updated_at:clock+1}});expect('パーティ：名前は20文字に切る',r[0]===200,r);
 await call('/api/me/delete',{method:'POST',tok:A,body:{}});r=await call('/api/me/teams',{tok:A});expect('パーティ：アカウント削除で消える',r[1].teams===null,r);
 Date.now=realNow;
+/* 使用量（2026/11/05）：AI を呼んだ回数・断られた回数が数えられ、管理者だけが見られる */
+r=await call('/api/admin/quota');expect('使用量は管理者だけ',r[0]===401,r);
+r=await call('/api/admin/quota',{admin:'admin-secret-123'});
+{const d=r[1].days&&r[1].days[r[1].today]||{};expect('使用量：AIの回数と断られた回数',r[0]===200&&d.ai>=1&&d.ai_ng>=1&&typeof r[1].opp_reads==='number',r[1]);}
 /* セキュリティ対策（2026/11/05）：管理用の合言葉の総当たり。同じ接続元から8回まちがえると、正しい合言葉でも1時間止まる。ほかの接続元は使える */
 for(let i=0;i<8;i++)await call('/api/admin/banned',{admin:'wrong-token-'+i,ip:'198.51.100.7'});
 r=await call('/api/admin/banned',{admin:'admin-secret-123',ip:'198.51.100.7'});expect('合言葉の総当たりで止まる',r[0]===429,r);
