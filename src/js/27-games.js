@@ -185,6 +185,37 @@ function calcVerBind(R,draw){
 /* スマホの下のメニュー：選んでいるタブの丸い下地を1つにして、タブを切りかえると横にすべって動く（2026/11/03 依頼主の要望）。
    動いている間だけ少し横にのびて、止まるときに元の形に戻る */
 let TBPILL_X=null;
+/* スマホの下のメニューの「ぷよん」とした動き（2026/11/05 依頼主の動画＝新しい iPhone のメニューを再現）。
+   ばねの計算で、横の動き・ふくらみ・メニュー全体の大きさを1コマ（1/60秒）ずつ作る：
+   ・押すと濃い下地が、少し明るい透明なレンズ（ガラスの玉）に0.06秒でとけるように変わり、横長にふくらむ
+   ・ばね（少し行き過ぎて戻る）で目的のタブへ。速く動くほど横にのび、縦にちぢむ（ゼリーのように）
+   ・着くと、ふくらみが弾むように（ちぢむ→少しふくらむ→落ちつく）元の大きさへ。その終わりに濃い下地へゆっくりもどる
+   ・メニュー全体も押したときに少しふくらみ、最後にぷよんと元にもどる */
+const springAt=(t,z,w)=>{if(t<=0)return 0;const wd=w*Math.sqrt(1-z*z);return 1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t))};
+function tbJelly(nv,p,from,x){
+  let L=nv.querySelector('.tb-lens');
+  if(!L){L=document.createElement('i');L.className='tb-lens';L.setAttribute('aria-hidden','true');nv.appendChild(L)}
+  L.style.width=p.style.width;
+  const dt=1/60,T=.72,n=Math.round(T/dt),d=x-from,SX=1.22,SY=1.2,arrive=.19;
+  const kp=[],kl=[],kb=[];let prev=from;
+  for(let i=0;i<=n;i++){
+    const t=i*dt;
+    const pos=from+d*springAt(t-.02,.68,20);                 /* 横の動き：少しだけ行き過ぎて戻る */
+    const v=Math.abs(pos-prev)/dt;prev=pos;                   /* 速さ（1秒あたりのpx） */
+    const grow=Math.min(1,t/.06);                             /* 押してすぐふくらむ */
+    const rel=t<arrive?0:springAt(t-arrive,.38,26);           /* 着いてから元の大きさへ（弾む） */
+    let sx=1+(SX-1)*grow*(1-rel),sy=1+(SY-1)*grow*(1-rel);
+    const st=Math.min(.16,v/9000);sx+=st;sy-=st*.8;           /* 速く動くほど横にのびる */
+    const tr=`translateX(${pos.toFixed(2)}px) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+    const lo=t<.06?t/.06:t<.36?1:Math.max(0,1-(t-.36)/.16);   /* レンズの見え方：0.36秒から0.16秒かけて濃い下地へ */
+    kp.push({transform:tr,opacity:1-lo});kl.push({transform:tr,opacity:lo});
+    const bs=1+.045*Math.min(1,t/.08)*(t<.3?1:1-springAt(t-.3,.42,30));
+    kb.push({transform:`scale(${bs.toFixed(4)})`});
+  }
+  p.animate(kp,{duration:T*1000,easing:'linear'});L.animate(kl,{duration:T*1000,easing:'linear'});
+  const bar=nv.closest('.tabbar');if(bar)bar.animate(kb,{duration:T*1000,easing:'linear'});
+}
+
 function moveTbPill(anim=true){
   const nv=document.getElementById('nav');if(!nv)return;
   let p=nv.querySelector('.tb-pill');
@@ -198,20 +229,7 @@ function moveTbPill(anim=true){
   const x=a.offsetLeft+a.offsetWidth/2-p.offsetWidth/2;
   const from=TBPILL_X;TBPILL_X=x;p.style.opacity='1';p.style.transform=`translateX(${x}px)`;
   if(!anim||from===null||from===x||reduceMotion||!p.animate)return;
-  if(big){
-    /* 依頼主の動画（新しい iPhone のメニュー）をコマ送りで測った動き。押してから：
-       0〜0.02秒 下地がふくらむ・メニュー全体も4%ふくらむ
-       〜0.19秒 目的のタブまで滑る（はじめ速く、着く前にゆるむ）
-       〜0.41秒 着いてからゆっくり元の大きさに縮む（ここが「柔らかさ」）
-       〜0.47秒 メニュー全体が元の大きさにもどる */
-    /* 2026/11/05 依頼主：動いているあいだと止まったときで色を変えない（レンズへの切りかえはやめ、同じ濃い下地のまま動かす） */
-    const D=470,sx=1.24,sy=1.14,slide='cubic-bezier(.35,.55,.35,1)',settle='cubic-bezier(.42,0,.3,1)';
-    p.animate([{offset:0,transform:`translateX(${from}px)`,easing:'ease-out'},{offset:.045,transform:`translateX(${from}px) scale(${sx},${sy})`,easing:slide},
-      {offset:.4,transform:`translateX(${x}px) scale(${sx},${sy})`,easing:settle},{offset:.88,transform:`translateX(${x}px)`},{offset:1,transform:`translateX(${x}px)`}],{duration:D});
-    const bar=nv.closest('.tabbar');
-    if(bar)bar.animate([{transform:'scale(1)',easing:'ease-out'},{transform:'scale(1.04)',offset:.12},{transform:'scale(1.04)',offset:.84,easing:'ease-in-out'},{transform:'scale(1)'}],{duration:D});
-    return;
-  }
+  if(big){tbJelly(nv,p,from,x);return}
   const mid=(from+x)/2,st=1+Math.min(.5,Math.abs(x-from)/400);
   p.animate([{transform:`translateX(${from}px)`},{transform:`translateX(${mid}px) scaleX(${st}) scaleY(.92)`,offset:.45},{transform:`translateX(${x}px)`}],
     {duration:420,easing:'cubic-bezier(.25,.8,.25,1)'});

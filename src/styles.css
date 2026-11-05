@@ -1355,29 +1355,29 @@ body::before{inset:0;background:
 /* ===================== 下のメニューを新しい iPhone のガラスの形に（2026/11/05 依頼主の動画） =====================
    ・メニューは色をほとんど付けない透明なガラス（後ろがよく見える）＋ふちに光の線（左上と右下が明るい）
    ・選んでいるタブはタブの幅いっぱいの濃い丸い下地。切りかえるあいだは透明なレンズになって少しふくらみ、ふちが虹色に光る（27-games.js の moveTbPill） */
-:root{--lg-bar:rgba(120,120,130,.22);--lg-sel:rgba(0,0,0,.45);--lg-rim1:rgba(255,255,255,.5);--lg-rim2:rgba(255,255,255,.06)}
-:root[data-theme=light]{--lg-bar:rgba(255,255,255,.42);--lg-sel:rgba(20,22,40,.09);--lg-rim1:rgba(255,255,255,.95);--lg-rim2:rgba(255,255,255,.3)}
+:root{--lg-bar:rgba(96,96,104,.46);--lg-sel:rgba(0,0,0,.42);--lg-rim1:rgba(255,255,255,.55);--lg-rim2:rgba(255,255,255,.08)}
+:root[data-theme=light]{--lg-bar:rgba(255,255,255,.58);--lg-sel:rgba(20,22,40,.1);--lg-rim1:rgba(255,255,255,.95);--lg-rim2:rgba(255,255,255,.3)}
 @media(max-width:699px){
-  .tabbar{background:var(--lg-bar)!important;-webkit-backdrop-filter:blur(16px) saturate(190%) brightness(1.06)!important;backdrop-filter:blur(16px) saturate(190%) brightness(1.06)!important;
+  .tabbar{background:var(--lg-bar)!important;-webkit-backdrop-filter:blur(22px) saturate(180%)!important;backdrop-filter:blur(22px) saturate(180%)!important;
     border:0!important;border-radius:31px;box-shadow:0 10px 28px rgba(0,0,0,.32)!important}
   [data-theme=light] .tabbar{box-shadow:0 10px 28px rgba(30,32,60,.14)!important}
   .tabbar::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;z-index:2;
     background:linear-gradient(135deg,var(--lg-rim1),var(--lg-rim2) 32%,var(--lg-rim2) 68%,var(--lg-rim1));
     -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
-  .tabbar::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 50%)}
+  .tabbar::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 45%,rgba(0,0,0,.08));
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.22),inset 0 -1px 2px rgba(0,0,0,.25),inset 0 0 14px rgba(255,255,255,.05)}
   .tb{position:relative;z-index:1}
   .tb-pill{top:4px!important;height:54px!important;border-radius:27px!important;background:var(--lg-sel)!important;
     transition:opacity .2s,background .25s,box-shadow .25s;transform-origin:center}
   /* 動いているあいだのレンズ（濃い下地とは別の部品。moveTbPill が重ねて動かす） */
-  .tb-lens{display:block;position:absolute;top:4px;left:0;height:54px;border-radius:27px;pointer-events:none;opacity:0;z-index:0;will-change:transform,opacity;background:rgba(255,255,255,.06)!important;
-    -webkit-backdrop-filter:brightness(1.25) saturate(1.7) contrast(1.05);backdrop-filter:brightness(1.25) saturate(1.7) contrast(1.05);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),inset 1px 2px 4px rgba(255,255,255,.18),
-      inset 3px 0 4px -2px rgba(255,90,180,.28),inset -3px 0 4px -2px rgba(80,200,255,.28),inset 0 -2px 4px -2px rgba(255,220,90,.22),
-      0 4px 12px rgba(0,0,0,.22)}
-  [data-theme=light] .tb-lens{background:rgba(255,255,255,.35)!important}
+  .tb-lens{display:block;position:absolute;top:4px;left:0;height:54px;border-radius:27px;pointer-events:none;opacity:0;z-index:0;will-change:transform,opacity;
+    background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 55%,rgba(255,255,255,.1));
+    -webkit-backdrop-filter:blur(2px) brightness(1.18) saturate(1.5);backdrop-filter:blur(2px) brightness(1.18) saturate(1.5);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),inset 0 1.5px 2px rgba(255,255,255,.35),inset 0 -2px 4px rgba(255,255,255,.12),
+      inset 3px 0 4px -3px rgba(255,120,190,.35),inset -3px 0 4px -3px rgba(110,210,255,.35),0 6px 16px rgba(0,0,0,.25)}
+  [data-theme=light] .tb-lens{background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,.35));box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),inset 3px 0 4px -3px rgba(255,120,190,.35),inset -3px 0 4px -3px rgba(110,210,255,.35),0 6px 16px rgba(30,32,60,.15)}
 }
 @media(max-width:699px){
   /* ガラスの後ろが見えるよう、下をふさぐ部分はメニューより下のすき間だけにする */
   body::after{height:calc(env(safe-area-inset-bottom) + 12px)!important;background:linear-gradient(to bottom,transparent,var(--bg) 8px)!important}
-  :root[data-theme=light]{--lg-bar:rgba(255,255,255,.3)}
 }
