@@ -1372,7 +1372,6 @@ body::before{inset:0;background:
   /* 動いているあいだのレンズ（濃い下地とは別の部品。moveTbPill が重ねて動かす） */
   .tb-lens{display:block;position:absolute;top:4px;left:0;height:54px;border-radius:27px;pointer-events:none;opacity:0;z-index:0;will-change:transform,opacity;
     background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 55%,rgba(255,255,255,.1));
-    -webkit-backdrop-filter:blur(2px) brightness(1.18) saturate(1.5);backdrop-filter:blur(2px) brightness(1.18) saturate(1.5);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),inset 0 1.5px 2px rgba(255,255,255,.35),inset 0 -2px 4px rgba(255,255,255,.12),
       inset 3px 0 4px -3px rgba(255,120,190,.35),inset -3px 0 4px -3px rgba(110,210,255,.35),0 6px 16px rgba(0,0,0,.25)}
   [data-theme=light] .tb-lens{background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,.35));box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),inset 3px 0 4px -3px rgba(255,120,190,.35),inset -3px 0 4px -3px rgba(110,210,255,.35),0 6px 16px rgba(30,32,60,.15)}
@@ -1380,4 +1379,21 @@ body::before{inset:0;background:
 @media(max-width:699px){
   /* ガラスの後ろが見えるよう、下をふさぐ部分はメニューより下のすき間だけにする */
   body::after{height:calc(env(safe-area-inset-bottom) + 12px)!important;background:linear-gradient(to bottom,transparent,var(--bg) 8px)!important}
+}
+
+/* ===================== 下のメニューの虹色の光・アイコンの強弱（2026/11/05 依頼主の仕様） =====================
+   ・虹色のふち（.fl-ring）：虹の7色を円のまわりに並べた色（conic-gradient）を、ふちの細い線の形だけ切りぬいて表示。色の向きは回り続ける（--fa）
+   ・外にもれる光（.fl-glow）：同じ虹色を大きくぼかして、ふちの外側にうっすらはみ出させる（mix-blend-mode:screen＝重なると明るくなる）
+   ・どちらも透明度は moveTbPill→tbJelly が1コマずつ決める（動き出しで少し・着いた瞬間に最大・直後にちらちら・消える）
+   ・選んでいるアイコンは少し大きく、ほかは少しうすく */
+@property --fa{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes flspin{to{--fa:360deg}}
+@media(max-width:699px){
+  .tb-lens .fl-ring,.tb-lens .fl-glow{position:absolute;border-radius:inherit;pointer-events:none;opacity:0;
+    background:conic-gradient(from var(--fa),#ff4d6d,#ffb84d,#fff35c,#5dff9b,#4de1ff,#6d7bff,#c86dff,#ff4d6d);animation:flspin 1.1s linear infinite}
+  .tb-lens .fl-ring{inset:0;padding:1.3px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  .tb-lens .fl-glow{inset:-5px;filter:blur(7px);mix-blend-mode:screen;-webkit-mask:radial-gradient(closest-side,transparent 62%,#000 78%,transparent 100%);mask:radial-gradient(closest-side,transparent 62%,#000 78%,transparent 100%)}
+  .tb svg,.tb span{transition:opacity .25s,transform .35s cubic-bezier(.34,1.56,.64,1)}
+  .tb:not([aria-current=page]) svg,.tb:not([aria-current=page]) span{opacity:.62}
+  .tb[aria-current=page] svg{transform:scale(1.1)}
 }

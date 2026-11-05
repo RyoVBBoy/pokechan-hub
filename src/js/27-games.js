@@ -194,26 +194,35 @@ let TBPILL_X=null;
 const springAt=(t,z,w)=>{if(t<=0)return 0;const wd=w*Math.sqrt(1-z*z);return 1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t))};
 function tbJelly(nv,p,from,x){
   let L=nv.querySelector('.tb-lens');
-  if(!L){L=document.createElement('i');L.className='tb-lens';L.setAttribute('aria-hidden','true');nv.appendChild(L)}
+  if(!L){L=document.createElement('i');L.className='tb-lens';L.setAttribute('aria-hidden','true');
+    /* 虹色のふち（fl-ring）と、外にもれる虹色の光（fl-glow） */
+    L.innerHTML='<b class="fl-glow"></b><b class="fl-ring"></b>';nv.appendChild(L)}
   L.style.width=p.style.width;
-  const dt=1/60,T=.72,n=Math.round(T/dt),d=x-from,SX=1.22,SY=1.2,arrive=.19;
-  const kp=[],kl=[],kb=[];let prev=from;
+  const dt=1/60,T=.8,n=Math.round(T/dt),d=x-from,SX=1.22,SY=1.2,arrive=.19;
+  /* 終わりの0.14秒で、ばねの残りのゆれをなめらかに0にする（最後にカクッと止まらないように） */
+  const ease=u=>u*u*(3-2*u),tail=t=>t<T-.14?1:1-ease(Math.min(1,(t-(T-.14))/.14));
+  const kp=[],kl=[],kb=[],kr=[],kg=[];let prev=from;
   for(let i=0;i<=n;i++){
-    const t=i*dt;
-    const pos=from+d*springAt(t-.02,.68,20);                 /* 横の動き：少しだけ行き過ぎて戻る */
-    const v=Math.abs(pos-prev)/dt;prev=pos;                   /* 速さ（1秒あたりのpx） */
-    const grow=Math.min(1,t/.06);                             /* 押してすぐふくらむ */
-    const rel=t<arrive?0:springAt(t-arrive,.38,26);           /* 着いてから元の大きさへ（弾む） */
+    const t=i*dt,k=tail(t);
+    const pos=x+(from+d*springAt(t-.02,.68,20)-x)*k;
+    const v=Math.abs(pos-prev)/dt;prev=pos;
+    const grow=Math.min(1,t/.06),rel=t<arrive?0:springAt(t-arrive,.38,26);
     let sx=1+(SX-1)*grow*(1-rel),sy=1+(SY-1)*grow*(1-rel);
-    const st=Math.min(.16,v/9000);sx+=st;sy-=st*.8;           /* 速く動くほど横にのびる */
-    const tr=`translateX(${pos.toFixed(2)}px) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
-    const lo=t<.06?t/.06:t<.36?1:Math.max(0,1-(t-.36)/.16);   /* レンズの見え方：0.36秒から0.16秒かけて濃い下地へ */
+    const st=Math.min(.16,v/9000);sx+=st;sy-=st*.8;
+    sx=1+(sx-1)*k;sy=1+(sy-1)*k;
+    const tr=`translate3d(${pos.toFixed(2)}px,0,0) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+    const lo=t<.06?t/.06:t<.36?1:Math.max(0,1-ease(Math.min(1,(t-.36)/.18)));
     kp.push({transform:tr,opacity:1-lo});kl.push({transform:tr,opacity:lo});
+    /* 虹色の光：動き出しで少し、着いた瞬間にいちばん強く。着いた直後はちらちら（グリッチ風）して消える */
+    const fl=t<.05?t/.05*.55:t<arrive-.03?.4+.6*(t-.05)/(arrive-.08):t<arrive+.1?[1,.35,.9,.25,.8,.3][Math.floor((t-arrive+.03)/.022)%6]:Math.max(0,.6-(t-arrive-.1)*5);
+    kr.push({opacity:Math.min(1,fl)*.7});kg.push({opacity:Math.min(1,fl)*.6,transform:`scale(${(1+.12*fl).toFixed(3)})`});
     const bs=1+.045*Math.min(1,t/.08)*(t<.3?1:1-springAt(t-.3,.42,30));
-    kb.push({transform:`scale(${bs.toFixed(4)})`});
+    kb.push({transform:`scale(${(1+(bs-1)*k).toFixed(4)})`});
   }
-  p.animate(kp,{duration:T*1000,easing:'linear'});L.animate(kl,{duration:T*1000,easing:'linear'});
-  const bar=nv.closest('.tabbar');if(bar)bar.animate(kb,{duration:T*1000,easing:'linear'});
+  const o={duration:T*1000,easing:'linear'};
+  p.animate(kp,o);L.animate(kl,o);
+  const r=L.querySelector('.fl-ring'),g=L.querySelector('.fl-glow');if(r)r.animate(kr,o);if(g)g.animate(kg,o);
+  const bar=nv.closest('.tabbar');if(bar)bar.animate(kb,o);
 }
 
 function moveTbPill(anim=true){
