@@ -3,3 +3,4 @@ dist/
 worker/dist/
 wrangler.toml
 .DS_Store
+out/

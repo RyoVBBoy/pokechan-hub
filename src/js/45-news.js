@@ -10,7 +10,7 @@ async function newsView(a){
     <div id="nw-list"><p class="empty">読み込み中…</p></div>`;
   try{const r=await fetch(COMM_API+'/api/news'+(cat?'?cat='+encodeURIComponent(cat):''));const j=await r.json();if(keyOf(cur)!=='news')return;
     const el=document.getElementById('nw-list');
-    el.innerHTML=j.items&&j.items.length?j.items.map(x=>`<a class="row nw-r" href="${esc(x.url)}" target="_blank" rel="noopener nofollow"><div class="row-m"><div class="row-s">${x.cat?`<span class="atag on">${esc(x.cat)}</span>`:'<span class="atag">お知らせ</span>'}${x.date?` ${esc(x.date.replace(/-/g,'/'))}`:''}</div><div class="row-t" data-notr>${esc(x.title)}</div><div class="row-s">公式サイトで読む ↗</div></div></a>`).join('')
+    el.innerHTML=j.items&&j.items.length?j.items.map(x=>`<a class="row nw-r" href="${esc(safeUrl(x.url))}" target="_blank" rel="noopener nofollow"><div class="row-m"><div class="row-s">${x.cat?`<span class="atag on">${esc(x.cat)}</span>`:'<span class="atag">お知らせ</span>'}${x.date?` ${esc(x.date.replace(/-/g,'/'))}`:''}</div><div class="row-t" data-notr>${esc(x.title)}</div><div class="row-s">公式サイトで読む ↗</div></div></a>`).join('')
       :`<p class="empty">${cat?`「${cat}」のお知らせは、まだ見つかっていません。`:'まだお知らせが見つかっていません。'}</p>`}
   catch(e){const el=document.getElementById('nw-list');if(el)el.innerHTML='<p class="empty">読み込めませんでした。通信できる環境で開き直してください。</p>'}
 }

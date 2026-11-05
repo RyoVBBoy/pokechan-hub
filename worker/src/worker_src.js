@@ -306,6 +306,26 @@ async function fromImage(buf,teamNos,env,ctx,opts){
   return top+'\n'+formatOpp(opps,mine,sc)+tail;
 }
 __COMMUNITY__
+/* 呼び出してよいサイト：本番（pokechan-hub.pages.dev）とその試し公開（〇〇.pokechan-hub.pages.dev）・手元の確認用。ほかは ALLOWED_ORIGINS（カンマ区切り）で足せる */
+const ORIGIN_OK=(o,env)=>!!o&&(/^https:\/\/([a-z0-9-]+\.)?pokechan-hub\.pages\.dev$/.test(o)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)||String(env.ALLOWED_ORIGINS||'').split(',').map(s=>s.trim()).filter(Boolean).includes(o));
+async function tokEq(a,b){const enc=new TextEncoder(),h=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(String(s))));const x=await h(a),y=await h(b);let d=0;for(let i=0;i<x.length;i++)d|=x[i]^y[i];return d===0&&String(a).length===String(b).length}
+function secureRes(res,req,env){
+  const r=new Response(res.body,res),h=r.headers,u=new URL(req.url),media=u.pathname.startsWith('/m/');
+  const o=req.headers.get('origin');
+  h.delete('Access-Control-Allow-Origin');
+  if(ORIGIN_OK(o,env)){h.set('Access-Control-Allow-Origin',o);h.set('Access-Control-Max-Age','600')}
+  else if(media)h.set('Access-Control-Allow-Origin','*');   /* 画像は公開してよいもの（非表示のものはそもそも返さない） */
+  h.append('Vary','Origin');
+  h.set('X-Content-Type-Options','nosniff');
+  h.set('X-Frame-Options','DENY');
+  h.set('Referrer-Policy','no-referrer');
+  h.set('Strict-Transport-Security','max-age=63072000; includeSubDomains');
+  h.set('Cross-Origin-Resource-Policy',media?'cross-origin':'same-site');
+  h.set('Content-Security-Policy',media?"default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox; frame-ancestors 'none'":"default-src 'none'; frame-ancestors 'none'; sandbox");
+  h.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  if(media&&!h.get('Content-Disposition'))h.set('Content-Disposition','inline');
+  return r;
+}
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-App-Token,X-Team,X-Admin-Token,Authorization'};
 export default{
   /* 毎日1回（wrangler.toml の crons）：上位パーティの自動集計 */
@@ -315,13 +335,21 @@ export default{
     ctx.waitUntil(newsCron(env));
     /* ランキングbot：毎朝の公開で作った tier.json を読み、1日1回（10:47 の回から）投稿する */
     ctx.waitUntil(rankCron(env))},
+  /* すべての返事にセキュリティの見出しを付け、呼び出してよいサイトを限る（2026/11/05 セキュリティ対策） */
   async fetch(req,env,ctx){
-    if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
+    let res;
+    try{res=await this.handle(req,env,ctx)}catch(e){res=new Response(JSON.stringify({error:'サーバーでエラーが起きました。'}),{status:500,headers:{'Content-Type':'application/json; charset=utf-8'}})}
+    return secureRes(res,req,env);
+  },
+  async handle(req,env,ctx){
+    if(req.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
     const u=new URL(req.url);let text=u.searchParams.get('text')||'',team=u.searchParams.get('team')||req.headers.get('x-team')||'',mode=u.searchParams.get('mode')||'';
     const H={...CORS,'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'};
     if(u.pathname.startsWith('/m/')&&req.method==='GET')return mediaGet(req,env,u.pathname.slice(3));
     if(u.pathname.startsWith('/api/'))return api(req,env,u,ctx);
-    if(req.method==='POST'&&env.APP_TOKEN&&(req.headers.get('x-app-token')||u.searchParams.get('token'))!==env.APP_TOKEN)return new Response('合言葉（APP_TOKEN）が違います。',{status:401,headers:H});
+    /* 背面タップ連携（2026/10/31 に削除済み）の受け口は閉じる。AI の読み取りを外から使われないようにするため（LEGACY_TAP=1 のときだけ開く） */
+    if(req.method==='POST'&&env.LEGACY_TAP!=='1')return new Response('この受け口は終了しました。',{status:410,headers:H});
+    if(req.method==='POST'&&env.APP_TOKEN&&!(await tokEq(req.headers.get('x-app-token')||'',env.APP_TOKEN)))return new Response('合言葉（APP_TOKEN）が違います。',{status:401,headers:H});
     if(req.method==='POST'){const ct=req.headers.get('content-type')||'';
       /* 画像そのものが送られてきた場合 */
       if(/^image\/|octet-stream/.test(ct)||(!ct.includes('json')&&!ct.includes('form')&&!ct.includes('text'))){

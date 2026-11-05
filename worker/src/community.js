@@ -58,7 +58,16 @@ async function api(req,env,u,ctx){
   const ip=req.headers.get('cf-connecting-ip')||'0.0.0.0',path=u.pathname.replace(/\/+$/,''),now=Date.now();
   /* 管理者は ADMIN_TOKEN（利用者に配る APP_TOKEN とは別）。未設定なら管理機能は使えない */
   const adminTok=req.headers.get('x-admin-token')||'';
-  const isAdmin=!!env.ADMIN_TOKEN&&String(env.ADMIN_TOKEN).length>=12&&adminTok.length===String(env.ADMIN_TOKEN).length&&await sha(adminTok)===await sha(String(env.ADMIN_TOKEN));
+  let isAdmin=!!env.ADMIN_TOKEN&&String(env.ADMIN_TOKEN).length>=12&&adminTok.length===String(env.ADMIN_TOKEN).length&&await sha(adminTok)===await sha(String(env.ADMIN_TOKEN));
+  /* 管理用の合言葉の総当たりを止める（2026/11/05 セキュリティ対策）：同じ接続元から1時間に8回まちがえると、1時間は正しい合言葉でも管理機能を使えない */
+  if(adminTok||path.startsWith('/api/admin')){
+    const who=(await sha(ip+'|adm|'+(env.ADMIN_TOKEN||'')+'|'+(env.APP_TOKEN||''))).slice(0,24);
+    await db.prepare(`CREATE TABLE IF NOT EXISTS sec_fail(who TEXT,at INTEGER)`).run();
+    const f=await db.prepare(`SELECT COUNT(*) AS n FROM sec_fail WHERE who=? AND at>?`).bind(who,now-3600e3).first();
+    if(f&&f.n>=8){if(path.startsWith('/api/admin'))return J({error:'管理用の合言葉を何度もまちがえたため、1時間止めています。'},429);isAdmin=false}
+    else if(adminTok&&!isAdmin){await db.prepare(`INSERT INTO sec_fail(who,at) VALUES(?,?)`).bind(who,now).run();
+      if(Math.random()<.05)await db.prepare(`DELETE FROM sec_fail WHERE at<?`).bind(now-864e5).run()}
+  }
   /* 画像は JSON ではなく中身そのものを受け取るので、先に分ける（media.js） */
   if(path==='/api/media'&&req.method==='POST')return mediaUpload(req,env,db,now);
   /* 選出画面のスクショから相手の6匹を読む（worker_src.js の oppReadApi） */
@@ -68,7 +77,9 @@ async function api(req,env,u,ctx){
   {const r=await usageApi(req,env,db,path,now);if(r)return r}
   {const r=await hitsApi(req,env,db,path,now,isAdmin);if(r)return r}
   {const r=await newsApi(req,env,db,path,now,isAdmin);if(r)return r}
-  let body={};if(req.method==='POST'){const t=await req.text();if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
+  /* 送られてくる中身の大きさの上限（画像・振り返りは上で別に扱う）。大きすぎるものは読まずに断る */
+  if(req.method==='POST'&&(+req.headers.get('content-length')||0)>262144)return J({error:'送信内容が大きすぎます。'},413);
+  let body={};if(req.method==='POST'){const t=await req.text();if(t.length>262144)return J({error:'送信内容が大きすぎます。'},413);if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
   if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db,env)).catch(()=>{}));
   let m;
   /* タイムライン・フォロー・通知（social.js） */

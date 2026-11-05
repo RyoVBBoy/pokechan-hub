@@ -178,7 +178,7 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  fs.writeFileSync(OUT+'/index.html',idx);
  fs.writeFileSync(OUT+'/404.html',page({rel:'404/',title:`ページが見つかりません｜${SITE}`,desc:'',body:`<div class="sh1"><h1>ページが見つかりません</h1></div><div class="cta"><a class="btn btn-p" href="${SITE_URL}/">ホームへ</a></div>`,crumbs:[['ホーム','']]}).replace(/href="\.\.\/assets/,`href="${SITE_URL}/assets`));
  fs.writeFileSync(OUT+'/.nojekyll','');
- const wk=path.join(ROOT,'worker/dist/worker.js');if(fs.existsSync(wk)){fs.mkdirSync(OUT+'/tools',{recursive:true});fs.copyFileSync(wk,OUT+'/tools/tap-worker.js')}
+ /* サーバーのプログラム（tools/tap-worker.js）は公開しない（2026/11/05 セキュリティ対策。背面タップ連携は削除済み） */
  fs.writeFileSync(OUT+'/robots.txt',`User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
  const today=new Date().toISOString().slice(0,10);
  fs.writeFileSync(OUT+'/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u=>`<url><loc>${SITE_URL}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`);

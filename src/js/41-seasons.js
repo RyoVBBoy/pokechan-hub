@@ -200,4 +200,4 @@ function szVs(t){
 }
 /* 出典のリンク（アドレスの名前だけを出す。リンク先の評価はしない＝nofollow） */
 const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return''}};
-const srcLinks=us=>(us||[]).length?`<div class="sz-src">出典：${us.filter(u=>/^https?:\/\//.test(u)).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener nofollow ugc">${esc(hostOf(u))}</a>`).join('、')}</div>`:'';
+const srcLinks=us=>(us||[]).length?`<div class="sz-src">出典：${us.filter(u=>/^https?:\/\//.test(u)).map(u=>`<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener nofollow ugc">${esc(hostOf(u))}</a>`).join('、')}</div>`:'';

@@ -87,3 +87,6 @@ function askConfirm(o){
     d.querySelector('.xc-ok').onclick=()=>done(true);d.querySelector('.xc-no').onclick=()=>done(false);d.querySelector('.xc-bg').onclick=()=>done(false);
   });
 }
+
+/* 外のアドレスを画面のリンクにするときは https:// のものだけ（javascript: などを入れさせない。2026/11/05 セキュリティ対策） */
+const safeUrl=u=>/^https:\/\/[^\s"'<>]+$/i.test(String(u||''))?String(u):'#';

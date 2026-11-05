@@ -299,4 +299,9 @@ r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{team
 r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{name:'x'.repeat(40000),team:[]}]},updated_at:clock+1}});expect('パーティ：名前は20文字に切る',r[0]===200,r);
 await call('/api/me/delete',{method:'POST',tok:A,body:{}});r=await call('/api/me/teams',{tok:A});expect('パーティ：アカウント削除で消える',r[1].teams===null,r);
 Date.now=realNow;
+/* セキュリティ対策（2026/11/05）：管理用の合言葉の総当たり。同じ接続元から8回まちがえると、正しい合言葉でも1時間止まる。ほかの接続元は使える */
+for(let i=0;i<8;i++)await call('/api/admin/banned',{admin:'wrong-token-'+i,ip:'198.51.100.7'});
+r=await call('/api/admin/banned',{admin:'admin-secret-123',ip:'198.51.100.7'});expect('合言葉の総当たりで止まる',r[0]===429,r);
+r=await call('/api/admin/banned',{admin:'admin-secret-123',ip:'198.51.100.8'});expect('ほかの接続元は管理機能を使える',r[0]===200,r);
+r=await call('/api/me/card',{method:'POST',body:{partner:445}});expect('ログインしないとカードを保存できない',r[0]===401||r[0]===503,r);
 console.log(bad?`social: NG（${bad}件）`:`social: OK（${n}項目）`);if(bad)process.exitCode=1;

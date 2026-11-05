@@ -10,7 +10,8 @@ function admNames(t){
 }
 function adminView(){
   setHeader('管理（運営者用）','#/rules');
-  const tok=(()=>{try{return localStorage.getItem('pcadmin')||''}catch(e){return''}})();
+  /* 管理用の合言葉は、画面（タブ）を閉じると消える場所に置く（2026/11/05 セキュリティ対策：端末にずっと残さない）。前の保存場所からは移して消す */
+  const tok=(()=>{try{const old=localStorage.getItem('pcadmin');if(old){sessionStorage.setItem('pcadmin',old);localStorage.removeItem('pcadmin')}return sessionStorage.getItem('pcadmin')||''}catch(e){return''}})();
   const kindJa={post:'書き込み',note:'タイムライン',thread:'スレッド',lobby:'対戦募集'};
   const aget=async path=>{const r=await fetch(COMM_API+path,{headers:{'X-Admin-Token':tok}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'通信エラー');return j};
   const apost=async(path,body)=>{const r=await fetch(COMM_API+path,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':tok},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'通信エラー');return j};
@@ -20,7 +21,7 @@ function adminView(){
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
   <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button></div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
-  document.getElementById('adm-save').onclick=()=>{try{localStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
+  document.getElementById('adm-save').onclick=()=>{try{sessionStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
   if(!tok)return;
   const el=document.getElementById('adm-list');
@@ -131,14 +132,14 @@ function adminView(){
           try{const c=await aget(`/api/admin/collect?season_id=${sid}&fmt=${fmt}`);
             const stJa={ok:'読めた',err:'読めなかった',new:'まだ',off:'止めた'};
             colBox.innerHTML=`<div class="sec" style="padding-left:0"><h2>出典のページ</h2><span style="font-size:12px;color:var(--dim)">${c.sources.length}</span></div>
-              ${c.sources.map(x=>`<div class="lmeta" style="padding:4px 0"><a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(x.title||hostOf(x.url))}</a>　${x.kind==='found'?'（検索で発見）':''}${stJa[x.status]||''}${x.status==='ok'?` ${x.n}件`:''}${x.err?`<br><span style="color:var(--w2)">${esc(x.err)}</span>`:''}
+              ${c.sources.map(x=>`<div class="lmeta" style="padding:4px 0"><a href="${esc(safeUrl(x.url))}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(x.title||hostOf(x.url))}</a>　${x.kind==='found'?'（検索で発見）':''}${stJa[x.status]||''}${x.status==='ok'?` ${x.n}件`:''}${x.err?`<br><span style="color:var(--w2)">${esc(x.err)}</span>`:''}
                 <button class="bback" data-cdel="${x.id}" style="padding:0 0 0 10px;color:var(--w2)">外す</button></div>`).join('')||'<p class="note" style="padding:0">まだありません。「記事を探す」か、アドレスを貼ってください。</p>'}
               <div class="cform" style="padding:8px 0 0"><label>ページのアドレスを足す<input id="col-u" placeholder="https://…"></label></div>
               <div class="btns" style="padding:8px 0 0;flex-wrap:wrap"><button class="btn btn-s" id="col-add">足す</button><button class="btn btn-s" id="col-find">記事を探す（Google検索）</button><button class="btn btn-p" id="col-run">集めて照らし合わせる</button></div>
               <div id="col-msg"></div>
               <div class="sec" style="padding-left:0"><h2>確認待ち</h2><span style="font-size:12px;color:var(--dim)">出典が1つだけ</span></div>
               ${c.pending.map(g=>`<div class="bpost" style="padding:8px 0"><div class="bpost-h">${g.rank?g.rank+'位':''} ${g.rate?'レート'+g.rate:''} ${esc(g.player||'（名前なし）')}</div>
-                <div class="bpost-b">${g.team.map(x=>byNo[x.no]?esc(byNo[x.no].n):'').join('・')}</div><div class="lmeta">${(g.urls||[]).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(hostOf(u))}</a>`).join('、')}</div>
+                <div class="bpost-b">${g.team.map(x=>byNo[x.no]?esc(byNo[x.no].n):'').join('・')}</div><div class="lmeta">${(g.urls||[]).map(u=>`<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(hostOf(u))}</a>`).join('、')}</div>
                 <div style="display:flex;gap:16px;padding-top:6px"><button class="bback" data-cpub="${esc(g.gkey)}" style="padding:0">確かめたので載せる</button><button class="bback" data-cskip="${esc(g.gkey)}" style="padding:0;color:var(--w2)">載せない</button></div></div>`).join('')||'<p class="note" style="padding:0">ありません。</p>'}`;
             const post=async(path,body,msg)=>{try{const r=await apost(path,{season_id:sid,fmt,...body});toast(msg(r));colLoad()}catch(e){toast(e.message)}};
             document.getElementById('col-add').onclick=()=>post('/api/admin/collect/source',{url:document.getElementById('col-u').value.trim()},()=>'足しました');

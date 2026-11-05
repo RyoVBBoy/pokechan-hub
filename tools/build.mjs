@@ -30,16 +30,50 @@ fs.writeFileSync(path.join(DIST, cssName), css);
 if (!shell.includes('__JS__') || !shell.includes('__CSS__')) throw new Error('src/index.html に __JS__ / __CSS__ がありません');
 fs.writeFileSync(path.join(DIST, 'index.html'), shell.replace('<script src="__JS__"></script>', cfgTag + `<script src="${jsName}"></script>`).replace('__CSS__', cssName));
 
-// 1ファイル版（オフラインで開いて確かめる用・従来の champions-hub.html と同じ形）
+// 1ファイル版（オフラインで開いて確かめる用）。公開しない（中に大きなスクリプトがあり、下のセキュリティの決まりに合わないため）＝ out/ に置く
+fs.mkdirSync(path.join(ROOT, 'out'), { recursive: true });
 const single = shell.replace('<link rel="stylesheet" href="__CSS__">', `<style>${css}</style>`).replace('<script src="__JS__"></script>', cfgTag + `<script>${js}</script>`);
-fs.writeFileSync(path.join(DIST, 'single.html'), single);
+fs.writeFileSync(path.join(ROOT, 'out/single.html'), single);
 
 // src/static の中身（通知の受け取り sw.js・ホーム画面用の manifest とアイコン）はそのまま dist に置く
 const ST = path.join(SRC, 'static');
 if (fs.existsSync(ST)) for (const f of fs.readdirSync(ST)) fs.copyFileSync(path.join(ST, f), path.join(DIST, f));
 
-// _headers（Cloudflare Pages）：ハッシュ付きファイルは長くキャッシュ、HTMLと sw.js は毎回確認
-fs.writeFileSync(path.join(DIST, '_headers'), `/sw.js
+// _headers（Cloudflare Pages）：キャッシュ＋セキュリティの決まり（2026/11/05 セキュリティ対策）
+//   CSP＝このページが読み込んでよい場所の一覧。書かれていない場所のスクリプト・通信・埋め込みはブラウザが止める（XSS の被害を小さくする最後の壁）
+//   ページの中に直接書いたスクリプトは PC_CONFIG の1つだけで、その中身の指紋（sha256）だけを許す
+const sha = s => crypto.createHash('sha256').update(s).digest('base64');
+const cfgHash = `'sha256-${sha(cfgTag.replace(/^<script>|<\/script>$/g, ''))}'`;
+const API = 'https://pokechan-tap.pokechan.workers.dev';
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' ${cfgHash} https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  `img-src 'self' data: blob: ${API}`,
+  `connect-src 'self' ${API} https://*.googleapis.com https://www.gstatic.com https://apis.google.com https://championsbattledata.com https://cdn.jsdelivr.net`,
+  "worker-src 'self' blob:",
+  "media-src 'self' blob: data:",
+  "frame-src 'self' https://pokechan-hub.firebaseapp.com https://accounts.google.com https://apis.google.com",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  'upgrade-insecure-requests'
+].join('; ');
+const SEC = `  Content-Security-Policy: ${CSP}
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Cross-Origin-Resource-Policy: same-origin
+  X-Permitted-Cross-Domain-Policies: none
+`;
+fs.writeFileSync(path.join(DIST, '_headers'), `/*
+${SEC}/sw.js
   Cache-Control: public, max-age=0, must-revalidate
 /assets/app.*
   Cache-Control: public, max-age=31536000, immutable
@@ -48,4 +82,5 @@ fs.writeFileSync(path.join(DIST, '_headers'), `/sw.js
 /
   Cache-Control: public, max-age=0, must-revalidate
 `);
+fs.writeFileSync(path.join(ROOT, 'out/csp.txt'), CSP);
 console.log('built', jsName, (js.length / 1024).toFixed(0) + 'KB', cssName, (css.length / 1024).toFixed(0) + 'KB');
