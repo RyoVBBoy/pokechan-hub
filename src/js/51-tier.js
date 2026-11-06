@@ -16,9 +16,7 @@ function tierCompute(){
   const rows=pool.map(p=>{const me=mk(p,'me');if(!me)return null;
     let sum=0,ws=0;const good=[],bad=[];
     opps.forEach((q,j)=>{const o=O[j];if(!o||(q.base||q.no)===(p.base||p.no))return;
-      let x=0,y=0;try{x=estHit(me,o).pct;y=estHit(o,me).pct}catch(e){}
-      const mt=x>0?Math.ceil(100/x):9,ot=y>0?Math.ceil(100/y):9,f=spd(me)>spd(o);
-      const s=Math.max(-2,Math.min(2,(ot-mt)+(f?.5:-.5)));sum+=s*w[j];ws+=w[j];
+      const s=duelS(me,o);sum+=s*w[j];ws+=w[j];
       if(s>=1)good.push(q);else if(s<=-1)bad.push(q)});
     return{p,m:ws?sum/ws:0,good,bad,u:urank.get(p.no)||null,spe:Math.round(spd(me)),mega:me.p!==p?me.p:null}}).filter(Boolean);
   const ms=rows.map(r=>r.m),mn=Math.min(...ms),mx=Math.max(...ms);

@@ -16,14 +16,13 @@ function memoAuto(q){
   if(!q||!team.length)return '';
   let op;try{op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return ''}
   const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
-  const rows=team.map(x=>{const p=byNo[x.no];if(!p)return null;try{const a=mkMon(p,'me',mySetFor(x.no)),h=estHit(a,op),r=estHit(op,a);
-    const mt=h.pct>0?Math.ceil(100/h.pct):9,ot=r.pct>0?Math.ceil(100/r.pct):9,f=spd(a)>spd(op);
-    return{p,h,r,f,sc:Math.max(-2,Math.min(2,(ot-mt)+(f?.5:-.5)))}}catch(e){return null}}).filter(Boolean);
+  const rows=team.map(x=>{const p=byNo[x.no];if(!p)return null;try{const a=mkMon(p,'me',mySetFor(x.no)),d=duel(a,op);
+    return{p,h:d.h,r:d.r,f:d.f>0,sc:d.s,up:d.up}}catch(e){return null}}).filter(Boolean);
   if(!rows.length)return '';
   const nm=p=>formInfo(p).base,mv=d=>d&&d.mv?d.mv.n:'';
   const L1=[];
   const good=rows.filter(r=>r.sc>=1).sort((a,b)=>b.sc-a.sc||b.h.pct-a.h.pct).slice(0,2);
-  if(good.length)L1.push('◎出す：'+good.map(r=>`${nm(r.p)}（${r.f?'先に':'後から'}${mv(r.h)}${r.h.pct>=100?'で一撃':`で約${Math.round(r.h.pct)}%`}）`).join('、'));
+  if(good.length)L1.push('◎出す：'+good.map(r=>`${nm(r.p)}（${r.up?r.up+'を積んで':''}${r.f?'先に':'後から'}${mv(r.h)}${r.h.pct>=100?'で一撃':`で約${Math.round(r.h.pct)}%`}）`).join('、'));
   else L1.push('△1対1で有利な匹がいない。2匹で削るか、交代で受けてから倒す');
   const bad=rows.filter(r=>r.r.pct>=80||r.sc<=-1).sort((a,b)=>b.r.pct-a.r.pct).slice(0,2);
   if(bad.length)L1.push('×出さない：'+bad.map(r=>`${nm(r.p)}（${mv(r.r)}${r.r.pct>=100?'で一撃':`で約${Math.round(r.r.pct)}%`}）`).join('、'));
@@ -174,7 +173,7 @@ function mpAutoCalc(){
   const SETS=[...GM_PSET,...GM_SSET,...GM_BSET];
   const setup=i=>keys(i).find(k=>SETS.includes(k));
   const prio=i=>me[i]&&me[i].moves.find(m=>m&&m.pri>0&&m.pow>0);
-  const guard=i=>item(i)==='focussash'?'きあいのタスキ':['sturdy','multiscale','shadowshield','disguise'].includes(me[i]&&me[i].ab)?ABN[me[i].ab]:'';
+  const guard=i=>item(i)==='focussash'?'きあいのタスキ':['sturdy','multiscale','shadow-shield','disguise'].includes(me[i]&&me[i].ab)?ABN[me[i].ab]:'';
   const megaI=ix.filter(i=>isStone(item(i)));
   const atk=i=>Math.max(me[i].st[1],me[i].st[3]);
   const bulk=i=>me[i].st[0]*(me[i].st[2]+me[i].st[4]);

@@ -290,7 +290,8 @@ function savedToCalc(no,s){
   (s.mv||[]).forEach(m=>{if(!m||!m.id)return;if(m.id===182||m.id===197){if(!moves.some(x=>x.prot))moves.push(PROT)}else if(MV[m.id])moves.push(mvObj(m.id))});
   if(!moves.some(x=>!x.prot))moves=base.moves;
   const ab=s.ab&&s.ab.k?s.ab.k:base.ab,item=s.it&&s.it.k&&ITEMN[s.it.k]?s.it.k:null;
-  return s.sp?{ab,item,moves,sp:s.sp,up:s.up,dn:s.dn,imported:true}:{ab,item,moves,imported:true};
+  const boost=typeof DU_BOOST!=='undefined'?((s.mv||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).find(k=>k&&DU_BOOST[k])||null):null;
+  return s.sp?{ab,item,moves,sp:s.sp,up:s.up,dn:s.dn,imported:true,boost}:{ab,item,moves,imported:true,boost};
 }
 const mySetFor=n=>teamSet(n)||detSet(byNo[n]);
 

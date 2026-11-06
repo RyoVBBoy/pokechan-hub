@@ -267,8 +267,7 @@ function selPlan(entries){
   const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
   const S=me.map(a=>opps.map(q=>{if(!a)return -2;try{
     const o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));
-    const x=estHit(a,o).pct,y=estHit(o,a).pct,mt=x>0?Math.ceil(100/x):9,ot=y>0?Math.ceil(100/y):9,f=spd(a)>spd(o);
-    return Math.max(-2,Math.min(2,(ot-mt)+(f?.5:-.5)))}catch(e){return 0}}));
+    return duel(a,o).s}catch(e){return 0}}));
   const w=opps.map((_,j)=>1-j/(opps.length*2));
   const val=sub=>opps.reduce((t,_,j)=>t+w[j]*(Math.max(...sub.map(i=>S[i][j]))+.15*sub.reduce((u,i)=>u+S[i][j],0)/sub.length),0);
   /* メガシンカは1試合に1匹なので、メガストーンを持つ匹は選出に1匹まで */

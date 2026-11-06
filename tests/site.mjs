@@ -131,6 +131,13 @@ const lr=await pg.evaluate(()=>{const base=[445,6,130,94,59,887].map(no=>({no,se
   const c=loseReasons(base.map(x=>({no:x.no}))).map(r=>r.t);
   return[a.some(t=>/止める手段/.test(t)),a.some(t=>/ステルスロック/.test(t)),!b.some(t=>/止める手段/.test(t)),!c.some(t=>/止める手段/.test(t))]});
 if(lr.join()!=='true,true,true,true')fail('負けやすい理由: '+lr.join());
+// 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
+const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));
+  const o1=mkMon(gg,'op',{...detSet(gg),item:null}),o2=mkMon(gg,'op',{...detSet(gg),item:'focussash'});
+  const d1=duel(A,o1),d2=duel(A,o2),d3=duel(A,mkMon(mm,'op',detSet(mm)));
+  const sd=+Object.keys(MD).find(i=>MD[i][3]==='swordsdance'),sc=savedToCalc(445,{mv:[{id:sd},{id:89}]});
+  return[d1.mt<2,d2.mt>=2,d3.h.pct>0&&d3.mt<9,sc.boost==='swordsdance']});
+if(du.join()!=='true,true,true,true')fail('1対1の判定: '+du.join());
 // 画像の読み取り：特性は、そのポケモンが持てる特性から選ぶ（2026/11/05：いかく が「いかがかぐく」と読まれた件）
 const abr=await pg.evaluate(()=>{const sl={nameRaw:'ボーマンダ',noFix:373,abRaw:'いかがかぐく',itRaw:'',mvRaw:[]};try{imResolve(sl)}catch(e){return 'ERR '+e.message}return sl.ab&&sl.ab.k});
 if(abr!=='intimidate')fail('画像の読み取りの特性: '+abr);

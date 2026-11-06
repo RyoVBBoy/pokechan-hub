@@ -125,7 +125,9 @@ function buildSet(p,d,top){
     const pickN=ok.length?(top?ok[0]:wpick(ok,x=>x[2])):null;
     if(pickN){up=sidx(pickN[0])??-1;dn=sidx(pickN[1])??-1}
   }
-  return{ab,moves,item,sp,up,dn};
+  /* 積み技（計算の技には入らない変化技）：よく使われる技の上位6つにあれば覚えておく（duel が使う） */
+  const bk=typeof DU_BOOST!=='undefined'?d.mv.slice(0,6).filter(([n,pc])=>pc>=25).map(([n])=>nrm(n)).find(k=>DU_BOOST[k]):null;
+  return{ab,moves,item,sp,up,dn,boost:bk||null};
 }
 /* ラダー集計から「一緒によく使われるポケモン」をたどって6匹を組む */
 async function liveTeam(top){
@@ -211,7 +213,7 @@ function mkMon(p,side,set){
   /* 戦闘中に変わる姿（2026/11/04 データの見直し）：イルカマンは一度交代するとマイティフォルムになるので、その能力で計算。
      ギルガルドは攻撃するときだけブレードフォルム（攻撃・特攻140／防御・特防50）になるので、攻撃側の能力を別に持つ（受けるときはシールドフォルム） */
   const bf=BATTLE_FORM[set.ab];if(bf&&bf.no===p.no){const q={...p,s:bf.s};if(bf.always)st=stOf(q);else stAtk=stOf(q)}
-  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise'};
+  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise'};
 }
 let B={phase:'menu'};
 const alive=S=>S.act.filter(i=>i!=null).map(i=>S.mons[i]).filter(m=>!m.fainted);
