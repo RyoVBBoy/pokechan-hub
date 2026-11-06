@@ -1,4 +1,4 @@
-/* ===================== 負けやすい理由（パーティの画面の「チェック」の先頭。2026/11/04） =====================
+/* ===================== 敗因の診断（パーティの画面の「チェック」の先頭。2026/11/04、2026/11/06 に「負けやすい理由」から改名） =====================
    依頼主の資料「敗因分析のフレームワーク」の4つの段階（構築・選出・プレイング・情報戦）を、当サイトの言葉と計算にした。
    ・構築（パーティだけで分かる）：①止める手段がない（スカーフ・タスキ・先制技が0）で、環境に積みエースがいる
      ②よく使われる相手に、だれも答えられない（2回耐えられる／半分以上削って半分未満しか受けない／上から一撃 のどれもない）
@@ -63,14 +63,15 @@ async function loseFromRecords(){
   let bs;try{bs=(await authFetch('/api/battles')).battles||[]}catch(e){return[]}
   const done=bs.filter(b=>b.result),out=[],pct=(w,n)=>n?Math.round(w/n*100):0;
   if(done.length<5)return out;
+  out.rec=true;
   const lead={};done.forEach(b=>{const n=b.my_sel&&b.my_sel[0];if(!n||!byNo[n])return;const o=lead[n]=lead[n]||{n,c:0,w:0};o.c++;if(b.result==='win')o.w++});
   const badLead=Object.values(lead).filter(o=>o.c>=3&&pct(o.w,o.c)<40).sort((a,b)=>pct(a.w,a.c)-pct(b.w,b.c))[0];
-  if(badLead)out.push({ph:'選出',w:2.2,t:`${formInfo(byNo[badLead.n]).base}を先発にした試合で負けやすい`,
+  if(badLead)out.push({ph:'選出',w:2.2,t:`${formInfo(byNo[badLead.n]).base}を先発にした試合の勝率が低い（${pct(badLead.w,badLead.c)}%）`,
     d:`記録では、${formInfo(byNo[badLead.n]).base}を先発にした${badLead.c}戦の勝率が${pct(badLead.w,badLead.c)}%です。相手の先発に勝てない形で始まり、最初のターンで数が不利になっている可能性があります。`,
     how:'相手の6匹を見て、相手が先発に出しやすいポケモンに勝てる匹を先発にしましょう。選出アシストの「選出の3ステップ」が使えます。',act:[['#/assist','選出アシストで確かめる']]});
   const opp={};done.forEach(b=>(b.opp||[]).forEach(n=>{if(!byNo[n])return;const o=opp[n]=opp[n]||{n,c:0,w:0};o.c++;if(b.result==='win')o.w++}));
   const hard=Object.values(opp).filter(o=>o.c>=3&&pct(o.w,o.c)<45).sort((a,b)=>pct(a.w,a.c)-pct(b.w,b.c))[0];
-  if(hard)out.push({ph:'選出',w:2,t:`相手に${formInfo(byNo[hard.n]).base}がいると負けやすい`,
+  if(hard)out.push({ph:'選出',w:2,t:`相手に${formInfo(byNo[hard.n]).base}がいる試合の勝率が低い（${pct(hard.w,hard.c)}%）`,
     d:`記録では、相手に${formInfo(byNo[hard.n]).base}がいた${hard.c}戦の勝率が${pct(hard.w,hard.c)}%です。`,
     how:`${formInfo(byNo[hard.n]).base}を倒す役（通し筋）を決めてから選出しましょう。答えがパーティにいなければ、入れかえも考えます。`,act:[[`counter/${hard.n}/`,`${formInfo(byNo[hard.n]).base}の対策を見る`],['#/replay','対戦の記録を見る']]});
   return out;
@@ -84,18 +85,36 @@ const LOSE_CHECK=[
   ['プレイング','予定のエースが通らないと分かったとき、すぐ別の勝ち筋に切りかえたか。'],
   ['情報戦','相手が、あまり使われない技（受け役に効く意外な技など）を持っていなかったか。'],
   ['情報戦','素早さで勝っていると思ったのに先に動かれたなら、相手がこだわりスカーフを持っていたか、素早さの調整を知らなかったのではないか。']];
+/* ---- 表示：敗因の診断（2026/11/06 依頼主「負けやすい理由」→「負ける原因を把握して次につなげる診断」） ----
+   上に4つの段階（構築・選出・プレイング・情報戦）の診断の状態、下に見つかった原因を重い順に3つ。
+   1つずつ「なぜ起きるか」「次の一手」とボタン、「戦術メモの負け筋に書く」（55-memo.js のパーティの戦術メモ⑥）。 */
+const LS_HEAD='<div class="sec"><h2>敗因の診断</h2></div><p class="note" style="padding-top:0">負ける原因を先に見つけて、次の一手につなげます。</p>';
 function loseHTML(){
-  return `<div id="lose-box"><div class="sec"><h2>負けやすい理由</h2><span style="font-size:12px;color:var(--dim)">重い順に3つまで</span></div><p class="empty" style="padding:14px">計算中…</p></div>`;
+  return `<div id="lose-box">${LS_HEAD}<p class="empty" style="padding:14px">診断中…</p></div>`;
 }
 async function loseFill(entries){
   const el=document.getElementById('lose-box');if(!el)return;
   let R=[];try{R=loseReasons(entries)}catch(e){}
-  const draw=all=>{const top=all.sort((a,b)=>b.w-a.w).slice(0,3);if(!document.body.contains(el))return;
-    el.innerHTML=`<div class="sec"><h2>負けやすい理由</h2><span style="font-size:12px;color:var(--dim)">重い順に3つまで</span></div>
-      ${top.length?top.map((r,i)=>`<div class="ls-i"><div class="ls-h"><span class="ls-n">${i+1}</span><span class="ls-ph">${r.ph}</span><b>${esc(r.t)}</b></div><p>${esc(r.d)}</p><p class="pc-how"><b>こうすると良くなる：</b>${esc(r.how)}</p>${r.act?`<div class="ls-a">${r.act.map(([h,l])=>`<a class="btn btn-s" href="${h}">${esc(l)}</a>`).join('')}</div>`:''}</div>`).join('')
-        :'<p class="note">パーティの形から分かる大きな負け筋は見つかりませんでした。負けが続くときは、下の確認リストで選出や動き方を振り返ってみましょう。</p>'}
-      <details class="ls-chk"><summary>負けた試合を振り返る確認リスト（選出・プレイング・情報戦）</summary><ul>${LOSE_CHECK.map(([p,t])=>`<li><span class="ls-ph">${p}</span>${t}</li>`).join('')}</ul>
-      <p class="note" style="padding:4px 0 0">対戦の振り返り（ツール）で記録をためると、負けやすい先発や相手もここに出ます。</p></details>`};
-  draw(R.slice());
-  try{const more=await loseFromRecords();if(more.length)draw([...R,...more])}catch(e){}
+  const logged=typeof AUTH!=='undefined'&&AUTH.user;
+  const draw=(all,rec)=>{const top=all.sort((a,b)=>b.w-a.w).slice(0,3);if(!document.body.contains(el))return;
+    const n=ph=>all.filter(r=>r.ph===ph).length;
+    const st=[['構築',n('構築')?`${n('構築')}件`:'問題なし',n('構築')?'bad':'ok'],
+      ['選出',rec?(n('選出')?`${n('選出')}件`:'問題なし'):'記録が必要',rec?(n('選出')?'bad':'ok'):'wait'],
+      ['プレイング','振り返りで','wait'],['情報戦','振り返りで','wait']];
+    el.innerHTML=`${LS_HEAD}
+      <div class="ls-st">${st.map(([p,v,c])=>`<div class="ls-s ${c}"><span>${p}</span><b>${v}</b></div>`).join('')}</div>
+      ${top.length?top.map((r,i)=>`<div class="ls-i"><div class="ls-h"><span class="ls-n">${i+1}</span><span class="ls-ph">${r.ph}</span><b>${esc(r.t)}</b></div>
+        <p class="ls-k">なぜ起きるか</p><p>${esc(r.d)}</p><p class="ls-k ls-k2">次の一手</p><p>${esc(r.how)}</p>
+        <div class="ls-a">${(r.act||[]).map(([h,l])=>`<a class="btn btn-s" href="${h}">${esc(l)}</a>`).join('')}<button class="btn btn-s" data-ls-memo="${i}">戦術メモの負け筋に書く</button></div></div>`).join('')
+        :'<p class="note">パーティの形から分かる大きな原因は見つかりませんでした。負けが続くときは、下の振り返りの確認リストで、選出・プレイング・情報戦を見直しましょう。</p>'}
+      ${rec?'':`<div class="ls-rec"><p>${logged?'対戦の振り返りで5試合以上を記録すると、「どの先発・どの相手で負けているか」の選出の診断ができます。':'ログインして対戦の振り返りで試合を記録すると、「どの先発・どの相手で負けているか」の選出の診断ができます。'}</p><a class="btn btn-s" href="#/replay">対戦を記録する</a></div>`}
+      <details class="ls-chk"><summary>負けた試合の振り返り（選出・プレイング・情報戦）</summary><ul>${LOSE_CHECK.map(([p,t])=>`<li><span class="ls-ph">${p}</span>${t}</li>`).join('')}</ul></details>`;
+    el.querySelectorAll('[data-ls-memo]').forEach(b=>b.onclick=()=>{const r=top[+b.dataset.lsMemo];if(!r||typeof MEMO==='undefined')return;
+      const k=mpKey(),e=MEMO.party[k]||{s:{}},cur0=(e.s&&e.s.lose)||'';
+      if(cur0.split('\n').includes(r.t)){toast('もう書いてあります');return}
+      MEMO.party[k]={...e,s:{...(e.s||{}),lose:(cur0?cur0+'\n':'')+r.t},at:Date.now(),sig:mpSig()};memoSave();
+      toast('戦術メモの「負け筋」に書きました');b.textContent='書きました';b.disabled=true})};
+  draw(R.slice(),false);
+  try{const more=await loseFromRecords();if(more&&more.rec)draw([...R,...more],true)}catch(e){}
 }
+
