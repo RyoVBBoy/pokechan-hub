@@ -90,3 +90,9 @@ function askConfirm(o){
 
 /* 外のアドレスを画面のリンクにするときは https:// のものだけ（javascript: などを入れさせない。2026/11/05 セキュリティ対策） */
 const safeUrl=u=>/^https:\/\/[^\s"'<>]+$/i.test(String(u||''))?String(u):'#';
+/* 公式の「ポケモンずかん」のそのポケモンのページへの、ふつうのリンク（2026/11/06 依頼主と決めた案 A）。
+   公式の画像はこのサイトに表示しない（直接のリンクで画像を出すこともしない）。押すと公式のサイトが別のタブで開く。
+   姿の違い（メガ・地方の姿など）は、公式の図鑑ではそのポケモンのページの中で切りかえるので、全国図鑑の番号のページへ。 */
+const zukanUrl=p=>{const n=+(p&&p.dno)||0;return n>0&&n<2000?`https://zukan.pokemon.co.jp/detail/${String(n).padStart(4,'0')}`:null};
+function zukanLink(p){const u=zukanUrl(p);if(!u)return '';
+  return `<a class="zk-l" href="${u}" target="_blank" rel="noopener noreferrer nofollow">${L('ポケモンずかんで姿を見る','See it in the official Pokédex')}<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>`}

@@ -18,6 +18,7 @@ function detail(no){
       <span class="no">#${String(p.dno).padStart(4,'0')}</span>
       <h2>${nm(p,{no:false,big:true})}</h2>
       <div class="chips" style="margin-top:9px">${p.t.map(chip).join('')}</div>
+      ${zukanLink(p)}
     </div>
     <div class="slot" id="artslot">${artHTML(p)}</div>
   </section>
