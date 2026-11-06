@@ -82,11 +82,17 @@ async function userApi(req,env,db,path,body,now){
   if(path==='/api/me/memo'){
     try{await db.prepare(`ALTER TABLE user_data ADD COLUMN memo TEXT`).run()}catch(e){}
     if(req.method==='GET'){const r=await db.prepare(`SELECT memo FROM user_data WHERE uid=?`).bind(me.uid).first();let m=null;try{m=r&&r.memo?JSON.parse(r.memo):null}catch(e){}return J({memo:m})}
-    if(req.method==='POST'){const m=body.memo,out={mon:{},type:{}};
+    if(req.method==='POST'){const m=body.memo,out={mon:{},type:{},party:{}};
       if(!m||typeof m!=='object')return J({error:'メモの形が正しくありません。'},400);
       for(const k of ['mon','type'])for(const [id,e] of Object.entries(m[k]||{}).slice(0,400)){
         if(k==='mon'&&!/^\d{1,5}$/.test(id))continue;if(k==='type'&&String(id).length>8)continue;
         if(!e||typeof e!=='object')continue;out[k][id]={t:clean(String(e.t||''),400),at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+e.at||0)))}}
+      /* パーティの戦術メモ（7つの項目）：パーティの枠 0〜2 ごと */
+      const SECS=['kind','lead','pivot','mega','win','lose','flow'];
+      for(const [id,e] of Object.entries((m.party&&typeof m.party==='object')?m.party:{}).slice(0,3)){
+        if(!/^[0-2]$/.test(id)||!e||typeof e!=='object')continue;const s={};
+        SECS.forEach(k=>{const v=e.s&&typeof e.s==='object'?e.s[k]:'';if(v)s[k]=clean(String(v),600)});
+        out.party[id]={s,at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+e.at||0))),sig:String(e.sig||'').replace(/[^\d-]/g,'').slice(0,40)}}
       const txt=JSON.stringify(out);if(txt.length>200000)return J({error:'メモが多すぎます。'},400);
       await db.prepare(`INSERT INTO user_data(uid,memo,updated_at) VALUES(?,?,0) ON CONFLICT(uid) DO UPDATE SET memo=excluded.memo`).bind(me.uid,txt).run();
       return J({ok:true})}
