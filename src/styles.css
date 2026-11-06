@@ -1497,3 +1497,17 @@ body::before{inset:0;background:
 .mp-s textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;line-height:1.65;padding:10px 12px;border-radius:12px;border:1px solid var(--line-in);background:var(--soft);color:var(--fg);resize:none;overflow:hidden;min-height:84px}
 .mp-f{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim);margin-top:6px;min-height:24px;white-space:nowrap}
 .mp-r{border:0;background:none;color:var(--acc);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:4px 0}
+/* 下のメニューの見やすさ（2026/11/06 依頼主：色のある部分の上に来るとボタンが見えなくなる）
+   ・ガラスを少し濃く・ぼかしを強く・色の強調（saturate）を弱めて、後ろの色が透けすぎないようにする
+   ・選んでいないアイコンと文字も、文字の色そのもの＋うすい影で、どんな色の上でも読めるようにする */
+:root{--lg-bar:rgba(28,28,34,.74)}
+:root[data-theme=light]{--lg-bar:rgba(252,252,255,.8)}
+@media(max-width:699px){
+  .tabbar{-webkit-backdrop-filter:blur(26px) saturate(125%)!important;backdrop-filter:blur(26px) saturate(125%)!important}
+  .tb{color:var(--fg)!important}
+  .tb:not([aria-current=page]) svg,.tb:not([aria-current=page]) span{opacity:.85}
+  .tb svg{filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.45))}
+  .tb span{text-shadow:0 1px 2px rgba(0,0,0,.5)}
+  [data-theme=light] .tb svg{filter:drop-shadow(0 1px 1.5px rgba(255,255,255,.7))}
+  [data-theme=light] .tb span{text-shadow:0 1px 2px rgba(255,255,255,.8)}
+}
