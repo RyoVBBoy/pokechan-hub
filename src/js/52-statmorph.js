@@ -51,6 +51,7 @@ function statFx(p){
     document.querySelector('.bsw').classList.toggle('on',on);
     const from=DP_LAST&&DP_LAST.no===p.no?DP_LAST.s:p.s,to=on?f.s:p.s;
     statMorph(root,from,to);DP_LAST={fam,no:p.no,s:to.slice()};
+    const zk=document.getElementById('zk-l');if(zk&&typeof zukanUrl==='function')zk.href=zukanUrl(p,on);
     if(navigator.vibrate)try{navigator.vibrate(10)}catch(e){}};
 }
 

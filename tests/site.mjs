@@ -131,6 +131,9 @@ const lr=await pg.evaluate(()=>{const base=[445,6,130,94,59,887].map(no=>({no,se
   const c=loseReasons(base.map(x=>({no:x.no}))).map(r=>r.t);
   return[a.some(t=>/止める手段/.test(t)),a.some(t=>/ステルスロック/.test(t)),!b.some(t=>/止める手段/.test(t)),!c.some(t=>/止める手段/.test(t))]});
 if(lr.join()!=='true,true,true,true')fail('負けやすい理由: '+lr.join());
+// 公式の図鑑へのリンク：メガ・地方の姿は、その姿のページ（2026/11/06 公式の一覧で確かめた枝番）
+const zk=await pg.evaluate(()=>[zukanUrl(byNo[445]),zukanUrl(byNo[10058]),zukanUrl(byNo[10309]),zukanUrl(byNo[10100]),zukanUrl(byNo[10165]),zukanUrl(byNo[681],true)].map(u=>u.split('/').pop()).join(','));
+if(zk!=='0445,0445-1,0445-2,0026-1,0080-2,0681-1')fail('公式の図鑑へのリンク: '+zk);
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
 const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));
   const o1=mkMon(gg,'op',{...detSet(gg),item:null}),o2=mkMon(gg,'op',{...detSet(gg),item:'focussash'});

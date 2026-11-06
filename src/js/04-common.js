@@ -93,6 +93,15 @@ const safeUrl=u=>/^https:\/\/[^\s"'<>]+$/i.test(String(u||''))?String(u):'#';
 /* 公式の「ポケモンずかん」のそのポケモンのページへの、ふつうのリンク（2026/11/06 依頼主と決めた案 A）。
    公式の画像はこのサイトに表示しない（直接のリンクで画像を出すこともしない）。押すと公式のサイトが別のタブで開く。
    姿の違い（メガ・地方の姿など）は、公式の図鑑ではそのポケモンのページの中で切りかえるので、全国図鑑の番号のページへ。 */
-const zukanUrl=p=>{const n=+(p&&p.dno)||0;return n>0&&n<2000?`https://zukan.pokemon.co.jp/detail/${String(n).padStart(4,'0')}`:null};
+/* 姿ごとのページ（公式の図鑑の「番号-枝番」。2026/11/06 GitHub Actions から公式の図鑑の一覧＝zukan-api/api/search を読んで確かめた）。
+   メガシンカは書いていなければ枝番1。ここにないふつうの姿は枝番なし。 */
+const ZK_SUB={10034:1,10035:2,10057:1,10307:2,10058:1,10309:2,10059:1,10310:2,10304:2,10305:3,10071:1,10165:2,10295:2,10061:1,10296:2,
+  10025:1,10314:2,10326:2,10126:1,10152:2,10184:1,10186:1,10260:1,10261:2,10262:3,10008:1,10009:2,10010:3,10011:4,10012:5,10248:1,
+  10250:1,10251:2,10252:3,10100:1,10104:1,10108:1,10172:1,10180:1,10230:1,10233:1,10236:1,10239:1,10242:1,10243:1,10244:1};
+/* 戦闘中の姿（図鑑のスイッチで切りかえたとき）：ギルガルドのブレードフォルム・イルカマンのマイティフォルム */
+const ZK_SW={681:1,964:1};
+const zukanUrl=(p,sw)=>{const n=+(p&&p.dno)||0;if(!(n>0&&n<2000))return null;
+  const sub=sw&&ZK_SW[p.no]?ZK_SW[p.no]:ZK_SUB[p.no]||(p.base?1:0);
+  return `https://zukan.pokemon.co.jp/detail/${String(n).padStart(4,'0')}${sub?'-'+sub:''}`};
 function zukanLink(p){const u=zukanUrl(p);if(!u)return '';
-  return `<a class="zk-l" href="${u}" target="_blank" rel="noopener noreferrer nofollow">${L('ポケモンずかんで姿を見る','See it in the official Pokédex')}<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>`}
+  return `<a class="zk-l" id="zk-l" href="${u}" target="_blank" rel="noopener noreferrer nofollow">${L('ポケモンずかんで姿を見る','See it in the official Pokédex')}<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>`}
