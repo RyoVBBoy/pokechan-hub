@@ -1511,3 +1511,14 @@ body::before{inset:0;background:
   [data-theme=light] .tb svg{filter:drop-shadow(0 1px 1.5px rgba(255,255,255,.7))}
   [data-theme=light] .tb span{text-shadow:0 1px 2px rgba(255,255,255,.8)}
 }
+/* 下のメニューの光の色（2026/11/06 依頼主：虹色すぎる。LINE の色合いを参考に）
+   ・虹の7色をやめ、白い光を中心に、ふちにだけうすいピンクと水色がにじむ程度にする（ガラスのふちで光が少し分かれる感じ）
+   ・外にもれる光も白っぽく弱く */
+@media(max-width:699px){
+  .tb-lens .fl-ring,.tb-lens .fl-glow{background:conic-gradient(from var(--fa),
+    rgba(255,255,255,.95),rgba(255,214,232,.8) 18%,rgba(255,255,255,.9) 34%,rgba(214,236,255,.8) 52%,rgba(255,255,255,.95) 68%,rgba(236,224,255,.75) 84%,rgba(255,255,255,.95));
+    animation-duration:2.4s}
+  .tb-lens .fl-glow{opacity:0;filter:blur(8px) saturate(70%);mix-blend-mode:screen}
+  .tb-lens .fl-glow{background:conic-gradient(from var(--fa),rgba(255,255,255,.55),rgba(255,214,232,.4) 25%,rgba(255,255,255,.5) 50%,rgba(214,236,255,.4) 75%,rgba(255,255,255,.55))}
+  [data-theme=light] .tb-lens .fl-ring{background:conic-gradient(from var(--fa),rgba(255,255,255,1),rgba(255,170,205,.75) 18%,rgba(255,255,255,1) 34%,rgba(150,205,255,.75) 52%,rgba(255,255,255,1) 68%,rgba(205,185,255,.7) 84%,rgba(255,255,255,1))}
+}
