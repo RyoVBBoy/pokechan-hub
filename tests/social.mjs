@@ -302,6 +302,11 @@ r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{team
 r=await call('/api/me/teams',{method:'POST',tok:A,body:{teams:{cur:0,list:[{name:'x'.repeat(40000),team:[]}]},updated_at:clock+1}});expect('パーティ：名前は20文字に切る',r[0]===200,r);
 await call('/api/me/delete',{method:'POST',tok:A,body:{}});r=await call('/api/me/teams',{tok:A});expect('パーティ：アカウント削除で消える',r[1].teams===null,r);
 Date.now=realNow;
+/* 戦術メモ（2026/11/06）：本人だけが保存・読み出しできる */
+r=await call('/api/me/memo',{method:'POST',body:{memo:{mon:{445:{t:'x',at:1}}}}});expect('メモはログインが必要',r[0]===401||r[0]===503,r);
+r=await call('/api/me/memo',{method:'POST',tok:A,body:{memo:{mon:{445:{t:'上から殴る',at:5},'bad':{t:'x',at:1}},type:{'はがね':{t:'ほのおを残す',at:6}}}}});
+r=await call('/api/me/memo',{tok:A});expect('メモを読み出せる（変な番号は捨てる）',r[0]===200&&r[1].memo.mon[445].t==='上から殴る'&&!r[1].memo.mon.bad&&r[1].memo.type['はがね'].t==='ほのおを残す',r[1]);
+r=await call('/api/me/memo',{tok:B});expect('ほかの人のメモは見えない',r[0]===200&&!(r[1].memo&&r[1].memo.mon&&r[1].memo.mon[445]),r[1]);
 /* 使用量（2026/11/05）：AI を呼んだ回数・断られた回数が数えられ、管理者だけが見られる */
 r=await call('/api/admin/quota');expect('使用量は管理者だけ',r[0]===401,r);
 r=await call('/api/admin/quota',{admin:'admin-secret-123'});

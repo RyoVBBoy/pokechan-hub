@@ -25,6 +25,7 @@ async function teamSync(force){
   try{
     await twAuth();
     if(!AUTH.user){SYNC.state='off';return}
+    if(typeof memoPull==='function')memoPull();
     const j=await authFetch('/api/me/teams'),lu=TEAMS.updated||0,su=j.updated_at||0;
     if(j.teams&&su>lu)teamsApply(j.teams,su);
     else if(lu>su){SYNC.busy=false;await teamPush();return}

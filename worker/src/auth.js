@@ -78,6 +78,19 @@ async function userApi(req,env,db,path,body,now){
     await db.prepare(`UPDATE users SET partner=?,showcase=?,updated_at=? WHERE uid=?`).bind(partner,sc,now,me.uid).run();
     return J({ok:true});
   }
+  /* 戦術メモ（2026/11/06）：ポケモンごと・タイプごとの短い文。どの端末でも同じに（1つずつ、新しく書いたほうをサイトが残す） */
+  if(path==='/api/me/memo'){
+    try{await db.prepare(`ALTER TABLE user_data ADD COLUMN memo TEXT`).run()}catch(e){}
+    if(req.method==='GET'){const r=await db.prepare(`SELECT memo FROM user_data WHERE uid=?`).bind(me.uid).first();let m=null;try{m=r&&r.memo?JSON.parse(r.memo):null}catch(e){}return J({memo:m})}
+    if(req.method==='POST'){const m=body.memo,out={mon:{},type:{}};
+      if(!m||typeof m!=='object')return J({error:'メモの形が正しくありません。'},400);
+      for(const k of ['mon','type'])for(const [id,e] of Object.entries(m[k]||{}).slice(0,400)){
+        if(k==='mon'&&!/^\d{1,5}$/.test(id))continue;if(k==='type'&&String(id).length>8)continue;
+        if(!e||typeof e!=='object')continue;out[k][id]={t:clean(String(e.t||''),400),at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+e.at||0)))}}
+      const txt=JSON.stringify(out);if(txt.length>200000)return J({error:'メモが多すぎます。'},400);
+      await db.prepare(`INSERT INTO user_data(uid,memo,updated_at) VALUES(?,?,0) ON CONFLICT(uid) DO UPDATE SET memo=excluded.memo`).bind(me.uid,txt).run();
+      return J({ok:true})}
+  }
   /* パーティ（3つまで）をどの端末でも同じにする。中身はその人だけが読める。新しい方（updated_at）を残す */
   if(path==='/api/me/teams'&&req.method==='GET'){
     const r=await db.prepare(`SELECT teams,updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();

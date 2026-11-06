@@ -11,8 +11,8 @@ function pipIcons(){
     im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" fill="#fff" style="color:#fff">${TICON[t].replace(/currentColor/g,'#fff')}</svg>`)}))).then(()=>{PIP.ready=true});
 }
 /* ---- カードの種類と設定 ---- */
-const PCARDS=[['plan','選出プラン'],['weak','弱点まとめ'],['speed','素早さ順'],['dmg','ダメージ早見'],['sets','相手の型'],['type','タイプ相性']];
-const PPRESET={jissen:['plan','speed','dmg','sets'],hajime:['weak','type','sets']};
+const PCARDS=[['plan','選出プラン'],['weak','弱点まとめ'],['speed','素早さ順'],['dmg','ダメージ早見'],['sets','相手の型'],['type','タイプ相性'],['memo','戦術メモ']];
+const PPRESET={jissen:['plan','memo','speed','dmg','sets'],hajime:['weak','type','sets']};
 PIP.cfg=(()=>{try{const c=JSON.parse(localStorage.getItem('pcpip')||'null');if(c&&Array.isArray(c.cards)&&c.cards.length)return c}catch(e){}return{cards:[...PPRESET.jissen],sec:4}})();
 const pipSave=()=>{try{localStorage.setItem('pcpip',JSON.stringify(PIP.cfg))}catch(e){}};
 let ITJR=null;const itemJa=k=>{if(!ITJR){ITJR={};Object.entries(ITJ).forEach(([n,v])=>{if(!ITJR[v])ITJR[v]=n})}return ITJR[k]||null};
@@ -28,6 +28,7 @@ function pipData(){
     else if(c==='dmg')pages.push({kind:'dmg',A,opp});
     else if(c==='type')pages.push({kind:'type'});
     else if(c==='sets')opp.forEach((p,j)=>pages.push({kind:'one',p,j,A}));
+    else if(c==='memo')pages.push(...memoPipPages(opp));
   });
   return pages.length?pages:[{kind:'sum',opp}];
 }
@@ -46,6 +47,7 @@ function pipDraw(){
   if(!pg){foot();return}
   if(pg.kind==='build'){pipDrawBuild(g,pg);foot();return}
   if(pg.kind==='team'){pipDrawTeam(g,pg);foot();return}
+  if(pg.kind==='memo'){memoPipDraw(g,pg);foot();return}
   if(pg.kind==='type'){
     title('タイプ相性　技→ばつぐんの相手');
     const rh=(PIP_H-130)/18;
