@@ -12,7 +12,7 @@ const LS_PRIO=o=>{const ids=(o.x.set&&o.x.set.mv||[]).map(m=>m&&m.id).filter(Boo
   return{reg,can,hasSets:ids.length>0}};
 const LS_SETUP=['swordsdance','dragondance','nastyplot','calmmind','bulkup','quiverdance','shellsmash','shiftgear','bellydrum','victorydance','tidyup'];
 const LS_CLEAR=['rapidspin','defog','courtchange','tidyup','mortalspin'];
-const lsOpps=()=>{const live=typeof META!=='undefined'&&META.rank&&META.rank.length>=20;return(live?META.rank.map(x=>byNo[x.no]):gmOpps()).filter(Boolean).slice(0,20)};
+const lsOpps=()=>metaOpps(20);
 function loseReasons(entries){
   const ms=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p),out=[];if(!ms.length)return out;
   const item=o=>o.x.set&&o.x.set.it&&o.x.set.it.k;

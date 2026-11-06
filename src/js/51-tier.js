@@ -9,7 +9,7 @@ const TIER_N=30;
 function tierCompute(){
   const live=typeof META!=='undefined'&&META.rank&&META.rank.length>=20;
   const pool=(live?META.rank.map(x=>byNo[x.no]):gmOpps()).filter(Boolean).slice(0,live?60:80);
-  const opps=pool.slice(0,TIER_N),urank=new Map(live?META.rank.map(x=>[x.no,x.rank]):[]);
+  const opps=metaOpps(TIER_N),urank=new Map(live?META.rank.map(x=>[x.no,x.rank]):[]);
   const mk=(q,side)=>{try{return mkMon(q,side,q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return null}};
   const spd=m=>m.st[5]*(m.item==='choicescarf'?1.5:1);
   const O=opps.map(q=>mk(q,'op')),w=opps.map((_,j)=>1-j/(opps.length*1.6));

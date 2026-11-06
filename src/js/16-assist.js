@@ -3,7 +3,7 @@ let opp6=(()=>{try{return JSON.parse(localStorage.getItem('pcopp6')||'[]').map(n
 const saveOpp6=()=>{try{localStorage.setItem('pcopp6',JSON.stringify(opp6))}catch(e){}};
 let asMode='atk';
 /* 計算用の型：ラダー集計があれば最頻の型、なければ自動で決めた型（乱数なし） */
-const detSet=p=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):chooseSet(p,true);
+const detSet=p=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):((typeof topSetCalc==='function'&&topSetCalc(p))||chooseSet(p,true));
 function estHit(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */

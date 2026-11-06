@@ -126,6 +126,8 @@ function planBind(pl){
   pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}の選出に★を付けました`);teamRender()});
 }
 function planHTML(entries){
+  /* 上位構築のデータがまだなら読んで、届いたら作り直す */
+  if(typeof topLoad==='function'&&!topReady()&&TOPT.st!=='busy'&&TOPT.st!=='err'&&location.protocol!=='file:')topLoad().then(()=>{if(topReady()&&typeof keyOf==='function'&&keyOf(cur)==='team')teamRender()}).catch(()=>{});
   let P0;try{P0=selPlan(entries)}catch(e){return ''}
   const axCard=`<div class="pc-i pc-plan"><b>軸のポケモン</b><p>いちばん使いたい1匹を選ぶと、基本選出に必ず入れ、入れかえ案でも外しません。</p>
     <div class="pills gchips" style="padding:4px 0 0">${entries.map((x,i)=>`<button class="pill" data-axis-pick="${i}" aria-pressed="${!!x.axis}">${esc(byNo[x.no].n)}</button>`).join('')}</div>
@@ -155,7 +157,7 @@ function planHTML(entries){
     ${isSel?'<p class="vcap">いま★を付けている選出です。</p>':`<button class="bback" data-plan="${P0.base.join(',')}" style="padding:0;color:var(--acc)">この選出に★を付ける</button>`}
     ${P0.situ.length?`<h4>こういう相手のときは入れかえる</h4>${P0.situ.map(x=>`<div class="pc-situ"><p>相手に ${chipsOf(x.opps)}${x.opps.length>5?` など${x.opps.length}匹`:''} がいるとき</p><div class="pc-sw"><span><b>${nmI(x.out)}</b> → <b style="color:var(--acc)">${nmI(x.in)}</b></span><button class="bback" data-plsw="${x.out}:${x.in}">この選出にする</button></div></div>`).join('')}`:''}
   </div>
-  <div class="pc-i pc-plan"><b>よく使われる相手への答え</b><p>${P0.live?'ランクバトルの使用率':'種族値'}の上位8匹に、パーティのだれが有利に戦えるかです。</p>
+  <div class="pc-i pc-plan"><b>よく使われる相手への答え</b><p>${P0.live?'ランクバトルの使用率':'種族値'}${typeof topReady==='function'&&topReady()?'と上位構築':''}の上位8匹に、パーティのだれが有利に戦えるかです。</p>
     ${P0.top.map(({q,ans})=>`<div class="pc-top"><a href="#/p/${q.no}">${esc(q.n)}</a><span>${ans.length?ans.slice(0,2).map(i=>`<b>${nmI(i)}</b>`).join('・')+'が有利':'<b style="color:var(--w2)">有利に戦える匹がいない</b>'}</span></div>`).join('')}
     ${P0.top.some(x=>!x.ans.length)?'<p class="vcap">答えがいない相手には、受けられる匹か、上から倒せる匹を1匹用意すると安定します。</p>':''}
   </div>
@@ -163,6 +165,7 @@ function planHTML(entries){
     ${entries.map((x,i)=>`<div class="pc-role"><b>${nmI(i)}${i===P0.ax?'<small>軸</small>':''}</b>${R[i].go.length?`<p>出す：${mons(R[i].go)}</p>`:'<p style="color:var(--w2)">出す相手がはっきりしません（パーティのほかの匹の方が有利な相手ばかり）。</p>'}${R[i].no.length?`<p>出さない：${mons(R[i].no)}</p>`:''}</div>`).join('')}
   </div>
   ${typeof buildDiagHTML==='function'?buildDiagHTML(entries,P0):''}
+  ${typeof topCoresHTML==='function'?topCoresHTML(entries):''}
   ${zur.length?`<div class="pc-i pc-ok"><b>✓ 読まれにくい要素</b><p>ランクバトルであまり使われていない持ち物・技です。相手が型を読み違えやすくなります。</p><p>${zur.slice(0,4).join('<br>')}</p></div>`:''}
   ${P0.sel.length===P0.base.length&&!isSel&&P0.selWeak.length?`<div class="pc-i pc-fix"><b>いまの★の選出が苦手な相手</b><p>${P0.selWeak.map(({q})=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}</a>`).join('')}</p><p>選出のだれも有利に戦いにくい相手です。この相手が見えたら、上の基本選出や入れかえを考えます。</p></div>`:''}`;
 }
@@ -262,7 +265,7 @@ function partyCheck(entries){
 function selPlan(entries){
   const n=entries.length,K=Math.min(PICK(),n);if(n<=K)return null;
   const live=typeof META!=='undefined'&&META.rank&&META.rank.length>=20;
-  const opps=(live?META.rank.map(x=>byNo[x.no]):gmOpps()).filter(Boolean).slice(0,40);
+  const opps=metaOpps(40);
   const me=entries.map(x=>{try{return mkMon(byNo[x.no],'me',mySetFor(x.no))}catch(e){return null}});
   const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
   const S=me.map(a=>opps.map(q=>{if(!a)return -2;try{

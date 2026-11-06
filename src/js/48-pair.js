@@ -70,6 +70,8 @@ function prScore(c,mem){
   mem.forEach(m=>{const d=typeof LIVE!=='undefined'&&LIVE.csv[m.base||m.no];if(!d||!d.tm)return;
     const i=d.tm.findIndex(n=>((SP2NO[nrm(n)]||[])[0])===c.no);
     if(i>=0&&i<12)add('live',i<3?8:i<6?5:3,`ランクバトルで${formInfo(m).base}とよく一緒に使われている（${i+1}番目）`)});
+  /* 上位構築でいっしょに入っていることが多い（57-topteams.js） */
+  if(typeof topPair==='function')mem.forEach(m=>{const t=topPair(m.no,c.no);if(t&&t.pc>=.06&&t.lift>=1.2)add('top',t.pc>=.25?7:t.pc>=.15?5:3,`上位構築で${formInfo(m).base}といっしょに入っていることが多い（${Math.round(t.pc*100)}%）`)});
   if(typeof LIVE!=='undefined'&&LIVE.files&&LIVE.files[ENSP[c.no]])R.push({k:'pop',pts:1,txt:''});
   return{c,R};
 }
@@ -93,7 +95,7 @@ function prRank(mem){
 }
 /* いまのパーティで受けにくいタイプ（2匹以上が弱点で、半減以下で受けられる仲間がいない） */
 const prHoles=mem=>T.filter(t=>mem.filter(m=>prDef(m)[t]>=2).length>=2&&!mem.some(m=>prDef(m)[t]<=.5));
-const PR_TAG={live:'よく一緒',cover:'補完',answer:'対策',focus:'役割集中',pivot:'交代',relay:'場づくり',wx:'天気',bad:'注意'};
+const PR_TAG={top:'上位構築',live:'よく一緒',cover:'補完',answer:'対策',focus:'役割集中',pivot:'交代',relay:'場づくり',wx:'天気',bad:'注意'};
 let PR_N=8;
 async function pairView(arg){
   setHeader('相性のいい仲間を探す','#/team');

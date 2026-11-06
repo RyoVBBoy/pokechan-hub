@@ -138,6 +138,12 @@ const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const
   const sd=+Object.keys(MD).find(i=>MD[i][3]==='swordsdance'),sc=savedToCalc(445,{mv:[{id:sd},{id:89}]});
   return[d1.mt<2,d2.mt>=2,d3.h.pct>0&&d3.mt<9,sc.boost==='swordsdance']});
 if(du.join()!=='true,true,true,true')fail('1対1の判定: '+du.join());
+// 上位構築のデータ（2026/11/06 57-topteams.js）：組み合わせ・相手の候補・相手の型に混ざる
+const tp=await pg.evaluate(()=>{const T=(r,nos)=>({r,old:0,v:1,team:nos.map(no=>({no,set:no===887?{mv:[{id:434}],it:{k:'choicescarf'}}:null}))});
+  topBuild([T(1,[445,823,1018,887,1000,149]),T(5,[445,823,1018,887,130,727]),T(9,[445,823,887,1000,149,130]),T(30,[1018,823,445,1000,727,212])],FMT,Date.now(),'テスト');
+  const r=[topReady(),TOPT.core2[0]&&TOPT.core2[0].nos.includes(445),metaOpps(10).some(q=>q.no===823),detSet(byNo[887]).item==='choicescarf'&&detSet(byNo[887]).moves.length===4,/上位構築/.test(topCoresHTML([{no:445},{no:823}]))];
+  TOPT.st='idle';TOPT.n=0;return r});
+if(tp.join()!=='true,true,true,true,true')fail('上位構築のデータ: '+tp.join());
 // 画像の読み取り：特性は、そのポケモンが持てる特性から選ぶ（2026/11/05：いかく が「いかがかぐく」と読まれた件）
 const abr=await pg.evaluate(()=>{const sl={nameRaw:'ボーマンダ',noFix:373,abRaw:'いかがかぐく',itRaw:'',mvRaw:[]};try{imResolve(sl)}catch(e){return 'ERR '+e.message}return sl.ab&&sl.ab.k});
 if(abr!=='intimidate')fail('画像の読み取りの特性: '+abr);
