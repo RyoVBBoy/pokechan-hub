@@ -27,7 +27,10 @@ function analyze(myNos,opNos,mySF,opSF,W){
     const fast=M.map(m=>O.map(o=>effSpd(m)>effSpd(o)));
     const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
     const defV=i=>O.reduce((a,_,j)=>a+w[j]*Math.min(R[j][i].pct*R[j][i].acc/100,100)/100,0)/wt;
-    const score=idx=>O.reduce((a,_,j)=>a+w[j]*Math.max(...idx.map(i=>offV(i,j))),0)/wt-.6*idx.reduce((a,i)=>a+defV(i),0)/idx.length;
+    /* 1対1の判定（56-duel.js：タスキ・先制技・積み技・命中なども入る）を足す。相手のだれにも、選出のだれかが有利に戦えるほど高い（2026/11/06） */
+    const S=M.map(m=>O.map(o=>typeof duelS==='function'?duelS(m,o):0));
+    const duV=idx=>O.reduce((a,_,j)=>a+w[j]*Math.max(...idx.map(i=>S[i][j]))/2,0)/wt;
+    const score=idx=>O.reduce((a,_,j)=>a+w[j]*Math.max(...idx.map(i=>offV(i,j))),0)/wt-.6*idx.reduce((a,i)=>a+defV(i),0)/idx.length+.2*duV(idx);
     const k=Math.min(PICK(),M.length);
     /* メガシンカは1試合に1匹なので、メガシンカの姿（メガストーンを持つ匹）は選出に1匹まで */
     const cs=combos(M.map((_,i)=>i),k),cs1=cs.filter(c=>c.filter(i=>M[i].p.base).length<=1);
@@ -35,7 +38,7 @@ function analyze(myNos,opNos,mySF,opSF,W){
     const best=all[0].c;
     const leads=combos(best,Math.min(LEADN(),best.length)).map(c=>({c,s:score(c)+c.reduce((a,i)=>a+fast[i].reduce((x,f,j)=>x+(f?w[j]:0),0)/wt*.15,0)})).sort((a,b)=>b.s-a.s);
     const lead=leads[0].c,back=best.filter(i=>!lead.includes(i));
-    return{M,O,D,R,fast,all:all.slice(0,3),full:all,best,lead,back,offV,leads};
+    return{M,O,D,R,S,fast,all:all.slice(0,3),full:all,best,lead,back,offV,leads};
   }finally{B.weather=sw}
 }
 const shortN=n=>n.length>5?n.slice(0,4)+'…':n;
@@ -69,10 +72,11 @@ function oppRoleTags(opNos){
 function oppPredict(myNos,opNos){
   if(opNos.length<=PICK())return{w:opNos.map(()=>1),top:[{c:opNos.map((_,j)=>j),p:1}],lead:null,P:null};
   const P=analyze(opNos,myNos,n=>detSet(byNo[n]),n=>detSet(byNo[n]));
-  /* 選出の組み立てとしてよくある形を少し重く見る（2026/11/03 依頼主の資料）：
+  /* 上位構築によく入っているポケモン（57-topteams.js）ほど、選出にも入りやすいとして少し重く見る（2026/11/06）
+     選出の組み立てとしてよくある形を少し重く見る（2026/11/03 依頼主の資料）：
      メガシンカできる匹は1匹まで・場を作る匹（起点作り）と数値の高いアタッカーを組み合わせた選出 */
   const rk=oppRoleTags(opNos);
-  const adj=c=>{const mg=c.filter(j=>rk[j].mega).length,su=c.some(j=>rk[j].setup),at=c.some(j=>rk[j].ace);return(mg>=2?-.05:0)+(mg===1?.01:0)+(su&&at?.03:su||at?.01:0)};
+  const adj=c=>{const mg=c.filter(j=>rk[j].mega).length,su=c.some(j=>rk[j].setup),at=c.some(j=>rk[j].ace);return(mg>=2?-.05:0)+(mg===1?.01:0)+(su&&at?.03:su||at?.01:0)+(typeof topFreq==='function'?.03*c.reduce((s,j)=>s+topFreq(opNos[j]),0):0)};
   const full=P.full.map(x=>({c:x.c,s:x.s+adj(x.c)})).sort((a,b)=>b.s-a.s);
   const mx=full[0].s,ex=full.map(x=>Math.exp((x.s-mx)/.06)),tot=ex.reduce((a,b)=>a+b,0);
   const pr=full.map((x,i)=>({c:x.c,p:ex[i]/tot}));
