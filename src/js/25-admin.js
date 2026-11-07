@@ -137,6 +137,8 @@ function adminView(){
               ${c.sources.map(x=>`<div class="lmeta" style="padding:4px 0"><a href="${esc(safeUrl(x.url))}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(x.title||hostOf(x.url))}</a>　${x.kind==='found'?'（検索で発見）':''}${stJa[x.status]||''}${x.status==='ok'?` ${x.n}件`:''}${x.err?`<br><span style="color:var(--w2)">${esc(x.err)}</span>`:''}
                 <button class="bback" data-cdel="${x.id}" style="padding:0 0 0 10px;color:var(--w2)">外す</button></div>`).join('')||'<p class="note" style="padding:0">まだありません。「記事を探す」か、アドレスを貼ってください。</p>'}
               <div class="cform" style="padding:8px 0 0"><label>ページのアドレスを足す<input id="col-u" placeholder="https://…"></label></div>
+              <div class="cform" style="padding:8px 0 0"><label>一覧のページから記事を拾う（note はハッシュタグのページか書いた人のページ。ブログの記事一覧も可）<input id="col-lu" placeholder="https://note.com/hashtag/…"></label></div>
+              <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" id="col-list">記事を拾って足す</button></div>
               <div class="btns" style="padding:8px 0 0;flex-wrap:wrap"><button class="btn btn-s" id="col-add">足す</button><button class="btn btn-s" id="col-find">記事を探す（Google検索）</button><button class="btn btn-p" id="col-run">集めて照らし合わせる</button></div>
               <div id="col-msg"></div>
               <div class="sec" style="padding-left:0"><h2>確認待ち</h2><span style="font-size:12px;color:var(--dim)">出典が1つだけ</span></div>
@@ -146,7 +148,9 @@ function adminView(){
             const post=async(path,body,msg)=>{try{const r=await apost(path,{season_id:sid,fmt,...body});toast(msg(r));colLoad()}catch(e){toast(e.message)}};
             document.getElementById('col-add').onclick=()=>post('/api/admin/collect/source',{url:document.getElementById('col-u').value.trim()},()=>'足しました');
             document.getElementById('col-find').onclick=e=>{e.target.disabled=true;e.target.textContent='探しています…';post('/api/admin/collect/find',{},r=>`${r.found}件見つかりました`)};
-            document.getElementById('col-run').onclick=e=>{e.target.disabled=true;e.target.textContent='集めています（1〜2分）…';post('/api/admin/collect/run',{},r=>`自動で${r.published}件を載せました（確認待ち ${r.pending}件）`)};
+            document.getElementById('col-run').onclick=e=>{e.target.disabled=true;e.target.textContent='集めています（1〜2分）…';post('/api/admin/collect/run',{},r=>`自動で${r.published}件を載せました（確認待ち ${r.pending}件）${r.left?`。まだ読んでいない出典が${r.left}件あります。もう一度押すと続きを読みます`:''}`)};
+            document.getElementById('col-list').onclick=e=>{const u=document.getElementById('col-lu').value.trim();if(!/^https?:\/\//.test(u)){toast('一覧のページのアドレス（https://〜）を入れてください');return}
+              e.target.disabled=true;e.target.textContent='拾っています…';post('/api/admin/collect/list',{url:u},r=>r.added?`${r.added}件の記事を出典に足しました。「集めて照らし合わせる」を押してください`:r.found?'見つかった記事は、もう出典に入っています':'記事のリンクが見つかりませんでした')};
             colBox.querySelectorAll('[data-cdel]').forEach(b=>b.onclick=()=>post('/api/admin/collect/source',{delete:true,id:+b.dataset.cdel},()=>'外しました'));
             colBox.querySelectorAll('[data-cpub]').forEach(b=>b.onclick=()=>post('/api/admin/collect/decide',{gkey:b.dataset.cpub,publish:true},()=>'載せました'));
             colBox.querySelectorAll('[data-cskip]').forEach(b=>b.onclick=()=>post('/api/admin/collect/decide',{gkey:b.dataset.cskip,publish:false},()=>'載せないことにしました'));

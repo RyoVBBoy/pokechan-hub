@@ -29,6 +29,14 @@ globalThis.fetch=async(u,o)=>{u=String(u);
     if(b.contents[0].parts.length>2&&b.contents[0].parts.some(p=>/画面収録/.test(p.text||'')))return gemReply(JSON.stringify({format:'single',result:'win',opponent_team:['ガブリアス','カイリュー','サーフゴー','ドラパルト','ガオガエン','ゴリランダー'],my_team:['リザードン','カメックス'],opponent_used:['ガブリアス','サーフゴー'],my_used:['リザードン'],opponent_moves:{'ガブリアス':['じしん','げきりん']},opponent_items:{'ガブリアス':'こだわりスカーフ'}}));
     if(b.contents[0].parts[0].inline_data)return gemReply(JSON.stringify({opponent:[{name:'ガブリアス',types:['ドラゴン','じめん'],confidence:.9},{name:'カイリュー',types:['ドラゴン','ひこう'],confidence:.9},{name:'サーフゴー',types:['はがね','ゴースト'],confidence:.4},{name:'？？？',types:['ほのお'],confidence:.2}]}));
     const url=(b.contents[0].parts[0].text.match(/ページ：(\S+)/)||[])[1];return gemReply('```json\n'+JSON.stringify(GEM_PAGES[url]||{teams:[]})+'\n```')}
+  if(u.startsWith('https://note.com/api/v3/hashtags/'))return new Response(JSON.stringify({data:{is_last_page:true,notes:[
+    {key:'n0123456789ab',name:'【ポケモンチャンピオンズ】シーズン2 最終12位 構築',user:{urlname:'taro'}},{key:'nabcdef012345',name:'レート2100 到達パーティ',user:{urlname:'hana'}},
+    {key:'n999999999999',name:'初心者の日記',user:{urlname:'jiro'}}]}}));
+  if(u.startsWith('https://note.com/api/v2/creators/'))return new Response(JSON.stringify({data:{isLastPage:true,contents:[{key:'n111111111111',name:'S2 使用構築 最終45位',noteUrl:'https://note.com/kyo/n/n111111111111'}]}}));
+  if(u.startsWith('https://blog.example/'))return new Response(`<html><a href="/login">ログイン</a><a href="https://note.com/hashtag/x">#x</a>
+    <a href="https://note.com/taro/n/n0123456789ab"><h3>【ポケモンチャンピオンズ】シーズン2 最終12位 構築</h3></a>
+    <div data-url="https://note.com/hana/n/nabcdef012345?from=list"></div><a href="https://note.com/taro/n/n0123456789ab">同じ記事</a>
+    <a href="https://other.example/x">よそ</a><a href="/archives/77">シーズン2 最終3位 構築</a><a href="/about">このブログについて</a></html>`,{headers:{'content-type':'text/html'}});
   if(u.endsWith('/assets/tier.json'))return new Response(JSON.stringify(TIERJ));
   return new Response('',{status:404})};
 let TIERJ={at:Date.now(),live:true,fmt:'single',rows:[{no:445,name:'ガブリアス',tier:'S',u:1},{no:149,name:'カイリュー',tier:'A',u:2},{no:887,name:'ドラパルト',tier:'B',u:3}]};
@@ -246,6 +254,18 @@ r=await call('/api/admin/seasons',{method:'POST',admin:ADM,body:{name:'シーズ
 r=await call('/api/admin/collect/source',{method:'POST',body:{season_id:S2,fmt:'single',url:'https://a.example/1'}});expect('自動集計は管理者だけ',r[0]===401,r);
 r=await call('/api/admin/collect/source',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url:'javascript:alert(1)'}});expect('出典は https のアドレスだけ',r[0]===400,r);
 for(const url of ['https://a.example/1','https://b.example/2','https://c.example/3'])await call('/api/admin/collect/source',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url}});
+r=await call('/api/admin/collect/list',{method:'POST',body:{season_id:S2,fmt:'single',url:'https://note.com/hashtag/x'}});expect('一覧から拾うのも管理者だけ',r[0]===401,r);
+r=await call('/api/admin/collect/list',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url:'https://note.com/hashtag/x'}});
+expect('note のハッシュタグから、上位の結果らしい題名の記事だけを拾う',r[0]===200&&r[1].added===2&&r[1].scanned===3,r[1]);
+r=await call('/api/admin/collect/list',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url:'https://note.com/kyo'}});
+expect('note の書いた人のページからも拾う',r[0]===200&&r[1].added===1,r[1]);
+r=await call('/api/admin/collect/list',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url:'https://note.com/search?q=x'}});
+expect('note の検索のページは読めないと案内',r[0]===502&&/ハッシュタグ/.test(r[1].error),r[1]);
+r=await call('/api/admin/collect/list',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',url:'https://blog.example/list'}});
+expect('ふつうのブログの一覧：同じサイトの記事だけ（ログイン・案内・よそは拾わない）',r[0]===200&&r[1].added===1,r[1]);
+r=await call(`/api/admin/collect?season_id=${S2}&fmt=single`,{admin:ADM});
+expect('拾った記事は題名つきで出典に入る',r[1].sources.some(s=>s.url==='https://note.com/taro/n/n0123456789ab'&&/最終12位/.test(s.title))&&r[1].sources.some(s=>s.url==='https://blog.example/archives/77'),r[1].sources.map(s=>[s.url,s.title]));
+for(const s of r[1].sources.filter(s=>/note\.com|blog\.example/.test(s.url)))await call('/api/admin/collect/source',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single',id:s.id,delete:true}});
 r=await call('/api/admin/collect/run',{method:'POST',admin:ADM,body:{season_id:S2,fmt:'single'}});
 expect('集めて照らし合わせる：2つの出典で一致した1件だけ自動で載る',r[0]===200&&r[1].published===1&&r[1].pending===2,r[1]);
 expect('違う形式のページは数えない',r[1].log.find(x=>x.url==='https://c.example/3').n===0,r[1].log);

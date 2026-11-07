@@ -97,6 +97,68 @@ async function collectFind(env,db,s,fmt,now){
   for(const w of found)await db.prepare(`INSERT OR IGNORE INTO col_sources(season_id,fmt,url,title,kind,status,created_at) VALUES(?,?,?,?,'found','new',?)`).bind(s.id,fmt,okUrl(w.uri),String(w.title||'').slice(0,120),now).run();
   return found.length;
 }
+/* 一覧のページ（note のハッシュタグ・検索・マガジン・ブログの記事一覧など）から、記事のリンクを拾って出典に足す（2026/11/06 依頼主の要望）。
+   ページのHTMLにある <a href> と、その文字を見て、構築の記事らしいもの（題名に 構築・最終・位・レート・シーズン など）を選ぶ。
+   note は記事のアドレスの形（/名前/n/n＋12けた）で見分ける。一覧のページそのものは出典にしない。1回に30件まで。 */
+const LIST_KW=/構築|最終|最高|\d+\s*位|レート|シーズン|使用|パーティ|ランクバトル|チャンピオンズ|PJCS|大会|優勝|入賞/;
+const LIST_NG=/\/(hashtag|search|login|signup|tags?|category|categories|users?|followers?|following|magazines?|membership|premium|settings|notifications|help|terms|privacy|about|contact|feed|rss)(\/|$|\?)|\.(png|jpe?g|gif|webp|svg|css|js|ico|xml)(\?|$)/i;
+function listLinks(html,base){
+  const out=new Map();let bu;try{bu=new URL(base)}catch(e){return[]}
+  const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim();
+  const add=(href,text)=>{let u;try{u=new URL(href.replace(/&amp;/g,'&'),bu)}catch(e){return}
+    if(!/^https?:$/.test(u.protocol))return;u.hash='';
+    const isNote=/(^|\.)note\.com$/.test(u.hostname)&&/^\/[A-Za-z0-9_]+\/n\/n[0-9a-f]{12}$/.test(u.pathname);
+    if(!isNote&&(u.hostname!==bu.hostname||LIST_NG.test(u.pathname)||u.pathname.replace(/\/$/,'')===bu.pathname.replace(/\/$/,'')||u.pathname.split('/').filter(Boolean).length<1))return;
+    if(isNote)u.search='';
+    const k=u.href,prev=out.get(k);const tx=(text||'').slice(0,120);
+    if(!prev)out.set(k,{url:k,title:tx,note:isNote});else if(tx.length>prev.title.length)prev.title=tx};
+  for(const m of html.matchAll(/<a\b[^>]*?href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,600}?)<\/a>/gi))add(m[1],strip(m[2]));
+  /* 文字のないリンク（note の一覧はカードの中に題名がある）：アドレスだけ拾う */
+  for(const m of html.matchAll(/https?:\/\/note\.com\/[A-Za-z0-9_]+\/n\/n[0-9a-f]{12}/g))add(m[0],'');
+  const all=[...out.values()];
+  const kw=all.filter(x=>LIST_KW.test(x.title));
+  /* 題名で選べたものを先に。note の記事は題名が取れなくても入れる（中身は読み取りのときに対象かどうか判断される） */
+  const pick=[...kw,...all.filter(x=>x.note&&!kw.includes(x))];
+  return pick.slice(0,30);
+}
+/* note は一覧のページを開いたあとで中身を読み込むので、note のデータの取り出し口を使う（2026/11/06 GitHub Actions で確かめた）：
+   ハッシュタグ＝/api/v3/hashtags/タグ/notes?order=new&page=N（50件ずつ・is_last_page）、
+   人ごとの記事一覧＝/api/v2/creators/名前/contents?kind=note&page=N（contents・isLastPage）。検索のページ（/search）は読めない（403）。
+   題名で、上位の結果の記事らしいもの（最終〇位・レート・構築 など）だけを選ぶ */
+const NOTE_KW=/最終|最高|\d+\s*位|レート\s*\d{3,4}|構築|使用.{0,4}(パーティ|ポケモン)|PJCS|大会.{0,6}(優勝|入賞|ベスト)/;
+const NOTE_UA={'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36','accept':'application/json'};
+async function noteList(u){
+  const seg=u.pathname.split('/').filter(Boolean),out=[];
+  const pull=async(api,pick,last)=>{for(let p=1;p<=4&&out.length<200;p++){const r=await fetch(api(p),{headers:NOTE_UA,signal:AbortSignal.timeout(15000)});if(!r.ok)break;
+    const j=await r.json().catch(()=>null);const d=j&&j.data;if(!d)break;pick(d).forEach(x=>out.push(x));if(last(d))break}};
+  if(seg[0]==='hashtag'&&seg[1]){const tag=encodeURIComponent(decodeURIComponent(seg[1]));
+    await pull(p=>`https://note.com/api/v3/hashtags/${tag}/notes?order=new&page=${p}&paid_only=false`,
+      d=>(d.notes||[]).filter(n=>n&&n.key&&n.user&&n.user.urlname).map(n=>({url:`https://note.com/${n.user.urlname}/n/${n.key}`,title:String(n.name||'').slice(0,120)})),d=>d.is_last_page||!(d.notes||[]).length);
+    return out}
+  if(seg[0]==='search')throw new Error('note の検索のページは読めません。ハッシュタグのページ（https://note.com/hashtag/〜）か、書いた人のページを入れてください');
+  if(seg.length===1&&/^[A-Za-z0-9_]+$/.test(seg[0])){
+    await pull(p=>`https://note.com/api/v2/creators/${seg[0]}/contents?kind=note&page=${p}`,
+      d=>(d.contents||[]).filter(n=>n&&n.key).map(n=>({url:n.noteUrl||`https://note.com/${seg[0]}/n/${n.key}`,title:String(n.name||'').slice(0,120)})),d=>d.isLastPage||!(d.contents||[]).length);
+    return out}
+  return null;
+}
+async function collectFromList(db,sid,fmt,url,now){
+  let u0;try{u0=new URL(url)}catch(e){throw new Error('アドレスが正しくありません')}
+  if(/(^|\.)note\.com$/.test(u0.hostname)){
+    const L=await noteList(u0);
+    if(L){const pick=L.filter(x=>NOTE_KW.test(x.title)).slice(0,30);let added=0;
+      for(const l of pick){const x=await db.prepare(`INSERT OR IGNORE INTO col_sources(season_id,fmt,url,title,kind,status,created_at) VALUES(?,?,?,?,'list','new',?)`).bind(sid,fmt,l.url,l.title||null,now).run();if(x.meta&&x.meta.changes)added++}
+      return{found:pick.length,added,scanned:L.length}}
+  }
+  const r=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36','accept-language':'ja,en;q=0.8'},redirect:'follow',signal:AbortSignal.timeout(20000)});
+  if(!r.ok)throw new Error(`一覧のページを開けませんでした（${r.status}）`);
+  const html=(await r.text()).slice(0,3e6);
+  const links=listLinks(html,r.url||url);
+  let added=0;
+  for(const l of links){const x=await db.prepare(`INSERT OR IGNORE INTO col_sources(season_id,fmt,url,title,kind,status,created_at) VALUES(?,?,?,?,'list','new',?)`).bind(sid,fmt,l.url,l.title||null,now).run();
+    if(x.meta&&x.meta.changes)added++}
+  return{found:links.length,added};
+}
 /* ---- 照らし合わせ ---- */
 const pkey=p=>String(p||'').normalize('NFKC').toLowerCase().replace(/[\s_\-・.]/g,'');
 const same=(a,b)=>(pkey(a.player)&&pkey(a.player)===pkey(b.player))||a.nos.filter(n=>b.nos.includes(n)).length>=5;
@@ -159,7 +221,8 @@ async function collectRun(env,db,sid,fmt,now){
       log.push({url:src.url,n:ts.length})}
     catch(e){await db.prepare(`UPDATE col_sources SET status='err',err=?,last_at=? WHERE id=?`).bind(String(e.message||e).slice(0,200),now,src.id).run();log.push({url:src.url,err:String(e.message||e)})}
   }
-  return{...await collectReconcile(db,sid,fmt,now),log};
+  const left=(await db.prepare(`SELECT COUNT(*) AS n FROM col_sources WHERE season_id=? AND fmt=? AND status='new'`).bind(sid,fmt).first()).n||0;
+  return{...await collectReconcile(db,sid,fmt,now),log,left};
 }
 async function collectApi(req,env,db,path,body,now,isAdmin){
   if(!/^\/api\/admin\/collect/.test(path))return null;
@@ -177,13 +240,17 @@ async function collectApi(req,env,db,path,body,now,isAdmin){
     await db.prepare(`INSERT OR IGNORE INTO col_sources(season_id,fmt,url,title,kind,status,created_at) VALUES(?,?,?,?,'manual','new',?)`).bind(sid,fmt,url,String(body.title||'').slice(0,120),now).run();
     return J({ok:true});
   }
+  if(path==='/api/admin/collect/list'&&req.method==='POST'){
+    const url=okUrl(body.url);if(!url)return J({error:'一覧のページのアドレス（https://〜）を入れてください。'},400);
+    try{return J({ok:true,...await collectFromList(db,sid,fmt,url,now)})}catch(e){return J({error:e.message||'一覧のページを読めませんでした'},502)}
+  }
   if(path==='/api/admin/collect/find'&&req.method==='POST'){
     const s=await db.prepare(`SELECT id,name,start,end FROM seasons WHERE id=?`).bind(sid).first();if(!s)return J({error:'シーズンが見つかりません。'},404);
     if(!env.GEMINI_API_KEY)return J({error:'サーバーに GEMINI_API_KEY が設定されていません。'},400);
     try{return J({ok:true,found:await collectFind(env,db,s,fmt,now)})}catch(e){return J({error:e.message},502)}
   }
   if(path==='/api/admin/collect/run'&&req.method==='POST'){
-    try{const r=await collectRun(env,db,sid,fmt,now);return J({ok:true,published:r.published,pending:r.pending.length,log:r.log})}catch(e){return J({error:e.message},400)}
+    try{const r=await collectRun(env,db,sid,fmt,now);return J({ok:true,published:r.published,pending:r.pending.length,log:r.log,left:r.left})}catch(e){return J({error:e.message},400)}
   }
   /* 出典が1つだけのものを、運営者が確かめて載せる／載せない */
   if(path==='/api/admin/collect/decide'&&req.method==='POST'){
