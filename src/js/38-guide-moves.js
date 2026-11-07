@@ -80,7 +80,10 @@ function moveTips(id){
     if(up.length&&i.cls===2)out.push(`自分の${stl(up)}上げる技。上げたあとの攻撃や耐久で勝負を決めるので、相手に削られにくい場面や、相手が交代してきたときに使う。`);
     else if(up.length&&up[0][2]>=100)out.push(`攻撃しながら自分の${stl(up)}上げられるので、使うほど有利になっていく。`);
     else if(up.length)out.push(`ときどき自分の${up.map(x=>STN[x[0]]).join('・')}が上がる（運しだい）。`);
-    if(dn.length)out.push(`使うと自分の${dn.map(x=>STN[x[0]]).join('・')}が下がる。威力の高さを活かして一撃で倒したい場面で使い、続けて使うと弱くなるので、一度交代して元に戻すとよい。`)}
+    /* 下がる能力で書き分ける（2026/11/07：スケイルショットに「続けて使うと弱くなる」と出ていた。防御・特防が下がる技は、弱くなるのではなく打たれ弱くなる） */
+    if(dn.length){const at=dn.filter(x=>['atk','spa','spe'].includes(x[0])),df=dn.filter(x=>['def','spd'].includes(x[0]));
+      if(at.length)out.push(`使うと自分の${at.map(x=>STN[x[0]]).join('・')}が下がる。威力の高さを活かして一撃で倒したい場面で使い、続けて使うと弱くなるので、一度交代して元に戻すとよい。`);
+      if(df.length)out.push(`使うと自分の${df.map(x=>STN[x[0]]).join('・')}が下がり、相手の攻撃を受けやすくなる。使ったあとに相手の攻撃をもらわないよう、倒しきれる場面で使うか、使ったあとは交代も考える。`)}}
   if(e.t){const sure=e.t.filter(x=>x[2]>=100),maybe=e.t.filter(x=>x[2]<100);
     if(sure.length)out.push(`相手の${sure.map(x=>STN[x[0]]).join('・')}を確実に下げる。${sure.some(x=>x[0]==='spe')?'素早さを下げれば、次のターンから味方が先に動きやすくなる。':'味方の攻撃を通しやすく、または相手の攻撃を受けやすくなる。'}`);
     if(maybe.length)out.push(`${maybe.map(x=>`${x[2]}%の確率で`).join('')}相手の${maybe.map(x=>STN[x[0]]).join('・')}が下がることがある（おまけの効果）。`)}
