@@ -23,9 +23,12 @@ function koInfo(r,hp){
 }
 const pctTxt=p=>p<.001?'0.1%未満':(p*100).toFixed(p<.1?1:0)+'%';
 const koLabel=k=>!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`;
+/* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
+const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
+const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
 const koShort=k=>!k.n||k.n>8?'—':(k.p>=.9999?'確':'乱')+k.n;
 
-let CS=null;
+let CS=null;const CALC_OPEN={};
 function calcX(no,src){
   const p=byNo[no];const mine=team.some(t=>t.no===no);
   const c=(src!=='common'&&mine)?mySetFor(no):detSet(p),sv=setToSaved(p,c);
@@ -35,7 +38,7 @@ function calcX(no,src){
 function calcInit(){
   const a=team[0]?team[0].no:445,d=(team[1]&&team[1].no!==a)?149:(a===149?445:149);
   CS={a:calcX(a),d:calcX(d,'common'),mv:null,crit:false,spread:false,burn:false,screen:false,weather:'',aHP:100,dHP:100,dSt:'',cond:false,cnt:0};
-  CS.mv=CS.a.moves[0]?CS.a.moves[0].id:null;
+  CS.mv=null;
 }
 function calcMon(side,X){
   const p=byNo[X.no];
@@ -54,11 +57,27 @@ function calcMoveList(X){
 }
 function calcResult(){
   const a=calcMon('me',CS.a),d=calcMon('op',CS.d);
-  const list=calcMoveList(CS.a);let mv=list.find(m=>m.id===CS.mv)||list[0];if(!mv)return null;CS.mv=mv.id;
+  const list=calcMoveList(CS.a);
+  /* 技を選んでいないときは、いちばんダメージの大きい技（覚えさせた技の中から） */
+  if(CS.mv==null){const set=CS.a.moves.length?CS.a.moves:list.slice(0,8);let best=null;const sw0=B.weather;B.weather=CS.weather?{k:CS.weather,t:5}:null;
+    try{set.forEach(m=>{const v=bcalc(a,m,d,{}).dmg*(accOf(a,m,d)/100);if(!best||v>best.v)best={m,v}})}catch(e){}finally{B.weather=sw0}
+    if(best)CS.mv=best.m.id}
+  let mv=list.find(m=>m.id===CS.mv)||list[0];if(!mv)return null;CS.mv=mv.id;
   const sw=B.weather;B.weather=CS.weather?{k:CS.weather,t:5}:null;
   try{
     const r=dmgRolls(a,mv,d,{crit:CS.crit,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt});
     return{a,d,mv,list,r,ko:koInfo(r,d.hp),eff:bcalc(a,mv,d,{}).eff,acc:accOf(a,mv,d)};
+  }finally{B.weather=sw}
+}
+/* 覚えさせた技（よくある型）それぞれのダメージと、相手からの反撃 */
+function calcOverview(R){
+  const sw=B.weather;B.weather=CS.weather?{k:CS.weather,t:5}:null;
+  try{
+    const ms=[...CS.a.moves];if(!ms.some(m=>m.id===R.mv.id))ms.push(R.mv);
+    const rows=ms.slice(0,6).map(m=>{const r=dmgRolls(R.a,m,R.d,{crit:CS.crit,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt});
+      return{m,lo:Math.min(...r)/R.d.max*100,hi:Math.max(...r)/R.d.max*100,ko:koInfo(r,R.d.hp),eff:bcalc(R.a,m,R.d,{}).eff}});
+    let back=null;try{const h=estHit(R.d,R.a);if(h&&h.mv)back={mv:h.mv,pct:h.pct}}catch(e){}
+    return{rows,back};
   }finally{B.weather=sw}
 }
 const monOpts=sel=>P.map(p=>`<option value="${p.no}"${p.no===sel?' selected':''}>${p.n}</option>`).join('');
@@ -68,9 +87,8 @@ function calcSide(key,X,isAtk){
   const st=calcStats(p,X.sp,X.up,X.dn);
   const ks=[...Object.keys(MEGA).filter(k=>itemFor(X.no,k)),...Object.keys(ITEMN).filter(k=>!isStone(k))];
   return `<div class="cside">
-  <div class="natr"><span style="width:62px">${isAtk?'攻撃側':'防御側'}</span>${monField(`data-c="${key}.no"`,X.no)}</div>
   <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">よくある型</button></div>
-  <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}${ABIMPL.has(k)?'':'※計算外'}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
+  <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
   <div class="natr"><span style="width:62px">持ち物</span><select class="sel" data-c="${key}.item"><option value="">（なし）</option>${ks.map(k=>`<option value="${k}"${k===X.item?' selected':''}>${ITEMN[k]}</option>`).join('')}</select></div>
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
   <div class="natr"><span style="width:62px">性格</span><select class="sel" data-c="${key}.nat">${NATS.map(([n,u,d],j)=>`<option value="${j}"${(u===X.up&&d===X.dn)||(u<0&&!(X.up>0))?' selected':''}>${n}${u>0?`（${SN[u]}↑${SN[d]}↓）`:''}</option>`).join('')}</select></div>
@@ -85,32 +103,49 @@ function calcView(){
     const R=calcResult();
     const pct=v=>(v/R.d.max*100).toFixed(1);
     const lo=R?Math.min(...R.r):0,hi=R?Math.max(...R.r):0;
+    const O=R?calcOverview(R):null;
+    const nmA=esc(formInfo(byNo[CS.a.no]).base),nmD=esc(formInfo(byNo[CS.d.no]).base);
+    const sum=X=>{const parts=[X.ab&&ABN[X.ab],X.item&&ITEMN[X.item],(NATS.find(([n,u,d])=>u===X.up&&d===X.dn)||[''])[0]].filter(Boolean);return esc(parts.join('・')||'特性・持ち物なし')};
+    const effTag=e=>e>=4?'<span class="cv-e good">ばつぐん×4</span>':e>=2?'<span class="cv-e good">ばつぐん</span>':e===0?'<span class="cv-e none">こうかなし</span>':e<1?'<span class="cv-e weak">いまひとつ</span>':'';
+    /* 受けたあとの残りHP（多く残る〜少なく残る） */
+    const remHi=R?Math.max(0,100-Math.min(...R.r)/R.d.max*100):0,remLo=R?Math.max(0,100-Math.max(...R.r)/R.d.max*100):0,cur0=R?R.d.hp/R.d.max*100:100;
+    const hpCol=v=>v>50?'#00ba7c':v>20?'#ffb020':'#f4212e';
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
-    <p class="note" style="padding-top:4px">あなたのパーティの育成や、よく使われている型を使って、<b>乱数16段階</b>までのダメージを計算します。数字はすべて変えられます。</p>
-    ${calcSide('a',CS.a,true)}
-    <div class="natr"><span style="width:62px">技</span><select class="sel" data-c="mv">${R?R.list.map(m=>`<option value="${m.id}"${m.id===R.mv.id?' selected':''}>${m.n}（${m.t}・${['物理','特殊','変化'][m.cls]}・${['seismictoss','nightshade','superfang','endeavor','finalgambit'].includes(mkey(m))?'固定ダメージ':'威力'+(m.pow||'変動')}${m.maxH>1?(m.minH===m.maxH?'×'+m.maxH:'×2〜5'):''}）</option>`).join(''):''}</select></div>
-    <div class="btns" style="padding:4px 16px"><button class="btn btn-s" id="c-swap">⇅ 攻守を入れ替える</button></div>
-    ${calcSide('d',CS.d,false)}
+    <div class="cv-vs">
+      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('よくある型','Common set')}: ${sum(CS.a)}</span></div>
+      <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える">⇅</button>
+      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('よくある型','Common set')}: ${sum(CS.d)}</span></div>
+    </div>
+    ${R?`<div class="cres cv-res">
+      <div class="cres-h" data-notr>${L(`${nmA}の<b>${esc(mvNm(R.mv))}</b> → ${nmD}`,`${nmA}'s <b>${esc(mvNm(R.mv))}</b> → ${nmD}`)} ${effTag(R.eff)}${R.acc<100?`<span class="cv-e">命中${Math.round(R.acc)}</span>`:''}</div>
+      ${R.eff===0?`<div class="cres-big">0%</div><div class="cv-ko">${L('こうかがありません（タイプか特性で防がれます）','No effect (blocked by type or ability)')}</div>`:`
+      <div class="cres-big">${pct(lo)}<small>%</small> 〜 ${pct(hi)}<small>%</small></div>
+      <div class="cv-ko" data-notr>${koPlain(R.ko)}</div>
+      <div class="cv-hp" aria-label="受けたあとの残りHP"><i class="cv-hp-rem" style="width:${remLo}%;background:${hpCol(remLo)}"></i><i class="cv-hp-rng" style="left:${remLo}%;width:${Math.max(.6,remHi-remLo)}%"></i><i class="cv-hp-lost" style="left:${remHi}%;width:${Math.max(0,cur0-remHi)}%"></i></div>
+      <div class="cres-s" data-notr>${L('残りHP','HP left')}: ${remHi<=0?L('0%（倒れます）','0% (KO)'):Math.round(remLo)===Math.round(remHi)?Math.round(remHi)+'%':`${Math.round(remLo)}〜${Math.round(remHi)}%`}　(${L('ダメージ','Damage')} ${lo}–${hi} / HP ${R.d.max}${R.d.hp<R.d.max?` · ${L('いまのHP','current HP')} ${R.d.hp}`:''})</div>`}
+      ${mvNote(R)?`<div class="cres-n">${mvNote(R)}</div>`:''}
+    </div>
+    ${O&&O.rows.length?`<div class="sec"><h2>技ごとのダメージ</h2><span style="font-size:12px;color:var(--dim)">押すと上に出ます</span></div>
+    <div class="cv-mvs">${O.rows.map(x=>`<button class="cv-mv${x.m.id===R.mv.id?' on':''}" data-mvpick="${x.m.id}"><span class="cv-mn" data-notr>${esc(mvNm(x.m))}<small>${x.m.t}・${['物理','特殊','変化'][x.m.cls]}</small></span>
+      <span class="cv-mb"><i style="width:${Math.min(100,x.hi)}%;background:${x.eff===0?'var(--line)':x.hi>=100?'#f4212e':x.hi>=50?'#ffb020':'var(--acc)'}"></i></span>
+      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':x.ko.p>=.9999?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
+    <div class="natr" style="padding-top:8px"><span style="width:62px;font-size:13px;color:var(--dim)">ほかの技</span><select class="sel" data-c="mv" data-notr>${R.list.map(m=>`<option value="${m.id}"${m.id===R.mv.id?' selected':''}>${mvNm(m)}（${m.t}・${['物理','特殊','変化'][m.cls]}・${['seismictoss','nightshade','superfang','endeavor','finalgambit'].includes(mkey(m))?'固定ダメージ':'威力'+(m.pow||'変動')}${m.maxH>1?(m.minH===m.maxH?'×'+m.maxH:'×2〜5'):''}）</option>`).join('')}</select></div>`:''}
+    ${O&&O.back?`<div class="cv-back" data-notr>${L(`反撃されると：${nmD}の<b>${esc(mvNm(O.back.mv))}</b>で、${nmA}は約<b>${Math.round(O.back.pct)}%</b>受けます${O.back.pct>=100?'（一撃で倒されます）':''}`,`If ${nmD} hits back with <b>${esc(mvNm(O.back.mv))}</b>, ${nmA} takes about <b>${Math.round(O.back.pct)}%</b>${O.back.pct>=100?' (OHKO)':''}`)}</div>`:''}`:'<p class="empty">この組み合わせでは計算できる技がありません。</p>'}
     <div class="sec"><h2>条件</h2></div>
     <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap">
       <button class="pill" data-t="crit" aria-pressed="${CS.crit}">急所</button>
       ${FMT==='double'?`<button class="pill" data-t="spread" aria-pressed="${CS.spread}">全体技が2匹に当たる（×0.75）</button>`:''}
-      <button class="pill" data-t="screen" aria-pressed="${CS.screen}">${R&&R.mv.cls?'ひかりのかべ':'リフレクター'}（相手側）</button>
-      <button class="pill" data-t="burn" aria-pressed="${CS.burn}">攻撃側がやけど</button></div>
-    <div class="natr"><span style="width:62px">残りHP</span><label class="hpin">攻撃側<input type="number" min="1" max="100" value="${CS.aHP}" data-c="aHP" inputmode="numeric">%</label><label class="hpin">防御側<input type="number" min="1" max="100" value="${CS.dHP}" data-c="dHP" inputmode="numeric">%</label></div>
-    <div class="natr"><span style="width:62px">状態</span><select class="sel" data-c="dSt">${[['','防御側：状態異常なし'],['brn','防御側：やけど'],['par','防御側：まひ'],['psn','防御側：どく'],['tox','防御側：もうどく'],['slp','防御側：ねむり'],['frz','防御側：こおり']].map(([k,n])=>`<option value="${k}"${k===CS.dSt?' selected':''}>${n}</option>`).join('')}</select></div>
-    ${R&&MCOND[mkey(R.mv)]?`<div class="pills" style="padding:0 16px 8px"><button class="pill" data-t="cond" aria-pressed="${CS.cond}">${MCOND[mkey(R.mv)]}（威力2倍）</button></div>`:''}
-    ${R&&MCOUNT[mkey(R.mv)]?`<div class="natr"><span style="width:62px">回数</span><select class="sel" data-c="cnt">${Array.from({length:MCOUNT[mkey(R.mv)][1]+1},(_,i)=>`<option value="${i}"${i===CS.cnt?' selected':''}>${MCOUNT[mkey(R.mv)][0]}：${i}</option>`).join('')}</select></div>`:''}
+      <button class="pill" data-t="screen" aria-pressed="${CS.screen}">${R&&R.mv.cls?'ひかりのかべ':'リフレクター'}</button>
+      <button class="pill" data-t="burn" aria-pressed="${CS.burn}">攻撃側がやけど</button>
+      ${R&&MCOND[mkey(R.mv)]?`<button class="pill" data-t="cond" aria-pressed="${CS.cond}">${MCOND[mkey(R.mv)]}（威力2倍）</button>`:''}</div>
     <div class="natr"><span style="width:62px">天気</span><select class="sel" data-c="weather">${[['','なし'],['sun','はれ'],['rain','あめ'],['sand','すなあらし'],['snow','ゆき']].map(([k,n])=>`<option value="${k}"${k===CS.weather?' selected':''}>${n}</option>`).join('')}</select></div>
-    ${R?`<div class="cres">
-      <div class="cres-h">${R.a.p.n}の${R.mv.n} → ${R.d.p.n}</div>
-      <div class="cres-big">${pct(lo)}%〜${pct(hi)}%</div>
-      <div class="cres-s">${lo}〜${hi} ／ HP ${R.d.max}　${R.eff>=2?'<b style="color:#4ec98a">ばつぐん</b>':R.eff===0?'<b style="color:var(--w4)">こうかなし</b>':R.eff<1?'<b style="color:var(--w2)">いまひとつ</b>':''}${R.acc<100?`　命中${Math.round(R.acc)}`:''}</div>
-      <div class="cbar"><i style="left:${Math.min(100,lo/R.d.max*100)}%;width:${Math.max(1,Math.min(100,hi/R.d.max*100)-Math.min(100,lo/R.d.max*100))}%"></i></div>
-      <div class="cres-ko">${koLabel(R.ko)}${R.d.hp<R.d.max?`<small style="font-weight:500;color:var(--dim)">（残りHP ${R.d.hp}から）</small>`:''}</div>
-      ${mvNote(R)?`<div class="cres-n">${mvNote(R)}</div>`:''}
-      <details class="edd" style="margin:8px 0 0"><summary>乱数16段階のダメージ</summary><div class="crolls">${R.r.map((v,i)=>`<span>${85+i}%<b>${v}</b></span>`).join('')}</div></details>
-    </div>
+    ${R&&MCOUNT[mkey(R.mv)]?`<div class="natr"><span style="width:62px">回数</span><select class="sel" data-c="cnt">${Array.from({length:MCOUNT[mkey(R.mv)][1]+1},(_,i)=>`<option value="${i}"${i===CS.cnt?' selected':''}>${MCOUNT[mkey(R.mv)][0]}：${i}</option>`).join('')}</select></div>`:''}
+    <details class="cv-more"${CALC_OPEN.a?' open':''} data-more="a"><summary><b>${L(`${nmA}の育成を変える`,`Edit ${nmA}'s set`)}</b><span>特性・持ち物・性格・能力ポイント・ランク</span></summary>${calcSide('a',CS.a,true)}</details>
+    <details class="cv-more"${CALC_OPEN.d?' open':''} data-more="d"><summary><b>${L(`${nmD}の育成を変える`,`Edit ${nmD}'s set`)}</b><span>特性・持ち物・性格・能力ポイント・ランク</span></summary>${calcSide('d',CS.d,false)}</details>
+    <details class="cv-more"${CALC_OPEN.x?' open':''} data-more="x"><summary><b>そのほかの条件</b><span>残りHP・状態異常</span></summary>
+      <div class="natr"><span style="width:62px">残りHP</span><label class="hpin">攻撃側<input type="number" min="1" max="100" value="${CS.aHP}" data-c="aHP" inputmode="numeric">%</label><label class="hpin">受ける側<input type="number" min="1" max="100" value="${CS.dHP}" data-c="dHP" inputmode="numeric">%</label></div>
+      <div class="natr"><span style="width:62px">状態</span><select class="sel" data-c="dSt">${[['','受ける側：状態異常なし'],['brn','受ける側：やけど'],['par','受ける側：まひ'],['psn','受ける側：どく'],['tox','受ける側：もうどく'],['slp','受ける側：ねむり'],['frz','受ける側：こおり']].map(([k,n])=>`<option value="${k}"${k===CS.dSt?' selected':''}>${n}</option>`).join('')}</select></div></details>
+    ${R?`<details class="cv-more"><summary><b>乱数16段階のダメージ</b><span>ダメージは85〜100%の16通りでばらつきます</span></summary><div class="crolls" style="padding:8px 16px 12px">${R.r.map((v,i)=>`<span>${85+i}%<b>${v}</b></span>`).join('')}</div></details>
     <details class="edd cver" id="c-ver"${DVER.open?' open':''}><summary>ゲームの結果と照らし合わせる</summary>
       <p class="note" style="padding:6px 0 4px">上と同じ条件でゲーム内で技を当て、実際に減ったHPを入れてください。自分のポケモンが受けたときは数値、相手のときは％で入れます。</p>
       <div class="cver-r"><div class="pills" style="padding:0"><button class="pill" data-vu="n" aria-pressed="${DVER.unit==='n'}">数値</button><button class="pill" data-vu="p" aria-pressed="${DVER.unit==='p'}">％</button></div>
@@ -118,9 +153,10 @@ function calcView(){
         <button class="btn btn-p" id="c-rec">記録</button></div>
       <div id="c-verdict" class="cver-v" aria-live="polite"></div>
       ${dvList()}
-    </details>`:'<p class="empty">この組み合わせでは計算できる技がありません。</p>'}
-    <p class="note" style="color:var(--mute)">Lv50で計算しています。計算の手順と端数の処理は本編（スカーレット・バイオレット）と同じ方式で、対戦で広く使われている計算機と1万通り以上の組み合わせで一致することを確かめています。メガストーンを持たせるとメガシンカ後の姿で計算します。急所・天気・やけど・ランク・壁・持ち物（こだわり系・いのちのたま・たつじんのおび・ちからのハチマキ・ものしりメガネ・タイプ強化・とつげきチョッキ・メガストーン）と、ダメージに関わる主な特性（メガシンカの特性を含む）に対応しています。けたぐり・ジャイロボール・ふんか・たたりめ・はたきおとす・ちきゅうなげなど、条件で威力やダメージが変わる技も、重さ・素早さ・残りHP・状態異常から計算します。連続技は回数をかけた目安です。オボンのみなどの回復は含みません。</p>
-    ${srcLine('formula','calc')}
+    </details>`:''}
+    <details class="cv-more"><summary><b>計算について</b><span>どこまで計算に入っているか</span></summary>
+    <p class="note" style="color:var(--mute)">Lv50で計算しています。計算の手順と端数の処理は本編（スカーレット・バイオレット）と同じ方式で、対戦で広く使われている計算機と1万通り以上の組み合わせで一致することを確かめています。メガストーンを持たせるとメガシンカ後の姿で計算します。急所・天気・やけど・ランク・壁・持ち物と、ダメージに関わる主な特性（メガシンカの特性を含む）に対応しています。けたぐり・ジャイロボール・ふんか・たたりめ・はたきおとす・ちきゅうなげなど、条件で威力やダメージが変わる技も計算します。連続技は回数をかけた目安です。オボンのみなどの回復は含みません。</p>
+    ${srcLine('formula','calc')}</details>
     </div>`;
     const root=document.getElementById('calc-root');
     root.querySelectorAll('[data-c]').forEach(el=>{
@@ -133,7 +169,7 @@ function calcView(){
         else if(k1==='dSt'){CS.dSt=v}
         else if(k1==='cnt'){CS.cnt=+v}
         else{const X=CS[k1];
-          if(k2==='no'){CS[k1]=calcX(+v,k1==='d'?'common':undefined);if(k1==='a')CS.mv=null;calcEnsure(+v)}
+          if(k2==='no'){CS[k1]=calcX(+v,k1==='d'?'common':undefined);CS.mv=null;calcEnsure(+v)}
           else if(k2==='src'){CS[k1]=calcX(X.no,v);if(k1==='a')CS.mv=null}
           else if(k2==='ab')X.ab=v;
           else if(k2==='item')X.item=v;
@@ -147,6 +183,8 @@ function calcView(){
     root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y)});
     bindFmt(root,()=>{CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw();calcEnsure(CS.a.no,CS.d.no).then(c=>{if(c&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}})});
     calcVerBind(R,draw);
+    root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{CS.mv=+b.dataset.mvpick;const y=scrY();draw();scrTo(0,y)});
+    root.querySelectorAll('details[data-more]').forEach(d=>d.addEventListener('toggle',()=>{CALC_OPEN[d.dataset.more]=d.open}));
     document.getElementById('c-swap').onclick=()=>{const a=CS.a;CS.a=CS.d;CS.d=a;CS.mv=null;const y=scrY();draw();scrTo(0,y)};
   };
   draw();
