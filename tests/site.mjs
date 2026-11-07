@@ -219,7 +219,10 @@ if(!(adv.length>=2&&adv.some(t=>/ペリッパー/.test(t))))fail('選出のア�
 await pg.evaluate(()=>{opp6.length=0;saveOpp6();team.length=0;saveTeam()});
 // 技のページの使いどころは、その技のデータから作る（グループの説明と食い違わない）
 const mt=await pg.evaluate(()=>{const g=k=>moveTips(mvKeyId[k]).join(' ');return[g('confuseray'),g('protect'),g('closecombat'),g('willowisp')]});
-if(/やけど|まひ|ねむり/.test(mt[0])||/攻撃できる/.test(mt[1])||!/防御・特防が下がる/.test(mt[2])||!/やけど/.test(mt[3]))fail('技の使いどころ: '+mt.join(' ｜ '));
+// スケイルショット：防御が下がり素早さが上がる（2026/11/07 依頼主の指摘）・「続けて使うと弱くなる」とは書かない
+const ss=await pg.evaluate(()=>[MD[799][1],moveTips(799).join(' ')]);
+if(!/防御が1段階下がり、素早さが1段階上がる/.test(ss[0])||/続けて使うと弱くなる/.test(ss[1]))fail('スケイルショット: '+ss.join(' ｜ '));
+if(/やけど|まひ|ねむり/.test(mt[0])||/攻撃できる/.test(mt[1])||!/防御・特防が下がり/.test(mt[2])||!/やけど/.test(mt[3]))fail('技の使いどころ: '+mt.join(' ｜ '));
 // 明るい画面：端末がライトモードなら明るい色、ダークモードなら暗い色
 await pg.emulateMedia({colorScheme:'light'});await pg.waitForTimeout(200);
 const lt=await pg.evaluate(()=>[document.documentElement.dataset.theme,getComputedStyle(document.body).backgroundColor]);
