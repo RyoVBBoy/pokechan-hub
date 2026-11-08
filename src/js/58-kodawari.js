@@ -18,31 +18,34 @@ const KD_SUB={
   speed:[['tailwind','おいかぜ','tailwind','4ターンの間、味方の素早さを2倍にして上から攻める（能力のランクは変わらない）'],['tr','トリックルーム','tr','5ターンの間、遅いポケモンから動けるようにして攻める']],
   weather:[['rain','あめ','rain','あめで素早さと水の技を強くする'],['sun','はれ','sun','はれで素早さと炎の技を強くする'],['sand','すなあらし','sand','すなあらしで削りながら、すなで強くなる仲間で戦う'],['snow','ゆき','snow','ゆきとオーロラベールで守りながら戦う']],
   field:[['eterrain','エレキフィールド',null,'でんきの技を強くし、ねむりを防ぐ'],['gterrain','グラスフィールド',null,'くさの技を強くし、毎ターン少し回復する'],['pterrain','サイコフィールド',null,'エスパーの技を強くし、先制技を防ぐ'],['mterrain','ミストフィールド',null,'状態異常を防ぎ、ドラゴンの技を弱める']],
-  stall:[['toxstall','どくまもみがわり',null,'もうどくをあびせて、まもる・みがわりで時間をかせぐ'],['status','状態異常で止める',null,'おにび・でんじは・あくびなどで相手の動きを止める'],['sleep','催眠ハメ',null,'ねむりごな・さいみんじゅつで眠らせて、その間に積む・削る（ふくがんで当てやすく）'],['tod','受けループ（TOD）',null,'回復できる硬いポケモンで受け続け、時間切れや詰みまで粘る'],['perish','滅び・逃がさない',null,'くろいまなざし・とおせんぼうで逃げられなくして、ほろびのうたで倒す']],
+  stall:[['toxstall','どくまもみがわり',null,'もうどくをあびせて、まもる・みがわりで時間をかせぐ'],['status','状態異常で止める',null,'おにび・でんじは・あくびなどで相手の動きを止める'],['sleep','催眠ハメ',null,'ねむりごな・さいみんじゅつで眠らせて、その間に積む・削る（ふくがんで当てやすく）'],['tod','受けループ（TOD）',null,'回復できる硬いポケモンで受け続け、時間切れや詰みまで粘る'],['perish','滅び・逃がさない',null,'かげふみ（メガゲンガー）やくろいまなざし・とおせんぼうで逃げられなくして、ほろびのうたで倒す']],
   combo:[['moody','ムラっけ',null,'ムラっけで毎ターン能力が上がるのを、まもる・みがわりで待つ'],['revival','さいきのいのり',null,'倒れた仲間をさいきのいのりで復活させて、数で上回る'],['ohko','一撃必殺',null,'じわれ・ぜったいれいど・ハサミギロチン・つのドリルで、当たれば一撃で倒す'],['copy','能力コピー',null,'へんしん・じこあんじなどで、相手の能力の上がり方をそのまま使う']]};
 const KD_TYPES=Object.values(KD_SUB).flat();
 /* ARCHS にない型の役わり（ARCHS の部品と同じ形：[名前,条件,必須か,先に出す特性,入れる技,技の数]） */
 const kdK=(p,ks)=>prKnows(p,ks).length>0;
+/* 特性を持つか（メガシンカ後の特性も見る。2026/11/08 依頼主の指摘：メガゲンガーは かげふみ） */
+const kdMegaAb=(p,abs)=>Object.keys(MEGA).find(k=>{const m=MEGA[k][p.no]&&byNo[MEGA[k][p.no]];return m&&abs.includes(m.ab)})||null;
+const kdHasAb=(p,abs)=>(ABD[p.no]||[]).some(a=>abs.includes(a[0]))||!!kdMegaAb(p,abs);
 const KD_PARTS={
   rush:[['速いアタッカー',p=>p.s[5]>=100&&prAtk(p)>=100,true]],
   bulkyface:[['硬いアタッカー',p=>prBulk(p)>=90*90&&prAtk(p)>=100,true]],
   pivot:[['交代技を使う',p=>kdK(p,PR_PIV),true,null,['uturn','voltswitch','flipturn','partingshot'],1]],
   screens:[['壁を張る役',p=>kdK(p,['reflect'])&&kdK(p,['lightscreen'])||kdK(p,['auroraveil']),true,['prankster'],['reflect','lightscreen','auroraveil'],2],['積み技のエース',p=>kdK(p,PR_SETUP)&&prAtk(p)>=100,true]],
   hazard:[['設置技をまく役',p=>kdK(p,['stealthrock','spikes','toxicspikes']),true,null,['stealthrock','spikes'],1],['削れた相手を倒すアタッカー',p=>prAtk(p)>=110,false]],
-  eterrain:[['エレキフィールドを作る',p=>(ABD[p.no]||[]).some(a=>a[0]==='electric-surge')||kdK(p,['electricterrain']),true,['electric-surge'],['electricterrain'],1],['でんきの技で攻める',p=>p.t.includes('でんき')&&prAtk(p)>=90,true]],
-  gterrain:[['グラスフィールドを作る',p=>(ABD[p.no]||[]).some(a=>a[0]==='grassy-surge')||kdK(p,['grassyterrain']),true,['grassy-surge'],['grassyterrain'],1],['くさの技で攻める',p=>p.t.includes('くさ')&&prAtk(p)>=90,true]],
-  pterrain:[['サイコフィールドを作る',p=>(ABD[p.no]||[]).some(a=>a[0]==='psychic-surge')||kdK(p,['psychicterrain']),true,['psychic-surge'],['psychicterrain'],1],['エスパーの技で攻める',p=>p.t.includes('エスパー')&&prAtk(p)>=90,true]],
-  mterrain:[['ミストフィールドを作る',p=>(ABD[p.no]||[]).some(a=>a[0]==='misty-surge')||kdK(p,['mistyterrain']),true,['misty-surge'],['mistyterrain'],1],['フェアリーで戦う',p=>p.t.includes('フェアリー'),false]],
+  eterrain:[['エレキフィールドを作る',p=>kdHasAb(p,['electric-surge'])||kdK(p,['electricterrain']),true,['electric-surge'],['electricterrain'],1],['でんきの技で攻める',p=>p.t.includes('でんき')&&prAtk(p)>=90,true]],
+  gterrain:[['グラスフィールドを作る',p=>kdHasAb(p,['grassy-surge'])||kdK(p,['grassyterrain']),true,['grassy-surge'],['grassyterrain'],1],['くさの技で攻める',p=>p.t.includes('くさ')&&prAtk(p)>=90,true]],
+  pterrain:[['サイコフィールドを作る',p=>kdHasAb(p,['psychic-surge'])||kdK(p,['psychicterrain']),true,['psychic-surge'],['psychicterrain'],1],['エスパーの技で攻める',p=>p.t.includes('エスパー')&&prAtk(p)>=90,true]],
+  mterrain:[['ミストフィールドを作る',p=>kdHasAb(p,['misty-surge'])||kdK(p,['mistyterrain']),true,['misty-surge'],['mistyterrain'],1],['フェアリーで戦う',p=>p.t.includes('フェアリー'),false]],
   toxstall:[['どくまもで粘る',p=>kdK(p,['toxic'])&&kdK(p,['protect'])&&prBulk(p)>=85*85,true,null,['toxic','protect','substitute'],3]],
   status:[['状態異常をまく',p=>kdK(p,['willowisp','thunderwave','yawn','spore','sleeppowder','toxic','glare']),true,null,['willowisp','thunderwave','yawn','toxic'],1]],
   baton:[['バトンタッチで引き継ぐ役',p=>kdK(p,['batonpass'])&&kdK(p,PR_SETUP),true,null,['batonpass'],1],['受け取るエース',p=>prAtk(p)>=110,true]],
   sleep:[['眠らせる役',p=>kdK(p,['sleeppowder','hypnosis','spore','darkvoid','lovelykiss','sing']),true,['compound-eyes'],['sleeppowder','hypnosis','spore','sing'],1],['眠っている間に積むエース',p=>kdK(p,PR_SETUP)&&prAtk(p)>=100,false]],
   tod:[['回復できる受け役',p=>prBulk(p)>=95*95&&kdHeal(p),true],['どく・やどりぎで削る',p=>kdK(p,['toxic','leechseed'])&&prBulk(p)>=85*85,true,null,['toxic','leechseed'],1]],
-  perish:[['ほろびのうたを使う',p=>kdK(p,['perishsong']),true,null,['perishsong','protect'],2],['逃げられなくする',p=>kdK(p,['meanlook','block'])||(ABD[p.no]||[]).some(a=>['shadow-tag','arena-trap'].includes(a[0])),true,['shadow-tag','arena-trap'],['meanlook','block'],1]],
-  moody:[['ムラっけ',p=>(ABD[p.no]||[]).some(a=>a[0]==='moody'),true,['moody'],['protect','substitute'],2]],
+  perish:[['ほろびのうたを使う',p=>kdK(p,['perishsong']),true,null,['perishsong','protect'],2],['逃げられなくする',p=>kdK(p,['meanlook','block'])||kdHasAb(p,['shadow-tag','arena-trap']),true,['shadow-tag','arena-trap'],['meanlook','block'],1]],
+  moody:[['ムラっけ',p=>kdHasAb(p,['moody']),true,['moody'],['protect','substitute'],2]],
   revival:[['さいきのいのりを使う',p=>kdK(p,['revivalblessing']),true,null,['revivalblessing'],1]],
   ohko:[['一撃必殺の技を持つ',p=>kdK(p,['fissure','sheercold','guillotine','horndrill']),true,['no-guard'],['fissure','sheercold','guillotine','horndrill'],1]],
-  copy:[['相手に変身する役',p=>(ABD[p.no]||[]).some(a=>a[0]==='imposter')||kdK(p,['transform']),true,['imposter'],['transform'],1],['じこあんじで能力の上がり方をうつす',p=>kdK(p,['psychup'])&&prAtk(p)>=100,false,null,['psychup'],1]]};
+  copy:[['相手に変身する役',p=>kdHasAb(p,['imposter'])||kdK(p,['transform']),true,['imposter'],['transform'],1],['じこあんじで能力の上がり方をうつす',p=>kdK(p,['psychup'])&&prAtk(p)>=100,false,null,['psychup'],1]]};
 /* こだわり条件（SUUMO のような2列のチェック）。人気の条件と、すべての条件（分類ごと） */
 const KD_OPT=[
   ['人気のこだわり条件',[['resist','弱点を受け合える'],['fast','先に動く手段を入れる'],['heal','回復できる匹を入れる'],['balance','物理と特殊を半々に'],['popular','人気のポケモン中心'],['rare','読まれにくいポケモン中心']]],
@@ -122,6 +125,9 @@ function kdBuild(){
   const used=new Set(ss.map(s=>s&&s.item).filter(Boolean));
   const forced=mons.map((m,i)=>wantStone[m.no]?i:-1).filter(i=>i>=0);
   forced.forEach(i=>{if(ss[i]){used.delete(ss[i].item);ss[i]={...ss[i],item:wantStone[mons[i].no]};used.add(ss[i].item)}});
+  /* 役わりに要る特性がメガシンカ後にしかない匹（メガゲンガーの かげふみ など）は、そのメガストーンを持たせる */
+  if(KD.mega>0)mons.forEach((m,i)=>{if(wantStone[m.no]||!ss[i])return;const pt=parts.find(pt=>pt[3]&&ok(pt,m)&&!(ABD[m.no]||[]).some(a=>pt[3].includes(a[0])));const k=pt&&kdMegaAb(m,pt[3]);
+    if(k&&!forced.includes(i)){used.delete(ss[i].item);ss[i]={...ss[i],item:k};used.add(k);forced.push(i)}});
   const keep=new Set(forced);
   const pick=megaPick(mons,mons.map((_,i)=>keep.has(i)),Math.max(0,KD.mega-forced.length));
   pick.forEach(({i})=>keep.add(i));

@@ -42,7 +42,8 @@ const mvRoles=id=>{const k=MD[id]&&MD[id][3];return MOVE_ROLES.filter(r=>r[4]?r[
 const roleMoves=r=>Object.keys(MD).map(Number).filter(id=>r[4]?r[4](id):r[3].includes(MD[id][3]));
 const abRoles=k=>ABILITY_ROLES.filter(r=>r[3].includes(k));
 const learners=id=>P.filter(p=>LSD[p.no]&&LSD[p.no][1].includes(id));
-const abHolders=k=>P.filter(p=>(ABD[p.no]||[]).some(([a])=>a===k));
+/* メガシンカの姿の特性も入れる（2026/11/08：メガゲンガーの かげふみ が0匹と出ていた） */
+const abHolders=k=>[...P.filter(p=>(ABD[p.no]||[]).some(([a])=>a===k)),...(typeof MEGAP!=='undefined'?MEGAP.filter(m=>m.ab===k):[])];
 const mvChip=id=>`<a class="pill gchip" href="#/move/${id}">${esc(mName(id))}</a>`;
 const abChip=k=>`<a class="pill gchip" href="#/ability/${k}">${esc(ABN[k]||k)}</a>`;
 function learnMovesHTML(){

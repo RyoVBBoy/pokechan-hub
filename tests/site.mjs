@@ -151,6 +151,9 @@ const kd2=await pg.evaluate(()=>{const s=JSON.stringify(KD);const r=[];
   Object.assign(KD,JSON.parse(s));return r});
 const kc=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{big:'auto',type:'auto',must:[],ng:[]});const all=kdCombos();Object.assign(KD,{big:'combo',type:'revival'});const one=kdCombos();
   Object.assign(KD,{must:[...KD.must]});Object.assign(KD,JSON.parse(s));return[all>1e9,one>0&&one<all]});
+const kg=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{big:'stall',type:'perish',must:[],ng:[],mega:2,opt:{resist:true},seed:0});const R=kdBuild();Object.assign(KD,JSON.parse(s));
+  const i=R.mons.findIndex(m=>m.no===94);return[kdHasAb(byNo[94],['shadow-tag']),i>=0&&R.ss[i].item==='gengarite',abHolders('shadow-tag').some(m=>m.no===10038)]});
+if(kg.join()!=='true,true,true')fail('メガシンカ後の特性（メガゲンガーのかげふみ）: '+kg.join());
 if(kc.join()!=='true,true')fail('こだわり条件の組み合わせの数: '+kc.join());
 if(kd2.join()!=='true,true,true,true,true,true,true')fail('こだわり条件の細かい型: '+kd2.join());
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
