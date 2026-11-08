@@ -47,6 +47,13 @@ function teamStepsBind(root){
     const mons=team.map(x=>byNo[x.no]).filter(Boolean);
     let ss=[];try{ss=archSets(['axis'],mons)}catch(e){toast('型を組めませんでした');return}
     const usedIt=new Set(team.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean));
+    /* メガシンカの枠：持ち物をもう決めた匹は変えない。パーティのメガストーンが2つ未満なら、持ち物が空いている匹から足す（型の例の持ち物より優先） */
+    const haveStone=[...usedIt].filter(k=>isStone(k)).length;
+    const mp=haveStone>=2?[]:megaPick(mons,team.map(x=>tsHas.it(x)),2-haveStone).filter(x=>!usedIt.has(x.k));
+    mp.forEach(({i,k})=>{if(ss[i])ss[i]={...ss[i],item:k}});
+    /* 型の例の中のメガストーンのうち、ここで選ばなかったものは外す（3つ以上にしない） */
+    ss.forEach((s,i)=>{if(s&&isStone(s.item)&&!mp.some(x=>x.i===i)){
+      const alt=['lifeorb','expertbelt','sitrusberry','leftovers','focussash','lumberry','rockyhelmet'].find(k=>!usedIt.has(k)&&!ss.some(o=>o&&o.item===k));ss[i]={...s,item:alt||null}}});
     let filled=0;
     team.forEach((x,i)=>{const g=ss[i]&&toSaved(ss[i]);if(!g)return;const s={...(x.set||{})};let ch=false;
       if(!tsHas.mv(x)&&g.mv&&g.mv.length){s.mv=g.mv;ch=true}

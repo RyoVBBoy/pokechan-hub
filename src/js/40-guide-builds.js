@@ -123,7 +123,21 @@ function archSet(a,p,pt,used){
   used.add(item);
   return{ab:s.ab,item,up,dn,sp,moves:mv,title:s.title};
 }
-const archSets=(a,mons)=>{const used=new Set();return mons.map(p=>archSet(a,p,mons.part&&mons.part[p.no],used))};
+const archSets=(a,mons)=>{const used=new Set();const ss=mons.map(p=>archSet(a,p,mons.part&&mons.part[p.no],used));
+  /* メガシンカの枠（2026/11/08 依頼主：まとめて育成を入れるとメガストーンが0になる）。
+     どの匹もメガストーンを持っていなければ、メガシンカで強くなる匹を2匹まで選んでメガストーンを持たせる（選出では1匹だけメガシンカ。相手を見て使い分ける） */
+  if(!ss.some(s=>s&&isStone(s.item))){megaPick(mons,ss.map(s=>!s),2).forEach(({i,k})=>{used.delete(ss[i].item);ss[i]={...ss[i],item:k};used.add(k)})}
+  return ss};
+/* メガシンカできる匹のうち、メガシンカでいちばん強くなる順に need 匹まで（skip[i]＝選ばない）。{i,k＝メガストーン} */
+function megaPick(mons,skip,need){
+  const bst=q=>q.s.reduce((x,y)=>x+y,0),out=[];
+  const c=mons.map((p,i)=>{if(!p||p.base||(skip&&skip[i]))return null;
+    const ks=Object.keys(MEGA).filter(k=>MEGA[k][p.no]&&byNo[MEGA[k][p.no]]);if(!ks.length)return null;
+    const best=ks.map(k=>({k,m:byNo[MEGA[k][p.no]]})).sort((x,y)=>bst(y.m)-bst(x.m))[0];
+    return{i,k:best.k,sc:bst(best.m)+.5*(bst(best.m)-bst(p))}}).filter(Boolean).sort((x,y)=>y.sc-x.sc);
+  for(const x of c){if(out.length>=need)break;if(!out.some(o=>o.k===x.k))out.push(x)}
+  return out;
+}
 const toSaved=s=>s?{ab:s.ab?{n:ABN[s.ab]||s.ab,k:s.ab}:null,it:s.item?{n:ITEMN[s.item]||s.item,k:s.item}:null,mv:s.moves.map(id=>({n:mName(id),id})),sp:[...s.sp],up:s.up,dn:s.dn}:undefined;
 async function archUse(a,nos,sets){
   let i=TEAMS.cur;

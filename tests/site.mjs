@@ -134,6 +134,10 @@ if(lr.join()!=='true,true,true,true')fail('負けやすい理由: '+lr.join());
 // 公式の図鑑へのリンク：メガ・地方の姿は、その姿のページ（2026/11/06 公式の一覧で確かめた枝番）
 const zk=await pg.evaluate(()=>[zukanUrl(byNo[445]),zukanUrl(byNo[10058]),zukanUrl(byNo[10309]),zukanUrl(byNo[10100]),zukanUrl(byNo[10165]),zukanUrl(byNo[681],true)].map(u=>u.split('/').pop()).join(','));
 if(zk!=='0445,0445-1,0445-2,0026-1,0080-2,0681-1')fail('公式の図鑑へのリンク: '+zk);
+// まとめて育成を入れてもメガシンカの枠が残る（2026/11/08 依頼主の指摘：メガストーンが0になる）
+const mgS=await pg.evaluate(()=>{const mons=[445,823,1018,730,812,448].map(n=>byNo[n]);const ss=archSets(['axis'],mons);
+  const st=ss.filter(s=>s&&isStone(s.item)).map(s=>s.item);return[st.length,new Set(ss.map(s=>s&&s.item)).size===ss.length]});
+if(!(mgS[0]>=1&&mgS[0]<=2&&mgS[1]))fail('まとめて育成のメガストーン: '+JSON.stringify(mgS));
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
 const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));
   const o1=mkMon(gg,'op',{...detSet(gg),item:null}),o2=mkMon(gg,'op',{...detSet(gg),item:'focussash'});
