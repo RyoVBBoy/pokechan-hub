@@ -1630,3 +1630,5 @@ body::before{inset:0;background:
 .kd-cnt{font-size:13px;color:var(--dim)}.kd-cnt b{font-size:24px;color:var(--fg);margin:0 3px}
 .kd-bar .btn{flex:none;width:auto;padding:0 20px}
 @media(min-width:700px){.kd-bar{bottom:16px}}
+.kd-cnt{white-space:nowrap;min-width:0}.kd-cnt b{font-size:20px}
+.kd-bar .btn{padding:0 16px;font-size:14.5px}
