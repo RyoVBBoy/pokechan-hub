@@ -143,8 +143,8 @@ function monGuide(p,o={}){
   /* 当サイトの利用者の育成が5件以上あれば、それをもとにした型を先頭に置く（43-usage.js） */
   /* ランクバトルの集計（championsbattledata.com、15-battle.js の LIVE）があれば、いちばん多い組み合わせの型を先頭に置く */
   const liveF=!o.raw&&!base&&typeof LIVE!=='undefined'&&LIVE.csv[p.no]?FMT:null;
-  if(liveF)try{const d=LIVE.csv[p.no],b=buildSet(p,d,true),lsl=LSD[p.no]?LSD[p.no][1]:[],mv=[...new Set(d.mv.map(([n])=>MVKA[nrm(n)]).filter(id=>id&&(lsl.includes(id)||id===182)))];
-    if(mv.length>=2&&b.sp){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルでよく使われている型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計で、それぞれいちばん多い持ち物・特性・技・性格・能力ポイントを組み合わせたものです。`,
+  if(liveF)try{const d=LIVE.csv[p.no],b=buildSet(p,d,true),lsl=LSD[p.no]?LSD[p.no][1]:[],mv=[...new Set([...liveFit(p,d,b.ab).moves.map(x=>x.id===0?182:x.id),...d.mv.map(([n])=>MVKA[nrm(n)])].filter(id=>id&&(lsl.includes(id)||id===182)))];
+    if(mv.length>=2&&b.sp){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルでよく使われている型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計から、いちばん多い特性・性格・能力ポイントと、いっしょに使って意味のある持ち物と技（ジュエル・タイプ強化の持ち物ならそのタイプの技、こだわり系なら攻撃技だけ等）を組み合わせたものです。`,
       ab:b.ab,item:b.item,up:b.up,dn:b.dn,sp:b.sp,moves:mv.slice(0,4),fmt:liveF,k:/^choice|lifeorb|focussash|expertbelt/.test(it)?'attacker':it==='leftovers'?'bulky':'attacker',live:true})}}catch(e){}
   if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].filter(f=>f!==liveF).forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
   SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});

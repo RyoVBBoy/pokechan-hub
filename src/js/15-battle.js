@@ -76,7 +76,7 @@ function digest(txt){
     const c=L[i].split(','),r={};h.forEach((k,j)=>r[k]=c[j]);const pc=parseFloat(r.percentage)||0;
     if(d.rank==null&&r.column_position)d.rank=+r.column_position;
     if(r.category==='move')d.mv.push([r.name,pc]);
-    else if(r.category==='held_item')d.it.push([r.name,pc]);
+    else if(r.category==='held_item')d.it.push([nrm(r.name)==='leek'?'Stick':r.name,pc]);/* 集計の英語名 Leek＝ながねぎ（サイトの表は stick）。2026/11/08 ネギガナイトの型でながねぎが抜けていた */
     else if(r.category==='ability')d.ab.push([r.name,pc]);
     else if(r.category==='teammate')d.tm.push(r.name);
     else if(r.category==='stat_alignment')d.nat.push([r.stat_up,r.stat_down,pc]);
@@ -87,17 +87,77 @@ function digest(txt){
 async function liveMon(no){
   const key=ENSP[no];if(!key||!LIVE.files)return null;
   if(LIVE.csv[no]!==undefined)return LIVE.csv[no];
-  const ca=lsGet('pccsv2'+FMT+no,216e5);if(ca){LIVE.csv[no]=ca;return ca}
+  const ca=lsGet('pccsv3'+FMT+no,216e5);if(ca){LIVE.csv[no]=ca;return ca}
   const fn=LIVE.files[key];if(!fn){LIVE.csv[no]=null;return null}
   try{
     const r=await fetch(CBD+'/pokemon_champions_assets/battle_data/'+FMTDIR()+'/'+encodeURIComponent(fn)+'.csv');
     if(!r.ok)throw 0;
     const d=digest(await r.text());if(!d.mv.length)throw 0;
-    LIVE.csv[no]=d;lsSet('pccsv2'+FMT+no,d);return d;
+    LIVE.csv[no]=d;lsSet('pccsv3'+FMT+no,d);return d;
   }catch(e){LIVE.csv[no]=null;return null}
 }
 const wpick=(arr,w)=>{let t=arr.reduce((a,x)=>a+Math.max(w(x),.001),0),r=Math.random()*t;for(const x of arr){r-=Math.max(w(x),.001);if(r<=0)return x}return arr[arr.length-1]};
 const STI={'attack':1,'defense':2,'sp.atk':3,'sp.def':4,'speed':5};
+/* ===== 持ち物と技の組み合わせを筋の通るものにする（2026/11/08 依頼主の指摘） =====
+   集計（championsbattledata）は持ち物・技・特性の割合が別々にしか載っていない。いちばん多いものを別々に選ぶと、
+   「ノーマルジュエルなのにノーマル技が1つもない」（オオニューラ）のような、だれも使っていない組み合わせになる。
+   持ち物ごとに「その持ち物を持つ理由になる技・特性」（LF_REQ）を決め、
+   ・4つの技に入っていれば、その持ち物にする
+   ・入っていなくても、集計にその技があり、使われている割合が持ち物の割合の0.35倍以上（かつ5%以上）なら、
+     いちばん割合の低い技と入れかえて、その持ち物にする（その持ち物を持つ人は、その技も使っているはずなので）
+   ・どちらでもなければ、その持ち物はやめて次に多い持ち物を見る
+   こだわり系は、まもる・変化技（トリック・へんしん等は除く）を攻撃技に入れかえる。ただし一緒に使えない技の方が多く使われていれば、こだわり系をやめる。半減きのみは、その技が弱点のときだけ。 */
+const LF_BIND=['bind','wrap','firespin','whirlpool','sandtomb','infestation','magmastorm','snaptrap','thundercage'];
+const LF_CHOICE_OK=['trick','switcheroo','transform'];
+let LF_KEY=null;
+const lfId=k=>{if(MVK[k]!==undefined)return MVK[k];if(typeof MD==='undefined')return undefined;
+  if(!LF_KEY){LF_KEY={};for(const i in MD)if(MD[i]&&MD[i][3])LF_KEY[MD[i][3]]=+i}return LF_KEY[k]};
+const lfAtk=id=>id&&MV[id]?{t:MV[id][1],k:id}:null;
+const lfDrain=id=>id&&((typeof MVE!=='undefined'&&MVE[id]&&MVE[id].dr)||(MV[id]&&MV[id][9]>0));
+function lfReq(it,p,abs){
+  /* フェアリースキン等はノーマル技のタイプが変わる（ニンフィアのハイパーボイス＝フェアリー技） */
+  const skin=[...abs].map(a=>SKIN[a]).find(Boolean);
+  const T=(typeof ITEMT!=='undefined'&&ITEMT[it])||(it==='normalgem'?'ノーマル':null);
+  if(T)return{mv:x=>{const a=lfAtk(x.id);return !!a&&(a.t===T||(skin&&a.t==='ノーマル'&&skin[0]===T&&it!=='normalgem'))}};
+  if(it==='bigroot')return{mv:x=>lfDrain(x.id)};
+  if(it==='bindingband')return{mv:x=>LF_BIND.includes(x.k)};
+  if(it==='lightclay')return{mv:x=>['reflect','lightscreen','auroraveil'].includes(x.k)};
+  if(it==='heatrock')return{mv:x=>x.k==='sunnyday',ab:['drought']};
+  if(it==='damprock')return{mv:x=>x.k==='raindance',ab:['drizzle']};
+  if(it==='smoothrock')return{mv:x=>x.k==='sandstorm',ab:['sand-stream','sandstream']};
+  if(it==='icyrock')return{mv:x=>['snowscape','chillyreception'].includes(x.k),ab:['snow-warning','snowwarning']};
+  if(it==='terrainextender')return{mv:x=>/terrain$/.test(x.k),ab:['electric-surge','grassy-surge','psychic-surge','misty-surge']};
+  if(typeof RES_BERRY!=='undefined'&&RES_BERRY[it]&&it!=='chilanberry')return{ok:()=>typeof mult!=='function'||mult(RES_BERRY[it],p.t)>=2};
+  return null;
+}
+/* d＝集計、ab＝特性、order＝持ち物を見る順（null なら多い順）。戻り値 {item, moves:[{k,id,pc}]（4つまで、多い順）} */
+function liveFit(p,d,ab,order){
+  /* 特性は選んだもの＋集計で20%以上のもの（天気を作る特性で、あついいわ等を持つ理由になる） */
+  const abs=new Set([ab,...(d.ab||[]).filter(x=>x[1]>=20).map(x=>ABK[nrm(x[0])])].filter(Boolean));
+  const lsl=typeof LSD!=='undefined'&&LSD[p.no]?LSD[p.no][1]:null;
+  const pool=d.mv.map(([n,pc])=>{const k=nrm(n),id=lfId(k);return{k,id,pc}}).filter(x=>x.id!==undefined&&(x.id===0||!lsl||lsl.includes(x.id)));
+  const top4=pool.slice(0,4);
+  const items=(order||d.it.map(([n,pc])=>[nrm(n),pc])).filter(x=>ITEMN[x[0]]&&itemFor(p.no,x[0]));
+  for(const [it,ipc] of items){
+    let mv=[...top4];
+    if(/^choice/.test(it)){
+      const bad=mv.filter(x=>x.id===0||(!MV[x.id]&&!LF_CHOICE_OK.includes(x.k)));
+      /* 一緒に使えない技（まもる・積み技等）の方が多く使われていれば、多数派はその技を使う人なので、こだわり系をやめる */
+      if(bad.some(x=>x.pc>ipc))continue;
+      if(bad.length){const rest=pool.filter(x=>!mv.includes(x)&&(MV[x.id]||LF_CHOICE_OK.includes(x.k))&&x.pc>=5);
+        if(rest.length<bad.length)continue;
+        mv=mv.filter(x=>!bad.includes(x)).concat(rest.slice(0,bad.length))}
+      return{item:it,moves:mv}}
+    const r=lfReq(it,p,abs);
+    if(!r)return{item:it,moves:mv};
+    if(r.ok){if(r.ok())return{item:it,moves:mv};continue}
+    if((r.ab&&r.ab.some(a=>abs.has(a)))||mv.some(r.mv))return{item:it,moves:mv};
+    const c=pool.find(x=>!mv.includes(x)&&r.mv(x)&&x.pc>=Math.max(5,ipc*.35));
+    if(c){const low=mv.reduce((a,x)=>x.pc<a.pc?x:a,mv[0]);if(low){mv=mv.map(x=>x===low?c:x).sort((a,b)=>b.pc-a.pc);return{item:it,moves:mv}}}
+  }
+  /* どの持ち物も筋が通らなければ、前と同じ（いちばん多い持ち物と上から4つの技） */
+  return{item:items.length?items[0][0]:null,moves:top4};
+}
 /* 集計データから型を1つ組む。top=true なら最頻の型、false なら使用率に応じてランダム */
 function buildSet(p,d,top){
   const base=chooseSet(p);
@@ -106,17 +166,22 @@ function buildSet(p,d,top){
   const abl=d.ab.map(([n,pc])=>[ABK[nrm(n)],pc]).filter(x=>x[0]);
   if(abl.length)ab=top?abl[0][0]:wpick(abl,x=>x[1])[0];
   const pool=d.mv.map(([n,pc])=>[MVK[nrm(n)],pc]).filter(x=>x[0]!==undefined);
+  /* 持ち物は技と筋の通る組み合わせで決める（liveFit）。ランダムのときは持ち物を割合に応じて1つ選んでから、合わなければ次へ */
+  const itl0=d.it.map(([n,pc])=>[nrm(n),pc]).filter(x=>ITEMN[x[0]]&&itemFor(p.no,x[0]));
+  let order=null;if(!top&&itl0.length){const f=wpick(itl0,x=>x[1]);order=[f,...itl0.filter(x=>x!==f)]}
+  const F=liveFit(p,d,ab,order);
   const moves=[];
   const left=[...pool];
+  /* liveFit が選んだ技（攻撃技とまもる）を先に入れる。ランダムのときは持ち物に要る技だけ先に入れる */
+  const need=top?F.moves:F.moves.filter(x=>!d.mv.slice(0,4).some(([n])=>nrm(n)===x.k));
+  for(const x of need){if(moves.length>=4)break;const q=left.find(y=>y[0]===x.id);if(q){left.splice(left.indexOf(q),1);moves.push(q[0]===0?PROT:mvObj(q[0]))}}
   while(moves.length<4&&left.length){
     const x=top?left[0]:wpick(left,y=>y[1]);left.splice(left.indexOf(x),1);
     moves.push(x[0]===0?PROT:mvObj(x[0]));
   }
   if(moves.filter(m=>!m.prot).length===0)return {...base,ab};
   for(const m of base.moves){if(moves.length>=4)break;if(!moves.some(x=>x.id===m.id&&x.n===m.n))moves.push(m)}
-  let item=null;
-  const itl=d.it.map(([n,pc])=>[nrm(n),pc]).filter(x=>ITEMN[x[0]]&&itemFor(p.no,x[0]));
-  if(itl.length)item=top?itl[0][0]:wpick(itl,x=>x[1])[0];
+  let item=F.item;
   let sp=null,up=-1,dn=-1;
   if(d.sp.length){
     const s1=top?d.sp[0]:wpick(d.sp.slice(0,6),x=>x[1]);sp=s1[0];
