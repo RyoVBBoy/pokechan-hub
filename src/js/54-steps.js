@@ -22,7 +22,7 @@ function teamStepsHTML(){
   const curI=steps.findIndex(s=>s.c<s.of),cur=steps[curI];
   const nm=i=>esc(byNo[team[i].no]?formInfo(byNo[team[i].no]).base:'');
   let next='';
-  if(cur.k==='mon')next=`<a class="btn btn-p ts-go" href="#/pair">${SVG(I.search,17)}相性のいい仲間を探す（あと${6-n}匹）</a>`;
+  if(cur.k==='mon')next=`<a class="btn btn-p ts-go" href="#/pair">${SVG(I.search,17)}相性のいい仲間を探す（あと${6-n}匹）</a><a class="btn btn-s ts-go" href="#/kodawari">こだわり条件で組む</a>`;
   else{const i=team.findIndex(x=>!tsHas[cur.k](x));
     const w={mv:'技',it:'持ち物',sp:'能力ポイントと性格'}[cur.k];
     next=`<a class="btn btn-p ts-go" href="#/edit/${i}">次は${nm(i)}の${w}を決める</a>`}

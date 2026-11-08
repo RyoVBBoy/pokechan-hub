@@ -138,6 +138,12 @@ if(zk!=='0445,0445-1,0445-2,0026-1,0080-2,0681-1')fail('公式の図鑑へのリ
 const mgS=await pg.evaluate(()=>{const mons=[445,823,1018,730,812,448].map(n=>byNo[n]);const ss=archSets(['axis'],mons);
   const st=ss.filter(s=>s&&isStone(s.item)).map(s=>s.item);return[st.length,new Set(ss.map(s=>s&&s.item)).size===ss.length]});
 if(!(mgS[0]>=1&&mgS[0]<=2&&mgS[1]))fail('まとめて育成のメガストーン: '+JSON.stringify(mgS));
+// こだわり条件で組む（2026/11/08）：絶対入れたい匹（メガの姿）・入れたくない匹・メガの数・トリルは遅い匹
+const kd=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{type:'ofcycle',must:[10058],ng:[149],mega:2,opt:{fast:true},seed:0});
+  const A=kdBuild();KD.type='tr';KD.must=[];KD.ng=[];KD.mega=0;const B=kdBuild();Object.assign(KD,JSON.parse(s));
+  return[A.mons.length===6,A.mons[0].no===445&&A.ss[0].item==='garchompite',!A.mons.some(m=>m.no===149),A.ss.filter(x=>x&&isStone(x.item)).length===2,
+    B.ss.filter(x=>x&&isStone(x.item)).length===0,B.mons.filter(m=>m.s[5]<=60).length>=4]});
+if(kd.join()!=='true,true,true,true,true,true')fail('こだわり条件で組む: '+kd.join());
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
 const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));
   const o1=mkMon(gg,'op',{...detSet(gg),item:null}),o2=mkMon(gg,'op',{...detSet(gg),item:'focussash'});
