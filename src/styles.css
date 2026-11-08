@@ -1611,3 +1611,22 @@ body::before{inset:0;background:
 .kd-set{font-size:12px;color:var(--dim);line-height:1.5}
 .kd-why{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .kd-why span{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--fg)}
+/* こだわり条件（2026/11/08 SUUMO のような2列のチェック・下の帯） */
+.kd-card{margin:10px 12px 0;border:1px solid var(--card-b);border-radius:18px;background:var(--card);overflow:hidden}
+.kd-sh{display:flex;align-items:baseline;justify-content:space-between;padding:10px 14px;background:var(--soft);font-weight:800;font-size:14px}
+.kd-sh span{font-size:11.5px;font-weight:600;color:var(--dim)}
+.kd-sh2{border-top:1px solid var(--line-in);font-size:13px}
+.kd-grid{display:grid;grid-template-columns:1fr 1fr}
+.kd-cb{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 12px;border:0;border-top:1px solid var(--line-in);background:none;color:var(--fg);font:inherit;font-size:14px;text-align:left;cursor:pointer;line-height:1.35}
+.kd-grid .kd-cb:nth-child(odd){border-right:1px solid var(--line-in)}
+.kd-grid .kd-cb:nth-child(-n+2){border-top:0}
+.kd-cb i{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:6px;border:2px solid var(--line);font-style:normal;font-weight:900;font-size:15px;color:var(--onacc)}
+.kd-cb[aria-pressed=true] i{background:var(--accf);border-color:var(--accf)}
+.kd-cb[aria-pressed=true] span{font-weight:700}
+.kd-d{margin:0;padding:10px 14px 12px;font-size:12.5px;color:var(--dim);line-height:1.6;border-top:1px solid var(--line-in)}
+.kd-all{display:flex;justify-content:space-between;align-items:center;width:100%;padding:13px 14px;border:0;border-top:1px solid var(--line-in);background:var(--soft);color:var(--fg);font:inherit;font-size:15px;cursor:pointer}
+.kd-card .kd-chips{padding:10px 12px}
+.kd-bar{position:sticky;bottom:calc(env(safe-area-inset-bottom) + 92px);z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 12px 0;padding:10px 12px 10px 16px;border-radius:18px;background:var(--glass);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--card-b);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.kd-cnt{font-size:13px;color:var(--dim)}.kd-cnt b{font-size:24px;color:var(--fg);margin:0 3px}
+.kd-bar .btn{flex:none;width:auto;padding:0 20px}
+@media(min-width:700px){.kd-bar{bottom:16px}}

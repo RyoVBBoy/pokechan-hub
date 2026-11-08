@@ -51,7 +51,7 @@ function route(){
     on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});
   moveTbPill();
   closeSheet();
-  document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle');
+  document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle'||k==='kodawari');
   fabMode();
   trackTool(cur);drawSide();rememberTab();if(typeof hitSend==='function')hitSend(k);
   ({'':home,memo:memoView,kodawari:kodawariView,news:newsView,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,sources:sourcesView,verify:verifyView,import:importView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,games:gamesView,account:accountView,search:searchView,learn:learnView,arch:archView,season:seasonView,replay:replayView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,share:shareView,pair:pairView,tier:tierView,contact:contactView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
