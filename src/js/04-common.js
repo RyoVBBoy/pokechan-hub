@@ -105,3 +105,20 @@ const zukanUrl=(p,sw)=>{const n=+(p&&p.dno)||0;if(!(n>0&&n<2000))return null;
   return `https://zukan.pokemon.co.jp/detail/${String(n).padStart(4,'0')}${sub?'-'+sub:''}`};
 function zukanLink(p){const u=zukanUrl(p);if(!u)return '';
   return `<a class="zk-l" id="zk-l" href="${u}" target="_blank" rel="noopener noreferrer nofollow">${L('ポケモンずかんで姿を見る','See it in the official Pokédex')}<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>`}
+/* 押した感覚（触覚）。2026/11/08 依頼主の要望（下のメニューを押したとき）。
+   Android などは navigator.vibrate。iPhone の Safari は vibrate に対応していないので、
+   iPhone（iOS 18 以降）でスイッチ部品（<input type="checkbox" switch>）を切りかえると触覚が出るしくみを使う：
+   見えないスイッチの label を押したことにする。押した操作の中で呼ぶ必要がある。localStorage pchaptic='off' で止める */
+let HAPTIC_EL=null;
+function haptic(){
+  try{if(localStorage.getItem('pchaptic')==='off')return}catch(e){}
+  try{if(navigator.vibrate&&!/iP(hone|ad|od)/.test(navigator.userAgent)){navigator.vibrate(8);return}}catch(e){}
+  try{
+    if(!HAPTIC_EL){const l=document.createElement('label');l.setAttribute('aria-hidden','true');
+      l.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      const i=document.createElement('input');i.type='checkbox';i.setAttribute('switch','');i.tabIndex=-1;l.appendChild(i);document.body.appendChild(l);HAPTIC_EL=l}
+    HAPTIC_EL.click();
+  }catch(e){}
+}
+/* 下のメニュー（スマホ）のタブを押したとき */
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.tabbar .tb');if(t)haptic()},true);
