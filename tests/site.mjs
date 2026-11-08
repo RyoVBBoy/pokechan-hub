@@ -146,10 +146,13 @@ const kd=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{typ
 if(kd.join()!=='true,true,true,true,true,true')fail('こだわり条件で組む: '+kd.join());
 // 細かい型（壁展開・フィールド・害悪）：その役わりの匹が入る・ポケモンを選ばなくても組める
 const kd2=await pg.evaluate(()=>{const s=JSON.stringify(KD);const r=[];
-  for(const [big,tp,test] of [['tenkai','screens',p=>kdK(p,['reflect'])&&kdK(p,['lightscreen'])||kdK(p,['auroraveil'])],['stall','toxstall',p=>kdK(p,['toxic'])&&kdK(p,['protect'])],['cycle','pivot',p=>kdK(p,PR_PIV)]]){
+  for(const [big,tp,test] of [['tenkai','screens',p=>kdK(p,['reflect'])&&kdK(p,['lightscreen'])||kdK(p,['auroraveil'])],['stall','toxstall',p=>kdK(p,['toxic'])&&kdK(p,['protect'])],['cycle','pivot',p=>kdK(p,PR_PIV)],['tenkai','baton',p=>kdK(p,['batonpass'])],['stall','perish',p=>kdK(p,['perishsong'])],['combo','moody',p=>(ABD[p.no]||[]).some(a=>a[0]==='moody')],['speed','tr',p=>p.s[5]<=60]]){
     Object.assign(KD,{big,type:tp,must:[],ng:[],mega:1,opt:{resist:true},seed:0});const R=kdBuild();r.push(R.mons.length===6&&R.mons.some(test))}
   Object.assign(KD,JSON.parse(s));return r});
-if(kd2.join()!=='true,true,true')fail('こだわり条件の細かい型: '+kd2.join());
+const kc=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{big:'auto',type:'auto',must:[],ng:[]});const all=kdCombos();Object.assign(KD,{big:'combo',type:'revival'});const one=kdCombos();
+  Object.assign(KD,{must:[...KD.must]});Object.assign(KD,JSON.parse(s));return[all>1e9,one>0&&one<all]});
+if(kc.join()!=='true,true')fail('こだわり条件の組み合わせの数: '+kc.join());
+if(kd2.join()!=='true,true,true,true,true,true,true')fail('こだわり条件の細かい型: '+kd2.join());
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
 const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));
   const o1=mkMon(gg,'op',{...detSet(gg),item:null}),o2=mkMon(gg,'op',{...detSet(gg),item:'focussash'});
