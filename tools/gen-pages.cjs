@@ -101,6 +101,7 @@ ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp
 <div class="sh1"><span class="av" style="width:64px;height:64px">${stamp(p)}</span><div><span class="no">対策・倒し方</span><h1>${p.n}の対策</h1><div class="chips">${p.t.map(chip).join('')}</div></div></div>
 <p class="lead">${p.n}の弱点は${weak.length?weak.map(x=>`<b>${x.t}</b>${x.m>=4?'（4倍）':''}`).join('・'):'ありません'}。${top.length?`よくある型どうしで計算すると、<b>${top.join('・')}</b>などが有利に戦えます。`:''}</p>
 <div class="gdoc" style="padding-top:0"><p class="note" style="padding:0">計算の前提：${p.n}は${esc(setTxt)||'よくある型'}（素早さ${c.spd}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれのよくある型で計算しています。乱数・急所・持ち物の違いで結果は変わります。</p></div>
+${(()=>{try{return `<div class="gdoc">${brStepsHTML(breakSteps(p,c))}</div>`}catch(e){return ''}})()}
 <div class="cta"><a class="btn btn-p" href="${R}#/calc">自分の育成でダメージ計算</a><a class="btn btn-s" href="${R}pokemon/${p.no}/">${p.n}の種族値・覚える技</a></div>
 ${sec(`${p.n}を上から一撃で倒せるポケモン`,'素早さで上回り、1回の攻撃で倒せる相手です。',c.ohko,mine)}
 ${sec(`${p.n}に強く出られるポケモン`,`半分以上削れて、${p.n}からは半分未満しか受けない相手です。`,c.strong,mine)}

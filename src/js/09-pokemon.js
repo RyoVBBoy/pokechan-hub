@@ -10,7 +10,6 @@ function detail(no){
   const wash=p.t.length>1
     ?`linear-gradient(140deg,${COL[p.t[0]]}2e,${COL[p.t[1]]}24 60%,transparent)`
     :`linear-gradient(140deg,${COL[p.t[0]]}2e,transparent 70%)`;
-  const cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
   const natSel=id=>`<select class="sel" id="${id}" aria-label="性格補正"><option value="-1">なし</option>${SN.slice(1).map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')}</select>`;
   V.innerHTML=`
   <section class="phead"><span class="wash" style="background:${wash}"></span>
@@ -65,9 +64,7 @@ function detail(no){
   <div data-sw data-panel="3" hidden>${srcLine('typechart')}${mxBlocks(p.t)}
     <p class="note">相手のタイプ一致技を受けたときの倍率です（タイプだけで計算）。</p>${defNotes(p).length?`<div class="bnote" style="margin:0 16px 12px">特性による違い：${esc(defNotes(p).join('。'))}。</div>`:''}</div>
 
-  <div data-sw data-panel="4" hidden>
-    <p class="note" style="padding:14px 16px 6px">${p.n}に<b>タイプ一致で抜群</b>を取れるポケモンです（合計種族値の高い順・上位12匹）。</p>
-    ${cs.map(q=>rowP(q)).join('')||'<p class="empty">該当するポケモンがいません。</p>'}</div>
+  <div data-sw data-panel="4" hidden id="brpanel"></div>
   <div data-sw data-panel="5" hidden id="mvpanel"></div>
   </div>
   ${battleFormHTML(p)}
@@ -89,6 +86,7 @@ function detail(no){
     V.querySelectorAll('[data-panel]').forEach(pn=>pn.hidden=+pn.dataset.panel!==i);
     if(i!==from)segSlideIn(V.querySelector(`[data-panel="${i}"]`),dir||(i>from?1:-1));
     if(i===5)movesPanel(p);
+    if(i===4){const g=document.getElementById('brpanel');if(g&&!g.innerHTML)g.innerHTML=breakHTML(p)}
     if(i===1){const g=document.getElementById('gmpanel');
       const fill=()=>{g.innerHTML=monGuide(p);g.querySelectorAll('[data-axis]').forEach(b=>b.onclick=()=>{const d=AXIS_DATA[b.dataset.axis];if(d)useTeam(d.name,d.list)})};
       if(g&&!g.innerHTML){fill();
