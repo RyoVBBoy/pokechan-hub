@@ -198,19 +198,31 @@ function mpAutoCalc(){
       `対 受けサイクル：先発${tag(b[0],setup(b[0])?mvn(setup(b[0]))+'で崩す':'崩し役')}＋${tag(b[1],'クッション')}＋${tag(b[2],'エース')}`,
       `対 展開（壁・ステロ）：先発${tag(c[0],tn.includes(c[0])?mvn(keys(c[0]).find(k=>['taunt','encore','whirlwind','roar','haze','defog','rapidspin'].includes(k)))+'で止める':'速さで先に削る')}＋${tag(c[1],'エース')}＋${tag(c[2],'補完')}`].join('\n');
     void why0;}
+  /* 2026/11/08 依頼主の指摘で作りかえ：
+     ・相手が場に出ると天気を変える（バンギラスの砂嵐など）なら、その天気で計算（estHit/duel の withWx）。理由にも書く
+     ・候補は1匹に決めつけず、有利な匹が2匹いれば「AまたはB」
+     ・受けた匹がそのまま勝てるなら、別の匹に交代させず「そのまま〇〇で返す」
+     ・「受ける」は⑥と同じ基準（いちばん痛い技で50%未満＝2回耐える） */
+  const WXJ={sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'};
+  const wxNote=o=>{const k=o&&WSET[o.ab];return k?`（${qn(o.p)}の特性で${WXJ[k]}になるので、${WXJ[k]}の中で計算）`:''};
+  const why=(i,o)=>{const h=hit(me[i],o);return `${spd(me[i])>spd(o)?'先に':'後から'}${dm(h)}`};
+  const both=(L,o)=>L.length>1?`${nm(L[0])}（${why(L[0],o)}）または${nm(L[1])}（${why(L[1],o)}）`:`${nm(L[0])}（${why(L[0],o)}）`;
   /* ② 初手の答え：使用率の上位から6匹 */
-  {const L=[];opps.slice(0,6).forEach((q,j)=>{const best=[...ix].sort((x,y)=>S[y][j]-S[x][j])[0];if(best==null)return;const o=opm(j);if(!o)return;
-      const h=hit(me[best],o),f=spd(me[best])>spd(o);
-      if(S[best][j]>=1)L.push(`初手${qn(q)} → ${nm(best)}を合わせる（${f?'先に':'後から'}${dm(h)}）`);
-      else L.push(`初手${qn(q)} → 有利な匹がいない。${nm(best)}で削ってから交代`)});
+  {const L=[];opps.slice(0,6).forEach((q,j)=>{const o=opm(j);if(!o)return;
+      const rank=[...ix].sort((x,y)=>S[y][j]-S[x][j]||hit(me[y],o).pct-hit(me[x],o).pct),good=rank.filter(i=>S[i][j]>=1);
+      if(good.length)L.push(`初手${qn(q)} → ${both(good.slice(0,2),o)}を合わせる${wxNote(o)}`);
+      else{const g=ix.find(i=>guard(i)&&i!==rank[0]),dmg=[...ix].sort((x,y)=>hit(me[y],o).pct-hit(me[x],o).pct)[0],a=[dmg,...(g!=null&&g!==dmg?[g]:[])];
+        L.push(`初手${qn(q)} → 有利な匹がいない。${a.map(i=>`${nm(i)}${guard(i)?`（${guard(i)}）`:''}`).join('または')}で削ってから後ろへつなぐ${wxNote(o)}`)}});
     R.lead=L.join('\n')}
   /* ③ エースへの引き先：攻撃か特攻が高い相手 */
   {const L=[];opps.map((q,j)=>({q,j})).filter(({q})=>Math.max(q.s[1],q.s[3])>=120).slice(0,4).forEach(({q,j})=>{const o=opm(j);if(!o)return;
-      const tk=ix.map(i=>({i,r:hit(o,me[i]).pct})).sort((a,b)=>a.r-b.r),rc=tk[0];if(!rc)return;
-      const ret=[...ix].filter(i=>i!==rc.i).sort((x,y)=>S[y][j]-S[x][j])[0];
-      const rh=ret!=null?hit(me[ret],o):null;
-      if(rc.r<60)L.push(`${qn(q)} → ${nm(rc.i)}で受ける（受けるのは約${Math.round(rc.r)}%）→ ${ret!=null?`${nm(ret)}で返す（${dm(rh)}）`:'削り合う'}`);
-      else L.push(`${qn(q)} → 受けられる匹がいない。${ret!=null?`倒されてから${nm(ret)}を出して返す（${dm(rh)}）`:'先に倒す'}`)});
+      const tk=ix.map(i=>({i,h:hit(o,me[i])})).sort((a,b)=>a.h.pct-b.h.pct),rc=tk[0];if(!rc)return;
+      const rets=[...ix].filter(i=>i!==rc.i&&S[i][j]>=1).sort((x,y)=>S[y][j]-S[x][j]);
+      const retTxt=pre=>rets.length?`${pre}${both(rets.slice(0,2),o)}で返す`:`${pre}削り合う（有利に返せる匹がいない）`;
+      if(rc.h.pct<50){const self=S[rc.i][j]>=1;
+        L.push(`${qn(q)} → ${nm(rc.i)}で受ける（いちばん痛い${mvName(rc.h)||'技'}で約${Math.round(rc.h.pct)}%）→ ${self?`そのまま${nm(rc.i)}で返す（${dm(hit(me[rc.i],o))}）`:retTxt('')}${wxNote(o)}`)}
+      else{const all=[...ix].filter(i=>S[i][j]>=1).sort((x,y)=>S[y][j]-S[x][j]);
+        L.push(`${qn(q)} → 2回耐えられる匹がいない。${all.length?`1匹倒されてから${both(all.slice(0,2),o)}を出して返す`:'先に倒すか、ほかの匹で削っておく'}${wxNote(o)}`)}});
     R.pivot=L.join('\n')}
   /* ④ メガシンカ */
   if(megaI.length){const L=[];
@@ -233,7 +245,18 @@ function mpAutoCalc(){
     if(L.length<2&&fs!=null)L.push(`プラン${L.length?'B':'A'}：${nm(fs)}で上から削り切る（最速${me[fs].st[5]}）`);
     R.win=L.join('\n')}
   /* ⑥ 負け筋 */
-  {const L=[];try{loseReasons(team).sort((a,b)=>b.w-a.w).slice(0,2).forEach(r=>L.push(r.t))}catch(e){}
+  {const L=[];
+    /* よく使われる相手への答え（⑥。③と同じ基準：2回耐える／半分以上削って半分未満しか受けない／上から一撃）。
+       答えが0匹＝だれも答えられない、1匹だけ＝その匹に頼りすぎ（先に倒される・状態異常で止められると崩れる）。
+       loseReasons の「だれも答えられない」は使わない（③と食い違うため。2026/11/08 依頼主の指摘） */
+    const no=[],dep={};
+    opps.slice(0,10).forEach((q,j)=>{const o=opm(j);if(!o)return;
+      const ans=ix.filter(i=>{const x=hit(me[i],o).pct,y=hit(o,me[i]).pct;return y<50||(x>=50&&y<50)||(spd(me[i])>spd(o)&&x>=100)});
+      if(!ans.length)no.push(qn(q));else if(ans.length===1)(dep[ans[0]]=dep[ans[0]]||[]).push(qn(q))});
+    if(no.length)L.push(`よく使われる${no.slice(0,3).join('・')}に、だれも答えられない`);
+    const dk=Object.keys(dep).sort((a,b)=>dep[b].length-dep[a].length)[0];
+    if(dk!=null)L.push(`${dep[dk].slice(0,3).join('・')}への答えが${nm(+dk)}だけ。${nm(+dk)}が先に倒されたり、状態異常で動けなくなったりすると止められない`);
+    try{loseReasons(team).filter(r=>!/だれも答えられない/.test(r.t)).sort((a,b)=>b.w-a.w).slice(0,1).forEach(r=>L.push(r.t))}catch(e){}
     const fin=P.finisher;if(fin!=null&&me[fin]){const th=opps.slice(0,15).map((q,j)=>({q,j})).find(({q,j})=>{const o=opm(j);return o&&maxSpe(q)*1.5>spd(me[fin])&&maxSpe(q)<=spd(me[fin])&&hit(o,me[fin]).pct>=50});
       if(th)L.push(`相手のこだわりスカーフ（${qn(th.q)}など）に、${nm(fin)}が上から叩かれる`)}
     const phys=ix.filter(i=>me[i].st[1]>me[i].st[3]&&me[i].moves.some(m=>m&&m.cls===0&&m.pow>0));
@@ -247,7 +270,7 @@ function mpAutoCalc(){
     const cs=ix.filter(i=>bd[i]&&bd[i].wall).sort((x,y)=>bulk(y)-bulk(x))[0];
     if(cs!=null)L.push(`先発が不利な対面 → ${nm(cs)}に引いて受ける`);
     const pr=[...ix].filter(i=>prio(i))[0];if(pr!=null)L.push(`相手の残りのHPが少ない → ${nm(pr)}の${prio(pr).n}で詰める`);
-    if(megaI.length)L.push(`メガシンカは④の条件がそろうまで切らない`);
+    if(megaI.length)L.push(`メガシンカ → ④の条件がそろうまで切らない`);
     R.flow=L.join('\n')}
   return R;
 }

@@ -41,7 +41,8 @@ function duFirst(sa,so,mt,ot,pa,po,ha,ho){
   if(f<=0&&fa&&!fo)f=1;else if(f>=0&&fo&&!fa)f=-1;
   return f;
 }
-function duel(a,o){
+function duel(a,o){return withWx(a,o,()=>duel0(a,o))}
+function duel0(a,o){
   const h=estHit(a,o),r=estHit(o,a);
   let mt=duTurns(h.pct,h,a,o),ot=duTurns(r.pct,r,o,a);
   const pa=duPrio(a,o),po=duPrio(o,a);

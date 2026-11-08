@@ -4,7 +4,14 @@ const saveOpp6=()=>{try{localStorage.setItem('pcopp6',JSON.stringify(opp6))}catc
 let asMode='atk';
 /* 計算用の型：ラダー集計があれば最頻の型、なければ自動で決めた型（乱数なし） */
 const detSet=p=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):((typeof topSetCalc==='function'&&topSetCalc(p))||chooseSet(p,true));
-function estHit(a,d){
+/* 1対1のときの天気（2026/11/08 依頼主の指摘：バンギラスの砂嵐でいわタイプの特防が1.5倍になるのを入れていなかった）。
+   場に出ると天気を変える特性（WSET）の匹がいれば、その天気で計算する。両方なら遅い方（あとから出る特性）の天気。
+   対戦の画面など、すでに天気が決まっているとき（B.weather）はそのまま */
+function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return null;if(s.length===1)return WSET[s[0].ab];
+  return WSET[(s[0].st[5]<=s[1].st[5]?s[0]:s[1]).ab]}
+function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();const k=wxPair(a,b);if(!k)return fn();B.weather={k,t:5};try{return fn()}finally{B.weather=null}}
+function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
+function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
