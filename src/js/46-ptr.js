@@ -1,6 +1,6 @@
 /* ===================== 引っぱって更新（2026/11/03 依頼主の要望。昔の Twitter アプリのように） =====================
    ・ホーム（とタイムライン）でいちばん上にいるとき、下に引っぱると上に矢印が出て、指を離すと読み直す
-   ・音：引っぱって「離せば更新」になったところで「シュボッ」（約0.18秒）、読み終わったら「パッ」。
+   ・音：引っぱって「離せば更新」になったところで「シュボッ」（約0.13秒）、読み終わったら「ポッ」。
      音はファイルを使わず、その場で作る（Web Audio。Twitter の音そのものではなく、似た感じの短い音）。
      iPhone のマナーモード（消音）では鳴らさない（navigator.audioSession を ambient にする） */
 const PTR={on:false,y0:0,x0:0,d:0,lock:0,armed:false,busy:false,el:null,ctx:null,TH:72};
@@ -21,43 +21,35 @@ function ptrCtx(){
     return PTR.ctx;
   }catch(e){return null}
 }
-/* 引っぱったときの「シュボッ」（2026/11/08 依頼主の指定：昔の Twitter の更新音のような0.15〜0.2秒の短い音。音のファイルは使わずその場で作る）
-   ・もとは雑音（ホワイトノイズを少し低め寄りにしたピンク寄りの雑音）
-   ・前半「シュ」（0〜約0.09秒）：高めの帯だけ通す（4800→2400Hz に下げていく）摩擦の音。立ち上がり4ミリ秒、指数的に急に減る
-   ・後半「ボッ」（約0.06秒〜0.18秒）：低い方だけ通す（1100→220Hz に下げる）雑音＋高さが急に下がる低い音（190→60Hz）で、空気が抜ける感じ
+/* 音（2026/11/08 依頼主が口で鳴らした見本の録音を調べて合わせた）
+   ・引っぱったとき「シュボッ」（約0.13秒）：2300Hz あたりにまとまったこもった雑音（帯の幅 約300Hz）。
+     急に鳴らさず約0.07秒かけて大きくなり（見本：0.045秒→0.115秒で −19dB→0dB）、少し続いたあと、
+     高さが 1450Hz あたりへ急に下がって（「ボ」）、約0.03秒で消える。低い「ドン」という音はほとんど無い。
+   ・読み終わったとき「ポッ」（約0.035秒）：雑音のない澄んだ音で、高さが 590Hz → 1100Hz に上がる。立ち上がり約4ミリ秒。
    ptrSynth は端末で鳴らすときと、確認用にファイルへ書き出すとき（OfflineAudioContext）の両方で使う */
 function ptrSynth(c,out,t,kind){
   const g=c.createGain();g.connect(out);
   if(kind==='swish'){
-    const L=.19,n=Math.floor(c.sampleRate*L),bf=c.createBuffer(1,n,c.sampleRate),d=bf.getChannelData(0);
-    /* ピンク寄りの雑音（Paul Kellet の簡単な式） */
-    let b0=0,b1=0,b2=0;for(let k=0;k<n;k++){const w=Math.random()*2-1;b0=.99765*b0+w*.099046;b1=.963*b1+w*.2965164;b2=.57*b2+w*1.0526913;d[k]=(b0+b1+b2+w*.1848)*.22}
-    /* シュ */
+    const L=.16,n=Math.floor(c.sampleRate*L),bf=c.createBuffer(1,n,c.sampleRate),d=bf.getChannelData(0);
+    for(let k=0;k<n;k++)d[k]=Math.random()*2-1;
     const s1=c.createBufferSource();s1.buffer=bf;
-    const f1=c.createBiquadFilter();f1.type='bandpass';f1.Q.value=1.1;f1.frequency.setValueAtTime(4800,t);f1.frequency.exponentialRampToValueAtTime(2400,t+.09);
-    const h1=c.createBiquadFilter();h1.type='highpass';h1.frequency.value=1200;
-    const g1=c.createGain();g1.gain.setValueAtTime(0,t);g1.gain.linearRampToValueAtTime(2.4,t+.004);g1.gain.exponentialRampToValueAtTime(.5,t+.05);g1.gain.exponentialRampToValueAtTime(.001,t+.1);
-    s1.connect(f1);f1.connect(h1);h1.connect(g1);g1.connect(g);s1.start(t);s1.stop(t+.11);
-    /* ボッ（雑音） */
-    const t2=t+.06,s2=c.createBufferSource();s2.buffer=bf;
-    const f2=c.createBiquadFilter();f2.type='lowpass';f2.Q.value=2.2;f2.frequency.setValueAtTime(1100,t2);f2.frequency.exponentialRampToValueAtTime(220,t2+.11);
-    const g2=c.createGain();g2.gain.setValueAtTime(0,t2);g2.gain.linearRampToValueAtTime(.6,t2+.006);g2.gain.exponentialRampToValueAtTime(.001,t2+.12);
-    s2.connect(f2);f2.connect(g2);g2.connect(g);s2.start(t2);s2.stop(t2+.13);
-    /* ボッ（低い音） */
-    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(190,t2);o.frequency.exponentialRampToValueAtTime(60,t2+.09);
-    const g3=c.createGain();g3.gain.setValueAtTime(0,t2);g3.gain.linearRampToValueAtTime(.3,t2+.004);g3.gain.exponentialRampToValueAtTime(.001,t2+.1);
-    o.connect(g3);g3.connect(g);o.start(t2);o.stop(t2+.11);
+    /* こもった「シュー」：2300Hz の細い帯（2段重ねて幅を約300Hzに）。最後に 1450Hz へ下げる＝「ボ」 */
+    const fa=c.createBiquadFilter(),fb=c.createBiquadFilter();[fa,fb].forEach(f=>{f.type='bandpass';f.Q.value=4.2;
+      f.frequency.setValueAtTime(2250,t);f.frequency.linearRampToValueAtTime(2400,t+.06);f.frequency.setValueAtTime(2350,t+.088);f.frequency.exponentialRampToValueAtTime(1450,t+.095)});
+    const ga=c.createGain();
+    ga.gain.setValueAtTime(.0001,t);ga.gain.exponentialRampToValueAtTime(.18,t+.012);ga.gain.exponentialRampToValueAtTime(1,t+.07);
+    ga.gain.setValueAtTime(1,t+.092);ga.gain.linearRampToValueAtTime(.8,t+.1);ga.gain.exponentialRampToValueAtTime(.25,t+.118);ga.gain.exponentialRampToValueAtTime(.001,t+.15);
+    s1.connect(fa);fa.connect(fb);fb.connect(ga);ga.connect(g);
+    /* 見本にある少しのざらつき（広い帯の雑音を1割ほど） */
+    const fh=c.createBiquadFilter();fh.type='highpass';fh.frequency.value=1500;const gh=c.createGain();
+    gh.gain.setValueAtTime(.0001,t);gh.gain.exponentialRampToValueAtTime(.05,t+.07);gh.gain.exponentialRampToValueAtTime(.0005,t+.12);
+    s1.connect(fh);fh.connect(gh);gh.connect(g);
+    g.gain.value=2.4;s1.start(t);s1.stop(t+L);
   }else{
-    /* パッ：唇をはじいたような音（約0.05秒）。
-       はじいた瞬間の「プ」＝ごく短い雑音を中くらいの高さで絞ったもの＋口の中で響く「ポ」＝高さがすぐ下がる低めの音 */
-    const n=Math.floor(c.sampleRate*.012),bf=c.createBuffer(1,n,c.sampleRate),d=bf.getChannelData(0);
-    for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
-    const s=c.createBufferSource();s.buffer=bf;
-    const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1100;f.Q.value=.9;
-    const g1=c.createGain();g1.gain.value=.35;s.connect(f);f.connect(g1);g1.connect(out);s.start(t);s.stop(t+.015);
-    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(560,t);o.frequency.exponentialRampToValueAtTime(170,t+.04);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.05);
-    o.connect(g);o.start(t);o.stop(t+.055);
+    /* ポッ：澄んだ音で、高さが上がる（590→1100Hz、約0.03秒） */
+    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(590,t);o.frequency.exponentialRampToValueAtTime(1120,t+.026);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.5,t+.006);g.gain.setValueAtTime(.5,t+.016);g.gain.exponentialRampToValueAtTime(.001,t+.036);
+    o.connect(g);o.start(t);o.stop(t+.04);
   }
 }
 function ptrSound(kind){
