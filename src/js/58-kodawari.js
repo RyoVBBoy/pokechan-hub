@@ -202,7 +202,7 @@ function kdPanel(root){
     <div class="kd-chips">${chips(KD.ng,'ng')}${KD.ng.length<10?`<button class="kd-add" id="kd-ng">${SVG(I.plus,16)}選ぶ</button>`:''}</div>
   </div>
   <div class="kd-bar"><div class="kd-cnt"><small>${M.mem.length?`${names.length>2?names.slice(0,2).join('・')+'など':names.join('・')}と相性がよく、条件に合う`:'条件に合うポケモン'}</small><b class="num">${M.n}</b>匹</div><button class="btn btn-p" id="kd-go"${M.mem.length>=6?' disabled':''}>選択した条件で組む</button></div>
-  <div id="kd-res">${R?kdResHTML(R):''}</div>`;
+  <div id="kd-res">${R?kdResHTML():''}</div>`;
   const re=()=>{kdSave();KD.res=null;const y=scrY();kdPanel(root);scrTo(0,y)};
   root.querySelectorAll('[data-kd-big]').forEach(b=>b.onclick=()=>{KD.big=b.dataset.kdBig;KD.type=(KD_SUB[KD.big]||KD_SUB.auto)[0][0];re()});
   root.querySelectorAll('[data-kd-type]').forEach(b=>b.onclick=()=>{KD.type=b.dataset.kdType;re()});
@@ -213,29 +213,53 @@ function kdPanel(root){
   root.querySelector('#kd-all').onclick=()=>{KD.all=!KD.all;const y=scrY();kdPanel(root);scrTo(0,y)};
   const bn=root.querySelector('#kd-ng');if(bn)bn.onclick=async()=>{const no=await pickMon(0);if(!no||KD.ng.includes(no))return;
     if(kdMust().some(n=>kdBase(byNo[n]).no===kdBase(byNo[no]).no)){toast('パーティにいるポケモンです');return}KD.ng.push(no);re()};
-  root.querySelector('#kd-go').onclick=()=>kdRun(0);
+  root.querySelector('#kd-go').onclick=()=>kdRun();
   kdResBind();
 }
-function kdRun(seed){
-  const box=document.getElementById('kd-res');if(box)box.innerHTML='<p class="empty">組んでいます…</p>';
-  setTimeout(()=>{KD.seed=seed;try{KD.res=kdBuild()}catch(e){KD.res=null;toast('組めませんでした。条件を少しゆるめてください')}
-    const b=document.getElementById('kd-res');if(!b)return;b.innerHTML=KD.res?kdResHTML(KD.res):'';kdResBind();if(KD.res)b.scrollIntoView({behavior:'smooth',block:'start'})},30);
+/* 結果は5案ずつ（2026/11/08 依頼主）：1・2…のページボタンで次の案へ。一覧は6匹の名前と種族値の形だけ、押すと詳しく（条件の✓・育成・理由・パーティにするボタン）。
+   案1は揺らさずにいちばん点の高い組み方（seed 0）、2案目からは seed を変えて少しずつ違う組み方。同じ6匹の案は出さない。ページは見たときに組む（1案0.2秒ほど）。 */
+const KD_PER=5,KD_PAGES=4;
+function kdRun(){KD.res={list:[],sigs:new Set(),seed:0,page:0,open:-1};kdEnsure(0)}
+function kdEnsure(page){
+  const R=KD.res;if(!R)return;R.page=page;R.open=-1;
+  const need=(page+1)*KD_PER,box=document.getElementById('kd-res');
+  const draw=()=>{const b=document.getElementById('kd-res');if(!b)return;b.innerHTML=kdResHTML();kdResBind()};
+  const step=()=>{
+    if(KD.res!==R)return;
+    if(R.list.length>=need||R.seed>need*4){draw();return}
+    const b=document.getElementById('kd-res');if(b)b.innerHTML=`<p class="empty">組んでいます…（${Math.min(KD_PER,R.list.length-page*KD_PER+1)}/${KD_PER}）</p>`;
+    setTimeout(()=>{KD.seed=R.seed++;try{const x=kdBuild(),sig=x.mons.map(m=>m.no).sort((a,b)=>a-b).join();if(!R.sigs.has(sig)){R.sigs.add(sig);R.list.push(x)}}catch(e){}step()},20)};
+  if(box&&page===0&&!R.list.length)box.scrollIntoView({behavior:'smooth',block:'start'});
+  step();
 }
-function kdResHTML(R){
-  return `<div class="sec"><h2>あなたのこだわりで組んだパーティ</h2></div>
+function kdResHTML(){
+  const R=KD.res;if(!R)return '';
+  const items=R.list.slice(R.page*KD_PER,(R.page+1)*KD_PER);
+  if(!items.length)return '<p class="empty">条件に合う案が見つかりませんでした。条件を少しゆるめてください。</p>';
+  return `<div class="sec"><h2>組んだパーティの案</h2><span style="font-size:12px;color:var(--dim)">押すと詳しく</span></div>
+  <div class="kd-opts">${items.map((x,j)=>{const k=R.page*KD_PER+j,open=R.open===k;
+    return `<div class="kd-opt${open?' open':''}"><button class="kd-oh" data-kd-open="${k}" aria-expanded="${open}"><span class="kd-on">案${k+1}</span>
+      <span class="kd-o6">${x.mons.map(m=>`<span class="kd-o1"><span class="av">${stamp(m)}</span><small>${esc(formInfo(m).base)}</small></span>`).join('')}</span></button>
+      ${open?kdDetailHTML(x):''}</div>`}).join('')}</div>
+  <nav class="kd-pg" aria-label="案のページ">${Array.from({length:KD_PAGES},(_,i)=>`<button data-kd-pg="${i}"${i===R.page?' aria-current="page"':''}>${i+1}</button>`).join('')}</nav>
+  <p class="note">育成は計算で組んだ型の例です（実際によく使われる型とは違うことがあります）。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
+}
+function kdDetailHTML(R){
+  return `<div class="kd-det">
   <div class="kd-checks">${R.checks.map(([t,ok])=>`<span class="kd-ck ${ok?'ok':'ng'}">${ok?'✓':'△'} ${esc(t)}</span>`).join('')}</div>
   <div class="kd-team">${R.mons.map((m,i)=>{const s=R.ss[i];return `<a class="kd-mon" href="#/p/${m.no}"><span class="av">${stamp(m)}</span>
     <div class="kd-mi"><b>${esc(formInfo(m).base)}</b><div class="kd-ty">${m.t.map(chip).join('')}</div>
     ${s?`<div class="kd-set">${esc([s.item&&ITEMN[s.item],s.moves.slice(0,4).map(id=>mName(id)).join('・')].filter(Boolean).join(' ／ '))}</div>`:''}
     ${(R.why[m.no]||[]).length?`<div class="kd-why">${R.why[m.no].map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}</div></a>`}).join('')}</div>
-  <div class="btns" style="padding:10px 16px 4px;flex-wrap:wrap"><button class="btn btn-p" id="kd-use">この6匹でパーティにする</button><button class="btn btn-s" id="kd-again">別の案を見る</button></div>
-  <p class="note">育成は計算で組んだ型の例です（実際によく使われる型とは違うことがあります）。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
+  <div class="btns" style="padding:10px 16px 12px"><button class="btn btn-p" id="kd-use">この6匹でパーティにする</button></div></div>`;
 }
 function kdResBind(){
-  const R=KD.res;const u=document.getElementById('kd-use');if(!u||!R)return;
+  const RR=KD.res;if(!RR)return;
+  document.querySelectorAll('[data-kd-open]').forEach(b=>b.onclick=()=>{const k=+b.dataset.kdOpen;RR.open=RR.open===k?-1:k;const y=scrY();const box=document.getElementById('kd-res');box.innerHTML=kdResHTML();kdResBind();scrTo(0,y)});
+  document.querySelectorAll('[data-kd-pg]').forEach(b=>b.onclick=()=>{kdEnsure(+b.dataset.kdPg);const box=document.getElementById('kd-res');if(box)box.scrollIntoView({behavior:'smooth',block:'start'})});
+  const u=document.getElementById('kd-use'),R=RR.open>=0&&RR.list[RR.open];if(!u||!R)return;
   /* いまのパーティに足す（もともといた匹の育成はそのまま） */
   u.onclick=()=>{const have=new Set(team.map(x=>kdBase(byNo[x.no]).no));let k=0;
     R.mons.forEach((m,i)=>{if(have.has(m.no)||team.length>=6)return;team.push({no:m.no,sel:team.filter(x=>x.sel).length<PICK(),set:toSaved(R.ss[i])});k++});
     saveTeam();KD.res=null;toast(k?`${k}匹をパーティに入れました`:'パーティはもういっぱいです');nav('#/team')};
-  document.getElementById('kd-again').onclick=()=>kdRun((KD.seed||0)+1);
 }

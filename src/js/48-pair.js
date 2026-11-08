@@ -16,7 +16,9 @@ const PR_WX={drought:['はれ','ほのお',['chlorophyll','solarpower','protosyn
 const PR_LOOPS=[['ほのお','みず','くさ'],['はがね','ドラゴン','フェアリー']];
 /* パーティの1匹を計算用の姿に（メガストーンを持っていればメガシンカ後） */
 const prMon=x=>{const it=x.set&&x.set.it&&x.set.it.k;return megaOf(x.no,it)||byNo[x.no]};
-const prDef=p=>{const d={};monDef(p).forEach(x=>{d[x.t]=x.m});return d};
+/* タイプ相性は何度も使うので覚えておく（2026/11/08 こだわり条件で5案ずつ組むため速くする） */
+const PR_DEFC={};
+const prDef=p=>PR_DEFC[p.no]||(PR_DEFC[p.no]=(()=>{const d={};monDef(p).forEach(x=>{d[x.t]=x.m});return d})());
 const prAbs=p=>(ABD[p.no]||ABD[p.base]||[]).map(a=>a[0]).concat(p.ab?[p.ab]:[]);
 const prAtk=p=>Math.max(p.s[1],p.s[3]),prPhys=p=>p.s[1]>=p.s[3];
 const prBulk=p=>p.s[0]*(p.s[2]+p.s[4])/2;
@@ -75,13 +77,21 @@ function prScore(c,mem){
   if(typeof LIVE!=='undefined'&&LIVE.files&&LIVE.files[ENSP[c.no]])R.push({k:'pop',pts:1,txt:''});
   return{c,R};
 }
+/* よくある型どうしの1対1の結果を覚えておく（同じ組み合わせを何度も計算しない。集計を読んだら型が変わるので鍵に含める） */
+const PR_HIT={};
+function prHit(c,q){
+  const k=c.no+'|'+q.no+'|'+FMT+'|'+(LIVE.csv[c.base||c.no]?1:0)+(LIVE.csv[q.base||q.no]?1:0);
+  if(PR_HIT[k])return PR_HIT[k];
+  const spd=m=>m.st[5]*(m.item==='choicescarf'?1.5:1);
+  const me=mkMon(c,'me',detSet(c)),op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q)),a=estHit(me,op),b=estHit(op,me);
+  return PR_HIT[k]={a:a.pct,mv:a.mv&&a.mv.id,b:b.pct,fast:spd(me)>spd(op)};
+}
 function prThreatCheck(o,mem){
-  const c=o.c,spd=m=>m.st[5]*(m.item==='choicescarf'?1.5:1);
-  let me;try{me=mkMon(c,'me',detSet(c))}catch(e){return}
+  const c=o.c;
   const done=new Set();
   mem.forEach(m=>prThreats(m).forEach(q=>{if(done.has(q.no)||q.no===c.no)return;
-    try{const op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q)),a=estHit(me,op),b=estHit(op,me);
-      if((a.pct>=50&&b.pct<50)||(spd(me)>spd(op)&&a.pct>=100)){done.add(q.no);o.R.push({k:'answer',pts:done.size<=2?2:.5,txt:`${formInfo(m).base}が苦手な${formInfo(q).base}に強い（${a.mv?mName(a.mv.id):'技'}で最大${Math.min(100,Math.round(a.pct))}%）`})}}catch(e){}}));
+    try{const h=prHit(c,q);
+      if((h.a>=50&&h.b<50)||(h.fast&&h.a>=100)){done.add(q.no);o.R.push({k:'answer',pts:done.size<=2?2:.5,txt:`${formInfo(m).base}が苦手な${formInfo(q).base}に強い（${h.mv?mName(h.mv):'技'}で最大${Math.min(100,Math.round(h.a))}%）`})}}catch(e){}}));
 }
 function prRank(mem){
   const have=new Set(mem.map(m=>m.base||m.no));
