@@ -49,6 +49,7 @@ const BR_AB={
   defiant:'能力を下げると、逆に攻撃が上がる。いかくや能力を下げる技を使わない。',
   'thick-fat':'ほのお・こおり技のダメージが半分になる。',
   levitate:'じめん技が当たらない。'};
+const BR_LOCK=['outrage','thrash','petaldance','ragingfury'],BR_HPCOST=['steelbeam','mindblown','chloroblast'];
 /* 技の役割（38-guide-moves.js の MOVE_ROLES の技の一覧）を引く */
 const brRole=(id,r)=>{const k=MD[id]&&MD[id][3],R=MOVE_ROLES.find(x=>x[0]===r);return !!(k&&R&&R[R.length-1].includes&&R[R.length-1].includes(k))};
 const brNames=a=>[...new Set(a)].map(x=>`「${x}」`).join('');
@@ -84,8 +85,14 @@ function breakSteps(p,c){
   if(boostN.length)mv.push(`${boost.length?'積み技':'覚える積み技'}${brNames(boostN)}で能力を上げて${boost.length?'くる':'くることがある'}。積まれる前に倒すか、ちょうはつ・あくび・ほえる・ドラゴンテール・くろいきりで止める。`);
   const heal=ls.filter(id=>MD[id]&&MD[id][3]!=='rest'&&brRole(id,'heal')).map(id=>mName(id)).slice(0,2);
   if(heal.length)mv.push(`回復技${brNames(heal)}を覚える。1回で削れる量が回復量より少ないと倒しきれないので、半分以上削れる匹を当てる。もうどくも有効。`);
-  const lock=atk.filter(m=>m.e&&m.e.o);
+  /* 同じ技を2〜3ターン出し続ける技は名前で決める（技のデータの e.o は「ほかの効果あり」の印で、出し続ける印ではない。2026/11/08 依頼主の指摘：てっていこうせんに出ていた） */
+  const key=m=>MD[m.id]&&MD[m.id][3];
+  const lock=atk.filter(m=>BR_LOCK.includes(key(m)));
   lock.forEach(m=>{const nt=T.filter(t=>mult(m.t,[t])===0);mv.push(`「${m.n}」は2〜3ターン同じ技を出し続ける。${nt.length?`${nt.join('・')}タイプには効かないので、そこへ交代すると`:'まもるで1ターン透かすと'}相手の動きが止まる。`)});
+  const hpc=atk.filter(m=>BR_HPCOST.includes(key(m)));
+  if(hpc.length)mv.push(`${brNames(hpc.map(m=>m.n))}は、使うと自分の最大HPの半分を失う。受けられる匹で1回受ければ、相手は自分で大きく削れる。`);
+  const rc=atk.filter(m=>m.e&&m.e.rc&&!BR_HPCOST.includes(key(m)));
+  if(rc.length)mv.push(`${brNames(rc.map(m=>m.n))}は反動で自分のHPも減る。受けて返すと、反動と合わせて早く倒せる。`);
   const drop=atk.filter(m=>m.e&&m.e.s&&m.e.s.some(x=>x[1]<0));
   if(drop.length)mv.push(`${brNames(drop.map(m=>m.n))}は使ったあと自分の能力が下がる。一度受けてから有利な匹を出すと、下がった相手を倒しやすい。`);
   const piv=atk.filter(m=>brRole(m.id,'pivot'));
