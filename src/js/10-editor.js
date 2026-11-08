@@ -1,6 +1,24 @@
 /* ===================== 育成の編集 ===================== */
 const NATS=[['補正なし',-1,-1],['さみしがり',1,2],['いじっぱり',1,3],['やんちゃ',1,4],['ゆうかん',1,5],['ずぶとい',2,1],['わんぱく',2,3],['のうてんき',2,4],['のんき',2,5],
  ['ひかえめ',3,1],['おっとり',3,2],['うっかりや',3,4],['れいせい',3,5],['おだやか',4,1],['おとなしい',4,2],['しんちょう',4,3],['なまいき',4,5],['おくびょう',5,1],['せっかち',5,2],['ようき',5,3],['むじゃき',5,4]];
+/* 性格の表（2026/11/08 依頼主：ゲームの「能力補正を選んでください」の画面と同じ形に）：
+   たて＝上がる能力（▲）、よこ＝下がる能力（▼）の5×5。ななめは補正なしで、ゲームと同じく左上の「まじめ」だけ出す。
+   attr(j)＝ボタンに付ける属性（j は NATS の番号。まじめ＝0＝補正なし）。natGridSync で選んでいる性格を付けかえる。 */
+const NATG_L=()=>[L('こうげき','Atk'),L('ぼうぎょ','Def'),L('とくこう','SpA'),L('とくぼう','SpD'),L('すばやさ','Spe')];
+const natIdx=(u,d)=>u>0&&d>0?Math.max(0,NATS.findIndex(n=>n[1]===u&&n[2]===d)):0;
+const natCur=(u,d)=>{const j=natIdx(u,d),n=NATS[j];return j?`<b>${esc(n[0])}</b><small>${NATG_L()[n[1]-1]}↑ ${NATG_L()[n[2]-1]}↓</small>`:`<b>${L('まじめ','Serious')}</b><small>${L('補正なし','Neutral')}</small>`};
+function natGrid(up,dn,attr){
+  const cur=natIdx(up,dn),H=NATG_L();
+  const cell=(u,d)=>{if(u===d&&u!==1)return '<span class="natg-x"></span>';
+    const j=u===d?0:NATS.findIndex(n=>n[1]===u&&n[2]===d),nm=j?NATS[j][0]:L('まじめ','Serious');
+    return `<button type="button" class="natg-b" ${attr(j)} aria-pressed="${j===cur}" aria-label="${esc(nm)}${j?`（${H[u-1]}↑ ${H[d-1]}↓）`:''}">${esc(nm)}</button>`};
+  return `<div class="natg"><div class="natg-cur">${L('性格','Nature')}：<span class="natg-now">${natCur(up,dn)}</span></div>
+    <div class="natg-t"><span class="natg-h0"></span>${H.map(h=>`<span class="natg-hd">${h}<i>▼</i></span>`).join('')}
+    ${[1,2,3,4,5].map(u=>`<span class="natg-hu">${H[u-1]}<i>▲</i></span>${[1,2,3,4,5].map(d=>cell(u,d)).join('')}`).join('')}</div></div>`;
+}
+function natGridSync(root,up,dn){if(!root)return;const j=natIdx(up,dn);
+  root.querySelectorAll('.natg-b').forEach(b=>b.setAttribute('aria-pressed',String(+(b.dataset.nat??b.dataset.v)===j)));
+  const c=root.querySelector('.natg-now');if(c)c.innerHTML=natCur(up,dn)}
 const natName=(u,d)=>u>0&&d>0?((NATS.find(x=>x[1]===u&&x[2]===d)||[''])[0]+`（${SN[u]}↑${SN[d]}↓）`):'';
 const spLine=sp=>sp.map((v,i)=>v?['H','A','B','C','D','S'][i]+v:'').filter(Boolean).join(' ')||'ポイントなし';
 const ITEM_ORDER=['choicescarf','focussash','lifeorb','sitrusberry','leftovers','lumberry','rockyhelmet','expertbelt'];
@@ -58,7 +76,7 @@ function editView(a){
     <div class="spbar"><div><div style="font-size:12px;color:var(--dim)">能力ポイント 残り</div><span class="big" id="ed-left">66</span><span style="color:var(--mute);font-size:12px"> / ${SP_TOTAL}</span></div>
       <button class="btn btn-s" style="flex:none;height:34px;padding:0 15px;font-size:12px" id="ed-zero">0にする</button></div>
     ${SN.map((n,i)=>`<div class="sprow"><em>${n}</em><input type="range" min="0" max="${SP_CAP}" value="${ED.s.sp[i]}" id="ed-sp${i}" aria-label="${n}に振る能力ポイント"><span class="v" id="ed-v${i}">0</span><span class="o" id="ed-o${i}">0</span></div>`).join('')}
-    <div class="natr"><span>性格</span><select class="sel" id="ed-nat">${NATS.map(([n,u,d],j)=>`<option value="${j}"${(u===ED.s.up&&d===ED.s.dn)||(u<0&&!(ED.s.up>0))?' selected':''}>${n}${u>0?`（${SN[u]}↑ ${SN[d]}↓）`:''}</option>`).join('')}</select></div>
+    <div id="ed-nat">${natGrid(ED.s.up,ED.s.dn,j=>`data-nat="${j}"`)}</div>
     <p class="note" id="ed-spd"></p>
   </div>
   ${pipBuildPanel()}
@@ -83,7 +101,7 @@ function editView(a){
   SN.forEach((_,i)=>document.getElementById('ed-sp'+i).oninput=e=>{const o=ED.s,others=o.sp.reduce((a,b,j)=>j===i?a:a+b,0);
     o.sp[i]=Math.max(0,Math.min(+e.target.value,SP_CAP,SP_TOTAL-others));touch()});
   document.getElementById('ed-zero').onclick=()=>{ED.s.sp=[0,0,0,0,0,0];touch()};
-  document.getElementById('ed-nat').onchange=e=>{const n=NATS[+e.target.value];ED.s.up=n[1];ED.s.dn=n[2];touch()};
+  document.querySelectorAll('#ed-nat [data-nat]').forEach(b=>b.onclick=()=>{const n=NATS[+b.dataset.nat];ED.s.up=n[1];ED.s.dn=n[2];natGridSync(document.getElementById('ed-nat'),n[1],n[2]);touch()});
   document.getElementById('ed-ab').onchange=e=>{const k=e.target.value;ED.s.ab=k?{n:ABN[k]||k,k}:null;document.getElementById('ed-abd').textContent=ABDS[k]||'';touch()};
   document.getElementById('ed-it').onchange=e=>{const k=e.target.value;if(k==='x')return;ED.s.it=k?{n:ITEMN[k],k}:null;touch()};
   document.querySelectorAll('[data-mv]').forEach(el=>el.onchange=e=>{const k=+el.dataset.mv,v=e.target.value;if(v==='x')return;
@@ -92,7 +110,7 @@ function editView(a){
   document.getElementById('ed-solve').onclick=()=>{const vals=SN.map((_,i)=>+document.getElementById('ed-r'+i).value);
     if(vals.some(v=>!(v>0))){toast('6つの数値をすべて入れてください');return}
     const r=solveStats(p,vals,null);if(!r){toast('この実数値になる配分が見つかりませんでした。数値を確かめてください');return}
-    ED.s.sp=r.sp;ED.s.up=r.up;ED.s.dn=r.dn;document.getElementById('ed-nat').value=String(Math.max(0,NATS.findIndex(n=>n[1]===r.up&&n[2]===r.dn)));touch();toast('能力ポイントと性格を入れました')};
+    ED.s.sp=r.sp;ED.s.up=r.up;ED.s.dn=r.dn;natGridSync(document.getElementById('ed-nat'),r.up,r.dn);touch();toast('能力ポイントと性格を入れました')};
   document.getElementById('ed-pop').onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent='集計データを確認中…';
     let d=null;try{if(await liveInit())d=await liveMon(p.no)}catch(err){}
     const c=d?buildSet(p,d,true):chooseSet(p,true),sv=setToSaved(p,c);

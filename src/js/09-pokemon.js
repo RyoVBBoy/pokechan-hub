@@ -10,7 +10,6 @@ function detail(no){
   const wash=p.t.length>1
     ?`linear-gradient(140deg,${COL[p.t[0]]}2e,${COL[p.t[1]]}24 60%,transparent)`
     :`linear-gradient(140deg,${COL[p.t[0]]}2e,transparent 70%)`;
-  const natSel=id=>`<select class="sel" id="${id}" aria-label="性格補正"><option value="-1">なし</option>${SN.slice(1).map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')}</select>`;
   V.innerHTML=`
   <section class="phead"><span class="wash" style="background:${wash}"></span>
     <div style="position:relative;min-width:0">
@@ -55,8 +54,7 @@ function detail(no){
     <div class="spbar"><div><div style="font-size:12px;color:var(--dim)">能力ポイント 残り</div><span class="big" id="sp-left">66</span><span style="color:var(--mute);font-size:12px"> / 66</span></div>
       <button class="btn btn-s" style="flex:none;height:34px;padding:0 15px;font-size:12px" id="sp-reset">リセット</button></div>
     ${SN.map((n,i)=>`<div class="sprow"><em>${n}</em><input type="range" min="0" max="${SP_CAP}" value="0" id="sp${i}" aria-label="${n}に振る能力ポイント"><span class="v" id="spv${i}">0</span><span class="o" id="sto${i}">0</span></div>`).join('')}
-    <div class="natr"><span>性格で上がる</span>${natSel('up')}</div>
-    <div class="natr"><span>性格で下がる</span>${natSel('dn')}</div>
+    <div id="dp-nat" style="padding:4px 12px 8px">${natGrid(-1,-1,j=>`data-nat="${j}"`)}</div>
     <p class="note" id="spd-note"></p>
     <p class="note" style="color:var(--mute)">HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正。個体値31・Lv50で計算しています。</p>
   </div></div>
@@ -101,9 +99,8 @@ function detail(no){
   document.getElementById('sp-reset').onclick=()=>{
     st={sp:[0,0,0,0,0,0],up:-1,dn:-1};
     SN.forEach((_,i)=>{const el=document.getElementById('sp'+i);el.value=0;el.style.setProperty('--p','0%')});
-    document.getElementById('up').value=-1;document.getElementById('dn').value=-1;updCalc()};
-  document.getElementById('up').onchange=e=>{st.up=+e.target.value;updCalc()};
-  document.getElementById('dn').onchange=e=>{st.dn=+e.target.value;updCalc()};
+    natGridSync(document.getElementById('dp-nat'),-1,-1);updCalc()};
+  document.querySelectorAll('#dp-nat [data-nat]').forEach(b=>b.onclick=()=>{const n=NATS[+b.dataset.nat];st.up=n[1];st.dn=n[2];natGridSync(document.getElementById('dp-nat'),n[1],n[2]);updCalc()});
   /* メガシンカの姿は、元の姿にメガストーンを持たせてパーティに入れる */
   document.getElementById('addbtn').onclick=()=>{if(!p.base){addTeam(p.no);return}
     addTeam(p.base);const x=team.find(t=>t.no===p.base);if(x&&p.stone){x.set={...(x.set||{}),it:{n:ITEMN[p.stone],k:p.stone}};saveTeam()}};

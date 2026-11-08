@@ -91,7 +91,7 @@ function calcSide(key,X,isAtk){
   <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
   <div class="natr"><span style="width:62px">持ち物</span><select class="sel" data-c="${key}.item"><option value="">（なし）</option>${ks.map(k=>`<option value="${k}"${k===X.item?' selected':''}>${ITEMN[k]}</option>`).join('')}</select></div>
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
-  <div class="natr"><span style="width:62px">性格</span><select class="sel" data-c="${key}.nat">${NATS.map(([n,u,d],j)=>`<option value="${j}"${(u===X.up&&d===X.dn)||(u<0&&!(X.up>0))?' selected':''}>${n}${u>0?`（${SN[u]}↑${SN[d]}↓）`:''}</option>`).join('')}</select></div>
+  <div style="padding:4px 12px 8px">${natGrid(X.up,X.dn,j=>`data-c="${key}.nat" data-v="${j}"`)}</div>
   <div class="cgrid">${stat.map(i=>`<label><span>${SN[i]} <b>${st[i]}</b></span><input type="number" min="0" max="${SP_CAP}" value="${X.sp[i]}" data-c="${key}.sp${i}" inputmode="numeric"><small>能力ポイント</small></label>`).join('')}
     ${(isAtk?[['atk','攻撃'],['spa','特攻']]:[['def','防御'],['spd','特防']]).map(([k,n])=>`<label><span>${n}ランク</span><select class="sel" data-c="${key}.stg.${k}">${[6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6].map(v=>`<option value="${v}"${v===(X.stg[k]||0)?' selected':''}>${v>0?'+'+v:v}</option>`).join('')}</select></label>`).join('')}</div>
   </div>`;
