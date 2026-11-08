@@ -139,22 +139,23 @@ const mgS=await pg.evaluate(()=>{const mons=[445,823,1018,730,812,448].map(n=>by
   const st=ss.filter(s=>s&&isStone(s.item)).map(s=>s.item);return[st.length,new Set(ss.map(s=>s&&s.item)).size===ss.length]});
 if(!(mgS[0]>=1&&mgS[0]<=2&&mgS[1]))fail('まとめて育成のメガストーン: '+JSON.stringify(mgS));
 // こだわり条件で組む（2026/11/08）：絶対入れたい匹（メガの姿）・入れたくない匹・メガの数・トリルは遅い匹
-const kd=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{type:'ofcycle',big:'cycle',must:[10058],ng:[149],mega:2,opt:{fast:true,resist:true},seed:0});
-  const A=kdBuild();KD.type='tr';KD.must=[];KD.ng=[];KD.mega=0;const B=kdBuild();Object.assign(KD,JSON.parse(s));
+const kd=await pg.evaluate(()=>{const s=JSON.stringify(KD),t0=team.slice();team.length=0;team.push({no:10058,sel:true});Object.assign(KD,{type:'ofcycle',big:'cycle',ng:[149],mega:2,opt:{fast:true,resist:true},seed:0});
+  const A=kdBuild();KD.type='tr';team.length=0;KD.ng=[];KD.mega=0;const B=kdBuild();Object.assign(KD,JSON.parse(s));team.length=0;t0.forEach(x=>team.push(x));
   return[A.mons.length===6,A.mons[0].no===445&&A.ss[0].item==='garchompite',!A.mons.some(m=>m.no===149),A.ss.filter(x=>x&&isStone(x.item)).length===2,
     B.ss.filter(x=>x&&isStone(x.item)).length===0,B.mons.filter(m=>m.s[5]<=60).length>=4]});
 if(kd.join()!=='true,true,true,true,true,true')fail('こだわり条件で組む: '+kd.join());
 // 細かい型（壁展開・フィールド・害悪）：その役わりの匹が入る・ポケモンを選ばなくても組める
 const kd2=await pg.evaluate(()=>{const s=JSON.stringify(KD);const r=[];
   for(const [big,tp,test] of [['tenkai','screens',p=>kdK(p,['reflect'])&&kdK(p,['lightscreen'])||kdK(p,['auroraveil'])],['stall','toxstall',p=>kdK(p,['toxic'])&&kdK(p,['protect'])],['cycle','pivot',p=>kdK(p,PR_PIV)],['tenkai','baton',p=>kdK(p,['batonpass'])],['stall','perish',p=>kdK(p,['perishsong'])],['combo','moody',p=>(ABD[p.no]||[]).some(a=>a[0]==='moody')],['speed','tr',p=>p.s[5]<=60]]){
-    Object.assign(KD,{big,type:tp,must:[],ng:[],mega:1,opt:{resist:true},seed:0});const R=kdBuild();r.push(R.mons.length===6&&R.mons.some(test))}
+    const t0=team.slice();team.length=0;Object.assign(KD,{big,type:tp,ng:[],mega:1,opt:{resist:true},seed:0});const R=kdBuild();team.length=0;t0.forEach(x=>team.push(x));r.push(R.mons.length===6&&R.mons.some(test))}
   Object.assign(KD,JSON.parse(s));return r});
-const kc=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{big:'auto',type:'auto',must:[],ng:[]});const all=kdCombos();Object.assign(KD,{big:'combo',type:'revival'});const one=kdCombos();
-  Object.assign(KD,{must:[...KD.must]});Object.assign(KD,JSON.parse(s));return[all>1e9,one>0&&one<all]});
-const kg=await pg.evaluate(()=>{const s=JSON.stringify(KD);Object.assign(KD,{big:'stall',type:'perish',must:[],ng:[],mega:2,opt:{resist:true},seed:0});const R=kdBuild();Object.assign(KD,JSON.parse(s));
+// 帯の数（2026/11/08 依頼主：組み合わせの数ではなく「最初に決めた匹と相性がよく、条件に合う匹の数」）
+const kc=await pg.evaluate(()=>{const s=JSON.stringify(KD),t0=team.slice();team.length=0;Object.assign(KD,{big:'auto',type:'auto',ng:[],opt:{resist:true}});const all=kdMatch().n;Object.assign(KD,{big:'combo',type:'revival'});const one=kdMatch().n;
+  KD.big='auto';KD.type='auto';team.push({no:149,sel:true});const withMon=kdMatch().n;team.length=0;t0.forEach(x=>team.push(x));Object.assign(KD,JSON.parse(s));return[all>=200,one>0&&one<all,withMon>0&&withMon<all]});
+const kg=await pg.evaluate(()=>{const s=JSON.stringify(KD),t0=team.slice();team.length=0;Object.assign(KD,{big:'stall',type:'perish',ng:[],mega:2,opt:{resist:true},seed:0});const R=kdBuild();team.length=0;t0.forEach(x=>team.push(x));Object.assign(KD,JSON.parse(s));
   const i=R.mons.findIndex(m=>m.no===94);return[kdHasAb(byNo[94],['shadow-tag']),i>=0&&R.ss[i].item==='gengarite',abHolders('shadow-tag').some(m=>m.no===10038)]});
 if(kg.join()!=='true,true,true')fail('メガシンカ後の特性（メガゲンガーのかげふみ）: '+kg.join());
-if(kc.join()!=='true,true')fail('こだわり条件の組み合わせの数: '+kc.join());
+if(kc.join()!=='true,true,true')fail('こだわり条件の匹の数: '+kc.join());
 if(kd2.join()!=='true,true,true,true,true,true,true')fail('こだわり条件の細かい型: '+kd2.join());
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
 const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));

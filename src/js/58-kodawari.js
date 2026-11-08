@@ -58,7 +58,7 @@ const KD=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem('pckd')||'null')
   o=o&&typeof o==='object'?o:{};const type=KD_TYPES.some(t=>t[0]===o.type)?o.type:'auto';
   return{type,big:KD_BIG.some(b=>b[0]===o.big)?o.big:(Object.keys(KD_SUB).find(k=>KD_SUB[k].some(s=>s[0]===type))||'auto'),must:Array.isArray(o.must)?o.must.filter(n=>byNo[n]).slice(0,3):[],ng:Array.isArray(o.ng)?o.ng.filter(n=>byNo[n]).slice(0,10):[],
     mega:[0,1,2].includes(o.mega)?o.mega:2,opt:o.opt&&typeof o.opt==='object'?o.opt:{fast:true,resist:true},seed:0,res:null,all:false}})();
-const kdSave=()=>{try{localStorage.setItem('pckd',JSON.stringify({type:KD.type,big:KD.big,must:KD.must,ng:KD.ng,mega:KD.mega,opt:KD.opt}))}catch(e){}};
+const kdSave=()=>{try{localStorage.setItem('pckd',JSON.stringify({type:KD.type,big:KD.big,ng:KD.ng,mega:KD.mega,opt:KD.opt}))}catch(e){}};
 const kdBase=p=>p&&p.base&&byNo[p.base]?byNo[p.base]:p;
 const kdStones=p=>Object.keys(MEGA).filter(k=>MEGA[k][p.no]&&byNo[MEGA[k][p.no]]);
 const kdPrio=p=>{const l=LSD[p.no];return !!l&&l[1].some(id=>MV[id]&&MV[id][5]>0&&MV[id][2]>0)};
@@ -73,7 +73,7 @@ function kdBuild(){
   const ok=(pt,p)=>{try{return pt[1](p)}catch(e){return false}};
   const rnd=kdRand(KD.seed*7919+13),pop=kdPop(),ng=new Set(KD.ng.map(n=>kdBase(byNo[n]).no));
   const mons=[],why={},wantStone={};
-  KD.must.forEach(n=>{const q=byNo[n],b=kdBase(q);if(!b||mons.some(m=>m.no===b.no))return;mons.push(b);why[b.no]=['絶対入れたい'];
+  kdMust().forEach(n=>{const q=byNo[n],b=kdBase(q);if(!b||mons.some(m=>m.no===b.no))return;mons.push(b);why[b.no]=['最初に決めたポケモン'];
     if(q.base){const k=Object.keys(MEGA).find(k=>MEGA[k][b.no]===q.no);if(k)wantStone[b.no]=k}});
   const fill=pt=>mons.filter(m=>ok(pt,m)).length;
   const fit=c=>{let v=0;const r=[];
@@ -142,7 +142,7 @@ function kdBuild(){
   const checks=[
     [tp[1]+(tp[0]==='auto'?'':'構築'),parts.filter(pt=>pt[2]).every(pt=>fill(pt)>=1)],
     [`メガシンカ ${KD.mega?KD.mega+'匹':'なし'}`,st===KD.mega],
-    ...(KD.must.length?[['絶対入れたいポケモン',KD.must.every(n=>mons.some(m=>m.no===kdBase(byNo[n]).no))]]:[]),
+    ...(kdMust().length?[['最初に決めたポケモン',kdMust().every(n=>mons.some(m=>m.no===kdBase(byNo[n]).no))]]:[]),
     ...(KD.opt.fast&&KD.type!=='tr'?[['先に動く手段',mons.some(m=>m.s[5]>=110||kdPrio(m))]]:[]),
     ...(KD.opt.balance?[['物理と特殊が半々',Math.abs(mons.filter(prPhys).length*2-mons.length)<=2]]:[]),
     ...(KD.opt.heal?[['回復できる匹',mons.some(kdHeal)]]:[]),
@@ -152,32 +152,37 @@ function kdBuild(){
     ...(KD.opt.resist!==false?[[maxW>=3?`${wt}が弱点の匹が${maxW}匹（受けられる仲間なし）`:'弱点を受け合える',maxW<3]]:[])];
   return{mons,ss,why,checks,type:tp};
 }
-/* 条件に合いそうなポケモンの数（帯に出す）：入れたくない匹を除き、選んだ型の役わりのどれかに当てはまる匹 */
-/* 組み合わせが何通りあるか（2026/11/08 依頼主：「匹」より「パーティが何通り」の方が正確）。
-   候補＝入れたくない匹と絶対入れたい匹を除いたポケモン。残りの枠に入れる組み合わせのうち、型に必ず要る役わり（まだ絶対入れたい匹で満たしていないもの）を
-   1匹ずつは含むもの（包除原理で数える）。素早さ・持ち物などのこだわりは、組むときの点で寄せるので数には入れない */
-function kdCombos(){
+/* 2026/11/08 依頼主：「こだわり条件で組む」はツールではなく「相性のいい仲間を探す」（48-pair.js、#/pair・#/pair/kd）の中に入れる。
+   最初に決めたポケモン＝いまのパーティの匹（前の「絶対入れたいポケモン」の代わり）。 */
+const kdMust=()=>(typeof team!=='undefined'?team:[]).map(x=>x.no).filter(n=>byNo[n]).slice(0,6);
+/* 帯の数（2026/11/08 依頼主：組み合わせの数は意味がないので「何匹か」に）：
+   最初に決めたポケモンと相性がいい（prRank の点が、いちばん高い点の6割以上）＋こだわり条件に合うポケモンの数。
+   1匹ずつ見られる条件だけで数える：構築のタイプの役わりのどれかに当てはまる・物理/特殊中心・人気/読まれにくい・合計種族値・入れたくない匹を除く。
+   「先に動く手段を入れる」などパーティに1匹いればよい条件は、組むときの点で寄せるので数には入れない。
+   ポケモンを決めていなければ、条件に合うポケモンの数。 */
+function kdMatch(){
   const tp=KD_TYPES.find(t=>t[0]===KD.type),a=tp&&tp[2]?ARCHS.find(x=>x[0]===tp[2]):null,parts=[...(KD_PARTS[KD.type]||[]),...(a?a[7]:[])];
   const ok=(pt,p)=>{try{return pt[1](p)}catch(e){return false}};
-  const must=KD.must.map(n=>kdBase(byNo[n])).filter(Boolean),mb=new Set(must.map(m=>m.no)),ng=new Set(KD.ng.map(n=>kdBase(byNo[n]).no));
-  const pool=P.filter(p=>!p.base&&!ng.has(p.no)&&!mb.has(p.no)),k=6-must.length;
-  const req=parts.filter(pt=>pt[2]&&!must.some(m=>ok(pt,m))).map(pt=>new Set(pool.filter(p=>ok(pt,p)).map(p=>p.no)));
-  const C=(n,r)=>{if(r<0||n<r)return 0;let x=1;for(let i=0;i<r;i++)x=x*(n-i)/(i+1);return x};
-  let tot=0;const R=req.slice(0,5);
-  for(let m=0;m<(1<<R.length);m++){const u=new Set();let bits=0;R.forEach((s,i)=>{if(m>>i&1){bits++;s.forEach(x=>u.add(x))}});tot+=(bits%2?-1:1)*C(pool.length-u.size,k)}
-  return Math.max(0,Math.round(tot));
+  const ng=new Set(KD.ng.map(n=>kdBase(byNo[n]).no)),pop=kdPop();
+  const mem=kdMust().map(n=>prMon({no:n})||byNo[n]).filter(Boolean);
+  let pool;
+  if(mem.length){let r=[];try{r=prRank(mem)}catch(e){}const top=r.length?r[0].score:0;pool=r.filter(o=>o.score>=top*.6).map(o=>o.c)}
+  else pool=P.filter(p=>!p.base);
+  const fit=c=>!ng.has(c.no)&&!c.base&&(!parts.length||parts.some(pt=>ok(pt,c)))
+    &&(!KD.opt.phys||prPhys(c))&&(!KD.opt.spec||!prPhys(c))
+    &&(!KD.opt.popular||pop(c.no)>0)&&(!KD.opt.rare||pop(c.no)<=.5)&&(!KD.opt.bst||c.bst>=530);
+  return{n:pool.filter(fit).length,mem};
 }
-const kdNum=x=>x>=1e12?`約${(x/1e12).toFixed(x<1e13?1:0)}兆`:x>=1e8?`約${(x/1e8).toFixed(x<1e9?1:0)}億`:x>=1e4?`約${Math.round(x/1e4).toLocaleString()}万`:x.toLocaleString();
-function kdCount(){const ng=new Set(KD.ng.map(n=>kdBase(byNo[n]).no));const tp=KD_TYPES.find(t=>t[0]===KD.type),a=tp&&tp[2]?ARCHS.find(x=>x[0]===tp[2]):null,parts=[...(KD_PARTS[KD.type]||[]),...(a?a[7]:[])];
-  return P.filter(p=>!p.base&&!ng.has(p.no)&&(!parts.length||parts.some(pt=>{try{return pt[1](p)}catch(e){return false}}))).length}
-function kodawariView(){
-  setHeader('こだわり条件で組む','#/tools');
+function kodawariView(){try{sessionStorage.setItem('pcprmode','kd')}catch(e){}nav('#/pair/kd')}
+/* こだわり条件の欄（相性のいい仲間を探す の中に出す） */
+function kdPanel(root){
+  if(!root)return;
   const cb=(on,attr,label)=>`<button class="kd-cb" ${attr} aria-pressed="${on}"><i>${on?'✓':''}</i><span>${label}</span></button>`;
   const chips=(list,key)=>list.map((n,i)=>`<span class="kd-chip"><span class="av" style="width:24px;height:24px">${stamp(byNo[n])}</span>${esc(formInfo(byNo[n]).base)}${formInfo(byNo[n]).tag?`<small>${esc(formInfo(byNo[n]).tag)}</small>`:''}<button data-kd-rm="${key}:${i}" aria-label="外す">×</button></span>`).join('');
   const subs=KD_SUB[KD.big]||KD_SUB.auto,cur0=KD_TYPES.find(t=>t[0]===KD.type)||KD_TYPES[0];
   const optSec=([h,list])=>`<div class="kd-sh">${h}</div><div class="kd-grid">${list.map(([k,l])=>cb(k==='resist'?KD.opt.resist!==false:!!KD.opt[k],`data-kd-opt="${k}"`,l)).join('')}</div>`;
-  const R=KD.res;
-  V.innerHTML=`<p class="note">家さがしの「こだわり条件」のように、ゆずれない条件にチェックを入れてください。ポケモンを1匹も決めていなくても組めます。</p>
+  const R=KD.res,M=kdMatch(),names=M.mem.map(m=>esc(formInfo(m).base));
+  root.innerHTML=`<p class="note">家さがしの「こだわり条件」のように、ゆずれない条件にチェックを入れてください。${M.mem.length?`上の${names.join('・')}から、残り${6-M.mem.length}匹を条件に合わせて組みます。`:'ポケモンを1匹も決めていなくても、6匹まとめて組めます。'}</p>
   <div class="kd-card">
     <div class="kd-sh">構築のタイプ</div>
     <div class="kd-grid">${KD_BIG.map(([k,l])=>cb(KD.big===k,`data-kd-big="${k}"`,l)).join('')}</div>
@@ -193,28 +198,22 @@ function kodawariView(){
     ${KD.all?KD_OPT.slice(1).map(optSec).join(''):''}
   </div>
   <div class="kd-card">
-    <div class="kd-sh">絶対入れたいポケモン<span>任意・3匹まで</span></div>
-    <div class="kd-chips">${chips(KD.must,'must')}${KD.must.length<3?`<button class="kd-add" id="kd-must">${SVG(I.plus,16)}選ぶ</button>`:''}</div>
-    <div class="kd-sh kd-sh2">入れたくないポケモン<span>任意</span></div>
+    <div class="kd-sh">入れたくないポケモン<span>任意</span></div>
     <div class="kd-chips">${chips(KD.ng,'ng')}${KD.ng.length<10?`<button class="kd-add" id="kd-ng">${SVG(I.plus,16)}選ぶ</button>`:''}</div>
   </div>
-  <div class="kd-bar"><div class="kd-cnt">組み合わせ<b class="num">${kdNum(kdCombos())}</b>通り</div><button class="btn btn-p" id="kd-go">選択した条件で組む</button></div>
+  <div class="kd-bar"><div class="kd-cnt"><small>${M.mem.length?`${names.length>2?names.slice(0,2).join('・')+'など':names.join('・')}と相性がよく、条件に合う`:'条件に合うポケモン'}</small><b class="num">${M.n}</b>匹</div><button class="btn btn-p" id="kd-go"${M.mem.length>=6?' disabled':''}>選択した条件で組む</button></div>
   <div id="kd-res">${R?kdResHTML(R):''}</div>`;
-  const re=()=>{kdSave();KD.res=null;const y=scrY();kodawariView();scrTo(0,y)};
-  V.querySelectorAll('[data-kd-big]').forEach(b=>b.onclick=()=>{KD.big=b.dataset.kdBig;KD.type=(KD_SUB[KD.big]||KD_SUB.auto)[0][0];re()});
-  V.querySelectorAll('[data-kd-type]').forEach(b=>b.onclick=()=>{KD.type=b.dataset.kdType;re()});
-  V.querySelectorAll('[data-kd-mega]').forEach(b=>b.onclick=()=>{KD.mega=+b.dataset.kdMega;re()});
-  V.querySelectorAll('[data-kd-opt]').forEach(b=>b.onclick=()=>{const k=b.dataset.kdOpt;
+  const re=()=>{kdSave();KD.res=null;const y=scrY();kdPanel(root);scrTo(0,y)};
+  root.querySelectorAll('[data-kd-big]').forEach(b=>b.onclick=()=>{KD.big=b.dataset.kdBig;KD.type=(KD_SUB[KD.big]||KD_SUB.auto)[0][0];re()});
+  root.querySelectorAll('[data-kd-type]').forEach(b=>b.onclick=()=>{KD.type=b.dataset.kdType;re()});
+  root.querySelectorAll('[data-kd-mega]').forEach(b=>b.onclick=()=>{KD.mega=+b.dataset.kdMega;re()});
+  root.querySelectorAll('[data-kd-opt]').forEach(b=>b.onclick=()=>{const k=b.dataset.kdOpt;
     if(k==='resist'){KD.opt.resist=KD.opt.resist===false}else{KD.opt[k]=!KD.opt[k];if(KD.opt[k])KD_EXCL.forEach(([x,y])=>{if(k===x)KD.opt[y]=false;if(k===y)KD.opt[x]=false})}re()});
-  V.querySelectorAll('[data-kd-rm]').forEach(b=>b.onclick=()=>{const [k,i]=b.dataset.kdRm.split(':');KD[k].splice(+i,1);re()});
-  document.getElementById('kd-all').onclick=()=>{KD.all=!KD.all;const y=scrY();kodawariView();scrTo(0,y)};
-  const addTo=async k=>{const no=await pickMon(0);if(!no)return;if(KD[k].includes(no))return;
-    const other=k==='must'?'ng':'must';KD[other]=KD[other].filter(n=>kdBase(byNo[n]).no!==kdBase(byNo[no]).no);
-    if(k==='must'&&KD.must.some(n=>kdBase(byNo[n]).no===kdBase(byNo[no]).no)){toast('同じポケモンはもう入っています');return}
-    KD[k].push(no);re()};
-  const bm=document.getElementById('kd-must');if(bm)bm.onclick=()=>addTo('must');
-  const bn=document.getElementById('kd-ng');if(bn)bn.onclick=()=>addTo('ng');
-  document.getElementById('kd-go').onclick=()=>kdRun(0);
+  root.querySelectorAll('[data-kd-rm]').forEach(b=>b.onclick=()=>{const [k,i]=b.dataset.kdRm.split(':');KD[k].splice(+i,1);re()});
+  root.querySelector('#kd-all').onclick=()=>{KD.all=!KD.all;const y=scrY();kdPanel(root);scrTo(0,y)};
+  const bn=root.querySelector('#kd-ng');if(bn)bn.onclick=async()=>{const no=await pickMon(0);if(!no||KD.ng.includes(no))return;
+    if(kdMust().some(n=>kdBase(byNo[n]).no===kdBase(byNo[no]).no)){toast('パーティにいるポケモンです');return}KD.ng.push(no);re()};
+  root.querySelector('#kd-go').onclick=()=>kdRun(0);
   kdResBind();
 }
 function kdRun(seed){
@@ -229,11 +228,14 @@ function kdResHTML(R){
     <div class="kd-mi"><b>${esc(formInfo(m).base)}</b><div class="kd-ty">${m.t.map(chip).join('')}</div>
     ${s?`<div class="kd-set">${esc([s.item&&ITEMN[s.item],s.moves.slice(0,4).map(id=>mName(id)).join('・')].filter(Boolean).join(' ／ '))}</div>`:''}
     ${(R.why[m.no]||[]).length?`<div class="kd-why">${R.why[m.no].map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}</div></a>`}).join('')}</div>
-  <div class="btns" style="padding:10px 16px 4px;flex-wrap:wrap"><button class="btn btn-p" id="kd-use">このパーティを使う</button><button class="btn btn-s" id="kd-again">別の案を見る</button></div>
-  <p class="note">育成は計算で組んだ型の例です（実際によく使われる型とは違うことがあります）。「このパーティを使う」でパーティの空いている枠に入り、あとから自由に変えられます。</p>`;
+  <div class="btns" style="padding:10px 16px 4px;flex-wrap:wrap"><button class="btn btn-p" id="kd-use">この6匹でパーティにする</button><button class="btn btn-s" id="kd-again">別の案を見る</button></div>
+  <p class="note">育成は計算で組んだ型の例です（実際によく使われる型とは違うことがあります）。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
 }
 function kdResBind(){
   const R=KD.res;const u=document.getElementById('kd-use');if(!u||!R)return;
-  u.onclick=()=>useTeam(`${R.type[1]}${R.type[0]==='auto'?'':'構築'}`,R.mons.map((m,i)=>({no:m.no,set:toSaved(R.ss[i])})));
+  /* いまのパーティに足す（もともといた匹の育成はそのまま） */
+  u.onclick=()=>{const have=new Set(team.map(x=>kdBase(byNo[x.no]).no));let k=0;
+    R.mons.forEach((m,i)=>{if(have.has(m.no)||team.length>=6)return;team.push({no:m.no,sel:team.filter(x=>x.sel).length<PICK(),set:toSaved(R.ss[i])});k++});
+    saveTeam();KD.res=null;toast(k?`${k}匹をパーティに入れました`:'パーティはもういっぱいです');nav('#/team')};
   document.getElementById('kd-again').onclick=()=>kdRun((KD.seed||0)+1);
 }

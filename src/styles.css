@@ -1632,3 +1632,7 @@ body::before{inset:0;background:
 @media(min-width:700px){.kd-bar{bottom:16px}}
 .kd-cnt{white-space:nowrap;min-width:0}.kd-cnt b{font-size:20px}
 .kd-bar .btn{padding:0 16px;font-size:14.5px}
+
+/* 相性のいい仲間を探す：相性のいい順／こだわり条件で組む の切りかえ（2026/11/08） */
+.pr-mode{display:flex;justify-content:center;padding:14px 16px 2px}
+.kd-cnt{flex:1 1 auto}.kd-cnt small{display:block;white-space:normal;font-size:11.5px;color:var(--dim);font-weight:600;line-height:1.3}

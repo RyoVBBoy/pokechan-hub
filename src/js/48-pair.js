@@ -97,9 +97,15 @@ function prRank(mem){
 const prHoles=mem=>T.filter(t=>mem.filter(m=>prDef(m)[t]>=2).length>=2&&!mem.some(m=>prDef(m)[t]<=.5));
 const PR_TAG={top:'上位構築',live:'よく一緒',cover:'補完',answer:'対策',focus:'役割集中',pivot:'交代',relay:'場づくり',wx:'天気',bad:'注意'};
 let PR_N=8;
+/* 表示の切りかえ：list＝相性のいい順／kd＝こだわり条件で組む（58-kodawari.js の kdPanel） */
+let PR_MODE=(()=>{try{return sessionStorage.getItem('pcprmode')||'list'}catch(e){return 'list'}})();
+const prModeHTML=()=>`<div class="pr-mode"><div class="fmtsw" role="group" aria-label="探し方"><button data-prm="list" aria-pressed="${PR_MODE==='list'}">相性のいい順</button><button data-prm="kd" aria-pressed="${PR_MODE==='kd'}">こだわり条件で組む</button></div></div>`;
+const prModeBind=()=>V.querySelectorAll('[data-prm]').forEach(b=>b.onclick=()=>{PR_MODE=b.dataset.prm;try{sessionStorage.setItem('pcprmode',PR_MODE)}catch(e){}const fw=document.getElementById('fabwrap');if(fw)fw.hidden=PR_MODE==='kd'||!curGame().fab;const y=scrY();prDraw();scrTo(0,y)});
 async function pairView(arg){
   setHeader('相性のいい仲間を探す','#/team');
   /* 図鑑などから「このポケモンから組む」で来たとき */
+  /* #/pair/kd＝こだわり条件で組む（2026/11/08 依頼主：ツールではなくこの画面の中に） */
+  if(arg==='kd')PR_MODE='kd';
   const start=+arg;
   if(start&&byNo[start]&&!team.some(x=>x.no===start)){
     if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
@@ -113,19 +119,24 @@ async function pairView(arg){
 function prDraw(){
   const mem=team.map(prMon).filter(Boolean);
   if(!mem.length){
-    V.innerHTML=`<div class="pr-empty"><p class="lead" style="padding:18px 16px 6px">使いたいポケモンを1匹選ぶと、そのポケモンと<b>相性のいい仲間</b>を、理由つきで順番に出します。</p>
+    V.innerHTML=`<div class="pr-empty"><p class="lead" style="padding:18px 16px 6px">使いたいポケモンを1匹選ぶと、そのポケモンと<b>相性のいい仲間</b>を、理由つきで順番に出します。こだわり条件で6匹まとめて組むこともできます。</p>
       <div class="btns"><button class="btn btn-p" id="pr-pick">${SVG(I.plus,18)}使いたいポケモンを選ぶ</button></div>
-      <p class="note">選んだポケモンは、いまのパーティ（${esc(teamName(TEAMS.cur))}）に入ります。</p></div>`;
-    document.getElementById('pr-pick').onclick=async()=>{const no=await pickMon(0,{add:true});if(no){team.push({no,sel:true});saveTeam();prDraw()}};return;
+      <p class="note">選んだポケモンは、いまのパーティ（${esc(teamName(TEAMS.cur))}）に入ります。</p></div>
+      ${prModeHTML()}${PR_MODE==='kd'?'<div id="kd-root"></div>':''}`;
+    document.getElementById('pr-pick').onclick=async()=>{const no=await pickMon(0,{add:true});if(no){team.push({no,sel:true});saveTeam();prDraw()}};
+    prModeBind();if(PR_MODE==='kd')kdPanel(document.getElementById('kd-root'));return;
   }
   const holes=prHoles(mem);
   V.innerHTML=`<div class="pr-team">${team.map((x,i)=>{const p=byNo[x.no];return `<button class="pr-m" data-rm="${i}" aria-label="${esc(p.n)}を外す"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small><i>×</i></button>`}).join('')}${Array.from({length:6-team.length},()=>'<span class="pr-m pr-m--e"></span>').join('')}</div>
     ${team.length>=6?`<div class="bnote" style="margin:12px 16px">6匹そろいました。パーティの画面の「チェック」と「構築と選出」で、苦手な相手や選出の考え方を確かめましょう。</div><div class="btns"><a class="btn btn-p" href="#/team">パーティの画面へ</a></div>`:`
     ${holes.length?`<div class="pr-hole"><b>いまのパーティで受けにくいタイプ</b><div class="chips">${holes.map(chip).join('')}</div><small>2匹以上が弱点で、半減以下で受けられる仲間がいません。下の候補で埋められます。</small></div>`:''}
-    <div class="sec"><h2>次に入れるとよいポケモン</h2><span style="font-size:12px;color:var(--dim)">理由の多い順</span></div>
-    <div id="pr-list"><p class="empty">計算中…</p></div>`}`;
-  V.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();prDraw()});
+    ${prModeHTML()}
+    ${PR_MODE==='kd'?'<div id="kd-root"></div>':`<div class="sec"><h2>次に入れるとよいポケモン</h2><span style="font-size:12px;color:var(--dim)">理由の多い順</span></div>
+    <div id="pr-list"><p class="empty">計算中…</p></div>`}`}`;
+  V.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();if(typeof KD!=='undefined')KD.res=null;prDraw()});
   if(team.length>=6)return;
+  prModeBind();
+  if(PR_MODE==='kd'){kdPanel(document.getElementById('kd-root'));return}
   setTimeout(()=>{
     const list=prRank(mem).slice(0,PR_N),el=document.getElementById('pr-list');if(!el)return;
     el.innerHTML=list.map((o,k)=>{const c=o.c,rs=o.R.filter(r=>r.k!=='bad'&&r.txt).sort((a,b)=>b.pts-a.pts).slice(0,4),bad=o.R.filter(r=>r.k==='bad');
