@@ -1,0 +1,25 @@
+# 一時的：ランクバトルの集計（持ち物・技の割合）を読んで記録に出す（調べ終わったら消す）
+name: probe-live
+on:
+  push:
+    branches: [claude/review-explanation-tool-usage-4bag5m]
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          cat > p.mjs <<'JS'
+          const CBD='https://championsbattledata.com';
+          const idx=await (await fetch(CBD+'/data/pokemon-index.json')).text();
+          const names=[...new Set([...idx.matchAll(/battle_data\/Doubles\/([^"\\\/]+?)\.csv/g)].map(m=>decodeURIComponent(m[1])))];
+          console.log('FILES',names.length);
+          for(const dir of ['Singles','Doubles'])for(const n of names){
+            try{const r=await fetch(CBD+'/pokemon_champions_assets/battle_data/'+dir+'/'+encodeURIComponent(n)+'.csv');if(!r.ok)continue;
+              const L=(await r.text()).trim().split(/\r?\n/),h=L[0].split(',');const it=[],mv=[];
+              for(const l of L.slice(1)){const c=l.split(','),o={};h.forEach((k,j)=>o[k]=c[j]);const pc=Math.round(parseFloat(o.percentage)*10)/10;
+                if(o.category==='held_item')it.push(o.name+':'+pc);else if(o.category==='move')mv.push(o.name+':'+pc)}
+              console.log(`@${dir[0]}|${n}|${it.slice(0,6).join(',')}|${mv.slice(0,14).join(',')}`);
+              if(/sneasler/i.test(n))console.log('RAW '+dir+'\n'+L.join('\n'));
+            }catch(e){console.log('ERR',n,e.message)}}
+          JS
+          node p.mjs
