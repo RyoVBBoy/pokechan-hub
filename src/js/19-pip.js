@@ -12,6 +12,7 @@ function pipIcons(){
 }
 /* ---- カードの種類と設定 ---- */
 const PCARDS=[['plan','選出プラン'],['weak','弱点まとめ'],['speed','素早さ順'],['dmg','ダメージ早見'],['sets','相手の型'],['type','タイプ相性'],['memo','戦術メモ']];
+const PIP_NOOPP=['type','memo'];
 const PPRESET={jissen:['plan','memo','speed','dmg','sets'],hajime:['weak','type','sets']};
 PIP.cfg=(()=>{try{const c=JSON.parse(localStorage.getItem('pcpip')||'null');if(c&&Array.isArray(c.cards)&&c.cards.length)return c}catch(e){}return{cards:[...PPRESET.jissen],sec:4}})();
 const pipSave=()=>{try{localStorage.setItem('pcpip',JSON.stringify(PIP.cfg))}catch(e){}};
@@ -21,6 +22,9 @@ function pipData(){
   const opp=opp6.map(n=>byNo[n]).filter(Boolean);
   let A=null;if(team.length>=4&&opp.length){try{A=analyze(team.map(x=>x.no),opp6)}catch(e){A=null}}
   const pages=[];
+  /* 相手をまだ入れていないとき（ツールの PiP から）は、相手がいなくても作れるカード（タイプ相性・パーティの戦術メモ）だけ */
+  const cards=opp.length?PIP.cfg.cards:PIP.cfg.cards.filter(c=>PIP_NOOPP.includes(c));
+  if(!opp.length){cards.forEach(c=>{if(c==='type')pages.push({kind:'type'});else if(c==='memo')pages.push(...memoPipPages([]))});return pages.length?pages:[{kind:'type'}]}
   PIP.cfg.cards.forEach(c=>{
     if(c==='plan')pages.push({kind:'plan',A,opp});
     else if(c==='weak')pages.push({kind:'sum',opp});
@@ -151,7 +155,8 @@ const SEG_=()=>PIP.cfg.sec||4;
 PIP.state='idle';
 function pipSetUI(){
   const pc=document.getElementById('pip-cards');if(!pc)return;const a=PIP.cfg.cards;
-  pc.innerHTML=PCARDS.map(([k,l])=>{const i=a.indexOf(k);return `<button class="pill" data-pc="${k}" aria-pressed="${i>=0}">${i>=0?`<b class="pn">${i+1}</b>`:''}${l}</button>`}).join('');
+  const noOpp=keyOf(cur)==='pip'&&!opp6.length;
+  pc.innerHTML=PCARDS.map(([k,l])=>{const i=a.indexOf(k),off=noOpp&&!PIP_NOOPP.includes(k);return `<button class="pill${off?' pill-off':''}" data-pc="${k}" aria-pressed="${i>=0}"${off?' title="相手を入れると表示されます"':''}>${i>=0?`<b class="pn">${i+1}</b>`:''}${l}</button>`}).join('');
   document.querySelectorAll('[data-ps]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.ps===PIP.cfg.sec));
   document.querySelectorAll('[data-pp]').forEach(b=>b.setAttribute('aria-pressed',JSON.stringify(PPRESET[b.dataset.pp])===JSON.stringify(a)));
 }
@@ -191,7 +196,7 @@ async function pipEncodeRec(){
 let pipT=null;
 function pipSchedule(){clearTimeout(pipT);pipT=setTimeout(pipBuild,500)}
 async function pipBuild(){
-  if(PIP.mode==='battle'&&!opp6.length)return;
+  if(PIP.mode==='battle'&&!opp6.length&&keyOf(cur)!=='pip')return;
   const sig=PIP.mode==='build'?JSON.stringify(['build',PIP.bidx,PIP.ball,team,PIP.cfg.sec]):JSON.stringify([opp6,team.map(x=>x.no),Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).length,PIP.cfg]);
   if(PIP.sig===sig&&(PIP.state==='ready'||PIP.state==='building'))return;
   PIP.sig=sig;PIP.state='building';pipUI();
@@ -293,5 +298,49 @@ function pipBuildBind(idx){
     if(e.target.closest('#ed-pip')){pipStart();return}
     const b=e.target.closest('[data-pball]');if(b){PIP.ball=b.dataset.pball==='1';w.querySelectorAll('[data-pball]').forEach(x=>x.setAttribute('aria-pressed',x===b));pipSchedule()}
   });
+  pipUI();pipSchedule();
+}
+
+/* ===== ツールの「PiP」（#/pip）＝PiP だけの画面（2026/11/08 依頼主：選出アシストの画面に飛び、相手を入れないと使えなくて不便） =====
+   ・育成：パーティの育成をゲームの育成画面に浮かべる（相手は要らない。1匹ずつ選べる）
+   ・対戦：相手を入れていなくても「タイプ相性」「戦術メモ（パーティ）」は出せる。相手の6匹を入れると選出プランなども出る（選出アシストへ） */
+let PIPV=(()=>{try{return sessionStorage.getItem('pcpipv')||''}catch(e){return ''}})();
+function pipView(){
+  setHeader('PiP','#/tools');
+  if(PIPV!=='build'&&PIPV!=='battle')PIPV=opp6.length?'battle':'build';
+  if(!PIP.pipv0){PIP.pipv0=true;PIP.ball=true;PIP.sig=null;PIP.state='idle'}
+  const ms=team.map((x,i)=>{const p=byNo[x.no];return p?`<button class="pill" data-pbi="${i}" aria-pressed="${PIP.bidx===i&&!PIP.ball}">${esc(formInfo(p).base)}</button>`:''}).join('');
+  const oppNames=opp6.map(n=>byNo[n]&&formInfo(byNo[n]).base).filter(Boolean);
+  V.innerHTML=`<p class="lead" style="padding:14px 16px 4px">${L('カードを動画にして、ゲームの上に小さく浮かべます。ゲームに切りかえても表示されたままです。','Cards are turned into a video and float over the game.')}</p>
+  <div class="pr-mode"><div class="fmtsw" role="group" aria-label="${L('使う場面','Use')}"><button data-pv="build" aria-pressed="${PIPV==='build'}">${L('育成するとき','While building')}</button><button data-pv="battle" aria-pressed="${PIPV==='battle'}">${L('対戦するとき','While battling')}</button></div></div>
+  <div class="pipwrap" id="pipv-w">
+  ${PIPV==='build'?(team.length?`
+    <p class="vcap" style="margin:4px 0 10px">${L('パーティの育成（持ち物・性格・能力ポイント・技）を浮かべたまま、ゲームの育成画面で入力できます。','Float your team builds while entering them in the game.')}</p>
+    <div class="mx2" style="margin-bottom:6px">${L('表示するポケモン','Pokémon')}</div>
+    <div class="pills" style="padding:0 0 12px;flex-wrap:wrap"><button class="pill" data-pball="1" aria-pressed="${PIP.ball}">${L('パーティ全員','Whole team')}</button>${ms}</div>
+    <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="ed-pip" disabled>${L('カードを準備中…','Preparing cards…')}</button></div>`
+    :`<p class="vcap">${L('パーティにまだポケモンがいません。','Your team is empty.')}</p><div class="btns"><a class="btn btn-p" href="#/team">${L('パーティを作る','Build a team')}</a></div>`)
+  :`<p class="vcap" style="margin:4px 0 10px">${oppNames.length?L(`相手：${oppNames.join('・')}`,`Opponents: ${oppNames.join(', ')}`):L('相手を入れなくても「タイプ相性」と「戦術メモ」（パーティの戦術メモ）は表示できます。選出プラン・ダメージ早見などは、相手の6匹を入れると表示されます。','Type chart and team notes work without opponents. Enter the opponents for picks and damage.')}</p>
+    <div class="btns" style="padding:0 0 10px"><a class="btn btn-s" href="#/assist">${oppNames.length?L('相手を入れなおす（選出アシスト）','Change opponents'):L('相手のポケモンを入れる（選出アシスト）','Enter opponents')}</a></div>
+    <div class="pipset"><div class="mx2" style="margin-bottom:6px">${L('表示するカード（押した順に並びます）','Cards')}</div><div class="pills pcards" style="padding:0 0 10px;flex-wrap:wrap" id="pip-cards"></div>
+    <div class="mx2" style="margin-bottom:6px">${L('切り替えの間隔','Interval')}</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${[3,4,6,8].map(n=>`<button class="pill" data-ps="${n}">${n}秒</button>`).join('')}</div></div>
+    <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="as-pip" disabled>${L('カードを準備中…','Preparing cards…')}</button></div>`}
+  <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>`;
+  V.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{PIPV=b.dataset.pv;try{sessionStorage.setItem('pcpipv',PIPV)}catch(e){}PIP.sig=null;PIP.state='idle';pipView()});
+  const w=document.getElementById('pipv-w');
+  {const bx=document.getElementById('pip-box');if(bx&&PIP.vid&&!bx.contains(PIP.vid))bx.appendChild(PIP.vid)}
+  if(PIPV==='build'){if(!team.length)return;PIP.mode='build';if(!team[PIP.bidx])PIP.bidx=0;
+    w.addEventListener('click',e=>{
+      if(e.target.closest('#ed-pip')){pipStart();return}
+      const a=e.target.closest('[data-pball]');if(a){PIP.ball=true;pipView();pipSchedule();return}
+      const b=e.target.closest('[data-pbi]');if(b){PIP.ball=false;PIP.bidx=+b.dataset.pbi;pipView();pipSchedule()}});
+  }else{PIP.mode='battle';
+    w.addEventListener('click',e=>{
+      if(e.target.closest('#as-pip')){pipStart();return}
+      const pc=e.target.closest('[data-pc]');if(pc){const c=pc.dataset.pc,a=PIP.cfg.cards,i=a.indexOf(c);if(i>=0){if(a.length>1)a.splice(i,1)}else a.push(c);pipSave();pipSetUI();pipSchedule();return}
+      const ps=e.target.closest('[data-ps]');if(ps){PIP.cfg.sec=+ps.dataset.ps;pipSave();pipSetUI();pipSchedule()}});
+    /* 相手がいないときは、相手がいなくても出せる「タイプ相性」を選んだ状態にする（戦術メモはパーティの戦術メモを書いたときだけカードになる） */
+    if(!opp6.length&&!PIP.cfg.cards.includes('type')){PIP.cfg.cards.push('type');pipSave();pipSetUI()}
+  }
   pipUI();pipSchedule();
 }

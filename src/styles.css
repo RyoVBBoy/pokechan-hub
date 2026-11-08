@@ -1663,3 +1663,5 @@ body::before{inset:0;background:
 #ed-nat{padding:4px 12px 8px}
 @media(max-width:699px){.natg-t{grid-template-columns:44px repeat(5,1fr);gap:4px}.natg-hu{font-size:10px;padding-right:2px;letter-spacing:-.06em}.natg-hu i{font-size:7px}
  .natg-hd{font-size:10.5px;letter-spacing:-.05em}.natg-hd i{font-size:7px}.natg-b{font-size:11px;letter-spacing:-.07em;padding:2px 0;word-break:keep-all;overflow-wrap:normal;white-space:nowrap}}
+
+.pill.pill-off{opacity:.45}
