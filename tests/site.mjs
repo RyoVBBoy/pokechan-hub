@@ -157,6 +157,9 @@ const kg=await pg.evaluate(()=>{const s=JSON.stringify(KD),t0=team.slice();team.
 if(kg.join()!=='true,true,true')fail('メガシンカ後の特性（メガゲンガーのかげふみ）: '+kg.join());
 if(kc.join()!=='true,true,true')fail('こだわり条件の匹の数: '+kc.join());
 if(kd2.join()!=='true,true,true,true,true,true,true')fail('こだわり条件の細かい型: '+kd2.join());
+// ツール一覧の入口が消えていない（2026/11/08 戦術メモの入口を誤って消していた）
+const tl=await pg.evaluate(()=>{const ids=GAMES[0].tools().map(t=>t.id);return ['memo','pip','assist','calc','pair','tier','meta','season','replay'].filter(k=>!ids.includes(k)&&!(k==='pair'))});
+if(tl.length)fail('ツール一覧から消えている: '+tl.join());
 // 1対1の判定（2026/11/06 duel）：きあいのタスキで一撃では倒れない・ばけのかわを「倒せない」と数えない・積み技の記録
 const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const A=mkMon(g,'me',detSet(g));
   const o1=mkMon(gg,'op',{...detSet(gg),item:null}),o2=mkMon(gg,'op',{...detSet(gg),item:'focussash'});
