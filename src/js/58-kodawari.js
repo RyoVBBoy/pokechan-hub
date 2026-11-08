@@ -111,7 +111,10 @@ function kdBuild(){
     const need=parts.filter(pt=>pt[2]&&fill(pt)<1),okR=rank.filter(o=>o.c&&!o.c.base&&!have.has(o.c.no)&&!ng.has(o.c.no));
     const pool=[...okR.slice(0,90),...okR.slice(90).filter(o=>need.some(pt=>ok(pt,o.c)))];
     /* 残りの枠が、まだ満たしていない必ず要る役わりの数と同じになったら、その役わりの匹からしか選ばない（相性の点が積み上がって後回しになるのを防ぐ） */
-    const must0=need.length>=6-mons.length?pool.filter(o=>need.some(pt=>ok(pt,o.c))):[];
+    let must0=need.length>=6-mons.length?pool.filter(o=>need.some(pt=>ok(pt,o.c))):[];
+    /* メガシンカの数（2026/11/08 依頼主：メガシンカ2匹は定番の戦い方。選んだ数を必ずそろえる）：残りの枠がメガシンカできる匹の不足と同じになったら、メガシンカできる匹から選ぶ */
+    const stNeed=KD.mega-mons.filter(m=>kdStones(m).length).length;
+    if(!must0.length&&stNeed>0&&stNeed>=6-mons.length){const mp=[...pool,...okR.slice(90)].filter(o=>kdStones(o.c).length);if(mp.length)must0=[...new Set(mp)]}
     const cand=(must0.length?must0:pool).map(o=>{const f=fit(o.c);return{o,f,sc:o.score*.45+f.v+rnd()*(KD.seed?2.2:.01)}}).sort((x,y)=>y.sc-x.sc);
     const best=cand[0];if(!best)break;
     mons.push(best.o.c);why[best.o.c.no]=[...best.f.r.slice(0,2),...(best.o.R||[]).filter(r=>r.pts>0).sort((x,y)=>y.pts-x.pts).slice(0,1).map(r=>r.txt)];
@@ -141,7 +144,8 @@ function kdBuild(){
   const weak=T.map(t=>mons.some(m=>monDef(m).find(z=>z.t===t).m<=.5)?0:mons.filter(m=>monDef(m).find(z=>z.t===t).m>=2).length),maxW=Math.max(...weak),wt=T[weak.indexOf(maxW)];
   const checks=[
     [tp[1]+(tp[0]==='auto'?'':'構築'),parts.filter(pt=>pt[2]).every(pt=>fill(pt)>=1)],
-    [`メガシンカ ${KD.mega?KD.mega+'匹':'なし'}`,st===KD.mega],
+    /* メガシンカは「△」を出さない（2026/11/08 依頼主）。そろっているときだけ✓で出す */
+    ...(st===KD.mega?[[`メガシンカ ${KD.mega?KD.mega+'匹':'なし'}`,true]]:[]),
     ...(kdMust().length?[['最初に決めたポケモン',kdMust().every(n=>mons.some(m=>m.no===kdBase(byNo[n]).no))]]:[]),
     ...(KD.opt.fast&&KD.type!=='tr'?[['先に動く手段',mons.some(m=>m.s[5]>=110||kdPrio(m))]]:[]),
     ...(KD.opt.balance?[['物理と特殊が半々',Math.abs(mons.filter(prPhys).length*2-mons.length)<=2]]:[]),
