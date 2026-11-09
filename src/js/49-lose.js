@@ -13,6 +13,7 @@ const LS_PRIO=o=>{const ids=(o.x.set&&o.x.set.mv||[]).map(m=>m&&m.id).filter(Boo
 const LS_SETUP=['swordsdance','dragondance','nastyplot','calmmind','bulkup','quiverdance','shellsmash','shiftgear','bellydrum','victorydance','tidyup'];
 const LS_CLEAR=['rapidspin','defog','courtchange','tidyup','mortalspin'];
 const lsOpps=()=>metaOpps(20);
+const lsSpd=m=>m.st[5]*(m.item==='choicescarf'?1.5:1);
 function loseReasons(entries){
   const ms=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p),out=[];if(!ms.length)return out;
   const item=o=>o.x.set&&o.x.set.it&&o.x.set.it.k;
@@ -31,21 +32,40 @@ function loseReasons(entries){
       how:canPr.length?`${canPr.slice(0,2).map(r=>`${formInfo(r.o.p).base}に先制技（${mName(r.can.sort((a,b)=>(MV[b][2]||0)-(MV[a][2]||0))[0])}など）を覚えさせる`).join('、または')}。ほかに、素早い1匹にこだわりスカーフやきあいのタスキを持たせる方法もあります。`:'素早い1匹にこだわりスカーフかきあいのタスキを持たせるか、先制技を覚えるポケモンを入れましょう。',
       act:[['#/pair','先制技を持つ仲間を探す']]});
   }
-  /* ② よく使われる相手への答え */
+  /* ② よく使われる相手への答え
+     2026/11/09 依頼主の指摘（おすすめの通りに入れても同じ指摘が出る）：おすすめの匹は、同じ基準（lsAns）・入れたときの型（detSet）で
+     「答えられない相手」をいくつ答えられるかを数えて選ぶ。6匹そろっているときは、だれと入れかえると答えられない相手がいちばん減るかも出す。
+     名前は姿の違いまで出す（ウインディ・ウインディ（ヒスイ）を同じ名前にしない） */
+  const lsAns=(a,op)=>{if(!a||!op)return false;try{const x=estHit(a,op).pct,y=estHit(op,a).pct;return y<50||(x>=50&&y<50)||(lsSpd(a)>lsSpd(op)&&x>=100)}catch(e){return false}};
+  const fam=q=>q.base||q.no;
   const me=ms.map(o=>{try{return mkMon(o.p,'me',mySetFor(o.x.no))}catch(e){return null}});
-  const spd=m=>m.st[5]*(m.item==='choicescarf'?1.5:1);
-  const miss=[];
-  opps.forEach((q,j)=>{if(ms.some(o=>(o.p.base||o.p.no)===(q.base||q.no)))return;
+  const ops=[];
+  opps.forEach((q,j)=>{if(ms.some(o=>fam(o.p)===fam(q)))return;
     let op;try{op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return}
-    const ok=me.some(a=>{if(!a)return false;try{const x=estHit(a,op).pct,y=estHit(op,a).pct;return y<50||(x>=50&&y<50)||(spd(a)>spd(op)&&x>=100)}catch(e){return false}});
-    if(!ok)miss.push({q,j})});
+    ops.push({q,j,op,ok:me.map(a=>lsAns(a,op))})});
+  const miss=ops.filter(r=>!r.ok.some(Boolean));
   if(miss.length){
-    const top=miss.slice(0,3),q0=top[0].q;
-    let cand=[];try{const c=monCounters(q0);cand=[...c.ohko,...c.strong,...c.wall].map(r=>r.q).filter(q=>!q.base&&!ms.some(o=>o.p.no===q.no)).slice(0,3)}catch(e){}
-    out.push({ph:'構築',w:2.4+.3*top.length-top[0].j*.02,t:`よく使われる${top.map(m=>formInfo(m.q).base).join('・')}に、だれも答えられない`,
-      d:`${top.map(m=>formInfo(m.q).base).join('・')}を相手にすると、パーティのだれもが「2回耐える」「先に半分以上削る」「上から一撃で倒す」のどれもできません。選出画面にいるだけで動きが苦しくなり、対面したら崩されます。`,
-      how:cand.length?`${formInfo(q0).base}に強い${cand.map(q=>formInfo(q).base).join('・')}などを入れることを考えましょう。または、${formInfo(q0).base}の攻撃を2回耐えられるように、だれかの能力ポイントを耐久に回します。`:`${formInfo(q0).base}の攻撃を2回耐えられる仲間か、上から倒せる仲間を入れましょう。`,
-      act:[[q0.base?`#/p/${q0.no}`:`counter/${q0.no}/`,`${formInfo(q0).base}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
+    const top=miss.slice(0,3),q0=top[0].q,nmq=q=>q.n,names=top.map(m=>nmq(m.q)).join('・')+(miss.length>3?`など${miss.length}匹`:'');
+    /* 候補：答えられない相手それぞれに強い匹＋よく使われる匹。入れたときの型で、答えられない相手をいくつ答えられるか */
+    const pool=new Map();
+    top.forEach(m=>{try{const c=monCounters(m.q);[...c.ohko,...c.strong,...c.wall].forEach(r=>{const q=r.q.base&&byNo[r.q.base]?byNo[r.q.base]:r.q;pool.set(q.no,q)})}catch(e){}});
+    metaOpps(40).forEach(q=>{const b=q.base&&byNo[q.base]?byNo[q.base]:q;pool.set(b.no,b)});
+    const cands=[...pool.values()].filter(q=>!ms.some(o=>fam(o.p)===fam(q))).map(q=>{
+      let a;try{a=mkMon(q,'me',detSet(q))}catch(e){return null}
+      const cov=miss.map(m=>lsAns(a,m.op));return{q,a,cov,n:cov.filter(Boolean).length,topN:cov.slice(0,top.length).filter(Boolean).length}})
+      .filter(c=>c&&c.n).sort((x,y)=>y.topN-x.topN||y.n-x.n);
+    const best=cands.slice(0,3);
+    /* 6匹そろっていれば、入れかえで答えられない相手がいちばん減る匹 */
+    let swap='';
+    if(best.length&&ms.length>=6){const c=best[0];
+      const after=i=>ops.filter(r=>{const k=r.ok.some((v,t)=>v&&t!==i);return!k&&!lsAns(c.a,r.op)}).length;
+      const rk=ms.map((o,i)=>({o,i,n:after(i)})).filter(r=>!(r.o.x.axis)).sort((x,y)=>x.n-y.n)[0];
+      if(rk&&rk.n<miss.length)swap=`パーティが6匹そろっているので、入れかえるなら${rk.o.p.n}を外して${c.q.n}を入れると、答えられない相手が${miss.length}匹から${rk.n}匹に減ります。`}
+    const covTxt=c=>{const ns=top.filter((m,t)=>c.cov[t]).map(m=>nmq(m.q));return ns.length===top.length&&top.length>1?`${c.q.n}（${ns.length===2?'どちら':'どれ'}にも答えられる）`:`${c.q.n}（${ns.join('・')}に答えられる）`};
+    out.push({ph:'構築',w:2.4+.3*top.length-top[0].j*.02,t:`よく使われる${names}に、だれも答えられない`,
+      d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}を相手にすると、パーティのだれもが「2回耐える」「先に半分以上削る」「上から一撃で倒す」のどれもできません。選出画面にいるだけで動きが苦しくなり、対面したら崩されます。`,
+      how:best.length?`${best.map(covTxt).join('、')}などを入れることを考えましょう（よくある型で入れたときに、この診断の基準で答えられる匹です）。${ms.length<6?`${best[0].q.n}を入れると、答えられない相手は${miss.length}匹から${miss.length-best[0].n}匹になります。`:''}${swap}または、${nmq(q0)}の攻撃を2回耐えられるように、だれかの能力ポイントを耐久に回します。`:`${nmq(q0)}の攻撃を2回耐えられる仲間か、上から倒せる仲間を入れましょう。`,
+      act:[[q0.base?`#/p/${q0.no}`:`counter/${q0.no}/`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
   }
   /* ③ 設置技 */
   const rock4=ms.filter(o=>{const d=monDef(megaOf(o.p.no,item(o))||o.p).find(z=>z.t==='いわ');return d&&d.m>=4});
