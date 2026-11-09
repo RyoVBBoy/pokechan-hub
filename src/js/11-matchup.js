@@ -200,7 +200,11 @@ function pickMon(cur,opt={}){
     if(full&&vv){fit();vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit)}
     document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
     const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list');
-    const done=v=>{if(full&&vv){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit)}o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
+    const done=v=>{if(full&&vv){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit)}
+      /* 2026/11/09 フィードバック（2匹目を選んだあと先に進めない）：iPhone はキーボードを出したまま欄を消すと、画面のずれが残って押した場所と反応する場所が食い違うことがある。先にキーボードを閉じ、ずれを戻す */
+      try{q.blur();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(e){}
+      if(full)setTimeout(()=>{try{window.scrollTo(0,0);document.documentElement.scrollTop=0}catch(e){}},60);
+      o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
     const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`;
     const sec=t=>`<div class="mp-h">${t}</div>`;
     const draw=()=>{const t=q.value.trim();
