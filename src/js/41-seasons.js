@@ -165,7 +165,7 @@ function szShotBind(s){const b=document.getElementById('sz-shot');if(b)b.onclick
 const rankLabel=r=>r.rank?(r.rank<10?'最終1桁':r.rank<100?'最終2桁':r.rank<1000?'最終3桁':`最終${r.rank}位`)+`（${r.rank}位）`:`レート${r.rate}`;
 const resultBadges=rs=>(rs||[]).length?`<div class="sz-badges">${rs.map(r=>`<span class="sz-badge${r.verified?' on':''}">${SVG(I.trophy,14)}<span data-notr>${esc(r.season)}</span> ${r.fmt==='double'?'ダブル':'シングル'} ${rankLabel(r)}${r.verified?'・確認済み':''}</span>`).join('')}</div>`:'';
 /* ---- 自分のパーティと比べる：選出アシストと同じ計算（analyze）で、両方から見た最善の選出と、お互いに何%入るかを出す ----
-   相手の育成は、登録されていればそれを使い、なければ「よくある型」を仮定する */
+   相手の育成は、登録されていればそれを使い、なければ「使用率の高い型」を仮定する */
 function szVs(t){
   const my=team.map(x=>x.no).filter(n=>byNo[n]),op=t.team.map(x=>x.no).filter(n=>byNo[n]);
   if(!my.length)return `<div class="bnote" style="margin:8px 0">先に<a href="#/team" style="color:var(--acc)">パーティ</a>を作ってください（いま選んでいるパーティと比べます）。</div>`;
@@ -195,7 +195,7 @@ function szVs(t){
     <p class="sz-vp"><b>こちら → 相手</b>（左のポケモンが、上の相手に与えるダメージ）</p>
     <div class="sz-tw"><table class="sz-tb">${headOf(A.O.map(o=>o.p))}<tbody>${order.map(row).join('')}</tbody></table></div>
     <details class="sz-det"><summary>相手 → こちら（受けるダメージ）を見る</summary><div class="sz-tw"><table class="sz-tb">${headOf(order.map(i=>A.M[i].p))}<tbody>${A.O.map((_,j)=>rowR(j)).join('')}</tbody></table></div></details>
-    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（★はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「よくある型」）':'「よくある型」'}で計算しています。</p>
+    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（★はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「使用率の高い型」）':'「使用率の高い型」'}で計算しています。</p>
     <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-goassist>選出アシストでくわしく見る</button></div></div>`;
 }
 /* 出典のリンク（アドレスの名前だけを出す。リンク先の評価はしない＝nofollow） */

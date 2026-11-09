@@ -64,7 +64,7 @@ function loseReasons(entries){
     const covTxt=c=>{const ns=top.filter((m,t)=>c.cov[t]).map(m=>nmq(m.q));return ns.length===top.length&&top.length>1?`${c.q.n}（${ns.length===2?'どちら':'どれ'}にも答えられる）`:`${c.q.n}（${ns.join('・')}に答えられる）`};
     out.push({ph:'構築',w:2.4+.3*top.length-top[0].j*.02,t:`よく使われる${names}に、だれも答えられない`,
       d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}を相手にすると、パーティのだれもが「2回耐える」「先に半分以上削る」「上から一撃で倒す」のどれもできません。選出画面にいるだけで動きが苦しくなり、対面したら崩されます。`,
-      how:best.length?`${best.map(covTxt).join('、')}などを入れることを考えましょう（よくある型で入れたときに、この診断の基準で答えられる匹です）。${ms.length<6?`${best[0].q.n}を入れると、答えられない相手は${miss.length}匹から${miss.length-best[0].n}匹になります。`:''}${swap}または、${nmq(q0)}の攻撃を2回耐えられるように、だれかの能力ポイントを耐久に回します。`:`${nmq(q0)}の攻撃を2回耐えられる仲間か、上から倒せる仲間を入れましょう。`,
+      how:best.length?`${best.map(covTxt).join('、')}などを入れることを考えましょう（使用率の高い型で入れたときに、この診断の基準で答えられる匹です）。${ms.length<6?`${best[0].q.n}を入れると、答えられない相手は${miss.length}匹から${miss.length-best[0].n}匹になります。`:''}${swap}または、${nmq(q0)}の攻撃を2回耐えられるように、だれかの能力ポイントを耐久に回します。`:`${nmq(q0)}の攻撃を2回耐えられる仲間か、上から倒せる仲間を入れましょう。`,
       act:[[q0.base?`#/p/${q0.no}`:`counter/${q0.no}/`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
   }
   /* ③ 設置技 */

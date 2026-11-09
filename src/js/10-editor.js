@@ -40,30 +40,37 @@ function editView(a){
   ED={idx,no:p.no,s:base,dirty:false};
   const ls=LSD[p.no],abl=ABD[p.no]||[];
   const mvIds=ls?ls[1].filter(id=>MV[id]):[];
+  /* ランクバトルの採用率（2026/11/09 依頼主：持ち物の採用率もきちんと反映）。読めていれば持ち物・技の横に％を出し、持ち物は使われている順に上へ */
+  const LD=LIVE.csv[p.no]||null,itPct={},mvPct={};
+  if(LD){LD.it.forEach(([n,pc])=>{const k=nrm(n);if(ITEMN[k]&&itPct[k]==null)itPct[k]=pc});LD.mv.forEach(([n,pc])=>{const id=MVKA[nrm(n)];if(id&&mvPct[id]==null)mvPct[id]=pc})}
+  const pctT=v=>v==null?'':`　採用率${v}%`;
   const byT={};mvIds.forEach(id=>{const t=MV[id][1];(byT[t]=byT[t]||[]).push(id)});
   const mvOpts=(cur)=>{
     let h=`<option value="">（なし）</option>`;
-    if(!ls||ls[0])h+=`<option value="182"${cur&&(cur.id===182||cur.id===197)?' selected':''}>まもる</option>`;
+    if(!ls||ls[0])h+=`<option value="182"${cur&&(cur.id===182||cur.id===197)?' selected':''}>まもる${pctT(mvPct[182])}</option>`;
     if(cur&&cur.id!==182&&cur.id!==197&&!mvIds.includes(cur.id)&&!(ls&&ls[1].includes(cur.id)))h+=`<option value="x" selected>${cur.n}（計算には使いません）</option>`;
     const ord=[...p.t,...T.filter(t=>!p.t.includes(t))];
     ord.forEach(t=>{if(!byT[t])return;h+=`<optgroup label="${t}">`+byT[t].sort((a,b)=>MV[b][2]-MV[a][2]).map(id=>{const m=MV[id];
-      return `<option value="${id}"${cur&&cur.id===id?' selected':''}>${m[0]}　${['物理','特殊','変化'][m[4]]||''}${m[2]?' 威力'+m[2]:''}</option>`}).join('')+'</optgroup>'});
+      return `<option value="${id}"${cur&&cur.id===id?' selected':''}>${m[0]}　${['物理','特殊','変化'][m[4]]||''}${m[2]?' 威力'+m[2]:''}${pctT(mvPct[id])}</option>`}).join('')+'</optgroup>'});
     const rest=(ls?ls[1]:[]).filter(id=>!MV[id]&&id!==182&&id!==197&&MD[id]).sort((a,b)=>mName(a).localeCompare(mName(b),'ja'));
     const sts=rest.filter(id=>MVU[id]&&MVU[id][1]===2),oth=rest.filter(id=>!(MVU[id]&&MVU[id][1]===2));
-    if(sts.length)h+=`<optgroup label="変化技（計算には使いません）">`+sts.map(id=>`<option value="${id}"${cur&&cur.id===id?' selected':''}>${mName(id)}</option>`).join('')+'</optgroup>';
+    if(sts.length)h+=`<optgroup label="変化技（計算には使いません）">`+sts.map(id=>`<option value="${id}"${cur&&cur.id===id?' selected':''}>${mName(id)}${pctT(mvPct[id])}</option>`).join('')+'</optgroup>';
     if(oth.length)h+=`<optgroup label="計算できない攻撃技">`+oth.map(id=>`<option value="${id}"${cur&&cur.id===id?' selected':''}>${mName(id)}${MVU[id]&&MVU[id][2]?' 威力'+MVU[id][2]:''}</option>`).join('')+'</optgroup>';
     return h};
   const itOpts=()=>{const cur=ED.s.it;let h=`<option value="">（なし）</option>`;
     if(cur&&cur.k&&!ITEMN[cur.k]||cur&&!cur.k&&cur.n)h+=`<option value="x" selected>${cur.n}（計算には使いません）</option>`;
     const ks=[...Object.keys(MEGA).filter(k=>itemFor(p.no,k)),...ITEM_ORDER,...Object.keys(ITEMN).filter(k=>!ITEM_ORDER.includes(k)&&!isStone(k))];
-    return h+ks.map(k=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ITEMN[k]}${ITEMT[k]?'（'+ITEMT[k]+'↑）':''}</option>`).join('')};
+    const op=k=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ITEMN[k]}${ITEMT[k]?'（'+ITEMT[k]+'↑）':''}${pctT(itPct[k])}</option>`;
+    const used=ks.filter(k=>itPct[k]!=null).sort((a,b)=>itPct[b]-itPct[a]);
+    if(!used.length)return h+ks.map(op).join('');
+    return h+`<optgroup label="ランクバトルで使われている順">${used.map(op).join('')}</optgroup><optgroup label="そのほかの持ち物">${ks.filter(k=>itPct[k]==null).map(op).join('')}</optgroup>`};
   const abOpts=()=>{const cur=ED.s.ab;let h='';
     if(!abl.length)h+=`<option value="${cur&&cur.k||''}">${cur&&cur.n||'（データなし）'}</option>`;
     return h+abl.map(([k,hid])=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ABN[k]||k}${hid?'（隠れ特性）':''}${ABIMPL.has(k)?'':'　※計算では効果なし'}</option>`).join('')};
   V.innerHTML=`<div id="ed-root">
   <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></div>
-  ${fresh?`<div class="bnote" style="margin:12px 16px 0">いまは<b>自動で決めた型</b>（よくある型）で計算しています。下の値を変えると、<b>あなたの育成</b>として保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</div>`:''}
-  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}よく使われている型を入れる</button></div>
+  ${fresh?`<div class="bnote" style="margin:12px 16px 0">いまは${LD?'ランクバトルの集計から組んだ<b>使用率の高い型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</div>`:''}
+  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}使用率の高い型を入れる</button></div>
   <div class="sec"><h2>特性・持ち物</h2></div>
   <div class="natr"><span style="width:56px">特性</span><select class="sel" id="ed-ab">${abOpts()}</select></div>
   <p class="note" id="ed-abd" style="padding:0 16px 6px">${ED.s.ab&&ABDS[ED.s.ab.k]?esc(ABDS[ED.s.ab.k]):''}</p>
@@ -120,5 +127,6 @@ function editView(a){
     toast(d?'使用率の集計（championsbattledata）で最も多い型を入れました':'集計データが取れないため、自動で決めた型を入れました');editView(String(idx))};
   document.getElementById('ed-clear').onclick=()=>{const cur=team[ED.idx];if(cur){delete cur.set;saveTeam()}toast('未設定に戻しました');nav('#/team')};
   upd();pipBuildBind(idx);
+  if(!LD&&LIVE.csv[p.no]===undefined)calcEnsure(p.no).then(ch=>{if(ch&&ED&&ED.idx===idx&&ED.no===p.no&&!ED.dirty&&keyOf(cur)==='edit')editView(String(idx))});
 }
 

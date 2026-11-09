@@ -87,7 +87,7 @@ ${cs.map(q=>rowL(q,R)).join('')}
 ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}</div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`).join('')}`;
    out.types.push({t,slug:TSLUG[t],html,desc:`ポケモンチャンピオンズの${t}タイプの弱点・耐性・相性表と、${t}タイプのポケモン${ms.length}匹の一覧。`});
   });
-  /* 「〇〇の対策・倒し方」（47-share.js の monCounters：よくある型どうしのダメージ計算と素早さ） 2026/11/04 */
+  /* 「〇〇の対策・倒し方」（47-share.js の monCounters：使用率の高い型どうしのダメージ計算と素早さ） 2026/11/04 */
   out.counters=P.map((p,k)=>{try{const R='__ROOT__',c=monCounters(p),s=c.set;
    const weak=monDef(p).filter(x=>x.m>=2).sort((a,b)=>b.m-a.m);
    const qa=q=>byNo[q.no]&&!q.base?`${R}pokemon/${q.no}/`:`${R}#/p/${q.no}`;
@@ -99,8 +99,8 @@ ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp
    const top=[...c.ohko,...c.strong].slice(0,3).map(r=>formInfo(r.q).base);
    const html=`<nav class="crumb"><a href="${R}">ホーム</a> › <a href="${R}pokemon/">ポケモン一覧</a> › <a href="${R}pokemon/${p.no}/">${p.n}</a> › 対策</nav>
 <div class="sh1"><span class="av" style="width:64px;height:64px">${stamp(p)}</span><div><span class="no">対策・倒し方</span><h1>${p.n}の対策</h1><div class="chips">${p.t.map(chip).join('')}</div></div></div>
-<p class="lead">${p.n}の弱点は${weak.length?weak.map(x=>`<b>${x.t}</b>${x.m>=4?'（4倍）':''}`).join('・'):'ありません'}。${top.length?`よくある型どうしで計算すると、<b>${top.join('・')}</b>などが有利に戦えます。`:''}</p>
-<div class="gdoc" style="padding-top:0"><p class="note" style="padding:0">計算の前提：${p.n}は${esc(setTxt)||'よくある型'}（素早さ${c.spd}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれのよくある型で計算しています。乱数・急所・持ち物の違いで結果は変わります。</p></div>
+<p class="lead">${p.n}の弱点は${weak.length?weak.map(x=>`<b>${x.t}</b>${x.m>=4?'（4倍）':''}`).join('・'):'ありません'}。${top.length?`使用率の高い型どうしで計算すると、<b>${top.join('・')}</b>などが有利に戦えます。`:''}</p>
+<div class="gdoc" style="padding-top:0"><p class="note" style="padding:0">計算の前提：${p.n}は${esc(setTxt)||'使用率の高い型'}（素早さ${c.spd}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれの使用率の高い型で計算しています。乱数・急所・持ち物の違いで結果は変わります。</p></div>
 ${(()=>{try{return `<div class="gdoc">${brStepsHTML(breakSteps(p,c))}</div>`}catch(e){return ''}})()}
 <div class="cta"><a class="btn btn-p" href="${R}#/calc">自分の育成でダメージ計算</a><a class="btn btn-s" href="${R}pokemon/${p.no}/">${p.n}の種族値・覚える技</a></div>
 ${sec(`${p.n}を上から一撃で倒せるポケモン`,'素早さで上回り、1回の攻撃で倒せる相手です。',c.ohko,mine)}

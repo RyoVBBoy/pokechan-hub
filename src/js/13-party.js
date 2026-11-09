@@ -76,6 +76,11 @@ function shareTeam(){
   (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject())
     .then(()=>toast('URLをコピーしました')).catch(()=>prompt('URLをコピーしてください',u));
 }
+/* 未設定の匹は、計算に使っている使用率の高い型の持ち物と採用率を出す（2026/11/09 依頼主） */
+function tsLiveLine(x){const d=LIVE.csv[x.no];if(!d||(x.set&&x.set.it&&x.set.it.k))return '';
+  let c;try{c=mySetFor(x.no)}catch(e){return ''}const k=c&&c.item;if(!k||!ITEMN[k])return '';
+  const pc=(d.it.find(([n])=>nrm(n)===k)||[])[1];
+  return `<div class="row-s" style="color:var(--mute)">持ち物：${esc(ITEMN[k])}${pc!=null?`（採用率${pc}%）`:''}</div>`}
 function teamRender(){
   const ts=document.getElementById('tslots');
   if(ts)ts.innerHTML=TEAMS.list.map((s,i)=>`<button class="pill" data-tslot="${i}" aria-pressed="${i===TEAMS.cur}"><span data-notr>${esc(teamName(i))}</span><small>${(i===TEAMS.cur?team:s.team).length}${L('匹','')}</small></button>`).join('');
@@ -88,7 +93,7 @@ function teamRender(){
     :`<button class="tile empty tadd" data-add="1">${SVG(I.plus,22)}<span>追加する</span></button>`}).join('');
   document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
-      :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（よくある型で計算中）</div>`;
+      :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（使用率の高い型で計算中）</div>${tsLiveLine(x)}`;
     return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
   document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=async()=>{const no=await pickMon(0,{add:true});if(no)addTeam(no)});
   document.querySelectorAll('#slots .tile[data-ti]').forEach(t=>t.onclick=e=>{if(e.target.closest('button'))return;nav('#/edit/'+t.dataset.ti)});

@@ -77,7 +77,7 @@ function prScore(c,mem){
   if(typeof LIVE!=='undefined'&&LIVE.files&&LIVE.files[ENSP[c.no]])R.push({k:'pop',pts:1,txt:''});
   return{c,R};
 }
-/* よくある型どうしの1対1の結果を覚えておく（同じ組み合わせを何度も計算しない。集計を読んだら型が変わるので鍵に含める） */
+/* 使用率の高い型どうしの1対1の結果を覚えておく（同じ組み合わせを何度も計算しない。集計を読んだら型が変わるので鍵に含める） */
 const PR_HIT={};
 function prHit(c,q){
   const k=c.no+'|'+q.no+'|'+FMT+'|'+(LIVE.csv[c.base||c.no]?1:0)+(LIVE.csv[q.base||q.no]?1:0);
@@ -154,7 +154,7 @@ function prDraw(){
         <ul class="pr-why">${rs.map(r=>`<li><span class="pr-tag pr-${r.k}">${PR_TAG[r.k]}</span>${esc(r.txt)}</li>`).join('')}${bad.map(r=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(r.txt)}</li>`).join('')}${!rs.length?'<li>能力の高さで選んだ候補です</li>':''}</ul>
         <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-add="${c.no}">${SVG(I.plus,16)}パーティに入れる</button></div></div>`}).join('')
       +`<div class="btns"><button class="btn btn-s" id="pr-more">もっと見る</button></div>
-      <p class="note" style="color:var(--mute)">点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、よくある型どうしのダメージ計算です。</p>`;
+      <p class="note" style="color:var(--mute)">点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、使用率の高い型どうしのダメージ計算です。</p>`;
     el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const no=+b.dataset.add;if(team.length<6&&!team.some(x=>x.no===no)){team.push({no,sel:team.filter(x=>x.sel).length<PICK()});saveTeam();toast(`${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).then(()=>{if(keyOf(cur)==='pair')prDraw()}).catch(()=>{})}});
     document.getElementById('pr-more').onclick=()=>{PR_N+=8;prDraw()};
   },30);

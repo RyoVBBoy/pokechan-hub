@@ -69,7 +69,7 @@ function calcResult(){
     return{a,d,mv,list,r,ko:koInfo(r,d.hp),eff:bcalc(a,mv,d,{}).eff,acc:accOf(a,mv,d)};
   }finally{B.weather=sw}
 }
-/* 覚えさせた技（よくある型）それぞれのダメージと、相手からの反撃 */
+/* 覚えさせた技（使用率の高い型）それぞれのダメージと、相手からの反撃 */
 function calcOverview(R){
   const sw=B.weather;B.weather=CS.weather?{k:CS.weather,t:5}:null;
   try{
@@ -87,7 +87,7 @@ function calcSide(key,X,isAtk){
   const st=calcStats(p,X.sp,X.up,X.dn);
   const ks=[...Object.keys(MEGA).filter(k=>itemFor(X.no,k)),...Object.keys(ITEMN).filter(k=>!isStone(k))];
   return `<div class="cside">
-  <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">よくある型</button></div>
+  <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">使用率の高い型</button></div>
   <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
   <div class="natr"><span style="width:62px">持ち物</span><select class="sel" data-c="${key}.item"><option value="">（なし）</option>${ks.map(k=>`<option value="${k}"${k===X.item?' selected':''}>${ITEMN[k]}</option>`).join('')}</select></div>
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
@@ -112,9 +112,9 @@ function calcView(){
     const hpCol=v=>v>50?'#00ba7c':v>20?'#ffb020':'#f4212e';
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
     <div class="cv-vs">
-      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('よくある型','Common set')}: ${sum(CS.a)}</span></div>
+      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.a)}</span></div>
       <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える">⇅</button>
-      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('よくある型','Common set')}: ${sum(CS.d)}</span></div>
+      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.d)}</span></div>
     </div>
     ${R?`<div class="cres cv-res">
       <div class="cres-h" data-notr>${L(`${nmA}の<b>${esc(mvNm(R.mv))}</b> → ${nmD}`,`${nmA}'s <b>${esc(mvNm(R.mv))}</b> → ${nmD}`)} ${effTag(R.eff)}${R.acc<100?`<span class="cv-e">命中${Math.round(R.acc)}</span>`:''}</div>
@@ -190,7 +190,7 @@ function calcView(){
   draw();
   calcEnsure(CS.a.no,CS.d.no).then(ch=>{if(ch&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}});
 }
-/* よくある型のためにラダー集計を読み込む（読み込めたら true） */
+/* 使用率の高い型のためにラダー集計を読み込む（読み込めたら true） */
 async function calcEnsure(...nos){
   try{if(!(await liveInit()))return false;const need=nos.filter(n=>LIVE.csv[n]===undefined);if(!need.length)return false;await Promise.all(need.map(liveMon));return true}catch(e){return false}
 }

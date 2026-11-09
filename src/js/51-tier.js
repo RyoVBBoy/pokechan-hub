@@ -1,7 +1,7 @@
 /* ===================== 強いポケモンランキング（2026/11/04、#/tier・検索向けの静的ページ ranking/） =====================
    当サイトの計算だけで作る（ほかのサイトの評価は使わない）：
    ・相手＝使用率の上位30匹（ランクバトルの集計 META.rank。読めなければ合計種族値の高い順 gmOpps）
-   ・1匹ずつ、相手それぞれと「よくある型どうし」で1対1：お互いの最大ダメージから何回で倒せるか＋素早さ（selPlan と同じ考え方）
+   ・1匹ずつ、相手それぞれと「使用率の高い型どうし」で1対1：お互いの最大ダメージから何回で倒せるか＋素早さ（selPlan と同じ考え方）
    ・強さ＝上位の相手への有利さ（使用率の高い相手ほど重く）×0.65 ＋ 使用率の順位×0.35（集計がないときは有利さだけ）
    ・S＝上位1割、A＝次の2割、B＝次の3割、C＝残り。理由＝使用率の順位・有利な相手の数と例・苦手な相手・素早さ
    ・計算は1日1回、形式ごとに端末に覚えておく（pctier） */
@@ -38,7 +38,7 @@ function tierWhy(r,T){
 }
 function tierHTML(T,link){
   const L2=link||(q=>`#/p/${q.no}`);
-  const head=`<p class="note" style="padding-top:12px">${T.live?`ランクバトルの使用率と、使用率の上位${T.opps}匹との1対1の計算（よくある型どうし・お互いの最大ダメージと素早さ）から、当サイトが並べた強さの目安です。`:`ランクバトルの集計が読めなかったため、合計種族値の高いポケモンどうしの1対1の計算だけで並べています。`}育成や組み合わせしだいで評価は変わります。</p>
+  const head=`<p class="note" style="padding-top:12px">${T.live?`ランクバトルの使用率と、使用率の上位${T.opps}匹との1対1の計算（使用率の高い型どうし・お互いの最大ダメージと素早さ）から、当サイトが並べた強さの目安です。`:`ランクバトルの集計が読めなかったため、合計種族値の高いポケモンどうしの1対1の計算だけで並べています。`}育成や組み合わせしだいで評価は変わります。</p>
     <p class="note" style="padding-top:0;color:var(--mute)">${new Date(T.at).toLocaleDateString('ja-JP')} 時点・${T.fmt==='double'?'ダブル':'シングル'}・${T.n}匹</p>`;
   const sec=t=>{const l=T.rows.filter(r=>r.tier===t);return l.length?`<div class="sec"><h2><span class="tr-t tr-${t}">${t}</span>${({S:'環境の中心',A:'とても強い',B:'活躍できる',C:'組み合わせしだい'})[t]}</h2><span style="font-size:12px;color:var(--dim)">${l.length}匹</span></div>
     ${l.map(r=>`<a class="row tr-r" href="${L2(r.p)}"><span class="av">${stamp(r.p)}</span><div class="row-m"><div class="row-t">${nm(r.p)}</div><div class="chips">${r.p.t.map(chip).join('')}</div>

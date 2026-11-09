@@ -11,7 +11,7 @@ const memoSave=()=>{try{localStorage.setItem('pcmemo',JSON.stringify(MEMO))}catc
 const memoKey=p=>p?(p.base&&byNo[p.base]?p.base:p.no):0;
 const memoOf=p=>{const e=MEMO.mon[memoKey(p)];return e&&e.t?e.t:''};
 const memoTypeOf=t=>{const e=MEMO.type[t];return e&&e.t?e.t:''};
-/* 自動の下書き：いまのパーティ（なければ何も作らない）と、相手のよくある型での1対1 */
+/* 自動の下書き：いまのパーティ（なければ何も作らない）と、相手の使用率の高い型での1対1 */
 function memoAuto(q){
   if(!q||!team.length)return '';
   let op;try{op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return ''}

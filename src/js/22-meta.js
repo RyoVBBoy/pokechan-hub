@@ -84,3 +84,9 @@ function metaView(){
   if(META.st!=='ready')metaLoad(n=>{const e=document.getElementById('meta-n');if(e)e.textContent=`（${n}匹分）`}).then(()=>{if(keyOf(cur)==='meta')draw()});
 }
 
+/* 起動の少しあとに、使用率の上位とパーティの匹のランクバトルの集計を読んでおく（2026/11/09 依頼主：「使用率の高い型」をどの画面でも集計どおりに）。
+   集計は端末に6時間覚えるので、2回目からは通信しない。読めたら、パーティの画面ならその場で描き直す */
+setTimeout(()=>{if(typeof navigator!=='undefined'&&navigator.webdriver)return;
+  metaLoad().then(()=>Promise.all(team.map(t=>liveMon(t.no)))).then(()=>{
+    if(typeof PR_HIT!=='undefined')for(const k in PR_HIT)delete PR_HIT[k];
+    if(keyOf(cur)==='team'&&typeof teamRender==='function')teamRender()}).catch(()=>{})},2500);

@@ -1,6 +1,6 @@
 /* ===================== 図鑑の「対策」タブ＝崩し方（2026/11/08 依頼主の要望） =====================
    前はタイプ一致で弱点を突けるポケモンを並べるだけで、「どう崩すか」が分からなかった。
-   相手（p）のよくある型（detSet）を mkMon にして、データだけから手順を作る（ほかのサイトの文章は使わない）：
+   相手（p）の使用率の高い型（detSet）を mkMon にして、データだけから手順を作る（ほかのサイトの文章は使わない）：
    ①弱点と効きにくいタイプ（monDef＝特性込み）と、物理・特殊のどちらが通りやすいか（HP×防御 と HP×特防）
    ②素早さ（上を取るのに要る素早さ種族値・こだわりスカーフ・先制技）
    ③持ち物（BR_ITEM）・特性（BR_AB。型の特性＋持てるほかの特性は「特性が〇〇なら」）
@@ -68,7 +68,7 @@ function breakSteps(p,c){
   /* ②素早さ */
   const scarf=s.item==='choicescarf',sp=Math.floor(st[5]*(scarf?1.5:1)),nb=brNeedBase(sp),nbs=brNeedBase(sp,1.5);
   const prio=(s.moves||[]).filter(m=>m&&m.pow>0&&m.pri>0);
-  steps.push({h:'素早さで上を取る',t:`よくある型の素早さは<b>${sp}</b>${scarf?'（こだわりスカーフ込み）':''}。${nb?`上から動くには、素早さ種族値${nb}以上のポケモンを最速（性格で素早さを上げ、能力ポイント${SP_CAP}）にする${nbs&&nbs<nb?`。こだわりスカーフなら${nbs}以上でよい`:''}。`:'素早さで上を取るのは難しいので、先制技やトリックルームで動く。'}${prio.length?`ただし先制技${brNames(prio.map(m=>m.n))}を持つので、HPが減った匹で上から殴ろうとしても先に倒されることがある。`:'遅い匹は、先制技でとどめを刺すか、1回耐えてから返す。'}`});
+  steps.push({h:'素早さで上を取る',t:`使用率の高い型の素早さは<b>${sp}</b>${scarf?'（こだわりスカーフ込み）':''}。${nb?`上から動くには、素早さ種族値${nb}以上のポケモンを最速（性格で素早さを上げ、能力ポイント${SP_CAP}）にする${nbs&&nbs<nb?`。こだわりスカーフなら${nbs}以上でよい`:''}。`:'素早さで上を取るのは難しいので、先制技やトリックルームで動く。'}${prio.length?`ただし先制技${brNames(prio.map(m=>m.n))}を持つので、HPが減った匹で上から殴ろうとしても先に倒されることがある。`:'遅い匹は、先制技でとどめを刺すか、1回耐えてから返す。'}`});
   /* ③持ち物・特性 */
   const it=[];
   if(s.item&&BR_ITEM[s.item])it.push(BR_ITEM[s.item]);
@@ -102,10 +102,10 @@ function breakSteps(p,c){
   const ats=[...new Set(atk.map(m=>m.t))];
   if(ats.length){const rt=T.filter(t=>ats.every(a=>mult(a,[t])<=.5));
     const w=c.wall.slice(0,3).map(r=>r.q.n);
-    steps.push({h:'攻撃を受ける',t:`よくある型の攻撃技は${ats.join('・')}タイプ。${rt.length?`<b>${rt.join('・')}</b>タイプなら全部を半減以下で受けられる。`:'1つのタイプで全部を半減できるタイプはないので、型の技をよく見て受ける。'}${w.length?`計算では${w.join('・')}などが35%未満しか受けない。`:''}`})}
+    steps.push({h:'攻撃を受ける',t:`使用率の高い型の攻撃技は${ats.join('・')}タイプ。${rt.length?`<b>${rt.join('・')}</b>タイプなら全部を半減以下で受けられる。`:'1つのタイプで全部を半減できるタイプはないので、型の技をよく見て受ける。'}${w.length?`計算では${w.join('・')}などが35%未満しか受けない。`:''}`})}
   /* ひとこと */
   const best=[...c.ohko,...c.strong][0];
-  const lead=`${nm0}は${weak.length?weak.slice(0,2).map(x=>x.t).join('・')+'が弱点':'弱点のタイプがなく'}、素早さは${sp}。${best?`よくある型どうしで計算すると、<b>${best.q.n}</b>の${best.mv?'「'+esc(best.mv)+'」':'攻撃'}が${best.my>=100?'一撃で倒せる':'最大'+Math.round(best.my)+'%'}など、下の手順で崩せる。`:'1匹で崩すのは難しいので、下の手順で2匹がかりで崩す。'}`;
+  const lead=`${nm0}は${weak.length?weak.slice(0,2).map(x=>x.t).join('・')+'が弱点':'弱点のタイプがなく'}、素早さは${sp}。${best?`使用率の高い型どうしで計算すると、<b>${best.q.n}</b>の${best.mv?'「'+esc(best.mv)+'」':'攻撃'}が${best.my>=100?'一撃で倒せる':'最大'+Math.round(best.my)+'%'}など、下の手順で崩せる。`:'1匹で崩すのは難しいので、下の手順で2匹がかりで崩す。'}`;
   return{lead,steps,set:s,sp,c};
 }
 /* 崩す役1匹の理由（技・ダメージ・素早さ・受けるダメージ） */
@@ -122,7 +122,7 @@ function breakHTML(p){
   const n=formInfo(p).base,cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
   return `<div class="gdoc"><h2>${esc(n)}の崩し方</h2><p>${B.lead}</p>
     ${brStepsHTML(B)}
-    <p class="note" style="padding:8px 0 0">計算の前提：${esc(n)}はよくある型（${esc(setTxt)||'—'}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれのよくある型で計算しています。乱数・急所・育成の違いで結果は変わります。</p></div>
+    <p class="note" style="padding:8px 0 0">計算の前提：${esc(n)}は使用率の高い型（${esc(setTxt)||'—'}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれの使用率の高い型で計算しています。乱数・急所・育成の違いで結果は変わります。</p></div>
   ${sec('上から一撃で倒せる','先に動けて、1回の攻撃で倒せる相手です。',c.ohko,r=>brWhy(p,r))}
   ${sec('強く出られる',`半分以上削れて、${esc(n)}からは半分未満しか受けない相手です。`,c.strong,r=>brWhy(p,r))}
   ${sec('受けてから返せる',`${esc(n)}の攻撃が35%未満しか入らないので、交代で受けてから反撃できる相手です。`,c.wall,r=>`${esc(n)}の攻撃は最大${Math.round(r.their)}%${r.tmv?'（'+esc(r.tmv)+'）':''}。こちらの${r.mv?'「'+esc(r.mv)+'」':'攻撃'}は${r.my>=100?'一撃で倒せる':'最大'+Math.round(r.my)+'%'}。`)}
