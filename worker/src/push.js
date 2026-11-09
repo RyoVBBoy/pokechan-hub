@@ -2,7 +2,7 @@
    ・送り主の鍵（VAPID）はサーバーが最初に必要になったときに作って D1 に保存する（人が合言葉を入れなくてよい）
    ・通知の中身は RFC 8291（aes128gcm）で暗号化して送る。受け取れない宛先（404/410）は消す
    ・宛先は D1 の push_subs（1人で複数の端末を登録できる） */
-const PUSH_SUB='https://pokechan-hub.pages.dev';
+const PUSH_SUB='https://game-kids.app';
 const pB64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const pUnB64=s=>Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(String(s).length/4)*4,'=')),c=>c.charCodeAt(0));
 const cat=(...a)=>{const o=new Uint8Array(a.reduce((n,x)=>n+x.length,0));let i=0;for(const x of a){o.set(x,i);i+=x.length}return o};

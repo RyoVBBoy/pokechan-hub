@@ -6,7 +6,9 @@
 const PCF=(window.PC_CONFIG&&window.PC_CONFIG.firebase&&window.PC_CONFIG.firebase.apiKey)?window.PC_CONFIG.firebase:null;
 const FB_VER='10.14.1';
 const AUTH_MOBILE=/iP(hone|ad|od)|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
-const AUTH_SAMEORIGIN=AUTH_MOBILE&&location.hostname==='pokechan-hub.pages.dev';
+/* ログインの窓口をサイトの中に置けるアドレス（functions/__ が動く Cloudflare Pages。2026/11/09 独自ドメイン game-kids.app を追加） */
+const AUTH_HOSTS=['game-kids.app','www.game-kids.app','pokechan-hub.pages.dev'];
+const AUTH_SAMEORIGIN=AUTH_MOBILE&&AUTH_HOSTS.includes(location.hostname);
 const AUTH={fb:null,user:null,profile:undefined,ready:false,wait:null};
 async function fbLoad(){
   if(AUTH.fb)return AUTH.fb;

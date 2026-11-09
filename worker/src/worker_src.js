@@ -314,8 +314,8 @@ async function fromImage(buf,teamNos,env,ctx,opts){
   return top+'\n'+formatOpp(opps,mine,sc)+tail;
 }
 __COMMUNITY__
-/* 呼び出してよいサイト：本番（pokechan-hub.pages.dev）とその試し公開（〇〇.pokechan-hub.pages.dev）・手元の確認用。ほかは ALLOWED_ORIGINS（カンマ区切り）で足せる */
-const ORIGIN_OK=(o,env)=>!!o&&(/^https:\/\/([a-z0-9-]+\.)?pokechan-hub\.pages\.dev$/.test(o)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)||String(env.ALLOWED_ORIGINS||'').split(',').map(s=>s.trim()).filter(Boolean).includes(o));
+/* 呼び出してよいサイト：本番（game-kids.app・www も。2026/11/09 独自ドメイン）と前のアドレス（pokechan-hub.pages.dev）とその試し公開（〇〇.pokechan-hub.pages.dev）・手元の確認用。ほかは ALLOWED_ORIGINS（カンマ区切り）で足せる */
+const ORIGIN_OK=(o,env)=>!!o&&(/^https:\/\/([a-z0-9-]+\.)?pokechan-hub\.pages\.dev$/.test(o)||/^https:\/\/(www\.)?game-kids\.app$/.test(o)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)||String(env.ALLOWED_ORIGINS||'').split(',').map(s=>s.trim()).filter(Boolean).includes(o));
 async function tokEq(a,b){const enc=new TextEncoder(),h=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(String(s))));const x=await h(a),y=await h(b);let d=0;for(let i=0;i<x.length;i++)d|=x[i]^y[i];return d===0&&String(a).length===String(b).length}
 function secureRes(res,req,env){
   const r=new Response(res.body,res),h=r.headers,u=new URL(req.url),media=u.pathname.startsWith('/m/');

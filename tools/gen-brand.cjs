@@ -3,7 +3,7 @@
    文字は HTML で書いて Playwright で写真にする（公式の画像は使わない）。サイトのマークは src/static/logo.png（白い方位の星）。 */
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
 const ST=path.join(__dirname,'..','src','static');
-const NAME='Game Kid/s',URL_TXT='pokechan-hub.pages.dev';
+const NAME='Game Kid/s',URL_TXT='game-kids.app';
 const logo='data:image/png;base64,'+fs.readFileSync(path.join(ST,'logo.png')).toString('base64');
 const FONT=`Inter,'IPAPGothic','IPAGothic',sans-serif`;
 const BG=`background:#0f1020;background-image:radial-gradient(900px 500px at 10% 0%,rgba(31,111,180,.55),transparent 60%),radial-gradient(700px 500px at 100% 100%,rgba(88,52,160,.55),transparent 60%);`;

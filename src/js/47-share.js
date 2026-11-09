@@ -5,7 +5,7 @@
    ・共有のリンクは https://サイト/t/445-149-… 。Cloudflare Pages の functions/t/[[path]].js が、X に貼ったときの
      題名・説明・画像（og）を返してから #/share/445-149-… に移る。#/share は「見るだけ」の画面で、
      自分のパーティを勝手に書きかえない（「このパーティを使う」を押したときだけ空いている枠に入れる）。 */
-const SITE_BASE=()=>/^https?:/.test(location.protocol)?location.origin:'https://pokechan-hub.pages.dev';
+const SITE_BASE=()=>/^https?:/.test(location.protocol)?location.origin:'https://game-kids.app';
 const shareNos=list=>list.map(x=>x.no).filter(n=>byNo[n]).slice(0,6);
 const shareLink=nos=>SITE_BASE()+'/t/'+nos.join('-');
 /* 画像を作る */

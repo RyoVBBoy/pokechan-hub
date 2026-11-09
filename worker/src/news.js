@@ -17,7 +17,7 @@ const newsYmd=v=>{let t=0;if(typeof v==='number'||/^\d+$/.test(String(v||'')))t=
 async function newsFromOfficial(d){
   const out=[];d.official=[];
   for(const o of NEWS_OFFICIAL){
-    try{const r=await fetch(o.url,{headers:{'user-agent':'Mozilla/5.0 (compatible; PokechanHub/1.0; +https://pokechan-hub.pages.dev)',accept:'application/json'},cf:{cacheTtl:600}});
+    try{const r=await fetch(o.url,{headers:{'user-agent':'Mozilla/5.0 (compatible; PokechanHub/1.0; +https://game-kids.app)',accept:'application/json'},cf:{cacheTtl:600}});
       d.official.push(o.url.replace(/^https:\/\//,'')+' '+r.status);if(!r.ok)continue;
       const j=await r.json();
       for(const x of (Array.isArray(j[o.key])?j[o.key]:[])){
@@ -127,7 +127,7 @@ async function newsFind(env,db,dbg){
   for(const s of srcs.slice(0,3)){
     const d={url:s};dbg.src.push(d);
     let html='';
-    try{const r=await fetch(s,{headers:{'user-agent':'Mozilla/5.0 (compatible; PokechanHub/1.0; +https://pokechan-hub.pages.dev)','accept':'text/html,application/xhtml+xml','accept-language':'ja,en;q=0.8'}});
+    try{const r=await fetch(s,{headers:{'user-agent':'Mozilla/5.0 (compatible; PokechanHub/1.0; +https://game-kids.app)','accept':'text/html,application/xhtml+xml','accept-language':'ja,en;q=0.8'}});
       d.status=r.status;html=r.ok?await r.text():'';d.len=html.length}catch(e){d.err=String(e.message||e)}
     const a=html?newsFromHtml(html,s):[];d.links=a.length;
     if(a.length){out.push(...a);d.via='html';continue}
