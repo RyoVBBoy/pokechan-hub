@@ -49,7 +49,7 @@ async function teamCard(list,title,noLogo){
   /* 下：サイトの名前とアドレス */
   const logo=noLogo?null:await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src='logo.png'});
   if(logo)g.drawImage(logo,W-56-300-46,y0-96,38,38);
-  g.fillStyle='#fff';g.font=`800 26px ${FF}`;g.textAlign='right';g.fillText('ポケチャン攻略Hub',W-56,y0-68);
+  g.fillStyle='#fff';g.font=`800 26px ${FF}`;g.textAlign='right';g.fillText('Game Kid/s',W-56,y0-68);
   g.fillStyle='rgba(255,255,255,.55)';g.font=`600 18px ${FF}`;g.fillText(SITE_BASE().replace(/^https?:\/\//,''),W-56,y0-42);g.textAlign='left';
   /* マークの画像が読めない場所（file:// など）では画像を書き出せないので、マークなしで作り直す */
   try{return await new Promise((r,j)=>{try{c.toBlob(r,'image/png')}catch(e){j(e)}})}catch(e){if(noLogo)throw e;return teamCard(list,title,true)}
@@ -58,7 +58,7 @@ async function teamCard(list,title,noLogo){
 async function shareTeamImage(){
   if(!team.length){toast('パーティが空です');return}
   const nos=shareNos(team),url=shareLink(nos),name=teamName(TEAMS.cur);
-  const text=`${name}：${nos.map(n=>formInfo(byNo[n]).base).join('・')}\n#ポケモンチャンピオンズ #ポケチャン攻略Hub`;
+  const text=`${name}：${nos.map(n=>formInfo(byNo[n]).base).join('・')}\n#ポケモンチャンピオンズ #GameKids`;
   let blob;try{blob=await teamCard(team,name)}catch(e){blob=null}
   const file=blob&&new File([blob],'party.png',{type:'image/png'});
   if(file&&navigator.canShare&&navigator.canShare({files:[file]})){

@@ -5,7 +5,7 @@ const EN={
 /* メニュー・共通 */
 'ホーム':'Home','図鑑':'Pokédex','ツール':'Tools','パーティ':'Team','コミュニティ':'Community','みんな':'Everyone','戻る':'Back','閉じる':'Close','やめる':'Cancel','決定':'OK',
 'すべて見る':'See all','すべて':'All','更新':'Refresh','クリア':'Clear','リセット':'Reset','保存する':'Save','読み込み中…':'Loading…','準備中':'Coming soon',
-'ポケチャン攻略Hub':'PokeChamp Hub','ポケチャン':'PokeChamp','ポケ':'Poké','ポケモンチャンピオンズ':'Pokémon Champions','イー':'eF','イーフト':'eFootball',
+'ポケチャン攻略Hub':'PokeChamp Hub','Game Kid/s｜ポケモンチャンピオンズ攻略':'Game Kid/s | Pokémon Champions guide','ポケチャン':'PokeChamp','ポケ':'Poké','ポケモンチャンピオンズ':'Pokémon Champions','イー':'eF','イーフト':'eFootball',
 '相性を調べる':'Matchups','相性をワンタップで調べる':'Check matchups in one tap','ポケモン名で相性を調べる':'Matchups by Pokémon name',
 '広告枠（インフィード）':'Ad space','広告枠（記事下）':'Ad space',
 'データの出典と確認状況':'Data sources & verification','非公式のファンサイトです。':'Unofficial fan site.','利用規約':'Terms','プライバシーポリシー':'Privacy','データの出典':'Data sources',

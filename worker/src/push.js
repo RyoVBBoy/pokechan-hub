@@ -90,7 +90,7 @@ async function pushApi(req,env,db,path,body,now){
     return J({ok:true});
   }
   if(path==='/api/me/push/test'&&req.method==='POST'){
-    await pushTo(db,me.uid,{title:'ポケチャン攻略Hub',body:'通知のテストです。このように届きます。',url:'#/notif'});
+    await pushTo(db,me.uid,{title:'Game Kid/s',body:'通知のテストです。このように届きます。',url:'#/notif'});
     return J({ok:true});
   }
   return null;

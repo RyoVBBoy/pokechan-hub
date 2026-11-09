@@ -8,7 +8,7 @@ if(!SITE_URL){console.error('SITE_URL を指定してください（例：SITE_U
 const ROOT=path.resolve(__dirname,'..');
 const OUT=path.join(ROOT,'dist');
 const SRC=path.join(OUT,'index.html');
-const SITE='ポケチャン攻略Hub';
+const SITE='Game Kid/s';
 const TSLUG={'ノーマル':'normal','ほのお':'fire','みず':'water','でんき':'electric','くさ':'grass','こおり':'ice','かくとう':'fighting','どく':'poison','じめん':'ground','ひこう':'flying','エスパー':'psychic','むし':'bug','いわ':'rock','ゴースト':'ghost','ドラゴン':'dragon','あく':'dark','はがね':'steel','フェアリー':'fairy'};
 (async()=>{
  const app=fs.readFileSync(SRC,'utf8');

@@ -1,4 +1,4 @@
-/* ポケチャン攻略Hub 背面タップ連携サーバー v5（掲示板・対戦募集つき）（Cloudflare Workers 用・このファイルをそのまま貼り付け）
+/* Game Kid/s 背面タップ連携サーバー v5（掲示板・対戦募集つき）（Cloudflare Workers 用・このファイルをそのまま貼り付け）
    iPhoneのショートカットから選出画面のスクリーンショットを受け取り、画像を理解できるAI（Claude）で
    相手のポケモンとタイプを読み取って、通知に収まる短い要約を返します。
    必要な設定（Workerの「設定」→「変数とシークレット」）:
@@ -372,7 +372,7 @@ export default{
       try{if(ct.includes('json')){const j=await req.json();text=j.text??text;team=String(j.team??team);mode=j.mode??mode}
         else if(ct.includes('form')){const f=await req.formData();text=f.get('text')||text;team=f.get('team')||team;mode=f.get('mode')||mode}
         else text=await req.text()||text}catch(e){}}
-    if(!text)return new Response('ポケチャン攻略Hub 背面タップ連携サーバーは動いています。',{headers:{...CORS,'Content-Type':'text/plain; charset=utf-8'}});
+    if(!text)return new Response('Game Kid/s 背面タップ連携サーバーは動いています。',{headers:{...CORS,'Content-Type':'text/plain; charset=utf-8'}});
     const teamNos=parseTeam(team).map(t=>t.no);
     const out=await summarize(text,teamNos,ctx,{excludeMine:mode==='full',ladder:u.searchParams.get('ladder')!=='0'});
     return new Response(out,{headers:{...CORS,'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});

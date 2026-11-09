@@ -2,7 +2,7 @@
    X などにリンクを貼ったとき、ここが返す題名・説明・画像（og）がカードとして表示される。
    人が開いたときは、すぐにサイトの「共有されたパーティ」の画面（#/share/…）へ移る。
    ポケモンの名前は、公開のときに作る /assets/mon-names.json（tools/gen-pages.cjs）から引く。 */
-const SITE='ポケチャン攻略Hub';
+const SITE='Game Kid/s';
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 export async function onRequest({request,env}){
   const u=new URL(request.url);
