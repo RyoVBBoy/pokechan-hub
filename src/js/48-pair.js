@@ -107,6 +107,26 @@ function prRank(mem){
 const prHoles=mem=>T.filter(t=>mem.filter(m=>prDef(m)[t]>=2).length>=2&&!mem.some(m=>prDef(m)[t]<=.5));
 const PR_TAG={top:'上位構築',live:'よく一緒',cover:'補完',answer:'対策',focus:'役割集中',pivot:'交代',relay:'場づくり',wx:'天気',bad:'注意'};
 let PR_N=8;
+/* 6匹そろっているとき（2026/11/09 依頼主：パーティの画面に戻すのではなく、入れかえ案を出し、こだわり条件も使えるように）：
+   上の6匹を押すと「入れかえたい匹」の印（PR_OUT＝番号の集まり）。印のある匹を外したパーティで、相性のいい順・こだわり条件で組む。
+   印がなければ、1匹ずつ外してみて、いちばん良くなる入れかえ（外す匹→入れる匹）を出す（prSwaps）。軸の匹は外さない。 */
+const PR_OUT=new Set();
+const prKeep=()=>team.filter(x=>!PR_OUT.has(x.no));
+const prSum=o=>o.R.reduce((t,r)=>t+r.pts,0)+(o.c.bst-500)/60;
+function prSwaps(){
+  const out=[];
+  team.forEach((x,i)=>{if(x.axis)return;const me=byNo[x.no];if(!me)return;
+    const rest=team.filter((_,j)=>j!==i).map(prMon).filter(Boolean);
+    let best;try{best=prRank(rest).find(o=>!team.some(y=>(byNo[y.no].base||y.no)===(o.c.base||o.c.no)))}catch(e){return}
+    if(!best)return;
+    let mine;try{mine=prScore(me,rest);prThreatCheck(mine,rest);mine.score=prSum(mine)}catch(e){return}
+    const gain=best.score-mine.score;if(gain>.5)out.push({i,x,o:best,gain})});
+  out.sort((a,b)=>b.gain-a.gain);
+  /* 入れる匹が重なる案は、良くなる方だけ */
+  const seen=new Set();return out.filter(r=>{if(seen.has(r.o.c.no))return false;seen.add(r.o.c.no);return true}).slice(0,4);
+}
+/* 入れかえ：印の付いた最初の匹（なければ i）を外して no を入れる（★選出は引きつぐ） */
+function prReplace(i,no,set){const x=team[i];if(!x)return;const nx={no,sel:!!x.sel};if(set)nx.set=set;team.splice(i,1,nx);PR_OUT.delete(x.no);saveTeam()}
 /* 表示の切りかえ：list＝相性のいい順／kd＝こだわり条件で組む（58-kodawari.js の kdPanel） */
 let PR_MODE=(()=>{try{return sessionStorage.getItem('pcprmode')||'list'}catch(e){return 'list'}})();
 const prModeHTML=()=>`<div class="pr-mode"><div class="fmtsw" role="group" aria-label="探し方"><button data-prm="list" aria-pressed="${PR_MODE==='list'}">相性のいい順</button><button data-prm="kd" aria-pressed="${PR_MODE==='kd'}">こだわり条件で組む</button></div></div>`;
@@ -127,7 +147,9 @@ async function pairView(arg){
   try{if(await liveInit()){const before=JSON.stringify(team.map(x=>x.no));await Promise.all(team.map(x=>liveMon(prMon(x).base||x.no)));if(keyOf(cur)==='pair'&&before===JSON.stringify(team.map(x=>x.no)))prDraw()}}catch(e){}
 }
 function prDraw(){
-  const mem=team.map(prMon).filter(Boolean);
+  [...PR_OUT].forEach(n=>{if(!team.some(x=>x.no===n))PR_OUT.delete(n)});
+  const full=team.length>=6;if(!full)PR_OUT.clear();
+  const mem=(full?prKeep():team).map(prMon).filter(Boolean);
   if(!mem.length){
     V.innerHTML=`<div class="pr-empty"><p class="lead" style="padding:18px 16px 6px">使いたいポケモンを1匹選ぶと、そのポケモンと<b>相性のいい仲間</b>を、理由つきで順番に出します。こだわり条件で6匹まとめて組むこともできます。</p>
       <div class="btns"><button class="btn btn-p" id="pr-pick">${SVG(I.plus,18)}使いたいポケモンを選ぶ</button></div>
@@ -137,25 +159,44 @@ function prDraw(){
     prModeBind();if(PR_MODE==='kd')kdPanel(document.getElementById('kd-root'));return;
   }
   const holes=prHoles(mem);
-  V.innerHTML=`<div class="pr-team">${team.map((x,i)=>{const p=byNo[x.no];return `<button class="pr-m" data-rm="${i}" aria-label="${esc(p.n)}を外す"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small><i>×</i></button>`}).join('')}${Array.from({length:6-team.length},()=>'<span class="pr-m pr-m--e"></span>').join('')}</div>
-    ${team.length>=6?`<div class="bnote" style="margin:12px 16px">6匹そろいました。パーティの画面の「チェック」と「構築と選出」で、苦手な相手や選出の考え方を確かめましょう。</div><div class="btns"><a class="btn btn-p" href="#/team">パーティの画面へ</a></div>`:`
+  const outN=team.filter(x=>PR_OUT.has(x.no)).map(x=>formInfo(byNo[x.no]).base);
+  V.innerHTML=`<div class="pr-team">${team.map((x,i)=>{const p=byNo[x.no],o=full&&PR_OUT.has(x.no);return full
+      ?`<button class="pr-m${o?' pr-m--out':''}" data-out="${x.no}" aria-pressed="${o}" aria-label="${esc(p.n)}を入れかえ${o?'ない':'たい'}"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small>${o?'<em>入れかえ</em>':''}</button>`
+      :`<button class="pr-m" data-rm="${i}" aria-label="${esc(p.n)}を外す"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small><i>×</i></button>`}).join('')}${Array.from({length:6-team.length},()=>'<span class="pr-m pr-m--e"></span>').join('')}</div>
+    ${full?`<p class="note" style="padding:8px 16px 0">${outN.length?`<b>${esc(outN.join('・'))}</b>を入れかえる前提で、残りの${6-outN.length}匹と相性のいいポケモンを探します。もう一度押すと元に戻ります。`:'6匹そろっています。入れかえたいポケモンを上で押すと、その枠に入る候補を探せます。押さなければ、パーティ全体がいちばん良くなる入れかえ案を出します。'}</p>`:''}
     ${holes.length?`<div class="pr-hole"><b>いまのパーティで受けにくいタイプ</b><div class="chips">${holes.map(chip).join('')}</div><small>2匹以上が弱点で、半減以下で受けられる仲間がいません。下の候補で埋められます。</small></div>`:''}
     ${prModeHTML()}
-    ${PR_MODE==='kd'?'<div id="kd-root"></div>':`<div class="sec"><h2>次に入れるとよいポケモン</h2><span style="font-size:12px;color:var(--dim)">理由の多い順</span></div>
-    <div id="pr-list"><p class="empty">計算中…</p></div>`}`}`;
+    ${PR_MODE==='kd'?'<div id="kd-root"></div>':`<div class="sec"><h2>${full?(outN.length?`${esc(outN.join('・'))}の代わりに入れるとよいポケモン`:'入れかえ案'):'次に入れるとよいポケモン'}</h2><span style="font-size:12px;color:var(--dim)">${full&&!outN.length?'良くなる順':'理由の多い順'}</span></div>
+    <div id="pr-list"><p class="empty">計算中…</p></div>`}`;
   V.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();if(typeof KD!=='undefined')KD.res=null;prDraw()});
-  if(team.length>=6)return;
+  V.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>{const n=+b.dataset.out;if(PR_OUT.has(n))PR_OUT.delete(n);else{if(PR_OUT.size>=5){toast('1匹は残してください');return}PR_OUT.add(n)}if(typeof KD!=='undefined')KD.res=null;const y=scrY();prDraw();scrTo(0,y)});
   prModeBind();
   if(PR_MODE==='kd'){kdPanel(document.getElementById('kd-root'));return}
+  if(full&&!PR_OUT.size){setTimeout(()=>prSwapDraw(),30);return}
   setTimeout(()=>{
     const list=prRank(mem).slice(0,PR_N),el=document.getElementById('pr-list');if(!el)return;
     el.innerHTML=list.map((o,k)=>{const c=o.c,rs=o.R.filter(r=>r.k!=='bad'&&r.txt).sort((a,b)=>b.pts-a.pts).slice(0,4),bad=o.R.filter(r=>r.k==='bad');
       return `<div class="pr-c"><a class="row" href="#/p/${c.no}"><span class="av">${stamp(c)}</span><div class="row-m"><div class="row-t">${k<3?`<span class="pr-rank">${k+1}</span>`:''}${nm(c)}</div><div class="chips">${c.t.map(chip).join('')}<span class="rt">${c.roles.join('・')}</span></div></div></a>
         <ul class="pr-why">${rs.map(r=>`<li><span class="pr-tag pr-${r.k}">${PR_TAG[r.k]}</span>${esc(r.txt)}</li>`).join('')}${bad.map(r=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(r.txt)}</li>`).join('')}${!rs.length?'<li>能力の高さで選んだ候補です</li>':''}</ul>
-        <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-add="${c.no}">${SVG(I.plus,16)}パーティに入れる</button></div></div>`}).join('')
+        <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-add="${c.no}">${SVG(I.plus,16)}${full?`${esc(outN[0]||'')}と入れかえる`:'パーティに入れる'}</button></div></div>`}).join('')
       +`<div class="btns"><button class="btn btn-s" id="pr-more">もっと見る</button></div>
       <p class="note" style="color:var(--mute)">点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、使用率の高い型どうしのダメージ計算です。</p>`;
-    el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const no=+b.dataset.add;if(team.length<6&&!team.some(x=>x.no===no)){team.push({no,sel:team.filter(x=>x.sel).length<PICK()});saveTeam();toast(`${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).then(()=>{if(keyOf(cur)==='pair')prDraw()}).catch(()=>{})}});
+    el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const no=+b.dataset.add;
+      if(full){const i=team.findIndex(x=>PR_OUT.has(x.no));if(i<0)return;const old=byNo[team[i].no].n;prReplace(i,no);toast(`${old}を外して${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).catch(()=>{});return}
+      if(team.length<6&&!team.some(x=>x.no===no)){team.push({no,sel:team.filter(x=>x.sel).length<PICK()});saveTeam();toast(`${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).then(()=>{if(keyOf(cur)==='pair')prDraw()}).catch(()=>{})}});
     document.getElementById('pr-more').onclick=()=>{PR_N+=8;prDraw()};
   },30);
+}
+/* 入れかえ案（6匹そろっていて、入れかえたい匹を選んでいないとき） */
+function prSwapDraw(){
+  const el=document.getElementById('pr-list');if(!el)return;
+  const sw=prSwaps();
+  if(!sw.length){el.innerHTML='<p class="note">いまの6匹より相性の点が大きく良くなる入れかえは見つかりませんでした。気になるポケモンを上で押すと、その枠に入る候補を探せます。</p>';return}
+  el.innerHTML=sw.map((r,k)=>{const c=r.o.c,old=byNo[r.x.no],rs=r.o.R.filter(z=>z.k!=='bad'&&z.txt).sort((a,b)=>b.pts-a.pts).slice(0,3),bad=r.o.R.filter(z=>z.k==='bad');
+    return `<div class="pr-c"><div class="row pr-sw"><span class="av">${stamp(old)}</span><span class="pr-arrow">→</span><a class="av" href="#/p/${c.no}">${stamp(c)}</a><div class="row-m"><div class="row-t">${k<3?`<span class="pr-rank">${k+1}</span>`:''}${esc(formInfo(old).base)} → ${nm(c)}</div><div class="chips">${c.t.map(chip).join('')}<span class="rt">${c.roles.join('・')}</span></div></div></div>
+      <ul class="pr-why">${rs.map(z=>`<li><span class="pr-tag pr-${z.k}">${PR_TAG[z.k]}</span>${esc(z.txt)}</li>`).join('')}${bad.map(z=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(z.txt)}</li>`).join('')}</ul>
+      <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-sw="${r.i}:${c.no}">入れかえる</button><button class="btn btn-s" data-swo="${r.x.no}">ほかの候補を見る</button></div></div>`}).join('')
+    +'<p class="note" style="color:var(--mute)">1匹ずつ外してみて、残りの5匹と相性のいいポケモンの点が、外した匹より高くなる入れかえを、良くなる順に出しています。軸にしたポケモンは外しません。</p>';
+  el.querySelectorAll('[data-sw]').forEach(b=>b.onclick=()=>{const [i,no]=b.dataset.sw.split(':').map(Number);const old=byNo[team[i].no].n;prReplace(i,no);toast(`${old}を外して${byNo[no].n}を入れました`);prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).catch(()=>{})});
+  el.querySelectorAll('[data-swo]').forEach(b=>b.onclick=()=>{PR_OUT.add(+b.dataset.swo);prDraw();scrTo(0,0)});
 }

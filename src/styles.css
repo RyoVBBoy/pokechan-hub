@@ -1665,3 +1665,8 @@ body::before{inset:0;background:
  .natg-hd{font-size:10.5px;letter-spacing:-.05em}.natg-hd i{font-size:7px}.natg-b{font-size:11px;letter-spacing:-.07em;padding:2px 0;word-break:keep-all;overflow-wrap:normal;white-space:nowrap}}
 
 .pill.pill-off{opacity:.45}
+/* 相性のいい仲間：6匹そろったときの入れかえ（2026/11/09） */
+.pr-m--out{border-color:var(--acc);background:var(--acc-t);opacity:.75}
+.pr-m--out .av{filter:grayscale(.7)}
+.pr-m em{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-style:normal;font-size:10px;font-weight:800;background:var(--accf);color:var(--onacc);border-radius:99px;padding:1px 7px;white-space:nowrap}
+.pr-sw{gap:8px}.pr-sw .pr-arrow{color:var(--dim);font-weight:800}.pr-sw a.av{flex:none}

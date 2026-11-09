@@ -158,7 +158,8 @@ function kdBuild(){
 }
 /* 2026/11/08 依頼主：「こだわり条件で組む」はツールではなく「相性のいい仲間を探す」（48-pair.js、#/pair・#/pair/kd）の中に入れる。
    最初に決めたポケモン＝いまのパーティの匹（前の「絶対入れたいポケモン」の代わり）。 */
-const kdMust=()=>(typeof team!=='undefined'?team:[]).map(x=>x.no).filter(n=>byNo[n]).slice(0,6);
+/* 6匹そろっていて「入れかえたい」印（48-pair.js の PR_OUT）があれば、その匹を除いた残りから組む */
+const kdMust=()=>(typeof team!=='undefined'?team:[]).filter(x=>!(team.length>=6&&typeof PR_OUT!=='undefined'&&PR_OUT.has(x.no))).map(x=>x.no).filter(n=>byNo[n]).slice(0,6);
 /* 帯の数（2026/11/08 依頼主：組み合わせの数は意味がないので「何匹か」に）：
    最初に決めたポケモンと相性がいい（prRank の点が、いちばん高い点の6割以上）＋こだわり条件に合うポケモンの数。
    1匹ずつ見られる条件だけで数える：構築のタイプの役わりのどれかに当てはまる・物理/特殊中心・人気/読まれにくい・合計種族値・入れたくない匹を除く。
@@ -186,7 +187,7 @@ function kdPanel(root){
   const subs=KD_SUB[KD.big]||KD_SUB.auto,cur0=KD_TYPES.find(t=>t[0]===KD.type)||KD_TYPES[0];
   const optSec=([h,list])=>`<div class="kd-sh">${h}</div><div class="kd-grid">${list.map(([k,l])=>cb(k==='resist'?KD.opt.resist!==false:!!KD.opt[k],`data-kd-opt="${k}"`,l)).join('')}</div>`;
   const R=KD.res,M=kdMatch(),names=M.mem.map(m=>esc(formInfo(m).base));
-  root.innerHTML=`<p class="note">家さがしの「こだわり条件」のように、ゆずれない条件にチェックを入れてください。${M.mem.length?`上の${names.join('・')}から、残り${6-M.mem.length}匹を条件に合わせて組みます。`:'ポケモンを1匹も決めていなくても、6匹まとめて組めます。'}</p>
+  root.innerHTML=`<p class="note">家さがしの「こだわり条件」のように、ゆずれない条件にチェックを入れてください。${M.mem.length>=6?'<b>6匹そろっています。入れかえたいポケモンを上で押すと、その枠を条件に合わせて組み直せます。</b>':M.mem.length?`上の${names.join('・')}から、残り${6-M.mem.length}匹を条件に合わせて組みます。`:'ポケモンを1匹も決めていなくても、6匹まとめて組めます。'}</p>
   <div class="kd-card">
     <div class="kd-sh">構築のタイプ</div>
     <div class="kd-grid">${KD_BIG.map(([k,l])=>cb(KD.big===k,`data-kd-big="${k}"`,l)).join('')}</div>
@@ -263,7 +264,10 @@ function kdResBind(){
   document.querySelectorAll('[data-kd-pg]').forEach(b=>b.onclick=()=>{kdEnsure(+b.dataset.kdPg);const box=document.getElementById('kd-res');if(box)box.scrollIntoView({behavior:'smooth',block:'start'})});
   const u=document.getElementById('kd-use'),R=RR.open>=0&&RR.list[RR.open];if(!u||!R)return;
   /* いまのパーティに足す（もともといた匹の育成はそのまま） */
-  u.onclick=()=>{const have=new Set(team.map(x=>kdBase(byNo[x.no]).no));let k=0;
+  u.onclick=()=>{
+    /* 入れかえ（6匹そろっていて印がある）：印の匹を外してから足す。★選出の数は引きつぐ */
+    if(team.length>=6&&typeof PR_OUT!=='undefined'&&PR_OUT.size){const out=team.filter(x=>PR_OUT.has(x.no));team=team.filter(x=>!PR_OUT.has(x.no));PR_OUT.clear()}
+    const have=new Set(team.map(x=>kdBase(byNo[x.no]).no));let k=0;
     R.mons.forEach((m,i)=>{if(have.has(m.no)||team.length>=6)return;team.push({no:m.no,sel:team.filter(x=>x.sel).length<PICK(),set:toSaved(R.ss[i])});k++});
     saveTeam();KD.res=null;toast(k?`${k}匹をパーティに入れました`:'パーティはもういっぱいです');nav('#/team')};
 }
