@@ -14,6 +14,7 @@ const QA=[
   {id:'party-create',t:['パーティ新規作成','New team'],s:['パーティ','Team'],ic:'plus',d:['空いている枠で新しい構築を作る','Start a new team in an empty slot']}];
 const qaOf=id=>QA.find(x=>x.id===id);
 const qaName=id=>{const q=qaOf(id)||qaOf(QA_DEF);return L(q.t[0],q.t[1])};
+/* 設定の行の右に出す短い名前（メニューの幅は最大320pxで、正式な名前だと「お気に入りショートカット」が2行になるため） */
 const qaShort=id=>{const q=qaOf(id)||qaOf(QA_DEF);return L(q.s[0],q.s[1])};
 function qaGet(){let v=null;try{v=localStorage.getItem(QA_KEY)}catch(e){}return qaOf(v)?v:QA_DEF}
 function qaSet(id){if(!qaOf(id))id=QA_DEF;try{localStorage.setItem(QA_KEY,id)}catch(e){}qaPaint()}
@@ -64,9 +65,10 @@ function qaPaint(){
 /* 設定画面（左から出るメニューの「設定とプライバシー」）の「お気に入りショートカット」。ラジオボタンで選ぶと保存（実行はしない）。
    2026/11/10 依頼主：縦に長いのでカプセル型の札（絵＋名前）を並べる。短い説明は札の title に */
 function qaSettingsHTML(){const id=qaGet();
-  /* 2026/11/10 依頼主「X の設定画面のようなリスト」：1行（⚡・名前・説明・右に今の機能）を押すと、下に3つの選択肢が開く */
-  return drAcc('qa',I.zap,L('お気に入りショートカット','Favorite shortcut'),`<span class="qa-sd">${L('サイドナビの⚡ボタンを押したときに実行する機能を選択できます。','Choose what the ⚡ button in the side navigation does.')}</span>`,qaShort(id),
-    `<div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt dr-opt"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}>${drRowIn(I[q.ic]||I.zap,L(q.t[0],q.t[1]),L(q.d[0],q.d[1]),`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</label>`).join('')}</div>`)}
+  /* 2026/11/10 依頼主「X の設定画面のようなリスト」：1行（⚡・名前・右に今の機能）を押すと、下に3つの選択肢が開く（説明の文は開いた中の一番上） */
+  return drAcc('qa',I.zap,L('お気に入りショートカット','Favorite shortcut'),qaShort(id),
+    `<div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt dr-opt"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}>${drRowIn(I[q.ic]||I.zap,L(q.t[0],q.t[1]),'',`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</label>`).join('')}</div>`,
+    `<span class="qa-sd">${L('サイドナビの⚡ボタンを押したときに実行する機能を選択できます。','Choose what the ⚡ button in the side navigation does.')}</span>`)}
 /* 選んだら保存。⚡の名前（PC の文字・スマホの六角形の中）もすぐ変わる */
 document.addEventListener('change',e=>{const r=e.target;if(r&&r.name==='qa-set'&&r.checked){qaSet(r.value);
   /* 設定の行の右の表示を変え、少し見せてから選択肢を閉じる */

@@ -1883,45 +1883,48 @@ body::before{inset:0;background:
 /* ===================== 設定とプライバシー＝X の設定画面のようなリスト（2026/11/10 依頼主） =====================
    1項目＝1行：左に絵／中に名前（太字）と説明（小さな灰色）／右に ›・オン/オフ・今の選択。行のあいだに1pxの線、PC はマウスを乗せた行が薄く光る。
    選ぶ項目は行を押すと下に選択肢（✓ が今の選択）。押せる所は高さ44px以上。保存のしかた（localStorage）は変えていない */
-:root{--dr-line:rgba(255,255,255,.08);--dr-hov:rgba(255,255,255,.03);--dr-prs:rgba(255,255,255,.06);--dr-sub:rgba(255,255,255,.025);--dr-tg:rgba(255,255,255,.22)}
-:root[data-theme=light]{--dr-line:rgba(30,32,60,.08);--dr-hov:rgba(30,32,60,.03);--dr-prs:rgba(30,32,60,.06);--dr-sub:rgba(30,32,60,.025);--dr-tg:rgba(30,32,60,.2)}
+:root{--dr-line:rgba(255,255,255,.08);--dr-hov:rgba(255,255,255,.03);--dr-prs:rgba(255,255,255,.06);--dr-sub:rgba(255,255,255,.025);--dr-tg:rgba(255,255,255,.22);--dr-t:#fff;--dr-v:rgba(255,255,255,.5)}
+:root[data-theme=light]{--dr-line:rgba(30,32,60,.08);--dr-hov:rgba(30,32,60,.03);--dr-prs:rgba(30,32,60,.06);--dr-sub:rgba(30,32,60,.025);--dr-tg:rgba(30,32,60,.2);--dr-t:#0f1419;--dr-v:rgba(15,20,25,.5)}
 .dr-d summary{transition:background .2s}
 @media(hover:hover){.dr-d>summary:hover{background:var(--dr-hov)}}
 .dr-d>summary:active{background:var(--dr-prs)}
 .dr-set{padding:0 0 8px}
 .dr-sec{margin-top:4px}
-.dr-sh{margin:0;padding:16px 16px 6px;font-size:13px;font-weight:700;color:var(--dim);letter-spacing:.02em}
-.dr-row{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px 10px 16px;margin:0;border:0;border-bottom:1px solid var(--dr-line);background:none;color:var(--fg);font:inherit;text-align:left;text-decoration:none;cursor:pointer;list-style:none;transition:background .2s ease}
+.dr-sh{margin:0;padding:16px 12px 6px;font-size:13px;font-weight:700;color:var(--dim);letter-spacing:.02em}
+.dr-row{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:16px 12px;margin:0;border:0;border-bottom:1px solid var(--dr-line);background:none;color:var(--dr-t);font:inherit;text-align:left;text-decoration:none;cursor:pointer;list-style:none;transition:background .2s ease}
 .dr-row::-webkit-details-marker{display:none}
 @media(hover:hover){.dr-row:hover{background:var(--dr-hov)}}
 .dr-row:active{background:var(--dr-prs)}
 .dr-row:focus-visible,.dr-opt:focus-visible,.dr-opt:has(input:focus-visible){outline:2px solid var(--acc);outline-offset:-2px}
 .dr-row:disabled{opacity:.6}
-.dr-ri{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;color:var(--fg)}
+.dr-ri{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;color:var(--dr-t)}
 .dr-rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.dr-rt b{font-size:15px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.dr-rt b{font-size:15px;font-weight:700;line-height:1.3;color:var(--dr-t);overflow-wrap:anywhere}
+.dr-row>.dr-rt{flex:1 1 auto}.dr-row>.dr-rt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dr-push .dr-row>.dr-rt{flex:1 1 auto}#dr-push .dr-row>.dr-rt b{white-space:normal}
 .dr-rt small{font-size:13px;line-height:1.4;color:var(--dim);overflow-wrap:anywhere}
-.dr-rr{flex:none;display:inline-flex;align-items:center;gap:2px;max-width:38%;color:var(--dim);font-size:13px}
+.dr-rr{flex:none;max-width:55%;display:inline-flex;align-items:center;justify-content:flex-end;gap:2px;margin-left:auto;color:var(--dr-v);font-size:15px}
 .dr-rv{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dr-chev{display:inline-flex;color:var(--mute,var(--dim));transition:transform .2s ease}
+.dr-chev{display:inline-flex;color:var(--dr-v);transition:transform .2s ease}
 .dr-acc[open]>.dr-row .dr-chev{transform:rotate(90deg)}
 .dr-acc[open]>.dr-row{border-bottom-color:transparent}
 /* 選択肢（行の下に開く） */
-.dr-opts{display:flex;flex-direction:column;background:var(--dr-sub);border-bottom:1px solid var(--dr-line);animation:drOpen .2s ease}
-@keyframes drOpen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.dr-opts{display:flex;flex-direction:column;background:var(--dr-sub);border-bottom:1px solid var(--dr-line);transform-origin:top;animation:drOpen .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes drOpen{from{opacity:0;transform:translateY(-8px);clip-path:inset(0 0 100% 0)}to{opacity:1;transform:none;clip-path:inset(0 0 0 0)}}
+.dr-note{margin:0;padding:10px 12px 4px 48px;font-size:12px;line-height:1.5;color:var(--dr-v)}
 .qa-set{display:flex;flex-direction:column}
-.dr-opt{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:52px;padding:8px 16px 8px 54px;margin:0;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer;transition:background .2s ease}
-.dr-opt+.dr-opt{box-shadow:inset 54px 1px 0 -53px var(--dr-line)}
+.dr-opt{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:12px 12px 12px 48px;margin:0;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer;transition:background .2s ease}
+.dr-opt+.dr-opt,.qa-set>.dr-opt+.dr-opt{box-shadow:inset 0 1px 0 var(--dr-line)}
 @media(hover:hover){.dr-opt:hover{background:var(--dr-hov)}}
 .dr-opt:active{background:var(--dr-prs)}
-.dr-opt .dr-ri{width:20px;color:var(--dim)}
-.dr-opt .dr-rt b{font-size:14px;font-weight:600}
+.dr-opt .dr-ri{width:20px;color:var(--dr-v)}
+.dr-opt .dr-rt b{font-size:15px;font-weight:500}
 .dr-opt .dr-rt small{font-size:12px}
 .dr-opt input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
 .dr-ck{display:inline-flex;color:var(--acc);opacity:0;transform:scale(.6);transition:opacity .18s,transform .18s}
 .dr-opt[aria-pressed=true] .dr-ck,.dr-opt:has(input:checked) .dr-ck{opacity:1;transform:none}
-.dr-opt[aria-pressed=true] .dr-rt b,.dr-opt:has(input:checked) .dr-rt b{font-weight:800}
-.dr-opt[aria-pressed=true] .dr-ri,.dr-opt:has(input:checked) .dr-ri{color:var(--fg)}
+.dr-opt[aria-pressed=true] .dr-rt b,.dr-opt:has(input:checked) .dr-rt b{font-weight:700}
+.dr-opt[aria-pressed=true] .dr-ri,.dr-opt:has(input:checked) .dr-ri{color:var(--dr-t)}
 .dr-dot{display:inline-block;width:16px;height:16px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
 .dr-rv .dr-dot{width:12px;height:12px}
 /* オン/オフ（スマホへの通知） */

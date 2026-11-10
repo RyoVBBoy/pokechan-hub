@@ -133,14 +133,20 @@ for(const W of [320,390,1280]){
   const c=await pg.evaluate(()=>{const P=document.querySelector('.dr-p'),pr=P.getBoundingClientRect();
     const secs=[...document.querySelectorAll('#drawer .dr-sec .dr-sh')].map(x=>x.textContent);
     const rows=[...document.querySelectorAll('#drawer .dr-row')].filter(x=>x.getClientRects().length);
-    const shape=rows.every(r=>r.querySelector('.dr-ri svg,.dr-ri .dr-dot')&&r.querySelector('.dr-rt b')&&r.querySelector('.dr-rt small')&&r.querySelector('.dr-rr'));
+    const shape=rows.every(r=>r.querySelector('.dr-ri svg,.dr-ri .dr-dot')&&r.querySelector('.dr-rt b')&&r.querySelector('.dr-rr'));
+    /* 説明の行は通知（使えない・ブロック中のとき）だけ。名前は15px・太字、行の上下の余白16px・左右12px */
+    const wrap=rows.filter(r=>!r.closest('#dr-push')).filter(r=>r.querySelector('.dr-rt b').getBoundingClientRect().height>26).map(r=>r.textContent);
+    const capt=rows.filter(r=>r.querySelector('.dr-rt small')&&!r.closest('#dr-push')).map(r=>r.textContent);
+    const b0=getComputedStyle(rows[0].querySelector('.dr-rt b')),r0=getComputedStyle(rows[0]);
+    const font=[b0.fontSize,b0.fontWeight,r0.paddingTop,r0.paddingLeft,b0.color,getComputedStyle(rows[0].querySelector('.dr-rr')).color].join();
     const right=rows.map(r=>r.querySelector('.dr-rr .dr-chev')?'chev':r.querySelector('.dr-rr .dr-tg')?'tg':r.querySelector('.dr-rr .dr-rv')?'val':'-');
     const line=getComputedStyle(rows[0]).borderBottomWidth;
     const tap=[...document.querySelectorAll('#drawer .dr-row,#drawer .dr-opt,#drawer .dr-d>summary')].filter(x=>x.getClientRects().length).filter(x=>{const r=x.getBoundingClientRect();return r.height<44}).map(x=>x.textContent);
     const out=[...P.querySelectorAll('*')].filter(x=>{const r=x.getBoundingClientRect();return r.width&&(r.right>pr.right+0.5||r.left<pr.left-0.5)}).map(x=>x.className);
     const opts=[...document.querySelectorAll('#drawer .dr-acc[data-acc=theme] .dr-opt')].map(o=>o.dataset.themeSet+':'+o.getAttribute('aria-pressed')+':'+(getComputedStyle(o.querySelector('.dr-ck')).opacity));
-    return {secs,shape,right,line,tap,out,sw:P.scrollWidth-P.clientWidth,opts,open:document.querySelectorAll('#drawer .dr-acc[open]').length,qa:!!document.querySelector('#drawer .dr-acc[data-acc=qa] .qa-set input[name=qa-set]'),push:!!document.querySelector('#drawer .dr-sec #dr-push .dr-row')}});
+    return {secs,shape,wrap,capt,font,right,line,tap,out,sw:P.scrollWidth-P.clientWidth,opts,open:document.querySelectorAll('#drawer .dr-acc[open]').length,qa:!!document.querySelector('#drawer .dr-acc[data-acc=qa] .qa-set input[name=qa-set]'),push:!!document.querySelector('#drawer .dr-sec #dr-push .dr-row')}});
   ok(c.secs.join('/')==='表示・カスタマイズ/通知/アカウント＆セキュリティ/ヘルプ＆サポート'&&c.shape&&c.line==='1px',W+'：リストの形 '+JSON.stringify(c.secs)+c.shape+c.line);
+  ok(!c.wrap.length&&!c.capt.length&&c.font==='15px,700,16px,12px,rgb(255, 255, 255),rgba(255, 255, 255, 0.5)',W+'：1段の行・文字と余白 '+c.wrap+c.capt+' '+c.font);
   ok(c.right.includes('chev')&&c.right.includes('val')&&c.qa&&c.push,W+'：右の操作・ショートカット・通知 '+c.right);
   ok(c.opts.join()==='auto:false:0,light:false:0,dark:true:1'&&c.open===1,W+'：明るさの選択肢 '+c.opts+' '+c.open);
   ok(!c.tap.length,W+'：44px 未満の押せる所 '+c.tap);

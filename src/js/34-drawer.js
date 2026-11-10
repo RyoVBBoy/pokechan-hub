@@ -15,17 +15,17 @@ I.lock='<rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.2 10.5
 I.doc='<path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M13.5 3.5v4.5h4.5M9.5 12.5h5M9.5 16h5"/>';
 I.mail='<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="m4 7 8 6 8-6"/>';
 I.flag='<path d="M5.5 20.5v-16M5.5 4.5h11l-2 4 2 4h-11"/>';
-/* 2026/11/10 依頼主「X の設定画面のようなリスト」：1項目＝1行（左に絵・中に名前と説明・右に › かオン/オフか今の選択）。
+/* 2026/11/10 依頼主「X の設定画面のようなリスト」：1項目＝1行（左に絵・中に太字の名前だけ・右に › かオン/オフか今の選択。2026/11/10 同日「X の設定トップと同じに」で説明の行を外した）。
    選ぶ項目（お気に入りショートカット・明るさ・テーマの色・背景の光・言語）は、行を押すと下に選択肢が開く（同時に開くのは1つ）。
    保存のしかた（setTheme・setAccent・setLang・qaSet＝localStorage）は前と同じ */
 const drChev=()=>`<span class="dr-chev" aria-hidden="true">${SVG(I.chev,18)}</span>`;
 const drRowIn=(ic,t,s,right)=>`<span class="dr-ri" aria-hidden="true">${String(ic).startsWith('<span')?ic:SVG(ic,20)}</span><span class="dr-rt"><b>${t}</b>${s?`<small>${s}</small>`:''}</span><span class="dr-rr">${right||''}</span>`;
 /* 画面へ移る行 */
-const drLink=(h,ic,t,s,x)=>`<a class="dr-row" href="${h}"${x||''}>${drRowIn(ic,t,s,drChev())}</a>`;
+const drLink=(h,ic,t,x)=>`<a class="dr-row" href="${h}"${x||''}>${drRowIn(ic,t,'',drChev())}</a>`;
 /* 押すと選択肢が開く行。v＝右に出す今の選択 */
-const drAcc=(id,ic,t,s,v,body)=>`<details class="dr-acc" data-acc="${id}"><summary class="dr-row">${drRowIn(ic,t,s,`<span class="dr-rv" id="dr-v-${id}">${v}</span>${drChev()}`)}</summary><div class="dr-opts" role="group" aria-label="${t}">${body}</div></details>`;
+const drAcc=(id,ic,t,v,body,note)=>`<details class="dr-acc" data-acc="${id}"><summary class="dr-row">${drRowIn(ic,t,'',`<span class="dr-rv" id="dr-v-${id}">${v}</span>${drChev()}`)}</summary><div class="dr-opts" role="group" aria-label="${t}">${note?`<p class="dr-note">${note}</p>`:''}${body}</div></details>`;
 /* 選択肢の1行（選んでいるものに ✓） */
-const drOpt=(attr,on,ic,t,s)=>`<button class="dr-opt" ${attr} aria-pressed="${on}">${drRowIn(ic,t,s,`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</button>`;
+const drOpt=(attr,on,ic,t)=>`<button class="dr-opt" ${attr} aria-pressed="${on}">${drRowIn(ic,t,'',`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</button>`;
 const drDot=c=>`<span class="dr-dot" style="background:${c}"></span>`;
 const accCol=a=>THEME==='light'?a[3]:a[5];
 /* 選択肢を押したとき：✓ と右の表示をすぐ変え、少し見せてから切りかえる（切りかえると読み直す） */
@@ -52,23 +52,23 @@ function drawerHTML(){
       <div class="dr-set">
         <section class="dr-sec" aria-label="表示・カスタマイズ"><h3 class="dr-sh">表示・カスタマイズ</h3>
           ${typeof qaSettingsHTML==='function'&&curGame().fab?qaSettingsHTML():''}
-          ${drAcc('theme',I.sun,'明るさ','画面を明るくするか暗くするか',{auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF],
-            [['auto','端末に合わせる','端末のライト／ダークに合わせて切りかわる',I.phone],['light','ライト','明るい画面',I.sun],['dark','ダーク','暗い画面',I.moon]].map(([k,n,d,ic])=>drOpt(`data-theme-set="${k}"`,THEME_PREF===k,ic,n,d)).join(''))}
-          ${drAcc('accent',I.palette,'テーマの色','ボタン・選んでいる所・リンクの色',drDot(accCol(ACCENTS[ACCENT]))+L(ACCENTS[ACCENT][0],ACCENTS[ACCENT][1]),
-            Object.entries(ACCENTS).map(([k,a])=>drOpt(`data-acc-set="${k}" title="${L(a[0],a[1])}"`,ACCENT===k,drDot(accCol(a)),L(a[0],a[1]),'')).join(''))}
-          ${drAcc('glow',I.spark,'背景の光','画面の右上のぼんやりした光',{strong:'強め',normal:'ふつう',off:'なし'}[GLOW]||'ふつう',
-            [['strong','強め','光をはっきり出す'],['normal','ふつう','はじめの明るさ'],['off','なし','光を出さない']].map(([k,n,d])=>drOpt(`data-glow-set="${k}"`,GLOW===k,I.spark,n,d)).join(''))}
-          ${drAcc('lang',I.globe,'言語 / Language','画面の言葉',(LANGS.find(x=>x[0]===LANG)||LANGS[0])[1],
-            LANGS.map(([k,n])=>drOpt(`data-lang-set="${k}"`,LANG===k,I.globe,n,'')).join(''))}
+          ${drAcc('theme',I.sun,'明るさ',{auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF],
+            [['auto','端末に合わせる',I.phone],['light','ライト',I.sun],['dark','ダーク',I.moon]].map(([k,n,ic])=>drOpt(`data-theme-set="${k}"`,THEME_PREF===k,ic,n)).join(''))}
+          ${drAcc('accent',I.palette,'テーマの色',drDot(accCol(ACCENTS[ACCENT]))+L(ACCENTS[ACCENT][0],ACCENTS[ACCENT][1]),
+            Object.entries(ACCENTS).map(([k,a])=>drOpt(`data-acc-set="${k}" title="${L(a[0],a[1])}"`,ACCENT===k,drDot(accCol(a)),L(a[0],a[1]))).join(''))}
+          ${drAcc('glow',I.spark,'背景の光',{strong:'強め',normal:'ふつう',off:'なし'}[GLOW]||'ふつう',
+            [['strong','強め'],['normal','ふつう'],['off','なし']].map(([k,n])=>drOpt(`data-glow-set="${k}"`,GLOW===k,I.spark,n)).join(''))}
+          ${drAcc('lang',I.globe,'言語 / Language',(LANGS.find(x=>x[0]===LANG)||LANGS[0])[1],
+            LANGS.map(([k,n])=>drOpt(`data-lang-set="${k}"`,LANG===k,I.globe,n)).join(''))}
         </section>
         <section class="dr-sec" aria-label="通知"><h3 class="dr-sh">通知</h3><div id="dr-push"></div></section>
         <section class="dr-sec" aria-label="アカウントとセキュリティ"><h3 class="dr-sh">アカウント＆セキュリティ</h3>
-          ${drLink('#/account',I.user,'アカウント','ログイン・プロフィールの編集')}${drLink('#/privacy',I.lock,'プライバシーポリシー','集める情報と、その使い方')}${drLink('#/terms',I.doc,'利用規約','このサイトを使うときの決まり')}</section>
+          ${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>
       </div></details>
     <details class="dr-d"><summary>${SVG(I.help,22)}<span>ヘルプセンター</span></summary>
       <div class="dr-set">
         <section class="dr-sec" aria-label="ヘルプとサポート"><h3 class="dr-sh">ヘルプ＆サポート</h3>
-          ${drLink('#/rules',I.chat,'コミュニティの利用ルール','投稿するときの決まり')}${drLink('#/guide',I.book,'基本ルール（計算式など）','能力ポイント・性格・ダメージの計算式')}${drLink('#/sources',I.info,'データの出典と確認状況','数値をどこで確かめたか')}${drLink('#/contact',I.mail,'お問い合わせ','不具合・要望・データの間違い')}${drLink('#/contact',I.flag,'この画面の間違いを報告','いま見ている画面について送る',' data-report')}</section>
+          ${drLink('#/rules',I.chat,'コミュニティの利用ルール')}${drLink('#/guide',I.book,'基本ルール（計算式など）')}${drLink('#/sources',I.info,'データの出典と確認状況')}${drLink('#/contact',I.mail,'お問い合わせ')}${drLink('#/contact',I.flag,'この画面の間違いを報告',' data-report')}</section>
       </div></details>
   </nav>`;
 }
