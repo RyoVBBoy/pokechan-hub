@@ -1686,7 +1686,9 @@ body::before{inset:0;background:
 .dg-k{display:inline-block;font-size:11px;font-weight:800;border-radius:99px;padding:1px 8px;margin-right:6px;background:var(--acc-t);color:var(--acc)}
 .dg-k5,.dg-k4{background:rgba(78,201,138,.16);color:#3fb37a}.dg-k2{background:rgba(240,180,40,.16);color:var(--gold)}.dg-k1{background:rgba(244,33,46,.12);color:var(--w4)}
 .dg-nosw{color:#e5484d;font-weight:700}
+.dg-cond{color:var(--gold);font-weight:700}
 .pc-swc{display:block;font-size:12px;color:var(--dim);margin-top:2px;line-height:1.5}
+.pc-up b{color:#3fb37a}.pc-dn b{color:#e5484d}
 .dg-pre{margin:8px 16px}.dg-pre summary{font-size:13px;color:var(--dim);cursor:pointer}
 .dg-r summary b{flex:none;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dg-r summary small{min-width:0}
 /* パーティのチェック：計算の根拠・深刻度（2026/11/10 第4段階） */

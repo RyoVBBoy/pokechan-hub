@@ -75,6 +75,11 @@ const R4=await pg.evaluate(()=>{
   r.soleS=ts.some(t=>/後出しできるのが.*だけの相手が4匹/.test(t));
   r.soleF=ts.some(t=>/先に動けるのが.*だけの相手が4匹/.test(t));
   r.noBad=!ts.some(t=>/確定2発で倒せるポケモンがいない/.test(t))&&!ts.some(t=>/後出しして勝てる匹がいない/.test(t));
+  /* 受けの3つの数え方（2026/11/10 依頼主の確認②）：受けて有利が0匹でも、安全に交代できる匹がいれば「受けに回れる匹がいない」にしない */
+  const piv=i=>z(i,{op:{mv,min:30,max:40,fmax:40,nMin:3,nMax:3,eff:1},opW:3,k:'lose',r:1,swIn:'survive'});
+  const T3={ms:[mon(0),mon(1),mon(2),mon(3)],rows:[0,1,2,3].map(j=>({q:{n:'相手'+j},o:{},res:[kill(0),kill(1),kill(2),piv(3)],lvl:4})),unk:[],live:false,liveAll:false};
+  const A3=dgAnalyze(T3);r.piv=!A3.bad.some(x=>/受けに回れる匹が0匹|受けに回れる匹がいない/.test(x.t))&&A3.bad.some(x=>/受けに回れるのが.*1匹だけ/.test(x.t)&&x.ev.some(e=>/安全に交代できる 4匹/.test(e)));
+  const T4={...T3,rows:T3.rows.map(row=>({...row,res:[kill(0),kill(1),kill(2),z(3,{op:{mv,min:100,max:120,fmax:120,nMin:1,nMax:1,eff:2}})]}))};r.piv0=dgAnalyze(T4).bad.some(x=>/攻撃に偏っている：攻撃役3匹に対して、受けに回れる匹が0匹/.test(x.t)&&x.sev===3);
   /* 全員が遅く、先制技で確定で倒せるとき */
   const T2={...T,rows:T.rows.map(row=>({...row,res:row.res.map(x=>({...x,spd:-1,first:-1,pr:x.i===0?{mv,min:120,max:140}:null}))}))};
   const sp=dgAnalyze(T2).bad.find(x=>/だれよりも速い相手/.test(x.t));r.prio=!!sp&&/先制技で確定で倒せます/.test(sp.d)&&sp.sev<=2;
@@ -263,13 +268,21 @@ const V7=await pg.evaluate(()=>{
     if(!ids.every(x=>x&&ls.includes(x))||!(ABD[p.no]||[]).some(a=>a[0]===ab)||!(CH_ITEMS.has?CH_ITEMS.has(it):Object.prototype.hasOwnProperty.call(CH_ITEMS,it))&&!isStone(it))r.valid=false;
     team.push({no:p.no,set:{ab:{k:ab,n:ABN[ab]},it:{k:it,n:ITEMN[it]},mv:ids.map(x=>({id:x,n:mName(x)})),sp,up,dn,src:'manual'}})});
   TWX_K=null;const T=dgTeam0(team,20),A=dgAnalyze(T),nm=i=>T.ms[i].p.n;
-  r.bias=A.bad.some(b=>/攻撃に偏っている/.test(b.t)&&b.sev===3);
+  r.bias=A.bad.some(b=>/攻撃に偏っている/.test(b.t)&&b.sev>=2&&b.ev.every(e=>/受けて有利 \d+匹／安全に交代できる \d+匹／後出しして勝てる \d+匹/.test(e)));
   r.noSw=A.bad.some(b=>/後出しして勝てる匹がいない相手/.test(b.t));
   r.ohko=A.bad.some(b=>/一撃で倒せる相手/.test(b.t)&&b.ev.some(e=>/最大\d+%/.test(e)&&/（[^）]+ 最大/.test(e)));
   /* タスキで1だけ残るのは後出しに数えない */
   const sashZ=T.rows.flatMap(row=>row.res.filter(z=>T.ms[z.i].p.n==='オオニューラ'&&z.op&&z.op.fmax>=100));
   r.sash=sashZ.length>0&&sashZ.every(z=>z.swIn!=='win');
   r.sashTxt=sashZ.some(z=>z.swIn==='sash'&&/きあいのタスキでHPが1だけ残る/.test(z.swTxt));
+  /* タスキ→かるわざで先に一撃なら「条件つき」（sashwin）、一撃で倒せなければ数えない */
+  r.sashWin=sashZ.some(z=>z.swIn==='sashwin'&&/かるわざで素早さ2倍/.test(z.swTxt)&&/条件：/.test(z.swTxt))&&sashZ.filter(z=>z.swIn==='sashwin').every(z=>z.me.nMin===1&&z.sa2>z.so);
+  r.sashNoWin=sashZ.filter(z=>z.swIn==='sash').every(z=>!(z.me&&z.me.nMin===1&&z.sa2>z.so&&!(dgPrio(T.rows.find(row=>row.res.includes(z)).o,z.me?mkMon(T.ms[z.i].p,'me',mySetFor(T.ms[z.i].p.no)):null)||{max:0}).max));
+  r.condSplit=A.bad.some(b=>/安定して後出しして勝てる匹がいない相手が\d+匹（うち\d+匹は条件つき/.test(b.t)&&b.ev.some(e=>/【条件つき】/.test(e)));
+  /* かるわざがあるときだけ上を取れる相手：同じ相手の素早さを200にすると、かるわざ（280以上）なら条件つき、ほかの特性なら数えない */
+  const oo=T.ms.findIndex(m=>m.p.n==='オオニューラ'),rowS=T.rows.find(row=>row.res.some(z=>z.i===oo&&z.swIn==='sashwin'));
+  if(rowS){const base=mySetFor(T.ms[oo].p.no),mk=ab=>mkMon(T.ms[oo].p,'me',{...base,ab}),o2={...rowS.o,st:[...rowS.o.st]};const s0=effSpd(mk('unburden'));o2.st[5]=Math.floor(s0*1.4);
+    r.ub=[dgMatch(mk('unburden'),o2).swIn,dgMatch(mk('pressure'),o2).swIn]}else r.ub=['none'];
   /* 後出しで負ける（survive）と後出しできない（no）を分ける */
   const all=T.rows.flatMap(row=>row.res);r.kinds=['no','survive'].every(k=>all.some(z=>z.swIn===k));
   r.surviveOk=all.filter(z=>z.swIn==='survive').every(z=>z.op.fmax<100);
@@ -277,14 +290,24 @@ const V7=await pg.evaluate(()=>{
   r.notCounted=T.rows.every(row=>row.stable.every(z=>z.r>=4)&&row.res.filter(z=>z.me&&z.k==='lose').every(z=>!row.stable.includes(z)&&!row.ok.includes(z)));
   r.hasLoseWithMove=all.some(z=>z.me&&z.me.max>0&&z.k==='lose');
   /* 入れかえ案は変更後の6匹で計算し直して良くなる */
-  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam0(team.map((y,k)=>k===x.i?{no:x.c.no}:y),20);const m=dgMetric(T1);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko});
+  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam0(team.map((y,k)=>k===x.i?{no:x.c.no,set:x.S.sv}:y),20);const m=dgMetric(T1,x.D.keep);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko&&m.slow===x.a.slow});
+  /* 入れる匹の育成：外す匹の技・持ち物を引きつがない。技は覚えるもの、特性は持てるもの、持ち物はゲームにあって残る5匹と重ならない */
+  r.swSet=S.every(x=>{const sv=x.S.sv,out=team[x.i].set,ls=(LSD[x.c.no]||[0,[]])[1],rest=team.filter((_,k)=>k!==x.i).map(y=>y.set.it.k);
+    return sv.mv.length>=3&&sv.mv.every(m=>m.id===182||ls.includes(m.id))&&!sv.mv.some(m=>out.mv.some(o=>o.id===m.id)&&!ls.includes(m.id))&&(ABD[x.c.no]||[]).some(a=>a[0]===sv.ab.k)&&sv.it&&(CH_ITEMS.has(sv.it.k)||isStone(sv.it.k))&&!rest.includes(sv.it.k)&&sv.sp.reduce((a,b)=>a+b,0)>=60&&sv.up>=0});
+  r.swDiff=S.every(x=>Array.isArray(x.D.up)&&Array.isArray(x.D.dn)&&/共通の相手/.test(x.D.note)&&x.a.n===x.b.n);
   const pc=partyCheck(team);r.pcSw=pc.fix.some(x=>x.k==='calc'&&x.sw&&x.sw.some(w=>/計算し直すと/.test(w.calc||'')));
   return r});
+ok(R4.piv&&R4.piv0,'受けの3つの数え方（受けて有利0匹だけで受け役0にしない） '+[R4.piv,R4.piv0]);
 ok(V7.valid,'攻撃偏重の型に覚えない技・ない持ち物がある');
 ok(V7.bias,'攻撃偏重（受け役がいない）を深刻で出さない');
 ok(V7.noSw,'後出しして勝てる匹がいない相手を出さない');
 ok(V7.ohko,'一撃で倒される根拠に技とダメージがない');
 ok(V7.sash&&V7.sashTxt,'きあいのタスキで1だけ残るのを後出しできるに数えている');
+ok(V7.sashWin&&V7.sashNoWin,'タスキ→かるわざで先に一撃の「条件つき」の見分け '+JSON.stringify([V7.sashWin,V7.sashNoWin]));
+ok(V7.condSplit,'安定した後出しと条件つきを分けて出さない');
+ok(V7.ub[0]==='sashwin'&&V7.ub[1]==='sash','かるわざの素早さ2倍が入っていない '+V7.ub);
+ok(V7.swSet,'入れかえ案の匹の育成が適切でない（引きつぎ・覚えない技・重なる持ち物）');
+ok(V7.swDiff,'入れかえ案の良くなる・悪くなるの比べ方');
 ok(V7.kinds&&V7.surviveOk,'後出しできない／後出しして負けるを分けていない');
 ok(V7.notCounted&&V7.hasLoseWithMove,'攻撃技を持っているだけで対策に数えている');
 ok(V7.sw,'入れかえ案を計算し直すと良くならない '+JSON.stringify(V7));
