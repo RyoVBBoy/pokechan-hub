@@ -1723,3 +1723,41 @@ body::before{inset:0;background:
 .sel-lim{font-size:12px;line-height:1.6;margin:6px 0;padding:8px 10px;border-radius:10px;background:rgba(240,180,40,.12);color:var(--fg)}
 /* 改善案（62-improve.js） */
 .imp-c .pc-area{margin-right:6px}.pc-upv{color:#3fb37a;font-size:11px}.pc-dnv{color:var(--w4);font-size:11px}
+/* 診断のまとめ（63-diag-ui.js、2026/11/10 UI改善 第1段階） */
+.dgu-card{margin:12px 16px 4px;padding:14px 14px 6px;border-radius:16px;background:var(--glass,rgba(255,255,255,.04));box-shadow:inset 0 0 0 1px var(--line)}
+.dgu-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.dgu-head h2{margin:0;font-size:19px;font-weight:800}.dgu-fmt{font-size:12px;color:var(--dim)}
+.dgu-sec{padding:12px 0 10px;border-top:1px solid var(--line);margin-top:10px}.dgu-head+.dgu-sec{border-top:0;margin-top:2px}
+.dgu-sec h3{margin:0 0 8px;font-size:15px;font-weight:800}
+.dgu-note{margin:6px 0 0;font-size:12.5px;line-height:1.6;color:var(--dim)}
+.dgu-loading{margin:4px 0;font-size:13px;color:var(--dim)}
+.dgu-areas{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.dgu-area{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.dgu-an{font-size:13px;font-weight:700}
+.dgu-sev{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.dgu-sev i{font-style:normal}
+.dgu-sev.sv3{background:rgba(244,33,46,.14);color:var(--w4)}.dgu-sev.sv2{background:rgba(240,180,40,.16);color:var(--gold)}
+.dgu-sev.sv1{background:var(--acc-t);color:var(--acc)}.dgu-sev.sv0{background:rgba(63,179,122,.14);color:#3fb37a}
+.dgu-bars{display:flex;flex-direction:column;gap:6px}
+.dgu-bar{display:grid;grid-template-columns:1.6em minmax(0,12em) 1fr auto;align-items:center;gap:8px;font-size:13px}
+.dgu-bm{font-weight:800;text-align:center}.dgu-bl{color:var(--dim);font-size:12.5px;line-height:1.3}
+.dgu-bt{height:10px;border-radius:99px;background:var(--line);overflow:hidden}.dgu-bt i{display:block;height:100%;border-radius:99px}
+.dgu-l4 .dgu-bt i{background:#3fb37a}.dgu-l3 .dgu-bt i{background:#7fb6e8}.dgu-l2 .dgu-bt i{background:#e8b33f}.dgu-l1 .dgu-bt i{background:#e5484d}
+.dgu-bn{white-space:nowrap;font-size:12.5px;color:var(--dim)}.dgu-bn b{color:var(--fg);font-size:13.5px}
+.dgu-weak{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.dgu-weak a{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-height:44px;padding:8px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);text-decoration:none;font-size:14px;line-height:1.5}
+.dgu-weak a::after{content:'›';margin-left:auto;color:var(--dim);font-size:18px}
+.dgu-wa{font-size:11.5px;font-weight:800;color:var(--dim);border:1px solid var(--line);border-radius:99px;padding:0 7px}.dgu-wt{flex:1 1 12em;font-weight:700}
+.dgu-ok{margin:0;font-size:14px;color:#3fb37a;font-weight:700}
+.dgu-how{margin:0 0 8px;font-size:13.5px;line-height:1.7}
+.dgu-imp{padding:10px 12px;border-radius:12px;background:var(--acc-t)}
+.dgu-it{margin:0;font-size:14px;line-height:1.6}.dgu-it .pc-area{margin-right:6px}
+.dgu-chgs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.dgu-chg{font-size:12.5px;font-weight:700;border-radius:99px;padding:2px 9px}.dgu-chg.up{background:rgba(63,179,122,.14);color:#3fb37a}.dgu-chg.dn{background:rgba(244,33,46,.12);color:var(--w4)}
+.dgu-link{display:block;min-height:44px;padding:10px 0;background:none;border:0;color:var(--acc);font-weight:700;font-size:14px;text-align:left;cursor:pointer}
+.dgu-sel{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.dgu-mon{padding:6px 12px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:14px}
+.dgu-mon.dgu-lead{box-shadow:inset 0 0 0 2px var(--acc)}.dgu-mon small{margin-left:4px;font-size:11.5px;color:var(--acc)}
+.pc-s3{box-shadow:inset 4px 0 0 #e5484d,inset 0 0 0 1px var(--line)}.pc-s2{box-shadow:inset 4px 0 0 #e8b33f,inset 0 0 0 1px var(--line)}.pc-s1{box-shadow:inset 3px 0 0 var(--line),inset 0 0 0 1px var(--line)}
+.dgu-flash{animation:dguFlash 1.2s ease}@keyframes dguFlash{0%,40%{background:var(--acc-t)}100%{background:transparent}}
+@media(max-width:699px){.dgu-card{margin:10px 12px 4px;padding:12px 12px 4px}.dgu-bar{grid-template-columns:1.4em 1fr auto}.dgu-bl{grid-column:2/4;grid-row:1}.dgu-bt{grid-column:2/3;grid-row:2}.dgu-bn{grid-column:3/4;grid-row:2}.dgu-bm{grid-row:1/3}}

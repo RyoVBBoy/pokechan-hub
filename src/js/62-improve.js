@@ -177,21 +177,30 @@ function impCard(o,k){
     <button class="bback" data-imp="${k}" style="padding:0;color:var(--acc)">${o.kind==='sel'?'この選出に★を付ける':'この変更をする'}</button></div>`;
 }
 let IMP_LAST=null;
-function impFill(entries){
-  const box=document.getElementById('imp-box');if(!box)return;
-  const run=box.querySelector('#imp-run');if(!run)return;
-  run.onclick=()=>{run.disabled=true;run.textContent='計算しています…';
-    setTimeout(()=>{let R;try{R=dgImprove(entries)}catch(e){R={list:[],note:'計算できませんでした。'}}
-      IMP_LAST=R;
-      box.innerHTML=`<div class="sec"><h2>改善案（変更後を計算し直して比べる）</h2></div>
+/* 同じパーティ・同じ条件の計算結果は使い回す（2026/11/10 依頼主：診断のまとめと改善案の一覧で同じ結果を使う） */
+const IMP_CACHE=new Map();
+const impKey=entries=>JSON.stringify([FMT,entries.map(x=>[x.no,x.set||0,!!x.sel,!!x.axis]),Object.keys(LIVE.csv).length,typeof META!=='undefined'&&META.rank?META.rank.length:0]);
+function impGet(entries){const k=impKey(entries);if(IMP_CACHE.has(k))return IMP_CACHE.get(k);
+  const R=dgImprove(entries);if(IMP_CACHE.size>8)IMP_CACHE.clear();IMP_CACHE.set(k,R);return R}
+const impCached=entries=>IMP_CACHE.get(impKey(entries))||null;
+function impRender(box,R){
+  IMP_LAST=R;
+  box.innerHTML=`<div class="sec"><h2>改善案（変更後を計算し直して比べる）</h2></div>
         <p class="note" style="padding-top:0">${R.note?esc(R.note):R.list.length?`${R.tried}案のうち、良くなって前に答えられていた相手を失わない案を、良くなる順に出しています（種類ごとに2つまで）。どの数も変更後のパーティで計算し直した結果です。`:'計算した範囲では、ほかを悪くせずに良くなる変更は見つかりませんでした。'}</p>
         ${R.list.map(impCard).join('')}
         ${R.dropped&&R.dropped.length?`<details class="pc-ref"><summary>数は良くなるが、変える匹の大事な役目を失うので出さなかった案（${R.dropped.length}件）</summary><ul class="sel-why">${R.dropped.slice(0,10).map(d=>`<li>${esc(d.title)}：${esc(d.loss)}</li>`).join('')}</ul></details>`:''}
         <details class="pc-ref"><summary>改善案の決め方と、計算していないこと</summary><p class="note">良さの点＝×が減る×3・△以下が減る×1.5・後出しできない相手が減る×1・一撃で半分以上倒される相手が減る×1・だれも先に動けない相手が減る×0.7・◎が増える×0.3。変更前に◎○だった相手が△以下になる案、×が増える案、変える匹自身が上から倒せる相手・有利に戦える相手・後出しして勝てる相手を大きく減らす案（3匹以上かつ半分以上、有利は3割以上）は出しません。比べるのは変更前と変更後の両方にいる相手だけです（入れかえると、入れた種類が相手の候補から外れるため）。技は覚える攻撃技、持ち物はゲームにあってほかの匹と重ならないもの、メガストーンは変えません。計算していないこと：${esc(DG_NOTE)}。ダブルの範囲技・同時攻撃・味方のサポート。相手の型は使用率の高い型（集計がなければ自動の型）です。</p></details>`;
-      box.querySelectorAll('[data-imp]').forEach(b=>b.onclick=async()=>{const o=IMP_LAST&&IMP_LAST.list[+b.dataset.imp];if(!o)return;
-        if(o.kind==='sel'){team.forEach((x,k)=>x.sel=o.selFix.includes(k));saveTeam();toast('選出に★を付けました');teamRender();return}
-        if(!await askConfirm({title:'この変更をしますか？',text:`${o.title}${o.kind==='swap'?'（外す匹の育成は消えます）':''}`,ok:'変更する',danger:false}))return;
-        const nx=o.entries[o.i];team[o.i]={...nx,sel:team[o.i]?team[o.i].sel:false,axis:team[o.i]&&team[o.i].axis};if(!team[o.i].axis)delete team[o.i].axis;
-        saveTeam();toast('変更しました');teamRender()});
-    },30)};
+  box.querySelectorAll('[data-imp]').forEach(b=>b.onclick=async()=>{const o=IMP_LAST&&IMP_LAST.list[+b.dataset.imp];if(!o)return;
+    if(o.kind==='sel'){team.forEach((x,k)=>x.sel=o.selFix.includes(k));saveTeam();toast('選出に★を付けました');teamRender();return}
+    if(!await askConfirm({title:'この変更をしますか？',text:`${o.title}${o.kind==='swap'?'（外す匹の育成は消えます）':''}`,ok:'変更する',danger:false}))return;
+    const nx=o.entries[o.i];team[o.i]={...nx,sel:team[o.i]?team[o.i].sel:false,axis:team[o.i]&&team[o.i].axis};if(!team[o.i].axis)delete team[o.i].axis;
+    saveTeam();toast('変更しました');teamRender()});
+}
+function impFill(entries){
+  const box=document.getElementById('imp-box');if(!box)return;
+  const c=impCached(entries);if(c){impRender(box,c);return}
+  const run=box.querySelector('#imp-run');if(!run)return;
+  run.onclick=()=>{run.disabled=true;run.textContent='計算しています…';
+    setTimeout(()=>{let R;try{R=impGet(entries)}catch(e){run.disabled=false;run.textContent='計算できませんでした。もう一度計算する';return}
+      impRender(box,R)},30)};
 }

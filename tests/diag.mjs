@@ -561,10 +561,46 @@ await pg.waitForTimeout(1500);
 const ui2=await pg.evaluate(()=>{const e=document.querySelector('.sel-box');return e?[/20通りを計算/.test(e.textContent),e.querySelectorAll('.sel-all .sel-c').length]:[false,0]});
 ok(ui2[0]&&ui2[1]===20,'構築と選出タブに選出の比較が出ない '+ui2);
 await pg.evaluate(()=>{sessionStorage.setItem('pcttab','check');TTAB='check';teamRender()});await pg.waitForTimeout(800);
-await pg.click('#imp-run');await pg.waitForTimeout(4000);
+/* 診断のまとめが後ろで計算して一覧も出すので、ボタンが残っているときだけ押す */
+await pg.waitForTimeout(4000);if(await pg.$('#imp-run'))await pg.click('#imp-run');await pg.waitForTimeout(1500);
 const ui3=await pg.evaluate(()=>[document.querySelectorAll('#imp-box .imp-c').length,document.querySelectorAll('#imp-box [data-imp]').length,/計算していないこと/.test(document.getElementById('imp-box').textContent)]);
 ok(ui3[0]>=0&&ui3[1]===ui3[0]&&ui3[2],'改善案の画面 '+ui3);
 ok(!errs.length,'画面のエラー: '+errs.join(' / '));
+/* UI改善 第1段階：診断のまとめ（数字は計算結果と同じ・深刻な弱点の順番・選出・改善案の後ろ計算と使い回し・スマホではみ出さない） */
+await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s);const sets={ドラパルト:['clear-body','lifeorb',['dragondarts','phantomforce','uturn','suckerpunch'],[2,32,0,0,0,32],1,3],オオニューラ:['unburden','focussash',['closecombat','direclaw','fakeout','throatchop'],[2,32,0,0,0,32],5,3],マスカーニャ:['protean','choicescarf',['flowertrick','knockoff','uturn','playrough'],[2,32,0,0,0,32],5,3],ガブリアス:['rough-skin','garchompite',['earthquake','dragonclaw','stoneedge','swordsdance'],[2,32,0,0,0,32],5,3],ウルガモス:['flame-body','expertbelt',['quiverdance','fierydance','bugbuzz','gigadrain'],[2,0,0,32,0,32],5,1],ドドゲザン:['supreme-overlord','blackglasses',['kowtowcleave','ironhead','suckerpunch','swordsdance'],[32,32,0,0,2,0],1,3]};
+  team.length=0;Object.entries(sets).forEach(([n,[ab,it,mv,sp,up,dn]])=>team.push({no:N(n).no,set:{ab:{k:ab,n:ABN[ab]},it:{k:it,n:ITEMN[it]},mv:mv.map(lfId).map(id=>({id,n:mName(id)})),sp,up,dn}}));
+  TWX_K=null;IMP_CACHE.clear();DG_SELC.clear();saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';teamRender()});
+const U0=await pg.evaluate(async()=>{await new Promise(r=>setTimeout(r,20));const e=document.getElementById('dgu-sum'),i=document.getElementById('dgu-imp');return [!!e,!!i&&/計算中/.test(i.textContent)]});
+await pg.waitForTimeout(4500);
+const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum'),T=dgTeam(team,20),A=dgAnalyze(T),C=partyCheck(team),S=dgSelect(team);
+  const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(x=>cnt[x.lvl]++);
+  r.bars=[4,3,2,1].every(l=>{const b=box.querySelector('.dgu-l'+l+' .dgu-bn').textContent;return b.startsWith(cnt[l]+'匹')&&b.includes('（'+Math.round(cnt[l]/T.rows.length*100)+'%）')});
+  r.areas=[...box.querySelectorAll('.dgu-area')].map(a=>{const n=a.querySelector('.dgu-an').textContent,s=Math.max(0,...A.bad.filter(x=>x.area===n).map(x=>x.sev));return a.querySelector('.dgu-sev').textContent.includes(DGU_SEV[s][0])}).every(Boolean);
+  const calc=C.fix.filter(x=>x.k==='calc');
+  r.weak=[...box.querySelectorAll('.dgu-weak .dgu-wt')].map(x=>x.textContent).join('|')===calc.slice(0,3).map(x=>x.t.replace(/<[^>]+>/g,'')).join('|');
+  r.order=calc.every((x,k)=>!k||calc[k-1].sev>=x.sev);
+  r.jump=[...box.querySelectorAll('[data-dgu-go]')].every(a=>!!document.getElementById(a.dataset.dguGo));
+  r.sel=[...box.querySelectorAll('.dgu-mon')].map(x=>x.firstChild.textContent).join('・')===S.best.c.map(S.nm).join('・')&&box.querySelector('.dgu-lead').firstChild.textContent===S.nm(S.best.lead1[0].i);
+  const R=impCached(team);r.imp=!!R&&!!R.list.length&&document.querySelector('#dgu-imp .dgu-it b').textContent===R.list[0].title&&document.querySelectorAll('#imp-box .imp-c').length===R.list.length;
+  r.reuse=impGet(team)===R;
+  r.over=document.body.scrollWidth<=innerWidth;
+  r.top=box.getBoundingClientRect().top<document.getElementById('dg-box').getBoundingClientRect().top;
+  return r});
+ok(U0[0]&&U0[1],'診断のまとめ・改善案の「計算中」 '+U0);
+ok(U.bars,'まとめの◎○△×の匹数・割合が計算と違う');
+ok(U.areas,'まとめの4分野の状態が気になる点の重要度と違う');
+ok(U.weak&&U.order,'まとめの深刻な弱点の並び '+[U.weak,U.order]);
+ok(U.jump,'まとめの弱点から下のカードへ移れない');
+ok(U.sel,'まとめのおすすめの選出が選出の比較の1番と違う');
+ok(U.imp&&U.reuse,'まとめの改善案（後ろで計算・使い回し） '+[U.imp,U.reuse]);
+ok(U.over,'スマホ幅で横にはみ出している');
+ok(U.top,'まとめが一番上にない');
+/* 改善案の計算に失敗したとき：もう一度計算できる */
+await pg.evaluate(()=>{IMP_CACHE.clear();window.__impG=impGet;impGet=()=>{throw new Error('test')};teamRender()});await pg.waitForTimeout(2500);
+const RT0=await pg.evaluate(()=>!!document.getElementById('dgu-retry'));
+await pg.evaluate(()=>{impGet=window.__impG;document.getElementById('dgu-retry').click()});await pg.waitForTimeout(3000);
+const RT1=await pg.evaluate(()=>!!document.querySelector('#dgu-imp .dgu-it'));
+ok(RT0&&RT1,'改善案の計算に失敗したときの再試行 '+[RT0,RT1]);
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
 console.log(`diag: OK（${n}項目）`);
