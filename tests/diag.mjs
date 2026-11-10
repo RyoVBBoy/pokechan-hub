@@ -630,6 +630,24 @@ const BK=await pg.evaluate(async()=>{const N=s=>P.find(x=>x.n===s);const keep=te
   return [noOut,!!br,tab,back,twInApp('https://pokechan-hub.pages.dev/ranking/'),twInApp('https://news.pokemon-home.com/ja/page/1.html')]});
 ok(BK[0]&&BK[1]&&BK[2]==='対策'&&BK[3]&&BK[4]==='#/tier'&&BK[5]===null,'対策を見るボタンの行き先と戻り方 '+JSON.stringify(BK));
 await pg.evaluate(()=>{location.hash='#/team'});await pg.waitForTimeout(800);
+/* UI改善 第3段階：相手ごとの対応力（横棒・一覧はたたむ・1匹ずつの表の数字は計算と同じ・根拠は全部残す） */
+const U3=await pg.evaluate(()=>{const r={},T=dgTeam(team,20),box=document.getElementById('dg-box');
+  const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(x=>cnt[x.lvl]++);
+  r.bars=[4,3,2,1].every(l=>box.querySelector('.dgu-l'+l+' .dgu-bn').textContent.startsWith(cnt[l]+'匹'));
+  const list=box.querySelector('.dg-list');r.fold=!!list&&!list.open&&list.querySelectorAll(':scope > .dg-r').length===T.rows.length;
+  const order=[...T.rows].sort((a,b)=>a.lvl-b.lvl);
+  r.tables=[...list.querySelectorAll(':scope > .dg-r')].every((el,j)=>{const row=order[j],all=[...row.res].sort((a,b)=>b.r-a.r),ms=[...el.querySelectorAll('.dgm')];
+    if(ms.length!==all.length)return false;
+    return ms.every((m,k)=>{const z=all[k],dd=[...m.querySelectorAll('dd')].map(d=>d.textContent),txt=m.textContent;
+      const ko=!z.me?'—':z.me.nMin===1?'100%（確定）':z.me.nMax===1?Math.round(z.me.ohko/16*100)+'%':'0%（一撃では倒せない）';
+      return dd[0]===(z.me?z.me.mvn:'効く技がない')&&dd[2]===ko&&dd[3]===(z.me?dgKoTxt(z.me):'—')&&dd[5].includes(String(z.sa))&&dd[5].includes(String(z.so))&&z.why.every(w=>txt.includes(w))})});
+  list.open=true;list.querySelectorAll('details').forEach(d=>d.open=true);r.over=document.body.scrollWidth<=innerWidth;
+  list.querySelectorAll('details').forEach(d=>d.open=false);list.open=false;
+  return r});
+ok(U3.bars,'対応力の横棒の匹数');
+ok(U3.fold,'相手ごとの一覧をたたんで全部の相手を入れる');
+ok(U3.tables,'1匹ずつの表の数字が計算と違う／根拠が欠けている');
+ok(U3.over,'表を全部開いたときにスマホ幅からはみ出す');
 /* 改善案の計算に失敗したとき：もう一度計算できる */
 await pg.evaluate(()=>{IMP_CACHE.clear();window.__impG=impGet;impGet=()=>{throw new Error('test')};teamRender()});await pg.waitForTimeout(2500);
 const RT0=await pg.evaluate(()=>!!document.getElementById('dgu-retry'));
