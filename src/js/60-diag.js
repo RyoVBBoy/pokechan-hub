@@ -104,9 +104,11 @@ function dgMatch0(a,o){
   const spdTxt=spd===1?`${upTxt}`:spd===0?`同速（${sa} 対 ${so}。どちらが先に動くかは五分）`:tr?`トリックルーム中でも相手が先（${sa} 対 ${so}。相手の方が遅い）`:`素早さで下になる（${sa} 対 ${so}）`;
   /* 後出し（2026/11/10 依頼主の検証）：交代で受ける1発目と、そのあとの撃ち合いを分ける。
      win＝1発目を耐え、そこから撃ち合っても先に倒せる／survive＝1発目は耐えるが撃ち合いでは負ける（受けてまた交代する役）／no＝1発目で倒される */
-  const swIn=!op||opW>=9?'win':opW<2?'no':swOk?'win':'survive';
+  /* 2026/11/10 依頼主の検証⑤：1発目を耐えるのがきあいのタスキ・がんじょうのおかげだけなら「タスキ頼み」＝後出しできるに数えない（1回きりで、砂嵐・連続技・設置技で崩れる） */
+  const swSash=!!op&&opW>=2&&opW<9&&opRaw<2;
+  const swIn=!op||opW>=9?'win':opW<2?'no':swSash?'sash':swOk?'win':'survive';
   const swLeft=op?Math.max(0,100-op.fmax):100;
-  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
+  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:swSash?`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}。${a.item==='focussash'?'きあいのタスキ':'がんじょう'}でHPが1だけ残るだけなので、後出しできるとは数えない（1回きり。砂嵐・連続技・設置技で崩れる）`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
   let k='lose',why=[];
   const wxT=B.weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
   const meTxt=me?`${me.mvn}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
@@ -183,7 +185,7 @@ function dgFill(entries){
   const cnt=l=>T.rows.filter(r=>r.lvl===l).length;
   const nm1=i=>esc(formInfo(T.ms[i].p).base);
   const rowHTML=r=>{const L=DG_LV[r.lvl],best=[...r.res].sort((a,b)=>b.r-a.r).slice(0,3);
-    return `<details class="dg-r dg-${L[2]}"><summary><span class="dg-lv">${L[0]}</span><b>${esc(r.q.n)}</b><small>${r.stable.length?r.stable.map(x=>nm1(x.i)).join('・')+'で対応':r.ok.length||r.weak.length?'不安定':'答えなし'}</small></summary>
+    return `<details class="dg-r dg-${L[2]}"><summary><span class="dg-lv">${L[0]}</span><b>${esc(r.q.n)}</b><small>${r.stable.length?r.stable.map(x=>nm1(x.i)).join('・')+'で対応':r.ok.length||r.weak.length?'不安定':'答えなし'}${(()=>{const w=r.res.filter(x=>x.swIn==='win');return w.length?`／後出し：${w.map(x=>nm1(x.i)).join('・')}`:'／<span class="dg-nosw">後出しできる匹なし</span>'})()}</small></summary>
       <p class="dg-why">${L[1]}${r.live?'':'（この相手は使用率の集計が読めていないため、自動で決めた型で計算）'}</p>
       ${r.resTR?(()=>{const bt=[...r.resTR].sort((a,b)=>b.r-a.r).slice(0,2);return `<p class="dg-why"><b>トリックルーム中：${DG_LV[r.lvlTR][0]}</b> ${bt.map(x=>`${nm1(x.i)}は${x.t}`).join('／')}</p>`})():''}
       <ul>${best.map(x=>`<li><b>${nm1(x.i)}</b>（こちら）は <span class="dg-k dg-k${x.r}">${x.t}</span>：${x.why.map(esc).join('／')}<small>素早さ：${nm1(x.i)} ${x.sa} 対 ${esc(r.q.n)} ${x.so}（${x.spd===1?'こちらが先':x.spd===0?'同速':'相手が先'}）</small></li>`).join('')}</ul></details>`};
@@ -192,7 +194,7 @@ function dgFill(entries){
     <p class="note" style="padding-top:0">使用率の上位${T.rows.length}匹（パーティにいる種類は除く）に、1匹ずつ実際のダメージ計算と素早さで「先に倒せるか・耐えて倒せるか・後出しできるか」を見ています。弱点を突けるだけでは「対応できる」にしません。</p>
     <div class="dg-sum">${[4,3,2,1].map(l=>`<div class="dg-s dg-${DG_LV[l][2]}"><span>${DG_LV[l][0]}</span><b class="num">${cnt(l)}</b></div>`).join('')}</div>
     ${T.tr&&T.tr.on?`<p class="note" style="padding-top:6px"><b>トリックルーム中</b>（${T.tr.setters.map(s=>nm1(s.i)).join('・')}が張ったとき・遅い方が先に動く）：${[4,3,2,1].map(l=>`${DG_LV[l][0]}${T.rows.filter(r=>r.lvlTR===l).length}`).join('　')}。上の数はトリックルームなし。</p>`:''}
-    <p class="note" style="padding-top:4px">◎ 2匹以上で安定　○ 1匹に頼っている　△ 不安定　× 答えなし（押すと計算の中身）</p>
+    <p class="note" style="padding-top:4px">◎ 2匹以上で安定　○ 1匹に頼っている　△ 不安定　× 答えなし（押すと計算の中身）。◎〜×は先に場にいるとき（対面）の評価で、交代で出したときに勝てる匹は「後出し」に書いています（後出しして勝てる匹がいる相手：${T.rows.filter(r=>r.res.some(x=>x.swIn==='win')).length}／${T.rows.length}匹）。</p>
     ${order.map(rowHTML).join('')}
     <details class="dg-pre"><summary>計算の前提</summary><p class="note">相手は${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、読めなかった相手は自動で決めた型':'自動で決めた型（ランクバトルの集計を読めていません）'}、こちらは${T.mySet.every(Boolean)?'登録した育成':T.mySet.some(Boolean)?'登録した育成（未登録の匹は使用率の高い型）':'使用率の高い型（育成が未登録）'}です。こちらのダメージは乱数のいちばん低い値で「確定で倒せるか」、相手のダメージは乱数のいちばん高い値で「必ず耐えられるか」を見ています。きあいのタスキ・がんじょう・マルチスケイル・ばけのかわ・命中・先制技・こだわりスカーフ・天気を入れています。${DG_NOTE}</p></details>`;
 }
@@ -233,12 +235,12 @@ function dgAnalyze(T){
   if(ohko.length)bad.push({area:'防御',sev:sevOf(ohko),t:`${n}匹中${half}匹以上を一撃で倒せる相手が${ohko.length}匹`,
     d:'相手の乱数がいちばん高く出たときに、パーティの半分以上が一撃で倒されます。この相手に先に動かれると、数を一気に減らされます。',
     ev:list(ohko,r=>{const o=r.res.filter(z=>z.op&&z.op.nMax===1),s=r.res.filter(z=>z.op&&z.op.nMax>1).sort((a,b)=>a.op.max-b.op.max)[0];
-      return `${qn(r)}：${o.map(z=>nm(z.i)).join('・')}を一撃${s?`。耐えるのは${nm(s.i)}（${s.op.mvn}で最大${pc(s.op.fmax)}）`:''}`}),
+      return `${qn(r)}：${o.map(z=>`${nm(z.i)}（${z.op.mvn} 最大${pc(z.op.fmax)}）`).join('・')}を一撃${s?`。耐えるのは${nm(s.i)}（${s.op.mvn}で最大${pc(s.op.fmax)}）`:''}`}),
     how:'この相手の攻撃を2回耐えられる匹（タイプで半減以下にする・能力ポイントを耐久に回す）を用意するか、相手より先に動いて倒せる匹を入れます。'});
-  const sw=r=>r.res.filter(z=>z.swIn==='win'),swSurv=r=>r.res.filter(z=>z.swIn==='survive');
+  const sw=r=>r.res.filter(z=>z.swIn==='win'),swSurv=r=>r.res.filter(z=>z.swIn==='survive'||z.swIn==='sash');
   const noSw=R.filter(r=>!sw(r).length);
   if(noSw.length)bad.push({area:'防御',sev:sevOf(noSw),t:`後出しして勝てる匹がいない相手が${noSw.length}匹`,
-    d:'交代で出たときに受ける1発目（相手のいちばん痛い技・乱数最大）を耐え、そのあとの撃ち合いでも先に倒せる匹がいません。1発目を耐えられる匹がいれば「受けてもう一度交代する」ことはできますが、その匹だけでは倒しきれません。',
+    d:'交代で出たときに受ける1発目（相手のいちばん痛い技・乱数最大）を耐え、そのあとの撃ち合いでも先に倒せる匹がいません。1発目を耐えられる匹がいれば「受けてもう一度交代する」ことはできますが、その匹だけでは倒しきれません。きあいのタスキ・がんじょうで1だけ残るのは、後出しできるに数えていません。対面で先に場にいれば勝てる匹がいても、交代で出すと負けます。',
     ev:list(noSw,r=>{const s=swSurv(r).sort((a,b)=>a.op.max-b.op.max)[0]||r.res.filter(z=>z.op).sort((a,b)=>a.op.max-b.op.max)[0];return s?`${qn(r)}：${nm(s.i)}は${s.swTxt}`:qn(r)}),
     how:'相手のいちばん痛い技を半減以下にできるタイプ・特性の匹か、耐久に能力ポイントを回した匹を入れると、交代で受けられるようになります。'});
   const soleS={};R.forEach(r=>{const k=sw(r);if(k.length===1)(soleS[k[0].i]=soleS[k[0].i]||[]).push(r)});
@@ -284,7 +286,13 @@ function dgAnalyze(T){
   const atk=T.ms.map((_,i)=>i).filter(i=>atkN[i]>=Math.ceil(N*.25)),def=T.ms.map((_,i)=>i).filter(i=>defN[i]>=Math.ceil(N*.25));
   if(n>=3){
     if(!atk.length)bad.push({area:'役割',sev:2,t:trOn?'トリックルーム中でも先に動いて倒しきれる攻撃役がいない':'上から倒せる攻撃役がいない',d:`上位${N}匹の4分の1以上に「先に動いて倒しきれる」匹がいません。`,ev:T.ms.map((_,i)=>`${nm(i)}：上から倒せる相手 ${atkN[i]}匹`),how:'素早さと火力の高い匹、またはこだわりスカーフを持たせた匹を入れます。'});
-    if(!def.length)bad.push({area:'役割',sev:2,t:'交代で受ける役がいない',d:`上位${N}匹の4分の1以上に「後出しできる・受けて有利」な匹がいません。`,ev:T.ms.map((_,i)=>`${nm(i)}：後出し・受けられる相手 ${defN[i]}匹`),how:'弱点の少ないタイプで、HPと防御・特防の高い匹を入れると、不利な対面から交代しやすくなります。'});
+    /* 2026/11/10 依頼主の検証⑤：攻撃役ばかりで受け役がいない（攻撃に偏っている）をはっきり出す */
+    const swN=T.ms.map((_,i)=>R.filter(r=>{const z=x2(r,i);return z&&z.swIn==='win'}).length);
+    const bias=atk.length>=3&&def.length<=1;
+    if(!def.length)bad.push({area:'役割',sev:bias?3:2,t:bias?`攻撃に偏っている：攻撃役${atk.length}匹に対して、交代で受ける役が0匹`:'交代で受ける役がいない',
+      d:`上位${N}匹の4分の1以上に「後出しできる・受けて有利」な匹がいません。${bias?'先に場に出た対面では勝てても、不利な対面になったとき交代先がなく、1匹ずつ倒されやすい形です。':''}`,
+      ev:T.ms.map((_,i)=>`${nm(i)}：上から倒せる相手 ${atkN[i]}匹／後出しして勝てる相手 ${swN[i]}匹／受けて有利 ${defN[i]}匹`),how:'弱点の少ないタイプで、HPと防御・特防の高い匹を入れると、不利な対面から交代しやすくなります。'});
+    else if(bias&&def.length===1)bad.push({area:'役割',sev:2,t:`受け役が${nm(def[0])}の1匹だけ（攻撃役${atk.length}匹）`,d:`${nm(def[0])}のHPが減ると、交代で受けられる匹がいなくなります。`,ev:T.ms.map((_,i)=>`${nm(i)}：上から倒せる相手 ${atkN[i]}匹／受けて有利 ${defN[i]}匹`),how:`${nm(def[0])}と別の相手を受けられる2匹目を入れると、負担が分かれます。`});
     if(atk.length&&def.length)good.push({area:'役割',t:`攻撃役（${atk.map(nm).join('・')}）と受け役（${def.map(nm).join('・')}）がいる`,ev:[...atk.map(i=>`${nm(i)}：上から倒せる相手 ${atkN[i]}匹`),...def.map(i=>`${nm(i)}：後出し・受けられる相手 ${defN[i]}匹`)]});
   }
   for(let a=0;a<n;a++)for(let b=a+1;b<n;b++){
@@ -293,6 +301,35 @@ function dgAnalyze(T){
     if(both/Math.min(sa.length,sb.length)>=.85)ref.push({area:'役割',t:`${nm(a)}と${nm(b)}は得意な相手がほとんど同じ`,d:`有利に戦える相手が${both}匹重なっています。片方が倒されても代わりになりますが、ほかの相手への備えが手薄なら、片方を入れかえる候補です。`,ev:[`${nm(a)}：${sa.length}匹／${nm(b)}：${sb.length}匹／重なり：${both}匹`]});
   }
   return{bad:bad.sort((x,y)=>y.sev-x.sev),good,ref};
+}
+/* 後出し・受けの不足を直す入れかえ案（2026/11/10 依頼主の検証⑤：攻撃偏重のパーティ）。
+   候補は使用率の上位＋合計種族値の高い匹（メガの姿は除く）。後出しして勝てない相手への後出しを1対1で数えて上位を選び、
+   外す匹（軸は外さない・役目の少ない匹から）と入れかえた6匹で dgTeam0 を計算し直す。
+   後出しできない相手が減り、×・△以下が増えず、半分以上を一撃で倒す相手も増えない案だけ、変更前→変更後の数つきで返す */
+function dgMetric(T){const n=T.ms.length,half=Math.max(2,Math.ceil(n/2));
+  return{nosw:T.rows.filter(r=>!r.res.some(z=>z.swIn==='win')).length,ohko:T.rows.filter(r=>r.res.filter(z=>z.op&&z.op.nMax===1).length>=half).length,
+    x:T.rows.filter(r=>r.lvl===1).length,w:T.rows.filter(r=>r.lvl<=2).length}}
+const DG_FIX=new Map();
+function dgDefSwaps(entries,T){
+  T=T||dgTeam(entries,20);const noSw=T.rows.filter(r=>!r.res.some(z=>z.swIn==='win'));
+  if(noSw.length<2||entries.length<2)return[];
+  const key=JSON.stringify([FMT,entries.map(x=>[x.no,x.set||0,!!x.axis]),Object.keys(LIVE.csv).length]);
+  if(DG_FIX.has(key))return DG_FIX.get(key);
+  const fam=q=>q.base||q.no,inT=new Set(entries.map(x=>fam(byNo[x.no]||{no:x.no})));
+  const pool=[];const seen=new Set();
+  [...metaOpps(40),...(typeof gmOpps==='function'?gmOpps():[])].forEach(q=>{if(!q||q.base||inT.has(q.no)||seen.has(q.no))return;seen.add(q.no);pool.push(q)});
+  const sc=pool.map(c=>{let a;try{a=mkMon(c,'me',detSet(c))}catch(e){return null}
+    const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,won}}).filter(z=>z&&z.won.length>=2).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
+  if(!sc.length){DG_FIX.set(key,[]);return[]}
+  /* 外す候補：軸以外で、対面で有利（r>=4）か後出しして勝てる相手がいちばん少ない2匹 */
+  const contrib=T.ms.map((_,i)=>T.rows.filter(r=>{const z=r.res.find(x=>x.i===i);return z&&(z.r>=4||z.swIn==='win')}).length);
+  const outs=entries.map((x,i)=>i).filter(i=>!entries[i].axis).sort((a,b)=>contrib[a]-contrib[b]).slice(0,2);
+  const b=dgMetric(T),res=[];
+  sc.forEach(({c,won})=>outs.forEach(i=>{let T1;try{T1=dgTeam0(entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel}:x),20)}catch(e){return}
+    const a=dgMetric(T1);if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,won:won.map(r=>r.q.n),b,a,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)})}));
+  res.sort((x,y)=>y.gain-x.gain);
+  const used=new Set(),out=res.filter(r=>{if(used.has(r.c.no))return false;used.add(r.c.no);return true}).slice(0,3);
+  DG_FIX.set(key,out);return out;
 }
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
 function dgPremise(T){

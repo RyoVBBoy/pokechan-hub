@@ -111,7 +111,7 @@ function teamRender(){
   if(TTAB==='plan'){pl.innerHTML=planHTML(team);planBind(pl)}
   if(TTAB!=='check'){out.innerHTML='';return}
   const C=partyCheck(team);
-  const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.area?`<span class="pc-area">${esc(x.area)}</span>`:''}${x.sev&&bad?`<span class="pc-sev pc-sev${x.sev}">${DG_SEV[x.sev]}</span>`:''}${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
+  const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.area?`<span class="pc-area">${esc(x.area)}</span>`:''}${x.sev&&bad?`<span class="pc-sev pc-sev${x.sev}">${DG_SEV[x.sev]}</span>`:''}${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}${w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
   out.innerHTML=`${teamStepsHTML()}${loseHTML()}${dgHTML()}
   <div class="sec"><h2>パーティのチェック</h2></div>
   <p class="note" style="padding-top:0">${C.scope}を、使用率の上位の相手との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
@@ -276,6 +276,12 @@ function partyCheck(entries){
   else if(!scarf&&!prio&&!tw&&!trS.length)fix.push({t:'先に動く手段が少ない',d:`いちばん速いポケモンでも最速で${fastest}で、速い相手には先に攻撃されます。`,how:'こだわりスカーフ・先制技（でんこうせっか など）・おいかぜ・トリックルームのどれかを用意すると、速い相手にも対応しやすくなります。'});
   if(ms.length<entries.length||entries.length<6){}
   /* 選出（3〜4匹）では、受けられないタイプ・突けないタイプがあるのは当たり前なので、タイプの重なりは気になる点にしない（代わりに「選出の考え方」で相手ごとの選び方を出す） */
+  /* 後出し・受けの不足には、入れかえた6匹で計算し直した案を付ける（dgDefSwaps） */
+  if(DA&&DT){const tg=DA.bad.find(x=>/後出しして勝てる匹がいない|攻撃に偏っている|交代で受ける役がいない|受け役が/.test(x.t));
+    if(tg){let S=[];try{S=dgDefSwaps(use,DT)}catch(e){}
+      const msOf=i=>allMs.find(o=>o.x===use[i]);
+      tg.sw=S.map(r=>({out:msOf(r.i),inP:r.c,calc:`入れかえた6匹で計算し直すと：後出しして勝てる匹がいない相手 ${r.b.nosw}→${r.a.nosw}匹・半分以上を一撃で倒す相手 ${r.b.ohko}→${r.a.ohko}匹・△以下 ${r.b.w}→${r.a.w}匹（${r.c.n}は ${r.won.slice(0,4).join('・')}${r.won.length>4?` など${r.won.length}匹`:''} に後出しして勝てる）`})).filter(w=>w.out);
+      if(!S.length)tg.how+='（入れかえ候補を計算し直しましたが、後出しできない相手を減らせて、ほかが悪くならない1匹の入れかえは見つかりませんでした。技・持ち物・能力ポイントを耐久に回すことを考えてください）'}}
   if(DA){fix.unshift(...DA.bad.map(x=>({...x,k:'calc'})));good.unshift(...DA.good.map(x=>({...x,k:'calc'})));ref.push(...DA.ref)}
   return{scope,good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
 }

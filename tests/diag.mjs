@@ -249,6 +249,46 @@ const V6=await pg.evaluate(()=>{
 ok(V6.first&&V6.sun,'トリックルーム向きのパーティのバッジ '+JSON.stringify(V6));
 ok(V6.warn,'トリックルームの技が入っていない注意が出ない');
 ok(V6.fill,'トリックルームの型で組むとトリックルームが入らない');
+/* 2026/11/10 依頼主の検証⑤：攻撃偏重のパーティ（固定した型）で弱点を見つけられるか */
+const V7=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const D=[['ドラパルト','clear-body','lifeorb',['dragondarts','phantomforce','uturn','suckerpunch'],[2,32,0,0,0,32],1,3],
+    ['オオニューラ','unburden','focussash',['closecombat','direclaw','fakeout','throatchop'],[2,32,0,0,0,32],5,3],
+    ['マスカーニャ','protean','choicescarf',['flowertrick','knockoff','uturn','playrough'],[2,32,0,0,0,32],5,3],
+    ['ガブリアス','rough-skin','garchompite',['earthquake','dragonclaw','stoneedge','swordsdance'],[2,32,0,0,0,32],5,3],
+    ['ウルガモス','flame-body','expertbelt',['quiverdance','fierydance','bugbuzz','gigadrain'],[2,0,0,32,0,32],5,1],
+    ['ドドゲザン','supreme-overlord','blackglasses',['kowtowcleave','ironhead','suckerpunch','swordsdance'],[32,32,0,0,2,0],1,3]];
+  team.length=0;r.valid=true;
+  D.forEach(([n,ab,it,mvs,sp,up,dn])=>{const p=N(n),ids=mvs.map(lfId),ls=(LSD[p.no]||[0,[]])[1];
+    if(!ids.every(x=>x&&ls.includes(x))||!(ABD[p.no]||[]).some(a=>a[0]===ab)||!(CH_ITEMS.has?CH_ITEMS.has(it):Object.prototype.hasOwnProperty.call(CH_ITEMS,it))&&!isStone(it))r.valid=false;
+    team.push({no:p.no,set:{ab:{k:ab,n:ABN[ab]},it:{k:it,n:ITEMN[it]},mv:ids.map(x=>({id:x,n:mName(x)})),sp,up,dn,src:'manual'}})});
+  TWX_K=null;const T=dgTeam0(team,20),A=dgAnalyze(T),nm=i=>T.ms[i].p.n;
+  r.bias=A.bad.some(b=>/攻撃に偏っている/.test(b.t)&&b.sev===3);
+  r.noSw=A.bad.some(b=>/後出しして勝てる匹がいない相手/.test(b.t));
+  r.ohko=A.bad.some(b=>/一撃で倒せる相手/.test(b.t)&&b.ev.some(e=>/最大\d+%/.test(e)&&/（[^）]+ 最大/.test(e)));
+  /* タスキで1だけ残るのは後出しに数えない */
+  const sashZ=T.rows.flatMap(row=>row.res.filter(z=>T.ms[z.i].p.n==='オオニューラ'&&z.op&&z.op.fmax>=100));
+  r.sash=sashZ.length>0&&sashZ.every(z=>z.swIn!=='win');
+  r.sashTxt=sashZ.some(z=>z.swIn==='sash'&&/きあいのタスキでHPが1だけ残る/.test(z.swTxt));
+  /* 後出しで負ける（survive）と後出しできない（no）を分ける */
+  const all=T.rows.flatMap(row=>row.res);r.kinds=['no','survive'].every(k=>all.some(z=>z.swIn===k));
+  r.surviveOk=all.filter(z=>z.swIn==='survive').every(z=>z.op.fmax<100);
+  /* 攻撃技があるだけでは対策に数えない：効く技があっても負ける対面は ◎○の数に入らない */
+  r.notCounted=T.rows.every(row=>row.stable.every(z=>z.r>=4)&&row.res.filter(z=>z.me&&z.k==='lose').every(z=>!row.stable.includes(z)&&!row.ok.includes(z)));
+  r.hasLoseWithMove=all.some(z=>z.me&&z.me.max>0&&z.k==='lose');
+  /* 入れかえ案は変更後の6匹で計算し直して良くなる */
+  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam0(team.map((y,k)=>k===x.i?{no:x.c.no}:y),20);const m=dgMetric(T1);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko});
+  const pc=partyCheck(team);r.pcSw=pc.fix.some(x=>x.k==='calc'&&x.sw&&x.sw.some(w=>/計算し直すと/.test(w.calc||'')));
+  return r});
+ok(V7.valid,'攻撃偏重の型に覚えない技・ない持ち物がある');
+ok(V7.bias,'攻撃偏重（受け役がいない）を深刻で出さない');
+ok(V7.noSw,'後出しして勝てる匹がいない相手を出さない');
+ok(V7.ohko,'一撃で倒される根拠に技とダメージがない');
+ok(V7.sash&&V7.sashTxt,'きあいのタスキで1だけ残るのを後出しできるに数えている');
+ok(V7.kinds&&V7.surviveOk,'後出しできない／後出しして負けるを分けていない');
+ok(V7.notCounted&&V7.hasLoseWithMove,'攻撃技を持っているだけで対策に数えている');
+ok(V7.sw,'入れかえ案を計算し直すと良くならない '+JSON.stringify(V7));
+ok(V7.pcSw,'パーティのチェックに計算し直した入れかえ案が出ない');
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);
