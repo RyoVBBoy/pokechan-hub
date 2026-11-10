@@ -75,13 +75,16 @@ async function twUpload(x){
   let r;try{r=await fetch(`${COMM_API}/api/media?w=${x.w}&h=${x.h}`,{method:'POST',headers:h,body:x.blob})}catch(e){throw new Error('画像を送れませんでした。電波のよいところでもう一度試してください。')}
   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'画像を送れませんでした。');return j.key;
 }
+/* 自分のサイトの静的ページ（ランキング）へのリンクは、サイトの中の画面を同じタブで開く（2026/11/10 依頼主：開いたあと戻れない） */
+const TW_INAPP={'/ranking/':'#/tier'};
+function twInApp(u){try{const x=new URL(u);if(!(/(^|\.)pokechan-hub\.pages\.dev$|(^|\.)game-kids\.app$/.test(x.hostname)||x.host===location.host))return null;return TW_INAPP[x.pathname]||null}catch(e){return null}}
 function twHtml(n,big){
   return `<article class="tw${big?' tw--big':''}" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
     ${twAv(n.user)}
     <div class="tw-m">${n.rp?`<div class="tw-rp">${SVG(I.repost,14)}<a href="#/u/${esc(n.rp.handle)}" data-notr>${esc(n.rp.name)}</a><span>さんがリポスト</span></div>`:''}<div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
       ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
-      <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}${n.link&&/^https:\/\//.test(n.link)?`<a class="tw-link" href="${esc(n.link)}" target="_blank" rel="noopener nofollow"><b>${/(^|\.)pokechan-hub\.pages\.dev$/.test((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())||(()=>{try{return new URL(n.link).host===location.host}catch(e){return false}})()?'くわしく見る':'公式サイトで読む'}</b><small>${esc((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())}</small></a>`:''}
+      <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}${n.link&&/^https:\/\//.test(n.link)?`<a class="tw-link" href="${esc(twInApp(n.link)||n.link)}"${twInApp(n.link)?'':' target="_blank" rel="noopener nofollow"'}><b>${/(^|\.)pokechan-hub\.pages\.dev$/.test((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())||(()=>{try{return new URL(n.link).host===location.host}catch(e){return false}})()?'くわしく見る':'公式サイトで読む'}</b><small>${esc((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())}</small></a>`:''}
       <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(I.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(I.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
     </div></article>`;
 }

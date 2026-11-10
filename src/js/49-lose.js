@@ -65,7 +65,7 @@ function loseReasons(entries){
       d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}には、パーティのだれも「上から倒す」「耐えて倒す」「後出しして勝つ」「受けて有利に戦う」ができず、乱数や同速しだいで勝てる匹もいません（相手ごとの対応力の×）。`,
       how:best.length?`変更後の6匹で計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
         `${rejected?'入れかえの候補を変更後の6匹で計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`,
-      act:[[q0.base?`#/p/${q0.no}`:`counter/${q0.no}/`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
+      act:[[`#/p/${q0.no}/break`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
   }
   /* ③ 設置技 */
   const rock4=ms.filter(o=>{const d=monDef(megaOf(o.p.no,item(o))||o.p).find(z=>z.t==='いわ');return d&&d.m>=4});
@@ -93,7 +93,7 @@ async function loseFromRecords(){
   const hard=Object.values(opp).filter(o=>o.c>=3&&pct(o.w,o.c)<45).sort((a,b)=>pct(a.w,a.c)-pct(b.w,b.c))[0];
   if(hard)out.push({ph:'選出',w:2,t:`相手に${formInfo(byNo[hard.n]).base}がいる試合の勝率が低い（${pct(hard.w,hard.c)}%）`,
     d:`記録では、相手に${formInfo(byNo[hard.n]).base}がいた${hard.c}戦の勝率が${pct(hard.w,hard.c)}%です。`,
-    how:`${formInfo(byNo[hard.n]).base}を倒す役（通し筋）を決めてから選出しましょう。答えがパーティにいなければ、入れかえも考えます。`,act:[[`counter/${hard.n}/`,`${formInfo(byNo[hard.n]).base}の対策を見る`],['#/replay','対戦の記録を見る']]});
+    how:`${formInfo(byNo[hard.n]).base}を倒す役（通し筋）を決めてから選出しましょう。答えがパーティにいなければ、入れかえも考えます。`,act:[[`#/p/${hard.n}/break`,`${formInfo(byNo[hard.n]).base}の対策を見る`],['#/replay','対戦の記録を見る']]});
   return out;
 }
 const LOSE_CHECK=[

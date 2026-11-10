@@ -621,6 +621,15 @@ ok(U2.oppsN&&U2.oppsIn,'起きる相手の数と見出しの数 '+[U2.oppsN,U2.o
 ok(U2.good,'よいところのカード');
 ok(U2.lose,'敗因の診断の説明をたたむ');
 ok(U2.open,'たたんだ所を全部開いても数字が変わらず、はみ出さない');
+/* 「〇〇の対策を見る」はサイトの中の図鑑の対策タブ（サイトの外のページに飛ばない・左上の←で戻れる）（2026/11/10 依頼主） */
+const BK=await pg.evaluate(async()=>{const N=s=>P.find(x=>x.n===s);const keep=team.slice();team.length=0;['ピカチュウ','ヤドラン','ニャオニクス（オス）'].forEach(s=>team.push({no:N(s).no}));TWX_K=null;
+  const R=loseReasons(team),acts=R.flatMap(r=>r.act||[]).map(a=>a[0]);team.length=0;keep.forEach(x=>team.push(x));TWX_K=null;
+  const noOut=acts.every(h=>h.startsWith('#/'));const br=acts.find(h=>/\/break$/.test(h));
+  location.hash=br||'#/p/149/break';await new Promise(r=>setTimeout(r,900));
+  const tab=document.querySelector('#seg [aria-selected="true"]').textContent,back=!!document.querySelector('a[data-back]');
+  return [noOut,!!br,tab,back,twInApp('https://pokechan-hub.pages.dev/ranking/'),twInApp('https://news.pokemon-home.com/ja/page/1.html')]});
+ok(BK[0]&&BK[1]&&BK[2]==='対策'&&BK[3]&&BK[4]==='#/tier'&&BK[5]===null,'対策を見るボタンの行き先と戻り方 '+JSON.stringify(BK));
+await pg.evaluate(()=>{location.hash='#/team'});await pg.waitForTimeout(800);
 /* 改善案の計算に失敗したとき：もう一度計算できる */
 await pg.evaluate(()=>{IMP_CACHE.clear();window.__impG=impGet;impGet=()=>{throw new Error('test')};teamRender()});await pg.waitForTimeout(2500);
 const RT0=await pg.evaluate(()=>!!document.getElementById('dgu-retry'));

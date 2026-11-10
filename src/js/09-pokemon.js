@@ -1,6 +1,8 @@
 /* ===================== ポケモン詳細 ===================== */
 let st={sp:[0,0,0,0,0,0],up:-1,dn:-1},curNo=null;
 function detail(no){
+  /* 「〇〇の対策を見る」（2026/11/10 依頼主：サイトの外の対策ページから戻れない）：#/p/番号/break なら図鑑の「対策」タブで開く。左上の←で前の画面に戻れる */
+  if(/^#\/p\/\d+\/break/.test(location.hash)&&typeof DP_KEEP_TAB!=='undefined')DP_KEEP_TAB=4;
   const p=byNo[no];
   if(!p){setHeader('ポケモン');V.innerHTML='<p class="empty">ポケモンが見つかりません。<br><a href="#/dex" style="color:var(--fg);text-decoration:underline">図鑑へ戻る</a></p>';return}
   setHeader(p.n,p.base?'#/p/'+p.base:'#/dex');
