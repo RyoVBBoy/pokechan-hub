@@ -45,7 +45,9 @@ function dguSumFill(entries,C){
       <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>
     ${sel}`;
   box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
-  box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>{TTAB=b.dataset.dguTab;try{sessionStorage.setItem('pcttab',TTAB)}catch(e){}teamRender();scrTo(0,0)});
+  box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>{TTAB=b.dataset.dguTab;try{sessionStorage.setItem('pcttab',TTAB)}catch(e){}teamRender();scrTo(0,0);
+    /* 選出の理由へ（2026/11/10 第4段階）：構築と選出タブの「選出の比較」まで送る */
+    setTimeout(()=>{const t=document.getElementById('sel-box');if(t){t.scrollIntoView({block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}},80)});
   /* 改善案：画面を出したあと後ろで計算（すでにあれば使い回す） */
   dguImp(entries);
 }

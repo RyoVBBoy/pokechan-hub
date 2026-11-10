@@ -560,6 +560,16 @@ await pg.evaluate(()=>{team.length=0;['ガブリアス','サーフゴー','ア�
 await pg.waitForTimeout(1500);
 const ui2=await pg.evaluate(()=>{const e=document.querySelector('.sel-box');return e?[/20通りを計算/.test(e.textContent),e.querySelectorAll('.sel-all .sel-c').length]:[false,0]});
 ok(ui2[0]&&ui2[1]===20,'構築と選出タブに選出の比較が出ない '+ui2);
+/* UI改善 第4段階：選出の比較の見せ方（数は dgSelect のまま・先発の行・2番目との違い・はみ出さない） */
+const U4=await pg.evaluate(()=>{const e=document.getElementById('sel-box'),S=dgSelect(team),B=S.best,R2=S.list[1],r={};
+  r.mons=[...e.querySelectorAll('.selu-best .dgu-mon')].map(x=>x.firstChild.textContent).join('・')===B.c.map(S.nm).join('・');
+  r.bars=[4,3,2,1].every(l=>e.querySelector('.selu-best .dgu-l'+l+' .dgu-bn').textContent.startsWith(B.cnt[l]+'匹'));
+  const k=[...e.querySelectorAll('.selu-kpi b')].map(x=>parseInt(x.textContent));r.kpi=k.join()===[B.sw,B.fast,B.danger.length,B.cnt[1]].join();
+  r.lead=e.querySelectorAll('.selu-sub .selu-row').length===B.lead1.length;
+  const better=B.rows.filter((y,j)=>y.lvl>R2.rows[j].lvl).length,worse=B.rows.filter((y,j)=>y.lvl<R2.rows[j].lvl).length;
+  r.cmp=e.querySelectorAll('.selu-sub .selu-g').length>=better&&new RegExp('1番の方が良い相手（'+better+'匹）').test(e.textContent)&&new RegExp('2番の方が良い相手（'+worse+'匹）').test(e.textContent);
+  r.over=document.body.scrollWidth<=innerWidth;return r});
+ok(Object.values(U4).every(Boolean),'選出の比較の見せ方 '+JSON.stringify(U4));
 await pg.evaluate(()=>{sessionStorage.setItem('pcttab','check');TTAB='check';teamRender()});await pg.waitForTimeout(800);
 /* 診断のまとめが後ろで計算して一覧も出すので、ボタンが残っているときだけ押す */
 await pg.waitForTimeout(4000);if(await pg.$('#imp-run'))await pg.click('#imp-run');await pg.waitForTimeout(1500);

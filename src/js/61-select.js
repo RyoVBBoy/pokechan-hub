@@ -107,21 +107,36 @@ function dgSelWhy(S,x,ref){
 /* 1匹の対面を短く：「ガブリアス：上から一撃（確定）／じしん 107〜127%・素早さ 158 対 122」 */
 function dgZTxt(S,z,opts){if(!z)return '';const nm=S.nm(z.i);
   return `${nm}：${z.t||DG_K[z.k].t||''}／${z.me?`${z.me.mvn} ${dgDmgTxt(z.me,'op')}`:'効く技なし'}・相手の${z.op?`${z.op.mvn} 最大${dgPct(z.op.fmax)}${z.op.half?`（こちらの${ABN[z.op.half]||'特性'}でHP満タンのとき。2発目から最大${dgPct(z.op.max)}）`:''}`:'効く技なし'}・素早さ ${z.sa} 対 ${z.so}${opts&&opts.sw?`・後出し：${{win:'勝てる',sashwin:'条件つき',sash:'タスキ頼みで不可',survive:'耐えるが撃ち合いで負ける',no:'1発目で倒される'}[z.swIn]}`:''}`}
-/* 先発の比較：シングル＝3匹それぞれ、ダブル＝2匹の6通り。上位8匹（相手の先発になりやすい相手）との対面を根拠に出す */
+/* 先発の比較：シングル＝3匹それぞれ、ダブル＝2匹の6通り。上位8匹（相手の先発になりやすい相手）との対面を根拠に出す。
+   2026/11/10 UI改善 第4段階：1行ずつ「有利・やや有利・先に一撃で倒される・先に動ける」の数を札で、1番の理由は相手の名前の札、計算の文はたたむ */
+const selOpChips=(a,cls)=>a.length?`<span class="selu-ops">${a.map(n=>`<span class="dgc-op${cls?' '+cls:''}">${esc(n)}</span>`).join('')}</span>`:'<span class="selu-none">なし</span>';
+function selStat(l,v,cls){return `<span class="selu-st${cls?' '+cls:''}"><i>${l}</i><b>${v}</b></span>`}
 function dgLeadHTML(S,x){
   const nm=i=>esc(S.nm(i)),top=y=>S.T.rows.indexOf(y.x?y.x.r:y.r)<8;
   if(x.pairs){
     const P0=x.pairs[0];
-    return `<h4>先発の比較（選んだ4匹から先発2匹：6通り・簡易比較）</h4><p class="sel-lim">これは<b>簡易比較</b>です。ダブルの実際の対戦（相手2匹から同時に攻撃される・範囲技・味方のサポート・まもる・ねこだまし・このゆびとまれ・交代）は計算に入っていません。1対1の計算を組み合わせて候補を並べただけなので、点は勝率や実戦での強さではなく、1番が実戦でいつも最適な先発とは限りません。</p><p class="vcap">選出の4匹（上）とは別に、そのうち最初に出す2匹の組み合わせを比べています。上位${S.N}匹を相手の先発の候補として、相手1匹ずつに、2匹のどちらかが1対1で有利に戦えるか・どちらを狙われても先に一撃で倒されうるかを数えました（相手が2匹で同時に1匹を狙う場合は数えていません）。点＝相手ごとに2匹のうち良い方（有利1・やや有利0.6・不安定0.25）−どちらも先に一撃で倒されうる0.5（片方なら0.2）、上位8匹は1.5倍の平均。</p>
-      ${x.pairs.map((p,k)=>`<div class="sel-c${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">先発 ${nm(p.pr[0])}・${nm(p.pr[1])}<small>後ろ ${nm(p.back[0])}・${nm(p.back[1])}</small></span><span class="sel-n">点 ${p.sc.toFixed(2)}：どちらかが1対1で有利 ${p.adv.length}／どちらを狙われても先に一撃で倒されうる ${p.both.length}／後ろで補える ${p.cover.length}</span></div>`).join('')}
-      <ul class="sel-why"><li>${esc(`1番の点が高い理由（上位8匹との1対1の計算。同時攻撃・範囲技は入っていない）：`)}${P0.rr.filter(top).map(y=>esc(`${y.x.r.q.n} → ${dgZTxt(S,y.best.q)}${y.d===2?'（どちらを狙われても先に一撃で倒されうる）':''}`)).join('<br>')}</li>
-      ${P0.cover.length?`<li>${esc(`先発で不利でも、後ろの${S.nm(P0.back[0])}・${S.nm(P0.back[1])}が有利な相手：${P0.cover.map(y=>y.x.r.q.n).join('・')}`)}</li>`:''}</ul>`;
+    return `<div class="selu-sub"><h4>先発の比較（選んだ4匹から先発2匹：6通り・簡易比較）</h4>
+      <p class="sel-lim"><b>簡易比較</b>：1対1の計算を組み合わせて並べただけです。ダブルの実際の対戦（相手2匹から同時に攻撃される・範囲技・味方のサポート・まもる・ねこだまし・このゆびとまれ・交代）は計算に入っていないので、点は勝率や実戦での強さではなく、1番が実戦でいつも最適な先発とは限りません。</p>
+      ${x.pairs.map((p,k)=>`<div class="sel-c selu-row${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">先発 ${nm(p.pr[0])}・${nm(p.pr[1])}<small class="selu-back">後ろ ${nm(p.back[0])}・${nm(p.back[1])}</small></span><span class="selu-sts">${selStat('どちらかが有利',p.adv.length,'g')}${selStat('2匹とも先に一撃の危険',p.both.length,p.both.length?'b':'')}${selStat('後ろで補える',p.cover.length)}<span class="selu-sc">点 ${p.sc.toFixed(2)}</span></span></div>`).join('')}
+      <div class="selu-why"><p><b>${nm(P0.pr[0])}・${nm(P0.pr[1])}</b>を先発にすると</p>
+        <div class="dgc-row"><span class="dgc-k">どちらかが有利（上位8匹）</span>${selOpChips(P0.adv.filter(top).map(y=>y.x.r.q.n),'selu-g')}</div>
+        <div class="dgc-row"><span class="dgc-k">どちらを狙われても先に一撃で倒されうる</span>${selOpChips(P0.both.map(y=>y.x.r.q.n),'selu-b')}</div>
+        ${P0.cover.length?`<div class="dgc-row"><span class="dgc-k">先発で不利でも、後ろの${nm(P0.back[0])}・${nm(P0.back[1])}が有利</span>${selOpChips(P0.cover.map(y=>y.x.r.q.n))}</div>`:''}</div>
+      <details class="dgc-ev"><summary>計算根拠と点の決め方を見る</summary>
+        <p class="vcap">選出の4匹とは別に、そのうち最初に出す2匹の組み合わせを比べています。上位${S.N}匹を相手の先発の候補として、相手1匹ずつに、2匹のどちらかが1対1で有利に戦えるか・どちらを狙われても先に一撃で倒されうるかを数えました（相手が2匹で同時に1匹を狙う場合は数えていません）。点＝相手ごとに2匹のうち良い方（有利1・やや有利0.6・不安定0.25）−どちらも先に一撃で倒されうる0.5（片方なら0.2）、上位8匹は1.5倍の平均。</p>
+        <ul class="sel-why"><li>${esc(`1番の点が高い理由（上位8匹との1対1の計算。同時攻撃・範囲技は入っていない）：`)}<br>${P0.rr.filter(top).map(y=>esc(`${y.x.r.q.n} → ${dgZTxt(S,y.best.q)}${y.d===2?'（どちらを狙われても先に一撃で倒されうる）':''}`)).join('<br>')}</li></ul></details></div>`;
   }
   const L0=x.lead1[0];
-  return `<h4>先発の比較（選んだ3匹それぞれ）</h4><p class="vcap">上位${S.N}匹を相手の先発の候補として、先発にしたときに有利に戦える数と、先に一撃で倒される数を比べています。点＝相手ごとに有利1・やや有利0.6・不安定0.25−先に一撃で倒される0.5、上位8匹は1.5倍の平均。同点なら有利が多い→先に倒される相手が少ない順。</p>
-    ${x.lead1.map((l,k)=>`<div class="sel-c${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">${nm(l.i)}</span><span class="sel-n">点 ${l.sc.toFixed(2)}：有利 ${l.adv.length}・やや有利 ${l.ok.length}／先に一撃で倒される ${l.die.length}／先に動ける ${l.fast}</span></div>`).join('')}
-    <ul class="sel-why"><li>${esc(`${S.nm(L0.i)}を先発にする理由（上位8匹との対面）：`)}<br>${L0.adv.filter(top).slice(0,4).map(y=>esc(`有利：${y.x.r.q.n} → ${dgZTxt(S,y.z)}`)).join('<br>')}${L0.die.filter(top).length?'<br>'+L0.die.filter(top).slice(0,3).map(y=>esc(`気をつける：${y.x.r.q.n} → ${dgZTxt(S,y.z)}`)).join('<br>'):''}</li>
-    ${x.lead1.slice(1).map(l=>`<li>${esc(`${S.nm(l.i)}を先発にすると：有利 ${l.adv.length}匹（${S.nm(L0.i)}は${L0.adv.length}匹）・先に一撃で倒される ${l.die.length}匹（${S.nm(L0.i)}は${L0.die.length}匹）${l.die.filter(top).length?`。例：${l.die.filter(top).slice(0,2).map(y=>`${y.x.r.q.n}の${y.z.op.mvn} 最大${dgPct(y.z.op.fmax)}（素早さ ${y.z.sa} 対 ${y.z.so}）`).join('・')}`:''}`)}</li>`).join('')}</ul>`;
+  return `<div class="selu-sub"><h4>先発の比較（選んだ3匹それぞれ）</h4>
+    ${x.lead1.map((l,k)=>`<div class="sel-c selu-row${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">${nm(l.i)}${k===0?'<small>先発</small>':''}</span><span class="selu-sts">${selStat('有利',l.adv.length,'g')}${selStat('やや有利',l.ok.length)}${selStat('先に一撃で倒される',l.die.length,l.die.length?'b':'')}${selStat('先に動ける',l.fast)}<span class="selu-sc">点 ${l.sc.toFixed(2)}</span></span></div>`).join('')}
+    <div class="selu-why"><p><b>${nm(L0.i)}</b>を先発にする理由（上位8匹との対面）</p>
+      <div class="dgc-row"><span class="dgc-k">有利に戦える</span>${selOpChips(L0.adv.filter(top).map(y=>y.x.r.q.n),'selu-g')}</div>
+      <div class="dgc-row"><span class="dgc-k">先に一撃で倒される（気をつける）</span>${selOpChips(L0.die.filter(top).map(y=>y.x.r.q.n),'selu-b')}</div>
+      ${x.lead1.slice(1).map(l=>`<p class="dgu-note">${esc(`${S.nm(l.i)}を先発にすると：有利 ${l.adv.length}匹（${S.nm(L0.i)}は${L0.adv.length}匹）・先に一撃で倒される ${l.die.length}匹（${S.nm(L0.i)}は${L0.die.length}匹）`)}</p>`).join('')}</div>
+    <details class="dgc-ev"><summary>計算根拠と点の決め方を見る</summary>
+      <p class="vcap">上位${S.N}匹を相手の先発の候補として、先発にしたときに有利に戦える数と、先に一撃で倒される数を比べています。点＝相手ごとに有利1・やや有利0.6・不安定0.25−先に一撃で倒される0.5、上位8匹は1.5倍の平均。同点なら有利が多い→先に倒される相手が少ない順。</p>
+      <ul class="sel-why"><li>${esc(`${S.nm(L0.i)}を先発にする理由（上位8匹との対面）：`)}<br>${L0.adv.filter(top).slice(0,4).map(y=>esc(`有利：${y.x.r.q.n} → ${dgZTxt(S,y.z)}`)).join('<br>')}${L0.die.filter(top).length?'<br>'+L0.die.filter(top).slice(0,3).map(y=>esc(`気をつける：${y.x.r.q.n} → ${dgZTxt(S,y.z)}`)).join('<br>'):''}</li>
+      ${x.lead1.slice(1).map(l=>`<li>${esc(`${S.nm(l.i)}を先発にすると：有利 ${l.adv.length}匹（${S.nm(L0.i)}は${L0.adv.length}匹）・先に一撃で倒される ${l.die.length}匹（${S.nm(L0.i)}は${L0.die.length}匹）${l.die.filter(top).length?`。例：${l.die.filter(top).slice(0,2).map(y=>`${y.x.r.q.n}の${y.z.op.mvn} 最大${dgPct(y.z.op.fmax)}（素早さ ${y.z.sa} 対 ${y.z.so}）`).join('・')}`:''}`)}</li>`).join('')}</ul></details></div>`;
 }
 /* 1位と2位の点の内訳と、相手ごとの違い（ダメージ・素早さ・後出しの根拠つき） */
 function dgSelCmpHTML(S,a,b){
@@ -136,23 +151,42 @@ function dgSelCmpHTML(S,a,b){
       <small>1番（${esc(a.c.map(nm).join('・'))}）：${d.y.zs.map(z=>esc(dgZTxt(S,z,{sw:1}))).join('<br>')}</small><small>2番（${esc(b.c.map(nm).join('・'))}）：${d.z.zs.map(z=>esc(dgZTxt(S,z,{sw:1}))).join('<br>')}</small></div>`).join('')}
   </details>`;
 }
+/* 選出の比較の画面（2026/11/10 UI改善 第4段階）：1番の選出＝匹の札（先発の印）・◎○△×の横棒・数の札（後出し・先手・一撃の危険・攻撃役・受け役）・よい理由・気をつけること
+   → 先発の比較 → 2番目との違い（相手の名前の札）→ ★の選出 → たたむ（点の内訳・全部の一覧・計算の前提）。数・文はすべて dgSelect／dgSelWhy のまま */
 function dgSelHTML(S,entries){
   if(!S||!S.best)return '';
-  const nm=i=>esc(S.nm(i)),L=l=>DG_LV[l][0];
+  const nm=i=>esc(S.nm(i)),L=l=>DG_LV[l][0],B=S.best,N=S.N;
   const lds=x=>x.pairs?x.pairs[0].pr:[x.lead1[0].i];
   const line=(x,k)=>`<div class="sel-c${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">${x.c.map(i=>`${nm(i)}${lds(x).includes(i)?'<small>先発</small>':''}`).join('・')}</span><span class="sel-n">${L(4)}${x.cnt[4]} ${L(3)}${x.cnt[3]} ${L(2)}${x.cnt[2]} ${L(1)}${x.cnt[1]}</span></div>`;
-  const W=dgSelWhy(S,S.best,S.list[1]);
-  const mine=S.mine&&S.mine!==S.best?dgSelWhy(S,S.mine,S.best):null;
-  return `<div class="pc-i pc-plan sel-box"><b>選出の比較（${S.K}匹の選び方 ${S.list.length}通りを計算${S.K===4?'。先発2匹は選んだ4匹ごとに6通り':''}）</b>
-    <p>パーティの${entries.length}匹から${S.K}匹を選ぶ組み合わせを全部、使用率の上位${S.N}匹との1対1の計算（相手ごとの対応力と同じ計算）で比べました。${S.excluded?`メガストーンを持つ匹を2匹以上入れる${S.excluded}通りは、1試合にメガシンカできるのが1匹なので除いています。`:''}${S.ax>=0?`軸の${nm(S.ax)}は必ず入れています。`:''}</p>
-    <h4>いちばん良い選出</h4>${line(S.best,0)}
-    <ul class="sel-why">${W.good.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
-    ${W.warn.length?`<p class="sel-wh">気をつけること</p><ul class="sel-why sel-warn">${W.warn.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
-    ${dgLeadHTML(S,S.best)}
-    ${dgSelCmpHTML(S,S.best,S.list[1])}
-    ${S.mine?`<h4>いま★を付けている選出</h4>${line(S.mine,S.mineRank-1)}<p class="vcap">${S.list.length}通りのうち${S.mineRank}番目${S.mine===S.best?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}`:''}
+  const mons=x=>`<p class="dgu-sel">${x.c.map(i=>`<span class="dgu-mon${lds(x).includes(i)?' dgu-lead':''}">${nm(i)}${lds(x).includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>`;
+  const W=dgSelWhy(S,B,S.list[1]);
+  /* よい理由：数の札・先発の比較・2番目との比較に出すものは除く（文はそのまま） */
+  const good=W.good.filter(t=>!/^上位\d+匹のうち|^先発|^後出しして勝てる匹がいる相手|^2番目の選出/.test(t));
+  const kpi=`<div class="selu-kpi">
+    <div><span>後出しして勝てる匹がいる相手</span><b>${B.sw}<small>/${N}匹</small></b>${B.swc?`<em>ほか条件つき ${B.swc}匹（きあいのタスキ頼み）</em>`:''}</div>
+    <div><span>先に動ける匹がいる相手</span><b>${B.fast}<small>/${N}匹</small></b></div>
+    <div class="${B.danger.length?'selu-bad':''}"><span>選出の${Math.ceil(B.c.length*2/3)}匹以上が一撃で倒される相手</span><b>${B.danger.length}<small>匹</small></b></div>
+    <div class="${B.cnt[1]?'selu-bad':''}"><span>答えがない相手（×）</span><b>${B.cnt[1]}<small>匹</small></b></div></div>`;
+  /* 2番目との違い：相手ごとの ◎〜× が良くなる／悪くなる相手 */
+  const R2=S.list[1];let cmp='';
+  if(R2){const better=B.rows.filter((y,j)=>y.lvl>R2.rows[j].lvl).map(y=>y.r.q.n),worse=B.rows.filter((y,j)=>y.lvl<R2.rows[j].lvl).map(y=>y.r.q.n);
+    cmp=`<div class="selu-sub"><h4>2番目の選出との違い</h4>${line(R2,1)}
+      <div class="dgc-row"><span class="dgc-k">1番の方が良い相手（${better.length}匹）</span>${selOpChips(better,'selu-g')}</div>
+      <div class="dgc-row"><span class="dgc-k">2番の方が良い相手（${worse.length}匹）</span>${selOpChips(worse,'selu-b')}</div>
+      <p class="dgu-note">点の差 ${(B.sc-R2.sc).toFixed(3)}${R2.tie?'（同点。×が少ない→一撃の危険が少ない→◎○が多い…の順で決めました）':''}</p>
+      ${dgSelCmpHTML(S,B,R2)}</div>`}
+  const mine=S.mine&&S.mine!==B?dgSelWhy(S,S.mine,B):null;
+  return `<div class="pc-i pc-plan sel-box" id="sel-box"><div class="selu-head"><b>選出の比較</b><span class="dgu-fmt">${S.K}匹の選び方 ${S.list.length}通りを計算${S.K===4?'・先発2匹は選んだ4匹ごとに6通り':''}</span></div>
+    <p class="dgu-note">パーティの${entries.length}匹から${S.K}匹を選ぶ組み合わせを全部、使用率の上位${N}匹との1対1の計算（相手ごとの対応力と同じ計算）で比べました。${S.excluded?`メガストーンを持つ匹を2匹以上入れる${S.excluded}通りは、1試合にメガシンカできるのが1匹なので除いています。`:''}${S.ax>=0?`軸の${nm(S.ax)}は必ず入れています。`:''}</p>
+    <div class="selu-best"><p class="selu-lab">いちばん良い選出（1番＝上の基本選出）</p>${mons(B)}
+      ${dguBars(B.cnt,N)}${kpi}
+      ${good.length?`<p class="sel-wh">この選出のよいところ</p><ul class="sel-why">${good.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
+      ${W.warn.length?`<p class="sel-wh">気をつけること</p><ul class="sel-why sel-warn selu-warn">${W.warn.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}</div>
+    ${dgLeadHTML(S,B)}
+    ${cmp}
+    ${S.mine?`<div class="selu-sub"><h4>いま★を付けている選出</h4>${line(S.mine,S.mineRank-1)}<p class="dgu-note">${S.list.length}通りのうち<b>${S.mineRank}番目</b>${S.mine===B?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}</div>`:''}
     <details class="sel-all"><summary>${S.list.length}通りすべてを見る</summary>${S.list.map((x,k)=>line(x,k)).join('')}
       <p class="vcap">並びは点の順です（点の決め方は「1番と2番の点の内訳」）。「先発」の印は、その選出の中で比べた先発です。</p></details>
-    <p class="vcap">計算の前提：${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`パーティの天気（${esc(S.tw.by)}の特性）は、その匹を選んだ選出でだけ入れています。`:''}${S.tr&&S.tr.on?'トリックルームは、張れる匹を選んだ選出でだけ、遅い匹に入れています。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較は、使用率の上位を相手の先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p>
+    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`パーティの天気（${esc(S.tw.by)}の特性）は、その匹を選んだ選出でだけ入れています。`:''}${S.tr&&S.tr.on?'トリックルームは、張れる匹を選んだ選出でだけ、遅い匹に入れています。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較は、使用率の上位を相手の先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
   </div>`;
 }

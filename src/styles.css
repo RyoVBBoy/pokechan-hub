@@ -1791,3 +1791,28 @@ body::before{inset:0;background:
 .dgm-t dt{font-size:12.5px;font-weight:700;color:var(--dim)}.dgm-t dd{margin:0;font-size:13.5px;line-height:1.55;color:var(--fg);overflow-wrap:anywhere}
 @media(max-width:699px){.dgm-t>div{grid-template-columns:7em 1fr}}
 .dg-r summary .dg-nosw{color:#e5484d!important}
+/* 選出・先発の比較（61-select.js の dgSelHTML／dgLeadHTML、2026/11/10 UI改善 第4段階） */
+.selu-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}.selu-head>b{font-size:16px}
+.selu-best{margin-top:10px;padding:12px;border-radius:14px;box-shadow:inset 0 0 0 2px var(--acc)}
+.selu-lab{margin:0 0 6px;font-size:12.5px;font-weight:800;color:var(--acc)}
+.selu-best .dgu-bars{margin-top:10px}
+.selu-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.selu-kpi>div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.selu-kpi span{font-size:11.5px;line-height:1.4;color:var(--dim);font-weight:700}
+.selu-kpi b{font-size:20px;font-weight:800;color:var(--fg)}.selu-kpi b small{font-size:12px;color:var(--dim);margin-left:2px}
+.selu-kpi em{font-style:normal;font-size:11.5px;color:var(--dim);line-height:1.4}
+.selu-kpi .selu-bad b{color:var(--w4)}
+.selu-warn li{padding:2px 0}
+.selu-sub{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.selu-sub h4{margin:0 0 6px}
+.selu-row{flex-wrap:wrap}.selu-row .sel-m{flex:1 1 9em}.selu-back{display:block;color:var(--dim)!important;font-weight:600!important;margin:2px 0 0!important}
+.selu-sts{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.selu-st{display:inline-flex;align-items:baseline;gap:4px;font-size:12px;padding:2px 8px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line)}
+.selu-st i{font-style:normal;color:var(--dim)}.selu-st b{font-size:13px}
+.selu-st.g b{color:#3fb37a}.selu-st.b b{color:var(--w4)}
+.selu-sc{font-size:11.5px;color:var(--dim);margin-left:2px}
+.selu-why{margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--acc-t)}.selu-why>p:first-child{margin:0;font-size:14px}
+.selu-why .dgc-row{margin-top:8px}
+.selu-ops{display:flex;flex-wrap:wrap;gap:5px}.selu-none{font-size:13px;color:var(--dim)}
+.dgc-op.selu-g{box-shadow:inset 0 0 0 1px rgba(63,179,122,.6)}.dgc-op.selu-b{box-shadow:inset 0 0 0 1px rgba(229,72,77,.6)}
+@media(max-width:699px){.selu-kpi{grid-template-columns:1fr 1fr}.selu-row .selu-sts{width:100%;padding-left:2.2em}}
+.sel-m small.selu-back{display:block}.pc-i .selu-why>p:first-child{color:var(--fg)}
