@@ -432,7 +432,7 @@ const V10=await pg.evaluate(()=>{
   /* マルチスケイルなしなら一撃（適用前と後の違い） */
   const o2={...row.o,ab:'inner-focus'},g2=dgMatch(T.M[T.ms.findIndex(m=>m.p.n==='ガブリアス')],o2);r.before=[g2.me.half===null,g2.me.nMin===1,g2.k==='ko_fast'];
   /* 連続技（ドラゴンアロー2回）：最初の1回だけ半分＝1発目は 0.75倍。duTurns も同じ数え方 */
-  const d=zi('ドラパルト');r.darts=[d.me.h===2,Math.abs(d.me.fmin-d.me.min*.75)<1e-9,d.me.nMin===duTurns(d.me.min,{mv:d.me.mv,acc:100},T.M[d.i],row.o)];
+  const d=zi('ドラパルト');r.darts=[d.me.h===2,Math.abs(d.me.fmin-(d.me.hit1[0]+d.me.hitN[0])/d.me.hpMax*100)<1e-9,d.me.nMin===duTurns(d.me.min,{mv:d.me.mv,acc:100},T.M[d.i],row.o)];
   /* 先発の理由に、マルチスケイルのカイリューを「上から一撃」と書かない・1発目と2発目を分けて書く */
   const D=dgSelect(team),h=dgLeadHTML(D,D.best);
   r.lead=!/カイリュー → ガブリアス：上から一撃/.test(h);
@@ -453,6 +453,40 @@ ok(V10.lead&&V10.ztxt,'先発の理由のマルチスケイル '+[V10.lead,V10.z
 ok(V10.premise,'特性が分からない相手の前提が書かれていない');
 ok(V10.dbl.every(Boolean),'ダブルの先発の比較の説明（簡易比較・未計算） '+V10.dbl);
 ok(V10.single,'1回の技のマルチスケイル');
+/* 2026/11/10 依頼主の確認：ドラゴンアロー（1回で2回当たる）とマルチスケイル。1回目の当たりだけ半分・2回目は半分にならない・合計で回数を数える */
+const V11=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const set={ab:'clear-body',item:'lifeorb',moves:['dragondarts','phantomforce','uturn','suckerpunch'].map(lfId).map(mvObj),sp:[2,32,0,0,0,32],up:1,dn:3};
+  const a=mkMon(N('ドラパルト'),'me',set),mv=a.moves[0];
+  const dr=ab=>mkMon(N('カイリュー'),'op',{...detSet(N('カイリュー')),ab,item:null});
+  const d=dr('multiscale'),dn=dr('inner-focus');
+  /* 手で：乱数16段階ずつ、1回目の当たり（HP満タン）と2回目の当たり（満タンでない）を bcalc で */
+  const at=(dd,r,full)=>{const hp=dd.hp;dd.hp=full?dd.max:dd.max-1;try{return bcalc(a,mv,dd,{r}).dmg}finally{dd.hp=hp}};
+  const h1=DG_ROLLS.map(q=>at(d,q,true)),h2=DG_ROLLS.map(q=>at(d,q,false)),hn=DG_ROLLS.map(q=>at(dn,q,true));
+  r.hit=[h1.every((x,k)=>Math.abs(x-h2[k]/2)<=1),h2.every((x,k)=>x===hn[k])];           /* 1回目は半分（端数は計算の丸め）・2回目は満タンでないので半分にならない＝マルチスケイルなしと同じ */
+  const x=dgMove(a,mv,d),L=15;
+  r.sum=[x.h===2,x.hit1[0]===h1[0]&&x.hit1[1]===h1[L],x.hitN[0]===h2[0]&&x.hitN[1]===h2[L],Math.abs(x.fmin-(h1[0]+h2[0])/d.max*100)<1e-9,Math.abs(x.fmax-(h1[L]+h2[L])/d.max*100)<1e-9];
+  let ko=0;h1.forEach(p=>h2.forEach(q=>{if(p+q>=d.max)ko++}));r.ko=[ko,x.ohko*16];
+  /* 1回目の当たりだけでは倒せない（h1 の最大 < HP）のに、合計で確定1発になる */
+  r.notHit1=[h1[L]<d.max,h2[L]<d.max,h1[0]+h2[0]>=d.max];
+  const dm=dgMatch(a,d);r.match=[dm.me.nMin===1,dm.k==='ko_fast',/1回で2回当たる合計/.test(dm.why.join()),/最初の当たりだけ半分/.test(dm.why.join())];
+  /* マルチスケイルなし：合計は2回とも半分にならない（hn×2）＝前の 149〜176% */
+  const xn=dgMove(a,mv,dn);r.noMs=[xn.half===null,Math.abs(xn.fmin-hn[0]*2/dn.max*100)<1e-9,Math.abs(xn.min-xn.fmin)<1e-9];
+  /* 1回の技（2回当たる）を「2回使う」と数えない：倒すまでの回数は技を使う回数 */
+  r.uses=[dgMatch(a,d).me.nMin===1,duTurns(x.min,{mv,acc:100,f:x.fmin},a,d)===1];
+  /* 1回目の当たりだけ HP を超えないように弱くした場合：合計でも届かなければ確定1発にしない */
+  const weak=mkMon(N('ドラパルト'),'me',{...set,item:null,sp:[2,24,0,0,0,32],up:1,dn:3});const xw=dgMove(weak,weak.moves[0],d),fw=dgMatch(weak,d);
+  r.weak=[xw.fmin<100,xw.min>=100,fw.me.nMin>=2];  /* 合計で届かない（マルチスケイルなしなら確定1発）→ 確定2発 */
+  /* 3回以上の連続技でもマルチスケイルは最初の当たりだけ（タネマシンガン等：回数は平均の3回で計算） */
+  return r});
+ok(V11.hit.every(Boolean),'1回目の当たりだけ半分・2回目は半分にならない '+V11.hit);
+ok(V11.sum.every(Boolean),'1回目と2回目の当たりを足した1発目のダメージ '+V11.sum);
+ok(V11.ko[0]===V11.ko[1],'乱数の組み合わせ（16×16）で一撃の数 '+V11.ko);
+ok(V11.notHit1.every(Boolean),'1回目の当たりだけで倒せるとしていない '+V11.notHit1);
+ok(V11.match.every(Boolean),'ドラパルト対マルチスケイルのカイリュー '+V11.match);
+ok(V11.noMs.every(Boolean),'マルチスケイルなしのドラゴンアロー '+V11.noMs);
+ok(V11.uses.every(Boolean),'技を使う回数と当たる回数を混同していない '+V11.uses);
+ok(V11.weak.every(Boolean),'合計で届かない連続技を確定1発にしていない '+V11.weak);
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

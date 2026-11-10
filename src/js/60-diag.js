@@ -42,9 +42,16 @@ function dgMove(a,mv,d){
     const roll=r=>{if(half)d.hp=d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
     /* 一撃で倒せる段階の数は初撃（マルチスケイル等なら半分）で数える */
     /* 連続技は、マルチスケイルで半分になるのは最初の1回だけ（2回目からはHPが満タンでない）（2026/11/10 依頼主の確認で見つけた間違い：全部の回を半分にしていた） */
-    const hf=half?1-.5/h:1;
-    let ohko=0;if(max*hf>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>{const x=roll(r);return (half?Math.floor(x*.5)+x*(h-1):x*h)>=d.max}).length;
-    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:half?d.ab:null,fmin:min*hf,fmax:max*hf};
+    /* 2026/11/10 依頼主の確認（ドラゴンアロー）：1回目（HP満タン＝マルチスケイルで半分）と2回目から（半分にならない）を乱数16段階ずつ別々に bcalc で計算して足す。
+       fmin/fmax＝1回の技（全部の回の合計）の1発目のダメージ。一撃で倒せる乱数の数（ohko、16段階に換算）は、1回目と2回目の乱数を別々に組み合わせて数える（3回以上の連続技は2回目以降を同じ乱数と見る） */
+    if(!half){let ohko=0;if(max>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>roll(r)*h>=d.max).length;
+      return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:null,fmin:min,fmax:max}}
+    const at=(r,full)=>{d.hp=full?d.max:d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
+    const h1=DG_ROLLS.map(r=>at(r,true)),h2=DG_ROLLS.map(r=>at(r,false)),L=DG_ROLLS.length-1;
+    const tot=(i,j)=>h1[i]+(h-1)*h2[j];
+    let ko=0;h1.forEach((_,i)=>h2.forEach((_,j)=>{if(tot(i,j)>=d.max)ko++}));
+    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko:r0.fixed?16:ko/DG_ROLLS.length,fixed:!!r0.fixed,half:d.ab,
+      fmin:tot(0,0)/d.max*100,fmax:tot(L,L)/d.max*100,hit1:[h1[0],h1[L]],hitN:h>1?[h2[0],h2[L]]:null,hpMax:d.max};
   }finally{d.disg=dg}
 }
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */
@@ -53,7 +60,7 @@ function dgBest(a,d){
   /* みらいよち・はめつのねがいは2ターン後に当たるので、1対1の撃ち合いには入れない */
   (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv)))return;
     const x=dgMove(a,mv,d);if(!x.max)return;
-    x.nMin=duTurns(x.min,{mv,acc:100},a,d);x.nMax=duTurns(x.max,{mv,acc:100},a,d);
+    x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax},a,d);
     const key=[x.nMin,-(x.min*x.acc)];
     if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&key[1]<best.key[1]))best={...x,key}});
   return best;
@@ -67,7 +74,10 @@ function dgPrio(a,d){
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
 /* ダメージの書き方：マルチスケイル等で初撃が半分なら「初撃 a〜b%・2発目から c〜d%」 */
 /* who＝特性を持つ（攻撃を受ける）側：'op' 相手／'me' こちら。マルチスケイル等は「受ける側がHP満タンのとき、受ける1発目だけ半分」（2026/11/10 依頼主：攻撃側の技と混同しない書き方に） */
-const dgDmgTxt=(x,who)=>x&&x.half?`1発目${dgPct(x.fmin)}〜${dgPct(x.fmax)}（${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}でHP満タンのときは${x.h>1?`${x.h}回当たるうち最初の1回だけ半分`:'半分'}）・2発目から${dgPct(x.min)}〜${dgPct(x.max)}`:`${dgPct(x.min)}〜${dgPct(x.max)}`;
+const dgDmgTxt=(x,who)=>{if(!x)return '';const pc=v=>dgPct(v);
+  /* 連続技とマルチスケイル（2026/11/10）：「技を使う回数」と「技が当たる回数」を分けて書く */
+  if(x.half&&x.h>1&&x.hit1)return `1回目の使用で${pc(x.fmin)}〜${pc(x.fmax)}（1回で${x.h}回当たる合計：最初の当たり${pc(x.hit1[0]/x.hpMax*100)}〜${pc(x.hit1[1]/x.hpMax*100)}は${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}で半分、2回目の当たりからは1回${pc(x.hitN[0]/x.hpMax*100)}〜${pc(x.hitN[1]/x.hpMax*100)}で半分にならない）・2回目の使用から${pc(x.min)}〜${pc(x.max)}`;
+  return x.half?`1発目${pc(x.fmin)}〜${pc(x.fmax)}（${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}でHP満タンのときは半分）・2発目から${pc(x.min)}〜${pc(x.max)}`:`${pc(x.min)}〜${pc(x.max)}`};
 const dgHalfTxt=x=>x&&x.half?`（${ABN[x.half]||'特性'}で初撃は${dgPct(x.fmin)}〜${dgPct(x.fmax)}、2発目から${dgPct(x.min)}〜${dgPct(x.max)}）`:'';
 const dgKoTxt=x=>{if(!x||!x.max)return '効く技がない';
   if(x.nMin===1)return '確定1発';
@@ -85,7 +95,7 @@ function dgMatch0(a,o){
   /* 相手の攻撃は乱数最大（こちらにとって最悪）で数える */
   const opW=op?op.nMax:9,opB=op?op.nMin:9;
   const pr=dgPrio(a,o),opPr=dgPrio(o,a);
-  const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:100},a,o)===1;
+  const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:100,f:pr.fmin},a,o)===1;
   /* 先に倒しきれるか：こちらが先に動けるなら myN<=opW、遅ければ myN<opW。先制技のとどめ・相手の先制技も見る */
   const finPr=(n,x,p)=>p&&p.min>0&&(n-1)*x.min+p.min>=100;
   let first=spd;
@@ -93,7 +103,7 @@ function dgMatch0(a,o){
   if(first>=0&&op&&finPr(opW,op,opPr)&&!(me&&finPr(myN,me,pr)))first=-1;
   const winSafe0=myN<9&&(first===1?myN<=opW:myN<opW);
   /* こちらのきあいのタスキ・がんじょうで1回耐えるおかげで勝てるだけなら「条件つき」にする */
-  const opRaw=op?duTurns(op.max,{mv:op.mv,acc:100},o,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab}):9;
+  const opRaw=op?duTurns(op.max,{mv:op.mv,acc:100,f:op.fmax},o,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab}):9;
   const winSafe=myN<9&&(first===1?myN<=opRaw:myN<opRaw);
   const sashOnly=winSafe0&&!winSafe;
   const winTie=myN<9&&first===0&&myN<=opW;
@@ -155,7 +165,7 @@ function dgMatch0(a,o){
   if(me&&me.acc<100&&DG_K[k].r>=3&&!(k==='ko_fast'&&prKO)){if(me.acc<90){k='shaky';why.unshift(`${me.mvn}の命中が${Math.round(me.acc)}%なので外れると負ける`)}else why.push(`${me.mvn}の命中は${Math.round(me.acc)}%`)}
   if(spd===0&&!why.some(w=>/同速/.test(w)))why.push(spdTxt);
   if(wxT)why.push(wxT);
-  if(me&&me.half)why.push(`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの攻撃の1発目だけダメージが半分になる（倒すまでの回数はこれを入れて数えています）`);
+  if(me&&me.half)why.push(me.h>1?`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの${me.mvn}（1回で${me.h}回当たる）は最初の当たりだけ半分、2回目の当たりからは半分にならない（1回目と2回目の当たりを乱数ごとに別々に計算して足し、倒すまでの回数を数えています）`:`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの攻撃の1発目だけダメージが半分になる（倒すまでの回数はこれを入れて数えています）`);
   if(op&&op.half)why.push(`こちらの${ABN[op.half]||'特性'}：こちらのHPが満タンのとき、相手の攻撃の1発目だけダメージが半分になる`);
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
