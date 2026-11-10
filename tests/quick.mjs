@@ -140,11 +140,17 @@ for(const W of [320,390,1280]){
   ok(!c.tap.length,W+'：44px 未満の押せる所 '+c.tap);
   ok(!c.out.length&&c.sw===0&&!c.clip.length,W+'：はみ出し '+c.out+' '+c.sw+' '+c.clip);
   /* 明るさ：ライトを押すと保存して明るい色になる（保存のしかたは前と同じ pctheme） */
-  if(W===390){await pg.click('#drawer [data-theme-set=light]');await pg.waitForTimeout(900);
+  if(W===390){
+    const dk=await pg.evaluate(()=>{const c=getComputedStyle(document.querySelector('#drawer [data-theme-set=dark]'));return [c.backgroundColor,c.color]});
+    ok(dk[0]==='rgb(231, 233, 234)'&&dk[1]==='rgb(15, 20, 25)','暗い色：選んでいるボタンは明るい灰色に濃い文字 '+dk);
+    /* 押すと白いつまみがすべってから切りかわる（すぐには読み直さない） */
+    const mv=await pg.evaluate(()=>{document.querySelector('#drawer [data-theme-set=light]').click();const t=document.querySelector('#drawer .dr-seg-th');return [!!t,localStorage.getItem('pctheme')]});
+    ok(mv[0]&&mv[1]==='dark','つまみがすべる '+mv);await pg.waitForTimeout(900);
     const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme]);ok(t[0]==='light'&&t[1]==='light','明るさの切りかえ '+t);
     await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);
     await pg.evaluate(()=>document.querySelectorAll('#drawer details').forEach(d=>d.open=true));await pg.waitForTimeout(150);
-    ok(await pg.evaluate(()=>document.querySelector('#drawer [data-theme-set=light]').getAttribute('aria-pressed')==='true'&&getComputedStyle(document.querySelector('#drawer .dr-card')).backgroundColor==='rgb(255, 255, 255)'),'明るい色のカード・選んでいるボタン');
+    const lc=await pg.evaluate(()=>{const b=document.querySelector('#drawer [data-theme-set=light]'),c=getComputedStyle(b),q=getComputedStyle(document.querySelector('#drawer .qa-opt:has(input:checked)'));return [b.getAttribute('aria-pressed'),c.backgroundColor,c.color,/gradient/.test(getComputedStyle(document.querySelector('#drawer .dr-card')).backgroundImage),q.backgroundColor]});
+    ok(lc[0]==='true'&&lc[1]==='rgb(255, 255, 255)'&&lc[2]==='rgb(15, 20, 25)'&&lc[3]&&lc[4]==='rgb(255, 255, 255)','明るい色：カード・選んでいるボタンは白に濃い文字 '+lc);
     await pg.evaluate(()=>[...document.querySelectorAll('#drawer .qa-opt')].find(o=>o.querySelector('input').value==='party-create').click());await pg.waitForTimeout(200);
     ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='party-create'&&document.getElementById('fab').querySelector('.fl').textContent==='パーティ'),'カードの中で⚡の設定');}
   ok(!pg.errs.length,W+'：カードのエラー '+pg.errs);await pg.close()}

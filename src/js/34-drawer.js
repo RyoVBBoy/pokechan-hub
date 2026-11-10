@@ -17,6 +17,16 @@ I.mail='<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="m4 7 8 6
 I.flag='<path d="M5.5 20.5v-16M5.5 4.5h11l-2 4 2 4h-11"/>';
 const drHead=(ic,t)=>`<div class="dr-ch"><span class="dr-chi" aria-hidden="true">${SVG(ic,18)}</span><h3>${t}</h3></div>`;
 const drLink=(h,ic,t,x)=>`<a class="dr-s" href="${h}"${x||''}><span class="dr-si" aria-hidden="true">${SVG(ic,18)}</span><span class="dr-st">${t}</span><span class="dr-sc" aria-hidden="true">${SVG(I.chev,16)}</span></a>`;
+/* 選ぶボタン（明るさ・背景の光・言語）：押すと白い「つまみ」が選んだ所へすべってから切りかえる（2026/11/10 依頼主）。
+   切りかえ（setTheme 等＝保存して読み直す）は前と同じ。動きを減らす設定なら、すぐ切りかえる */
+function drSegGo(btn,fn){
+  const seg=btn.closest('.dr-seg'),old=seg&&seg.querySelector('[aria-pressed=true]');
+  if(!seg||!old||old===btn||matchMedia('(prefers-reduced-motion: reduce)').matches){fn();return}
+  if(seg.classList.contains('mv'))return;
+  const th=document.createElement('span');th.className='dr-seg-th';th.style.cssText=`left:${old.offsetLeft}px;width:${old.offsetWidth}px`;
+  seg.appendChild(th);seg.classList.add('mv');old.setAttribute('aria-pressed','false');btn.setAttribute('aria-pressed','true');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{th.style.left=btn.offsetLeft+'px';th.style.width=btn.offsetWidth+'px'}));
+  setTimeout(fn,260)}
 const DR={el:null,open:false};
 function drawerHTML(){
   const pr=typeof AUTH!=='undefined'&&AUTH.profile,g=curGame();
@@ -61,10 +71,10 @@ function drawerEnsure(){
   const o=document.createElement('div');o.className='drawer';o.id='drawer';document.body.appendChild(o);DR.el=o;
   o.addEventListener('click',e=>{
     if(e.target.closest('.dr-bg')){drawerClose();return}
-    const ts=e.target.closest('[data-theme-set]');if(ts){setTheme(ts.dataset.themeSet);return}
+    const ts=e.target.closest('[data-theme-set]');if(ts){drSegGo(ts,()=>setTheme(ts.dataset.themeSet));return}
     const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)setAccent('pcaccent',as.dataset.accSet);return}
-    const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)setAccent('pcglow',gs.dataset.glowSet);return}
-    const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)setLang(ls.dataset.langSet);return}
+    const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)drSegGo(gs,()=>setAccent('pcglow',gs.dataset.glowSet));return}
+    const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)drSegGo(ls,()=>setLang(ls.dataset.langSet));return}
     if(e.target.closest('[data-dr=game]')){drawerClose();setTimeout(gameSheet,200);return}
     if(e.target.closest('a[href^="#/"]'))drawerClose();
   });

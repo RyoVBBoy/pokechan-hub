@@ -60,11 +60,12 @@ function qaPaint(){
   if(typeof fabMode==='function')fabMode();
   return q;
 }
-/* 設定画面（左から出るメニューの「設定とプライバシー」）の「お気に入りショートカット」。ラジオボタンで選ぶと保存（実行はしない） */
+/* 設定画面（左から出るメニューの「設定とプライバシー」）の「お気に入りショートカット」。ラジオボタンで選ぶと保存（実行はしない）。
+   2026/11/10 依頼主：縦に長いのでカプセル型の札（絵＋名前）を並べる。短い説明は札の title に */
 function qaSettingsHTML(){const id=qaGet();
   return `<div class="dr-lab">${SVG(I.zap,18)}${L('お気に入りショートカット','Favorite shortcut')}</div>
     <p class="qa-sd">${L('サイドナビの⚡ボタンを押したときに実行する機能を選択できます。','Choose what the ⚡ button in the side navigation does.')}</p>
-    <div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}><span class="qa-ic" aria-hidden="true">${SVG(I[q.ic]||I.zap,18)}</span><span class="qa-tx"><b>${L(q.t[0],q.t[1])}</b><small>${L(q.d[0],q.d[1])}</small></span></label>`).join('')}</div>`}
+    <div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt" title="${L(q.d[0],q.d[1])}"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}><span class="qa-ic" aria-hidden="true">${SVG(I[q.ic]||I.zap,16)}</span><span class="qa-tx"><b>${L(q.t[0],q.t[1])}</b></span></label>`).join('')}</div>`}
 /* 選んだら保存。⚡の名前（PC の文字・スマホの六角形の中）もすぐ変わる */
 document.addEventListener('change',e=>{const r=e.target;if(r&&r.name==='qa-set'&&r.checked)qaSet(r.value)});
 /* ⚡を押したとき：設定した機能を実行（ホーム・タイムラインの右下は今までどおり投稿） */
