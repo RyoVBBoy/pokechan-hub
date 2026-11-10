@@ -1833,3 +1833,27 @@ body::before{inset:0;background:
 .imp-go{width:100%;margin-top:10px;min-height:44px}
 .imp-more{margin:8px 16px}.imp-more>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--acc);font-weight:700}
 .imp-more .imp-c{margin:8px 0 0}
+/* 診断の画面のスマホ（2026/11/10 UI改善 第6段階）：押せる所は高さ44px以上・小さい文字は12px以上・幅320pxでもはみ出さない */
+.dgu-jump{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.dgu-jump a{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);font-size:13px;font-weight:700;text-decoration:none}
+@media(max-width:699px){
+  #tt-pages .bback{display:inline-flex;align-items:center;min-height:44px;padding:0 4px!important}
+  #tt-pages details>summary{min-height:44px;display:flex;align-items:center}
+  #tt-pages .dg-r>summary{display:block;min-height:44px}
+  #tt-pages .pc-top a{display:inline-flex;align-items:center;min-height:44px}
+  #tt-pages .pc-plan .pill,#tt-pages .gchip{min-height:40px}
+  .dgu-jump a{min-height:44px}
+  .dg-k,.pc-area,.dgu-wa,.imp-mt,.ls-ph,.selu-sc,.tarch-l,.pc-upv,.pc-dnv,.dgu-sev,.selu-kpi span,.selu-kpi em{font-size:12px}
+  .sel-m small,.dgu-mon small{font-size:12px}
+  .imp-mr{grid-template-columns:1fr auto;row-gap:2px}.imp-mt{grid-column:2;justify-self:end}
+}
+@media(max-width:359px){
+  .dgu-areas{grid-template-columns:1fr 1fr}
+  .dgu-card{margin:10px 8px 4px;padding:12px 10px 4px}
+  .selu-kpi{grid-template-columns:1fr}
+  .dgm-t>div{grid-template-columns:1fr;gap:2px}
+}
+#lose-box,#dg-box,#imp-box,#sel-box,.dgc[id^=pcw]{scroll-margin-top:72px}
+@media(max-width:699px){#tt-pages .pc-sw a{display:inline-flex;align-items:center;min-height:44px}.ls-k{font-size:12px!important}#tarch .tarch-b{min-height:36px;display:inline-flex;align-items:center}}
+@media(max-width:699px){.dgu-weak a{flex-wrap:nowrap}.dgu-weak .dgu-wt{flex:1 1 auto;min-width:0}.dgu-weak a>.dgu-sev,.dgu-weak a>.dgu-wa{flex:none}}
+@media(max-width:699px){#tt-pages .btn-s{min-height:44px}}

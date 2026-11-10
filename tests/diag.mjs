@@ -615,6 +615,17 @@ const U5=await pg.evaluate(()=>{const R=impCached(team),box=document.getElementB
   r.btn=cards.every((c,k)=>c.querySelector('[data-imp]').dataset.imp===String(k));
   r.over=document.body.scrollWidth<=innerWidth;return r});
 ok(U5.none||Object.values(U5).every(Boolean),'改善案のカード '+JSON.stringify(U5));
+/* UI改善 第6段階：スマホ（幅320・390）で、診断の中の押せる所が高さ44px以上・文字12px以上・はみ出さない・移動のリンクの先がある */
+for(const W of [320,390]){await pg.setViewportSize({width:W,height:844});await pg.waitForTimeout(200);
+  const U6=await pg.evaluate(()=>{document.querySelectorAll('#tt-pages details').forEach(d=>d.open=true);const iw=innerWidth,r={small:[],tiny:[],out:[]};
+    document.querySelectorAll('#tt-pages *').forEach(e=>{const s=getComputedStyle(e);if(s.display==='none'||s.visibility==='hidden')return;const R=e.getBoundingClientRect();if(!R.width)return;
+      if(R.right>iw+1)r.out.push(e.className||e.tagName);
+      if(e.matches('button,summary,.bback,[data-imp],.dgu-jump a')&&R.height<43.5)r.small.push((e.className||e.tagName)+':'+e.textContent.trim().slice(0,10));
+      if([...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())&&parseFloat(s.fontSize)<12&&e.closest('#dgu-sum,#dg-box,#imp-box,.dgc'))r.tiny.push(e.className||e.tagName)});
+    r.jump=[...document.querySelectorAll('.dgu-jump [data-dgu-go]')].every(a=>!!document.getElementById(a.dataset.dguGo))&&document.querySelectorAll('.dgu-jump a').length>=3;
+    document.querySelectorAll('#tt-pages details').forEach(d=>d.open=false);return r});
+  ok(!U6.small.length&&!U6.tiny.length&&!U6.out.length&&U6.jump,'スマホ幅'+W+'の診断の画面 '+JSON.stringify(U6).slice(0,400))}
+await pg.setViewportSize({width:390,height:844});
 /* UI改善 第2段階：弱点のカード（根拠は全部残す・起きる相手の数・理由と改善の出し方・開いても数字が変わらない） */
 const U2=await pg.evaluate(()=>{const r={},C=partyCheck(team),calc=C.fix.filter(x=>x.k==='calc');
   r.cards=calc.every((x,k)=>{const e=document.getElementById('pcw'+k);if(!e)return false;const txt=e.textContent;
