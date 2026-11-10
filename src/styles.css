@@ -1694,3 +1694,12 @@ body::before{inset:0;background:
 .pc-ev{margin:4px 0 2px;padding-left:18px;font-size:12.5px;color:var(--dim);line-height:1.6}
 .pc-ref{margin:10px 16px}.pc-ref summary{font-size:13px;color:var(--dim);cursor:pointer;padding:6px 0}
 .ls-s.warn b{color:var(--gold)}.ls-cb{padding:6px 16px 0;color:var(--fg)}
+/* 構築の型のバッジ（パーティの6匹の右上、2026/11/10） */
+.tarch{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:6px;padding:0 16px 8px}
+.tarch:empty{display:none}
+.tarch-l{font-size:11.5px;color:var(--dim);margin-right:2px}
+.tarch-b{display:inline-flex;align-items:center;font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;background:var(--acc-t);color:var(--acc);border:1px solid transparent;text-decoration:none}
+.tarch-sun{background:rgba(255,140,40,.16);color:#e8730c}.tarch-rain{background:rgba(40,140,255,.16);color:#2b7fe0}
+.tarch-sand{background:rgba(190,150,80,.2);color:#a07a2c}.tarch-snow{background:rgba(120,200,230,.2);color:#3a9cc2}
+.tarch-tr{background:rgba(220,80,200,.15);color:#c040b0}.tarch-tailwind{background:rgba(80,200,170,.16);color:#219e80}
+.tarch-none{background:none;border-color:var(--line);color:var(--mute);font-weight:600}

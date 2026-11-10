@@ -30,6 +30,7 @@ function teamView(arg){
   V.innerHTML=`
   <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
   <p class="note" style="padding:6px 16px 12px">6匹まで登録し、<b>★で選出する${PICK()}匹</b>を決めます（${FMTN()}の形式）。</p>
+  <div class="tarch" id="tarch"></div>
   <div class="grid3" id="slots"></div>
   <div class="seg" id="tt-seg" style="margin-top:14px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
   <div id="tt-pages" class="tt-pages">
@@ -84,6 +85,7 @@ function tsLiveLine(x){const d=LIVE.csv[x.no];if(!d||(x.set&&x.set.it&&x.set.it.
 function teamRender(){
   const ts=document.getElementById('tslots');
   if(ts)ts.innerHTML=TEAMS.list.map((s,i)=>`<button class="pill" data-tslot="${i}" aria-pressed="${i===TEAMS.cur}"><span data-notr>${esc(teamName(i))}</span><small>${(i===TEAMS.cur?team:s.team).length}${L('匹','')}</small></button>`).join('');
+  {const ta=document.getElementById('tarch');if(ta)ta.innerHTML=teamArchHTML(team)}
   document.getElementById('slots').innerHTML=Array.from({length:6},(_,i)=>{
     const x=team[i],p=x&&byNo[x.no];
     return p?`<div class="tile${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
@@ -337,6 +339,6 @@ function teamKind(entries){
   if(withSet<3)return null;
   const k=Object.keys(sc).sort((a,b)=>sc[b]-sc[a]||['tm','ac','dc','su'].indexOf(a)-['tm','ac','dc','su'].indexOf(b))[0];
   if(!sc[k])return{name:'まだはっきりしない',why:[]};
-  return{name:{tm:'対面（有利な相手にぶつけて押し切る）',ac:'攻めのサイクル（攻撃しながら交代して有利を取る）',dc:'受けのサイクル（受けて回復しながら削る）',su:'積み（能力を上げて一気に抜く）'}[k],why:why[k].slice(0,4),mix:Object.keys(sc).filter(z=>z!==k&&sc[z]>=sc[k]-0).map(z=>({tm:'対面',ac:'攻めのサイクル',dc:'受けのサイクル',su:'積み'}[z]))};
+  return{k,name:{tm:'対面（有利な相手にぶつけて押し切る）',ac:'攻めのサイクル（攻撃しながら交代して有利を取る）',dc:'受けのサイクル（受けて回復しながら削る）',su:'積み（能力を上げて一気に抜く）'}[k],why:why[k].slice(0,4),mix:Object.keys(sc).filter(z=>z!==k&&sc[z]>=sc[k]-0).map(z=>({tm:'対面',ac:'攻めのサイクル',dc:'受けのサイクル',su:'積み'}[z]))};
 }
 

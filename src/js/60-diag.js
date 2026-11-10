@@ -295,3 +295,27 @@ function dgPremise(T){
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
     `${T.unk.length?`計算に入っていない特性：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }
+
+/* ===================== 構築の型のバッジ（2026/11/10 依頼主：パーティの6匹の右上に、どういう型か分かる札） =====================
+   ・天気：パーティに天気を作る特性の匹（teamWx、メガストーンならメガ後の特性）
+   ・トリックルーム：dgTeam の tr（張れる匹がいて、半分より多くが遅い）
+   ・おいかぜ：登録した技におかぜ
+   ・対面／サイクル／積み：teamKind（登録した持ち物・技から。3匹以上の育成が要る）
+   押すとその型の解説（#/arch/ID）。決まらないときは灰色の「型：判定中」 */
+const ARCH_BADGE={sun:['晴れ','sun'],rain:['雨','rain'],sand:['砂嵐','sand'],snow:['雪','snow'],tr:['トリックルーム','tr'],tailwind:['おいかぜ','tailwind'],tm:['対面','taimen'],ac:['攻めサイクル','cycle'],dc:['受けサイクル','cycle'],su:['積み','setup']};
+function teamArch(entries){
+  const out=[];if(!entries||!entries.length)return out;
+  try{const w=teamWx();if(w){const gain=entries.filter(x=>{try{const m=mkMon(byNo[x.no],'me',mySetFor(x.no));return (WX_GAIN[w.k]||[]).includes(m.ab)}catch(e){return false}}).map(x=>formInfo(byNo[x.no]).base);
+    out.push({k:w.k,why:`${w.by}の${ABN[w.ab]||'特性'}で天気を変える${w.guess?'（特性が未登録なので、この特性と仮定）':''}${gain.length?`（${gain.join('・')}が得をする）`:''}`})}}catch(e){}
+  if(entries.length>=3){try{const T=dgTeam(entries,20);if(T.tr&&T.tr.on)out.push({k:'tr',why:`${T.tr.setters.map(s=>formInfo(T.ms[s.i].p).base).join('・')}が張れて、${T.tr.slow.length}匹が遅い`})}catch(e){}}
+  const TW=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
+  const tw=entries.filter(x=>x.set&&(x.set.mv||[]).some(m=>m&&m.id===TW));if(tw.length)out.push({k:'tailwind',why:`${tw.map(x=>formInfo(byNo[x.no]).base).join('・')}がおいかぜを使う`});
+  try{const K=teamKind(entries);if(K&&K.k&&ARCH_BADGE[K.k])out.push({k:K.k,why:K.why.length?K.why.join('・'):K.name})}catch(e){}
+  return out.slice(0,3);
+}
+function teamArchHTML(entries){
+  if(!entries||entries.length<2)return '';
+  const A=teamArch(entries);
+  if(!A.length)return `<span class="tarch-l">構築の型</span><span class="tarch-b tarch-none" title="技・持ち物を3匹以上登録すると、対面・サイクル・積みなども判定できます">判定中</span>`;
+  return `<span class="tarch-l">構築の型</span>${A.map(a=>{const B=ARCH_BADGE[a.k];return `<a class="tarch-b tarch-${a.k}" href="#/arch/${B[1]}" title="${esc(a.why)}">${esc(B[0])}</a>`}).join('')}`;
+}

@@ -227,6 +227,17 @@ ok(V4.noSevere,'トリックルーム構築に「だれよりも速い相手」�
 ok(V4.setters,'張れる匹の数が出ない');
 ok(V4.off,'速いパーティをトリックルーム構築にしている');
 ok(V4.fs,'みらいよちを撃ち合いの技にしている');
+/* 構築の型のバッジ */
+const V5=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};const run=(names,mod)=>{team.length=0;names.forEach(s=>team.push({no:N(s).no}));mod&&mod();TWX_K=null;return teamArch(team).map(a=>a.k)};
+  r.tr=run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']).includes('tr');
+  r.sun=run(['リザードン','フシギバナ','ルチャブル','ガブリアス'],()=>{team[0].set={it:{k:'charizarditey',n:''},mv:[]}}).includes('sun');
+  r.rain=run(['ペリッパー','イダイトウ','ブリジュラス']).includes('rain');
+  const sc={it:{k:'choicescarf',n:''},mv:[{id:89,n:'じしん'}]},ss={it:{k:'focussash',n:''},mv:[{id:89,n:'じしん'}]},lo={it:{k:'lifeorb',n:''},mv:[{id:89,n:'じしん'}]};
+  r.tm=run(['ガブリアス','ルカリオ','ドドゲザン'],()=>{team[0].set=sc;team[1].set=ss;team[2].set=lo}).includes('tm');
+  run(['ガブリアス','サーフゴー','アシレーヌ']);r.none=/判定中/.test(teamArchHTML(team))&&!teamArch(team).length;
+  return r});
+ok(V5.tr&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);
