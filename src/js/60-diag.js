@@ -41,8 +41,10 @@ function dgMove(a,mv,d){
     const min=r0.dmg*h/d.max*100,max=r1.dmg*h/d.max*100;
     const roll=r=>{if(half)d.hp=d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
     /* 一撃で倒せる段階の数は初撃（マルチスケイル等なら半分）で数える */
-    let ohko=0;if((half?max/2:max)>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>Math.floor(roll(r)*(half?.5:1))*h>=d.max).length;
-    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:half?d.ab:null,fmin:half?min/2:min,fmax:half?max/2:max};
+    /* 連続技は、マルチスケイルで半分になるのは最初の1回だけ（2回目からはHPが満タンでない）（2026/11/10 依頼主の確認で見つけた間違い：全部の回を半分にしていた） */
+    const hf=half?1-.5/h:1;
+    let ohko=0;if(max*hf>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>{const x=roll(r);return (half?Math.floor(x*.5)+x*(h-1):x*h)>=d.max}).length;
+    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:half?d.ab:null,fmin:min*hf,fmax:max*hf};
   }finally{d.disg=dg}
 }
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */
@@ -65,7 +67,7 @@ function dgPrio(a,d){
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
 /* ダメージの書き方：マルチスケイル等で初撃が半分なら「初撃 a〜b%・2発目から c〜d%」 */
 /* who＝特性を持つ（攻撃を受ける）側：'op' 相手／'me' こちら。マルチスケイル等は「受ける側がHP満タンのとき、受ける1発目だけ半分」（2026/11/10 依頼主：攻撃側の技と混同しない書き方に） */
-const dgDmgTxt=(x,who)=>x&&x.half?`1発目${dgPct(x.fmin)}〜${dgPct(x.fmax)}（${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}でHP満タンのときは半分）・2発目から${dgPct(x.min)}〜${dgPct(x.max)}`:`${dgPct(x.min)}〜${dgPct(x.max)}`;
+const dgDmgTxt=(x,who)=>x&&x.half?`1発目${dgPct(x.fmin)}〜${dgPct(x.fmax)}（${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}でHP満タンのときは${x.h>1?`${x.h}回当たるうち最初の1回だけ半分`:'半分'}）・2発目から${dgPct(x.min)}〜${dgPct(x.max)}`:`${dgPct(x.min)}〜${dgPct(x.max)}`;
 const dgHalfTxt=x=>x&&x.half?`（${ABN[x.half]||'特性'}で初撃は${dgPct(x.fmin)}〜${dgPct(x.fmax)}、2発目から${dgPct(x.min)}〜${dgPct(x.max)}）`:'';
 const dgKoTxt=x=>{if(!x||!x.max)return '効く技がない';
   if(x.nMin===1)return '確定1発';
@@ -179,10 +181,21 @@ function dgTeam0(entries,n){
   const rows=opps.map(q=>{
     const live=!!(LIVE.csv[q.base||q.no]);
     let o;try{o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return null}
-    const res=M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,o)}}catch(e){return null}}).filter(Boolean);
+    const run=oo=>M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,oo)}}catch(e){return null}}).filter(Boolean);
+    let res=run(o),abAssume=null;
+    /* 2026/11/10 依頼主の確認（カイリューのマルチスケイル）：集計がない相手は特性が分からない。自動の型は隠れ特性でない最初の特性（カイリューならせいしんりょく）を選ぶので、
+       持てる特性ごとに計算し、結果が変わるときは、こちらにいちばん不利な特性で計算する（推測で有利と言わない）。メガシンカの姿は特性が1つなのでそのまま */
+    if(!live&&!q.base){const abs=[...new Set((ABD[q.no]||[]).map(z=>z[0]))];
+      if(abs.length>1){const lvOf=rs=>{const st=rs.filter(r=>r.r>=4).length,ok=rs.filter(r=>r.r>=3).length,wk=rs.filter(r=>r.r===2).length;return st>=2?4:st===1?3:ok||wk?2:1};
+        const sumR=rs=>rs.reduce((t,r)=>t+r.r,0),swN=rs=>rs.filter(r=>r.swIn==='win').length;
+        const V=abs.map(ab=>{const oo={...o,ab};return{ab,oo,rs:ab===o.ab?res:run(oo)}});
+        V.sort((x,y)=>lvOf(x.rs)-lvOf(y.rs)||sumR(x.rs)-sumR(y.rs)||swN(x.rs)-swN(y.rs)||(x.ab===o.ab?-1:y.ab===o.ab?1:0));
+        const sig=rs=>rs.map(r=>r.k+r.swIn).join();
+        if(V[0].ab!==o.ab||V.some(v=>sig(v.rs)!==sig(V[0].rs)))abAssume={ab:V[0].ab,alts:abs.filter(k=>k!==V[0].ab),auto:o.ab};
+        o=V[0].oo;res=V[0].rs}}
     const stable=res.filter(r=>r.r>=4),ok=res.filter(r=>r.r>=3),weak=res.filter(r=>r.r===2);
     const lvl=stable.length>=2?4:stable.length===1?3:ok.length||weak.length?2:1;
-    return{q,o,live,res,stable,ok,weak,lvl};
+    return{q,o,live,res,stable,ok,weak,lvl,abAssume};
   }).filter(Boolean);
   /* トリックルーム構築（2026/11/10 依頼主）：トリックルームを張れる匹（登録した技。技が未登録なら覚えられる匹）がいて、
      パーティの半分より多くが、上位の相手の7割以上より遅いとき。そのときは全部の対面をトリックルーム中（遅い方が先）でも計算する */
@@ -210,7 +223,7 @@ function dgFill(entries){
   const nm1=i=>esc(formInfo(T.ms[i].p).base);
   const rowHTML=r=>{const L=DG_LV[r.lvl],best=[...r.res].sort((a,b)=>b.r-a.r).slice(0,3);
     return `<details class="dg-r dg-${L[2]}"><summary><span class="dg-lv">${L[0]}</span><b>${esc(r.q.n)}</b><small>${r.stable.length?r.stable.map(x=>nm1(x.i)).join('・')+'で対応':r.ok.length||r.weak.length?'不安定':'答えなし'}${(()=>{const w=r.res.filter(x=>x.swIn==='win'),c=r.res.filter(x=>x.swIn==='sashwin');return w.length?`／後出し：${w.map(x=>nm1(x.i)).join('・')}`:c.length?`／<span class="dg-cond">条件つき後出し：${c.map(x=>nm1(x.i)).join('・')}</span>`:'／<span class="dg-nosw">後出しできる匹なし</span>'})()}</small></summary>
-      <p class="dg-why">${L[1]}${r.live?'':'（この相手は使用率の集計が読めていないため、自動で決めた型で計算）'}</p>
+      <p class="dg-why">${L[1]}${r.live?'':'（この相手は使用率の集計が読めていないため、自動で決めた型で計算）'}${r.abAssume?`。特性が分からないので、こちらにいちばん不利な${esc(ABN[r.abAssume.ab]||r.abAssume.ab)}で計算（ほかに${r.abAssume.alts.map(k=>esc(ABN[k]||k)).join('・')}もある）`:''}</p>
       ${r.resTR?(()=>{const bt=[...r.resTR].sort((a,b)=>b.r-a.r).slice(0,2);return `<p class="dg-why"><b>トリックルーム中：${DG_LV[r.lvlTR][0]}</b> ${bt.map(x=>`${nm1(x.i)}は${x.t}`).join('／')}</p>`})():''}
       <ul>${best.map(x=>`<li><b>${nm1(x.i)}</b>（こちら）は <span class="dg-k dg-k${x.r}">${x.t}</span>：${x.why.map(esc).join('／')}<small>素早さ：${nm1(x.i)} ${x.sa} 対 ${esc(r.q.n)} ${x.so}（${x.spd===1?'こちらが先':x.spd===0?'同速':'相手が先'}）</small></li>`).join('')}</ul></details>`};
   const order=[...T.rows].sort((a,b)=>a.lvl-b.lvl);
@@ -400,7 +413,7 @@ function dgDefSwaps(entries,T){
 function dgPremise(T){
   return `相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、ほかは自動で決めた型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
-    `${T.unk.length?`計算に入っていない特性：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
+    `${T.rows.some(r=>r.abAssume)?`集計がない相手で特性によって結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない特性：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }
 
 /* ===================== 構築の型のバッジ（2026/11/10 依頼主：パーティの6匹の右上に、どういう型か分かる札） =====================

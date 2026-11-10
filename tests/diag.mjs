@@ -418,6 +418,41 @@ ok(V9.pairHTML,'ダブルの先発の比較の表示');
 ok(V9.best==='オオニューラ・ガブリアス・ドドゲザン','攻撃偏重の6匹の1位 '+V9.best);
 ok(V9.jr[0]&&V9.jr[1]==='ドラパルト・マスカーニャ'&&V9.jr[2]===4&&V9.jr[3]<=2&&V9.jr[4]==='ドラパルト・マスカーニャ'&&V9.jr[5],'ジャラランガを選ばなかった匹に頼っている表示 '+JSON.stringify(V9.jr));
 ok(V9.label,'遅いのに「上から」と書いている');
+/* 第5段階の完成確認（2026/11/10 依頼主）：カイリューのマルチスケイル・連続技・特性が分からない相手・ダブルの簡易比較の説明 */
+const V10=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const sets={ドラパルト:['clear-body','lifeorb',['dragondarts','phantomforce','uturn','suckerpunch'],[2,32,0,0,0,32],1,3],オオニューラ:['unburden','focussash',['closecombat','direclaw','fakeout','throatchop'],[2,32,0,0,0,32],5,3],マスカーニャ:['protean','choicescarf',['flowertrick','knockoff','uturn','playrough'],[2,32,0,0,0,32],5,3],ガブリアス:['rough-skin','garchompite',['earthquake','dragonclaw','stoneedge','swordsdance'],[2,32,0,0,0,32],5,3],ウルガモス:['flame-body','expertbelt',['quiverdance','fierydance','bugbuzz','gigadrain'],[2,0,0,32,0,32],5,1],ドドゲザン:['supreme-overlord','blackglasses',['kowtowcleave','ironhead','suckerpunch','swordsdance'],[32,32,0,0,2,0],1,3]};
+  team.length=0;Object.entries(sets).forEach(([n,[ab,it,mv,sp,up,dn]])=>team.push({no:N(n).no,set:{ab:{k:ab,n:ABN[ab]},it:{k:it,n:ITEMN[it]},mv:mv.map(lfId).map(id=>({id,n:mName(id)})),sp,up,dn}}));TWX_K=null;
+  const T=dgTeam0(team,20),nm=i=>T.ms[i].p.n,row=T.rows.find(x=>x.q.n==='カイリュー');
+  const zi=n=>row.res.find(z=>nm(z.i)===n);
+  /* 集計がないので特性が分からない → こちらに不利なマルチスケイルで計算 */
+  r.ab=[!row.live,row.o.ab,row.abAssume&&row.abAssume.ab,row.abAssume&&row.abAssume.auto];
+  /* ガブリアスのドラゴンクロー：1発目は半分（マルチスケイル）で一撃にならない → 上から一撃にしない */
+  const g=zi('ガブリアス');r.garchomp=[g.me.half==='multiscale',Math.abs(g.me.fmin-g.me.min/2)<1e-9,g.me.min>=100&&g.me.fmax<100,g.me.nMin===2,g.k!=='ko_fast',!/上から一撃/.test(g.t)];
+  /* マルチスケイルなしなら一撃（適用前と後の違い） */
+  const o2={...row.o,ab:'inner-focus'},g2=dgMatch(T.M[T.ms.findIndex(m=>m.p.n==='ガブリアス')],o2);r.before=[g2.me.half===null,g2.me.nMin===1,g2.k==='ko_fast'];
+  /* 連続技（ドラゴンアロー2回）：最初の1回だけ半分＝1発目は 0.75倍。duTurns も同じ数え方 */
+  const d=zi('ドラパルト');r.darts=[d.me.h===2,Math.abs(d.me.fmin-d.me.min*.75)<1e-9,d.me.nMin===duTurns(d.me.min,{mv:d.me.mv,acc:100},T.M[d.i],row.o)];
+  /* 先発の理由に、マルチスケイルのカイリューを「上から一撃」と書かない・1発目と2発目を分けて書く */
+  const D=dgSelect(team),h=dgLeadHTML(D,D.best);
+  r.lead=!/カイリュー → ガブリアス：上から一撃/.test(h);
+  r.ztxt=/1発目.*マルチスケイルでHP満タンのときは半分.*2発目から/.test(dgZTxt(D,g));
+  r.dfill=(()=>{dgFill(team);return true})();
+  r.premise=/こちらにいちばん不利な特性で計算/.test(dgPremise(T));
+  /* ダブルの先発の比較：簡易比較で、未計算のことと「いつも最適とは限らない」を書く */
+  FMT='double';const E=dgSelect(team),hd=dgLeadHTML(E,E.best);FMT='single';
+  r.dbl=[/簡易比較/.test(hd),/範囲技/.test(hd)&&/同時に攻撃/.test(hd)&&/味方のサポート/.test(hd)&&/まもる/.test(hd),/勝率や実戦での強さではなく/.test(hd),/いつも最適な先発とは限りません/.test(hd),!/最適な先発です/.test(hd),/同時に1匹を狙う場合は数えていません/.test(hd)];
+  /* 1発で倒しきれない連続技でない相手：マルチスケイルの数え方が前と同じ（1回の技なら初撃半分） */
+  const one=dgMatch(T.M[T.ms.findIndex(m=>m.p.n==='ガブリアス')],row.o);r.single=Math.abs(one.me.fmin*2-one.me.min)<1e-9;
+  return r});
+ok(V10.ab[0]&&V10.ab[1]==='multiscale'&&V10.ab[2]==='multiscale'&&V10.ab[3]==='inner-focus','集計のないカイリューの特性 '+V10.ab);
+ok(V10.garchomp.every(Boolean),'マルチスケイルのカイリューにガブリアスが上から一撃になっている '+V10.garchomp);
+ok(V10.before.every(Boolean),'マルチスケイルなしのカイリューには一撃 '+V10.before);
+ok(V10.darts.every(Boolean),'連続技とマルチスケイル（最初の1回だけ半分） '+V10.darts);
+ok(V10.lead&&V10.ztxt,'先発の理由のマルチスケイル '+[V10.lead,V10.ztxt]);
+ok(V10.premise,'特性が分からない相手の前提が書かれていない');
+ok(V10.dbl.every(Boolean),'ダブルの先発の比較の説明（簡易比較・未計算） '+V10.dbl);
+ok(V10.single,'1回の技のマルチスケイル');
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

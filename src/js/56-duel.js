@@ -20,7 +20,9 @@ function duTurns(p,h,att,def){
   if(!p||p<=0)return 9;
   const multi=!!(h&&h.mv&&h.mv.maxH>1),ig=duIg(att);
   let n;
-  if(!ig&&DU_HALF_AB.includes(def.ab)){const f=p/2;n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
+  /* マルチスケイル・ファントムガード：HP満タンで受ける1回目だけ半分。連続技は1発目の最初の1回だけ半分（2回目からはHPが満タンでない）（2026/11/10） */
+  const hh=multi?(h.mv.minH===h.mv.maxH?h.mv.maxH:3):1;
+  if(!ig&&DU_HALF_AB.includes(def.ab)){const f=p*(1-.5/hh);n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
   if(n===1&&!multi&&(def.item==='focussash'||(!ig&&DU_SURV_AB.includes(def.ab))))n=2;
   if(!ig&&def.ab==='disguise')n+=1;
   const acc=Math.max(30,(h&&h.acc)||100);

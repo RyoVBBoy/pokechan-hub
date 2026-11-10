@@ -90,7 +90,7 @@ function dgSelWhy(S,x,ref){
   if(ref&&ref!==x){const d4=x.cnt[4]+x.cnt[3]-(ref.cnt[4]+ref.cnt[3]);
     const better=x.rows.filter((y,j)=>y.lvl>ref.rows[j].lvl).map(y=>y.r.q.n),worse=x.rows.filter((y,j)=>y.lvl<ref.rows[j].lvl).map(y=>y.r.q.n);
     if(better.length||worse.length)good.push(`2番目の選出（${ref.c.map(nm).join('・')}）と比べて、良い相手：${better.slice(0,5).join('・')||'なし'}${better.length>5?` など${better.length}匹`:''}／悪い相手：${worse.slice(0,5).join('・')||'なし'}${worse.length>5?` など${worse.length}匹`:''}${d4?`（◎○の数 ${d4>0?'+':''}${d4}）`:''}`)}
-  good.push(x.pairs?`先発の2匹：${nm(x.pairs[0].pr[0])}・${nm(x.pairs[0].pr[1])}（4匹から2匹の6通りを比べた1番。下の「先発の比較」）`:`先発：${nm(x.lead1[0].i)}（3匹それぞれを先発にした場合を比べた1番。下の「先発の比較」）`);
+  good.push(x.pairs?`先発の2匹の候補：${nm(x.pairs[0].pr[0])}・${nm(x.pairs[0].pr[1])}（4匹から2匹の6通りを1対1の計算で比べた簡易比較の1番。下の「先発の比較」）`:`先発：${nm(x.lead1[0].i)}（3匹それぞれを先発にした場合を比べた1番。下の「先発の比較」）`);
   good.push(`後出しして勝てる匹がいる相手 ${x.sw}匹${x.swc?`（ほか、きあいのタスキ頼みの条件つき ${x.swc}匹）`:''}／先に動ける匹がいる相手 ${x.fast}匹`);
   if(x.atk.length)good.push(`上から倒せる攻撃役：${x.atk.map(nm).join('・')}`);else warn.push('上から倒せる攻撃役がいない（上位の4分の1以上を先に動いて倒しきれる匹がいない）');
   if(x.def.length)good.push(`受けに回れる匹：${x.def.map(nm).join('・')}`);else warn.push('受けに回れる匹がいない（受けて有利・安全に交代・後出しして勝てる、のどれも上位の4分の1未満）');
@@ -106,15 +106,15 @@ function dgSelWhy(S,x,ref){
 }
 /* 1匹の対面を短く：「ガブリアス：上から一撃（確定）／じしん 107〜127%・素早さ 158 対 122」 */
 function dgZTxt(S,z,opts){if(!z)return '';const nm=S.nm(z.i);
-  return `${nm}：${z.t||DG_K[z.k].t||''}／${z.me?`${z.me.mvn} ${dgPct(z.me.fmin)}〜${dgPct(z.me.fmax)}`:'効く技なし'}・相手の${z.op?`${z.op.mvn} 最大${dgPct(z.op.fmax)}`:'効く技なし'}・素早さ ${z.sa} 対 ${z.so}${opts&&opts.sw?`・後出し：${{win:'勝てる',sashwin:'条件つき',sash:'タスキ頼みで不可',survive:'耐えるが撃ち合いで負ける',no:'1発目で倒される'}[z.swIn]}`:''}`}
+  return `${nm}：${z.t||DG_K[z.k].t||''}／${z.me?`${z.me.mvn} ${dgDmgTxt(z.me,'op')}`:'効く技なし'}・相手の${z.op?`${z.op.mvn} 最大${dgPct(z.op.fmax)}${z.op.half?`（こちらの${ABN[z.op.half]||'特性'}でHP満タンのとき。2発目から最大${dgPct(z.op.max)}）`:''}`:'効く技なし'}・素早さ ${z.sa} 対 ${z.so}${opts&&opts.sw?`・後出し：${{win:'勝てる',sashwin:'条件つき',sash:'タスキ頼みで不可',survive:'耐えるが撃ち合いで負ける',no:'1発目で倒される'}[z.swIn]}`:''}`}
 /* 先発の比較：シングル＝3匹それぞれ、ダブル＝2匹の6通り。上位8匹（相手の先発になりやすい相手）との対面を根拠に出す */
 function dgLeadHTML(S,x){
   const nm=i=>esc(S.nm(i)),top=y=>S.T.rows.indexOf(y.x?y.x.r:y.r)<8;
   if(x.pairs){
     const P0=x.pairs[0];
-    return `<h4>先発の比較（選んだ4匹から先発2匹：6通り）</h4><p class="vcap">選出の4匹（上）とは別に、そのうち最初に出す2匹の組み合わせを比べています。上位${S.N}匹を相手の先発の候補として、2匹のどちらかが有利に戦えるか・2匹とも先に一撃で倒されるかを数えました。点＝相手ごとに2匹のうち良い方（有利1・やや有利0.6・不安定0.25）−2匹とも先に一撃で倒される0.5（1匹なら0.2）、上位8匹は1.5倍の平均。</p>
-      ${x.pairs.map((p,k)=>`<div class="sel-c${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">先発 ${nm(p.pr[0])}・${nm(p.pr[1])}<small>後ろ ${nm(p.back[0])}・${nm(p.back[1])}</small></span><span class="sel-n">点 ${p.sc.toFixed(2)}：どちらかが有利 ${p.adv.length}／2匹とも先に倒される ${p.both.length}／後ろで補える ${p.cover.length}</span></div>`).join('')}
-      <ul class="sel-why"><li>${esc(`1番の理由（上位8匹との対面）：`)}${P0.rr.filter(top).map(y=>esc(`${y.x.r.q.n} → ${dgZTxt(S,y.best.q)}${y.d===2?'（2匹とも先に一撃で倒される）':''}`)).join('<br>')}</li>
+    return `<h4>先発の比較（選んだ4匹から先発2匹：6通り・簡易比較）</h4><p class="sel-lim">これは<b>簡易比較</b>です。ダブルの実際の対戦（相手2匹から同時に攻撃される・範囲技・味方のサポート・まもる・ねこだまし・このゆびとまれ・交代）は計算に入っていません。1対1の計算を組み合わせて候補を並べただけなので、点は勝率や実戦での強さではなく、1番が実戦でいつも最適な先発とは限りません。</p><p class="vcap">選出の4匹（上）とは別に、そのうち最初に出す2匹の組み合わせを比べています。上位${S.N}匹を相手の先発の候補として、相手1匹ずつに、2匹のどちらかが1対1で有利に戦えるか・どちらを狙われても先に一撃で倒されうるかを数えました（相手が2匹で同時に1匹を狙う場合は数えていません）。点＝相手ごとに2匹のうち良い方（有利1・やや有利0.6・不安定0.25）−どちらも先に一撃で倒されうる0.5（片方なら0.2）、上位8匹は1.5倍の平均。</p>
+      ${x.pairs.map((p,k)=>`<div class="sel-c${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">先発 ${nm(p.pr[0])}・${nm(p.pr[1])}<small>後ろ ${nm(p.back[0])}・${nm(p.back[1])}</small></span><span class="sel-n">点 ${p.sc.toFixed(2)}：どちらかが1対1で有利 ${p.adv.length}／どちらを狙われても先に一撃で倒されうる ${p.both.length}／後ろで補える ${p.cover.length}</span></div>`).join('')}
+      <ul class="sel-why"><li>${esc(`1番の点が高い理由（上位8匹との1対1の計算。同時攻撃・範囲技は入っていない）：`)}${P0.rr.filter(top).map(y=>esc(`${y.x.r.q.n} → ${dgZTxt(S,y.best.q)}${y.d===2?'（どちらを狙われても先に一撃で倒されうる）':''}`)).join('<br>')}</li>
       ${P0.cover.length?`<li>${esc(`先発で不利でも、後ろの${S.nm(P0.back[0])}・${S.nm(P0.back[1])}が有利な相手：${P0.cover.map(y=>y.x.r.q.n).join('・')}`)}</li>`:''}</ul>`;
   }
   const L0=x.lead1[0];
