@@ -91,7 +91,7 @@ const EN={
 '検索':'Search','ポケモン・#タグ・言葉で検索':'Search Pokémon, #tags, words','図鑑をすべて見る':'Browse the full Pokédex','最近の検索':'Recent searches','消す':'Clear','よく使われているタグ':'Trending tags','この7日間':'Last 7 days',
 '図鑑の詳しい画面を見る ›':'Open Pokédex entry ›','ほかのポケモン':'Other Pokémon','トレーナー':'Trainers','まだタグの付いた投稿がありません。投稿に #タグ を付けると、ここに並びます。':'No tagged posts yet. Add #tags to posts to see them here.',
 'いまどうしてる？（#タグ を付けると、みんなが探しやすくなります）':'What\'s happening? (#tags help others find your post)','明るさ':'Appearance',
-'メニュー':'Menu','ゲームを切り替える':'Switch game','マイツール':'My Tools','設定とプライバシー':'Settings and privacy','ヘルプセンター':'Help Center','明るさ':'Appearance','端末に合わせる':'Match device','ライト':'Light','ダーク':'Dark',
+'メニュー':'Menu','ゲームを切り替える':'Switch game','マイツール':'My Tools','設定とプライバシー':'Settings and privacy','ヘルプセンター':'Help Center','表示・カスタマイズ':'Display & customization','通知':'Notifications','アカウント＆セキュリティ':'Account & security','ヘルプ＆サポート':'Help & support','明るさ':'Appearance','端末に合わせる':'Match device','ライト':'Light','ダーク':'Dark',
 'パーティをどの端末でも・投稿・フォロー':'Same teams on every device, posting, following','コミュニティの利用ルール':'Community rules','基本ルール（計算式など）':'Basic rules (formulas)','ホーム':'Home',
 '☆を押したツールが先頭に':'Starred tools come first',
 '通知をオンにする':'Turn on notifications','テスト通知を送る':'Send a test notification','オフにする':'Turn off','いいね・フォローされたときに、スマホに通知が届くようにできます。':'Get notified on your phone when someone likes or follows you.',

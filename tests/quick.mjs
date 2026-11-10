@@ -124,5 +124,29 @@ for(const W of [1000,1280]){const pg=await page(W);await pg.goto(URL0+'#/dex');a
   const t=await pg.evaluate(W=>{const p=document.getElementById('pc-post');return [p.title,p.getAttribute('aria-label'),W<1280||p.querySelector('span').textContent==='新規投稿',localStorage.getItem('pcquick'),location.hash]},W);
   ok(t[0]==='⚡ 新規投稿'&&t[1]==='新規投稿'&&t[2]&&t[3]==='community-post'&&t[4]==='#/dex',W+'：PC で設定画面から選ぶと保存・名前が変わる（実行しない） '+t);
   ok(!pg.errs.length,W+'：エラー '+pg.errs);await pg.close()}
+/* 6. 設定とプライバシーのカード（2026/11/10 依頼主「質感向上」）：4つのカード・押せる所は44px以上・横にはみ出さない・明るさの切りかえと⚡の設定が動く */
+for(const W of [320,390,1280]){
+  const pg=await page(W,()=>{try{if(!localStorage.getItem('pctheme'))localStorage.setItem('pctheme','dark')}catch(e){}});await pg.goto(URL0+'#/tools');await pg.waitForTimeout(700);
+  await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);
+  await pg.evaluate(()=>document.querySelectorAll('#drawer details').forEach(d=>d.open=true));await pg.waitForTimeout(150);
+  const c=await pg.evaluate(()=>{const P=document.querySelector('.dr-p'),pr=P.getBoundingClientRect();
+    const cards=[...document.querySelectorAll('#drawer .dr-card')].map(x=>{const cs=getComputedStyle(x);return [x.querySelector('.dr-ch h3').textContent,parseFloat(cs.borderTopLeftRadius),cs.borderTopWidth]});
+    const tap=[...document.querySelectorAll('#drawer .dr-seg .pill,#drawer .dr-swc,#drawer .dr-s,#drawer .dr-d summary,#drawer .qa-opt')].filter(x=>{const r=x.getBoundingClientRect();return r.height<44||r.width<44}).map(x=>x.textContent||x.title);
+    const out=[...P.querySelectorAll('*')].filter(x=>{const r=x.getBoundingClientRect();return r.width&&(r.right>pr.right+0.5||r.left<pr.left-0.5)}).map(x=>x.className);
+    const clip=[...document.querySelectorAll('#drawer .dr-seg .pill')].filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>x.textContent);
+    return {cards,tap,out,sw:P.scrollWidth-P.clientWidth,clip,set:[...document.querySelectorAll('#drawer details')][0].querySelectorAll('.dr-card').length,qa:!!document.querySelector('#drawer .dr-card .qa-set input[name=qa-set]'),push:!!document.querySelector('#drawer .dr-card #dr-push')}});
+  ok(c.cards.map(x=>x[0]).join('/')==='表示・カスタマイズ/通知/アカウント＆セキュリティ/ヘルプ＆サポート'&&c.set===3&&c.cards.every(x=>x[1]>=12&&x[1]<=16&&x[2]==='1px'),W+'：カード '+JSON.stringify(c.cards));
+  ok(c.qa&&c.push,W+'：ショートカットと通知がカードの中');
+  ok(!c.tap.length,W+'：44px 未満の押せる所 '+c.tap);
+  ok(!c.out.length&&c.sw===0&&!c.clip.length,W+'：はみ出し '+c.out+' '+c.sw+' '+c.clip);
+  /* 明るさ：ライトを押すと保存して明るい色になる（保存のしかたは前と同じ pctheme） */
+  if(W===390){await pg.click('#drawer [data-theme-set=light]');await pg.waitForTimeout(900);
+    const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme]);ok(t[0]==='light'&&t[1]==='light','明るさの切りかえ '+t);
+    await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);
+    await pg.evaluate(()=>document.querySelectorAll('#drawer details').forEach(d=>d.open=true));await pg.waitForTimeout(150);
+    ok(await pg.evaluate(()=>document.querySelector('#drawer [data-theme-set=light]').getAttribute('aria-pressed')==='true'&&getComputedStyle(document.querySelector('#drawer .dr-card')).backgroundColor==='rgb(255, 255, 255)'),'明るい色のカード・選んでいるボタン');
+    await pg.evaluate(()=>[...document.querySelectorAll('#drawer .qa-opt')].find(o=>o.querySelector('input').value==='party-create').click());await pg.waitForTimeout(200);
+    ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='party-create'&&document.getElementById('fab').querySelector('.fl').textContent==='パーティ'),'カードの中で⚡の設定');}
+  ok(!pg.errs.length,W+'：カードのエラー '+pg.errs);await pg.close()}
 await b.close();
 console.log(bad?`quick: ${bad}/${n} 項目が失敗`:`quick: OK（${n}項目）`);process.exit(bad?1:0);
