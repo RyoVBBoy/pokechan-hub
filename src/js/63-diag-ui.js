@@ -46,9 +46,8 @@ function dguSumFill(entries,C){
       <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>
     ${sel}`;
   box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
-  box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>{TTAB=b.dataset.dguTab;try{sessionStorage.setItem('pcttab',TTAB)}catch(e){}teamRender();scrTo(0,0);
-    /* 選出の理由へ（2026/11/10 第4段階）：構築と選出タブの「選出の比較」まで送る */
-    setTimeout(()=>{const t=document.getElementById('sel-box');if(t){t.scrollIntoView({block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}},80)});
+  /* 選出の理由へ：構築と選出タブの「選出の比較」まで送る（タブの切りかえは ttJump） */
+  box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>ttJump(b.dataset.dguTab,'sel-box'));
   /* 改善案：画面を出したあと後ろで計算（すでにあれば使い回す） */
   dguImp(entries);
 }
@@ -118,4 +117,15 @@ function dguMatchHTML(z,oppName,meName){
   return `<div class="dgm"><p class="dgm-c"><b>${esc(meName)}</b>（こちら）は <span class="dg-k dg-k${z.r}">${esc(z.t)}</span></p>
     <dl class="dgm-t">${rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
     <details class="dgc-ev"><summary>計算根拠を見る</summary><ul class="pc-ev">${z.why.map(w=>`<li>${esc(w)}</li>`).join('')}<li>${esc(z.spdTxt||'')}</li>${z.swTxt?`<li>後出し：${esc(z.swTxt)}</li>`:''}</ul></details></div>`;
+}
+/* ===================== 第7段階：関連画面（2026/11/10） =====================
+   「変更前 → 変更後」の数の見せ方を、改善案のカード・パーティのチェックの入れかえ案・相性のいい仲間の入れかえ案でそろえる。
+   b・a＝変更前・変更後の数（dgMetric と同じ形。持っている数だけ出す）。変わった数だけ行にし、良くなる／悪くなるの札を付ける。数は計算のまま */
+function dguChgHTML(b,a,o={}){
+  if(!b||!a)return '';
+  const keys=(typeof IMP_MET!=='undefined'?IMP_MET:[]).filter(([k])=>b[k]!=null&&a[k]!=null);
+  const ch=keys.filter(([k])=>b[k]!==a[k]),same=keys.filter(([k])=>b[k]===a[k]);
+  const rows=ch.map(([k,lab,low])=>{const up=low?a[k]<b[k]:a[k]>b[k];
+    return `<div class="imp-mr ${up?'up':'dn'}"><span class="imp-ml">${lab}</span><span class="imp-mv">${b[k]}<i>→</i><b>${a[k]}</b>匹</span><span class="imp-mt">${up?'良くなる':'悪くなる'}</span></div>`}).join('');
+  return `<div class="imp-m${o.cls?' '+o.cls:''}"><p class="imp-mh">${esc(o.title||'変更前 → 変更後（計算し直した数）')}</p>${rows||'<p class="selu-none">数の変化はなし</p>'}${same.length&&o.same!==false?`<p class="imp-same">変わらない：${same.map(([k,lab])=>`${lab} ${b[k]}匹`).join('・')}</p>`:''}${o.note?`<p class="imp-same">${esc(o.note)}</p>`:''}</div>`;
 }

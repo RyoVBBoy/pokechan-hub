@@ -169,13 +169,12 @@ function impHTML(){return `<div id="imp-box"><div class="sec"><h2>改善案（�
 const IMP_MET=[['x','答えがない相手（×）',1],['w','△以下の相手',1],['nosw','後出しして勝てる匹がいない相手',1],['ohko','半分以上を一撃で倒される相手',1],['slow','だれも先に動けない相手',1],['st','2匹以上で安定（◎）の相手',0]];
 function impCard(o,k){
   const B=o.J.b,A=o.J.a;
-  const met=IMP_MET.filter(([key])=>B[key]!=null&&A[key]!=null&&B[key]!==A[key]).map(([key,lab,low])=>{const up=low?A[key]<B[key]:A[key]>B[key];
-    return `<div class="imp-mr ${up?'up':'dn'}"><span class="imp-ml">${lab}</span><span class="imp-mv">${B[key]}<i>→</i><b>${A[key]}</b>匹</span><span class="imp-mt">${up?'良くなる':'悪くなる'}</span></div>`}).join('');
+  const met=IMP_MET.some(([key])=>B[key]!=null&&A[key]!=null&&B[key]!==A[key])?dguChgHTML(B,A,{same:false}):'';
   const up=o.J.D?o.J.D.up:[],dn=o.J.D?o.J.D.dn:[];
   const more=(o.mem&&o.mem.length)||o.sel||(o.J.D&&o.J.D.note);
   return `<div class="pc-i imp-c${k===0?' imp-top':''}"><div class="imp-h"><span class="imp-no">${k+1}</span><span class="pc-area">${IMP_KIND[o.kind]}</span>${k===0?'<span class="imp-best">いちばん効果が大きい案</span>':''}</div>
     <b class="imp-t">${esc(o.title)}</b>${o.why?`<p class="vcap">${esc(o.why)}</p>`:''}
-    ${met?`<div class="imp-m"><p class="imp-mh">変更前 → 変更後（計算し直した数）</p>${met}</div>`:''}
+    ${met}
     <div class="imp-ud imp-u"><p class="sel-wh">良くなるところ</p>${up.length?`<ul class="sel-why">${up.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p class="selu-none">相手ごとの変化はなし（数の変化だけ）</p>'}</div>
     <div class="imp-ud imp-d"><p class="sel-wh">悪くなるところ（相手ごと）</p><ul class="sel-why sel-warn">${dn.map(t=>`<li>${esc(t)}</li>`).join('')||'<li style="color:var(--dim)">計算した範囲ではなし</li>'}</ul></div>
     ${more?`<details class="dgc-ev"><summary>${o.mem&&o.mem.length?'変える匹の変化':''}${o.mem&&o.mem.length&&o.sel?'と':''}${o.sel?'選出への影響':''}${!(o.mem&&o.mem.length)&&!o.sel?'くわしく':''}を見る</summary>

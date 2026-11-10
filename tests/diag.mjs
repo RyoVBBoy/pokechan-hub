@@ -626,6 +626,20 @@ for(const W of [320,390]){await pg.setViewportSize({width:W,height:844});await p
     document.querySelectorAll('#tt-pages details').forEach(d=>d.open=false);return r});
   ok(!U6.small.length&&!U6.tiny.length&&!U6.out.length&&U6.jump,'スマホ幅'+W+'の診断の画面 '+JSON.stringify(U6).slice(0,400))}
 await pg.setViewportSize({width:390,height:844});
+/* UI改善 第7段階：関連画面（タブをまたぐ移動で中身が見える・変更前→変更後の部品をほかの画面でも使う） */
+await pg.evaluate(()=>document.querySelector('#dgu-sum [data-dgu-tab]').click());await pg.waitForTimeout(1500);
+const U7a=await pg.evaluate(()=>{const d=document.getElementById('sel-box');return [TTAB==='plan',!!d&&!!d.offsetParent,!!d&&Math.abs(d.getBoundingClientRect().top-72)<41,document.querySelector('[data-tp="check"]').hidden]});
+ok(U7a.every(Boolean),'まとめから選出の比較へ移れない '+U7a);
+await pg.evaluate(()=>document.querySelector('[data-go-check]').click());await pg.waitForTimeout(2500);
+const U7b=await pg.evaluate(()=>{const d=document.getElementById('dg-box');return [TTAB==='check',!!d&&!!d.offsetParent,!!d&&Math.abs(d.getBoundingClientRect().top-72)<41,document.querySelector('[data-tp="plan"]').hidden,document.querySelectorAll('.pc-simple').length>=0]});
+ok(U7b.every(Boolean),'構築と選出から相手ごとの対応力へ移れない '+U7b);
+const U7c=await pg.evaluate(()=>{const h=dguChgHTML({x:3,w:5,st:2},{x:1,w:5,st:4}),d=document.createElement('div');d.innerHTML=h;const r=[...d.querySelectorAll('.imp-mr')];
+  return [r.length===2,r[0].classList.contains('up')&&/3→1/.test(r[0].textContent),r[1].classList.contains('up')&&/2→4/.test(r[1].textContent),/変わらない：△以下の相手 5匹/.test(d.textContent)]});
+ok(U7c.every(Boolean),'変更前→変更後の部品 '+U7c);
+await pg.evaluate(()=>{location.hash='#/pair'});await pg.waitForTimeout(5000);
+const U7d=await pg.evaluate(()=>{const c=[...document.querySelectorAll('#pr-list .pr-c')];return c.length===0||c.every(x=>!!x.querySelector('.pr-calc .imp-m'))});
+ok(U7d,'相性のいい仲間の入れかえ案に変更前→変更後の数がない');
+await pg.evaluate(()=>{sessionStorage.setItem('pcttab','check');TTAB='check';location.hash='#/team'});await pg.waitForTimeout(1500);
 /* UI改善 第2段階：弱点のカード（根拠は全部残す・起きる相手の数・理由と改善の出し方・開いても数字が変わらない） */
 const U2=await pg.evaluate(()=>{const r={},C=partyCheck(team),calc=C.fix.filter(x=>x.k==='calc');
   r.cards=calc.every((x,k)=>{const e=document.getElementById('pcw'+k);if(!e)return false;const txt=e.textContent;
