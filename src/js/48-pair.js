@@ -123,7 +123,15 @@ function prSwaps(){
     const gain=best.score-mine.score;if(gain>.5)out.push({i,x,o:best,gain})});
   out.sort((a,b)=>b.gain-a.gain);
   /* 入れる匹が重なる案は、良くなる方だけ */
-  const seen=new Set();return out.filter(r=>{if(seen.has(r.o.c.no))return false;seen.add(r.o.c.no);return true}).slice(0,4);
+  const seen=new Set(),cand=out.filter(r=>{if(seen.has(r.o.c.no))return false;seen.add(r.o.c.no);return true}).slice(0,8);
+  /* 2026/11/10 依頼主の検証：入れかえ後の6匹で対面の計算（dgTeam）をし直し、×が増える・◎○の相手が△以下に落ちる案は出さない。変更前→変更後の数を付ける */
+  let T0=null;try{T0=dgTeam(team,20)}catch(e){}
+  if(!T0)return cand.slice(0,4);
+  const cnt=T=>({x:T.rows.filter(r=>r.lvl===1).length,w:T.rows.filter(r=>r.lvl<=2).length});
+  const c0=cnt(T0),by=new Map(T0.rows.map(r=>[r.q.no,r]));
+  return cand.map(r=>{let T1;try{T1=dgTeam0(team.map((x,k)=>k===r.i?{no:r.o.c.no,sel:x.sel}:x),20)}catch(e){return null}
+    const c1=cnt(T1),worse=T1.rows.filter(z=>{const b=by.get(z.q.no);return b&&b.lvl>=3&&z.lvl<=2}).map(z=>z.q.n);
+    return{...r,calc:{b:c0,a:c1,worse}}}).filter(r=>r&&r.calc.a.x<=r.calc.b.x&&!r.calc.worse.length&&r.calc.a.w<=r.calc.b.w).slice(0,4);
 }
 /* 入れかえ：印の付いた最初の匹（なければ i）を外して no を入れる（★選出は引きつぐ） */
 function prReplace(i,no,set){const x=team[i];if(!x)return;const nx={no,sel:!!x.sel};if(set)nx.set=set;team.splice(i,1,nx);PR_OUT.delete(x.no);saveTeam()}
@@ -191,12 +199,12 @@ function prDraw(){
 function prSwapDraw(){
   const el=document.getElementById('pr-list');if(!el)return;
   const sw=prSwaps();
-  if(!sw.length){el.innerHTML='<p class="note">いまの6匹より相性の点が大きく良くなる入れかえは見つかりませんでした。気になるポケモンを上で押すと、その枠に入る候補を探せます。</p>';return}
+  if(!sw.length){el.innerHTML='<p class="note">いまの6匹より良くなる入れかえは見つかりませんでした（相性の点と、入れかえ後の対面の計算の両方で確かめています）。気になるポケモンを上で押すと、その枠に入る候補を探せます。</p>';return}
   el.innerHTML=sw.map((r,k)=>{const c=r.o.c,old=byNo[r.x.no],rs=r.o.R.filter(z=>z.k!=='bad'&&z.txt).sort((a,b)=>b.pts-a.pts).slice(0,3),bad=r.o.R.filter(z=>z.k==='bad');
     return `<div class="pr-c"><div class="row pr-sw"><span class="av">${stamp(old)}</span><span class="pr-arrow">→</span><a class="av" href="#/p/${c.no}">${stamp(c)}</a><div class="row-m"><div class="row-t">${k<3?`<span class="pr-rank">${k+1}</span>`:''}${esc(formInfo(old).base)} → ${nm(c)}</div><div class="chips">${c.t.map(chip).join('')}<span class="rt">${c.roles.join('・')}</span></div></div></div>
-      <ul class="pr-why">${rs.map(z=>`<li><span class="pr-tag pr-${z.k}">${PR_TAG[z.k]}</span>${esc(z.txt)}</li>`).join('')}${bad.map(z=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(z.txt)}</li>`).join('')}</ul>
+      <ul class="pr-why">${r.calc?`<li><span class="pr-tag pr-answer">計算</span>入れかえ後の6匹で計算し直すと、使用率の上位の相手で ×（答えなし）${r.calc.b.x}→${r.calc.a.x}匹・△以下 ${r.calc.b.w}→${r.calc.a.w}匹。◎○から△以下へ落ちる相手はなし</li>`:''}${rs.map(z=>`<li><span class="pr-tag pr-${z.k}">${PR_TAG[z.k]}</span>${esc(z.txt)}</li>`).join('')}${bad.map(z=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(z.txt)}</li>`).join('')}</ul>
       <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-sw="${r.i}:${c.no}">入れかえる</button><button class="btn btn-s" data-swo="${r.x.no}">ほかの候補を見る</button></div></div>`}).join('')
-    +'<p class="note" style="color:var(--mute)">1匹ずつ外してみて、残りの5匹と相性のいいポケモンの点が、外した匹より高くなる入れかえを、良くなる順に出しています。軸にしたポケモンは外しません。</p>';
+    +'<p class="note" style="color:var(--mute)">1匹ずつ外してみて、残りの5匹と相性のいいポケモンの点が、外した匹より高くなる入れかえを、良くなる順に出しています。そのうえで入れかえ後の6匹を対面の計算でもう一度確かめ、答えのない相手が増える・対応できていた相手が不安定になる案は外しています。軸にしたポケモンは外しません。</p>';
   el.querySelectorAll('[data-sw]').forEach(b=>b.onclick=()=>{const [i,no]=b.dataset.sw.split(':').map(Number);const old=byNo[team[i].no].n;prReplace(i,no);toast(`${old}を外して${byNo[no].n}を入れました`);prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).catch(()=>{})});
   el.querySelectorAll('[data-swo]').forEach(b=>b.onclick=()=>{PR_OUT.add(+b.dataset.swo);prDraw();scrTo(0,0)});
 }

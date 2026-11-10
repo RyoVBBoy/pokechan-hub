@@ -33,38 +33,38 @@ function loseReasons(entries){
       act:[['#/pair','先制技を持つ仲間を探す']]});
   }
   /* ② よく使われる相手への答え
-     2026/11/09 依頼主の指摘（おすすめの通りに入れても同じ指摘が出る）：おすすめの匹は、同じ基準（lsAns）・入れたときの型（detSet）で
-     「答えられない相手」をいくつ答えられるかを数えて選ぶ。6匹そろっているときは、だれと入れかえると答えられない相手がいちばん減るかも出す。
-     名前は姿の違いまで出す（ウインディ・ウインディ（ヒスイ）を同じ名前にしない） */
-  const lsAns=(a,op)=>{if(!a||!op)return false;try{const x=estHit(a,op).pct,y=estHit(op,a).pct;return y<50||(x>=50&&y<50)||(lsSpd(a)>lsSpd(op)&&x>=100)}catch(e){return false}};
-  const fam=q=>q.base||q.no;
-  const me=ms.map(o=>{try{return mkMon(o.p,'me',mySetFor(o.x.no))}catch(e){return null}});
-  const ops=[];
-  opps.forEach((q,j)=>{if(ms.some(o=>fam(o.p)===fam(q)))return;
-    let op;try{op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return}
-    ops.push({q,j,op,ok:me.map(a=>lsAns(a,op))})});
-  const miss=ops.filter(r=>!r.ok.some(Boolean));
+     2026/11/10 依頼主の検証（ガブリアス→カイリューの入れかえ案が、入れかえ後に計算し直すと悪くなっていた）：
+     判定は「相手ごとの対応力」と同じ dgTeam（乱数の最小・最大・素早さ・タスキ等）にそろえ、×（パーティ全体で対応が難しい）の相手を出す。
+     おすすめ・入れかえ案は、変更後の6匹で dgTeam をもう一度計算し、×が減り、ほかの相手が△以下に落ちないものだけを、変更前→変更後の数で出す */
+  let DT=null;try{DT=dgTeam(entries,20)}catch(e){}
+  const miss=DT?DT.rows.filter(r=>r.lvl===1):[];
   if(miss.length){
     const top=miss.slice(0,3),q0=top[0].q,nmq=q=>q.n,names=top.map(m=>nmq(m.q)).join('・')+(miss.length>3?`など${miss.length}匹`:'');
-    /* 候補：答えられない相手それぞれに強い匹＋よく使われる匹。入れたときの型で、答えられない相手をいくつ答えられるか */
+    const fam=q=>q.base||q.no;
     const pool=new Map();
     top.forEach(m=>{try{const c=monCounters(m.q);[...c.ohko,...c.strong,...c.wall].forEach(r=>{const q=r.q.base&&byNo[r.q.base]?byNo[r.q.base]:r.q;pool.set(q.no,q)})}catch(e){}});
     metaOpps(40).forEach(q=>{const b=q.base&&byNo[q.base]?byNo[q.base]:q;pool.set(b.no,b)});
     const cands=[...pool.values()].filter(q=>!ms.some(o=>fam(o.p)===fam(q))).map(q=>{
       let a;try{a=mkMon(q,'me',detSet(q))}catch(e){return null}
-      const cov=miss.map(m=>lsAns(a,m.op));return{q,a,cov,n:cov.filter(Boolean).length,topN:cov.slice(0,top.length).filter(Boolean).length}})
-      .filter(c=>c&&c.n).sort((x,y)=>y.topN-x.topN||y.n-x.n);
-    const best=cands.slice(0,3);
-    /* 6匹そろっていれば、入れかえで答えられない相手がいちばん減る匹 */
-    let swap='';
-    if(best.length&&ms.length>=6){const c=best[0];
-      const after=i=>ops.filter(r=>{const k=r.ok.some((v,t)=>v&&t!==i);return!k&&!lsAns(c.a,r.op)}).length;
-      const rk=ms.map((o,i)=>({o,i,n:after(i)})).filter(r=>!(r.o.x.axis)).sort((x,y)=>x.n-y.n)[0];
-      if(rk&&rk.n<miss.length)swap=`パーティが6匹そろっているので、入れかえるなら${rk.o.p.n}を外して${c.q.n}を入れると、答えられない相手が${miss.length}匹から${rk.n}匹に減ります。`}
-    const covTxt=c=>{const ns=top.filter((m,t)=>c.cov[t]).map(m=>nmq(m.q));return ns.length===top.length&&top.length>1?`${c.q.n}（${ns.length===2?'どちら':'どれ'}にも答えられる）`:`${c.q.n}（${ns.join('・')}に答えられる）`};
-    out.push({ph:'構築',w:2.4+.3*top.length-top[0].j*.02,t:`よく使われる${names}に、だれも答えられない`,
-      d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}を相手にすると、パーティのだれもが「2回耐える」「先に半分以上削る」「上から一撃で倒す」のどれもできません。選出画面にいるだけで動きが苦しくなり、対面したら崩されます。`,
-      how:best.length?`${best.map(covTxt).join('、')}などを入れることを考えましょう（使用率の高い型で入れたときに、この診断の基準で答えられる匹です）。${ms.length<6?`${best[0].q.n}を入れると、答えられない相手は${miss.length}匹から${miss.length-best[0].n}匹になります。`:''}${swap}または、${nmq(q0)}の攻撃を2回耐えられるように、だれかの能力ポイントを耐久に回します。`:`${nmq(q0)}の攻撃を2回耐えられる仲間か、上から倒せる仲間を入れましょう。`,
+      const cov=miss.map(m=>{try{return dgMatch(a,m.o).r>=3}catch(e){return false}});return{q,a,cov,n:cov.filter(Boolean).length,topN:cov.slice(0,top.length).filter(Boolean).length}})
+      .filter(c=>c&&c.n).sort((x,y)=>y.topN-x.topN||y.n-x.n).slice(0,4);
+    /* 変更後の6匹でもう一度計算して比べる */
+    const cmp=T1=>{const by=new Map(DT.rows.map(r=>[r.q.no,r]));
+      const worse=T1.rows.filter(r=>{const b=by.get(r.q.no);return b&&b.lvl>=3&&r.lvl<=2}).map(r=>r.q.n);
+      const fixed=miss.map(m=>({m,a:T1.rows.find(r=>r.q.no===m.q.no)})).filter(z=>z.a&&z.a.lvl>=2).map(z=>`${z.m.q.n}（×→${DG_LV[z.a.lvl][0]}）`);
+      const x1=T1.rows.filter(r=>r.lvl===1).length;return{worse,fixed,x1}};
+    const plans=[];
+    cands.forEach(c=>{
+      if(ms.length<6){try{plans.push({c,out:null,...cmp(dgTeam0([...entries,{no:c.q.no}],20))})}catch(e){}}
+      else ms.forEach((o,i)=>{if(o.x.axis)return;try{plans.push({c,out:o,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no}:x),20))})}catch(e){}})});
+    const good=plans.filter(p=>p.fixed.length&&!p.worse.length&&p.x1<miss.length).sort((a,b)=>a.x1-b.x1||b.fixed.length-a.fixed.length);
+    const seen=new Set(),best=good.filter(p=>!seen.has(p.c.q.no)&&seen.add(p.c.q.no)).slice(0,3);
+    const planTxt=p=>`${p.out?`${p.out.p.n}を外して`:''}${p.c.q.n}を入れる（×の相手 ${miss.length}匹→${p.x1}匹。${p.fixed.join('・')}。◎○から△以下へ落ちる相手はなし）`;
+    const rejected=plans.length&&!good.length;
+    out.push({ph:'構築',w:2.4+.3*top.length-DT.rows.indexOf(top[0])*.02,t:`よく使われる${names}に、だれも答えられない`,
+      d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}には、パーティのだれも「上から倒す」「耐えて倒す」「後出しして勝つ」「受けて有利に戦う」ができず、乱数や同速しだいで勝てる匹もいません（相手ごとの対応力の×）。`,
+      how:best.length?`変更後の6匹で計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
+        `${rejected?'入れかえの候補を変更後の6匹で計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`,
       act:[[q0.base?`#/p/${q0.no}`:`counter/${q0.no}/`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
   }
   /* ③ 設置技 */

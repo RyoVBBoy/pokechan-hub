@@ -66,23 +66,23 @@ const R4=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};
   /* 作った結果で、1匹に頼っている形を見つけられるか（計算に依らない確認） */
   const mon=i=>({p:P[i]}),mv={n:'わざ',t:'ノーマル'};
-  const z=(i,o)=>({i,k:'lose',r:1,t:'',why:[''],me:null,op:null,spd:-1,first:-1,sa:100,so:120,myN:9,opW:1,pr:null,...o});
-  const kill=i=>z(i,{me:{mv,min:60,max:70,nMin:2,nMax:2,ohko:0},op:{mv,min:50,max:60,nMin:2,nMax:2,eff:1},opW:2,myN:2,first:1,spd:1,sa:150,k:'ko_fast',r:5});
-  const tank=i=>z(i,{op:{mv,min:20,max:25,nMin:4,nMax:4,eff:.5},opW:4,me:{mv,min:20,max:25,nMin:4,nMax:4,ohko:0},myN:4,k:'wall',r:3});
+  const z=(i,o)=>({i,swIn:'no',k:'lose',r:1,t:'',why:[''],me:null,op:null,spd:-1,first:-1,sa:100,so:120,myN:9,opW:1,pr:null,...o});
+  const kill=i=>z(i,{me:{mv,min:60,max:70,nMin:2,nMax:2,ohko:0},op:{mv,min:50,max:60,nMin:2,nMax:2,eff:1},opW:2,myN:2,first:1,spd:1,sa:150,k:'ko_fast',r:5,swIn:'survive'});
+  const tank=i=>z(i,{op:{mv,min:20,max:25,nMin:4,nMax:4,eff:.5},opW:4,me:{mv,min:20,max:25,nMin:4,nMax:4,ohko:0},myN:4,k:'wall',r:3,swIn:'win'});
   const T={ms:[mon(0),mon(1),mon(2)],rows:[0,1,2,3].map(j=>({q:{n:'相手'+j},o:{},res:[kill(0),tank(1),z(2)],lvl:3})),unk:[],live:false,liveAll:false};
   const A=dgAnalyze(T),ts=A.bad.map(x=>x.t);
   r.soleK=ts.some(t=>/だけが確定2発で倒せる相手が4匹/.test(t));
   r.soleS=ts.some(t=>/後出しできるのが.*だけの相手が4匹/.test(t));
   r.soleF=ts.some(t=>/先に動けるのが.*だけの相手が4匹/.test(t));
-  r.noBad=!ts.some(t=>/確定2発で倒せるポケモンがいない/.test(t))&&!ts.some(t=>/後出しできる匹がいない/.test(t));
+  r.noBad=!ts.some(t=>/確定2発で倒せるポケモンがいない/.test(t))&&!ts.some(t=>/後出しして勝てる匹がいない/.test(t));
   /* 全員が遅く、先制技で確定で倒せるとき */
   const T2={...T,rows:T.rows.map(row=>({...row,res:row.res.map(x=>({...x,spd:-1,first:-1,pr:x.i===0?{mv,min:120,max:140}:null}))}))};
   const sp=dgAnalyze(T2).bad.find(x=>/だれよりも速い相手/.test(x.t));r.prio=!!sp&&/先制技で確定で倒せます/.test(sp.d)&&sp.sev<=2;
   /* 実際のパーティ：計算の項目が dgTeam の数と合う・タイプだけの気になる点には計算の根拠がある */
   team.length=0;['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー'].forEach(s=>team.push({no:N(s).no}));
   const C=partyCheck(team),DT=dgTeam(team,20);
-  const noSw=DT.rows.filter(row=>!row.res.some(x=>x.opW>=3)).length,noK=DT.rows.filter(row=>!row.res.some(x=>x.me&&x.me.nMin<=2)).length;
-  const f1=C.fix.find(x=>/後出しできる匹がいない相手/.test(x.t)),f2=C.fix.find(x=>/確定2発で倒せるポケモンがいない/.test(x.t));
+  const noSw=DT.rows.filter(row=>!row.res.some(x=>x.swIn==='win')).length,noK=DT.rows.filter(row=>!row.res.some(x=>x.me&&x.me.nMin<=2)).length;
+  const f1=C.fix.find(x=>/後出しして勝てる匹がいない相手/.test(x.t)),f2=C.fix.find(x=>/確定2発で倒せるポケモンがいない/.test(x.t));
   r.match=[noSw?!!f1&&f1.t.includes(noSw+'匹'):!f1,noK?!!f2&&f2.t.includes(noK+'匹'):!f2];
   r.typeEv=C.fix.filter(x=>x.k==='type').every(x=>x.ev&&x.ev.length&&!/参考/.test(x.ev[0]));
   r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
@@ -103,6 +103,44 @@ ok(R4.calcEv,'計算の項目に根拠・深刻度がありません');
 ok(R4.unk,'計算に入っていない特性が書かれていません');
 ok(R4.sel,'★の選出で見るとき');
 ok(R4.dbl,'ダブルのとき');
+/* 2026/11/10 依頼主の検証（第4段階の精度） */
+const V=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  /* マルチスケイル：初撃だけ半分。回数は「初撃（半分）＋2発目から（そのまま）」で数える（前は二重に半分） */
+  const g=mkMon(N('ガブリアス'),'me',detSet(N('ガブリアス'))),d=mkMon(N('カイリュー'),'op',{...detSet(N('カイリュー')),ab:'multiscale'});
+  const x=dgBest(g,d),exp=x.fmin>=100?1:1+Math.ceil((100-x.fmin)/x.min);
+  d.hp=d.max-1;const full=bcalc(g,x.mv,d,{r:85}).dmg/d.max*100;d.hp=d.max;const first=bcalc(g,x.mv,d,{r:85}).dmg/d.max*100;
+  r.ms=[Math.abs(x.min-full)<1e-9,Math.abs(first-Math.floor(full*d.max/100/2)/d.max*100)<1.5,x.nMin===exp,duel(g,d).mt===exp];
+  /* 66〜79%（初撃）の例：前の計算では確定3発、正しくは2発目が132%以上なので確定2発 */
+  r.ex=duTurns(132,{mv:x.mv,acc:100},g,d);
+  /* 同速：上を取れると言わない */
+  const a=mkMon(N('サーフゴー'),'me',detSet(N('サーフゴー'))),b=mkMon(N('ルカリオ'),'op',detSet(N('ルカリオ')));a.st[5]=b.st[5]=223;
+  const t=dgMatch(a,b);r.tie=[t.spd===0,t.why.some(w=>/同速/.test(w)),!t.why.some(w=>/先に動ける|上を取れる/.test(w)),t.k!=='ko_fast'||!!t.pr];
+  /* 後出し：交代で受ける1発目と、そのあとを分ける */
+  const s1=dgMatch(mkMon(N('アーマーガア'),'me',detSet(N('アーマーガア'))),mkMon(N('カイリュー'),'op',detSet(N('カイリュー'))));
+  r.sw=['win','survive','no'].includes(s1.swIn)&&/交代で受ける1発目/.test(s1.swTxt);
+  /* 根拠が5匹を超えたら「ほか〇匹」 */
+  const mv={n:'わざ',t:'ノーマル'};
+  const T={ms:[{p:P[0]},{p:P[1]}],rows:[...Array(8).keys()].map(j=>({q:{n:'相手'+j,no:j},o:{},lvl:1,res:[0,1].map(i=>({i,swIn:'no',k:'lose',r:1,t:'',why:[''],me:{mv,min:10,max:12,nMin:9,nMax:9},op:{mv,min:80,max:120,fmin:80,fmax:120,nMin:2,nMax:1,eff:1},spd:-1,first:-1,sa:1,so:2,myN:9,opW:1,pr:null}))})),unk:[]};
+  const A=dgAnalyze(T);r.more=A.bad.filter(b=>/8匹/.test(b.t)).every(b=>b.ev.some(e=>/^ほか3匹/.test(e)));
+  /* 入れかえ案は、変更後の6匹で計算し直して悪くならないものだけ */
+  team.length=0;['ギャラドス','ブリジュラス','ガブリアス','ドドゲザン','ウルガモス','カミツオロチ'].forEach(s=>team.push({no:N(s).no}));
+  const sw=prSwaps();r.swap=sw.every(z=>z.calc&&z.calc.a.x<=z.calc.b.x&&!z.calc.worse.length);
+  team.length=0;['ドドゲザン','ボスゴドラ','ヌメルゴン（ヒスイ）','ウルガモス','カミツオロチ','バンギラス'].forEach(s=>team.push({no:N(s).no}));
+  const L=loseReasons(team).find(z=>/答えられない/.test(z.t));
+  r.lose=!L||/計算し直して良くなる案|見つかりませんでした/.test(L.how)||!/外して/.test(L.how);
+  if(L&&/外して(.+?)を入れる/.test(L.how)){const m=L.how.match(/(\S+?)を外して(\S+?)を入れる/);
+    const outN=m[1].replace(/^.*：/,''),inN=m[2];const i=team.findIndex(x=>byNo[x.no].n===outN),q=P.find(p=>p.n===inN);
+    if(i>=0&&q){const T0=dgTeam0(team,20),T1=dgTeam0(team.map((x,k)=>k===i?{no:q.no}:x),20);r.lose2=T1.rows.filter(z=>z.lvl===1).length<T0.rows.filter(z=>z.lvl===1).length}}
+  return r;
+});
+ok(V.ms.every(Boolean),'マルチスケイルの数え方 '+V.ms);
+ok(V.ex===2,'初撃66%・2発目132%は確定2発 '+V.ex);
+ok(V.tie.every(Boolean),'同速の扱い '+V.tie);
+ok(V.sw,'後出しの1発目とそのあとの区別');
+ok(V.more,'根拠が5匹を超えたときの「ほか〇匹」');
+ok(V.swap,'入れかえ案が計算で悪くなっていないか');
+ok(V.lose&&V.lose2!==false,'敗因の診断の入れかえ案を変更後に計算し直すと良くなるか '+V.lose+' '+V.lose2);
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

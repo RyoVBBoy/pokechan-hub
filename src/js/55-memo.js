@@ -17,17 +17,17 @@ function memoAuto(q){
   let op;try{op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return ''}
   const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
   const rows=team.map(x=>{const p=byNo[x.no];if(!p)return null;try{const a=mkMon(p,'me',mySetFor(x.no)),d=duel(a,op);
-    return{p,h:d.h,r:d.r,f:d.f>0,sc:d.s,up:d.up}}catch(e){return null}}).filter(Boolean);
+    return{p,h:d.h,r:d.r,f:d.f>0,tie:d.f===0&&effSpd(a)===effSpd(op),sc:d.s,up:d.up}}catch(e){return null}}).filter(Boolean);
   if(!rows.length)return '';
   const nm=p=>formInfo(p).base,mv=d=>d&&d.mv?d.mv.n:'';
   const L1=[];
   const good=rows.filter(r=>r.sc>=1).sort((a,b)=>b.sc-a.sc||b.h.pct-a.h.pct).slice(0,2);
-  if(good.length)L1.push('◎出す：'+good.map(r=>`${nm(r.p)}（${r.up?r.up+'を積んで':''}${r.f?'先に':'後から'}${mv(r.h)}${r.h.pct>=100?'で一撃':`で約${Math.round(r.h.pct)}%`}）`).join('、'));
+  if(good.length)L1.push('◎出す：'+good.map(r=>`${nm(r.p)}（${r.up?r.up+'を積んで':''}${r.f?'先に':r.tie?'同速（五分）で':'後から'}${mv(r.h)}${r.h.pct>=100?'で一撃':`で約${Math.round(r.h.pct)}%`}）`).join('、'));
   else L1.push('△1対1で有利な匹がいない。2匹で削るか、交代で受けてから倒す');
   const bad=rows.filter(r=>r.r.pct>=80||r.sc<=-1).sort((a,b)=>b.r.pct-a.r.pct).slice(0,2);
   if(bad.length)L1.push('×出さない：'+bad.map(r=>`${nm(r.p)}（${mv(r.r)}${r.r.pct>=100?'で一撃':`で約${Math.round(r.r.pct)}%`}）`).join('、'));
-  const fast=rows.filter(r=>r.f).map(r=>nm(r.p));
-  L1.push(`速さ：相手は最速${maxSpe(q)}。${fast.length?`上から動けるのは${fast.slice(0,3).join('・')}`:'こちらは全員が後から動く'}`);
+  const fast=rows.filter(r=>r.f).map(r=>nm(r.p)),tie=rows.filter(r=>r.tie).map(r=>nm(r.p));
+  L1.push(`速さ：相手は最速${maxSpe(q)}。${fast.length?`上から動けるのは${fast.slice(0,3).join('・')}`:tie.length?'上から動ける匹はいない':'こちらは全員が後から動く'}${tie.length?`。同速（五分）は${tie.slice(0,3).join('・')}`:''}`);
   return L1.join('\n');
 }
 /* PiP・画面で見せる中身（モードに合わせる） */
@@ -205,7 +205,7 @@ function mpAutoCalc(){
      ・「受ける」は⑥と同じ基準（いちばん痛い技で50%未満＝2回耐える） */
   const WXJ={sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'};
   const wxNote=o=>{const k=o&&WSET[o.ab];return k?`（${qn(o.p)}の特性で${WXJ[k]}になるので、${WXJ[k]}の中で計算）`:''};
-  const why=(i,o)=>{const h=hit(me[i],o);return `${spd(me[i])>spd(o)?'先に':'後から'}${dm(h)}`};
+  const why=(i,o)=>{const h=hit(me[i],o),x=spd(me[i]),y=spd(o);return `${x>y?'先に':x===y?'同速（五分）で':'後から'}${dm(h)}`};
   const both=(L,o)=>L.length>1?`${nm(L[0])}（${why(L[0],o)}）または${nm(L[1])}（${why(L[1],o)}）`:`${nm(L[0])}（${why(L[0],o)}）`;
   /* ② 初手の答え：使用率の上位から6匹 */
   {const L=[];opps.slice(0,6).forEach((q,j)=>{const o=opm(j);if(!o)return;

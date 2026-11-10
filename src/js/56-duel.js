@@ -42,8 +42,10 @@ function duFirst(sa,so,mt,ot,pa,po,ha,ho){
   return f;
 }
 function duel(a,o){return withWx(a,o,()=>duel0(a,o))}
+/* マルチスケイル：estHit は満タンで計算するので、もう半分になっている。duTurns が初撃を半分で数えるので、ここでは2発目からのダメージを渡す（2026/11/10 二重に半分にしていた） */
+function duHit(x,y){if(y.ab==='multiscale'&&!duIg(x)){const hp=y.hp;y.hp=y.max-1;try{return estHit(x,y)}finally{y.hp=hp}}return estHit(x,y)}
 function duel0(a,o){
-  const h=estHit(a,o),r=estHit(o,a);
+  const h=duHit(a,o),r=duHit(o,a);
   let mt=duTurns(h.pct,h,a,o),ot=duTurns(r.pct,r,o,a);
   const pa=duPrio(a,o),po=duPrio(o,a);
   const sa=effSpd(a),so=effSpd(o);
