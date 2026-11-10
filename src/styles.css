@@ -1906,8 +1906,6 @@ body::before{inset:0;background:
 .dr-rr{flex:none;max-width:55%;display:inline-flex;align-items:center;justify-content:flex-end;gap:2px;margin-left:auto;color:var(--dr-v);font-size:15px}
 .dr-rv{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dr-chev{display:inline-flex;color:var(--dr-v);transition:transform .2s ease}
-.dr-acc[open]>.dr-row .dr-chev{transform:rotate(90deg)}
-.dr-acc[open]>.dr-row{border-bottom-color:transparent}
 /* 選択肢（行の下に開く） */
 .dr-opts{display:flex;flex-direction:column;background:var(--dr-sub);border-bottom:1px solid var(--dr-line);transform-origin:top;animation:drOpen .22s cubic-bezier(.2,.8,.2,1)}
 @keyframes drOpen{from{opacity:0;transform:translateY(-8px);clip-path:inset(0 0 100% 0)}to{opacity:1;transform:none;clip-path:inset(0 0 0 0)}}
@@ -1933,3 +1931,47 @@ body::before{inset:0;background:
 .dr-tg[aria-checked=true]{background:var(--accf)}
 .dr-tg[aria-checked=true] i{transform:translateX(18px)}
 @media(prefers-reduced-motion:reduce){.dr-row,.dr-opt,.dr-chev,.dr-ck,.dr-tg,.dr-tg i{transition:none}.dr-opts{animation:none}}
+/* 左から出るメニューの「設定とプライバシー」＝押すと設定の画面（65-settings.js）を開く行 */
+.dr-sb{display:flex;align-items:center;gap:16px;width:100%;padding:14px 20px;border:0;background:none;color:var(--fg);font:700 16px var(--ff);text-align:left;cursor:pointer;transition:background .2s}
+.dr-sb .dr-chev{margin-left:auto}
+@media(hover:hover){.dr-sb:hover{background:var(--dr-hov)}}
+.dr-sb:active{background:var(--dr-prs)}
+/* ===================== 設定の画面（2026/11/10 依頼主「X の設定画面と同じに」、65-settings.js） =====================
+   PC は画面の真ん中に幅600pxまで、スマホ（699px以下）は下からすべり上がる全画面。背景は真っ黒（明るい色は白）、線は白の10% */
+:root{--sm-bg:#000;--sm-line:rgba(255,255,255,.1)}
+:root[data-theme=light]{--sm-bg:#fff;--sm-line:rgba(15,20,25,.1)}
+.setm{position:fixed;inset:0;z-index:110;display:flex;align-items:center;justify-content:center}
+.setm[hidden]{display:none}
+.sm-bg{position:absolute;inset:0;background:rgba(91,112,131,.4);opacity:0;transition:opacity .25s ease}
+.setm.on .sm-bg{opacity:1}
+.sm-p{position:relative;display:flex;flex-direction:column;width:min(600px,calc(100vw - 32px));max-height:min(86vh,760px);background:var(--sm-bg);border-radius:16px;box-shadow:0 0 0 1px var(--sm-line),0 20px 60px rgba(0,0,0,.55);overflow:hidden;outline:none;opacity:0;transform:scale(.96);transition:opacity .22s ease,transform .26s cubic-bezier(.2,.8,.2,1)}
+.setm.on .sm-p{opacity:1;transform:none}
+.sm-h{flex:none;display:flex;align-items:center;gap:4px;min-height:53px;padding:0 8px;border-bottom:1px solid var(--sm-line);padding-top:0}
+.sm-h h2{flex:1;margin:0 0 0 16px;font-size:20px;font-weight:800;color:var(--dr-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-ib{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--dr-t);cursor:pointer;transition:background .2s}
+@media(hover:hover){.sm-ib:hover{background:var(--dr-prs)}}
+.sm-ib:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.sm-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+.sm-sh{margin:0;padding:20px 20px 8px;font-size:17px;font-weight:800;color:var(--dr-t)}
+.setm .dr-row{padding:16px 20px;border-bottom-color:var(--sm-line)}
+.setm .dr-row>.dr-rt b{overflow:visible;text-overflow:clip}
+.setm .dr-rr{max-width:none}
+.setm .dr-opts{background:none;border:0;animation:none}
+.setm .dr-opt{min-height:52px;padding:16px 20px}
+.setm .dr-opt+.dr-opt,.setm .qa-set>.dr-opt+.dr-opt{box-shadow:inset 0 1px 0 var(--sm-line)}
+.setm .dr-opt .dr-ri{width:24px}
+.setm .dr-opt .dr-rt b{font-size:15px}
+.setm .dr-note{padding:16px 20px 8px;font-size:13px}
+.sm-pg.in{animation:smIn .24s cubic-bezier(.2,.8,.2,1)}
+@keyframes smIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.sm-main.in{animation-name:smBackIn}
+@keyframes smBackIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+body.sm-lock{overflow:hidden}
+@media(max-width:699px){
+  .setm{align-items:flex-end}
+  .sm-p{width:100%;height:100%;max-height:none;border-radius:0;box-shadow:none;opacity:1;transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .sm-h{padding-top:env(safe-area-inset-top);min-height:calc(53px + env(safe-area-inset-top))}
+  .sm-body{padding-bottom:calc(16px + env(safe-area-inset-bottom))}}
+/* 幅の狭いスマホ（359px以下）：名前と今の設定が1行に入らないので、名前を2行にする（…で省略しない） */
+@media(max-width:359px){.setm .dr-row>.dr-rt b{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.sm-p,.sm-bg{transition:none}.sm-pg.in{animation:none}}

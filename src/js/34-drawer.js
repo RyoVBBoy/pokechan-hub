@@ -16,23 +16,15 @@ I.doc='<path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M13.5 3.5v4.5h4.5M9.5 12.5
 I.mail='<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="m4 7 8 6 8-6"/>';
 I.flag='<path d="M5.5 20.5v-16M5.5 4.5h11l-2 4 2 4h-11"/>';
 /* 2026/11/10 依頼主「X の設定画面のようなリスト」：1項目＝1行（左に絵・中に太字の名前だけ・右に › かオン/オフか今の選択。2026/11/10 同日「X の設定トップと同じに」で説明の行を外した）。
-   選ぶ項目（お気に入りショートカット・明るさ・テーマの色・背景の光・言語）は、行を押すと下に選択肢が開く（同時に開くのは1つ）。
-   保存のしかた（setTheme・setAccent・setLang・qaSet＝localStorage）は前と同じ */
+   設定の中身は 65-settings.js の画面の真ん中に開く設定の画面（同日「X の設定画面と同じに」）。この部品（行・選択肢）はそこでも使う */
 const drChev=()=>`<span class="dr-chev" aria-hidden="true">${SVG(I.chev,18)}</span>`;
 const drRowIn=(ic,t,s,right)=>`<span class="dr-ri" aria-hidden="true">${String(ic).startsWith('<span')?ic:SVG(ic,20)}</span><span class="dr-rt"><b>${t}</b>${s?`<small>${s}</small>`:''}</span><span class="dr-rr">${right||''}</span>`;
 /* 画面へ移る行 */
 const drLink=(h,ic,t,x)=>`<a class="dr-row" href="${h}"${x||''}>${drRowIn(ic,t,'',drChev())}</a>`;
-/* 押すと選択肢が開く行。v＝右に出す今の選択 */
-const drAcc=(id,ic,t,v,body,note)=>`<details class="dr-acc" data-acc="${id}"><summary class="dr-row">${drRowIn(ic,t,'',`<span class="dr-rv" id="dr-v-${id}">${v}</span>${drChev()}`)}</summary><div class="dr-opts" role="group" aria-label="${t}">${note?`<p class="dr-note">${note}</p>`:''}${body}</div></details>`;
 /* 選択肢の1行（選んでいるものに ✓） */
 const drOpt=(attr,on,ic,t)=>`<button class="dr-opt" ${attr} aria-pressed="${on}">${drRowIn(ic,t,'',`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</button>`;
 const drDot=c=>`<span class="dr-dot" style="background:${c}"></span>`;
 const accCol=a=>THEME==='light'?a[3]:a[5];
-/* 選択肢を押したとき：✓ と右の表示をすぐ変え、少し見せてから切りかえる（切りかえると読み直す） */
-function drPick(btn,fn,val){
-  const box=btn.closest('.dr-opts');if(box)box.querySelectorAll('.dr-opt').forEach(x=>x.setAttribute('aria-pressed',x===btn?'true':'false'));
-  const acc=btn.closest('.dr-acc'),v=acc&&acc.querySelector('.dr-rv');if(v&&val!=null)v.innerHTML=val;
-  setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180)}
 const DR={el:null,open:false};
 function drawerHTML(){
   const pr=typeof AUTH!=='undefined'&&AUTH.profile,g=curGame();
@@ -48,23 +40,7 @@ function drawerHTML(){
     ${it('#/search/'+encodeURIComponent('#対戦募集'),I.swords||I.chat,'対戦募集')}
     ${it('#/search/'+encodeURIComponent('#構築相談'),I.chat,'構築相談・質問')}
     <div class="dr-sep"></div>
-    <details class="dr-d"><summary>${SVG(I.gear,22)}<span>設定とプライバシー</span></summary>
-      <div class="dr-set">
-        <section class="dr-sec" aria-label="表示・カスタマイズ"><h3 class="dr-sh">表示・カスタマイズ</h3>
-          ${typeof qaSettingsHTML==='function'&&curGame().fab?qaSettingsHTML():''}
-          ${drAcc('theme',I.sun,'明るさ',{auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF],
-            [['auto','端末に合わせる',I.phone],['light','ライト',I.sun],['dark','ダーク',I.moon]].map(([k,n,ic])=>drOpt(`data-theme-set="${k}"`,THEME_PREF===k,ic,n)).join(''))}
-          ${drAcc('accent',I.palette,'テーマの色',drDot(accCol(ACCENTS[ACCENT]))+L(ACCENTS[ACCENT][0],ACCENTS[ACCENT][1]),
-            Object.entries(ACCENTS).map(([k,a])=>drOpt(`data-acc-set="${k}" title="${L(a[0],a[1])}"`,ACCENT===k,drDot(accCol(a)),L(a[0],a[1]))).join(''))}
-          ${drAcc('glow',I.spark,'背景の光',{strong:'強め',normal:'ふつう',off:'なし'}[GLOW]||'ふつう',
-            [['strong','強め'],['normal','ふつう'],['off','なし']].map(([k,n])=>drOpt(`data-glow-set="${k}"`,GLOW===k,I.spark,n)).join(''))}
-          ${drAcc('lang',I.globe,'言語 / Language',(LANGS.find(x=>x[0]===LANG)||LANGS[0])[1],
-            LANGS.map(([k,n])=>drOpt(`data-lang-set="${k}"`,LANG===k,I.globe,n)).join(''))}
-        </section>
-        <section class="dr-sec" aria-label="通知"><h3 class="dr-sh">通知</h3><div id="dr-push"></div></section>
-        <section class="dr-sec" aria-label="アカウントとセキュリティ"><h3 class="dr-sh">アカウント＆セキュリティ</h3>
-          ${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>
-      </div></details>
+    <button class="dr-sb" data-dr="settings">${SVG(I.gear,22)}<span>設定とプライバシー</span>${drChev()}</button>
     <details class="dr-d"><summary>${SVG(I.help,22)}<span>ヘルプセンター</span></summary>
       <div class="dr-set">
         <section class="dr-sec" aria-label="ヘルプとサポート"><h3 class="dr-sh">ヘルプ＆サポート</h3>
@@ -77,22 +53,16 @@ function drawerEnsure(){
   const o=document.createElement('div');o.className='drawer';o.id='drawer';document.body.appendChild(o);DR.el=o;
   o.addEventListener('click',e=>{
     if(e.target.closest('.dr-bg')){drawerClose();return}
-    const ts=e.target.closest('[data-theme-set]');if(ts){drPick(ts,()=>setTheme(ts.dataset.themeSet),ts.querySelector('.dr-rt b').textContent);return}
-    const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)drPick(as,()=>setAccent('pcaccent',as.dataset.accSet),as.querySelector('.dr-ri').innerHTML+as.querySelector('.dr-rt b').textContent);return}
-    const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)drPick(gs,()=>setAccent('pcglow',gs.dataset.glowSet),gs.querySelector('.dr-rt b').textContent);return}
-    const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)drPick(ls,()=>setLang(ls.dataset.langSet),ls.querySelector('.dr-rt b').textContent);return}
+    if(e.target.closest('[data-dr=settings]')){drawerClose();setTimeout(()=>settingsOpen(),180);return}
     if(e.target.closest('[data-dr=game]')){drawerClose();setTimeout(gameSheet,200);return}
     if(e.target.closest('a[href^="#/"]'))drawerClose();
   });
-  /* 選択肢は同時に1つだけ開く */
-  o.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches('.dr-acc')&&d.open)o.querySelectorAll('.dr-acc[open]').forEach(x=>{if(x!==d)x.open=false})},true);
   return o;
 }
 function drawerFill(){
   const o=drawerEnsure();o.innerHTML=drawerHTML();
   const pr=typeof AUTH!=='undefined'&&AUTH.profile;
   if(pr)authFetch('/api/u/'+pr.handle).then(j=>{const el=document.getElementById('dr-ff');if(el)el.innerHTML=`<a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.following}</b> フォロー</a><a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.followers}</b> フォロワー</a>`}).catch(()=>{});
-  if(typeof pushRow==='function')pushRow(document.getElementById('dr-push'),false,true);
 }
 function drawerSet(p,anim){/* p：0＝閉じている〜1＝開いている */
   const o=DR.el;if(!o)return;const pn=o.querySelector('.dr-p'),bg=o.querySelector('.dr-bg');

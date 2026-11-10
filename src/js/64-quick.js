@@ -2,7 +2,7 @@
    ⚡＝スマホの右下の六角形のボタン（#fab）と、PC の左のメニューのボタン（#pc-post）。
    ・押すと、選んだ機能をすぐ開く：相性を調べる（はじめ・今までと同じ）／新規投稿／パーティ新規作成
    ・ホームとタイムラインの右下のボタンは今までどおり「投稿」に固定（46-ptr.js の fabIsPost・fabPost）。⚡の設定はそれ以外の画面で使う
-   ・どの機能にするかは、左から出るメニューの「設定とプライバシー」の「お気に入りショートカット」で選ぶ（34-drawer.js が qaSettingsHTML を置く）。
+   ・どの機能にするかは、左から出るメニューの「設定とプライバシー」で開く設定の画面の「お気に入りショートカット」で選ぶ（65-settings.js が qaOptsHTML を置く）。
      選んだ時点で保存（この端末の localStorage の pcquick。読めない・おかしな値なら「相性を調べる」）。選んでも実行はしない
      （2026/11/10 依頼主：⚡ボタン自体には設定の操作〔歯車・▾・メニュー・長押し〕を付けない。⚡は実行するだけ）
    ・ほかの画面へ移る機能で、投稿欄（#twc-t）に書きかけの文があれば確認を出す（キャンセルなら何も変えない）
@@ -14,8 +14,6 @@ const QA=[
   {id:'party-create',t:['パーティ新規作成','New team'],s:['パーティ','Team'],ic:'plus',d:['空いている枠で新しい構築を作る','Start a new team in an empty slot']}];
 const qaOf=id=>QA.find(x=>x.id===id);
 const qaName=id=>{const q=qaOf(id)||qaOf(QA_DEF);return L(q.t[0],q.t[1])};
-/* 設定の行の右に出す短い名前（メニューの幅は最大320pxで、正式な名前だと「お気に入りショートカット」が2行になるため） */
-const qaShort=id=>{const q=qaOf(id)||qaOf(QA_DEF);return L(q.s[0],q.s[1])};
 function qaGet(){let v=null;try{v=localStorage.getItem(QA_KEY)}catch(e){}return qaOf(v)?v:QA_DEF}
 function qaSet(id){if(!qaOf(id))id=QA_DEF;try{localStorage.setItem(QA_KEY,id)}catch(e){}qaPaint()}
 /* 投稿欄に書きかけの文があるか（投稿の画面に移した投稿欄も同じ textarea） */
@@ -64,16 +62,15 @@ function qaPaint(){
 }
 /* 設定画面（左から出るメニューの「設定とプライバシー」）の「お気に入りショートカット」。ラジオボタンで選ぶと保存（実行はしない）。
    2026/11/10 依頼主：縦に長いのでカプセル型の札（絵＋名前）を並べる。短い説明は札の title に */
-function qaSettingsHTML(){const id=qaGet();
-  /* 2026/11/10 依頼主「X の設定画面のようなリスト」：1行（⚡・名前・右に今の機能）を押すと、下に3つの選択肢が開く（説明の文は開いた中の一番上） */
-  return drAcc('qa',I.zap,L('お気に入りショートカット','Favorite shortcut'),qaShort(id),
-    `<div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt dr-opt"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}>${drRowIn(I[q.ic]||I.zap,L(q.t[0],q.t[1]),'',`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</label>`).join('')}</div>`,
-    `<span class="qa-sd">${L('サイドナビの⚡ボタンを押したときに実行する機能を選択できます。','Choose what the ⚡ button in the side navigation does.')}</span>`)}
+function qaOptsHTML(){const id=qaGet();
+  /* 2026/11/10 依頼主「X の設定画面と同じに」：設定の画面（65-settings.js）の「お気に入りショートカット」の行を押すと開くページ。説明の文＋3つの選択肢 */
+  return `<p class="dr-note qa-sd">${L('サイドナビの⚡ボタンを押したときに実行する機能を選択できます。','Choose what the ⚡ button in the side navigation does.')}</p>
+    <div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt dr-opt"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}>${drRowIn(I[q.ic]||I.zap,L(q.t[0],q.t[1]),'',`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</label>`).join('')}</div>`}
 /* 選んだら保存。⚡の名前（PC の文字・スマホの六角形の中）もすぐ変わる */
 document.addEventListener('change',e=>{const r=e.target;if(r&&r.name==='qa-set'&&r.checked){qaSet(r.value);
   /* 設定の行の右の表示を変え、少し見せてから選択肢を閉じる */
-  const v=document.getElementById('dr-v-qa');if(v)v.textContent=qaShort(r.value);
-  const d=r.closest('.dr-acc');if(d)setTimeout(()=>{d.open=false},260)}});
+  const v=document.getElementById('sm-v-qa');if(v)v.textContent=qaName(r.value);
+  if(r.closest('#setm')&&typeof smBack==='function')setTimeout(smBack,260)}});
 /* ⚡を押したとき：設定した機能を実行（ホーム・タイムラインの右下は今までどおり投稿） */
 (function qaInit(){
   const f=document.getElementById('fab');if(f)f.onclick=()=>{if(typeof fabIsPost==='function'&&fabIsPost())fabPost();else qaRun()};

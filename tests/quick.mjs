@@ -30,21 +30,21 @@ const setTeams=(pg,counts)=>pg.evaluate(counts=>{const pool=['ガブリアス','
   await pg.keyboard.press('Escape');
   /* 2. 設定画面（左から出るメニュー →「設定とプライバシー」）の「お気に入りショートカット」 */
   await pg.evaluate(()=>{if(typeof closeSheet==='function')closeSheet();location.hash='#/tools'});await pg.waitForTimeout(400);
-  const openSet=async()=>{await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(400);await pg.evaluate(()=>{document.querySelectorAll('#drawer .dr-d').forEach(d=>d.open=true);const q=document.querySelector('#drawer .dr-acc[data-acc=qa]');if(q)q.open=true});await pg.waitForTimeout(150)};
+  const openSet=async()=>{await pg.evaluate(()=>settingsOpen('qa'));await pg.waitForTimeout(400)};
   await openSet();
-  const st=await pg.evaluate(()=>{const g=document.querySelector('#drawer .qa-set'),r=[...g.querySelectorAll('input[type=radio]')],sd=document.querySelector('#drawer .qa-sd');
+  const st=await pg.evaluate(()=>{const g=document.querySelector('#setm .qa-set'),r=[...g.querySelectorAll('input[type=radio]')],sd=document.querySelector('#setm .qa-sd');
     const opt=[...g.querySelectorAll('.qa-opt')].map(o=>o.getBoundingClientRect());
-    return {n:r.length,ids:r.map(x=>x.value).join(),checked:r.filter(x=>x.checked).map(x=>x.value).join(),sd:sd.textContent,lab:/お気に入りショートカット/.test(g.closest('.dr-acc').querySelector('summary').textContent),h:Math.min(...opt.map(o=>o.height)),in:opt.every(o=>o.left>=0&&o.right<=innerWidth),over:document.body.scrollWidth<=innerWidth}});
+    return {n:r.length,ids:r.map(x=>x.value).join(),checked:r.filter(x=>x.checked).map(x=>x.value).join(),sd:sd.textContent,lab:/お気に入りショートカット/.test(document.getElementById('sm-t').textContent),h:Math.min(...opt.map(o=>o.height)),in:opt.every(o=>o.left>=0&&o.right<=innerWidth),over:document.body.scrollWidth<=innerWidth}});
   ok(st.n===3&&st.ids==='type-check,community-post,party-create'&&st.checked==='type-check'&&st.sd==='サイドナビの⚡ボタンを押したときに実行する機能を選択できます。'&&st.lab&&st.h>=44&&st.in&&st.over,'設定画面のお気に入りショートカット '+JSON.stringify(st));
   /* 選ぶと保存（実行はしない）。⚡の名前もすぐ変わる */
-  await pg.evaluate(()=>[...document.querySelectorAll('#drawer .qa-opt')].find(o=>o.querySelector('input').value==='party-create').click());await pg.waitForTimeout(300);
-  const s=await pg.evaluate(()=>[localStorage.getItem('pcquick'),document.getElementById('fab').querySelector('.fl').textContent,document.getElementById('fab').getAttribute('aria-label'),location.hash,!!document.querySelector('.mpsheet'),document.querySelector('#drawer input[value=party-create]').checked]);
+  await pg.evaluate(()=>[...document.querySelectorAll('#setm .qa-opt')].find(o=>o.querySelector('input').value==='party-create').click());await pg.waitForTimeout(300);
+  const s=await pg.evaluate(()=>[localStorage.getItem('pcquick'),document.getElementById('fab').querySelector('.fl').textContent,document.getElementById('fab').getAttribute('aria-label'),location.hash,!!document.querySelector('.mpsheet'),document.getElementById('sm-v-qa').textContent==='パーティ新規作成']);
   ok(s[0]==='party-create'&&s[1]==='パーティ'&&s[2]==='パーティ新規作成'&&s[3]==='#/tools'&&!s[4]&&s[5],'設定画面で選ぶと保存（実行しない） '+s);
   await pg.reload();await pg.waitForTimeout(700);
   ok(await pg.evaluate(()=>qaGet()==='party-create'&&document.getElementById('fab').querySelector('.fl').textContent==='パーティ'),'再読み込みで設定が残らない');
   await openSet();
-  ok(await pg.evaluate(()=>document.querySelector('#drawer input[name=qa-set]:checked').value==='party-create'),'設定画面の選択が再読み込みで残らない');
-  await pg.evaluate(()=>[...document.querySelectorAll('#drawer .qa-opt')].find(o=>o.querySelector('input').value==='type-check').click());await pg.waitForTimeout(200);
+  ok(await pg.evaluate(()=>document.querySelector('#setm input[name=qa-set]:checked').value==='party-create'),'設定画面の選択が再読み込みで残らない');
+  await pg.evaluate(()=>[...document.querySelectorAll('#setm .qa-opt')].find(o=>o.querySelector('input').value==='type-check').click());await pg.waitForTimeout(200);
   ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='type-check'),'相性に戻せない');
   ok(!pg.errs.length,'エラー '+pg.errs);await pg.close()}
 
@@ -116,63 +116,74 @@ for(const W of [1000,1280]){const pg=await page(W);await pg.goto(URL0+'#/dex');a
   await pg.click('#pc-post');await pg.waitForTimeout(300);
   ok(await pg.evaluate(()=>!document.getElementById('sheet').hidden),W+'：⚡で相性の画面が開かない');
   await pg.keyboard.press('Escape');await pg.evaluate(()=>{if(typeof closeSheet==='function')closeSheet()});await pg.waitForTimeout(200);
-  await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(400);
-  await pg.evaluate(()=>{document.querySelectorAll('#drawer .dr-d').forEach(d=>d.open=true);const q=document.querySelector('#drawer .dr-acc[data-acc=qa]');if(q)q.open=true});await pg.waitForTimeout(150);
-  const g=await pg.evaluate(()=>{const o=[...document.querySelectorAll('#drawer .qa-opt')];return [o.length,o.every(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.right<=innerWidth})]});
+  await pg.evaluate(()=>settingsOpen('qa'));await pg.waitForTimeout(400);
+  const g=await pg.evaluate(()=>{const o=[...document.querySelectorAll('#setm .qa-opt')];return [o.length,o.every(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.right<=innerWidth})]});
   ok(g[0]===3&&g[1],W+'：PC の設定画面 '+g);
-  await pg.evaluate(()=>[...document.querySelectorAll('#drawer .qa-opt')].find(o=>o.querySelector('input').value==='community-post').click());await pg.waitForTimeout(200);
+  await pg.evaluate(()=>[...document.querySelectorAll('#setm .qa-opt')].find(o=>o.querySelector('input').value==='community-post').click());await pg.waitForTimeout(200);
   const t=await pg.evaluate(W=>{const p=document.getElementById('pc-post');return [p.title,p.getAttribute('aria-label'),W<1280||p.querySelector('span').textContent==='新規投稿',localStorage.getItem('pcquick'),location.hash]},W);
   ok(t[0]==='⚡ 新規投稿'&&t[1]==='新規投稿'&&t[2]&&t[3]==='community-post'&&t[4]==='#/dex',W+'：PC で設定画面から選ぶと保存・名前が変わる（実行しない） '+t);
   ok(!pg.errs.length,W+'：エラー '+pg.errs);await pg.close()}
-/* 6. 設定とプライバシー＝X の設定画面のようなリスト（2026/11/10 依頼主）：1行＝絵・名前・説明・右の操作、押せる所は44px以上、はみ出さない、選択肢で設定が変わる */
+/* 6. 設定とプライバシー＝画面の真ん中に開く設定の画面（2026/11/10 依頼主「X の設定画面と同じに」）：
+   メニューの「設定とプライバシー」で開く・PC は真ん中に600pxまで／スマホは全画面・上に ← 題名 ✕・1行＝絵・太字の名前・右に今の設定と ›・名前は省略しない・選ぶ項目は行を押すとページが切りかわる */
 for(const W of [320,390,1280]){
   const pg=await page(W,()=>{try{if(!localStorage.getItem('pctheme'))localStorage.setItem('pctheme','dark')}catch(e){}});await pg.goto(URL0+'#/tools');await pg.waitForTimeout(700);
-  const openAll=async acc=>{await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);
-    await pg.evaluate(acc=>{document.querySelectorAll('#drawer .dr-d').forEach(d=>d.open=true);if(acc)document.querySelector(`#drawer .dr-acc[data-acc=${acc}]`).open=true},acc);await pg.waitForTimeout(250)};
-  await openAll('theme');
-  const c=await pg.evaluate(()=>{const P=document.querySelector('.dr-p'),pr=P.getBoundingClientRect();
-    const secs=[...document.querySelectorAll('#drawer .dr-sec .dr-sh')].map(x=>x.textContent);
-    const rows=[...document.querySelectorAll('#drawer .dr-row')].filter(x=>x.getClientRects().length);
+  /* メニューの「設定とプライバシー」を押すと、メニューが閉じて設定の画面が開く */
+  await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);
+  ok(await pg.evaluate(()=>!document.querySelector('#drawer .dr-acc,#drawer .qa-set,#drawer #dr-push')&&!!document.querySelector('#drawer [data-dr=settings]')),W+'：メニューには設定の中身がなく「設定とプライバシー」の行だけ');
+  await pg.click('#drawer [data-dr=settings]');await pg.waitForTimeout(700);
+  const c=await pg.evaluate(()=>{const o=document.getElementById('setm'),p=o.querySelector('.sm-p'),pr=p.getBoundingClientRect();
+    const secs=[...o.querySelectorAll('.sm-sh')].map(x=>x.textContent);
+    const rows=[...o.querySelectorAll('.sm-main .dr-row')];
     const shape=rows.every(r=>r.querySelector('.dr-ri svg,.dr-ri .dr-dot')&&r.querySelector('.dr-rt b')&&r.querySelector('.dr-rr'));
-    /* 説明の行は通知（使えない・ブロック中のとき）だけ。名前は15px・太字、行の上下の余白16px・左右12px */
-    const wrap=rows.filter(r=>!r.closest('#dr-push')).filter(r=>r.querySelector('.dr-rt b').getBoundingClientRect().height>26).map(r=>r.textContent);
-    const capt=rows.filter(r=>r.querySelector('.dr-rt small')&&!r.closest('#dr-push')).map(r=>r.textContent);
+    const capt=rows.filter(r=>r.querySelector('.dr-rt small')&&!r.closest('#sm-push')).map(r=>r.textContent);
+    /* 名前と右の表示が省略されず1行で出ている（359px以下は名前の2行まで可） */
+    const cut=[...o.querySelectorAll('.sm-main .dr-rt b,.sm-main .dr-rv')].filter(x=>!x.closest('#sm-push')&&(x.scrollWidth>x.clientWidth+1||(innerWidth>=360&&x.getBoundingClientRect().height>26))).map(x=>x.textContent);
     const b0=getComputedStyle(rows[0].querySelector('.dr-rt b')),r0=getComputedStyle(rows[0]);
-    const font=[b0.fontSize,b0.fontWeight,r0.paddingTop,r0.paddingLeft,b0.color,getComputedStyle(rows[0].querySelector('.dr-rr')).color].join();
-    const right=rows.map(r=>r.querySelector('.dr-rr .dr-chev')?'chev':r.querySelector('.dr-rr .dr-tg')?'tg':r.querySelector('.dr-rr .dr-rv')?'val':'-');
-    const line=getComputedStyle(rows[0]).borderBottomWidth;
-    const tap=[...document.querySelectorAll('#drawer .dr-row,#drawer .dr-opt,#drawer .dr-d>summary')].filter(x=>x.getClientRects().length).filter(x=>{const r=x.getBoundingClientRect();return r.height<44}).map(x=>x.textContent);
-    const out=[...P.querySelectorAll('*')].filter(x=>{const r=x.getBoundingClientRect();return r.width&&(r.right>pr.right+0.5||r.left<pr.left-0.5)}).map(x=>x.className);
-    const opts=[...document.querySelectorAll('#drawer .dr-acc[data-acc=theme] .dr-opt')].map(o=>o.dataset.themeSet+':'+o.getAttribute('aria-pressed')+':'+(getComputedStyle(o.querySelector('.dr-ck')).opacity));
-    return {secs,shape,wrap,capt,font,right,line,tap,out,sw:P.scrollWidth-P.clientWidth,opts,open:document.querySelectorAll('#drawer .dr-acc[open]').length,qa:!!document.querySelector('#drawer .dr-acc[data-acc=qa] .qa-set input[name=qa-set]'),push:!!document.querySelector('#drawer .dr-sec #dr-push .dr-row')}});
-  ok(c.secs.join('/')==='表示・カスタマイズ/通知/アカウント＆セキュリティ/ヘルプ＆サポート'&&c.shape&&c.line==='1px',W+'：リストの形 '+JSON.stringify(c.secs)+c.shape+c.line);
-  ok(!c.wrap.length&&!c.capt.length&&c.font==='15px,700,16px,12px,rgb(255, 255, 255),rgba(255, 255, 255, 0.5)',W+'：1段の行・文字と余白 '+c.wrap+c.capt+' '+c.font);
-  ok(c.right.includes('chev')&&c.right.includes('val')&&c.qa&&c.push,W+'：右の操作・ショートカット・通知 '+c.right);
-  ok(c.opts.join()==='auto:false:0,light:false:0,dark:true:1'&&c.open===1,W+'：明るさの選択肢 '+c.opts+' '+c.open);
-  ok(!c.tap.length,W+'：44px 未満の押せる所 '+c.tap);
-  ok(!c.out.length&&c.sw===0,W+'：はみ出し '+c.out+' '+c.sw);
-  /* ほかの選択肢を開くと、前のものは閉じる */
-  await pg.evaluate(()=>document.querySelector('#drawer .dr-acc[data-acc=lang] summary').click());await pg.waitForTimeout(200);
-  ok(await pg.evaluate(()=>[...document.querySelectorAll('#drawer .dr-acc[open]')].map(x=>x.dataset.acc).join()==='lang'),W+'：開く選択肢は1つだけ');
+    const font=[b0.fontSize,b0.fontWeight,r0.paddingTop,r0.paddingLeft,r0.borderBottomColor].join();
+    const tap=[...o.querySelectorAll('.dr-row,.sm-ib')].filter(x=>{const r=x.getBoundingClientRect();return r.height<44||r.width<44}).map(x=>x.textContent||x.getAttribute('aria-label'));
+    const out=[...p.querySelectorAll('*')].filter(x=>{const r=x.getBoundingClientRect();return r.width&&(r.right>pr.right+0.5||r.left<pr.left-0.5)}).map(x=>x.className);
+    return {on:o.classList.contains('on')&&!o.hidden,drawer:DR.open,w:Math.round(pr.width),h:Math.round(pr.height),left:Math.round(pr.left),bg:getComputedStyle(p).backgroundColor,
+      head:[o.querySelector('[data-sm=back]')?.getAttribute('aria-label'),document.getElementById('sm-t').textContent,o.querySelector('[data-sm=close]')?.getAttribute('aria-label')].join(),
+      secs,shape,capt,cut,font,tap,out,sw:document.documentElement.scrollWidth-innerWidth,qa:document.getElementById('sm-v-qa')?.textContent,focus:p.contains(document.activeElement)}});
+  ok(c.on&&!c.drawer&&c.head==='戻る,設定,閉じる'&&c.focus,W+'：設定の画面が開く・上に ← 設定 ✕ '+JSON.stringify([c.on,c.drawer,c.head,c.focus]));
+  ok(W>=700?(c.w===600&&c.left===(1280-600)/2&&c.h<900):(c.w===W&&c.h===844),W+'：大きさ（PC は真ん中に600px・スマホは全画面） '+[c.w,c.h,c.left]);
+  ok(c.bg==='rgb(0, 0, 0)',W+'：背景は真っ黒 '+c.bg);
+  ok(c.secs.join('/')==='表示・カスタマイズ/通知/アカウント＆セキュリティ'&&c.shape&&!c.capt.length,W+'：リストの形 '+c.secs+c.capt);
+  ok(c.font==='15px,700,16px,20px,rgba(255, 255, 255, 0.1)',W+'：文字と余白と線 '+c.font);
+  ok(!c.cut.length&&c.qa==='相性を調べる',W+'：名前と今の設定を省略しない '+c.cut+' '+c.qa);
+  ok(!c.tap.length&&!c.out.length&&c.sw<=0,W+'：44px・はみ出し '+c.tap+' '+c.out+' '+c.sw);
+  /* 明るさの行を押すと「明るさ」のページ（✓ が今の選択）、← で一覧へ */
+  await pg.click('#setm [data-sm-go=theme]');await pg.waitForTimeout(350);
+  const tp=await pg.evaluate(()=>[document.getElementById('sm-t').textContent,document.querySelector('#setm .sm-main').hidden,[...document.querySelectorAll('#setm .sm-sub .dr-opt')].map(o=>o.dataset.themeSet+':'+o.getAttribute('aria-pressed')).join()]);
+  ok(tp[0]==='明るさ'&&tp[1]&&tp[2]==='auto:false,light:false,dark:true',W+'：明るさのページ '+tp);
+  await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(300);
+  ok(await pg.evaluate(()=>document.getElementById('sm-t').textContent==='設定'&&!document.querySelector('#setm .sm-main').hidden&&!document.getElementById('setm').hidden),W+'：← で一覧へ戻る');
+  /* ✕ で閉じる・Esc でも閉じる */
+  await pg.click('#setm [data-sm=close]');await pg.waitForTimeout(400);
+  ok(await pg.evaluate(()=>document.getElementById('setm').hidden&&!document.body.classList.contains('sm-lock')),W+'：✕ で閉じる');
+  await pg.evaluate(()=>settingsOpen());await pg.waitForTimeout(400);await pg.keyboard.press('Escape');await pg.waitForTimeout(400);
+  ok(await pg.evaluate(()=>document.getElementById('setm').hidden),W+'：Esc で閉じる');
   if(W===390){
-    /* 明るさ：ライトを押すと ✓ と右の表示が変わり、少しあとで保存・切りかえ（保存のしかたは前と同じ pctheme） */
-    await openAll('theme');
-    const mv=await pg.evaluate(()=>{document.querySelector('#drawer [data-theme-set=light]').click();return [document.querySelector('#drawer [data-theme-set=light]').getAttribute('aria-pressed'),document.getElementById('dr-v-theme').textContent,localStorage.getItem('pctheme')]});
-    ok(mv[0]==='true'&&mv[1]==='ライト'&&mv[2]==='dark','押した直後の表示 '+mv);await pg.waitForTimeout(900);
-    const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme]);ok(t[0]==='light'&&t[1]==='light','明るさの切りかえ '+t);
-    await openAll('theme');
-    ok(await pg.evaluate(()=>document.querySelector('#drawer [data-theme-set=light]').getAttribute('aria-pressed')==='true'&&document.getElementById('dr-v-theme').textContent==='ライト'),'明るい色で ✓ がライト');
+    /* 明るさ：ライトを押すと ✓ と一覧の表示が変わり、少しあとで保存・切りかえ（保存のしかたは前と同じ pctheme）、読み直したあと設定の画面が開き直る */
+    await pg.evaluate(()=>settingsOpen('theme'));await pg.waitForTimeout(400);
+    const mv=await pg.evaluate(()=>{document.querySelector('#setm [data-theme-set=light]').click();return [document.querySelector('#setm [data-theme-set=light]').getAttribute('aria-pressed'),document.getElementById('sm-v-theme').textContent,localStorage.getItem('pctheme')]});
+    ok(mv[0]==='true'&&mv[1]==='ライト'&&mv[2]==='dark','押した直後の表示 '+mv);await pg.waitForTimeout(1200);
+    const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme,!!document.getElementById('setm')&&!document.getElementById('setm').hidden,document.getElementById('sm-v-theme')?.textContent,getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor]);
+    ok(t[0]==='light'&&t[1]==='light'&&t[2]&&t[3]==='ライト'&&t[4]==='rgb(255, 255, 255)','明るさの切りかえ・読み直して開き直す '+t);
     /* テーマの色・背景の光も保存される */
-    await openAll('accent');await pg.evaluate(()=>document.querySelector('#drawer [data-acc-set=blue]').click());await pg.waitForTimeout(900);
+    await pg.evaluate(()=>settingsOpen('accent'));await pg.waitForTimeout(300);await pg.evaluate(()=>document.querySelector('#setm [data-acc-set=blue]').click());await pg.waitForTimeout(1200);
     ok(await pg.evaluate(()=>localStorage.getItem('pcaccent')==='blue'),'テーマの色の保存');
-    await openAll('glow');await pg.evaluate(()=>document.querySelector('#drawer [data-glow-set=off]').click());await pg.waitForTimeout(900);
+    await pg.evaluate(()=>settingsOpen('glow'));await pg.waitForTimeout(300);await pg.evaluate(()=>document.querySelector('#setm [data-glow-set=off]').click());await pg.waitForTimeout(1200);
     ok(await pg.evaluate(()=>localStorage.getItem('pcglow')==='off'),'背景の光の保存');
-    /* お気に入りショートカット：行を押すと選択肢が開き、選ぶと保存・右の表示が変わり、閉じる */
-    await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);await pg.evaluate(()=>document.querySelectorAll('#drawer .dr-d').forEach(d=>d.open=true));
-    await pg.click('#drawer .dr-acc[data-acc=qa] summary');await pg.waitForTimeout(250);
-    ok(await pg.evaluate(()=>document.querySelector('#drawer .dr-acc[data-acc=qa]').open&&document.querySelector('#drawer .qa-opt').getBoundingClientRect().height>=44),'ショートカットの行を押すと開く');
-    await pg.click('#drawer .qa-opt:has(input[value=party-create])');await pg.waitForTimeout(450);
-    ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='party-create'&&document.getElementById('dr-v-qa').textContent==='パーティ'&&!document.querySelector('#drawer .dr-acc[data-acc=qa]').open&&document.getElementById('fab').querySelector('.fl').textContent==='パーティ'),'ショートカットを選ぶと保存・表示・閉じる');}
+    /* お気に入りショートカット：行を押すとページ（説明の文＋3つ）、選ぶと保存・一覧へ戻って右の表示が変わる */
+    await pg.evaluate(()=>{settingsClose();settingsOpen()});await pg.waitForTimeout(400);
+    await pg.click('#setm [data-sm-go=qa]');await pg.waitForTimeout(350);
+    ok(await pg.evaluate(()=>document.getElementById('sm-t').textContent==='お気に入りショートカット'&&!!document.querySelector('#setm .qa-sd')&&document.querySelectorAll('#setm .qa-opt').length===3&&[...document.querySelectorAll('#setm .qa-opt')].every(o=>o.getBoundingClientRect().height>=44)),'ショートカットの行を押すとページが開く');
+    await pg.click('#setm .qa-opt:has(input[value=party-create])');await pg.waitForTimeout(600);
+    ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='party-create'&&document.getElementById('sm-t').textContent==='設定'&&document.getElementById('sm-v-qa').textContent==='パーティ新規作成'&&document.getElementById('fab').querySelector('.fl').textContent==='パーティ'),'ショートカットを選ぶと保存・一覧へ戻る');
+    /* アカウントの行を押すとその画面へ移り、設定の画面は閉じる */
+    await pg.click('#setm a[href="#/account"]');await pg.waitForTimeout(500);
+    ok(await pg.evaluate(()=>location.hash==='#/account'&&document.getElementById('setm').hidden),'アカウントへ移ると閉じる');}
   ok(!pg.errs.length,W+'：設定のエラー '+pg.errs);await pg.close()}
 await b.close();
 console.log(bad?`quick: ${bad}/${n} 項目が失敗`:`quick: OK（${n}項目）`);process.exit(bad?1:0);
