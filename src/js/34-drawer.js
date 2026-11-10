@@ -6,7 +6,7 @@ I.help='<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0
 I.swap='<path d="M7 4 3.5 7.5 7 11M3.5 7.5h13M17 13l3.5 3.5L17 20M20.5 16.5h-13"/>';
 I.globe='<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.6 3.5 5.4 3.5 8.5s-1.1 5.9-3.5 8.5c-2.4-2.6-3.5-5.4-3.5-8.5s1.1-5.9 3.5-8.5z"/>';
 I.moon='<path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/>';
-/* 設定のカード（2026/11/10 依頼主「設定とプライバシーの質感向上」：4つのカードに分け、項目に絵を付ける。保存のしかたは変えていない） */
+/* 設定の行の絵（2026/11/10） */
 I.palette='<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.7-.8 1.7-1.6 0-.5-.2-.8-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.6 1.7-1.6h2a4.1 4.1 0 0 0 4.1-4.1c0-4-3.8-7.3-8.5-7.3z"/><circle cx="7.6" cy="11.2" r="1"/><circle cx="10" cy="7.4" r="1"/><circle cx="14.6" cy="7.6" r="1"/>';
 I.sun='<circle cx="12" cy="12" r="4"/><path d="M12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4"/>';
 I.drop='<path d="M12 3.5s-6 6.4-6 10.6a6 6 0 0 0 12 0c0-4.2-6-10.6-6-10.6z"/>';
@@ -15,18 +15,24 @@ I.lock='<rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.2 10.5
 I.doc='<path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M13.5 3.5v4.5h4.5M9.5 12.5h5M9.5 16h5"/>';
 I.mail='<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="m4 7 8 6 8-6"/>';
 I.flag='<path d="M5.5 20.5v-16M5.5 4.5h11l-2 4 2 4h-11"/>';
-const drHead=(ic,t)=>`<div class="dr-ch"><span class="dr-chi" aria-hidden="true">${SVG(ic,18)}</span><h3>${t}</h3></div>`;
-const drLink=(h,ic,t,x)=>`<a class="dr-s" href="${h}"${x||''}><span class="dr-si" aria-hidden="true">${SVG(ic,18)}</span><span class="dr-st">${t}</span><span class="dr-sc" aria-hidden="true">${SVG(I.chev,16)}</span></a>`;
-/* 選ぶボタン（明るさ・背景の光・言語）：押すと白い「つまみ」が選んだ所へすべってから切りかえる（2026/11/10 依頼主）。
-   切りかえ（setTheme 等＝保存して読み直す）は前と同じ。動きを減らす設定なら、すぐ切りかえる */
-function drSegGo(btn,fn){
-  const seg=btn.closest('.dr-seg'),old=seg&&seg.querySelector('[aria-pressed=true]');
-  if(!seg||!old||old===btn||matchMedia('(prefers-reduced-motion: reduce)').matches){fn();return}
-  if(seg.classList.contains('mv'))return;
-  const th=document.createElement('span');th.className='dr-seg-th';th.style.cssText=`left:${old.offsetLeft}px;width:${old.offsetWidth}px`;
-  seg.appendChild(th);seg.classList.add('mv');old.setAttribute('aria-pressed','false');btn.setAttribute('aria-pressed','true');
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{th.style.left=btn.offsetLeft+'px';th.style.width=btn.offsetWidth+'px'}));
-  setTimeout(fn,260)}
+/* 2026/11/10 依頼主「X の設定画面のようなリスト」：1項目＝1行（左に絵・中に名前と説明・右に › かオン/オフか今の選択）。
+   選ぶ項目（お気に入りショートカット・明るさ・テーマの色・背景の光・言語）は、行を押すと下に選択肢が開く（同時に開くのは1つ）。
+   保存のしかた（setTheme・setAccent・setLang・qaSet＝localStorage）は前と同じ */
+const drChev=()=>`<span class="dr-chev" aria-hidden="true">${SVG(I.chev,18)}</span>`;
+const drRowIn=(ic,t,s,right)=>`<span class="dr-ri" aria-hidden="true">${String(ic).startsWith('<span')?ic:SVG(ic,20)}</span><span class="dr-rt"><b>${t}</b>${s?`<small>${s}</small>`:''}</span><span class="dr-rr">${right||''}</span>`;
+/* 画面へ移る行 */
+const drLink=(h,ic,t,s,x)=>`<a class="dr-row" href="${h}"${x||''}>${drRowIn(ic,t,s,drChev())}</a>`;
+/* 押すと選択肢が開く行。v＝右に出す今の選択 */
+const drAcc=(id,ic,t,s,v,body)=>`<details class="dr-acc" data-acc="${id}"><summary class="dr-row">${drRowIn(ic,t,s,`<span class="dr-rv" id="dr-v-${id}">${v}</span>${drChev()}`)}</summary><div class="dr-opts" role="group" aria-label="${t}">${body}</div></details>`;
+/* 選択肢の1行（選んでいるものに ✓） */
+const drOpt=(attr,on,ic,t,s)=>`<button class="dr-opt" ${attr} aria-pressed="${on}">${drRowIn(ic,t,s,`<span class="dr-ck">${SVG(I.check,18)}</span>`)}</button>`;
+const drDot=c=>`<span class="dr-dot" style="background:${c}"></span>`;
+const accCol=a=>THEME==='light'?a[3]:a[5];
+/* 選択肢を押したとき：✓ と右の表示をすぐ変え、少し見せてから切りかえる（切りかえると読み直す） */
+function drPick(btn,fn,val){
+  const box=btn.closest('.dr-opts');if(box)box.querySelectorAll('.dr-opt').forEach(x=>x.setAttribute('aria-pressed',x===btn?'true':'false'));
+  const acc=btn.closest('.dr-acc'),v=acc&&acc.querySelector('.dr-rv');if(v&&val!=null)v.innerHTML=val;
+  setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180)}
 const DR={el:null,open:false};
 function drawerHTML(){
   const pr=typeof AUTH!=='undefined'&&AUTH.profile,g=curGame();
@@ -44,25 +50,25 @@ function drawerHTML(){
     <div class="dr-sep"></div>
     <details class="dr-d"><summary>${SVG(I.gear,22)}<span>設定とプライバシー</span></summary>
       <div class="dr-set">
-        <section class="dr-card" aria-label="表示・カスタマイズ">${drHead(I.palette,'表示・カスタマイズ')}
-          ${typeof qaSettingsHTML==='function'&&curGame().fab?`<div class="dr-row">${qaSettingsHTML()}</div>`:''}
-          <div class="dr-row"><div class="dr-lab">${SVG(I.sun,18)}明るさ</div>
-            <div class="dr-seg" role="group" aria-label="明るさ">${[['auto','端末に合わせる'],['light','ライト'],['dark','ダーク']].map(([k,n])=>`<button class="pill" data-theme-set="${k}" aria-pressed="${THEME_PREF===k}">${n}</button>`).join('')}</div></div>
-          <div class="dr-row"><div class="dr-lab">${SVG(I.drop,18)}テーマの色</div>
-            <div class="dr-sw" role="group" aria-label="テーマの色">${Object.entries(ACCENTS).map(([k,a])=>`<button class="dr-swc" data-acc-set="${k}" aria-pressed="${ACCENT===k}" aria-label="${L(a[0],a[1])}" title="${L(a[0],a[1])}" style="background-color:${THEME==='light'?a[3]:a[5]}"></button>`).join('')}</div></div>
-          <div class="dr-row"><div class="dr-lab">${SVG(I.spark,18)}背景の光</div>
-            <div class="dr-seg" role="group" aria-label="背景の光">${[['strong','強め'],['normal','ふつう'],['off','なし']].map(([k,n])=>`<button class="pill" data-glow-set="${k}" aria-pressed="${GLOW===k}">${n}</button>`).join('')}</div></div>
-          <div class="dr-row"><div class="dr-lab">${SVG(I.globe,18)}言語 / Language</div>
-            <div class="dr-seg" role="group" aria-label="言語">${LANGS.map(([k,n])=>`<button class="pill" data-lang-set="${k}" aria-pressed="${LANG===k}">${n}</button>`).join('')}</div></div>
+        <section class="dr-sec" aria-label="表示・カスタマイズ"><h3 class="dr-sh">表示・カスタマイズ</h3>
+          ${typeof qaSettingsHTML==='function'&&curGame().fab?qaSettingsHTML():''}
+          ${drAcc('theme',I.sun,'明るさ','画面を明るくするか暗くするか',{auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF],
+            [['auto','端末に合わせる','端末のライト／ダークに合わせて切りかわる',I.phone],['light','ライト','明るい画面',I.sun],['dark','ダーク','暗い画面',I.moon]].map(([k,n,d,ic])=>drOpt(`data-theme-set="${k}"`,THEME_PREF===k,ic,n,d)).join(''))}
+          ${drAcc('accent',I.palette,'テーマの色','ボタン・選んでいる所・リンクの色',drDot(accCol(ACCENTS[ACCENT]))+L(ACCENTS[ACCENT][0],ACCENTS[ACCENT][1]),
+            Object.entries(ACCENTS).map(([k,a])=>drOpt(`data-acc-set="${k}" title="${L(a[0],a[1])}"`,ACCENT===k,drDot(accCol(a)),L(a[0],a[1]),'')).join(''))}
+          ${drAcc('glow',I.spark,'背景の光','画面の右上のぼんやりした光',{strong:'強め',normal:'ふつう',off:'なし'}[GLOW]||'ふつう',
+            [['strong','強め','光をはっきり出す'],['normal','ふつう','はじめの明るさ'],['off','なし','光を出さない']].map(([k,n,d])=>drOpt(`data-glow-set="${k}"`,GLOW===k,I.spark,n,d)).join(''))}
+          ${drAcc('lang',I.globe,'言語 / Language','画面の言葉',(LANGS.find(x=>x[0]===LANG)||LANGS[0])[1],
+            LANGS.map(([k,n])=>drOpt(`data-lang-set="${k}"`,LANG===k,I.globe,n,'')).join(''))}
         </section>
-        <section class="dr-card" aria-label="通知">${drHead(I.bell,'通知')}<div class="dr-row" id="dr-push"></div></section>
-        <section class="dr-card dr-card--list" aria-label="アカウントとセキュリティ">${drHead(I.shield,'アカウント＆セキュリティ')}
-          ${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>
+        <section class="dr-sec" aria-label="通知"><h3 class="dr-sh">通知</h3><div id="dr-push"></div></section>
+        <section class="dr-sec" aria-label="アカウントとセキュリティ"><h3 class="dr-sh">アカウント＆セキュリティ</h3>
+          ${drLink('#/account',I.user,'アカウント','ログイン・プロフィールの編集')}${drLink('#/privacy',I.lock,'プライバシーポリシー','集める情報と、その使い方')}${drLink('#/terms',I.doc,'利用規約','このサイトを使うときの決まり')}</section>
       </div></details>
     <details class="dr-d"><summary>${SVG(I.help,22)}<span>ヘルプセンター</span></summary>
       <div class="dr-set">
-        <section class="dr-card dr-card--list" aria-label="ヘルプとサポート">${drHead(I.help,'ヘルプ＆サポート')}
-          ${drLink('#/rules',I.chat,'コミュニティの利用ルール')}${drLink('#/guide',I.book,'基本ルール（計算式など）')}${drLink('#/sources',I.info,'データの出典と確認状況')}${drLink('#/contact',I.mail,'お問い合わせ')}${drLink('#/contact',I.flag,'この画面の間違いを報告',' data-report')}</section>
+        <section class="dr-sec" aria-label="ヘルプとサポート"><h3 class="dr-sh">ヘルプ＆サポート</h3>
+          ${drLink('#/rules',I.chat,'コミュニティの利用ルール','投稿するときの決まり')}${drLink('#/guide',I.book,'基本ルール（計算式など）','能力ポイント・性格・ダメージの計算式')}${drLink('#/sources',I.info,'データの出典と確認状況','数値をどこで確かめたか')}${drLink('#/contact',I.mail,'お問い合わせ','不具合・要望・データの間違い')}${drLink('#/contact',I.flag,'この画面の間違いを報告','いま見ている画面について送る',' data-report')}</section>
       </div></details>
   </nav>`;
 }
@@ -71,20 +77,22 @@ function drawerEnsure(){
   const o=document.createElement('div');o.className='drawer';o.id='drawer';document.body.appendChild(o);DR.el=o;
   o.addEventListener('click',e=>{
     if(e.target.closest('.dr-bg')){drawerClose();return}
-    const ts=e.target.closest('[data-theme-set]');if(ts){drSegGo(ts,()=>setTheme(ts.dataset.themeSet));return}
-    const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)setAccent('pcaccent',as.dataset.accSet);return}
-    const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)drSegGo(gs,()=>setAccent('pcglow',gs.dataset.glowSet));return}
-    const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)drSegGo(ls,()=>setLang(ls.dataset.langSet));return}
+    const ts=e.target.closest('[data-theme-set]');if(ts){drPick(ts,()=>setTheme(ts.dataset.themeSet),ts.querySelector('.dr-rt b').textContent);return}
+    const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)drPick(as,()=>setAccent('pcaccent',as.dataset.accSet),as.querySelector('.dr-ri').innerHTML+as.querySelector('.dr-rt b').textContent);return}
+    const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)drPick(gs,()=>setAccent('pcglow',gs.dataset.glowSet),gs.querySelector('.dr-rt b').textContent);return}
+    const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)drPick(ls,()=>setLang(ls.dataset.langSet),ls.querySelector('.dr-rt b').textContent);return}
     if(e.target.closest('[data-dr=game]')){drawerClose();setTimeout(gameSheet,200);return}
     if(e.target.closest('a[href^="#/"]'))drawerClose();
   });
+  /* 選択肢は同時に1つだけ開く */
+  o.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches('.dr-acc')&&d.open)o.querySelectorAll('.dr-acc[open]').forEach(x=>{if(x!==d)x.open=false})},true);
   return o;
 }
 function drawerFill(){
   const o=drawerEnsure();o.innerHTML=drawerHTML();
   const pr=typeof AUTH!=='undefined'&&AUTH.profile;
   if(pr)authFetch('/api/u/'+pr.handle).then(j=>{const el=document.getElementById('dr-ff');if(el)el.innerHTML=`<a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.following}</b> フォロー</a><a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.followers}</b> フォロワー</a>`}).catch(()=>{});
-  if(typeof pushRow==='function')pushRow(document.getElementById('dr-push'));
+  if(typeof pushRow==='function')pushRow(document.getElementById('dr-push'),false,true);
 }
 function drawerSet(p,anim){/* p：0＝閉じている〜1＝開いている */
   const o=DR.el;if(!o)return;const pn=o.querySelector('.dr-p'),bg=o.querySelector('.dr-bg');

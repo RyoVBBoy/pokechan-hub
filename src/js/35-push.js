@@ -26,9 +26,23 @@ async function pushOff(){
   PUSH.sub=null;toast('通知をオフにしました');
 }
 /* 通知の設定の欄（メニューの「設定」とお知らせの画面に出す） */
-function pushRow(el,compact){
+function pushRow(el,compact,list){
   if(!el)return;
   const on=PUSH.sub&&window.Notification&&Notification.permission==='granted';
+  /* 左から出るメニューの設定（2026/11/10 依頼主「X の設定画面のようなリスト」）：1行＝絵・名前・説明・右にオン/オフ */
+  if(list){
+    const row=(sub,right,attr)=>`<${attr?'button':'div'} class="dr-row"${attr||''}>${drRowIn(I.bell,'スマホへの通知',sub,right)}</${attr?'button':'div'}>`;
+    const tg=v=>`<span class="dr-tg" role="switch" aria-checked="${v}" aria-label="スマホへの通知"><i></i></span>`,bd=t=>`<span class="dr-rv">${t}</span>`;
+    if(!pushSupported())el.innerHTML=row(isIOS&&!isStandalone&&location.protocol==='https:'?'Safari の共有ボタン（□に↑）→「ホーム画面に追加」で追加したアイコンから開くと使えます':'このブラウザは、スマホへの通知に対応していません',bd('使えません'));
+    else if(window.Notification&&Notification.permission==='denied')el.innerHTML=row('端末（ブラウザ）の設定で、このサイトの通知を「許可」にしてください',bd('ブロック中'));
+    else if(on)el.innerHTML=row('いいね・フォローされたときに届きます',tg(true),' data-push="off"')+`<button class="dr-row" data-push="test">${drRowIn(I.bell,'テスト通知を送る','届くかどうか確かめる',drChev())}</button>`;
+    else el.innerHTML=row('いいね・フォローされたときに届くようにする',tg(false),' data-push="on"');
+    el.onclick=async e=>{const b=e.target.closest('[data-push]');if(!b)return;b.disabled=true;
+      if(b.dataset.push==='on')await pushOn();else if(b.dataset.push==='off')await pushOff();
+      else{try{await authFetch('/api/me/push/test',{});toast('テスト通知を送りました')}catch(err){toast(err.message)}}
+      pushRow(el,compact,list)};
+    return;
+  }
   const box=(t,btn)=>`<div class="push-row">${SVG(I.bell,18)}<div><div>${t}</div>${btn||''}</div></div>`;
   if(!pushSupported()){
     el.innerHTML=isIOS&&!isStandalone&&location.protocol==='https:'?box('iPhone で通知を受け取るには、Safari の<b>共有ボタン</b>（□に↑）→<b>「ホーム画面に追加」</b>を押し、追加したアイコンからこのサイトを開いてください。そこで「通知をオン」にできます。')
