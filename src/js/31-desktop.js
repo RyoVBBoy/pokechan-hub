@@ -7,4 +7,4 @@ function drawSide(){
   const qt=quickTools(6);
   el.innerHTML=`<h2>すぐ使う</h2>${qt.map(t=>`<a href="${t.href}" class="pcs-t"><span class="ttile-i">${SVG(t.ic,20)}</span><span><b>${esc(t.t)}</b><small>${t.d}</small></span></a>`).join('')}<a href="#/tools" class="pcs-more">ツールをすべて見る</a>`;
 }
-['pc-post','pcs-search'].forEach(id=>{const e=document.getElementById(id);if(e)e.onclick=()=>openSheet()});
+['pc-post','pcs-search'].forEach(id=>{const e=document.getElementById(id);if(e)e.onclick=()=>id==='pc-post'&&typeof qaRun==='function'?qaRun():openSheet()});  /* 左のメニューの⚡は設定した機能（64-quick.js）、右の検索欄は相性を調べる */

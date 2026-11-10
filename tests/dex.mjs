@@ -49,7 +49,7 @@ for(const W of [390,1000,1280]){
   Object.entries(R).forEach(([k,v])=>ok(v,W+'：'+k));
   /* 6. 雷のボタンの名前：PCは左のメニュー（押す前に title で名前、1280px以上は文字）、スマホは右下のボタンに「相性」 */
   const B=await pg.evaluate(W=>{const p=document.getElementById('pc-post'),f=document.getElementById('fab');
-    if(W>=700)return [p.title==='相性を調べる',p.getAttribute('aria-label')==='相性を調べる',W<1280||getComputedStyle(p.querySelector('span')).position==='static'];
+    if(W>=700)return [p.title==='⚡ 相性を調べる',p.getAttribute('aria-label')==='相性を調べる',W<1280||getComputedStyle(p.querySelector('span')).position==='static'];
     const l=f.querySelector('.fl');return [!!l&&l.textContent==='相性',l&&l.getBoundingClientRect().width>1,f.getAttribute('aria-label')==='相性をワンタップで調べる']},W);
   ok(B.every(Boolean),W+'：雷のボタンの名前 '+B);
   ok(!errs.length,W+'：画面のエラー '+errs.join('/'));

@@ -181,7 +181,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet(true)});
   hd.addEventListener('pointerup',up);hd.addEventListener('pointercancel',up);
 })();
 /* ホーム（とタイムライン）では投稿のボタン（46-ptr.js の fabPost）、ほかの画面では相性を調べる */
-document.getElementById('fab').onclick=()=>{if(typeof fabIsPost==='function'&&fabIsPost())fabPost();else openSheet()};
+document.getElementById('fab').onclick=()=>{if(typeof fabIsPost==='function'&&fabIsPost())fabPost();else if(typeof qaRun==='function')qaRun();else openSheet()};  /* ほかの画面は⚡の設定（64-quick.js） */
 
 
 /* ===================== ポケモンを選ぶ（名前を打って絞り込む） =====================
