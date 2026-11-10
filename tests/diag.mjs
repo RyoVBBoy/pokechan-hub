@@ -238,6 +238,17 @@ const V5=await pg.evaluate(()=>{
   run(['ガブリアス','サーフゴー','アシレーヌ']);r.none=/判定中/.test(teamArchHTML(team))&&!teamArch(team).length;
   return r});
 ok(V5.tr&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
+/* 2026/11/10 依頼主の指摘：技を登録したトリックルーム向きのパーティが「晴れ・対面」になった */
+const V6=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};team.length=0;['ブリムオン','リキキリン','コータス','ドサイドン','カビゴン','オニシズクモ'].forEach(s=>team.push({no:N(s).no}));
+  const ss=archSets(['axis'],team.map(x=>byNo[x.no]));team.forEach((x,i)=>{x.set=toSaved(ss[i])});TWX_K=null;
+  const A=teamArch(team);r.first=A[0]&&A[0].k==='tr'&&A[0].unset===true;r.sun=A.some(a=>a.k==='sun');
+  r.warn=dgAnalyze(dgTeam(team,20)).bad.some(b=>/トリックルームの技が入っていない/.test(b.t));
+  const t2=archSets(ARCHS.find(x=>x[0]==='tr'),team.map(x=>byNo[x.no]));r.fill=t2.some(z=>toSaved(z).mv.some(m=>m.n==='トリックルーム'));
+  return r});
+ok(V6.first&&V6.sun,'トリックルーム向きのパーティのバッジ '+JSON.stringify(V6));
+ok(V6.warn,'トリックルームの技が入っていない注意が出ない');
+ok(V6.fill,'トリックルームの型で組むとトリックルームが入らない');
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

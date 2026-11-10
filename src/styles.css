@@ -1703,3 +1703,4 @@ body::before{inset:0;background:
 .tarch-sand{background:rgba(190,150,80,.2);color:#a07a2c}.tarch-snow{background:rgba(120,200,230,.2);color:#3a9cc2}
 .tarch-tr{background:rgba(220,80,200,.15);color:#c040b0}.tarch-tailwind{background:rgba(80,200,170,.16);color:#219e80}
 .tarch-none{background:none;border-color:var(--line);color:var(--mute);font-weight:600}
+.tarch-unset{border:1px dashed currentColor}
