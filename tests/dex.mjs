@@ -55,5 +55,19 @@ for(const W of [390,1000,1280]){
   ok(!errs.length,W+'：画面のエラー '+errs.join('/'));
   await pg.close();
 }
+/* 通知の文字の見やすさ（2026/11/10）：明るい色・暗い色、テーマの色6つで、文字と下地（すりガラスを画面の地の色に重ねた色）の明るさの比が4.5以上 */
+{const pg=await (await b.newContext({viewport:{width:390,height:800},locale:'ja-JP'})).newPage();await pg.route(/^https?:/,r=>r.abort());
+  await pg.goto(URL0+'#/dex');await pg.waitForTimeout(600);
+  for(const th of ['light','dark'])for(const ac of ['purple','blue','green','pink','orange','gray']){
+    await pg.evaluate(([th,ac])=>{localStorage.setItem('pctheme',th);localStorage.setItem('pcaccent',ac)},[th,ac]);await pg.reload();await pg.waitForTimeout(400);
+    const r=await pg.evaluate(([th,ac])=>{
+      toast('通知の見やすさの確認');const t=document.getElementById('toast'),c=getComputedStyle(t);
+      const rgb=s=>s.match(/[\d.]+/g).map(Number),fg=rgb(c.color),bg=rgb(c.backgroundColor),base=rgb(getComputedStyle(document.body).backgroundColor);
+      const a=bg[3]==null?1:bg[3],mix=[0,1,2].map(i=>bg[i]*a+base[i]*(1-a));
+      const L=v=>{const x=v.map(n=>{n/=255;return n<=.03928?n/12.92:((n+.055)/1.055)**2.4});return .2126*x[0]+.7152*x[1]+.0722*x[2]};
+      const l1=L(fg.slice(0,3)),l2=L(mix),ratio=(Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);
+      return {th:document.documentElement.dataset.theme,ratio:Math.round(ratio*10)/10}},[th,ac]);
+    ok(r.th===th&&r.ratio>=4.5,`通知の文字の見やすさ ${th}・${ac}：${JSON.stringify(r)}`)}
+  await pg.close()}
 await b.close();
 console.log(bad?`dex: ${bad}/${n} 項目が失敗`:`dex: OK（${n}項目）`);process.exit(bad?1:0);

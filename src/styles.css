@@ -1884,3 +1884,5 @@ body::before{inset:0;background:
 .fab:not([data-mode=post]) .fl{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:11px;font-weight:800;line-height:1.1;margin-top:1px}
 .dx-src-d{flex-basis:100%;font-size:12px;line-height:1.5;color:var(--dim)}
 .srcb-l .srcb-lv{color:var(--fg);font-weight:600}
+/* 通知（トースト）の文字：明るい色のときは下地が白っぽいすりガラスなので、文字を白（--onacc）から濃い色（--fg）に（2026/11/10 依頼主。暗い色のときは今までどおり） */
+:root[data-theme=light] .toast{color:var(--fg)}
