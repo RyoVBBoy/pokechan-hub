@@ -113,7 +113,7 @@ function fabMode(){
   const b=document.getElementById('fab');if(!b)return;const post=fabIsPost();
   /* ⚡のとき（ホーム・タイムライン以外）は、⚡の設定（64-quick.js）の名前を出す。⚡の絵は同じ */
   const qa=!post&&typeof qaGet==='function'?qaGet():'type-check',key=post?'post':'bolt:'+qa;
-  const g=document.querySelector('#fabwrap .qa-gear');if(g)g.hidden=post;
+  const g=document.querySelector('#fabwrap .qa-more');if(g)g.hidden=post;
   if(b.dataset.key===key)return;b.dataset.key=key;b.dataset.mode=post?'post':'bolt';
   if(post){b.innerHTML=`${SVG(I.pen,24)}<span class="fl">投稿</span>`;b.setAttribute('aria-label','投稿する');b.title='投稿する';return}
   if(qa==='type-check'){b.innerHTML=FAB_BOLT;b.setAttribute('aria-label','相性をワンタップで調べる');b.title='⚡ 相性を調べる';return}

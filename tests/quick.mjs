@@ -26,20 +26,35 @@ const setTeams=(pg,counts)=>pg.evaluate(counts=>{const pool=['ガブリアス','
   await pg.keyboard.press('Escape');
   /* 2. ⚙ から切りかえ：3つ・44px以上・画面の中・✓・すぐ保存・再読み込みしても残る */
   await pg.evaluate(()=>{if(typeof closeSheet==='function')closeSheet();location.hash='#/tools'});await pg.waitForTimeout(400);
-  await pg.click('#fabwrap .qa-gear');await pg.waitForTimeout(200);
+  await pg.click('#fabwrap .qa-more');await pg.waitForTimeout(200);
   const m=await pg.evaluate(()=>{const m=document.getElementById('qa-menu'),r=m.getBoundingClientRect(),it=[...m.querySelectorAll('[data-qa]')];
-    return {n:it.length,h:Math.min(...it.map(x=>x.getBoundingClientRect().height)),in:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,ck:it.filter(x=>x.getAttribute('aria-checked')==='true').map(x=>x.dataset.qa),over:document.body.scrollWidth<=innerWidth,gear:document.querySelector('#fabwrap .qa-gear').getBoundingClientRect()}});
+    return {n:it.length,h:Math.min(...it.map(x=>x.getBoundingClientRect().height)),in:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,ck:it.filter(x=>x.getAttribute('aria-checked')==='true').map(x=>x.dataset.qa),over:document.body.scrollWidth<=innerWidth,gear:document.querySelector('#fabwrap .qa-more').getBoundingClientRect()}});
   ok(m.n===3&&m.h>=44&&m.in&&m.ck.join()==='type-check'&&m.over,'スマホの設定メニュー '+JSON.stringify(m));
-  ok(m.gear.width>=28&&m.gear.right<=390,'⚙ のボタン '+JSON.stringify(m.gear));
-  await pg.click('#qa-menu [data-qa="party-create"]');await pg.waitForTimeout(200);
-  const s=await pg.evaluate(()=>[localStorage.getItem('pcquick'),!document.getElementById('qa-menu'),document.getElementById('fab').querySelector('.fl').textContent,document.getElementById('fab').getAttribute('aria-label')]);
-  ok(s[0]==='party-create'&&s[1]&&s[2]==='パーティ'&&s[3]==='パーティ新規作成','選ぶとすぐ保存・反映 '+s);
+  /* ▾は⚡と一体（⚡のふちに重なる・独立した ⚙ はない）。⚡の大きさは今までどおり */
+  const f=await pg.evaluate(()=>{const a=document.getElementById('fab').getBoundingClientRect(),g=document.querySelector('#fabwrap .qa-more').getBoundingClientRect();
+    return {gear:document.querySelectorAll('.qa-gear').length,w:a.width,h:a.height,over:g.left<a.right&&g.right>a.left&&g.top<a.bottom&&g.bottom>a.top,in:g.right<=innerWidth}});
+  ok(f.gear===0&&f.w===58&&f.h===64&&f.over&&f.in,'⚡と一体の▾ '+JSON.stringify(f));
+  /* 開いただけでは設定は変わらない。外を押す・Esc で閉じる */
+  ok(await pg.evaluate(()=>localStorage.getItem('pcquick')===null),'開いただけで設定が変わった');
+  await pg.mouse.click(30,200);await pg.waitForTimeout(150);
+  ok(await pg.evaluate(()=>!document.getElementById('qa-menu')),'外を押しても閉じない');
+  await pg.click('#fabwrap .qa-more');await pg.waitForTimeout(150);await pg.keyboard.press('Escape');await pg.waitForTimeout(100);
+  ok(await pg.evaluate(()=>!document.getElementById('qa-menu')&&localStorage.getItem('pcquick')===null),'Esc で閉じない');
+  /* 長押し（0.5秒）でも開き、そのあとの「押した」では実行しない */
+  const fb=await pg.$('#fab');const bx=await fb.boundingBox();
+  await pg.mouse.move(bx.x+20,bx.y+30);await pg.mouse.down();await pg.waitForTimeout(650);await pg.mouse.up();await pg.waitForTimeout(150);
+  ok(await pg.evaluate(()=>!!document.getElementById('qa-menu')&&document.getElementById('sheet').hidden),'長押しでメニューが開かない／相性の画面が開いた');
+  /* 選ぶ＝保存して、その機能をすぐ実行（パーティ新規作成＝空き枠へ） */
+  await pg.click('#qa-menu [data-qa="party-create"]');await pg.waitForTimeout(700);
+  const s=await pg.evaluate(()=>[localStorage.getItem('pcquick'),!document.getElementById('qa-menu'),document.getElementById('fab').querySelector('.fl').textContent,document.getElementById('fab').getAttribute('aria-label'),location.hash,!!document.querySelector('.mpsheet')]);
+  ok(s[0]==='party-create'&&s[1]&&s[2]==='パーティ'&&s[3]==='パーティ新規作成'&&s[4]==='#/team'&&s[5],'選ぶと保存して実行 '+s);
+  await pg.evaluate(()=>{document.querySelectorAll('.mpsheet').forEach(e=>e.remove());location.hash='#/tools'});await pg.waitForTimeout(300);
   await pg.reload();await pg.waitForTimeout(700);
   ok(await pg.evaluate(()=>qaGet()==='party-create'&&document.getElementById('fab').querySelector('.fl').textContent==='パーティ'),'再読み込みで設定が残らない');
-  await pg.click('#fabwrap .qa-gear');await pg.waitForTimeout(150);
+  await pg.click('#fabwrap .qa-more');await pg.waitForTimeout(150);
   ok(await pg.evaluate(()=>document.querySelector('#qa-menu [aria-checked=true]').dataset.qa==='party-create'),'✓が今の設定に付かない');
-  await pg.click('#qa-menu [data-qa="type-check"]');await pg.waitForTimeout(150);
-  ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='type-check'),'相性に戻せない');
+  await pg.click('#qa-menu [data-qa="type-check"]');await pg.waitForTimeout(300);
+  ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='type-check'&&!document.getElementById('sheet').hidden),'相性に戻して実行できない');
   ok(!pg.errs.length,'エラー '+pg.errs);await pg.close()}
 
 /* 3. おかしな値・localStorage が使えない：相性を調べる に戻り、エラーにならない */
@@ -95,7 +110,7 @@ const setTeams=(pg,counts)=>pg.evaluate(counts=>{const pool=['ガブリアス','
   /* 7. ホーム・タイムラインの右下は設定に関係なく投稿（⚙ も出さない） */
   for(const h of ['#/','#/tl']){await pg.evaluate(h=>{localStorage.setItem('pcquick','party-create');location.hash=h},h);await pg.waitForTimeout(700);
     const before=await pg.evaluate(()=>JSON.stringify(TEAMS));
-    const s=await pg.evaluate(()=>[document.getElementById('fab').dataset.mode,document.getElementById('fab').getAttribute('aria-label'),document.querySelector('#fabwrap .qa-gear').hidden]);
+    const s=await pg.evaluate(()=>[document.getElementById('fab').dataset.mode,document.getElementById('fab').getAttribute('aria-label'),document.querySelector('#fabwrap .qa-more').hidden]);
     await pg.click('#fab');await pg.waitForTimeout(500);
     const a=await pg.evaluate(()=>[location.hash,document.getElementById('toast').textContent,JSON.stringify(TEAMS)]);
     ok(s[0]==='post'&&s[1]==='投稿する'&&s[2]&&a[0]==='#/account'&&a[1]==='投稿するにはログインしてください'&&a[2]===before,`${h} の右下は投稿のまま `+s+' '+a.slice(0,2));}
@@ -103,14 +118,21 @@ const setTeams=(pg,counts)=>pg.evaluate(counts=>{const pool=['ガブリアス','
 
 /* 8. PC：押す前に「⚡ 機能名」、⚙ から切りかえ、メニューは画面の中、1280px以上は文字も変わる */
 for(const W of [1000,1280]){const pg=await page(W);await pg.goto(URL0+'#/dex');await pg.waitForTimeout(700);
-  const a=await pg.evaluate(()=>{const p=document.getElementById('pc-post'),g=document.querySelector('.qa-gear-pc');return [p.title,g&&g.getBoundingClientRect().width>0]});
-  ok(a[0]==='⚡ 相性を調べる'&&a[1],W+'：PC の⚡の名前と⚙ '+a);
-  await pg.hover('#pc-post');await pg.click('.qa-gear-pc');await pg.waitForTimeout(200);
+  const a=await pg.evaluate(()=>{const p=document.getElementById('pc-post'),g=document.querySelector('.qa-more-pc');return [p.title,g&&g.getBoundingClientRect().width>0]});
+  ok(a[0]==='⚡ 相性を調べる'&&a[1],W+'：PC の⚡の名前と▾ '+a);
+  const z=await pg.evaluate(W=>{const p=document.getElementById('pc-post').getBoundingClientRect(),g=document.querySelector('.qa-more-pc').getBoundingClientRect(),nav=document.querySelector('.tabbar').getBoundingClientRect();
+    return {gear:document.querySelectorAll('.qa-gear').length,w:Math.round(p.width),h:Math.round(p.height),over:g.left<p.right&&g.right>p.left&&g.top<p.bottom&&g.bottom>p.top,inNav:g.right<=nav.right+1}},W);
+  ok(z.gear===0&&z.h===52&&(W>=1280||z.w===52)&&z.over&&z.inNav,W+'：PC の⚡と一体の▾ '+JSON.stringify(z));
+  /* 右クリックでも開き、開いただけでは変わらない */
+  await pg.click('#pc-post',{button:'right'});await pg.waitForTimeout(200);
+  ok(await pg.evaluate(()=>!!document.getElementById('qa-menu')&&localStorage.getItem('pcquick')===null&&document.getElementById('sheet').hidden),W+'：右クリックで開かない');
+  await pg.keyboard.press('Escape');await pg.waitForTimeout(100);
+  await pg.hover('#pc-post');await pg.click('.qa-more-pc');await pg.waitForTimeout(200);
   const m=await pg.evaluate(()=>{const m=document.getElementById('qa-menu'),r=m.getBoundingClientRect();return [m.querySelectorAll('[data-qa]').length,r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,Math.min(...[...m.querySelectorAll('[data-qa]')].map(x=>x.getBoundingClientRect().height))]});
   ok(m[0]===3&&m[1]&&m[2]>=44,W+'：PC の設定メニュー '+m);
-  await pg.click('#qa-menu [data-qa="community-post"]');await pg.waitForTimeout(200);
-  const t=await pg.evaluate(W=>{const p=document.getElementById('pc-post');return [p.title,p.getAttribute('aria-label'),W<1280||p.querySelector('span').textContent==='新規投稿']},W);
-  ok(t[0]==='⚡ 新規投稿'&&t[1]==='新規投稿'&&t[2],W+'：PC の名前が変わらない '+t);
+  await pg.click('#qa-menu [data-qa="community-post"]');await pg.waitForTimeout(500);
+  const t=await pg.evaluate(W=>{const p=document.getElementById('pc-post');return [p.title,p.getAttribute('aria-label'),W<1280||p.querySelector('span').textContent==='新規投稿',location.hash]},W);
+  ok(t[0]==='⚡ 新規投稿'&&t[1]==='新規投稿'&&t[2]&&t[3]==='#/account',W+'：PC で選ぶと保存して実行（未ログインはアカウントへ） '+t);
   /* 元の相性の画面は右の列・ツールから今までどおり開ける */
   ok(await pg.evaluate(()=>typeof openSheet==='function'),'相性の画面');
   ok(!pg.errs.length,W+'：エラー '+pg.errs);await pg.close()}
