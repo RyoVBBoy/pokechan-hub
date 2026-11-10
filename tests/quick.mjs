@@ -96,6 +96,21 @@ const setTeams=(pg,counts)=>pg.evaluate(counts=>{const pool=['ガブリアス','
   await pg.evaluate(()=>{const t=document.createElement('textarea');t.id='twc-t';t.value='   ';document.getElementById('view').appendChild(t)});
   await pg.click('#fab');await pg.waitForTimeout(600);
   ok(await pg.evaluate(()=>!document.querySelector('.xc')&&location.hash==='#/team'),'空の投稿欄で確認が出た');
+  /* メニューから選んだときも、書きかけがあれば先に確認。キャンセル＝保存も実行もしない、移動する＝保存して実行 */
+  await pg.evaluate(()=>{document.querySelectorAll('.mpsheet').forEach(e=>e.remove());localStorage.setItem('pcquick','type-check');qaPaint();location.hash='#/tools'});await pg.waitForTimeout(300);
+  await setTeams(pg,[6,0,0]);
+  await pg.evaluate(()=>{const t=document.createElement('textarea');t.id='twc-t';t.value='書きかけ';document.getElementById('view').appendChild(t)});
+  await pg.click('#fabwrap .qa-more');await pg.waitForTimeout(150);
+  const mi=await pg.evaluate(()=>[...document.querySelectorAll('#qa-menu [data-qa]')].map(b=>[b.dataset.qa,!!b.querySelector('.qa-ic svg'),b.querySelector('.qa-tx small').textContent.length>0,getComputedStyle(b.querySelector('.qa-ck')).visibility]));
+  ok(mi.length===3&&mi.every(x=>x[1]&&x[2])&&mi.filter(x=>x[3]==='visible').map(x=>x[0]).join()==='type-check','メニューのアイコン・説明・✓ '+JSON.stringify(mi));
+  await pg.click('#qa-menu [data-qa="party-create"]');await pg.waitForTimeout(300);
+  ok(await pg.evaluate(()=>!!document.querySelector('.xc')),'メニューから選んだとき書きかけの確認が出ない');
+  await pg.click('.xc .xc-no');await pg.waitForTimeout(300);
+  const mc=await pg.evaluate(()=>[localStorage.getItem('pcquick'),location.hash,TEAMS.cur,document.getElementById('twc-t').value,document.getElementById('fab').querySelector('.fl').textContent]);
+  ok(mc[0]==='type-check'&&mc[1]==='#/tools'&&mc[2]===0&&mc[3]==='書きかけ'&&mc[4]==='相性','キャンセルで設定・画面が変わった '+mc);
+  await pg.click('#fabwrap .qa-more');await pg.waitForTimeout(150);await pg.click('#qa-menu [data-qa="party-create"]');await pg.waitForTimeout(300);
+  await pg.click('.xc .xc-ok');await pg.waitForTimeout(700);
+  ok(await pg.evaluate(()=>localStorage.getItem('pcquick')==='party-create'&&location.hash==='#/team'&&TEAMS.cur===1&&!!document.querySelector('.mpsheet')),'移動するで保存・実行されない');
   ok(!pg.errs.length,'エラー '+pg.errs);await pg.close()}
 
 /* 6. 新規投稿：ログインしていなければ、今までの投稿ボタンと同じくアカウントの画面へ。書きかけがあれば確認 */
