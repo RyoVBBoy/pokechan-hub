@@ -5,7 +5,8 @@
    ・最も深刻な弱点＝パーティのチェックの「対面の計算で見つかった弱点」と同じ並び（重い順）の先頭3つ
    ・おすすめの選出＝選出の比較（dgSelect）の1番と先発
    ・改善案＝dgImprove の1番（画面を出したあと後ろで計算。同じパーティ・同じ条件なら使い回す） */
-const DGU_SEV={3:['深刻','!!','sv3'],2:['注意','!','sv2'],1:['軽い','・','sv1'],0:['問題なし','✓','sv0']};
+/* 記号は「問題なし」の✓だけ（2026/11/10 依頼主：深刻・注意は記号なしで、文字と色で分ける） */
+const DGU_SEV={3:['深刻','','sv3'],2:['注意','','sv2'],1:['軽い','','sv1'],0:['問題なし','✓','sv0']};
 const DGU_AREAS=['攻撃','防御','素早さ','役割'];
 const DGU_LV=[[4,'◎','安定して対応（2匹以上）'],[3,'○','対応できるが1匹に頼る'],[2,'△','条件つき・不安定'],[1,'×','対応できない']];
 /* ◎○△× の横棒：実際の匹数と割合 */
@@ -13,7 +14,7 @@ function dguBars(cnt,N){
   return `<div class="dgu-bars" role="list">${DGU_LV.map(([l,m,lab])=>{const n=cnt[l]||0,p=N?Math.round(n/N*100):0;
     return `<div class="dgu-bar dgu-l${l}" role="listitem"><span class="dgu-bm">${m}</span><span class="dgu-bl">${lab}</span><span class="dgu-bt"><i style="width:${p}%"></i></span><span class="dgu-bn"><b>${n}匹</b>（${p}%）</span></div>`}).join('')}</div>`;
 }
-const dguSevTag=s=>{const v=DGU_SEV[s]||DGU_SEV[0];return `<span class="dgu-sev ${v[2]}"><i aria-hidden="true">${v[1]}</i>${v[0]}</span>`};
+const dguSevTag=s=>{const v=DGU_SEV[s]||DGU_SEV[0];return `<span class="dgu-sev ${v[2]}">${v[1]?`<i aria-hidden="true">${v[1]}</i>`:''}${v[0]}</span>`};
 function dguSumHTML(){return `<div id="dgu-sum" class="dgu-card"><p class="dgu-loading">診断をまとめています…</p></div>`}
 function dguSumFill(entries,C){
   const box=document.getElementById('dgu-sum');if(!box)return;
