@@ -1,6 +1,9 @@
 /* ===================== 相性ワンタップ ===================== */
 const kata=q=>q.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
-const nmHit=(p,q)=>{q=q.trim();return p.n.includes(kata(q))||(p.ja&&p.ja.includes(kata(q)))||(LANG==='en'&&!!q&&p.n.toLowerCase().includes(q.toLowerCase()))};
+/* 小さい字と大きい字を同じに見る（2026/11/10 依頼主：「ウィンディ」と打つと正式名の「ウインディ」が出なかった）。比べる両方にかける */
+const KF_S='ァィゥェォッャュョヮヵヶ',KF_L='アイウエオツヤユヨワカケ';
+const kfold=s=>kata(String(s||'').normalize('NFKC')).replace(/[ァィゥェォッャュョヮヵヶ]/g,c=>KF_L[KF_S.indexOf(c)]).replace(/ヴ/g,'ブ').replace(/[ー－‐\s・]/g,'');
+const nmHit=(p,q)=>{q=q.trim();const f=kfold(q);return p.n.includes(kata(q))||(p.ja&&p.ja.includes(kata(q)))||(!!f&&(kfold(p.n).includes(f)||(p.ja&&kfold(p.ja).includes(f))))||(LANG==='en'&&!!q&&p.n.toLowerCase().includes(q.toLowerCase()))};
 I.cmp='<path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3-3m-3 3 3 3"/>';
 const fmt=m=>m===.5?'½':m===.25?'¼':String(m);
 const effLabel=m=>m>=4?'4倍ばつぐん':m>=2?'ばつぐん':m===1?'等倍':m===0?'こうかなし':m>=.5?'いまひとつ':'かなりいまひとつ';
@@ -210,7 +213,7 @@ function pickMon(cur,opt={}){
     const draw=()=>{const t=q.value.trim();
       if(t){const hit=P.filter(p=>nmHit(p,t)&&!(opt.add&&team.some(x=>x.no===p.no)));
         /* 名前の先頭が合うものを上に */
-        const k=kata(t).toLowerCase(),head=p=>p.n.toLowerCase().startsWith(k)||(p.ja&&p.ja.startsWith(kata(t)));
+        const k=kata(t).toLowerCase(),kf=kfold(t),head=p=>p.n.toLowerCase().startsWith(k)||(p.ja&&p.ja.startsWith(kata(t)))||(!!kf&&kfold(p.n).startsWith(kf));
         hit.sort((a,b)=>head(b)-head(a));
         list.innerHTML=hit.length?hit.slice(0,60).map(row).join(''):'<p class="empty" style="padding:28px 16px">見つかりません</p>';return}
       const inT=team.map(x=>byNo[x.no]).filter(Boolean),tm=opt.add?[]:inT,rc=monRecent().map(n=>byNo[n]).filter(p=>p&&!inT.includes(p));

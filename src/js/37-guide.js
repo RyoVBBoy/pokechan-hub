@@ -142,10 +142,10 @@ function wordView(id){
 /* 検索から道具・用語も見つけられるように */
 function guideSearch(q){
   const t=kata(q.replace(/^[#＃]/,'').trim()).toLowerCase();if(!t)return'';
-  const its=Object.keys(ITEMN).filter(k=>itemG(k)&&(ITEMN[k].toLowerCase().includes(t)||(LANG==='en'?false:kata(ITEMN[k]).includes(t)))).slice(0,5);
-  const ws=WORDS.filter(w=>kata(w[1]).toLowerCase().includes(t)).slice(0,5);
-  const mvs=Object.keys(MD).map(Number).filter(id=>mName(id).toLowerCase().includes(t)||(LANG!=='en'&&kata(mName(id)).includes(t))).slice(0,5);
-  const abs=Object.keys(ABDS).filter(k=>ABN[k]&&(ABN[k].toLowerCase().includes(t)||(LANG!=='en'&&kata(ABN[k]).includes(t)))).slice(0,5);
+  const its=Object.keys(ITEMN).filter(k=>itemG(k)&&(ITEMN[k].toLowerCase().includes(t)||(LANG==='en'?false:kfold(ITEMN[k]).includes(kfold(t))))).slice(0,5);
+  const ws=WORDS.filter(w=>kfold(w[1]).toLowerCase().includes(kfold(t))).slice(0,5);
+  const mvs=Object.keys(MD).map(Number).filter(id=>mName(id).toLowerCase().includes(t)||(LANG!=='en'&&kfold(mName(id)).includes(kfold(t)))).slice(0,5);
+  const abs=Object.keys(ABDS).filter(k=>ABN[k]&&(ABN[k].toLowerCase().includes(t)||(LANG!=='en'&&kfold(ABN[k]).includes(kfold(t))))).slice(0,5);
   const ars=ARCHS.filter(x=>kata(x[1]).toLowerCase().includes(t)||t.length>=2&&kata(x[1]).includes(t)).slice(0,3);
   if(!its.length&&!ws.length&&!mvs.length&&!abs.length&&!ars.length)return'';
   return `<div class="sec"><h2>攻略ガイド</h2></div>${ars.map(x=>`<a class="row" href="#/arch/${x[0]}"><div class="row-m"><div class="row-t">${esc(x[1])}</div><div class="row-s">構築の型</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${its.map(k=>`<a class="row" href="#/item/${k}"><div class="row-m"><div class="row-t">${esc(ITEMN[k])}</div><div class="row-s">道具・${esc(itemG(k).cat)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${mvs.map(id=>`<a class="row" href="#/move/${id}"><div class="row-m"><div class="row-t">${esc(mName(id))}</div><div class="row-s">技</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${abs.map(k=>`<a class="row" href="#/ability/${k}"><div class="row-m"><div class="row-t">${esc(ABN[k])}</div><div class="row-s">特性</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}${ws.map(w=>`<a class="row" href="#/word/${w[0]}"><div class="row-m"><div class="row-t">${esc(w[1])}</div><div class="row-s">戦術・用語</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`;

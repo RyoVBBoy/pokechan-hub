@@ -103,6 +103,9 @@ ok(R4.calcEv,'計算の項目に根拠・深刻度がありません');
 ok(R4.unk,'計算に入っていない特性が書かれていません');
 ok(R4.sel,'★の選出で見るとき');
 ok(R4.dbl,'ダブルのとき');
+/* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
+const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
+ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);
 /* 11. 画面：パーティの「チェック」に出る・データ不足を書く */
 await pg.evaluate(()=>{team.length=0;['ガブリアス','サーフゴー','アシレーヌ'].forEach(s=>team.push({no:P.find(x=>x.n===s).no}));saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';location.hash='#/team'});
 await pg.waitForTimeout(1500);

@@ -298,7 +298,7 @@ async function searchView(a){
   lsW('pcsearch',[q,...srRecent().filter(x=>x!==q)].slice(0,8));
   const t=q.replace(/^[#＃]/,''),mons=P.filter(p=>nmHit(p,t));
   /* 名前がぴったり合うポケモンは大きく、ほかの候補は下に小さく */
-  const exact=mons.find(p=>p.n===kata(t)||(p.ja&&p.ja===kata(t))||formInfo(p).base===kata(t)||p.n.toLowerCase()===t.toLowerCase());
+  const exact=mons.find(p=>p.n===kata(t)||kfold(p.n)===kfold(t)||kfold(formInfo(p).base)===kfold(t)||(p.ja&&p.ja===kata(t))||formInfo(p).base===kata(t)||p.n.toLowerCase()===t.toLowerCase());
   const top=exact||(mons.length===1?mons[0]:null),others=mons.filter(p=>p!==top).slice(0,5);
   res.innerHTML=`<div id="sr-live"></div>${top?`<a class="sr-mon" href="#/p/${top.no}"><span class="av">${stamp(top)}</span><div class="row-m">${nm(top,{big:true})}<div class="chips" style="margin-top:6px">${top.t.map(chip).join('')}</div>
       <div class="sr-st">${SN.map((n,i)=>`<span><small>${n}</small><b>${top.s[i]}</b></span>`).join('')}<span><small>合計</small><b>${top.bst}</b></span></div><div class="row-s" style="margin-top:4px">図鑑の詳しい画面を見る ›</div></div></a>`:''}
