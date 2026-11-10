@@ -28,6 +28,7 @@ function drawerHTML(){
         <div class="dr-sw" role="group" aria-label="テーマの色">${Object.entries(ACCENTS).map(([k,a])=>`<button class="dr-swc" data-acc-set="${k}" aria-pressed="${ACCENT===k}" aria-label="${L(a[0],a[1])}" title="${L(a[0],a[1])}" style="background:${THEME==='light'?a[3]:a[5]}"></button>`).join('')}</div>
         <div class="dr-lab">${SVG(I.moon,18)}背景の光</div>
         <div class="pills" style="padding:4px 0 10px">${[['strong','強め'],['normal','ふつう'],['off','なし']].map(([k,n])=>`<button class="pill" data-glow-set="${k}" aria-pressed="${GLOW===k}">${n}</button>`).join('')}</div>
+        ${typeof qaSettingsHTML==='function'&&curGame().fab?qaSettingsHTML():''}
         <div class="dr-lab">${SVG(I.globe,18)}言語 / Language</div>
         <div class="pills" style="padding:4px 0 10px">${LANGS.map(([k,n])=>`<button class="pill" data-lang-set="${k}" aria-pressed="${LANG===k}">${n}</button>`).join('')}</div>
         <div id="dr-push"></div>

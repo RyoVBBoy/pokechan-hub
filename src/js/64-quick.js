@@ -2,9 +2,9 @@
    ⚡＝スマホの右下の六角形のボタン（#fab）と、PC の左のメニューのボタン（#pc-post）。
    ・押すと、選んだ機能をすぐ開く：相性を調べる（はじめ・今までと同じ）／新規投稿／パーティ新規作成
    ・ホームとタイムラインの右下のボタンは今までどおり「投稿」に固定（46-ptr.js の fabIsPost・fabPost）。⚡の設定はそれ以外の画面で使う
-   ・設定は⚡ボタンと一体の小さな「▾」（⚡のふちに付いた同じ色のつまみ）・右クリック・長押し・キーボードの↑↓から開くメニューで。
-     選ぶとすぐ保存して、その機能を実行（この端末の localStorage の pcquick。読めない・おかしな値なら「相性を調べる」）。メニューを開いただけでは変えない
-     （2026/11/10 依頼主：⚡の横の独立した ⚙ はナビの見た目から浮くので廃止）
+   ・どの機能にするかは、左から出るメニューの「設定とプライバシー」の「お気に入りショートカット」で選ぶ（34-drawer.js が qaSettingsHTML を置く）。
+     選んだ時点で保存（この端末の localStorage の pcquick。読めない・おかしな値なら「相性を調べる」）。選んでも実行はしない
+     （2026/11/10 依頼主：⚡ボタン自体には設定の操作〔歯車・▾・メニュー・長押し〕を付けない。⚡は実行するだけ）
    ・ほかの画面へ移る機能で、投稿欄（#twc-t）に書きかけの文があれば確認を出す（キャンセルなら何も変えない）
    ・新しい画面は作らない：相性＝openSheet（11-matchup.js）、投稿＝ホームの投稿欄を出す fabPost、パーティ＝空いている枠に切りかえて pickMon→addTeam（13-party.js） */
 const QA_KEY='pcquick',QA_DEF='type-check';
@@ -26,7 +26,7 @@ function qaLeaves(id){
   if(id==='party-create'){if(keyOf(cur)==='team')return false;const cnt=i=>(i===TEAMS.cur?team:TEAMS.list[i].team).length;return TEAMS.list.some((_,i)=>cnt(i)===0)}
   return false}
 async function qaRun(id,o={}){
-  qaMenuClose();id=qaOf(id)?id:qaGet();
+  id=qaOf(id)?id:qaGet();
   /* 書きかけの投稿があれば、先に確認（キャンセルなら何もしない） */
   if(!o.ok&&qaLeaves(id)&&!(await qaLeaveOk()))return;
   if(id==='type-check'){openSheet();return}
@@ -57,59 +57,19 @@ function qaPaint(){
   const id=qaGet(),n=qaName(id),q=qaOf(id);
   const p=document.getElementById('pc-post');
   if(p){p.title='⚡ '+n;p.setAttribute('aria-label',n);const s=p.querySelector('span');if(s)s.textContent=n}
-  document.querySelectorAll('.qa-more').forEach(b=>{b.title=L('⚡ボタンの機能を選ぶ','Choose what ⚡ does');b.setAttribute('aria-label',L(`⚡ボタンの機能を選ぶ（いまは「${n}」）`,`Choose what the ⚡ button does (now: ${n})`))});
   if(typeof fabMode==='function')fabMode();
-  const m=document.getElementById('qa-menu');if(m)m.querySelectorAll('[data-qa]').forEach(b=>b.setAttribute('aria-checked',b.dataset.qa===id));
   return q;
 }
-/* 設定のメニュー：3つの機能。いまの機能に✓。選ぶとすぐ保存して閉じる */
-let QA_ANCHOR=null;
-function qaMenuClose(){const m=document.getElementById('qa-menu');if(!m)return;m.remove();document.removeEventListener('pointerdown',qaOut,true);document.removeEventListener('keydown',qaKey);if(QA_ANCHOR){QA_ANCHOR.setAttribute('aria-expanded','false');QA_ANCHOR.focus({preventScroll:true})}QA_ANCHOR=null}
-const qaOut=e=>{const m=document.getElementById('qa-menu');if(m&&!m.contains(e.target)&&!(QA_ANCHOR&&QA_ANCHOR.contains(e.target)))qaMenuClose()};
-const qaKey=e=>{if(e.key==='Escape')qaMenuClose()};
-function qaMenuOpen(anchor){
-  if(document.getElementById('qa-menu')){qaMenuClose();return}
-  const id=qaGet(),m=document.createElement('div');m.id='qa-menu';m.className='qa-menu';m.setAttribute('role','menu');
-  m.innerHTML=`<p class="qa-h">${L('⚡ボタンで開く機能','What the ⚡ button opens')}</p>${QA.map(q=>`<button type="button" role="menuitemradio" data-qa="${q.id}" aria-checked="${q.id===id}"><span class="qa-ic" aria-hidden="true">${SVG(I[q.ic]||I.zap,18)}</span><span class="qa-tx"><b>${L(q.t[0],q.t[1])}</b><small>${L(q.d[0],q.d[1])}</small></span><span class="qa-ck" aria-hidden="true">${SVG(I.check||'<path d="M5 12.5l4.5 4.5L19 7.5"/>',18)}</span></button>`).join('')}
-    `;
-  document.body.appendChild(m);QA_ANCHOR=anchor;anchor.setAttribute('aria-expanded','true');
-  /* 置き場所：PC＝⚡ボタンの右横（下をそろえる）、スマホ＝⚡ボタンの上。どちらも画面の内側に収める */
-  const btn=anchor.closest('.qa-pc,.fabin')?.querySelector('#pc-post,#fab')||anchor,r=btn.getBoundingClientRect(),pc=matchMedia('(min-width:700px)').matches;
-  const w=Math.min(pc?300:320,innerWidth-16),h=m.offsetHeight;
-  let left,top;
-  if(pc){left=r.right+10;top=r.bottom-h;if(left+w>innerWidth-8){left=r.left;top=r.top-h-8}}
-  else{left=r.right-w;top=r.top-h-10}
-  left=Math.max(8,Math.min(left,innerWidth-w-8));top=Math.max(8,Math.min(top,innerHeight-h-8));
-  Object.assign(m.style,{left:left+'px',top:top+'px',width:w+'px'});
-  /* 選ぶ＝保存して、その機能をすぐ実行（書きかけの投稿の確認・空き枠の決まりは qaRun のまま） */
-  m.querySelectorAll('[data-qa]').forEach(b=>b.onclick=async()=>{const id=b.dataset.qa;qaMenuClose();
-    if(qaLeaves(id)&&!(await qaLeaveOk()))return;
-    qaSet(id);qaRun(id,{ok:true})});
-  /* ↑↓で選択肢を移る */
-  m.onkeydown=e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();const it=[...m.querySelectorAll('[data-qa]')],i=it.indexOf(document.activeElement);it[(i+(e.key==='ArrowDown'?1:it.length-1))%it.length].focus()};
-  setTimeout(()=>{document.addEventListener('pointerdown',qaOut,true);document.addEventListener('keydown',qaKey)},0);
-  (m.querySelector('[aria-checked=true]')||m.querySelector('[data-qa]')).focus({preventScroll:true});
-}
-/* ⚡ボタンと一体のつまみ「▾」（⚡と同じ色で、ふちに重ねる）。押すとメニュー。
-   ほかに、⚡の右クリック・長押し（0.5秒）・キーボードの↑↓／メニューキーでも開く（長押しだけが入口にはしない） */
+/* 設定画面（左から出るメニューの「設定とプライバシー」）の「お気に入りショートカット」。ラジオボタンで選ぶと保存（実行はしない） */
+function qaSettingsHTML(){const id=qaGet();
+  return `<div class="dr-lab">${SVG(I.zap,18)}${L('お気に入りショートカット','Favorite shortcut')}</div>
+    <p class="qa-sd">${L('サイドナビの⚡ボタンを押したときに実行する機能を選択できます。','Choose what the ⚡ button in the side navigation does.')}</p>
+    <div class="qa-set" role="radiogroup" aria-label="${L('お気に入りショートカット','Favorite shortcut')}">${QA.map(q=>`<label class="qa-opt"><input type="radio" name="qa-set" value="${q.id}"${q.id===id?' checked':''}><span class="qa-ic" aria-hidden="true">${SVG(I[q.ic]||I.zap,18)}</span><span class="qa-tx"><b>${L(q.t[0],q.t[1])}</b><small>${L(q.d[0],q.d[1])}</small></span></label>`).join('')}</div>`}
+/* 選んだら保存。⚡の名前（PC の文字・スマホの六角形の中）もすぐ変わる */
+document.addEventListener('change',e=>{const r=e.target;if(r&&r.name==='qa-set'&&r.checked)qaSet(r.value)});
+/* ⚡を押したとき：設定した機能を実行（ホーム・タイムラインの右下は今までどおり投稿） */
 (function qaInit(){
-  const mk=cls=>{const b=document.createElement('button');b.type='button';b.className='qa-more '+cls;b.setAttribute('aria-haspopup','menu');b.setAttribute('aria-expanded','false');
-    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-    b.onclick=e=>{e.stopPropagation();qaMenuOpen(b)};return b};
-  const fi=document.querySelector('#fabwrap .fabin');if(fi&&!fi.querySelector('.qa-more'))fi.appendChild(mk('qa-more-sp'));
-  const p=document.getElementById('pc-post');if(p&&!p.parentNode.classList.contains('qa-pc')){const w=document.createElement('div');w.className='qa-pc';p.parentNode.insertBefore(w,p);w.appendChild(p);w.appendChild(mk('qa-more-pc'))}
-  /* 右クリック・長押し・キーボード（ホーム・タイムラインの右下＝投稿のときは何もしない） */
-  const extra=(btn,more)=>{if(!btn||!more)return;let t=0,long=false;
-    const off=()=>btn.id==='fab'&&typeof fabIsPost==='function'&&fabIsPost();
-    btn.addEventListener('contextmenu',e=>{if(off())return;e.preventDefault();qaMenuOpen(more)});
-    btn.addEventListener('pointerdown',e=>{if(off()||e.button)return;long=false;clearTimeout(t);t=setTimeout(()=>{long=true;qaMenuOpen(more)},500)});
-    ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,()=>clearTimeout(t)));
-    btn.addEventListener('click',e=>{if(long){long=false;e.stopImmediatePropagation();e.preventDefault()}},true);
-    btn.addEventListener('keydown',e=>{if(off())return;if(e.key==='ArrowDown'||e.key==='ArrowUp'||e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();qaMenuOpen(more)}})};
-  extra(p,document.querySelector('.qa-more-pc'));extra(document.getElementById('fab'),document.querySelector('.qa-more-sp'));
-  /* 押したとき：選んだ機能（ホーム・タイムラインの右下は今までどおり投稿） */
   const f=document.getElementById('fab');if(f)f.onclick=()=>{if(typeof fabIsPost==='function'&&fabIsPost())fabPost();else qaRun()};
-  if(p)p.onclick=()=>qaRun();
-  addEventListener('hashchange',qaMenuClose);addEventListener('resize',qaMenuClose);
+  const p=document.getElementById('pc-post');if(p)p.onclick=()=>qaRun();
   qaPaint();
 })();

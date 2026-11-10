@@ -1886,52 +1886,17 @@ body::before{inset:0;background:
 .srcb-l .srcb-lv{color:var(--fg);font-weight:600}
 /* 通知（トースト）の文字：明るい色のときは下地が白っぽいすりガラスなので、文字を白（--onacc）から濃い色（--fg）に（2026/11/10 依頼主。暗い色のときは今までどおり） */
 :root[data-theme=light] .toast{color:var(--fg)}
-/* ⚡ボタンのカスタマイズ（64-quick.js、2026/11/10）。2026/11/10 依頼主：独立した ⚙ をやめ、⚡ボタンと一体の「▾」のつまみに。
-   つまみは⚡と同じ色（--accf）で、⚡のふちに重ね、まわりを地の色の線で切り分ける＝1つのボタンに見える。⚡の大きさ・場所・色は変えない */
-.qa-more{display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;cursor:pointer;
-  background:var(--accf);color:var(--onacc);border-radius:999px;box-shadow:0 0 0 2px var(--bg)}
-.qa-more svg{width:12px;height:12px}
-.qa-more[hidden]{display:none!important}
-.qa-more::before{content:'';position:absolute;inset:-10px}
-.qa-more:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.qa-more[aria-expanded=true] svg{transform:rotate(180deg)}
-@media(hover:hover){.qa-more:hover{background:var(--acc2,var(--accf))}}
-/* スマホ：六角形の右下のふち */
-.fabin{position:relative}
-.qa-more-sp{position:absolute;right:10px;bottom:2px;width:22px;height:22px;pointer-events:auto;z-index:2}
-/* PC：左のメニューの⚡ボタン */
-.qa-pc{display:none}
-@media(min-width:700px){
-  .qa-pc{display:block;position:relative;flex:none;margin-top:16px}
-  .qa-pc .pc-post{margin-top:0}
-  .qa-more-pc{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px}
-  .qa-more-pc::before{inset:-6px}
-  .qa-pc:has(#pc-post[hidden]) .qa-more{display:none}
-}
-/* 1280px以上：⚡ボタンの右の端に入れる（区切りの線つきの分かれたボタン）。⚡ボタンの幅は今までどおり */
-@media(min-width:1280px){
-  .qa-pc{width:100%}
-  .qa-pc .pc-post{padding-right:48px}
-  .qa-more-pc{right:4px;top:50%;bottom:auto;transform:translateY(-50%);width:40px;height:44px;border-radius:0 999px 999px 0;box-shadow:inset 1px 0 0 rgba(255,255,255,.28);background:transparent}
-  .qa-more-pc svg{width:16px;height:16px}
-  .qa-more-pc::before{inset:0}
-  @media(hover:hover){.qa-more-pc:hover{background:rgba(255,255,255,.12)}}
-}
-/* 設定のメニュー（左メニューと同じ角の丸さ・押したときの下地。すりガラスはほかの浮く部品と同じ）。2026/11/10 依頼主：アイコンと短い説明つき */
-:root{--qa-hov:rgba(231,233,234,.1)}
-:root[data-theme=light]{--qa-hov:rgba(15,20,25,.06)}
-.qa-menu{position:fixed;z-index:120;padding:6px;border-radius:20px;background:var(--bg);border:1px solid var(--line);
-  box-shadow:0 0 18px rgba(231,233,234,.14),0 8px 24px rgba(0,0,0,.4);max-width:calc(100vw - 16px);box-sizing:border-box}
-:root[data-theme=light] .qa-menu{box-shadow:0 0 15px rgba(15,20,25,.12),0 8px 24px rgba(15,20,25,.12)}
-.qa-h{margin:8px 12px 6px;font-size:12px;font-weight:700;color:var(--dim)}
-.qa-menu [data-qa]{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 12px;border:0;border-radius:999px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer;transition:background .15s}
-.qa-menu [data-qa]:hover,.qa-menu [data-qa]:focus-visible{background:var(--qa-hov);outline:none}
-.qa-ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;background:var(--qa-hov);color:var(--fg)}
+/* お気に入りショートカット（64-quick.js の qaSettingsHTML、左から出るメニューの「設定とプライバシー」）。2026/11/10 依頼主：⚡ボタンには設定の操作を付けず、設定はここだけ */
+.qa-sd{margin:0 0 6px;font-size:13px;line-height:1.5;color:var(--dim)}
+.qa-set{display:flex;flex-direction:column;gap:4px;padding:2px 0 12px}
+.qa-opt{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 12px;border-radius:14px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--line);transition:background .15s}
+@media(hover:hover){.qa-opt:hover{background:var(--hov)}}
+.qa-opt input{width:18px;height:18px;margin:0;flex:none;accent-color:var(--accf)}
+.qa-opt input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.qa-ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:var(--elev2,var(--hov));color:var(--fg)}
 .qa-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .qa-tx b{font-size:15px;font-weight:700;line-height:1.3}
 .qa-tx small{font-size:12px;color:var(--dim);line-height:1.4}
-.qa-ck{flex:none;color:var(--acc);visibility:hidden;display:inline-flex}
-.qa-menu [aria-checked=true] .qa-ck{visibility:visible}
-.qa-menu [aria-checked=true]{background:var(--acc-t)}
-.qa-menu [aria-checked=true] .qa-ic{background:var(--accf);color:var(--onacc)}
-.qa-menu [aria-checked=true] .qa-tx b{color:var(--acc)}
+.qa-opt:has(input:checked){background:var(--acc-t);box-shadow:inset 0 0 0 1.5px var(--acc)}
+.qa-opt:has(input:checked) .qa-ic{background:var(--accf);color:var(--onacc)}
+.qa-opt:has(input:checked) .qa-tx b{color:var(--acc)}
