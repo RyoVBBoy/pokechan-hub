@@ -27,4 +27,6 @@ SCROLLER.addEventListener('scroll',()=>{
   lastY=y;
 },{passive:true});
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2200)}
+/* 画面を移ったとき、前の画面で出ていた通知を消す（2026/11/10 図鑑の修正。いまは図鑑の一覧 dex() だけが呼ぶ）。呼んだ時点で出ている通知＝前の画面の通知。移った先でこのあと出す通知はいつもどおり出る。消える時間など通知のしくみは変えない */
+function toastDropOld(){const t=document.getElementById('toast');if(!t||!t.classList.contains('on'))return;clearTimeout(toast._t);t.classList.remove('on')}
 

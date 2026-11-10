@@ -30,8 +30,10 @@ function lvOf(id,no){
   return{lv,bad};
 }
 const srcDate=id=>id==='ladder'?(LIVE.at?`${LIVE.at.getMonth()+1}/${LIVE.at.getDate()}`:''):(SRC[id].date||'').replace(/^\d{4}\//,'');
-function srcBadge(id,no){
+function srcBadge(id,no,o){
   const{lv,bad}=lvOf(id,no),[lab,c]=bad?['ゲーム内の値と違う','#f4212e']:LV[lv],dt=srcDate(id);
+  /* long（2026/11/10 図鑑の一覧）：「出典1つ・10/18」だけでは何の数か分からないので、データの名前・確認の状況（LV の説明と同じ意味）・日付（SRC の date＝そのデータを確かめた時点）を言葉で出す */
+  if(o&&o.long){const full=(SRC[id].date||'');return `<button class="srcb srcb-l" data-src="${id}"${no?` data-no="${no}"`:''} style="--c:${c}" aria-label="${SRC[id].name}の出典：${lab}${full?`（${full}時点）`:''}。押すとくわしい説明"><i></i><b>${SRC[id].name}</b><span class="srcb-lv">${L(`：${lab}`,`: ${EN[lab]||lab}`)}</span>${full?`<span>${L(`（${full}時点）`,` (as of ${full})`)}</span>`:''}<em aria-hidden="true">›</em></button>`}
   return `<button class="srcb" data-src="${id}"${no?` data-no="${no}"`:''} style="--c:${c}" aria-label="${SRC[id].name}の出典：${lab}"><i></i>${lab}${dt?`<span>・${dt}</span>`:''}</button>`;
 }
 const srcLine=(...ids)=>`<div class="srcline">${ids.map(x=>Array.isArray(x)?srcBadge(x[0],x[1]):srcBadge(x)).join('')}</div>`;
