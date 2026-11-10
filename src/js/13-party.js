@@ -109,12 +109,14 @@ function teamRender(){
   if(TTAB==='plan'){pl.innerHTML=planHTML(team);planBind(pl)}
   if(TTAB!=='check'){out.innerHTML='';return}
   const C=partyCheck(team);
-  const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
+  const item=(x,bad)=>`<div class="pc-i ${bad?'pc-fix':'pc-ok'}"><b>${bad?'！':'✓'} ${x.area?`<span class="pc-area">${esc(x.area)}</span>`:''}${x.sev&&bad?`<span class="pc-sev pc-sev${x.sev}">${DG_SEV[x.sev]}</span>`:''}${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
   out.innerHTML=`${teamStepsHTML()}${loseHTML()}${dgHTML()}
   <div class="sec"><h2>パーティのチェック</h2></div>
-  <p class="note" style="padding-top:0">${C.scope}を、タイプ相性（特性も入れて）・組み合わせ・持ち物・技・素早さの面から見ています。点数はつけず、気になる点にはそれぞれ直し方を書いています。</p>
+  <p class="note" style="padding-top:0">${C.scope}を、使用率の上位の相手との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
   ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
+  ${C.ref&&C.ref.length?`<details class="pc-ref"><summary>参考（タイプ相性の上で・役割の重なり）${C.ref.length}件</summary>${C.ref.map(x=>item(x,false)).join('')}</details>`:''}
+  ${C.premise?`<details class="pc-ref"><summary>計算の前提</summary><p class="note">${esc(C.premise)}</p></details>`:''}
   ${adSlot('診断結果下')}`;teamStepsBind(out);
   setTimeout(()=>loseFill(team),20);setTimeout(()=>dgFill(team),40);
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
@@ -188,8 +190,11 @@ function partyCheck(entries){
   const mvKeys=o=>((o.x.set&&o.x.set.mv)||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).filter(Boolean);
   const learns=(o,k)=>{const ls=LSD[o.p.no]?LSD[o.p.no][1]:[];return ls.some(id=>MD[id]&&MD[id][3]===k)};
   const hasSets=ms.some(o=>o.x.set&&o.x.set.mv&&o.x.set.mv.length);
-  const good=[],fix=[];
+  const good=[],fix=[],ref=[];
   const names=a=>a.map(o=>esc(o.p.n)).join('・');
+  /* 第4段階（2026/11/10）：実際のダメージ計算と素早さ（60-diag.js の dgTeam・dgAnalyze）で見る。タイプ相性だけの項目は、計算で裏付けがあるときだけ「気になる点」にする */
+  let DT=null,DA=null;try{if(ms.length){DT=dgTeam(use,20);DA=dgAnalyze(DT)}}catch(e){DT=DA=null}
+  const T_MS=i=>DT.ms[i].p;
   /* 1. 弱点の重なり（特性も入れる） */
   const md=new Map(ms.map(o=>[o.p.no,monDef(o.p)]));
   const m=(o,t)=>md.get(o.p.no).find(z=>z.t===t).m;
@@ -205,8 +210,10 @@ function partyCheck(entries){
   const swaps=(out,okP,news)=>{if(!out)return[];const r=[];
     if(full)bench.filter(o=>okP(o.p)).slice(0,2).forEach(o=>r.push({out,inP:o.p,inX:o.x}));
     (news||[]).slice(0,3-r.length).forEach(p=>r.push({out,inP:p}));return r};
-  if(danger.length)danger.slice(0,2).forEach(r=>fix.push({k:'type',t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
-    how:`${r.t}技を半減以下で受けられるポケモンと入れかえるか、${r.t}技を使う相手を先に倒せる味方を用意します。`,sw:swaps(outOf(o=>r.w.includes(o)),q=>monDef(q).find(z=>z.t===r.t).m<1,cands([r.t]))}));
+  /* 計算で、上位の相手が実際にこのタイプの技で弱点の匹を押し込んでくるか（その相手への対応が不安定以下） */
+  const typeHit=t=>DT?DT.rows.filter(row=>row.lvl<=2&&row.res.some(z=>z.op&&hitType(row.o,z.op.mv)===t&&z.op.eff>=2)):null;
+  if(danger.length)danger.slice(0,2).forEach(r=>{const th=typeHit(r.t);(th&&!th.length?ref:fix).push({k:'type',ev:th&&th.length?th.slice(0,4).map(row=>{const z=row.res.filter(z=>z.op&&hitType(row.o,z.op.mv)===r.t).sort((a,b)=>b.op.max-a.op.max)[0];return `${row.q.n}：${formInfo(T_MS(z.i)).base}に${z.op.mv.n}で最大${dgPct(z.op.max)}`}):th?['計算では、使用率の上位の相手にこのタイプで押し込まれる相手は見つかりませんでした（タイプ相性の上での参考）']:[],t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
+    how:`${r.t}技を半減以下で受けられるポケモンと入れかえるか、${r.t}技を使う相手を先に倒せる味方を用意します。`,sw:swaps(outOf(o=>r.w.includes(o)),q=>monDef(q).find(z=>z.t===r.t).m<1,cands([r.t]))})});
   else if(ms.length>=3)good.push({t:'弱点が大きく重なっていない',d:`${need}匹以上が同じ弱点で、受けられる味方もいない、というタイプはありません。`});
   /* 2. 攻撃の範囲：登録した技があればその技、なければタイプ一致技で */
   const atkTypes=o=>{const mv=((o.x.set&&o.x.set.mv)||[]).map(z=>z&&mvInfo(z.id)).filter(i=>i&&i.pow>0).map(i=>i.t);return mv.length?mv:o.p.t};
@@ -215,7 +222,7 @@ function partyCheck(entries){
   if(miss.length>=3){const sub=[];
     ms.forEach(o=>{const ls=LSD[o.p.no]?LSD[o.p.no][1]:[];const best=ls.map(id=>({id,i:mvInfo(id)})).filter(z=>z.i&&z.i.pow>=70&&z.i.cls<2&&miss.some(d=>mult(z.i.t,[d])>=2)).sort((a,b)=>miss.filter(d=>mult(b.i.t,[d])>=2).length-miss.filter(d=>mult(a.i.t,[d])>=2).length||b.i.pow-a.i.pow)[0];
       if(best)sub.push(`${esc(o.p.n)}の${esc(mName(best.id))}（${best.i.t}）`)});
-    fix.push({k:'type',t:`効果ばつぐんを取れないタイプが${miss.length}タイプある`,d:`${hasSets?'登録した技':'タイプ一致の技'}では、${miss.join('・')}タイプの相手に効果ばつぐんを取れません。`,how:sub.length?`サブの技を入れると範囲が広がります。例：${sub.slice(0,3).join('、')}。またはポケモンを入れかえます。`:'ほかのタイプの技を持つポケモンと入れかえます。',
+    (DA?ref:fix).push({k:'type',t:`効果ばつぐんを取れないタイプが${miss.length}タイプある`,ev:DA?['実際に倒しきれるかは、上の「攻撃」の項目（ダメージ計算）で見ています。ここはタイプ相性の上での参考です']:[],d:`${hasSets?'登録した技':'タイプ一致の技'}では、${miss.join('・')}タイプの相手に効果ばつぐんを取れません。`,how:sub.length?`サブの技を入れると範囲が広がります。例：${sub.slice(0,3).join('、')}。またはポケモンを入れかえます。`:'ほかのタイプの技を持つポケモンと入れかえます。',
       sw:(()=>{const hitN=q=>miss.filter(d=>q.t.some(a=>mult(a,[d])>=2)).length;return swaps(outOf(()=>true),q=>hitN(q)>=2,P.filter(q=>!inTeam.has(formInfo(q).base)&&hitN(q)>=2).sort((a,b)=>hitN(b)-hitN(a)||b.bst-a.bst))})()})}
   else good.push({t:'攻撃の範囲が広い',d:`${hasSets?'登録した技':'タイプ一致の技'}で、18タイプのうち${18-miss.length}タイプに効果ばつぐんを取れます。`});
   /* 3. 組み合わせ：天気・トリックルーム・物理/特殊の偏り */
@@ -237,7 +244,7 @@ function partyCheck(entries){
     const wa=T.filter(t=>m(A,t)>=2),wb=T.filter(t=>m(B,t)>=2);if(!wa.length||!wb.length)continue;
     const v=wa.filter(t=>m(B,t)<1).length/wa.length+wb.filter(t=>m(A,t)<1).length/wb.length;if(!pair||v>pair.v)pair={A,B,v,wa,wb}}
   if(pair&&pair.v>=1.4)good.push({t:`${esc(pair.A.p.n)}と${esc(pair.B.p.n)}が弱点を受け合える`,d:`${esc(pair.A.p.n)}の弱点（${pair.wa.join('・')}）の多くを${esc(pair.B.p.n)}が、${esc(pair.B.p.n)}の弱点（${pair.wb.join('・')}）の多くを${esc(pair.A.p.n)}が受けられます。不利な相手が出てきたら、交代で受け合えます。`});
-  else if(ms.length>=3&&T.some(t=>m(ms[0],t)>=2))fix.push({k:'type',t:'交代で受け合える組み合わせが少ない',d:'お互いの弱点を受け合える2匹がいないので、不利な相手が出てきたときに、交代で受けにくい形です。',how:`${esc(ms[0].p.n)}の弱点（${T.filter(t=>m(ms[0],t)>=2).join('・')||'なし'}）を受けられるポケモンと入れかえると、交代しやすくなります。`,sw:swaps(outOf(x=>x!==ms[0]),q=>T.filter(t=>m(ms[0],t)>=2).every(t=>monDef(q).find(z=>z.t===t).m<1),cands(T.filter(t=>m(ms[0],t)>=2)))});
+  else if(ms.length>=3&&T.some(t=>m(ms[0],t)>=2))(DA?ref:fix).push({k:'type',t:'交代で受け合える組み合わせが少ない',ev:DA?['実際に後出しできるかは、上の「防御」の項目（ダメージ計算）で見ています。ここはタイプ相性の上での参考です']:[],d:'お互いの弱点を受け合える2匹がいないので、不利な相手が出てきたときに、交代で受けにくい形です。',how:`${esc(ms[0].p.n)}の弱点（${T.filter(t=>m(ms[0],t)>=2).join('・')||'なし'}）を受けられるポケモンと入れかえると、交代しやすくなります。`,sw:swaps(outOf(x=>x!==ms[0]),q=>T.filter(t=>m(ms[0],t)>=2).every(t=>monDef(q).find(z=>z.t===t).m<1),cands(T.filter(t=>m(ms[0],t)>=2)))});
   /* 4. 持ち物（何を持たせているか） */
   const it=o=>o.x.set&&o.x.set.it&&o.x.set.it.k;
   const megas=ms.filter(o=>it(o)&&isStone(it(o)));
@@ -259,11 +266,13 @@ function partyCheck(entries){
   const fastest=Math.max(...ms.map(o=>maxSpe(o.p)));
   const scarf=ms.some(o=>it(o)==='choicescarf'),prio=ms.some(o=>((o.x.set&&o.x.set.mv)||[]).some(z=>{const i=z&&mvInfo(z.id);return i&&i.pri>0&&i.pow>0}));
   const tw=ms.some(o=>mvKeys(o).includes('tailwind'));
-  if(fastest>=165)good.push({t:'速いポケモンがいる',d:`いちばん速いポケモンは最速で${fastest}。多くの相手より先に動けます。`});
+  if(DA){}
+  else if(fastest>=165)good.push({t:'速いポケモンがいる',d:`いちばん速いポケモンは最速で${fastest}。多くの相手より先に動けます。`});
   else if(!scarf&&!prio&&!tw&&!trS.length)fix.push({t:'先に動く手段が少ない',d:`いちばん速いポケモンでも最速で${fastest}で、速い相手には先に攻撃されます。`,how:'こだわりスカーフ・先制技（でんこうせっか など）・おいかぜ・トリックルームのどれかを用意すると、速い相手にも対応しやすくなります。'});
   if(ms.length<entries.length||entries.length<6){}
   /* 選出（3〜4匹）では、受けられないタイプ・突けないタイプがあるのは当たり前なので、タイプの重なりは気になる点にしない（代わりに「選出の考え方」で相手ごとの選び方を出す） */
-  return{scope,good,fix:full?fix.filter(x=>x.k!=='type'):fix};
+  if(DA){fix.unshift(...DA.bad.map(x=>({...x,k:'calc'})));good.unshift(...DA.good.map(x=>({...x,k:'calc'})));ref.push(...DA.ref)}
+  return{scope,good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
 }
 /* ---- 選出の考え方：よく使われる相手40匹との1対1から、基本選出と「この相手がいるときはこう入れかえる」を出す ----
    1対1の点：お互いの最大ダメージから、何回で倒せるか（素早さで先に動ける方が有利）。選出は「相手のだれにも、選出のだれかが有利に戦える」が多い組み合わせ */

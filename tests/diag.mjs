@@ -61,6 +61,48 @@ ok(R.team[0]>0&&R.team[1]===0,'パーティ全体の判定が計算と食い違�
 ok(R.team[2]===false,'集計が読めていないのに読めた扱いになっています');
 ok(R.combos[0]===20&&R.combos[1]===15,'選出の組み合わせの数 '+R.combos);
 ok(R.sel[0]===3&&R.sel[2]===4&&R.sel[1]>0&&R.sel[1]<=20&&R.sel[3]>0&&R.sel[3]<=15,'選出の計算 '+R.sel);
+/* 第4段階：パーティ全体の分析 */
+const R4=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  /* 作った結果で、1匹に頼っている形を見つけられるか（計算に依らない確認） */
+  const mon=i=>({p:P[i]}),mv={n:'わざ',t:'ノーマル'};
+  const z=(i,o)=>({i,k:'lose',r:1,t:'',why:[''],me:null,op:null,spd:-1,first:-1,sa:100,so:120,myN:9,opW:1,pr:null,...o});
+  const kill=i=>z(i,{me:{mv,min:60,max:70,nMin:2,nMax:2,ohko:0},op:{mv,min:50,max:60,nMin:2,nMax:2,eff:1},opW:2,myN:2,first:1,spd:1,sa:150,k:'ko_fast',r:5});
+  const tank=i=>z(i,{op:{mv,min:20,max:25,nMin:4,nMax:4,eff:.5},opW:4,me:{mv,min:20,max:25,nMin:4,nMax:4,ohko:0},myN:4,k:'wall',r:3});
+  const T={ms:[mon(0),mon(1),mon(2)],rows:[0,1,2,3].map(j=>({q:{n:'相手'+j},o:{},res:[kill(0),tank(1),z(2)],lvl:3})),unk:[],live:false,liveAll:false};
+  const A=dgAnalyze(T),ts=A.bad.map(x=>x.t);
+  r.soleK=ts.some(t=>/だけが確定2発で倒せる相手が4匹/.test(t));
+  r.soleS=ts.some(t=>/後出しできるのが.*だけの相手が4匹/.test(t));
+  r.soleF=ts.some(t=>/先に動けるのが.*だけの相手が4匹/.test(t));
+  r.noBad=!ts.some(t=>/確定2発で倒せるポケモンがいない/.test(t))&&!ts.some(t=>/後出しできる匹がいない/.test(t));
+  /* 全員が遅く、先制技で確定で倒せるとき */
+  const T2={...T,rows:T.rows.map(row=>({...row,res:row.res.map(x=>({...x,spd:-1,first:-1,pr:x.i===0?{mv,min:120,max:140}:null}))}))};
+  const sp=dgAnalyze(T2).bad.find(x=>/だれよりも速い相手/.test(x.t));r.prio=!!sp&&/先制技で確定で倒せます/.test(sp.d)&&sp.sev<=2;
+  /* 実際のパーティ：計算の項目が dgTeam の数と合う・タイプだけの気になる点には計算の根拠がある */
+  team.length=0;['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー'].forEach(s=>team.push({no:N(s).no}));
+  const C=partyCheck(team),DT=dgTeam(team,20);
+  const noSw=DT.rows.filter(row=>!row.res.some(x=>x.opW>=3)).length,noK=DT.rows.filter(row=>!row.res.some(x=>x.me&&x.me.nMin<=2)).length;
+  const f1=C.fix.find(x=>/後出しできる匹がいない相手/.test(x.t)),f2=C.fix.find(x=>/確定2発で倒せるポケモンがいない/.test(x.t));
+  r.match=[noSw?!!f1&&f1.t.includes(noSw+'匹'):!f1,noK?!!f2&&f2.t.includes(noK+'匹'):!f2];
+  r.typeEv=C.fix.filter(x=>x.k==='type').every(x=>x.ev&&x.ev.length&&!/参考/.test(x.ev[0]));
+  r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
+  r.unk=/計算に入っていない特性/.test(C.premise);
+  /* ★で選出を見るとき・ダブル */
+  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/★/.test(C3.scope);
+  setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);setFmt('single');
+  return r;
+});
+ok(R4.soleK,'攻撃役が1匹に頼っている形を見つけられません');
+ok(R4.soleS,'後出しが1匹に頼っている形を見つけられません');
+ok(R4.soleF,'素早さが1匹に頼っている形を見つけられません');
+ok(R4.noBad,'倒せる・後出しできる相手を「いない」と言っています');
+ok(R4.prio,'先制技で補えることが書かれていません');
+ok(R4.match.every(Boolean),'パーティのチェックの数が計算と合いません '+R4.match);
+ok(R4.typeEv,'タイプ相性だけの気になる点に計算の根拠がありません');
+ok(R4.calcEv,'計算の項目に根拠・深刻度がありません');
+ok(R4.unk,'計算に入っていない特性が書かれていません');
+ok(R4.sel,'★の選出で見るとき');
+ok(R4.dbl,'ダブルのとき');
 /* 11. 画面：パーティの「チェック」に出る・データ不足を書く */
 await pg.evaluate(()=>{team.length=0;['ガブリアス','サーフゴー','アシレーヌ'].forEach(s=>team.push({no:P.find(x=>x.n===s).no}));saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';location.hash='#/team'});
 await pg.waitForTimeout(1500);
