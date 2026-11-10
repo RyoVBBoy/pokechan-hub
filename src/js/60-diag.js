@@ -22,6 +22,9 @@ const DG_K={ko_fast:{r:5,t:'上から倒せる'},tank:{r:4,t:'耐えて倒せる
   shaky:{r:2,t:'勝てるが不安定'},cond:{r:2,t:'条件つき'},lose:{r:1,t:'対応できない'}};
 const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エレキフィールド等）の威力の変化、追い風・トリックルーム・ステルスロックなどの場の効果、やけど・まひ以外の状態異常、能力を下げる追加効果、急所は計算に入れていません。素早さを変える特性は、天気で速くなる特性（すいすい等）だけ入れています。';
 /* 1つの技のダメージ（最大HPに対する％）：乱数の最小・最大と、16段階のうち倒しきれる段階の数 */
+/* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
+   メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
+const dgMvName=(a,mv)=>{try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技）`}catch(e){}return mv.n};
 function dgMove(a,mv,d){
   const dg=d.disg;d.disg=false;
   try{
@@ -37,7 +40,7 @@ function dgMove(a,mv,d){
     const roll=r=>{if(half)d.hp=d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
     /* 一撃で倒せる段階の数は初撃（マルチスケイル等なら半分）で数える */
     let ohko=0;if((half?max/2:max)>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>Math.floor(roll(r)*(half?.5:1))*h>=d.max).length;
-    return{mv,min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:half?d.ab:null,fmin:half?min/2:min,fmax:half?max/2:max};
+    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:half?d.ab:null,fmin:half?min/2:min,fmax:half?max/2:max};
   }finally{d.disg=dg}
 }
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */
@@ -98,14 +101,15 @@ function dgMatch0(a,o){
      win＝1発目を耐え、そこから撃ち合っても先に倒せる／survive＝1発目は耐えるが撃ち合いでは負ける（受けてまた交代する役）／no＝1発目で倒される */
   const swIn=!op||opW>=9?'win':opW<2?'no':swOk?'win':'survive';
   const swLeft=op?Math.max(0,100-op.fmax):100;
-  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mv.n} 最大${dgPct(op.fmax)}）で倒される`:`交代で受ける1発目：${op.mv.n}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
+  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
   let k='lose',why=[];
-  const meTxt=me?`${me.mv.n}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
-  const opTxt=op?`相手の${op.mv.n}で${dgDmgTxt(op,'me')}（${dgKoTxt(op)}）`:'相手に効く技がない';
+  const wxT=B.weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
+  const meTxt=me?`${me.mvn}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
+  const opTxt=op?`相手の${op.mvn}で${dgDmgTxt(op,'me')}（${dgKoTxt(op)}）`:'相手に効く技がない';
   if((first===1&&winSafe)||prKO){k='ko_fast';
-    if(prKO&&!(first===1&&winSafe))why.push(`${spd===0?'同速だが':'遅いが'}先制技の${pr.mv.n}で${dgDmgTxt(pr,'op')}（確定1発）`);
+    if(prKO&&!(first===1&&winSafe))why.push(`${spd===0?'同速だが':'遅いが'}先制技の${pr.mvn}で${dgDmgTxt(pr,'op')}（確定1発）`);
     else if(spd===1)why.push(myN===1?`素早さで上を取れる（${sa} 対 ${so}）。${meTxt}＝先に動いて確定で一撃`:`素早さで上を取れる（${sa} 対 ${so}）が、一撃で倒せるとは限らない：${meTxt}。一撃にならなくても、相手の反撃を耐えて${myN}発目で先に倒しきれる`);
-    else why.push(`${spd===0?'同速だが':'遅いが'}、最後のとどめを先制技の${pr.mv.n}で先に入れられる。${meTxt}`);
+    else why.push(`${spd===0?'同速だが':'遅いが'}、最後のとどめを先制技の${pr.mvn}で先に入れられる。${meTxt}`);
     why.push(myN===1&&spd===1?'相手は動く前に倒れる':`相手の反撃：${opTxt.replace(/^相手の/,'')}`)}
   else if(winSafe&&swOk){k='switch';why.push(swTxt,`こちら：${meTxt}`)}
   else if(winSafe){k=resist&&opW>=3?'wall':'tank';why.push(`最大の乱数でも先に倒れない：${opTxt}`,`こちら：${meTxt}`)}
@@ -117,14 +121,15 @@ function dgMatch0(a,o){
     if(up){k='cond';why.push(`${up}を1回使ってから戦えば勝てる`,`こちら：${meTxt}`,opTxt)}
     else{k='lose';why.push(`こちら：${meTxt}`,opTxt)}}
   /* 命中：90%未満の技に頼る勝ちは「不安定」に下げる（90%以上は注意書きだけ） */
-  if(me&&me.acc<100&&DG_K[k].r>=3&&!(k==='ko_fast'&&prKO)){if(me.acc<90){k='shaky';why.unshift(`${me.mv.n}の命中が${Math.round(me.acc)}%なので外れると負ける`)}else why.push(`${me.mv.n}の命中は${Math.round(me.acc)}%`)}
+  if(me&&me.acc<100&&DG_K[k].r>=3&&!(k==='ko_fast'&&prKO)){if(me.acc<90){k='shaky';why.unshift(`${me.mvn}の命中が${Math.round(me.acc)}%なので外れると負ける`)}else why.push(`${me.mvn}の命中は${Math.round(me.acc)}%`)}
   if(spd===0&&!why.some(w=>/同速/.test(w)))why.push(spdTxt);
+  if(wxT)why.push(wxT);
   if(me&&me.half)why.push(`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの攻撃の1発目だけダメージが半分になる（倒すまでの回数はこれを入れて数えています）`);
   if(op&&op.half)why.push(`こちらの${ABN[op.half]||'特性'}：こちらのHPが満タンのとき、相手の攻撃の1発目だけダメージが半分になる`);
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
   const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
-  return{k,r:DG_K[k].r,t,why,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft};
+  return{k,r:DG_K[k].r,t,why,wxTeam:!!wxT,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft};
 }
 /* パーティ（entries）× 相手（metaOpps）の表。相手の型は使用率の高い型（detSet）。集計の有無も返す */
 /* 同じパーティ・形式・集計の読み込み状況なら、計算を使い回す（パーティのチェックと「相手ごとの対応力」で同じ結果を使う） */
@@ -163,7 +168,7 @@ function dgFill(entries){
   const rowHTML=r=>{const L=DG_LV[r.lvl],best=[...r.res].sort((a,b)=>b.r-a.r).slice(0,3);
     return `<details class="dg-r dg-${L[2]}"><summary><span class="dg-lv">${L[0]}</span><b>${esc(r.q.n)}</b><small>${r.stable.length?r.stable.map(x=>nm1(x.i)).join('・')+'で対応':r.ok.length||r.weak.length?'不安定':'答えなし'}</small></summary>
       <p class="dg-why">${L[1]}${r.live?'':'（この相手は使用率の集計が読めていないため、自動で決めた型で計算）'}</p>
-      <ul>${best.map(x=>`<li><span class="dg-k dg-k${x.r}">${x.t}</span><b>${nm1(x.i)}</b>：${x.why.map(esc).join('／')}<small>素早さ ${x.sa} 対 ${x.so}${x.spd===0?'（同速）':''}</small></li>`).join('')}</ul></details>`};
+      <ul>${best.map(x=>`<li><b>${nm1(x.i)}</b>（こちら）は <span class="dg-k dg-k${x.r}">${x.t}</span>：${x.why.map(esc).join('／')}<small>素早さ：${nm1(x.i)} ${x.sa} 対 ${esc(r.q.n)} ${x.so}（${x.spd===1?'こちらが先':x.spd===0?'同速':'相手が先'}）</small></li>`).join('')}</ul></details>`};
   const order=[...T.rows].sort((a,b)=>a.lvl-b.lvl);
   el.innerHTML=`<div class="sec"><h2>相手ごとの対応力（計算）</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
     <p class="note" style="padding-top:0">使用率の上位${T.rows.length}匹（パーティにいる種類は除く）に、1匹ずつ実際のダメージ計算と素早さで「先に倒せるか・耐えて倒せるか・後出しできるか」を見ています。弱点を突けるだけでは「対応できる」にしません。</p>
@@ -194,14 +199,14 @@ function dgAnalyze(T){
     const bestOf=r=>[...r.res].filter(z=>z.me).sort((a,b)=>b.me.min-a.me.min)[0];
     bad.push({area:'攻撃',sev:sevOf(noKill),t:`確定2発で倒せるポケモンがいない相手が${noKill.length}匹`,
       d:'乱数がいちばん低く出ても2回の攻撃で倒せる匹がいません。削り合いが長引き、相手の積み技や回復を許しやすくなります。',
-      ev:list(noKill,r=>{const b=bestOf(r);return b?`${qn(r)}：いちばん削れるのは${nm(b.i)}の${b.me.mv.n}で${dgDmgTxt(b.me,'op')}（${dgKoTxt(b.me)}）`:`${qn(r)}：効く攻撃技を持つ匹がいない`}),
+      ev:list(noKill,r=>{const b=bestOf(r);return b?`${qn(r)}：いちばん削れるのは${nm(b.i)}の${b.me.mvn}で${dgDmgTxt(b.me,'op')}（${dgKoTxt(b.me)}）`:`${qn(r)}：効く攻撃技を持つ匹がいない`}),
       how:'その相手に効果ばつぐんを取れる技か、威力の高いタイプ一致技を覚えさせる・火力を上げる持ち物（いのちのたま・タイプ強化の道具など）を持たせると届くことがあります。変更後の計算は第6段階の改善案で確かめられるようにします。'});
   }else good.push({area:'攻撃',t:`上位${N}匹すべてに、確定2発で倒せる匹がいる`,ev:[]});
   /* 1匹に攻撃役を頼っている相手 */
   const soleK={};R.forEach(r=>{const k=kill(r);if(k.length===1)(soleK[k[0].i]=soleK[k[0].i]||[]).push(r)});
   Object.entries(soleK).filter(([,rs])=>rs.length>=3).forEach(([i,rs])=>bad.push({area:'攻撃',sev:rs.some(top)?2:1,t:`${nm(+i)}だけが確定2発で倒せる相手が${rs.length}匹`,
     d:`${nm(+i)}が倒されたり、ほかの相手の相手をしていると、次の相手を倒しきれる匹がいなくなります。`,
-    ev:list(rs,r=>{const z=x2(r,+i);return `${qn(r)}：${z.me.mv.n}で${dgDmgTxt(z.me,'op')}（${dgKoTxt(z.me)}）`}),
+    ev:list(rs,r=>{const z=x2(r,+i);return `${qn(r)}：${z.me.mvn}で${dgDmgTxt(z.me,'op')}（${dgKoTxt(z.me)}）`}),
     how:`同じ相手を確定2発で倒せる2匹目を用意すると、${nm(+i)}に頼らずに済みます。`}));
   /* ---- 防御：一撃で倒される危険・後出しできる匹 ---- */
   const half=Math.max(2,Math.ceil(n/2));
@@ -209,7 +214,7 @@ function dgAnalyze(T){
   if(ohko.length)bad.push({area:'防御',sev:sevOf(ohko),t:`${n}匹中${half}匹以上を一撃で倒せる相手が${ohko.length}匹`,
     d:'相手の乱数がいちばん高く出たときに、パーティの半分以上が一撃で倒されます。この相手に先に動かれると、数を一気に減らされます。',
     ev:list(ohko,r=>{const o=r.res.filter(z=>z.op&&z.op.nMax===1),s=r.res.filter(z=>z.op&&z.op.nMax>1).sort((a,b)=>a.op.max-b.op.max)[0];
-      return `${qn(r)}：${o.map(z=>nm(z.i)).join('・')}を一撃${s?`。耐えるのは${nm(s.i)}（${s.op.mv.n}で最大${pc(s.op.fmax)}）`:''}`}),
+      return `${qn(r)}：${o.map(z=>nm(z.i)).join('・')}を一撃${s?`。耐えるのは${nm(s.i)}（${s.op.mvn}で最大${pc(s.op.fmax)}）`:''}`}),
     how:'この相手の攻撃を2回耐えられる匹（タイプで半減以下にする・能力ポイントを耐久に回す）を用意するか、相手より先に動いて倒せる匹を入れます。'});
   const sw=r=>r.res.filter(z=>z.swIn==='win'),swSurv=r=>r.res.filter(z=>z.swIn==='survive');
   const noSw=R.filter(r=>!sw(r).length);
@@ -220,7 +225,7 @@ function dgAnalyze(T){
   const soleS={};R.forEach(r=>{const k=sw(r);if(k.length===1)(soleS[k[0].i]=soleS[k[0].i]||[]).push(r)});
   Object.entries(soleS).filter(([,rs])=>rs.length>=3).forEach(([i,rs])=>bad.push({area:'防御',sev:1,t:`後出しできるのが${nm(+i)}だけの相手が${rs.length}匹`,
     d:`${nm(+i)}のHPが減ると、これらの相手を交代で受けられなくなります。`,
-    ev:list(rs,r=>{const z=x2(r,+i);return `${qn(r)}：${z.op?`交代で受ける1発目 ${z.op.mv.n} 最大${pc(z.op.fmax)}`:'効く技がない'}`}),how:`同じ相手を受けられる2匹目がいると、${nm(+i)}の負担が減ります。`}));
+    ev:list(rs,r=>{const z=x2(r,+i);return `${qn(r)}：${z.op?`交代で受ける1発目 ${z.op.mvn} 最大${pc(z.op.fmax)}`:'効く技がない'}`}),how:`同じ相手を受けられる2匹目がいると、${nm(+i)}の負担が減ります。`}));
   if(!noSw.length)good.push({area:'防御',t:`上位${N}匹すべてに、後出しできる匹がいる`,ev:[]});
   /* ---- 素早さ ---- */
   const faster=r=>r.res.filter(z=>z.spd===1);
@@ -229,7 +234,7 @@ function dgAnalyze(T){
     const cov=slowAll.filter(r=>{const p=pr(r);return p&&p.pr.min>=100});
     bad.push({area:'素早さ',sev:Math.max(1,sevOf(slowAll)-(cov.length===slowAll.length?1:0)),t:`パーティのだれよりも速い相手が${slowAll.length}匹`,
       d:'素早さ（こだわりスカーフ・天気で速くなる特性・まひも入れて計算）で、だれも先に動けない相手です。'+(cov.length?`このうち${cov.length}匹は先制技で確定で倒せます。`:''),
-      ev:list(slowAll,r=>{const f=[...r.res].sort((a,b)=>b.sa-a.sa)[0],p=pr(r);return `${qn(r)}（素早さ${f.so}）：いちばん速い${nm(f.i)}は${f.sa}${f.sa===f.so?'（同速）':''}${p?`。先制技：${nm(p.i)}の${p.pr.mv.n}で${dgDmgTxt(p.pr,'op')}`:''}`}),
+      ev:list(slowAll,r=>{const f=[...r.res].sort((a,b)=>b.sa-a.sa)[0],p=pr(r);return `${qn(r)}（素早さ${f.so}）：いちばん速い${nm(f.i)}は${f.sa}${f.sa===f.so?'（同速）':''}${p?`。先制技：${nm(p.i)}の${p.pr.mvn}で${dgDmgTxt(p.pr,'op')}`:''}`}),
       how:'こだわりスカーフ・先制技・素早さに能力ポイントを回すなどで、上を取れる匹を作ります。'});
   }else good.push({area:'素早さ',t:`上位${N}匹すべてに、先に動ける匹がいる`,ev:[]});
   const soleF={};R.forEach(r=>{const k=faster(r);if(k.length===1)(soleF[k[0].i]=soleF[k[0].i]||[]).push(r)});

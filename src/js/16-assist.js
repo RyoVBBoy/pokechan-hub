@@ -9,7 +9,22 @@ const detSet=p=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):((typeof topSetCa
    対戦の画面など、すでに天気が決まっているとき（B.weather）はそのまま */
 function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return null;if(s.length===1)return WSET[s[0].ab];
   return WSET[(s[0].st[5]<=s[1].st[5]?s[0]:s[1]).ab]}
-function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();const k=wxPair(a,b);if(!k)return fn();B.weather={k,t:5};try{return fn()}finally{B.weather=null}}
+/* パーティの天気（2026/11/10 依頼主：晴れのパーティなのに、ようりょくそ の素早さ2倍が1対1の計算に入っていなかった）。
+   1対1では2匹のどちらかが天気を変える特性のときだけ天気を入れていたので、パーティの別の匹（ひでり等）が作る天気が入らなかった。
+   こちらのパーティに天気を作る匹がいて、その天気で得をする特性（ようりょくそ・すいすい等の素早さ2倍、サンパワー、すなのちから）の匹が
+   こちら側で戦うときは、その天気で計算する（相手が天気を変える特性なら、あとから出る相手の天気が優先＝wxPair）。 */
+const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-swim'],sand:['sand-rush','sand-force'],snow:['slush-rush']};
+let TWX_K=null,TWX_V=null;
+function teamWx(){if(typeof team==='undefined'||!team.length)return null;
+  const key=JSON.stringify(team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k]));if(key===TWX_K)return TWX_V;
+  let v=null;for(const x of team){const p=byNo[x.no];if(!p)continue;let ab=null;
+    try{const it=x.set&&x.set.it&&x.set.it.k,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||mySetFor(x.no).ab}catch(e){}
+    if(ab&&WSET[ab]){v={k:WSET[ab],by:formInfo(p).base,ab};break}}
+  TWX_K=key;TWX_V=v;return v}
+const inTeam=m=>typeof team!=='undefined'&&team.some(x=>{const p=byNo[x.no];return p&&(p.no===(m.p.base||m.p.no)||p.no===m.p.no)});
+function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();let k=wxPair(a,b),by=null;
+  if(!k){const tw=typeof teamWx==='function'?teamWx():null;if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
+  if(!k)return fn();B.weather={k,t:5,team:by};try{return fn()}finally{B.weather=null}}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
@@ -31,7 +46,7 @@ function analyze(myNos,opNos,mySF,opSF,W){
     const M=myNos.map(n=>mkMon(byNo[n],'me',mySF(n))),O=opNos.map(n=>mkMon(byNo[n],'op',opSF(n)));
     const w=O.map((_,j)=>W?W[j]:1),wt=w.reduce((a,b)=>a+b,0)||1;
     const D=M.map(m=>O.map(o=>estHit(m,o))),R=O.map(o=>M.map(m=>estHit(o,m)));
-    const fast=M.map(m=>O.map(o=>effSpd(m)>effSpd(o)));
+    const fast=M.map(m=>O.map(o=>withWx(m,o,()=>effSpd(m)>effSpd(o))));/* 天気（パーティの天気も）で速くなる特性を入れて比べる（2026/11/10） */
     const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
     const defV=i=>O.reduce((a,_,j)=>a+w[j]*Math.min(R[j][i].pct*R[j][i].acc/100,100)/100,0)/wt;
     /* 1対1の判定（56-duel.js：タスキ・先制技・積み技・命中なども入る）を足す。相手のだれにも、選出のだれかが有利に戦えるほど高い（2026/11/06） */

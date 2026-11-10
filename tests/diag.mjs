@@ -177,6 +177,31 @@ const LS=await pg.evaluate(()=>{const cb=dgAnalyze(dgTeam(team,20)).bad.filter(x
   return {cb,st,note:!!(el&&el.querySelector('.ls-cb')),rows:dgTeam(team,20).rows.length,check:document.querySelectorAll('.pc-i').length}});
 ok(LS.rows>0&&LS.check>0,'6匹の計算・チェックが出ない');
 ok(!LS.cb||(LS.st!=='問題なし'&&LS.note),'計算の注意があるのに「構築：問題なし」 '+JSON.stringify(LS));
+/* 2026/11/10 依頼主の検証3：素早さの比べ方・パーティの天気・技のタイプの変化・全体への反映 */
+const V3=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const S=(p,ids,o={})=>mkMon(p,o.side||'me',{ab:o.ab||(ABD[p.no]||[[null]])[0][0],item:o.item||null,moves:ids.map(mvObj),sp:[2,32,0,0,0,32],up:1,dn:3});
+  /* こちらが速い → spd 1・上から、こちらが遅い → spd -1・上からにならない（先制技なし） */
+  const a=S(N('ルチャブル'),[413]),g=S(N('ギャラドス'),[127],{side:'op'});a.st[5]=170;g.st[5]=133;const m1=dgMatch(a,g);
+  r.fast=[m1.spd===1,m1.sa===170&&m1.so===133,!/下になる/.test(m1.spdTxt)];
+  a.st[5]=120;const m2=dgMatch(a,g);r.slow=[m2.spd===-1,m2.k!=='ko_fast',/下になる/.test(m2.spdTxt)];
+  /* 晴れ（パーティのひでり）＋ようりょくそ：素早さ2倍で比べる。ひでりがいなければそのまま */
+  team.length=0;['リザードン','フシギバナ'].forEach(s=>team.push({no:N(s).no}));team[0].set={it:{k:'charizarditey',n:''},mv:[]};team[1].set={ab:{k:'chlorophyll',n:''},mv:[]};
+  const ve=mkMon(N('フシギバナ'),'me',mySetFor(N('フシギバナ').no)),o=mkMon(N('ガブリアス'),'op',detSet(N('ガブリアス')));
+  const base=ve.st[5],m3=dgMatch(ve,o);r.sun=[m3.sa===base*2,m3.why.some(w=>/晴れの中で計算/.test(w))];
+  const A=analyze([N('フシギバナ').no],[N('ガブリアス').no]);r.sunSel=A.fast[0][0]===(base*2>effSpd(o));
+  team.length=0;team.push({no:N('フシギバナ').no,set:{ab:{k:'chlorophyll',n:''},mv:[]}});
+  const ve2=mkMon(N('フシギバナ'),'me',mySetFor(N('フシギバナ').no));r.noSun=dgMatch(ve2,o).sa===ve2.st[5];
+  /* スカイスキン：すてみタックルをひこう技として計算し、名前にそう書く */
+  const bo=mkMon(N('ボーマンダ'),'op',{...detSet(N('ボーマンダ')),item:'salamencite',moves:[mvObj(38)]}),t=S(N('ルチャブル'),[413]);
+  const x=dgMove(bo,bo.moves[0],t);r.skin=[bo.ab==='aerilate',/スカイスキンでひこう技/.test(x.mvn),hitType(bo,bo.moves[0])==='ひこう'];
+  return r});
+ok(V3.fast.every(Boolean),'こちらが速いとき '+V3.fast);
+ok(V3.slow.every(Boolean),'こちらが遅いとき '+V3.slow);
+ok(V3.sun.every(Boolean),'パーティの晴れ＋ようりょくそ '+V3.sun);
+ok(V3.sunSel,'選出の計算にもパーティの晴れが入る');
+ok(V3.noSun,'晴れにする匹がいないのに2倍にしている');
+ok(V3.skin.every(Boolean),'スカイスキンの書き方 '+V3.skin);
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

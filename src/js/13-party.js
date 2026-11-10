@@ -113,7 +113,10 @@ function teamRender(){
   out.innerHTML=`${teamStepsHTML()}${loseHTML()}${dgHTML()}
   <div class="sec"><h2>パーティのチェック</h2></div>
   <p class="note" style="padding-top:0">${C.scope}を、使用率の上位の相手との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
-  ${C.fix.length?`<h3 class="pc-h">気になる点（${C.fix.length}件）</h3>${C.fix.map(x=>item(x,true)).join('')}`:'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
+  ${(()=>{const fc=C.fix.filter(x=>x.k==='calc'),fo=C.fix.filter(x=>x.k!=='calc'),sv=v=>fc.filter(x=>x.sev===v).length;
+    /* 2026/11/10 依頼主：件数の意味を分ける。上＝相手との1対1の計算で見つかった弱点、下＝組み合わせ・タイプ・持ち物の点検 */
+    return (fc.length?`<h3 class="pc-h">対面の計算で見つかった弱点（${fc.length}件：深刻${sv(3)}・注意${sv(2)}・軽い${sv(1)}）</h3><p class="note" style="padding-top:0">使用率の上位の相手と1匹ずつダメージ・素早さを計算した結果です。</p>${fc.map(x=>item(x,true)).join('')}`:'')+
+      (fo.length?`<h3 class="pc-h">組み合わせ・タイプ・持ち物の気になる点（${fo.length}件）</h3><p class="note" style="padding-top:0">パーティの形（タイプの重なり・持ち物・技の組み合わせ）の点検です。</p>${fo.map(x=>item(x,true)).join('')}`:'')})()}${C.fix.length?'':'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   ${C.ref&&C.ref.length?`<details class="pc-ref"><summary>参考（タイプ相性の上で・役割の重なり）${C.ref.length}件</summary>${C.ref.map(x=>item(x,false)).join('')}</details>`:''}
   ${C.premise?`<details class="pc-ref"><summary>計算の前提</summary><p class="note">${esc(C.premise)}</p></details>`:''}
@@ -212,7 +215,7 @@ function partyCheck(entries){
     (news||[]).slice(0,3-r.length).forEach(p=>r.push({out,inP:p}));return r};
   /* 計算で、上位の相手が実際にこのタイプの技で弱点の匹を押し込んでくるか（その相手への対応が不安定以下） */
   const typeHit=t=>DT?DT.rows.filter(row=>row.lvl<=2&&row.res.some(z=>z.op&&hitType(row.o,z.op.mv)===t&&z.op.eff>=2)):null;
-  if(danger.length)danger.slice(0,2).forEach(r=>{const th=typeHit(r.t);(th&&!th.length?ref:fix).push({k:'type',ev:th&&th.length?th.slice(0,4).map(row=>{const z=row.res.filter(z=>z.op&&hitType(row.o,z.op.mv)===r.t).sort((a,b)=>b.op.max-a.op.max)[0];return `${row.q.n}：${formInfo(T_MS(z.i)).base}に${z.op.mv.n}で最大${dgPct(z.op.max)}`}):th?['計算では、使用率の上位の相手にこのタイプで押し込まれる相手は見つかりませんでした（タイプ相性の上での参考）']:[],t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
+  if(danger.length)danger.slice(0,2).forEach(r=>{const th=typeHit(r.t);(th&&!th.length?ref:fix).push({k:'type',ev:th&&th.length?th.slice(0,4).map(row=>{const z=row.res.filter(z=>z.op&&hitType(row.o,z.op.mv)===r.t).sort((a,b)=>b.op.max-a.op.max)[0];return `${row.q.n}${SKIN[row.o.ab]?'（'+(ABN[row.o.ab]||'')+'）':''}：${formInfo(T_MS(z.i)).base}に${z.op.mvn}で最大${dgPct(z.op.max)}`}):th?['計算では、使用率の上位の相手にこのタイプで押し込まれる相手は見つかりませんでした（タイプ相性の上での参考）']:[],t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
     how:`${r.t}技を半減以下で受けられるポケモンと入れかえるか、${r.t}技を使う相手を先に倒せる味方を用意します。`,sw:swaps(outOf(o=>r.w.includes(o)),q=>monDef(q).find(z=>z.t===r.t).m<1,cands([r.t]))})});
   else if(ms.length>=3)good.push({t:'弱点が大きく重なっていない',d:`${need}匹以上が同じ弱点で、受けられる味方もいない、というタイプはありません。`});
   /* 2. 攻撃の範囲：登録した技があればその技、なければタイプ一致技で */
