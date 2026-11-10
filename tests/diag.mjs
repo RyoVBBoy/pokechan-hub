@@ -274,15 +274,29 @@ const V7=await pg.evaluate(()=>{
   /* タスキで1だけ残るのは後出しに数えない */
   const sashZ=T.rows.flatMap(row=>row.res.filter(z=>T.ms[z.i].p.n==='オオニューラ'&&z.op&&z.op.fmax>=100));
   r.sash=sashZ.length>0&&sashZ.every(z=>z.swIn!=='win');
-  r.sashTxt=sashZ.some(z=>z.swIn==='sash'&&/きあいのタスキでHPが1だけ残る/.test(z.swTxt));
+  r.sashTxt=sashZ.some(z=>z.swIn==='sash'&&/きあいのタスキで耐えても.*後出しできるとは数えない/.test(z.swTxt));
   /* タスキ→かるわざで先に一撃なら「条件つき」（sashwin）、一撃で倒せなければ数えない */
-  r.sashWin=sashZ.some(z=>z.swIn==='sashwin'&&/かるわざで素早さ2倍/.test(z.swTxt)&&/条件：/.test(z.swTxt))&&sashZ.filter(z=>z.swIn==='sashwin').every(z=>z.me.nMin===1&&z.sa2>z.so);
-  r.sashNoWin=sashZ.filter(z=>z.swIn==='sash').every(z=>!(z.me&&z.me.nMin===1&&z.sa2>z.so&&!(dgPrio(T.rows.find(row=>row.res.includes(z)).o,z.me?mkMon(T.ms[z.i].p,'me',mySetFor(T.ms[z.i].p.no)):null)||{max:0}).max));
+  r.sashWin=sashZ.some(z=>z.swIn==='sashwin')&&sashZ.filter(z=>z.swIn==='sashwin').every(z=>z.me.nMin===1&&z.sa2>z.so&&(z.sa>z.so||z.op.fmin>=100)&&/①交代で受ける1発目/.test(z.swTxt)&&/②素早さ/.test(z.swTxt)&&/③.*確定1発/.test(z.swTxt)&&/前提：交代時にHP満タン/.test(z.swTxt));
+  r.sashNoWin=sashZ.filter(z=>z.swIn==='sash').every(z=>!!z.sashBlock);
+  r.multiOut=T.rows.some(row=>row.q.n==='セグレイブ'&&row.res.some(z=>z.i===T.ms.findIndex(m=>m.p.n==='オオニューラ')&&z.swIn==='sash'&&z.sashBlock==='multi'));
   r.condSplit=A.bad.some(b=>/安定して後出しして勝てる匹がいない相手が\d+匹（うち\d+匹は条件つき/.test(b.t)&&b.ev.some(e=>/【条件つき】/.test(e)));
-  /* かるわざがあるときだけ上を取れる相手：同じ相手の素早さを200にすると、かるわざ（280以上）なら条件つき、ほかの特性なら数えない */
-  const oo=T.ms.findIndex(m=>m.p.n==='オオニューラ'),rowS=T.rows.find(row=>row.res.some(z=>z.i===oo&&z.swIn==='sashwin'));
-  if(rowS){const base=mySetFor(T.ms[oo].p.no),mk=ab=>mkMon(T.ms[oo].p,'me',{...base,ab}),o2={...rowS.o,st:[...rowS.o.st]};const s0=effSpd(mk('unburden'));o2.st[5]=Math.floor(s0*1.4);
-    r.ub=[dgMatch(mk('unburden'),o2).swIn,dgMatch(mk('pressure'),o2).swIn]}else r.ub=['none'];
+  /* 2026/11/10 依頼主の確認：作った条件で1つずつ確かめる（ダメージは実際の計算。HP・素早さ・技だけ変える） */
+  const oo=T.ms.findIndex(m=>m.p.n==='オオニューラ'),row0=T.rows.find(row=>row.q.n==='フラエッテ（えいえんのはな）');
+  const base=mySetFor(T.ms[oo].p.no);
+  const mkA=(ab,H)=>{const a=mkMon(T.ms[oo].p,'me',{...base,ab});if(H){a.max=a.hp=H}return a};
+  const mkO=(spd,hp,add)=>{const o={...row0.o,st:[...row0.o.st],moves:[...row0.o.moves,...(add||[]).map(mvObj)]};o.st[5]=spd;if(hp){o.max=o.hp=hp}return o};
+  const a0=mkA('unburden'),sa=effSpd(a0),o0=mkO(sa+1),bm=dgBest(o0,a0),dmin=bcalc(o0,bm.mv,a0,{r:85}).dmg,dmax=bcalc(o0,bm.mv,a0,{r:100}).dmg;
+  const C=(ab,H,spd,hp,add)=>{const z=dgMatch(mkA(ab,H),mkO(spd,hp,add));return [z.swIn,z.sashBlock||'']};
+  const slowO=Math.floor(sa*1.4),fastO=sa-5;
+  r.cases={
+    sure:C('unburden',dmin,slowO,1),
+    unsure:dmin<dmax?C('unburden',dmax,slowO,1):['skip'],
+    noUb:C('pressure',dmin,slowO,1),
+    prio:C('unburden',dmin,slowO,1,[453]),
+    nokill:C('unburden',dmin,slowO,99999),
+    multi:C('unburden',dmin,slowO,1,[331]),
+    fastUnsure:dmin<dmax?C('unburden',dmax,fastO,1):['skip']
+  };
   /* 後出しで負ける（survive）と後出しできない（no）を分ける */
   const all=T.rows.flatMap(row=>row.res);r.kinds=['no','survive'].every(k=>all.some(z=>z.swIn===k));
   r.surviveOk=all.filter(z=>z.swIn==='survive').every(z=>z.op.fmax<100);
@@ -305,7 +319,10 @@ ok(V7.ohko,'一撃で倒される根拠に技とダメージがない');
 ok(V7.sash&&V7.sashTxt,'きあいのタスキで1だけ残るのを後出しできるに数えている');
 ok(V7.sashWin&&V7.sashNoWin,'タスキ→かるわざで先に一撃の「条件つき」の見分け '+JSON.stringify([V7.sashWin,V7.sashNoWin]));
 ok(V7.condSplit,'安定した後出しと条件つきを分けて出さない');
-ok(V7.ub[0]==='sashwin'&&V7.ub[1]==='sash','かるわざの素早さ2倍が入っていない '+V7.ub);
+ok(V7.multiOut,'連続技を持つ相手（セグレイブ）を条件つきにしている');
+{const c=V7.cases,E=(k,sw,bl)=>ok(c[k][0]==='skip'||(c[k][0]===sw&&(bl==null||c[k][1]===bl)),'タスキ＋かるわざ：'+k+' '+JSON.stringify(c[k]));
+ E('sure','sashwin');E('unsure','sash','unsure');E('noUb','sash','slow');E('prio','sash','prio');E('nokill','sash','nokill');E('fastUnsure','sashwin');
+ ok(c.multi[0]!=='sashwin','連続技でタスキが効かないのに条件つき '+c.multi);ok(c.unsure[0]!=='skip','最大だけ100%以上の場合を作れない')}
 ok(V7.swSet,'入れかえ案の匹の育成が適切でない（引きつぎ・覚えない技・重なる持ち物）');
 ok(V7.swDiff,'入れかえ案の良くなる・悪くなるの比べ方');
 ok(V7.kinds&&V7.surviveOk,'後出しできない／後出しして負けるを分けていない');

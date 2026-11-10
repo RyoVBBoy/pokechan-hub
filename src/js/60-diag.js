@@ -108,15 +108,28 @@ function dgMatch0(a,o){
   const swSash=!!op&&opW>=2&&opW<9&&opRaw<2;
   /* 2026/11/10 依頼主の確認①：タスキでHP1で耐えたあと、先に動いて一撃で倒せるなら「条件つきで後出しできる」（sashwin）。
      かるわざなら、タスキがなくなって素早さ2倍。相手の先制技・砂嵐（いわ・じめん・はがね以外）・連続技（タスキが効かない＝opW 1）では崩れる */
-  const ub=a.ab==='unburden'&&a.item==='focussash',sa2=ub?sa*2:sa,fast2=tr?sa2<so:sa2>so;
+  const ub=a.ab==='unburden'&&a.item==='focussash',sa2=ub?sa*2:sa,fast2=tr?sa2<so:sa2>so,fast1=tr?sa<so:sa>so;
+  /* 2026/11/10 依頼主の確認：条件つき後出し（sashwin）は「確実に」成り立つときだけ。
+     ①交代時はHP満タン（前提）②1発目は相手の乱数最小でも100%以上＝きあいのタスキが必ず発動してHP1（最大だけ100%以上なら、発動しないことがある）
+     ③かるわざが要るなら、タスキが必ず発動するときだけ素早さ2倍（同速は不可）④こちらの乱数最小で確定1発（相手のタスキ・がんじょう・マルチスケイルも入れた回数）
+     ⑤成り立たない：相手の連続技（どれか1つでも持っていればタスキが効かない）・ダメージを与える先制技・砂嵐（いわ・じめん・はがね以外）・設置技（集計で10%以上使う）・接触で反動を返す特性や持ち物 */
   const sandChip=!!(B.weather&&B.weather.k==='sand'&&!a.p.t.some(x=>['いわ','じめん','はがね'].includes(x)));
-  const opPrHit=!!(opPr&&opPr.max>0),cntRisk=['rough-skin','iron-barbs'].includes(o.ab)||o.item==='rockyhelmet';
-  const sashWin=swSash&&!!me&&me.nMin===1&&me.acc>=90&&fast2&&!opPrHit&&!sandChip;
-  const sashWhy=`${a.item==='focussash'?'きあいのタスキ':'がんじょう'}でHP1で耐え${ub?`、持ち物がなくなってかるわざで素早さ2倍（${sa}→${sa2} 対 ${so}）`:`（素早さ ${sa} 対 ${so}）`}`;
-  const sashCond=`条件：相手が連続技・先制技を使わない／砂嵐・設置技がない${cntRisk?`／相手の${o.item==='rockyhelmet'?'ゴツゴツメット':ABN[o.ab]}があるので、接触技で攻撃すると反動で倒れる`:''}`;
+  const opPrHit=!!(opPr&&opPr.max>0);
+  const multiMv=(o.moves||[]).find(m=>m&&m.maxH>1&&(()=>{try{return bcalc(o,m,a,{r:100}).dmg>0}catch(e){return false}})());
+  const cntRisk=['rough-skin','iron-barbs'].includes(o.ab)||o.item==='rockyhelmet';
+  const hzMv=(()=>{const d=LIVE.csv[o.p.base||o.p.no];if(!d||!d.mv)return null;const h=d.mv.find(([n,pc])=>{const id=MVKA[nrm(n)];return pc>=10&&(id===446||id===191||(id===390&&!a.p.t.some(x=>['どく','はがね'].includes(x))))});return h?mName(MVKA[nrm(h[0])]):null})();
+  const sashSure=!!op&&op.fmin>=100,needUb=ub&&!fast1&&fast2;
+  /* タスキが発動しなくても先に動けるなら、最小で100%未満でも同じ結果（HPが残るか1か）。かるわざが要るときは発動が確実なことが必要 */
+  const spdOk=fast1||(needUb&&sashSure);
+  const sashBlock=!me||me.nMin!==1?'nokill':me.acc<90?'acc':!fast2?'slow':!spdOk?'unsure':multiMv?'multi':opPrHit?'prio':sandChip?'sand':hzMv?'hazard':cntRisk?'contact':'';
+  const sashWin=swSash&&!sashBlock;
+  const sashWhy=`①交代で受ける1発目：${op?`${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}`:''}${sashSure?'（乱数がいちばん低くても100%以上なので、きあいのタスキが必ず発動してHP1で耐える）':'（乱数が低いとタスキは発動せずHPが少し残る。どちらでも耐える）'}②素早さ：${needUb?`タスキがなくなってかるわざが発動し ${sa}→${sa2}、相手の${so}より確実に先`:`${sa} 対 ${so}でもともと先`}③${me?`${me.mvn}は乱数がいちばん低くても${dgPct(me.fmin)}で確定1発（相手のタスキ・がんじょう・マルチスケイルも入れて計算）`:''}`;
+  const sashCond=`前提：交代時にHP満タン（それまでにダメージを受けていない）・相手がいちばん痛い技（${op?op.mvn:''}）を使う。確かめたこと：この相手の型に連続技・先制技はなく、砂嵐にもならず、接触で反動を返す特性・持ち物もない${LIVE.csv[o.p.base||o.p.no]?'。ランクバトルで設置技をよく使う相手でもない':''}。それでも成り立たないとき：ほかの相手のステルスロックなどの設置技でHPが減っている／相手が積み技で素早さを上げている`;
+  const blockTxt={nokill:'そのあと一撃で倒せない',acc:'倒す技の命中が不安定',slow:`${ub?'かるわざで素早さ2倍にしても':''}先に動けない（${sa2} 対 ${so}）`,unsure:`相手の1発目が乱数しだいで100%未満（${op?dgPct(op.fmin):''}〜）になり、タスキが発動しないことがある。そのときはかるわざも発動せず、素早さ ${sa} 対 ${so}で先に動けない`,
+    multi:`相手が連続技（${multiMv?mName(multiMv.id):''}）を持っていて、タスキが効かない`,prio:`HP1になったあと、相手の先制技（${opPr?opPr.mvn:''}）で倒される`,sand:'砂嵐のダメージでHP1から倒れる',hazard:`相手が設置技（${hzMv}）をよく使い、出てきたときにHPが減ってタスキが効かない`,contact:`相手の${o.item==='rockyhelmet'?'ゴツゴツメット':ABN[o.ab]}で、接触技で倒したときに反動でこちらも倒れる`}[sashBlock]||'';
   const swIn=!op||opW>=9?'win':opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':'survive';
   const swLeft=op?Math.max(0,100-op.fmax):100;
-  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:swSash&&sashWin?`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}。${sashWhy}、先に${me.mvn}で確定1発（${dgDmgTxt(me,'op')}）＝条件つきで後出しして勝てる。${sashCond}`:swSash?`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}。${a.item==='focussash'?'きあいのタスキ':'がんじょう'}でHPが1だけ残るが、${!me||me.nMin>1?'そのあと一撃で倒せない':!fast2?`${ub?'かるわざで素早さ2倍にしても':''}先に動けない（${sa2} 対 ${so}）`:opPrHit?`相手の先制技（${opPr.mvn}）で倒される`:sandChip?'砂嵐のダメージで倒れる':'命中が不安定'}ので、後出しできるとは数えない`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
+  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:swSash&&sashWin?`条件つきで後出しして勝てる：${sashWhy}。${sashCond}`:swSash?`交代で受ける1発目：${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}。${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で耐えても、${blockTxt}ので、後出しできるとは数えない`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
   let k='lose',why=[];
   const wxT=B.weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
   const meTxt=me?`${me.mvn}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
@@ -129,7 +142,7 @@ function dgMatch0(a,o){
   else if(winSafe&&swOk){k='switch';why.push(swTxt,`こちら：${meTxt}`)}
   else if(winSafe){k=resist&&opW>=3?'wall':'tank';why.push(`最大の乱数でも先に倒れない：${opTxt}`,`こちら：${meTxt}`)}
   else if(resist&&opW>=4&&myN<=4){k='wall';why.push(`相手のいちばん痛い技も半減以下：${opTxt}`,`こちら：${meTxt}`)}
-  else if(ub&&!tr&&spd<0&&op&&opW===2&&opRaw===1&&myN<=2&&me.acc>=90&&sa2>so&&!opPrHit&&!sandChip){k='cond';why.push(`相手が先に動くが、${sashWhy}、そのあと先に動いて${myN}発目で倒せる`,`こちら：${meTxt}`,opTxt,sashCond)}
+  else if(ub&&!tr&&spd<0&&op&&opW===2&&opRaw===1&&op.fmin>=100&&myN<=2&&me.acc>=90&&sa2>so&&!opPrHit&&!sandChip&&!multiMv&&!cntRisk){k='cond';why.push(`相手が先に動くが、${sashWhy}、そのあと先に動いて${myN}発目で倒せる`,`こちら：${meTxt}`,opTxt,sashCond)}
   else if(sashOnly){k='cond';why.push(`${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で1回耐えてから`,`こちら：${meTxt}`,opTxt)}
   else if(winTie||winBest){k='shaky';why.push(winTie?'同じ速さ（どちらが先に動くかは五分）':'乱数が高く出れば勝てる',`こちら：${meTxt}`,opTxt)}
   else{
@@ -145,7 +158,7 @@ function dgMatch0(a,o){
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
   const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
-  return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2};
+  return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
 }
 /* パーティ（entries）× 相手（metaOpps）の表。相手の型は使用率の高い型（detSet）。集計の有無も返す */
 /* 同じパーティ・形式・集計の読み込み状況なら、計算を使い回す（パーティのチェックと「相手ごとの対応力」で同じ結果を使う） */
