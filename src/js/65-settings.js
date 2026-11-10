@@ -45,12 +45,14 @@ function smEnsure(){
   return o;
 }
 /* 開く（page を渡すとその項目のページから） */
-function settingsOpen(page){
+function settingsOpen(page,opt={}){
   const o=smEnsure();SM.last=document.activeElement;
   o.querySelector('.sm-main').innerHTML=smMainHTML();
   if(typeof pushRow==='function')pushRow(document.getElementById('sm-push'),false,true);
   smBack(true);if(page&&SM_PAGES[page])smGo(page,true);
   o.hidden=false;document.body.classList.add('sm-lock');
+  /* 読み直したあとに開き直すときは、動き（下からすべり上がる・ふわっと出る）なしでその場に出す（2026/11/10 依頼主：設定を変えるたびに下から上に動くのが気になる） */
+  if(opt.instant){o.classList.add('sm-now','on');o.querySelector('.sm-p').focus({preventScroll:true});requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.remove('sm-now')));return}
   requestAnimationFrame(()=>requestAnimationFrame(()=>{o.classList.add('on');o.querySelector('.sm-p').focus({preventScroll:true})}));
 }
 function settingsClose(){
@@ -75,11 +77,11 @@ function smBack(quiet){
   main.classList.remove('in');if(!quiet){void main.offsetWidth;main.classList.add('in')}
   const r=was&&o.querySelector(`[data-sm-go="${was}"]`);if(r&&!quiet)r.focus({preventScroll:true});
 }
-/* 選択肢を押したとき：✓ と一覧の右の表示をすぐ変え、少し見せてから切りかえる（切りかえると読み直す→読み直したあとこの画面を開き直す） */
+/* 選択肢を押したとき：✓ と一覧の右の表示をすぐ変え、少し見せてから切りかえる（切りかえると読み直す→読み直したあと同じページを動きなしで開き直す） */
 function smPick(btn,id,fn){
   const box=btn.closest('.dr-opts');if(box)box.querySelectorAll('.dr-opt').forEach(x=>x.setAttribute('aria-pressed',x===btn?'true':'false'));
   const v=document.getElementById('sm-v-'+id);if(v)v.innerHTML=(id==='accent'?btn.querySelector('.dr-ri').innerHTML:'')+btn.querySelector('.dr-rt b').textContent;
-  try{sessionStorage.setItem('pcsmre','1')}catch(e){}
+  try{sessionStorage.setItem('pcsmre',id)}catch(e){}
   setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180)}
-/* 読み直したあと、設定の画面を開き直す */
-(function(){let re=null;try{re=sessionStorage.getItem('pcsmre');sessionStorage.removeItem('pcsmre')}catch(e){}if(re)setTimeout(()=>settingsOpen(),60)})();
+/* 読み直したあと、設定の画面を開き直す（選んでいた項目のページのまま・動きなし） */
+(function(){let re=null;try{re=sessionStorage.getItem('pcsmre');sessionStorage.removeItem('pcsmre')}catch(e){}if(re)settingsOpen(SM_PAGES[re]?re:null,{instant:true})})();

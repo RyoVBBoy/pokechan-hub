@@ -1967,6 +1967,8 @@ body::before{inset:0;background:
 .sm-main.in{animation-name:smBackIn}
 @keyframes smBackIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
 body.sm-lock{overflow:hidden}
+/* 読み直したあとに開き直すときは動かさない（65-settings.js の settingsOpen の instant） */
+.setm.sm-now .sm-p,.setm.sm-now .sm-bg{transition:none!important}
 @media(max-width:699px){
   .setm{align-items:flex-end}
   .sm-p{width:100%;height:100%;max-height:none;border-radius:0;box-shadow:none;opacity:1;transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}

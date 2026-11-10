@@ -168,8 +168,11 @@ for(const W of [320,390,1280]){
     await pg.evaluate(()=>settingsOpen('theme'));await pg.waitForTimeout(400);
     const mv=await pg.evaluate(()=>{document.querySelector('#setm [data-theme-set=light]').click();return [document.querySelector('#setm [data-theme-set=light]').getAttribute('aria-pressed'),document.getElementById('sm-v-theme').textContent,localStorage.getItem('pctheme')]});
     ok(mv[0]==='true'&&mv[1]==='ライト'&&mv[2]==='dark','押した直後の表示 '+mv);await pg.waitForTimeout(1200);
-    const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme,!!document.getElementById('setm')&&!document.getElementById('setm').hidden,document.getElementById('sm-v-theme')?.textContent,getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor]);
-    ok(t[0]==='light'&&t[1]==='light'&&t[2]&&t[3]==='ライト'&&t[4]==='rgb(255, 255, 255)','明るさの切りかえ・読み直して開き直す '+t);
+    const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme,!!document.getElementById('setm')&&!document.getElementById('setm').hidden,document.getElementById('sm-v-theme')?.textContent,getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor,document.getElementById('sm-t').textContent,document.querySelector('#setm [data-theme-set=light]')?.getAttribute('aria-pressed')]);
+    ok(t[0]==='light'&&t[1]==='light'&&t[2]&&t[3]==='ライト'&&t[4]==='rgb(255, 255, 255)'&&t[5]==='明るさ'&&t[6]==='true','明るさの切りかえ・読み直して同じページを開き直す '+t);
+    /* 開き直すときは動かさない（下からすべり上がらない）：開いたその瞬間から位置が決まっている */
+    const nm=await pg.evaluate(()=>{settingsClose();const o=document.getElementById('setm');o.hidden=true;o.classList.remove('on');settingsOpen('theme',{instant:true});const p=getComputedStyle(o.querySelector('.sm-p'));return [p.transform,p.opacity,getComputedStyle(o.querySelector('.sm-bg')).opacity]});
+    ok(nm[0]==='none'&&nm[1]==='1'&&nm[2]==='1','開き直すときは動かない '+nm);
     /* テーマの色・背景の光も保存される */
     await pg.evaluate(()=>settingsOpen('accent'));await pg.waitForTimeout(300);await pg.evaluate(()=>document.querySelector('#setm [data-acc-set=blue]').click());await pg.waitForTimeout(1200);
     ok(await pg.evaluate(()=>localStorage.getItem('pcaccent')==='blue'),'テーマの色の保存');
