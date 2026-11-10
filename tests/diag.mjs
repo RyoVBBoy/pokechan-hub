@@ -341,7 +341,7 @@ const V8=await pg.evaluate(()=>{
   r.recount=x.rows.every((y,j)=>{const zs=T.rows[j].res.filter(z=>x.c.includes(z.i)),st=zs.filter(z=>z.r>=4).length,ok=zs.filter(z=>z.r>=3).length,wk=zs.filter(z=>z.r===2).length;return y.lvl===(st>=2?4:st===1?3:ok||wk?2:1)});
   r.lead=D.list.every(x=>x.c.includes(x.leads[0]));
   r.plan=JSON.stringify(selPlan(team).base.slice().sort())===JSON.stringify(D.best.c.slice().sort());
-  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/上位\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発の候補/.test(t));
+  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/上位\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発/.test(t));
   /* 選ばなかった匹に頼る相手：パーティ全体で◎○なのに、この選出で△以下 */
   r.lost=D.list.every(x=>x.lost.every(l=>{const j=T.rows.findIndex(z=>z.q.no===l.q.no);return T.rows[j].lvl>=3&&x.rows[j].lvl<=2}));
   /* ★の選出の順位 */
@@ -375,6 +375,49 @@ ok(V8.mega,'メガストーン2匹の選出を除いていない');
 ok(V8.axis,'軸が選出に入っていない');
 ok(V8.wx.every(Boolean),'天気を作る匹を選ばない選出の計算 '+V8.wx);
 ok(V8.tr,'トリックルームを張れる匹がいる選出だけトリックルーム中で計算');
+/* 第5段階の確認（2026/11/10 依頼主）：先発（シングル3通り・ダブル6通り）・順位の決め方・攻撃偏重の6匹の1位とジャラランガ */
+const V9=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const setT=ns=>{team.length=0;ns.forEach(s=>team.push({no:N(s).no}));TWX_K=null};
+  setT(['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー']);
+  let D=dgSelect(team);const T=dgTeam(team,20),W=T.rows.reduce((t,_,j)=>t+(j<8?1.5:1),0);
+  /* シングル：3匹それぞれの先発の点を手で数え直す */
+  r.lead1=D.list.every(x=>x.lead1.length===3&&x.pairs===null&&x.lead1.every((l,k)=>!k||x.lead1[k-1].sc>=l.sc)&&x.leads[0]===x.lead1[0].i);
+  const x0=D.list[2];r.leadRe=x0.lead1.every(l=>{const v=T.rows.reduce((t,row,j)=>{const z=row.res.find(q=>q.i===l.i);const lv=z.r>=4?1:z.r>=3?.6:z.r===2?.25:0,d=z.op&&z.op.nMax===1&&z.spd!==1;return t+(j<8?1.5:1)*(lv-(d?.5:0))},0)/W;return Math.abs(v-l.sc)<1e-9});
+  r.planLead1=selPlan(team).lead[0]===D.best.lead1[0].i;
+  /* 点の内訳の合計＝点、順位は点の順（同点は×→一撃→◎○→後出し→先手） */
+  r.parts=D.list.every(x=>Math.abs(x.P.cov+x.P.sw+x.P.swc+x.P.fast+x.P.danger+x.P.role+x.P.over-x.sc)<1e-9);
+  r.order=D.list.every((x,k)=>{if(!k)return true;const a=D.list[k-1];if(Math.abs(a.sc-x.sc)>=.001)return a.sc>x.sc;return a.cnt[1]<x.cnt[1]||(a.cnt[1]===x.cnt[1]&&(a.danger.length<x.danger.length||(a.danger.length===x.danger.length&&(a.cnt[4]+a.cnt[3]>=x.cnt[4]+x.cnt[3]))))});
+  r.cmp=/点の内訳/.test(dgSelCmpHTML(D,D.list[0],D.list[1]))&&/×が少ない→/.test(dgSelCmpHTML(D,D.list[0],D.list[1]));
+  /* ダブル：4匹の選出ごとに先発2匹の6通り。先発2匹＋後ろ2匹＝選出の4匹 */
+  FMT='double';D=dgSelect(team);
+  r.pairs=D.list.every(x=>x.pairs.length===6&&x.pairs.every(p=>p.pr.length===2&&p.back.length===2&&[...p.pr,...p.back].sort().join()===[...x.c].sort().join())&&new Set(x.pairs.map(p=>p.pr.join())).size===6&&x.pairs.every((p,k)=>!k||x.pairs[k-1].sc>=p.sc));
+  const pl=selPlan(team);r.planPair=pl.lead.length===2&&pl.lead.every(i=>D.best.pairs[0].pr.includes(i))&&pl.base.length===4;
+  const h=dgLeadHTML(D,D.best);r.pairHTML=/先発2匹：6通り/.test(h)&&(h.match(/class="sel-c/g)||[]).length===6;
+  FMT='single';
+  /* 攻撃偏重の6匹（固定の型）：1位とジャラランガ */
+  const sets={ドラパルト:['clear-body','lifeorb',['dragondarts','phantomforce','uturn','suckerpunch'],[2,32,0,0,0,32],1,3],オオニューラ:['unburden','focussash',['closecombat','direclaw','fakeout','throatchop'],[2,32,0,0,0,32],5,3],マスカーニャ:['protean','choicescarf',['flowertrick','knockoff','uturn','playrough'],[2,32,0,0,0,32],5,3],ガブリアス:['rough-skin','garchompite',['earthquake','dragonclaw','stoneedge','swordsdance'],[2,32,0,0,0,32],5,3],ウルガモス:['flame-body','expertbelt',['quiverdance','fierydance','bugbuzz','gigadrain'],[2,0,0,32,0,32],5,1],ドドゲザン:['supreme-overlord','blackglasses',['kowtowcleave','ironhead','suckerpunch','swordsdance'],[32,32,0,0,2,0],1,3]};
+  team.length=0;Object.entries(sets).forEach(([n,[ab,it,mv,sp,up,dn]])=>team.push({no:N(n).no,set:{ab:{k:ab,n:ABN[ab]},it:{k:it,n:ITEMN[it]},mv:mv.map(lfId).map(id=>({id,n:mName(id)})),sp,up,dn}}));TWX_K=null;
+  D=dgSelect(team);const nm=D.nm,T2=dgTeam(team,20);
+  r.best=D.best.c.map(nm).sort().join('・');
+  const jr=T2.rows.findIndex(row=>row.q.n==='ジャラランガ'),L=D.best.lost.find(l=>l.q.n==='ジャラランガ');
+  const by=L?L.by.map(nm).sort().join('・'):'';
+  r.jr=[!!L,by,T2.rows[jr].lvl,D.best.rows[jr].lvl,T2.rows[jr].res.filter(z=>z.r>=4).map(z=>nm(z.i)).sort().join('・'),D.best.rows[jr].zs.every(z=>z.r<4)];
+  /* 遅いのに先制技のとどめで倒すときは「上から」と書かない（ドドゲザン 対 ボーマンダ） */
+  const bm=T2.rows.find(row=>row.q.n==='ボーマンダ'),dd=bm&&bm.res.find(z=>nm(z.i)==='ドドゲザン');
+  r.label=!dd||dd.k!=='ko_fast'||(dd.spd!==1&&/先制技のとどめ/.test(dd.t)&&!/^上から/.test(dd.t));
+  return r});
+ok(V9.lead1&&V9.leadRe,'シングルの先発の比較（3匹それぞれ・点の数え直し） '+[V9.lead1,V9.leadRe]);
+ok(V9.planLead1,'基本選出の先発が先発の比較の1番と違う');
+ok(V9.parts,'点の内訳の合計が点と合わない');
+ok(V9.order,'選出の順位（点の順・同点の決め方）');
+ok(V9.cmp,'1番と2番の点の内訳の表示');
+ok(V9.pairs,'ダブルの先発2匹の6通り');
+ok(V9.planPair,'ダブルの基本選出の先発2匹');
+ok(V9.pairHTML,'ダブルの先発の比較の表示');
+ok(V9.best==='オオニューラ・ガブリアス・ドドゲザン','攻撃偏重の6匹の1位 '+V9.best);
+ok(V9.jr[0]&&V9.jr[1]==='ドラパルト・マスカーニャ'&&V9.jr[2]===4&&V9.jr[3]<=2&&V9.jr[4]==='ドラパルト・マスカーニャ'&&V9.jr[5],'ジャラランガを選ばなかった匹に頼っている表示 '+JSON.stringify(V9.jr));
+ok(V9.label,'遅いのに「上から」と書いている');
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

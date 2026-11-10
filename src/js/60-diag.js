@@ -157,7 +157,8 @@ function dgMatch0(a,o){
   if(op&&op.half)why.push(`こちらの${ABN[op.half]||'特性'}：こちらのHPが満タンのとき、相手の攻撃の1発目だけダメージが半分になる`);
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
-  const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
+  /* 2026/11/10：遅い（同速）のに先制技のとどめで先に倒しきれるときは「上から」と書かない */
+  const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':spd!==1&&!tr?`先制技のとどめで${myN}発で倒しきれる`:myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
   return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
 }
 /* パーティ（entries）× 相手（metaOpps）の表。相手の型は使用率の高い型（detSet）。集計の有無も返す */
