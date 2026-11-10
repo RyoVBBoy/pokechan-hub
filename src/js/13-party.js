@@ -159,16 +159,17 @@ function planHTML(entries){
     ${kd?`<h4>構築のタイプ</h4><p><b>${kd.name}</b>${kd.why.length?`<br><span class="vcap">理由：${esc(kd.why.join('・'))}</span>`:''}${kd.mix&&kd.mix.length?`<br><span class="vcap">${esc(kd.mix.join('・'))}の要素も同じくらいあります。方向をそろえると、選出で迷いにくくなります。</span>`:''}</p>`:'<p class="vcap">育成（持ち物・技）を3匹以上登録すると、構築のタイプ（対面・サイクル・積み）も診断します。</p>'}
   </div>
   <div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
-  <p class="note" style="padding-top:0">${P0.live?'ランクバトルの使用率の上位':'種族値の高い'}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました（育成を登録した匹はその育成で計算）。</p>
+  <p class="note" style="padding-top:0">${P0.DS?`${P0.DS.list.length}通りの選出を全部、使用率の上位${P0.DS.N}匹との1対1の計算（ダメージ・素早さ・後出し）で比べて選びました（くわしくは下の「選出の比較」）。`:`${P0.live?'ランクバトルの使用率の上位':'種族値の高い'}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました`}（育成を登録した匹はその育成で計算）。</p>
   <div class="pc-i pc-plan" data-base="${P0.base.join(',')}"><b>基本選出</b>
     <p class="pc-mons">${P0.base.map(i=>`<span${P0.lead.includes(i)?' class="lead"':''}>${nmI(i)}${P0.lead.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
-    <p>${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。</p>
+    <p>${P0.DS?`上位${P0.DS.N}匹のうち<b>${P0.DS.best.cnt[4]+P0.DS.best.cnt[3]}匹</b>に、選出のだれかが有利に戦えます（◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}）。`:`${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。`}先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。</p>
     <h4>勝ち筋</h4><ol class="pc-story"><li>先発の<b>${P0.lead.map(nmI).join('・')}</b>で、相手の先発に有利をとって削る。${R[P0.lead[0]].go.length?`（有利な相手：${R[P0.lead[0]].go.slice(0,3).map(q=>esc(q.n)).join('・')}）`:''}</li>
       ${mid.length?`<li>不利な相手が出てきたら<b>${mid.map(nmI).join('・')}</b>に任せて、数を減らす。</li>`:''}
       <li>${P0.finWhy?`最後は<b>${nmI(P0.finisher)}</b>の${finTxt}で、削れた相手を詰める。`:`最後の詰め役がはっきりしません。いちばん速い<b>${nmI(P0.finisher)}</b>で詰めることになりますが、先制技・こだわりスカーフ・積み技のどれかを持たせると、終盤に競り負けにくくなります。`}</li></ol>
     ${isSel?'<p class="vcap">いま★を付けている選出です。</p>':`<button class="bback" data-plan="${P0.base.join(',')}" style="padding:0;color:var(--acc)">この選出に★を付ける</button>`}
     ${P0.situ.length?`<h4>こういう相手のときは入れかえる</h4>${P0.situ.map(x=>`<div class="pc-situ"><p>相手に ${chipsOf(x.opps)}${x.opps.length>5?` など${x.opps.length}匹`:''} がいるとき</p><div class="pc-sw"><span><b>${nmI(x.out)}</b> → <b style="color:var(--acc)">${nmI(x.in)}</b></span><button class="bback" data-plsw="${x.out}:${x.in}">この選出にする</button></div></div>`).join('')}`:''}
   </div>
+  ${typeof dgSelHTML==='function'?dgSelHTML(P0.DS,entries):''}
   <div class="pc-i pc-plan"><b>よく使われる相手への答え</b><p>${P0.live?'ランクバトルの使用率':'種族値'}${typeof topReady==='function'&&topReady()?'と上位構築':''}の上位8匹に、パーティのだれが有利に戦えるかです。</p>
     ${P0.top.map(({q,ans})=>`<div class="pc-top"><a href="#/p/${q.no}">${esc(q.n)}</a><span>${ans.length?ans.slice(0,2).map(i=>`<b>${nmI(i)}</b>`).join('・')+'が有利':'<b style="color:var(--w2)">有利に戦える匹がいない</b>'}</span></div>`).join('')}
     ${P0.top.some(x=>!x.ans.length)?'<p class="vcap">答えがいない相手には、受けられる匹か、上から倒せる匹を1匹用意すると安定します。</p>':''}
@@ -306,9 +307,11 @@ function selPlan(entries){
   /* 軸（利用者が決めた、外さない1匹）は必ず選出に入れる */
   const ax=entries.findIndex(x=>x.axis);
   const all=combos([...Array(n).keys()],K).filter(c=>okSub(c)&&(ax<0||c.includes(ax)));if(!all.length)return null;
-  const base=all.reduce((b,c)=>{const v=val(c);return !b||v>b.v?{c,v}:b},null).c;
+  /* 第5段階（2026/11/10）：基本選出と先発は、全部の組み合わせを相手ごとの対応力と同じ計算で比べた dgSelect（61-select.js）から。使えないときは前の方法 */
+  let DS=null;try{DS=typeof dgSelect==='function'?dgSelect(entries):null}catch(e){DS=null}
+  const base=DS&&DS.best?[...DS.best.c]:all.reduce((b,c)=>{const v=val(c);return !b||v>b.v?{c,v}:b},null).c;
   const avg=i=>S[i].reduce((t,v,j)=>t+v*w[j],0);
-  const lead=[...base].sort((a,b)=>avg(b)-avg(a)).slice(0,LEADN());
+  const lead=DS&&DS.best?DS.best.leads.slice(0,LEADN()):[...base].sort((a,b)=>avg(b)-avg(a)).slice(0,LEADN());
   const good=sub=>opps.filter((_,j)=>Math.max(...sub.map(i=>S[i][j]))>=1).length;
   /* 入れかえ：控えの1匹が、基本選出が苦手な相手に強いとき */
   const bm=j=>Math.max(...base.map(i=>S[i][j])),weakJ=opps.map((_,j)=>j).filter(j=>bm(j)<1);
@@ -332,7 +335,7 @@ function selPlan(entries){
   const finisher=fins.length?fins.sort((a,b)=>spd(me[b])-spd(me[a]))[0]:[...base].sort((a,b)=>spd(me[b])-spd(me[a]))[0];
   /* 環境の上位8匹に、だれが有利に戦えるか */
   const top=opps.slice(0,8).map((q,j)=>({q,ans:[...Array(n).keys()].filter(i=>S[i][j]>=1).sort((a,b)=>S[b][j]-S[a][j])}));
-  return{base,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps,roles,finisher,finWhy:fin(finisher),top,ax,me};
+  return{DS,base,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps,roles,finisher,finWhy:fin(finisher),top,ax,me};
 }
 /* 構築のタイプ（対面・攻めサイクル・受けサイクル・積み）：登録した育成の持ち物・技・特性から数える */
 function teamKind(entries){

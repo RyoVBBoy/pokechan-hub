@@ -329,6 +329,52 @@ ok(V7.kinds&&V7.surviveOk,'後出しできない／後出しして負けるを�
 ok(V7.notCounted&&V7.hasLoseWithMove,'攻撃技を持っているだけで対策に数えている');
 ok(V7.sw,'入れかえ案を計算し直すと良くならない '+JSON.stringify(V7));
 ok(V7.pcSw,'パーティのチェックに計算し直した入れかえ案が出ない');
+/* 第5段階：選出の比較（シングル20通り・ダブル15通り・メガは1匹まで・軸・パーティの天気・トリックルーム） */
+const V8=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const setT=ns=>{team.length=0;ns.forEach(s=>team.push({no:N(s).no}));TWX_K=null};
+  setT(['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー']);
+  let D=dgSelect(team);r.single=[D.K===3,D.list.length===20,D.list.every(x=>x.c.length===3),D.best===D.list[0],D.list.every((x,k)=>!k||D.list[k-1].sc>=x.sc)];
+  r.cnt=D.list.every(x=>x.cnt[1]+x.cnt[2]+x.cnt[3]+x.cnt[4]===D.N);
+  /* 1つの選出の ◎〜× を dgTeam の結果から手で数え直して一致（天気・トリックルームのないパーティ） */
+  const T=dgTeam(team,20),x=D.list[3];
+  r.recount=x.rows.every((y,j)=>{const zs=T.rows[j].res.filter(z=>x.c.includes(z.i)),st=zs.filter(z=>z.r>=4).length,ok=zs.filter(z=>z.r>=3).length,wk=zs.filter(z=>z.r===2).length;return y.lvl===(st>=2?4:st===1?3:ok||wk?2:1)});
+  r.lead=D.list.every(x=>x.c.includes(x.leads[0]));
+  r.plan=JSON.stringify(selPlan(team).base.slice().sort())===JSON.stringify(D.best.c.slice().sort());
+  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/上位\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発の候補/.test(t));
+  /* 選ばなかった匹に頼る相手：パーティ全体で◎○なのに、この選出で△以下 */
+  r.lost=D.list.every(x=>x.lost.every(l=>{const j=T.rows.findIndex(z=>z.q.no===l.q.no);return T.rows[j].lvl>=3&&x.rows[j].lvl<=2}));
+  /* ★の選出の順位 */
+  team.forEach((y,i)=>y.sel=[1,2,3].includes(i));D=dgSelect(team);r.mine=!!D.mine&&D.mineRank>=1&&D.list[D.mineRank-1]===D.mine;team.forEach(y=>y.sel=false);
+  /* ダブル：4匹・15通り・先発2匹 */
+  FMT='double';D=dgSelect(team);r.double=[D.K===4,D.list.length===15,D.list.every(x=>x.c.length===4),selPlan(team).lead.length===2];FMT='single';
+  /* メガストーンを持つ匹は選出に1匹まで・軸は必ず入れる */
+  setT(['ガブリアス','ガルーラ','リザードン','サーフゴー','アシレーヌ','カイリュー']);team[0].set={it:{k:'garchompite',n:''},mv:[]};team[1].set={it:{k:'kangaskhanite',n:''},mv:[]};
+  D=dgSelect(team);r.mega=D.excluded===4&&D.list.length===16&&D.list.every(x=>!(x.c.includes(0)&&x.c.includes(1)));
+  team[3].axis=true;D=dgSelect(team);r.axis=D.list.every(x=>x.c.includes(3));
+  /* パーティの天気：天気を作る匹を選ばない選出では、ようりょくそを天気なしで計算 */
+  setT(['リザードン','フシギバナ','ルチャブル','ガブリアス','サーフゴー','アシレーヌ']);team[0].set={it:{k:'charizarditey',n:''},mv:[]};team[1].set={ab:{k:'chlorophyll',n:''},mv:[]};TWX_K=null;
+  D=dgSelect(team);const fb=D.T.ms.findIndex(o=>o.p.n==='フシギバナ');
+  const c1=D.list.find(x=>x.c.includes(fb)&&x.c.includes(D.wxBy)),c2=D.list.find(x=>x.c.includes(fb)&&!x.c.includes(D.wxBy));
+  const sp=c=>c.rows.map(y=>y.zs.find(z=>z.i===fb))[0].sa;
+  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,!c2.wxOk,dgSelWhy(D,c2).warn.some(t=>/天気にならず/.test(t))];
+  /* トリックルーム：張れる匹がいる選出だけ trUse */
+  setT(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);D=dgSelect(team);
+  r.tr=D.tr.on&&D.list.every(x=>x.trUse===D.tr.setters.some(s=>x.c.includes(s.i)));
+  return r});
+ok(V8.single.every(Boolean),'シングルの選出の比較 '+V8.single);
+ok(V8.cnt,'選出の ◎〜× の合計が相手の数と合わない');
+ok(V8.recount,'選出の ◎〜× が dgTeam の結果と食い違う');
+ok(V8.lead,'先発が選出に入っていない');
+ok(V8.plan,'基本選出が選出の比較の1番と違う');
+ok(V8.why,'選出の理由に数の根拠がない');
+ok(V8.lost,'選ばなかった匹に頼る相手の判定');
+ok(V8.mine,'★の選出の順位');
+ok(V8.double.every(Boolean),'ダブルの選出の比較 '+V8.double);
+ok(V8.mega,'メガストーン2匹の選出を除いていない');
+ok(V8.axis,'軸が選出に入っていない');
+ok(V8.wx.every(Boolean),'天気を作る匹を選ばない選出の計算 '+V8.wx);
+ok(V8.tr,'トリックルームを張れる匹がいる選出だけトリックルーム中で計算');
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);
@@ -338,6 +384,10 @@ await pg.waitForTimeout(1500);
 const ui=await pg.evaluate(()=>{const e=document.getElementById('dg-box');return e?[e.querySelectorAll('.dg-r').length,/集計を読めていません/.test(e.textContent)]:[0,false]});
 ok(ui[0]>0,'パーティのチェックに「相手ごとの対応力」が出ません');
 ok(ui[1],'集計が読めないことが書かれていません');
+await pg.evaluate(()=>{team.length=0;['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー'].forEach(s=>team.push({no:P.find(x=>x.n===s).no}));saveTeam();sessionStorage.setItem('pcttab','plan');TTAB='plan';teamRender()});
+await pg.waitForTimeout(1500);
+const ui2=await pg.evaluate(()=>{const e=document.querySelector('.sel-box');return e?[/20通りを計算/.test(e.textContent),e.querySelectorAll('.sel-all .sel-c').length]:[false,0]});
+ok(ui2[0]&&ui2[1]===20,'構築と選出タブに選出の比較が出ない '+ui2);
 ok(!errs.length,'画面のエラー: '+errs.join(' / '));
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}

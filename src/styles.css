@@ -1708,3 +1708,13 @@ body::before{inset:0;background:
 .tarch-tr{background:rgba(220,80,200,.15);color:#c040b0}.tarch-tailwind{background:rgba(80,200,170,.16);color:#219e80}
 .tarch-none{background:none;border-color:var(--line);color:var(--mute);font-weight:600}
 .tarch-unset{border:1px dashed currentColor}
+/* 選出の比較（61-select.js） */
+.sel-c{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;font-size:14px;margin-top:4px;box-shadow:inset 0 0 0 1px var(--line)}
+.sel-c.sel-best{box-shadow:inset 0 0 0 2px var(--acc)}
+.sel-rk{font-weight:800;min-width:1.4em;text-align:center;color:var(--dim)}
+.sel-m{flex:1;font-weight:700}.sel-m small{font-size:11px;color:var(--acc);margin-left:2px;font-weight:700}
+.sel-n{font-size:12px;color:var(--dim);white-space:nowrap}
+.sel-why{margin:6px 0 0;padding-left:1.2em;font-size:13px;line-height:1.6}.sel-why li{margin:2px 0}
+.sel-warn li,.sel-why .sel-w{color:var(--w4)}.sel-wh{margin:8px 0 0;font-weight:700;font-size:13px}
+.sel-all summary{cursor:pointer;color:var(--acc);font-size:13px;margin-top:8px}
+@media(max-width:699px){.sel-c{flex-wrap:wrap}.sel-n{width:100%;padding-left:2.2em}}
