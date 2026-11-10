@@ -202,6 +202,31 @@ ok(V3.sun.every(Boolean),'パーティの晴れ＋ようりょくそ '+V3.sun);
 ok(V3.sunSel,'選出の計算にもパーティの晴れが入る');
 ok(V3.noSun,'晴れにする匹がいないのに2倍にしている');
 ok(V3.skin.every(Boolean),'スカイスキンの書き方 '+V3.skin);
+/* 2026/11/10 トリックルーム構築 */
+const V4=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  team.length=0;['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'].forEach(s=>team.push({no:N(s).no}));
+  const T=dgTeam0(team,20);r.on=T.tr.on&&T.tr.setters.some(x=>T.ms[x.i].p.n==='ブリムオン');
+  r.rows=T.rows.every(row=>row.resTR&&row.resTR.length&&row.lvlTR>=1);
+  /* トリックルーム中は遅い方が先：こちらが遅い対面で spd が 1 になる */
+  const z=T.rows.flatMap(row=>row.res.map(x=>[x,row.resTR.find(y=>y.i===x.i)])).filter(([x])=>x.sa<x.so);
+  r.inv=z.length>0&&z.every(([x,y])=>y.spd===1&&y.tr===true&&x.spd===-1);
+  const A=dgAnalyze(T);r.noSevere=!A.bad.some(b=>/だれよりも速い相手/.test(b.t))&&A.ref.some(b=>/トリックルームを張る前/.test(b.t));
+  r.setters=A.good.some(g=>/トリックルームを張れる匹/.test(g.t))||A.bad.some(b=>/トリックルームを張れるのが/.test(b.t));
+  /* 速いパーティはトリックルーム構築にしない */
+  team.length=0;['ガブリアス','ドラパルト','サーフゴー','ウインディ','ルチャブル','アシレーヌ'].forEach(s=>team.push({no:N(s).no}));
+  r.off=!dgTeam0(team,20).tr.on;
+  /* みらいよちは撃ち合いの技に入れない */
+  const yd=mkMon(N('リキキリン'),'me',{ab:'armor-tail',item:null,moves:[mvObj(248)],sp:[2,0,0,32,0,0],up:3,dn:5}),o=mkMon(N('ガブリアス'),'op',detSet(N('ガブリアス')));
+  r.fs=!dgBest(yd,o);
+  return r});
+ok(V4.on,'トリックルーム構築を見つけられない');
+ok(V4.rows,'トリックルーム中の計算がない');
+ok(V4.inv,'トリックルーム中に遅い方が先にならない');
+ok(V4.noSevere,'トリックルーム構築に「だれよりも速い相手」の警告が出る');
+ok(V4.setters,'張れる匹の数が出ない');
+ok(V4.off,'速いパーティをトリックルーム構築にしている');
+ok(V4.fs,'みらいよちを撃ち合いの技にしている');
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);
