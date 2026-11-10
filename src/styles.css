@@ -1693,3 +1693,4 @@ body::before{inset:0;background:
 .pc-sev3{background:rgba(244,33,46,.14);color:var(--w4)}.pc-sev2{background:rgba(240,180,40,.16);color:var(--gold)}.pc-sev1{background:var(--acc-t);color:var(--acc)}
 .pc-ev{margin:4px 0 2px;padding-left:18px;font-size:12.5px;color:var(--dim);line-height:1.6}
 .pc-ref{margin:10px 16px}.pc-ref summary{font-size:13px;color:var(--dim);cursor:pointer;padding:6px 0}
+.ls-s.warn b{color:var(--gold)}.ls-cb{padding:6px 16px 0;color:var(--fg)}

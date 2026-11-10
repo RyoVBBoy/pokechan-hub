@@ -141,6 +141,42 @@ ok(V.sw,'後出しの1発目とそのあとの区別');
 ok(V.more,'根拠が5匹を超えたときの「ほか〇匹」');
 ok(V.swap,'入れかえ案が計算で悪くなっていないか');
 ok(V.lose&&V.lose2!==false,'敗因の診断の入れかえ案を変更後に計算し直すと良くなるか '+V.lose+' '+V.lose2);
+/* 2026/11/10 依頼主の検証2：タイプ相性・無効技・敗因の診断との食い違い・マルチスケイルの書き方・上から倒す */
+import {createRequire} from 'node:module';
+const TC=(()=>{const {Generations}=createRequire(import.meta.url)('@smogon/calc');const g=Generations.get(9),o={};for(const t of g.types){if(t.name==='???'||t.name==='Stellar')continue;o[t.name]=t.effectiveness}return o})();
+const V2=await pg.evaluate(tc=>{
+  const J={Normal:'ノーマル',Fire:'ほのお',Water:'みず',Electric:'でんき',Grass:'くさ',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー'};
+  const r={};let bad=0;for(const a in J)for(const d in J)if(mult(J[a],[J[d]])!==tc[a][d])bad++;r.chart=bad;
+  const N=s=>P.find(x=>x.n===s),S=(p,ids,o={})=>mkMon(p,o.side||'me',{ab:o.ab||(ABD[p.no]||[[null]])[0][0],item:null,moves:ids.map(mvObj),sp:[2,32,0,0,0,32],up:1,dn:3});
+  /* エスパー技：ゴースト（イダイトウ）には等倍、あく（バンギラス）には無効 */
+  const at=S(N('メタグロス'),[94]),ida=S(N('イダイトウ'),[56],{side:'op'}),ty=S(N('バンギラス'),[242],{side:'op',ab:'sand-stream'});
+  r.psy=[dgMove(at,at.moves[0],ida).eff===1&&dgMove(at,at.moves[0],ida).min>0,dgMove(at,at.moves[0],ty).max===0];
+  /* 無効の技をいちばん痛い技に選ばない */
+  const at2=S(N('メタグロス'),[94,399]);const b2=dgBest(at2,ty);r.pick=!!b2&&b2.mv.id===399&&b2.min>0;
+  const g1=S(N('ゴリランダー')||N('ケンタロス'),[33,370]),gh=S(N('ゲンガー'),[247],{side:'op'});const b3=dgBest(g1,gh);r.ghost=!b3||b3.max===0||(b3.eff>0&&b3.mv.t!=='ノーマル'&&b3.mv.t!=='かくとう');
+  /* 無効の技しかない相手：こちらは一撃も受けないので後出しで勝てる・相手の反撃は書かない */
+  const only=S(N('メタグロス'),[94],{side:'op'}),dk=S(N('バンギラス'),[242]);const m=dgMatch(dk,only);r.immune=[m.swIn==='win',!m.op,m.r>=4];
+  /* マルチスケイル：受ける側のHPが満タンのときの1発目、と書く */
+  const g=mkMon(N('ガブリアス'),'me',detSet(N('ガブリアス'))),d=mkMon(N('カイリュー'),'op',{...detSet(N('カイリュー')),ab:'multiscale'});
+  const mm=dgMatch(g,d);r.ms=mm.why.join(' ').includes('相手のHPが満タンのとき、こちらの攻撃の1発目だけ');
+  /* 上から：一撃でないときは「〇発で倒しきれる」「一撃で倒せるとは限らない」 */
+  const ib=mkMon(N('イダイトウ'),'me',detSet(N('イダイトウ'))),hp=mkMon(N('カバルドン'),'op',detSet(N('カバルドン')));const mh=dgMatch(ib,hp);
+  r.fast=mh.k!=='ko_fast'||(mh.myN===1?/一撃（確定）/.test(mh.t):(/発で倒しきれる/.test(mh.t)&&mh.why.some(w=>/一撃で倒せるとは限らない/.test(w))));
+  return r},TC);
+ok(V2.chart===0,'タイプ相性が @smogon/calc と '+V2.chart+'か所ちがう');
+ok(V2.psy.every(Boolean),'エスパー技：ゴーストに等倍・あくに無効 '+V2.psy);
+ok(V2.pick,'無効の技をいちばん痛い技に選んでいる');
+ok(V2.ghost,'ゴーストにノーマル・かくとう技を選んでいる');
+ok(V2.immune.every(Boolean),'無効の技しかない相手との判定 '+V2.immune);
+ok(V2.ms,'マルチスケイルの書き方');
+ok(V2.fast,'上から倒す（一撃とは限らない）の書き方');
+/* 依頼主の6匹（ペリッパー・ブリジュラス・イダイトウ・ライチュウ・ゴリランダー・アーマーガア）：敗因の診断が「問題なし」なのに計算の注意がある、を出さない */
+await pg.evaluate(()=>{team.length=0;['ペリッパー','ブリジュラス','イダイトウ','ライチュウ','ゴリランダー','アーマーガア'].forEach(s=>team.push({no:P.find(x=>x.n===s).no}));saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';location.hash='#/team';route()});
+await pg.waitForTimeout(1800);
+const LS=await pg.evaluate(()=>{const cb=dgAnalyze(dgTeam(team,20)).bad.filter(x=>x.sev>=2).length,el=document.getElementById('lose-box');const st=el?el.querySelector('.ls-s b').textContent:'';
+  return {cb,st,note:!!(el&&el.querySelector('.ls-cb')),rows:dgTeam(team,20).rows.length,check:document.querySelectorAll('.pc-i').length}});
+ok(LS.rows>0&&LS.check>0,'6匹の計算・チェックが出ない');
+ok(!LS.cb||(LS.st!=='問題なし'&&LS.note),'計算の注意があるのに「構築：問題なし」 '+JSON.stringify(LS));
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);

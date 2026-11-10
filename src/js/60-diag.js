@@ -58,7 +58,8 @@ function dgPrio(a,d){
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
 /* ダメージの書き方：マルチスケイル等で初撃が半分なら「初撃 a〜b%・2発目から c〜d%」 */
-const dgDmgTxt=x=>x&&x.half?`初撃${dgPct(x.fmin)}〜${dgPct(x.fmax)}・2発目から${dgPct(x.min)}〜${dgPct(x.max)}`:`${dgPct(x.min)}〜${dgPct(x.max)}`;
+/* who＝特性を持つ（攻撃を受ける）側：'op' 相手／'me' こちら。マルチスケイル等は「受ける側がHP満タンのとき、受ける1発目だけ半分」（2026/11/10 依頼主：攻撃側の技と混同しない書き方に） */
+const dgDmgTxt=(x,who)=>x&&x.half?`1発目${dgPct(x.fmin)}〜${dgPct(x.fmax)}（${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}でHP満タンのときは半分）・2発目から${dgPct(x.min)}〜${dgPct(x.max)}`:`${dgPct(x.min)}〜${dgPct(x.max)}`;
 const dgHalfTxt=x=>x&&x.half?`（${ABN[x.half]||'特性'}で初撃は${dgPct(x.fmin)}〜${dgPct(x.fmax)}、2発目から${dgPct(x.min)}〜${dgPct(x.max)}）`:'';
 const dgKoTxt=x=>{if(!x||!x.max)return '効く技がない';
   if(x.nMin===1)return '確定1発';
@@ -99,13 +100,13 @@ function dgMatch0(a,o){
   const swLeft=op?Math.max(0,100-op.fmax):100;
   const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mv.n} 最大${dgPct(op.fmax)}）で倒される`:`交代で受ける1発目：${op.mv.n}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
   let k='lose',why=[];
-  const meTxt=me?`${me.mv.n}で${dgDmgTxt(me)}（${dgKoTxt(me)}）`:'効く技がない';
-  const opTxt=op?`相手の${op.mv.n}で${dgDmgTxt(op)}（${dgKoTxt(op)}）`:'相手に効く技がない';
+  const meTxt=me?`${me.mv.n}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
+  const opTxt=op?`相手の${op.mv.n}で${dgDmgTxt(op,'me')}（${dgKoTxt(op)}）`:'相手に効く技がない';
   if((first===1&&winSafe)||prKO){k='ko_fast';
-    if(prKO&&!(first===1&&winSafe))why.push(`${spd===0?'同速だが':'遅いが'}先制技の${pr.mv.n}で${dgDmgTxt(pr)}（確定1発）`);
-    else if(spd===1)why.push(`先に動ける。${meTxt}`);
+    if(prKO&&!(first===1&&winSafe))why.push(`${spd===0?'同速だが':'遅いが'}先制技の${pr.mv.n}で${dgDmgTxt(pr,'op')}（確定1発）`);
+    else if(spd===1)why.push(myN===1?`素早さで上を取れる（${sa} 対 ${so}）。${meTxt}＝先に動いて確定で一撃`:`素早さで上を取れる（${sa} 対 ${so}）が、一撃で倒せるとは限らない：${meTxt}。一撃にならなくても、相手の反撃を耐えて${myN}発目で先に倒しきれる`);
     else why.push(`${spd===0?'同速だが':'遅いが'}、最後のとどめを先制技の${pr.mv.n}で先に入れられる。${meTxt}`);
-    why.push(myN===1&&spd===1?'相手は動く前に倒れる':opTxt)}
+    why.push(myN===1&&spd===1?'相手は動く前に倒れる':`相手の反撃：${opTxt.replace(/^相手の/,'')}`)}
   else if(winSafe&&swOk){k='switch';why.push(swTxt,`こちら：${meTxt}`)}
   else if(winSafe){k=resist&&opW>=3?'wall':'tank';why.push(`最大の乱数でも先に倒れない：${opTxt}`,`こちら：${meTxt}`)}
   else if(resist&&opW>=4&&myN<=4){k='wall';why.push(`相手のいちばん痛い技も半減以下：${opTxt}`,`こちら：${meTxt}`)}
@@ -118,9 +119,12 @@ function dgMatch0(a,o){
   /* 命中：90%未満の技に頼る勝ちは「不安定」に下げる（90%以上は注意書きだけ） */
   if(me&&me.acc<100&&DG_K[k].r>=3&&!(k==='ko_fast'&&prKO)){if(me.acc<90){k='shaky';why.unshift(`${me.mv.n}の命中が${Math.round(me.acc)}%なので外れると負ける`)}else why.push(`${me.mv.n}の命中は${Math.round(me.acc)}%`)}
   if(spd===0&&!why.some(w=>/同速/.test(w)))why.push(spdTxt);
-  if(me&&me.half)why.push(`相手の${ABN[me.half]||'特性'}で、満タンのときの1発目だけダメージが半分（回数はこれを入れて数えています）`);
+  if(me&&me.half)why.push(`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの攻撃の1発目だけダメージが半分になる（倒すまでの回数はこれを入れて数えています）`);
+  if(op&&op.half)why.push(`こちらの${ABN[op.half]||'特性'}：こちらのHPが満タンのとき、相手の攻撃の1発目だけダメージが半分になる`);
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
-  return{k,r:DG_K[k].r,t:DG_K[k].t,why,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft};
+  /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
+  const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
+  return{k,r:DG_K[k].r,t,why,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft};
 }
 /* パーティ（entries）× 相手（metaOpps）の表。相手の型は使用率の高い型（detSet）。集計の有無も返す */
 /* 同じパーティ・形式・集計の読み込み状況なら、計算を使い回す（パーティのチェックと「相手ごとの対応力」で同じ結果を使う） */
@@ -190,14 +194,14 @@ function dgAnalyze(T){
     const bestOf=r=>[...r.res].filter(z=>z.me).sort((a,b)=>b.me.min-a.me.min)[0];
     bad.push({area:'攻撃',sev:sevOf(noKill),t:`確定2発で倒せるポケモンがいない相手が${noKill.length}匹`,
       d:'乱数がいちばん低く出ても2回の攻撃で倒せる匹がいません。削り合いが長引き、相手の積み技や回復を許しやすくなります。',
-      ev:list(noKill,r=>{const b=bestOf(r);return b?`${qn(r)}：いちばん削れるのは${nm(b.i)}の${b.me.mv.n}で${dgDmgTxt(b.me)}（${dgKoTxt(b.me)}）`:`${qn(r)}：効く攻撃技を持つ匹がいない`}),
+      ev:list(noKill,r=>{const b=bestOf(r);return b?`${qn(r)}：いちばん削れるのは${nm(b.i)}の${b.me.mv.n}で${dgDmgTxt(b.me,'op')}（${dgKoTxt(b.me)}）`:`${qn(r)}：効く攻撃技を持つ匹がいない`}),
       how:'その相手に効果ばつぐんを取れる技か、威力の高いタイプ一致技を覚えさせる・火力を上げる持ち物（いのちのたま・タイプ強化の道具など）を持たせると届くことがあります。変更後の計算は第6段階の改善案で確かめられるようにします。'});
   }else good.push({area:'攻撃',t:`上位${N}匹すべてに、確定2発で倒せる匹がいる`,ev:[]});
   /* 1匹に攻撃役を頼っている相手 */
   const soleK={};R.forEach(r=>{const k=kill(r);if(k.length===1)(soleK[k[0].i]=soleK[k[0].i]||[]).push(r)});
   Object.entries(soleK).filter(([,rs])=>rs.length>=3).forEach(([i,rs])=>bad.push({area:'攻撃',sev:rs.some(top)?2:1,t:`${nm(+i)}だけが確定2発で倒せる相手が${rs.length}匹`,
     d:`${nm(+i)}が倒されたり、ほかの相手の相手をしていると、次の相手を倒しきれる匹がいなくなります。`,
-    ev:list(rs,r=>{const z=x2(r,+i);return `${qn(r)}：${z.me.mv.n}で${dgDmgTxt(z.me)}（${dgKoTxt(z.me)}）`}),
+    ev:list(rs,r=>{const z=x2(r,+i);return `${qn(r)}：${z.me.mv.n}で${dgDmgTxt(z.me,'op')}（${dgKoTxt(z.me)}）`}),
     how:`同じ相手を確定2発で倒せる2匹目を用意すると、${nm(+i)}に頼らずに済みます。`}));
   /* ---- 防御：一撃で倒される危険・後出しできる匹 ---- */
   const half=Math.max(2,Math.ceil(n/2));
@@ -225,7 +229,7 @@ function dgAnalyze(T){
     const cov=slowAll.filter(r=>{const p=pr(r);return p&&p.pr.min>=100});
     bad.push({area:'素早さ',sev:Math.max(1,sevOf(slowAll)-(cov.length===slowAll.length?1:0)),t:`パーティのだれよりも速い相手が${slowAll.length}匹`,
       d:'素早さ（こだわりスカーフ・天気で速くなる特性・まひも入れて計算）で、だれも先に動けない相手です。'+(cov.length?`このうち${cov.length}匹は先制技で確定で倒せます。`:''),
-      ev:list(slowAll,r=>{const f=[...r.res].sort((a,b)=>b.sa-a.sa)[0],p=pr(r);return `${qn(r)}（素早さ${f.so}）：いちばん速い${nm(f.i)}は${f.sa}${f.sa===f.so?'（同速）':''}${p?`。先制技：${nm(p.i)}の${p.pr.mv.n}で${dgDmgTxt(p.pr)}`:''}`}),
+      ev:list(slowAll,r=>{const f=[...r.res].sort((a,b)=>b.sa-a.sa)[0],p=pr(r);return `${qn(r)}（素早さ${f.so}）：いちばん速い${nm(f.i)}は${f.sa}${f.sa===f.so?'（同速）':''}${p?`。先制技：${nm(p.i)}の${p.pr.mv.n}で${dgDmgTxt(p.pr,'op')}`:''}`}),
       how:'こだわりスカーフ・先制技・素早さに能力ポイントを回すなどで、上を取れる匹を作ります。'});
   }else good.push({area:'素早さ',t:`上位${N}匹すべてに、先に動ける匹がいる`,ev:[]});
   const soleF={};R.forEach(r=>{const k=faster(r);if(k.length===1)(soleF[k[0].i]=soleF[k[0].i]||[]).push(r)});
