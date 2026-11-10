@@ -71,3 +71,27 @@ function dguImp(entries){
   /* 描画が終わってから（ブラウザが空いたとき）計算する */
   setTimeout(()=>{if(typeof requestIdleCallback==='function')requestIdleCallback(go,{timeout:1500});else go()},120);
 }
+/* ===================== 第2段階：深刻な弱点・注意事項のカード（2026/11/10） =====================
+   1枚のカード＝重要度・分野・問題の名前／起きる相手（名前の札）／理由／改善する方法／入れかえ案／計算根拠（たたむ。中身は今までの根拠を全部）。
+   深刻・注意は理由と改善を最初から出す。軽い（sev1）はコンパクトに、理由・改善・根拠をたたむ。よいところは✓の1行。
+   数・文はすべて partyCheck／dgAnalyze の項目そのまま（作り直さない） */
+const DGU_OPP_SHOW=6;
+function dguOpps(list){
+  if(!list||!list.length)return '';
+  const a=list.slice(0,DGU_OPP_SHOW).map(n=>`<span class="dgc-op">${esc(n)}</span>`).join('');
+  return `<div class="dgc-row"><span class="dgc-k">起きる相手（${list.length}匹）</span><div class="dgc-ops">${a}${list.length>DGU_OPP_SHOW?`<span class="dgc-more">ほか${list.length-DGU_OPP_SHOW}匹：${esc(list.slice(DGU_OPP_SHOW).join('・'))}</span>`:''}</div></div>`;
+}
+function dguEv(x){return x.ev&&x.ev.length?`<details class="dgc-ev"><summary>計算根拠を見る（${x.ev.length}件）</summary><ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></details>`:''}
+/* bad＝気になる点、swHTML＝入れかえ案（13-party.js が作る。ボタンの動きはそちら）、chips＝ポケモンの札 */
+function dguCard(x,bad,swHTML,chips){
+  const id=x.id?` id="${x.id}"`:'';
+  if(bad==='ref')return `<div class="pc-i dgc dgc-ref"${id}><div class="dgc-h"><span class="dgu-sev svref">参考</span>${x.area?`<span class="dgu-wa">${esc(x.area)}</span>`:''}<b class="dgc-t">${x.t}</b></div>${dguOpps(x.opps)}${x.d||x.how||(x.ev&&x.ev.length)?`<details class="dgc-ev"><summary>くわしく見る</summary>${x.d?`<p class="dgc-p">${x.d}</p>`:''}${x.how?`<p class="dgc-p"><b>改善する方法：</b>${x.how}</p>`:''}${swHTML||''}${chips||''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}</details>`:''}</div>`;
+  if(!bad)return `<div class="pc-i dgc dgc-ok"${id}><div class="dgc-h"><span class="dgu-sev sv0"><i aria-hidden="true">✓</i>よい</span>${x.area?`<span class="dgu-wa">${esc(x.area)}</span>`:''}<b class="dgc-t">${x.t}</b></div>${x.d?`<p class="dgc-p">${x.d}</p>`:''}${dguEv(x)}</div>`;
+  const s=x.sev||0,head=`<div class="dgc-h">${s?dguSevTag(s):''}${x.area?`<span class="dgu-wa">${esc(x.area)}</span>`:''}<b class="dgc-t">${x.t}</b></div>`;
+  const why=x.d?`<div class="dgc-row"><span class="dgc-k">理由</span><p class="dgc-p">${x.d}</p></div>`:'';
+  const how=x.how?`<div class="dgc-row dgc-how"><span class="dgc-k">改善する方法</span><p class="dgc-p">${x.how}</p></div>`:'';
+  if(s===1)return `<div class="pc-i dgc dgc-s1"${id}>${head}${dguOpps(x.opps)}<details class="dgc-ev"><summary>理由・改善する方法・計算根拠を見る</summary>${why}${how}${swHTML||''}${chips||''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}</details></div>`;
+  /* 入れかえ案（計算し直した数・育成・良くなる/悪くなる）は長いので、件数つきでたたむ */
+  const swN=x.sw&&x.sw.length?x.sw.length:0,swBox=swN?`<details class="dgc-ev dgc-sw"><summary>計算し直した入れかえ案を見る（${swN}件）</summary>${swHTML}</details>`:'';
+  return `<div class="pc-i dgc${s?' dgc-s'+s:' dgc-s0'}"${id}>${head}${dguOpps(x.opps)}${why}${how}${swBox}${chips||''}${dguEv(x)}</div>`;
+}

@@ -127,8 +127,9 @@ async function loseFill(entries){
       ['プレイング','振り返りで','wait'],['情報戦','振り返りで','wait']];
     el.innerHTML=`${LS_HEAD}
       <div class="ls-st">${st.map(([p,v,c])=>`<div class="ls-s ${c}"><span>${p}</span><b>${v}</b></div>`).join('')}</div>
-      <p class="note" style="padding:6px 16px 0;font-size:12px">「構築」の数＝負ける原因になりやすい3つ（積み技を止める手段・だれも答えられない相手・ステルスロック）のうち見つかった数。下のパーティのチェックの「対面の計算で見つかった弱点」とは数え方が別です。</p>
-      ${cbN?`<p class="note ls-cb">構築：負ける原因になりやすい3つ（積み技を止める手段・だれも答えられない相手・ステルスロック）${n('構築')?'のうち上に出したもの':'は見つかりませんでした'}。ほかに、下の「対面の計算で見つかった弱点」に深刻${cbS}件・注意${cbN-cbS}件があります（${CB.slice(0,3).map(x=>esc(x.t)).join('／')}${cbN>3?' ほか':''}）。</p>`:''}
+      <details class="ls-more"><summary>「構築」の数え方と、下の弱点との違いを見る</summary>
+      <p class="note" style="padding:6px 16px 0;font-size:13px">「構築」の数＝負ける原因になりやすい3つ（積み技を止める手段・だれも答えられない相手・ステルスロック）のうち見つかった数。下のパーティのチェックの「対面の計算で見つかった弱点」とは数え方が別です。</p>
+      ${cbN?`<p class="note ls-cb">構築：負ける原因になりやすい3つ（積み技を止める手段・だれも答えられない相手・ステルスロック）${n('構築')?'のうち上に出したもの':'は見つかりませんでした'}。ほかに、下の「対面の計算で見つかった弱点」に深刻${cbS}件・注意${cbN-cbS}件があります（${CB.slice(0,3).map(x=>esc(x.t)).join('／')}${cbN>3?' ほか':''}）。</p>`:''}</details>
       ${top.length?top.map((r,i)=>`<div class="ls-i"><div class="ls-h"><span class="ls-n">${i+1}</span><span class="ls-ph">${r.ph}</span><b>${esc(r.t)}</b></div>
         <p class="ls-k">なぜ起きるか</p><p>${esc(r.d)}</p><p class="ls-k ls-k2">次の一手</p><p>${esc(r.how)}</p>
         <div class="ls-a">${(r.act||[]).map(([h,l])=>`<a class="btn btn-s" href="${h}">${esc(l)}</a>`).join('')}<button class="btn btn-s" data-ls-memo="${i}">戦術メモの負け筋に書く</button></div></div>`).join('')

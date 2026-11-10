@@ -595,6 +595,32 @@ ok(U.sel,'まとめのおすすめの選出が選出の比較の1番と違う');
 ok(U.imp&&U.reuse,'まとめの改善案（後ろで計算・使い回し） '+[U.imp,U.reuse]);
 ok(U.over,'スマホ幅で横にはみ出している');
 ok(U.top,'まとめが一番上にない');
+/* UI改善 第2段階：弱点のカード（根拠は全部残す・起きる相手の数・理由と改善の出し方・開いても数字が変わらない） */
+const U2=await pg.evaluate(()=>{const r={},C=partyCheck(team),calc=C.fix.filter(x=>x.k==='calc');
+  r.cards=calc.every((x,k)=>{const e=document.getElementById('pcw'+k);if(!e)return false;const txt=e.textContent;
+    const evOk=(x.ev||[]).every(v=>txt.includes(v));
+    const tOk=e.querySelector('.dgc-t').textContent===x.t.replace(/<[^>]+>/g,'');
+    const cls=e.classList.contains('dgc-s'+x.sev);
+    /* 深刻・注意は理由と改善が最初から見える（たたむ中ではない）、軽いはたたむ */
+    const rows=[...e.querySelectorAll(':scope > .dgc-row .dgc-k')].map(z=>z.textContent);
+    const vis=x.sev>=2?(!x.d||rows.includes('理由'))&&(!x.how||rows.includes('改善する方法')):!rows.includes('理由');
+    const ops=!x.opps||(e.querySelectorAll('.dgc-op').length===Math.min(6,x.opps.length)&&(x.opps.length<=6||txt.includes('ほか'+(x.opps.length-6)+'匹')));
+    return evOk&&tOk&&cls&&vis&&ops});
+  /* 見出しの「相手がN匹」と起きる相手の数が合う */
+  r.oppsN=calc.filter(x=>/相手が(\d+)匹/.test(x.t)&&x.opps).every(x=>+x.t.match(/相手が(\d+)匹/)[1]===x.opps.length);
+  const T=dgTeam(team,20),names=new Set(T.rows.map(z=>z.q.n));r.oppsIn=calc.every(x=>(x.opps||[]).every(n=>names.has(n)));
+  r.good=C.good.every(x=>[...document.querySelectorAll('.dgc-ok .dgc-t')].some(e=>e.textContent===x.t.replace(/<[^>]+>/g,'')));
+  r.lose=!!document.querySelector('#lose-box .ls-more')&&/数え方/.test(document.querySelector('#lose-box .ls-more summary').textContent);
+  const bars0=[...document.querySelectorAll('.dgu-bn')].map(e=>e.textContent).join();
+  document.querySelectorAll('#view details').forEach(d=>d.open=true);
+  r.open=[...document.querySelectorAll('.dgu-bn')].map(e=>e.textContent).join()===bars0&&document.body.scrollWidth<=innerWidth;
+  document.querySelectorAll('#view details').forEach(d=>d.open=false);
+  return r});
+ok(U2.cards,'弱点のカード（根拠・見出し・重要度・理由と改善・起きる相手）');
+ok(U2.oppsN&&U2.oppsIn,'起きる相手の数と見出しの数 '+[U2.oppsN,U2.oppsIn]);
+ok(U2.good,'よいところのカード');
+ok(U2.lose,'敗因の診断の説明をたたむ');
+ok(U2.open,'たたんだ所を全部開いても数字が変わらず、はみ出さない');
 /* 改善案の計算に失敗したとき：もう一度計算できる */
 await pg.evaluate(()=>{IMP_CACHE.clear();window.__impG=impGet;impGet=()=>{throw new Error('test')};teamRender()});await pg.waitForTimeout(2500);
 const RT0=await pg.evaluate(()=>!!document.getElementById('dgu-retry'));
