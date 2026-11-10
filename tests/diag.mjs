@@ -487,6 +487,66 @@ ok(V11.match.every(Boolean),'ドラパルト対マルチスケイルのカイリ
 ok(V11.noMs.every(Boolean),'マルチスケイルなしのドラゴンアロー '+V11.noMs);
 ok(V11.uses.every(Boolean),'技を使う回数と当たる回数を混同していない '+V11.uses);
 ok(V11.weak.every(Boolean),'合計で届かない連続技を確定1発にしていない '+V11.weak);
+/* 第6段階：改善案（変更後を計算し直して比べる） */
+const V12=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const sets={ドラパルト:['clear-body','lifeorb',['dragondarts','phantomforce','uturn','suckerpunch'],[2,32,0,0,0,32],1,3],オオニューラ:['unburden','focussash',['closecombat','direclaw','fakeout','throatchop'],[2,32,0,0,0,32],5,3],マスカーニャ:['protean','choicescarf',['flowertrick','knockoff','uturn','playrough'],[2,32,0,0,0,32],5,3],ガブリアス:['rough-skin','garchompite',['earthquake','dragonclaw','stoneedge','swordsdance'],[2,32,0,0,0,32],5,3],ウルガモス:['flame-body','expertbelt',['quiverdance','fierydance','bugbuzz','gigadrain'],[2,0,0,32,0,32],5,1],ドドゲザン:['supreme-overlord','blackglasses',['kowtowcleave','ironhead','suckerpunch','swordsdance'],[32,32,0,0,2,0],1,3]};
+  const mk=()=>{team.length=0;Object.entries(sets).forEach(([n,[ab,it,mv,sp,up,dn]])=>team.push({no:N(n).no,set:{ab:{k:ab,n:ABN[ab]},it:{k:it,n:ITEMN[it]},mv:mv.map(lfId).map(id=>({id,n:mName(id)})),sp,up,dn}}));TWX_K=null};
+  mk();const before=JSON.stringify(team);
+  const R=dgImprove(team);const L=R.list.filter(o=>o.kind!=='sel');
+  r.n=[L.length>0,JSON.stringify(team)===before];   /* 計算のあと、パーティは元のまま */
+  r.kinds=[...new Set(L.map(o=>o.kind))];
+  /* 1匹だけ計算し直した結果＝パーティ全体を計算し直した結果 */
+  r.recalc=L.every(o=>{const T1=impWith(o.entries,()=>dgTeam0(o.entries,20)),D=dgDiff(R.T0,T1),m=impMetric(T1,D.keep);return ['x','w','nosw','ohko','slow','st'].every(k=>m[k]===o.J.a[k])});
+  /* 大事な役目を失わない：◎○→△以下なし・×が増えない・変える匹の役目も大きく減らない */
+  r.keep=L.every(o=>!o.J.lost.length&&o.J.a.x<=o.J.b.x&&o.J.gain>.5&&(o.kind==='swap'||!impRoleLoss(R.T0,o.T1,o.i)));
+  r.dropped=R.dropped.some(d=>/ガブリアスを耐久の型に/.test(d.title)&&/上から倒せる相手が\d+→0匹/.test(d.loss));
+  /* ゲームにある持ち物・覚える技だけ・持ち物が重ならない・メガストーンは変えない */
+  r.valid=L.every(o=>{const it=o.entries.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean);
+    const okIt=it.every(k=>CH_ITEMS.has(k)||isStone(k))&&new Set(it).size===it.length;
+    const st0=team.map(x=>x.set.it.k).filter(isStone).join(),st1=o.kind==='swap'?st0:it.filter(isStone).join();
+    const x=o.entries[o.i],ls=(LSD[x.no]||[0,[]])[1];
+    const okMv=(x.set.mv||[]).every(m=>m.id===182||ls.includes(m.id))&&!(x.set.mv||[]).some(m=>IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
+    return okIt&&st0===st1&&okMv});
+  /* 技の案は、ねこだまし・交代技・先制技を入れかえ先にしない */
+  r.keepMv=L.filter(o=>o.kind==='move').every(o=>{const b=o.base.mv.map(m=>m.id),a=o.entries[o.i].set.mv.map(m=>m.id),gone=b.filter(id=>!a.includes(id));return gone.every(id=>{const m=mvObj(id);return !(m.pri>0)&&!IMP_KEEP.has(MD[id][3])})});
+  /* 良くなる・悪くなるの両方と、変える匹の変化が出る */
+  r.card=L.every(o=>{const h=impCard(o,0);return /悪くなるところ/.test(h)&&(/良くなるところ/.test(h)||o.J.D.up.length===0)&&(o.kind==='swap'||/変える匹の変化/.test(h))});
+  r.statDown=L.filter(o=>o.kind==='nat'&&o.T1.M[o.i].st[5]<R.T0.M[o.i].st[5]).every(o=>o.mem.some(m=>m.bad&&/素早さ \d+→\d+/.test(m.t)));
+  /* 選出の変え方：★がいちばん良い選出でないとき */
+  const S=dgSelect(team),wr=S.list[S.list.length-1].c;team.forEach((x,k)=>x.sel=wr.includes(k));DG_SELC.clear();
+  const R2=dgImprove(team);r.sel=R2.list.some(o=>o.kind==='sel'&&o.selFix.join()===S.best.c.join());team.forEach(x=>x.sel=false);DG_SELC.clear();
+  /* ダブルでも計算できる・3匹未満は計算しない */
+  FMT='double';DG_SELC.clear();const R3=dgImprove(team);FMT='single';DG_SELC.clear();r.dbl=Array.isArray(R3.list);
+  r.few=/3匹以上/.test(dgImprove(team.slice(0,2)).note||'');
+  /* いちばん頼れる技：同じ回数で倒せるなら命中90以上（だいもんじよりほのおのまい） */
+  const v=mkMon(N('ウルガモス'),'me',{ab:'flame-body',item:null,moves:['fireblast','fierydance'].map(lfId).map(mvObj),sp:[2,0,0,32,0,32],up:5,dn:1});
+  const tg=mkMon(N('メタグロス'),'op',detSet(N('メタグロス')));const b=dgBest(v,tg);
+  const xs=v.moves.map(m=>{const x=dgMove(v,m,tg);return duTurns(x.min,{mv:m,acc:100,f:x.fmin},v,tg)});
+  r.acc=xs[0]!==xs[1]||b.mv.id===lfId('fierydance');
+  return r});
+ok(V12.n.every(Boolean),'改善案が出ない／計算のあとパーティが変わった '+V12.n);
+ok(V12.recalc,'改善案の数が、パーティ全体を計算し直した結果と合わない');
+ok(V12.keep,'改善案が大事な役目を失わせている');
+ok(V12.dropped,'役目を大きく失う案（ガブリアスを耐久の型に）を外していない');
+ok(V12.valid,'改善案に、ゲームにない持ち物・覚えない技・重なる持ち物・メガストーンの変更がある');
+ok(V12.keepMv,'技の案で先制技・交代技を外している');
+ok(V12.card,'改善案に良くなる・悪くなる・変える匹の変化が出ない');
+ok(V12.statDown,'性格で素早さが下がることを悪くなるところに出していない');
+ok(V12.sel,'選出の変え方の案');
+ok(V12.dbl&&V12.few,'ダブル・3匹未満 '+[V12.dbl,V12.few]);
+ok(V12.acc,'同じ回数なら命中の高い技を選ぶ');
+/* 第6段階：天気・トリックルームのパーティでも、改善案の数＝全体を計算し直した数 */
+const V13=await pg.evaluate(()=>{
+  const N=s=>P.find(x=>x.n===s),r={};
+  const chk=R=>R.list.filter(o=>o.kind!=='sel').every(o=>{const T1=impWith(o.entries,()=>dgTeam0(o.entries,20)),D=dgDiff(R.T0,T1),m=impMetric(T1,D.keep);return ['x','w','nosw','ohko','slow','st'].every(k=>m[k]===o.J.a[k])});
+  team.length=0;['リザードン','フシギバナ','ルチャブル','ガブリアス','サーフゴー','アシレーヌ'].forEach(s=>team.push({no:N(s).no}));team[0].set={it:{k:'charizarditey',n:''},mv:[]};team[1].set={ab:{k:'chlorophyll',n:''},mv:[]};TWX_K=null;DG_SELC.clear();
+  let R=dgImprove(team);r.wx=[chk(R),R.list.length];
+  team.length=0;['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'].forEach(s=>team.push({no:N(s).no}));TWX_K=null;DG_SELC.clear();
+  R=dgImprove(team);r.tr=[chk(R),R.list.length];
+  return r});
+ok(V13.wx[0],'天気のパーティの改善案の計算し直し '+V13.wx);
+ok(V13.tr[0],'トリックルームのパーティの改善案の計算し直し '+V13.tr);
 /* 名前の検索：小さい字・ひらがな・半角でも正式名が出る（2026/11/10 ウィンディ→ウインディ） */
 const NS=await pg.evaluate(()=>[['ウィンディ',59],['うぃんでぃ',10230],['ﾐﾐｯｷｭ',null],['ガブ',445]].map(([q,no])=>{const h=P.filter(p=>nmHit(p,q));return no?h.some(p=>p.no===no):h.length>0}));
 ok(NS.every(Boolean),'名前の検索（小さい字・半角） '+NS);
@@ -500,6 +560,10 @@ await pg.evaluate(()=>{team.length=0;['ガブリアス','サーフゴー','ア�
 await pg.waitForTimeout(1500);
 const ui2=await pg.evaluate(()=>{const e=document.querySelector('.sel-box');return e?[/20通りを計算/.test(e.textContent),e.querySelectorAll('.sel-all .sel-c').length]:[false,0]});
 ok(ui2[0]&&ui2[1]===20,'構築と選出タブに選出の比較が出ない '+ui2);
+await pg.evaluate(()=>{sessionStorage.setItem('pcttab','check');TTAB='check';teamRender()});await pg.waitForTimeout(800);
+await pg.click('#imp-run');await pg.waitForTimeout(4000);
+const ui3=await pg.evaluate(()=>[document.querySelectorAll('#imp-box .imp-c').length,document.querySelectorAll('#imp-box [data-imp]').length,/計算していないこと/.test(document.getElementById('imp-box').textContent)]);
+ok(ui3[0]>=0&&ui3[1]===ui3[0]&&ui3[2],'改善案の画面 '+ui3);
 ok(!errs.length,'画面のエラー: '+errs.join(' / '));
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}

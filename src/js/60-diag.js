@@ -61,8 +61,9 @@ function dgBest(a,d){
   (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv)))return;
     const x=dgMove(a,mv,d);if(!x.max)return;
     x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax},a,d);
-    const key=[x.nMin,-(x.min*x.acc)];
-    if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&key[1]<best.key[1]))best={...x,key}});
+    /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
+    const key=[x.nMin,x.acc>=90?0:1,-(x.min*x.acc)];
+    if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&(key[1]<best.key[1]||(key[1]===best.key[1]&&key[2]<best.key[2]))))best={...x,key}});
   return best;
 }
 /* 先制技で倒しきれるか（確定の回数） */
