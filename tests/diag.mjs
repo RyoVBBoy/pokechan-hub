@@ -605,6 +605,16 @@ ok(U.sel,'まとめのおすすめの選出が選出の比較の1番と違う');
 ok(U.imp&&U.reuse,'まとめの改善案（後ろで計算・使い回し） '+[U.imp,U.reuse]);
 ok(U.over,'スマホ幅で横にはみ出している');
 ok(U.top,'まとめが一番上にない');
+/* UI改善 第5段階：改善案のカード（変更前→変更後の数は計算と同じ・上位3件・残りはたたむ・悪くなるところはいつも見える） */
+const U5=await pg.evaluate(()=>{const R=impCached(team),box=document.getElementById('imp-box'),r={};if(!R||!R.list.length)return{none:true};
+  const cards=[...box.querySelectorAll('.imp-c')];r.n=cards.length===R.list.length;
+  r.vis=box.querySelectorAll(':scope > .imp-c').length===Math.min(3,R.list.length)&&(R.list.length<=3||!!box.querySelector('.imp-more .imp-c'));
+  r.met=R.list.every((o,k)=>{const rows=[...cards[k].querySelectorAll('.imp-mr')];const want=IMP_MET.filter(([key])=>o.J.b[key]!=null&&o.J.a[key]!=null&&o.J.b[key]!==o.J.a[key]);
+    return rows.length===want.length&&want.every(([key,,low],j)=>{const t=rows[j].querySelector('.imp-mv').textContent;return t.startsWith(o.J.b[key]+'→'+o.J.a[key])&&rows[j].classList.contains((low?o.J.a[key]<o.J.b[key]:o.J.a[key]>o.J.b[key])?'up':'dn')})});
+  r.dn=cards.every(c=>{const d=c.querySelector('.imp-d');return d&&!d.closest('details:not(.imp-more)')});
+  r.btn=cards.every((c,k)=>c.querySelector('[data-imp]').dataset.imp===String(k));
+  r.over=document.body.scrollWidth<=innerWidth;return r});
+ok(U5.none||Object.values(U5).every(Boolean),'改善案のカード '+JSON.stringify(U5));
 /* UI改善 第2段階：弱点のカード（根拠は全部残す・起きる相手の数・理由と改善の出し方・開いても数字が変わらない） */
 const U2=await pg.evaluate(()=>{const r={},C=partyCheck(team),calc=C.fix.filter(x=>x.k==='calc');
   r.cards=calc.every((x,k)=>{const e=document.getElementById('pcw'+k);if(!e)return false;const txt=e.textContent;

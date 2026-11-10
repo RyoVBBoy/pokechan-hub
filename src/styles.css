@@ -1816,3 +1816,20 @@ body::before{inset:0;background:
 .dgc-op.selu-g{box-shadow:inset 0 0 0 1px rgba(63,179,122,.6)}.dgc-op.selu-b{box-shadow:inset 0 0 0 1px rgba(229,72,77,.6)}
 @media(max-width:699px){.selu-kpi{grid-template-columns:1fr 1fr}.selu-row .selu-sts{width:100%;padding-left:2.2em}}
 .sel-m small.selu-back{display:block}.pc-i .selu-why>p:first-child{color:var(--fg)}
+/* 改善案のカード（62-improve.js の impCard、2026/11/10 UI改善 第5段階） */
+.imp-c{padding:12px 14px}.imp-top{box-shadow:inset 0 0 0 2px var(--acc)!important}
+.imp-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.imp-no{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:var(--acc-t);color:var(--acc);font-weight:800;font-size:12.5px}
+.imp-best{font-size:12px;font-weight:800;color:var(--acc)}
+.imp-t{display:block;margin-top:6px;font-size:15px;font-weight:800;line-height:1.5}
+.imp-m{margin-top:10px;padding:8px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.imp-mh{margin:0 0 4px;font-size:12px;font-weight:800;color:var(--dim)}
+.imp-mr{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line)}.imp-mh+.imp-mr{border-top:0}
+.imp-ml{font-size:13px;line-height:1.4;color:var(--fg)}.imp-mv{font-size:13px;white-space:nowrap;color:var(--dim)}.imp-mv i{font-style:normal;margin:0 4px}.imp-mv b{font-size:16px;color:var(--fg)}
+.imp-mt{font-size:11.5px;font-weight:800;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.imp-mr.up .imp-mt{background:rgba(63,179,122,.14);color:#3fb37a}.imp-mr.dn .imp-mt{background:rgba(244,33,46,.12);color:var(--w4)}
+.imp-ud{margin-top:8px;padding:6px 10px 8px;border-radius:10px}.imp-ud .sel-wh{margin-top:2px}
+.imp-u{background:rgba(63,179,122,.08)}.imp-d{background:rgba(244,33,46,.06)}
+.imp-go{width:100%;margin-top:10px;min-height:44px}
+.imp-more{margin:8px 16px}.imp-more>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--acc);font-weight:700}
+.imp-more .imp-c{margin:8px 0 0}

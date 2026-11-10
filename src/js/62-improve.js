@@ -164,17 +164,25 @@ function dgImprove(entries){
 function impHTML(){return `<div id="imp-box"><div class="sec"><h2>改善案（変更後を計算し直して比べる）</h2></div>
   <p class="note" style="padding-top:0">入れかえ・技・能力ポイント・性格・持ち物・型・選出のどれを変えると良くなるかを、変更後のパーティで「相手ごとの対応力」と同じ計算をし直して比べます。前に答えられていた相手を答えられなくなる案は出しません。</p>
   <button class="btn btn-s" id="imp-run" style="width:100%">改善案を計算する</button></div>`}
+/* 改善案の1枚（2026/11/10 UI改善 第5段階）：番号・種類・何を変えるか → 変更前→変更後の数（変わったものだけ、良くなる/悪くなる）
+   → 良くなる相手・悪くなる相手（いつも見える）→ 変える匹の変化と選出への影響（たたむ）→ 「この変更をする」。数・文は dgImprove のまま */
+const IMP_MET=[['x','答えがない相手（×）',1],['w','△以下の相手',1],['nosw','後出しして勝てる匹がいない相手',1],['ohko','半分以上を一撃で倒される相手',1],['slow','だれも先に動けない相手',1],['st','2匹以上で安定（◎）の相手',0]];
 function impCard(o,k){
-  const B=o.J.b,A=o.J.a,ar=(x,y,lab,low)=>x===y?'':`<li>${lab} ${x}→${y}${(low?y<x:y>x)?' <b class="pc-upv">良くなる</b>':' <b class="pc-dnv">悪くなる</b>'}</li>`;
-  const L=l=>DG_LV[l][0];
-  return `<div class="pc-i imp-c"><b><span class="pc-area">${IMP_KIND[o.kind]}</span>${esc(o.title)}</b>${o.why?`<p class="vcap">${esc(o.why)}</p>`:''}
-    <ul class="pc-ev">${ar(B.x,A.x,'答えがない相手（×）',1)}${ar(B.w,A.w,'△以下の相手',1)}${B.nosw!=null?ar(B.nosw,A.nosw,'後出しして勝てる匹がいない相手',1):''}${B.ohko!=null?ar(B.ohko,A.ohko,'半分以上を一撃で倒される相手',1):''}${B.slow!=null?ar(B.slow,A.slow,'だれも先に動けない相手',1):''}${ar(B.st,A.st,'2匹以上で安定（◎）の相手',0)}</ul>
-    ${o.J.D&&o.J.D.up.length?`<p class="sel-wh">良くなるところ</p><ul class="sel-why">${o.J.D.up.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
-    ${o.mem&&o.mem.length?`<p class="sel-wh">変える匹の変化</p><ul class="sel-why">${o.mem.map(m=>`<li${m.bad?' class="sel-w"':''}>${esc(m.t)}</li>`).join('')}</ul>`:''}
-    <p class="sel-wh">悪くなるところ（相手ごと）</p><ul class="sel-why sel-warn">${[...(o.J.D?o.J.D.dn:[])].map(t=>`<li>${esc(t)}</li>`).join('')||'<li style="color:var(--dim)">計算した範囲ではなし</li>'}</ul>
-    ${o.sel?`<p class="vcap">選出の比較の1番：${o.sel.b.c.map(o.sel.nm).join('・')}（◎${o.sel.b.cnt[4]}○${o.sel.b.cnt[3]}△${o.sel.b.cnt[2]}×${o.sel.b.cnt[1]}）→ ${o.sel.a.c.map(o.sel.nm).join('・')}（◎${o.sel.a.cnt[4]}○${o.sel.a.cnt[3]}△${o.sel.a.cnt[2]}×${o.sel.a.cnt[1]}）</p>`:''}
-    ${o.J.D&&o.J.D.note?`<p class="vcap">${esc(o.J.D.note)}</p>`:''}
-    <button class="bback" data-imp="${k}" style="padding:0;color:var(--acc)">${o.kind==='sel'?'この選出に★を付ける':'この変更をする'}</button></div>`;
+  const B=o.J.b,A=o.J.a;
+  const met=IMP_MET.filter(([key])=>B[key]!=null&&A[key]!=null&&B[key]!==A[key]).map(([key,lab,low])=>{const up=low?A[key]<B[key]:A[key]>B[key];
+    return `<div class="imp-mr ${up?'up':'dn'}"><span class="imp-ml">${lab}</span><span class="imp-mv">${B[key]}<i>→</i><b>${A[key]}</b>匹</span><span class="imp-mt">${up?'良くなる':'悪くなる'}</span></div>`}).join('');
+  const up=o.J.D?o.J.D.up:[],dn=o.J.D?o.J.D.dn:[];
+  const more=(o.mem&&o.mem.length)||o.sel||(o.J.D&&o.J.D.note);
+  return `<div class="pc-i imp-c${k===0?' imp-top':''}"><div class="imp-h"><span class="imp-no">${k+1}</span><span class="pc-area">${IMP_KIND[o.kind]}</span>${k===0?'<span class="imp-best">いちばん効果が大きい案</span>':''}</div>
+    <b class="imp-t">${esc(o.title)}</b>${o.why?`<p class="vcap">${esc(o.why)}</p>`:''}
+    ${met?`<div class="imp-m"><p class="imp-mh">変更前 → 変更後（計算し直した数）</p>${met}</div>`:''}
+    <div class="imp-ud imp-u"><p class="sel-wh">良くなるところ</p>${up.length?`<ul class="sel-why">${up.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p class="selu-none">相手ごとの変化はなし（数の変化だけ）</p>'}</div>
+    <div class="imp-ud imp-d"><p class="sel-wh">悪くなるところ（相手ごと）</p><ul class="sel-why sel-warn">${dn.map(t=>`<li>${esc(t)}</li>`).join('')||'<li style="color:var(--dim)">計算した範囲ではなし</li>'}</ul></div>
+    ${more?`<details class="dgc-ev"><summary>${o.mem&&o.mem.length?'変える匹の変化':''}${o.mem&&o.mem.length&&o.sel?'と':''}${o.sel?'選出への影響':''}${!(o.mem&&o.mem.length)&&!o.sel?'くわしく':''}を見る</summary>
+      ${o.mem&&o.mem.length?`<p class="sel-wh">変える匹の変化</p><ul class="sel-why">${o.mem.map(m=>`<li${m.bad?' class="sel-w"':''}>${esc(m.t)}</li>`).join('')}</ul>`:''}
+      ${o.sel?`<p class="sel-wh">選出の比較の1番</p><p class="vcap">${o.sel.b.c.map(o.sel.nm).join('・')}（◎${o.sel.b.cnt[4]}○${o.sel.b.cnt[3]}△${o.sel.b.cnt[2]}×${o.sel.b.cnt[1]}）→ ${o.sel.a.c.map(o.sel.nm).join('・')}（◎${o.sel.a.cnt[4]}○${o.sel.a.cnt[3]}△${o.sel.a.cnt[2]}×${o.sel.a.cnt[1]}）</p>`:''}
+      ${o.J.D&&o.J.D.note?`<p class="vcap">${esc(o.J.D.note)}</p>`:''}</details>`:''}
+    <button class="btn ${k===0?'btn-p':'btn-s'} imp-go" data-imp="${k}">${o.kind==='sel'?'この選出に★を付ける':'この変更をする'}</button></div>`;
 }
 let IMP_LAST=null;
 /* 同じパーティ・同じ条件の計算結果は使い回す（2026/11/10 依頼主：診断のまとめと改善案の一覧で同じ結果を使う） */
@@ -187,7 +195,8 @@ function impRender(box,R){
   IMP_LAST=R;
   box.innerHTML=`<div class="sec"><h2>改善案（変更後を計算し直して比べる）</h2></div>
         <p class="note" style="padding-top:0">${R.note?esc(R.note):R.list.length?`${R.tried}案のうち、良くなって前に答えられていた相手を失わない案を、良くなる順に出しています（種類ごとに2つまで）。どの数も変更後のパーティで計算し直した結果です。`:'計算した範囲では、ほかを悪くせずに良くなる変更は見つかりませんでした。'}</p>
-        ${R.list.map(impCard).join('')}
+        ${R.list.slice(0,3).map(impCard).join('')}
+        ${R.list.length>3?`<details class="pc-ref imp-more"><summary>ほかの改善案を見る（${R.list.length-3}件）</summary>${R.list.slice(3).map((x,k)=>impCard(x,k+3)).join('')}</details>`:''}
         ${R.dropped&&R.dropped.length?`<details class="pc-ref"><summary>数は良くなるが、変える匹の大事な役目を失うので出さなかった案（${R.dropped.length}件）</summary><ul class="sel-why">${R.dropped.slice(0,10).map(d=>`<li>${esc(d.title)}：${esc(d.loss)}</li>`).join('')}</ul></details>`:''}
         <details class="pc-ref"><summary>改善案の決め方と、計算していないこと</summary><p class="note">良さの点＝×が減る×3・△以下が減る×1.5・後出しできない相手が減る×1・一撃で半分以上倒される相手が減る×1・だれも先に動けない相手が減る×0.7・◎が増える×0.3。変更前に◎○だった相手が△以下になる案、×が増える案、変える匹自身が上から倒せる相手・有利に戦える相手・後出しして勝てる相手を大きく減らす案（3匹以上かつ半分以上、有利は3割以上）は出しません。比べるのは変更前と変更後の両方にいる相手だけです（入れかえると、入れた種類が相手の候補から外れるため）。技は覚える攻撃技、持ち物はゲームにあってほかの匹と重ならないもの、メガストーンは変えません。計算していないこと：${esc(DG_NOTE)}。ダブルの範囲技・同時攻撃・味方のサポート。相手の型は使用率の高い型（集計がなければ自動の型）です。</p></details>`;
   box.querySelectorAll('[data-imp]').forEach(b=>b.onclick=async()=>{const o=IMP_LAST&&IMP_LAST.list[+b.dataset.imp];if(!o)return;
