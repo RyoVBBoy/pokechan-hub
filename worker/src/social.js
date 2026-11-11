@@ -211,6 +211,19 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     let sc=null;try{sc=p.showcase?JSON.parse(p.showcase):null}catch(e){}
     return J({user:{...pubUser(p),partner:p.partner||null,showcase:sc,liked:p.liked||0,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,me:p.uid===meUid,results:await ladderResults(db,p.uid)}});
   }
+  /* フォロー中・フォロワーの一覧（2026/11/11 依頼主：X のような一覧）。新しくフォローした順に50人ずつ。before＝前のページの最後の fc（フォローした時刻）。
+     見ている人がフォローしているか（followed）・見ている人をフォローしているか（follows_me）・本人か（me）つき。停止中の人は出さない */
+  if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/(following|followers)$/))&&req.method==='GET'){
+    const t=await db.prepare(`SELECT uid FROM users WHERE handle=? COLLATE NOCASE AND banned=0`).bind(m[1]).first();
+    if(!t)return J({error:'ユーザーが見つかりません。'},404);
+    const ing=m[2]==='following',LIM=50;
+    const r=await db.prepare(`SELECT u.uid,u.handle,u.name,u.bio,u.avatar,u.created_at,f.created_at AS fc,
+      EXISTS(SELECT 1 FROM follows WHERE src=?3 AND dst=u.uid) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=u.uid AND dst=?3) AS follows_me
+      FROM follows f JOIN users u ON u.uid=${ing?'f.dst':'f.src'}
+      WHERE ${ing?'f.src':'f.dst'}=?1 AND u.banned=0 AND f.created_at<?2 ORDER BY f.created_at DESC LIMIT ${LIM}`).bind(t.uid,beforeOf(u),meUid).all();
+    const rows=r.results||[];
+    return J({users:rows.map(x=>({...pubUser(x),followed:!!x.followed,follows_me:!!x.follows_me,me:!!meUid&&x.uid===meUid})),next:rows.length===LIM?rows[rows.length-1].fc:null});
+  }
   /* その人の投稿 */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/notes$/))&&req.method==='GET'){
     const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}

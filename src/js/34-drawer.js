@@ -62,7 +62,7 @@ function drawerEnsure(){
 function drawerFill(){
   const o=drawerEnsure();o.innerHTML=drawerHTML();
   const pr=typeof AUTH!=='undefined'&&AUTH.profile;
-  if(pr)authFetch('/api/u/'+pr.handle).then(j=>{const el=document.getElementById('dr-ff');if(el)el.innerHTML=`<a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.following}</b> フォロー</a><a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.followers}</b> フォロワー</a>`}).catch(()=>{});
+  if(pr)authFetch('/api/u/'+pr.handle).then(j=>{const el=document.getElementById('dr-ff');if(el)el.innerHTML=[['following',j.user.following,'フォロー'],['followers',j.user.followers,'フォロワー']].map(([k,n,t])=>`<button class="dr-ffb" data-fl="${k}" data-flh="${esc(pr.handle)}" data-fln="${esc(pr.name)}" aria-label="${t}の一覧を見る"><b class="num">${n}</b> ${t}</button>`).join('')}).catch(()=>{});
 }
 function drawerSet(p,anim){/* p：0＝閉じている〜1＝開いている */
   const o=DR.el;if(!o)return;const pn=o.querySelector('.dr-p'),bg=o.querySelector('.dr-bg');

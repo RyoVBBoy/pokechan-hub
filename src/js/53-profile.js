@@ -71,8 +71,8 @@ async function userView(h){
     </div>
     <div class="pf-card pf-stats">
       <div><b class="num">${pfNum(u.notes)}</b><span>投稿</span></div>
-      <div><b class="num" id="twp-fc">${pfNum(u.followers)}</b><span>フォロワー</span></div>
-      <div><b class="num">${pfNum(u.following)}</b><span>フォロー中</span></div>
+      <button class="pf-st-b" data-fl="followers" data-flh="${esc(u.handle)}" data-fln="${esc(u.name)}" aria-label="フォロワーの一覧を見る"><b class="num" id="twp-fc">${pfNum(u.followers)}</b><span>フォロワー</span></button>
+      <button class="pf-st-b" data-fl="following" data-flh="${esc(u.handle)}" data-fln="${esc(u.name)}" aria-label="フォロー中の一覧を見る"><b class="num">${pfNum(u.following)}</b><span>フォロー中</span></button>
       <div><b class="num">${pfNum(u.liked)}</b><span>もらったいいね</span></div>
     </div>
     ${(u.results||[]).length?`<div class="pf-res">${resultBadges(u.results)}</div>`:''}
@@ -98,6 +98,8 @@ async function userView(h){
   V.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{if(b.getAttribute('aria-selected')==='true')return;
     V.querySelectorAll('[data-pt]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));load(b.dataset.pt)});
   load('all');
+  /* #/u/ID/following・#/u/ID/followers なら一覧を開く（2026/11/11、66-follows.js） */
+  const seg=(location.hash.split('/')[3]||'');if((seg==='following'||seg==='followers')&&typeof followListOpen==='function')followListOpen(u.handle,seg,{name:u.name,route:true});
 }
 /* カードを編集：相棒と看板パーティ */
 function pfEdit(u,done){

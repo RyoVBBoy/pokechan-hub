@@ -72,6 +72,13 @@ r=await call('/api/follow',{method:'POST',tok:C,body:{handle:'carol'}});expect('
 r=await call('/api/tl?tab=following',{tok:C});expect('フォロー中のタイムライン',r[0]===200&&r[1].notes.length===2&&r[1].notes.every(x=>x.user.handle==='alice'),r[1].notes.map(x=>x.user.handle));
 r=await call('/api/u/alice',{tok:C});expect('プロフィールにフォロー数と状態',r[0]===200&&r[1].user.followers===1&&r[1].user.followed&&r[1].user.notes===2&&!('uid' in r[1].user),r);
 r=await call('/api/u/carol',{tok:A});expect('フォローされているのがわかる',r[1].user.follows_me&&r[1].user.following===1,r);
+/* フォロー中・フォロワーの一覧（2026/11/11） */
+r=await call('/api/u/alice/followers',{tok:A});expect('フォロワーの一覧',r[0]===200&&r[1].users.length===1&&r[1].users[0].handle==='carol'&&r[1].users[0].follows_me&&!r[1].users[0].followed&&!r[1].users[0].me&&!('uid' in r[1].users[0])&&r[1].next===null,r);
+r=await call('/api/u/carol/following',{tok:C});expect('フォロー中の一覧（本人から見る）',r[0]===200&&r[1].users.length===1&&r[1].users[0].handle==='alice'&&r[1].users[0].followed&&!r[1].users[0].me,r);
+r=await call('/api/u/carol/following');expect('ログインしていなくても見られる',r[0]===200&&r[1].users.length===1&&!r[1].users[0].followed,r);
+r=await call('/api/u/alice/followers',{tok:C});expect('一覧に自分がいれば me',r[1].users[0].me===true&&r[1].users[0].handle==='carol',r);
+r=await call('/api/u/alice/following');expect('だれもフォローしていなければ空',r[0]===200&&r[1].users.length===0,r);
+r=await call('/api/u/nobody99/followers');expect('いない人は404',r[0]===404,r);
 r=await call('/api/u/alice/notes');expect('その人の投稿',r[0]===200&&r[1].notes.length===2,r);
 /* いいね */
 r=await call(`/api/notes/${n1}/like`,{method:'POST',tok:C,body:{}});expect('いいね',r[0]===200&&r[1].likes===1,r);
