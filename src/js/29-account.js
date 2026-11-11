@@ -112,32 +112,43 @@ async function accountView(){
     <div class="btns"><button class="btn btn-s" id="ac-out">ログアウト</button></div></div>`;
     bindSave(true);document.getElementById('ac-out').onclick=()=>au.signOut(auth);return;
   }
-  V.innerHTML=`<div id="ac-root">
-    <div class="ac-card"><span class="ac-av" data-notr>${avIn(prof)}</span><div data-notr><b>${esc(prof.name)}</b><small>@${esc(prof.handle)}</small></div></div>
-    ${prof.bio?`<p class="note" style="padding-top:4px;white-space:pre-wrap" data-notr>${esc(prof.bio)}</p>`:''}
-    <p class="note" style="color:var(--mute);padding-top:0">ログイン中：${esc(AUTH.email||AUTH.user.email||'')}（ほかの人には表示されません）</p>
-    <div class="btns" style="padding-top:4px"><a class="btn btn-s" href="#/u/${esc(prof.handle)}">自分のページを見る</a><a class="btn btn-s" href="#/tl">タイムライン</a></div>
-    <div class="sec"><h2>プロフィールを編集</h2></div>
-    <div class="ac-photo"><span class="ac-av" id="ac-pv" data-notr>${avIn(prof)}</span><div class="ac-photo-b">
-      <label class="btn btn-s" style="cursor:pointer">${prof.av?'写真を変える':'写真を選ぶ'}<input type="file" accept="image/*" id="ac-pf" hidden></label>
-      ${prof.av?'<button class="btn btn-s" id="ac-prm">写真を外す</button>':''}</div></div>
-    <p class="note" style="color:var(--mute);padding-top:0">写真は真ん中が正方形に切り取られ、丸く表示されます。ほかの人も見られます。</p>
-    ${form(prof,false)}
-    <div class="sec"><h2>プライバシー</h2></div>
-    ${privRowHTML(prof)}
-    <div class="sec"><h2>そのほか</h2></div>
-    <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ac-out">ログアウト</button><button class="btn btn-s" id="ac-del" style="color:var(--w2)">アカウントを削除</button></div>
-    <p class="note" style="color:var(--mute)"><a href="#/terms" style="color:var(--acc)">利用規約</a>・<a href="#/privacy" style="color:var(--acc)">プライバシーポリシー</a></p></div>`;
-  bindSave(false);privRowBind(V);
-  /* プロフィールの写真（2026/11/03） */
-  const setAv=async b=>{const j=await authFetch('/api/me/avatar',b);AUTH.profile=j.user;refreshBrand();accountView()};
-  document.getElementById('ac-pf').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
-    const pv=document.getElementById('ac-pv');pv.classList.add('ac-busy');
-    try{const x=await avShrink(f);const key=await twUpload(x);await setAv({key});toast('写真を変えました')}
-    catch(er){pv.classList.remove('ac-busy');toast(er.message)}};
-  const prm=document.getElementById('ac-prm');
-  if(prm)prm.onclick=async()=>{if(!await askConfirm({title:'写真を外しますか？',text:'名前の1文字の表示に戻ります。',ok:'外す'}))return;try{await setAv({remove:true});toast('写真を外しました')}catch(er){toast(er.message)}};
-  document.getElementById('ac-out').onclick=async()=>{await au.signOut(auth);toast('ログアウトしました')};
+  /* 2026/11/11 依頼主「X のアカウント画面と同じに」：上に自分のカード（アイコン・名前・@ID・ログイン中のメール・「自分のページを見る」）、
+     その下は1行ずつのリスト（プロフィールを編集＝画面の上に開く編集〔69-profile-edit.js〕・非公開の切りかえ・メッセージ設定・表示とテーマ・フォローのリクエスト）、
+     いちばん下にログアウト（赤い文字）・アカウントを削除・利用規約とプライバシーポリシー。図鑑や計算などのリンク（下のフッター）はこの画面では出さない */
+  const mail=AUTH.email||AUTH.user.email||'';
+  V.innerHTML=`<div id="ac-root" class="ac2">
+    <section class="ac-card ac2-card">
+      <div class="ac2-top"><span class="ac-av ac2-av" style="background:${avCol(prof.handle)}" data-notr>${avIn(prof)}</span>
+        <a class="ac2-me" href="#/u/${esc(prof.handle)}">自分のページを見る</a></div>
+      <div class="ac2-n"><b data-notr>${esc(prof.name)}</b><span id="ac2-lk"${prof.private?'':' hidden'} aria-label="非公開のアカウント">${SVG(I.lock,15)}</span></div>
+      <small class="ac2-h" data-notr>@${esc(prof.handle)}</small>
+      ${prof.bio?`<p class="ac2-bio" data-notr>${esc(prof.bio)}</p>`:''}
+      ${mail?`<div class="ac2-mail">${SVG(I.mail,15)}<span>ログイン中：<span data-notr>${esc(mail)}</span></span><em>ほかの人には表示されません</em></div>`:''}
+    </section>
+    <section class="sm-sec ac2-sec" aria-label="プロフィール"><h3 class="sm-sh">プロフィール</h3>
+      <button class="dr-row" id="ac-edit">${drRowIn(I.user,'プロフィールを編集','',drChev())}</button></section>
+    <section class="sm-sec ac2-sec" aria-label="プライバシーと安全"><h3 class="sm-sh">プライバシーと安全</h3>
+      <label class="dr-row pv-row ac2-pv">${drRowIn(I.lock,'アカウントを非公開にする（鍵垢）','許可したユーザーのみに投稿とメッセージを公開します',`<input type="checkbox" class="pv-sw" data-priv${prof.private?' checked':''} role="switch" aria-checked="${!!prof.private}" aria-label="アカウントを非公開にする">`)}</label>
+      <button class="dr-row" data-ac2="dm">${drRowIn(I.mail,'メッセージ設定','',`<span class="dr-rv" id="ac2-dmv">${acDmTxt()}</span>${drChev()}`)}</button>
+      ${drLink('#/requests',I.user,'フォローのリクエスト')}</section>
+    <section class="sm-sec ac2-sec" aria-label="表示"><h3 class="sm-sh">表示</h3>
+      <button class="dr-row" data-ac2="disp">${drRowIn(I.palette,'表示・テーマ','',`<span class="dr-rv" id="ac2-dsv">${acDispTxt()}</span>${drChev()}`)}</button></section>
+    <section class="sm-sec ac2-sec ac2-end" aria-label="ログアウト">
+      <button class="dr-row ac2-out" id="ac-out">${drRowIn(I.logout,'ログアウト','','')}</button>
+      <button class="dr-row ac2-del" id="ac-del">${drRowIn(I.trash,'アカウントを削除','','')}</button></section>
+    <p class="ac2-legal"><a href="#/terms">利用規約</a><span aria-hidden="true">・</span><a href="#/privacy">プライバシーポリシー</a></p></div>`;
+  document.getElementById('ac-edit').onclick=()=>profEditOpen();
+  V.querySelector('[data-ac2=dm]').onclick=()=>settingsOpen('dmfrom');
+  V.querySelector('[data-ac2=disp]').onclick=()=>settingsOpen();
+  /* 非公開の切りかえ（66-messages.js の privRowBind と同じ確かめ方・同じ保存先。行の見た目はこの画面のまま） */
+  const pv=V.querySelector('.ac2-pv [data-priv]');
+  pv.onchange=async()=>{const on=pv.checked;
+    if(!on&&!await askConfirm({title:'アカウントを公開しますか？',text:'だれでも投稿を見られるようになり、待っているフォローのリクエストはすべて許可されます。',ok:'公開する',danger:false})){pv.checked=true;return}
+    pv.disabled=true;
+    try{await authFetch('/api/me/private',{on});if(AUTH.profile)AUTH.profile.private=on;if(typeof haptic==='function')haptic();
+      pv.setAttribute('aria-checked',String(on));document.getElementById('ac2-lk').hidden=!on;toast(on?'アカウントを非公開にしました':'アカウントを公開しました')}
+    catch(e){pv.checked=!on;toast(e.message)}finally{pv.disabled=false}};
+  document.getElementById('ac-out').onclick=async()=>{if(!await askConfirm({title:'ログアウトしますか？',text:'もう一度ログインすれば、パーティや投稿はそのまま使えます。',ok:'ログアウト'}))return;await au.signOut(auth);toast('ログアウトしました')};
   document.getElementById('ac-del').onclick=async()=>{
     const v=await askText(`削除すると元に戻せません。確認のため、ユーザーID（${prof.handle}）を入れてください`,'ユーザーID');
     if(v!==prof.handle){if(v!=null)toast('ユーザーIDが一致しませんでした');return}
@@ -145,5 +156,9 @@ async function accountView(){
     catch(e){toast(authErr(e));if(e.code==='auth/requires-recent-login'){await au.signOut(auth)}}
   };
 }
+/* アカウントの画面の右の表示（メッセージ設定・表示とテーマ）。設定の画面（65-settings.js）で変えて閉じたら acSync で入れかえる */
+const acDmTxt=()=>AUTH.profile&&AUTH.profile.dm_from==='following'?'フォローしている人だけ':'だれでも';
+const acDispTxt=()=>({auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF])+'・'+L(ACCENTS[ACCENT][0],ACCENTS[ACCENT][1]);
+function acSync(){const a=document.getElementById('ac2-dmv'),b=document.getElementById('ac2-dsv');if(a)a.textContent=acDmTxt();if(b)b.textContent=acDispTxt()}
 /* メールのリンクから開かれたときは、アカウント画面へ */
 (function(){try{const q=new URLSearchParams(location.search);if(q.get('oobCode')&&q.get('mode')==='signIn'&&PCF){cur='#/account';setUrl('#/account')}}catch(e){}})();

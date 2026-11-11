@@ -40,6 +40,8 @@ function handleError(h){
   return null;
 }
 const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',av:u.avatar||null,created_at:u.created_at,private:!!u.private};
+/* 本人にだけ返す項目（メッセージの設定） */
+const meUser=u=>u&&{...pubUser(u),dm_from:u.dm_from==='following'?'following':'all'};
 async function userApi(req,env,db,path,body,now){
   /* 公開プロフィール（/api/u/…）は social.js */
   if(!path.startsWith('/api/me'))return null;
@@ -49,7 +51,7 @@ async function userApi(req,env,db,path,body,now){
   const row=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
   if(row&&row.banned)return J({error:'このアカウントは利用を停止しています。'},403);
   /* 自分の情報 */
-  if(path==='/api/me'&&req.method==='GET')return J({user:row?pubUser(row):null,email:me.email,provider:me.provider});
+  if(path==='/api/me'&&req.method==='GET')return J({user:row?meUser(row):null,email:me.email,provider:me.provider});
   /* プロフィールの作成・変更 */
   if(path==='/api/me'&&req.method==='POST'){
     const handle=String(body.handle||'').trim(),name=clean(body.name,20),bio=clean(body.bio,160);
@@ -62,7 +64,7 @@ async function userApi(req,env,db,path,body,now){
     if(row)await db.prepare(`UPDATE users SET handle=?,name=?,bio=?,updated_at=? WHERE uid=?`).bind(handle,name,bio,now,me.uid).run();
     else await db.prepare(`INSERT INTO users(uid,handle,name,bio,created_at,updated_at,agreed_at) VALUES(?,?,?,?,?,?,?)`).bind(me.uid,handle,name,bio,now,now,now).run();
     const u=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
-    return J({ok:true,user:pubUser(u)});
+    return J({ok:true,user:meUser(u)});
   }
   /* トレーナーカード（2026/11/05）：相棒のポケモンと看板パーティ（6匹まで・名前20文字）をプロフィールに出す */
   if(path==='/api/me/card'&&req.method==='POST'){
@@ -130,7 +132,7 @@ async function userApi(req,env,db,path,body,now){
     await db.prepare(`UPDATE users SET avatar=?,updated_at=? WHERE uid=?`).bind(key,now,me.uid).run();
     if(old&&old!==key)await mediaDrop(env,db,'key=? AND uid=?',old,me.uid);
     const u=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
-    return J({ok:true,user:pubUser(u)});
+    return J({ok:true,user:meUser(u)});
   }
   /* アカウントの削除（Firebase 側のアカウントはサイトから消す） */
   if(path==='/api/me/delete'&&req.method==='POST'){

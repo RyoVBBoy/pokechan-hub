@@ -2177,3 +2177,65 @@ body.tw-vopen{overflow:hidden}
 .fl-msg{margin:0;padding:32px 20px;text-align:center;color:var(--dr-v);font-size:15px;line-height:1.7}
 @media(max-width:359px){.fl-row{padding:12px}.fl-fb{min-width:88px;padding:0 12px}}
 @media(prefers-reduced-motion:reduce){.fl-ind,.fl-row,.fl-fb{transition:none}.fl-list.fl-in-r,.fl-list.fl-in-l{animation:none}}
+/* ===================== アカウントの画面（2026/11/11 依頼主「X のアカウント画面と同じに」、29-account.js） =====================
+   上に自分のカード、その下は設定の画面と同じ1行のリスト（.dr-row、線は白の8%、マウスで薄く光る）。この画面では下のフッター（図鑑・出典などのリンク）を出さない */
+body:has(#ac-root.ac2) .foot{display:none}
+.ac2{padding-bottom:24px}
+.ac2-card{display:block;margin:12px 12px 4px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.ac2-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ac2-av{width:64px;height:64px;font-size:26px;display:grid;place-items:center;color:#fff;font-weight:800;border-radius:50%}
+.ac2-me{flex:none;display:inline-flex;align-items:center;min-height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line2,var(--line));color:var(--fg);font-weight:700;font-size:14px;text-decoration:none;transition:background .2s}
+@media(hover:hover){.ac2-me:hover{background:var(--dr-hov)}}
+.ac2-n{display:flex;align-items:center;gap:4px;margin-top:10px}
+.ac2-n b{font-size:20px;font-weight:800;color:var(--fg);overflow-wrap:anywhere}
+.ac2-n span{display:inline-flex;color:var(--fg)}
+.ac2-h{display:block;font-size:15px;color:var(--dim)}
+.ac2-bio{margin:8px 0 0;font-size:14px;line-height:1.55;white-space:pre-wrap;color:var(--fg);overflow-wrap:anywhere}
+.ac2-mail{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)}
+.ac2-mail svg{flex:none}
+.ac2-mail span{overflow-wrap:anywhere}
+.ac2-mail em{font-style:normal;font-size:12px;color:var(--mute,var(--dim))}
+.ac2-sec .dr-row{padding:16px}
+.ac2 .dr-row{border-bottom-color:rgba(255,255,255,.08)}
+:root[data-theme=light] .ac2 .dr-row{border-bottom-color:rgba(15,20,25,.08)}
+.ac2 .sm-sh{padding:20px 16px 8px}
+/* 非公開の行は設定の行の形（前の .pv-row のカードの形を打ち消す） */
+.ac2 .pv-row.ac2-pv{margin:0;border:0;border-radius:0;border-bottom:1px solid rgba(255,255,255,.08);background:none}
+:root[data-theme=light] .ac2 .pv-row.ac2-pv{border-bottom-color:rgba(15,20,25,.08)}
+.ac2-pv .dr-rt small{font-size:13px}
+.ac2-out .dr-rt b,.ac2-out .dr-ri{color:#f4212e}
+.ac2-del .dr-rt b{font-weight:500;color:#f4212e;opacity:.8}
+.ac2-del .dr-ri{color:#f4212e;opacity:.8}
+.ac2-legal{display:flex;justify-content:center;gap:6px;margin:20px 16px 8px;font-size:13px;color:var(--mute,var(--dim))}
+.ac2-legal a{color:var(--dim);text-decoration:none}
+@media(hover:hover){.ac2-legal a:hover{text-decoration:underline}}
+/* ===================== プロフィールを編集（2026/11/11、69-profile-edit.js）。外の形は設定の画面と同じ ===================== */
+.pe-h{gap:8px}
+.pe-h h2{flex:1;margin:0 0 0 8px;font-size:18px;font-weight:800;color:var(--dr-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pe-save{flex:none;min-height:36px;min-width:72px;padding:0 18px;margin-right:4px;border:0;border-radius:999px;background:var(--dr-t);color:var(--sm-bg);font:700 15px var(--ff);cursor:pointer;transition:opacity .2s}
+.pe-save:disabled{opacity:.45;cursor:default}
+.pe-save:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.pe-body{padding:16px 16px 28px}
+.pe-avbox{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px}
+.pe-av{position:relative;width:104px;height:104px}
+.pe-avc{width:104px;height:104px;font-size:42px;display:grid;place-items:center;color:#fff;font-weight:800;border-radius:50%;border:3px solid var(--sm-bg)}
+.pe-cam{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.58);color:#fff;cursor:pointer;transition:background .2s}
+@media(hover:hover){.pe-cam:hover{background:rgba(0,0,0,.7)}}
+.pe-cam:focus-within{outline:2px solid var(--acc);outline-offset:2px}
+.pe-avbtn{display:flex;align-items:center;gap:8px}
+.pe-pick,.pe-rm{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line2,var(--line));background:none;color:var(--dr-t);font:600 14px var(--ff);cursor:pointer}
+.pe-rm{color:#f4212e;border-color:rgba(244,33,46,.4)}
+.pe-avnote{margin:0;font-size:12px;color:var(--dr-v);text-align:center}
+/* 枠つきの入力欄：上に小さな見出しと文字数。押すと枠がテーマの色 */
+.pe-f{position:relative;display:block;margin-top:14px;padding:8px 12px 10px;border:1px solid var(--line2,rgba(255,255,255,.25));border-radius:6px;cursor:text;transition:border-color .2s,box-shadow .2s}
+.pe-f:focus-within{border-color:var(--accf);box-shadow:0 0 0 1px var(--accf)}
+.pe-l{display:block;font-size:13px;color:var(--dr-v)}
+.pe-f:focus-within .pe-l{color:var(--acc)}
+.pe-c{position:absolute;top:8px;right:12px;font-size:13px;color:var(--dr-v);opacity:0;transition:opacity .2s}
+.pe-f:focus-within .pe-c{opacity:1}
+.pe-in{display:flex;align-items:center;gap:2px}
+.pe-in em{font-style:normal;color:var(--dr-v);font-size:17px}
+.pe-f input,.pe-f textarea{display:block;width:100%;margin-top:2px;padding:0;border:0;outline:0;background:none;color:var(--dr-t);font:17px/1.4 var(--ff);resize:none}
+.pe-f textarea{min-height:72px}
+.pe-hint{margin:8px 2px 0;font-size:12px;line-height:1.5;color:var(--dr-v)}
+.pe-err{margin:12px 0 0}

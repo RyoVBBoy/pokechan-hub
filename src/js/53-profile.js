@@ -60,7 +60,7 @@ async function userView(h){
         <span class="pf-av" style="--c1:${c1};--c2:${c2}"><span class="ac-av" style="background:${avCol(u.handle)}" data-notr>${avIn(u)}</span></span>
         <div class="pf-btns">
           <button class="pf-ic" id="pf-share" aria-label="プロフィールのリンクをコピー">${SVG(PF_I.link,19)}</button>
-          ${u.me?`<a class="btn btn-s pf-b" href="#/account">プロフィールを編集</a>`
+          ${u.me?`<button class="btn btn-s pf-b" id="pf-editp">プロフィールを編集</button>`
             :`<a class="pf-ic" id="pf-dm" href="#/messages/${esc(u.handle)}" aria-label="メッセージを送る" title="メッセージを送る">${SVG(I.mail,19)}</a>
               <button class="btn ${u.followed||u.requested?'btn-s':'btn-p'} pf-b" id="twp-f">${pfFollowTxt(u)}</button>`}
         </div>
@@ -96,6 +96,8 @@ async function userView(h){
   /* リンクのコピー */
   document.getElementById('pf-share').onclick=()=>{const url=SITE_BASE()+'/#/u/'+u.handle;
     (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>toast('プロフィールのリンクをコピーしました')).catch(()=>prompt('リンクをコピーしてください',url))};
+  /* プロフィールを編集＝画面の上に開く（69-profile-edit.js、2026/11/11） */
+  const pe=document.getElementById('pf-editp');if(pe)pe.onclick=()=>profEditOpen();
   ['pf-edit','pf-edit2','pf-edit3','pf-edit4'].forEach(id=>{const b=document.getElementById(id);if(b)b.onclick=()=>pfEdit(u,()=>userView(h))});
   const um=document.getElementById('twp-um');if(um)um.onclick=()=>{const s=muted();s.delete(u.handle.toLowerCase());lsW('pcmute',[...s]);userView(h)};
   /* 投稿／画像 */

@@ -43,6 +43,8 @@ async function socialInit(db){
   /* 非公開アカウント（鍵垢、2026/11/11）：users.private=1 の人をフォローすると、本人が許可するまで follows.ok=0（リクエスト中）。
      ok=1 のフォローだけをフォロー数・フォロー中のタイムライン・投稿を見られる人・メッセージを送れる人に数える */
   try{await db.prepare(`ALTER TABLE users ADD COLUMN private INTEGER DEFAULT 0`).run()}catch(e){}
+  /* メッセージを受け取る相手（2026/11/11）：'all'＝だれでも／'following'＝自分がフォローしている人だけ */
+  try{await db.prepare(`ALTER TABLE users ADD COLUMN dm_from TEXT DEFAULT 'all'`).run()}catch(e){}
   try{await db.prepare(`ALTER TABLE follows ADD COLUMN ok INTEGER DEFAULT 1`).run()}catch(e){}
   await db.batch([
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),

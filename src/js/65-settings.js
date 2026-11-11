@@ -11,20 +11,25 @@ const SM_VAL={
   theme:()=>({auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF]),
   accent:()=>drDot(accCol(ACCENTS[ACCENT]))+L(ACCENTS[ACCENT][0],ACCENTS[ACCENT][1]),
   glow:()=>({strong:'強め',normal:'ふつう',off:'なし'}[GLOW]||'ふつう'),
-  lang:()=>(LANGS.find(x=>x[0]===LANG)||LANGS[0])[1]};
+  lang:()=>(LANGS.find(x=>x[0]===LANG)||LANGS[0])[1],
+  dmfrom:()=>AUTH.profile&&AUTH.profile.dm_from==='following'?'フォローしている人だけ':'だれでも'};
 const SM_PAGES={
   qa:{ic:I.zap,t:()=>L('お気に入りショートカット','Favorite shortcut'),body:()=>qaOptsHTML()},
   theme:{ic:I.sun,t:()=>'明るさ',body:()=>[['auto','端末に合わせる',I.phone],['light','ライト',I.sun],['dark','ダーク',I.moon]].map(([k,n,ic])=>drOpt(`data-theme-set="${k}"`,THEME_PREF===k,ic,n)).join('')},
   accent:{ic:I.palette,t:()=>'テーマの色',body:()=>Object.entries(ACCENTS).map(([k,a])=>drOpt(`data-acc-set="${k}"`,ACCENT===k,drDot(accCol(a)),L(a[0],a[1]))).join('')},
   glow:{ic:I.spark,t:()=>'背景の光',body:()=>[['strong','強め'],['normal','ふつう'],['off','なし']].map(([k,n])=>drOpt(`data-glow-set="${k}"`,GLOW===k,I.spark,n)).join('')},
-  lang:{ic:I.globe,t:()=>'言語 / Language',body:()=>LANGS.map(([k,n])=>drOpt(`data-lang-set="${k}"`,LANG===k,I.globe,n)).join('')}};
+  lang:{ic:I.globe,t:()=>'言語 / Language',body:()=>LANGS.map(([k,n])=>drOpt(`data-lang-set="${k}"`,LANG===k,I.globe,n)).join('')},
+  /* メッセージを受け取る相手（2026/11/11 依頼主、サーバーは /api/me/dmfrom）。非公開アカウントの決まりは別に効く */
+  dmfrom:{ic:I.mail,t:()=>'メッセージ設定',body:()=>{const v=AUTH.profile&&AUTH.profile.dm_from==='following'?'following':'all';
+    return `<p class="dr-note">新しいメッセージを送れる人を選びます。いま続いている会話にも同じ決まりが効きます。${AUTH.profile&&AUTH.profile.private?'非公開アカウントなので、どちらでも、許可したフォロワーか自分がフォローしている人からしか届きません。':''}</p>`
+      +[['all','だれでも',I.globe],['following','自分がフォローしている人だけ',I.user]].map(([k,n,ic])=>drOpt(`data-dmfrom-set="${k}"`,v===k,ic,n)).join('')}}};
 const smRow=id=>{const p=SM_PAGES[id];return `<button class="dr-row" data-sm-go="${id}">${drRowIn(p.ic,p.t(),'',`<span class="dr-rv" id="sm-v-${id}">${SM_VAL[id]()}</span>${drChev()}`)}</button>`};
 function smMainHTML(){
   const ids=(curGame().fab?['qa']:[]).concat(['theme','accent','glow','lang']);
   return `<section class="sm-sec" aria-label="表示・カスタマイズ"><h3 class="sm-sh">表示・カスタマイズ</h3>${ids.map(smRow).join('')}</section>
     <section class="sm-sec" aria-label="通知"><h3 class="sm-sh">通知</h3><div id="sm-push"></div></section>
     <section class="sm-sec" aria-label="アカウントとセキュリティ"><h3 class="sm-sh">アカウント＆セキュリティ</h3>
-      ${typeof AUTH!=='undefined'&&AUTH.profile&&typeof privSetRowHTML==='function'?privSetRowHTML(AUTH.profile)+drLink('#/requests',I.user,'フォローリクエスト'):''}${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>`}
+      ${typeof AUTH!=='undefined'&&AUTH.profile&&typeof privSetRowHTML==='function'?privSetRowHTML(AUTH.profile)+smRow('dmfrom')+drLink('#/requests',I.user,'フォローリクエスト'):''}${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>`}
 function smEnsure(){
   if(SM.el)return SM.el;
   const o=document.createElement('div');o.className='setm';o.id='setm';o.hidden=true;
@@ -39,6 +44,10 @@ function smEnsure(){
     const ts=e.target.closest('[data-theme-set]');if(ts){smPick(ts,'theme',()=>setTheme(ts.dataset.themeSet));return}
     const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)smPick(as,'accent',()=>setAccent('pcaccent',as.dataset.accSet));return}
     const gs=e.target.closest('[data-glow-set]');if(gs){if(gs.dataset.glowSet!==GLOW)smPick(gs,'glow',()=>setAccent('pcglow',gs.dataset.glowSet));return}
+    /* メッセージ設定：先に ✓ を変え、保存できなければ戻す */
+    const df=e.target.closest('[data-dmfrom-set]');if(df){const v=df.dataset.dmfromSet,p=AUTH.profile;if(!p||(p.dm_from||'all')===v)return;
+      const was=p.dm_from||'all';p.dm_from=v;
+      smPick(df,'dmfrom',()=>authFetch('/api/me/dmfrom',{v}).then(j=>{p.dm_from=j.dm_from;toast('メッセージ設定を保存しました')}).catch(er=>{p.dm_from=was;toast(er.message);smRefresh()}));return}
     const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)smPick(ls,'lang',()=>setLang(ls.dataset.langSet));return}
     if(e.target.closest('a[href^="#/"]'))settingsClose();
   });
@@ -59,6 +68,8 @@ function settingsOpen(page,opt={}){
 }
 function settingsClose(){
   const o=SM.el;if(!o||o.hidden)return;
+  /* アカウントの画面を見ているときは、右の表示（メッセージ設定・表示とテーマ）を合わせる */
+  if(typeof acSync==='function')acSync();
   o.classList.remove('on');document.body.classList.remove('sm-lock');
   setTimeout(()=>{if(!o.classList.contains('on'))o.hidden=true},matchMedia('(prefers-reduced-motion: reduce)').matches?0:260);
   try{SM.last&&SM.last.focus&&SM.last.focus({preventScroll:true})}catch(e){}

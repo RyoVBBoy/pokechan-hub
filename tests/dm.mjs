@@ -144,6 +144,15 @@ ok(!pg.errs.length&&!pk.errs.length,'画面のエラーなし '+JSON.stringify([
 /* フォロー中・フォロワーの一覧（2026/11/11） */
 await call('/api/me/private',TK.sakura,{on:false});
 for(const [f,t] of [['ren','sakura'],['mio','sakura'],['sakura','ren']])await call('/api/follow',TK[f],{handle:t});
+/* メッセージの設定（2026/11/11）：「自分がフォローしている人だけ」なら、さくらがフォローしているレンだけ送れる */
+{let r=await call('/api/me/dmfrom',TK.sakura,{v:'following'});ok(r[0]===200&&r[1].dm_from==='following','メッセージの設定を保存');
+  r=await call('/api/me',TK.sakura);ok(r[1].user&&r[1].user.dm_from==='following','自分の情報に設定が入る');
+  r=await call('/api/u/sakura',TK.mio);ok(!('dm_from' in r[1].user),'ほかの人には設定を見せない');
+  r=await call('/api/dm/send',TK.mio,{to:'sakura',body:'設定の確認です'});ok(r[0]===403&&r[1].limited,'フォローしていない人からは送れない '+JSON.stringify(r[1]));
+  r=await call('/api/dm/send',TK.ren,{to:'sakura',body:'設定の確認です'});ok(r[0]===200,'フォローしている人からは送れる '+JSON.stringify(r[1]));
+  r=await call('/api/me/dmfrom',TK.sakura,{v:'all'});ok(r[1].dm_from==='all','だれでもに戻す');
+  r=await call('/api/dm/send',TK.mio,{to:'sakura',body:'設定の確認です'});ok(r[0]===200,'だれでもなら送れる');
+}
 await go(pg,'#/u/sakura');await pg.waitForTimeout(600);
 /* 2026/11/11 依頼主（別の作業）：プロフィールの数を押すと、画面の上に一覧（68-follow-modal.js）。アドレス #/u/ID/followers の一覧の画面はそのまま */
 await pg.click('.pf-stats [data-fl="followers"]');await pg.waitForTimeout(900);

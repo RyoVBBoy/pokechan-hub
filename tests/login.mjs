@@ -85,13 +85,52 @@ await pg.check('#ac-ag');await pg.click('#ac-save');await wait(500);
 ok(/@trainer_01/.test(await txt()),'プロフィールを作った後の表示が出ません');
 ok(/g@example\.com/.test(await txt()),'ログイン中のメールアドレスが出ません');
 /* 編集 */
-await pg.fill('#ac-b','ガブリアス使いです');await pg.click('#ac-save');await wait(500);
+/* アカウントの画面（2026/11/11 依頼主「X のアカウント画面と同じに」）：カード・1行のリスト・赤いログアウト・下に利用規約とプライバシーポリシー、図鑑などのリンク（フッター）は出さない */
+{const a=await pg.evaluate(()=>{const R=document.getElementById('ac-root');const rows=[...R.querySelectorAll('.dr-row')];
+  return {card:!!R.querySelector('.ac2-card .ac2-me[href="#/u/trainer_01"]'),mail:/ログイン中/.test(R.querySelector('.ac2-mail')?.textContent||''),
+    rows:rows.map(r=>r.querySelector('.dr-rt b').textContent).join('/'),
+    sub:R.querySelector('.ac2-pv .dr-rt small')?.textContent,tg:!!R.querySelector('.ac2-pv input.pv-sw[data-priv]'),
+    line:getComputedStyle(rows[0]).borderBottom,out:getComputedStyle(R.querySelector('#ac-out .dr-rt b')).color,
+    legal:[...R.querySelectorAll('.ac2-legal a')].map(a=>a.getAttribute('href')).join(),
+    foot:getComputedStyle(document.querySelector('.foot')).display,dex:!!R.querySelector('a[href^="#/dex"],a[href^="#/calc"],a[href^="#/sources"]'),
+    form:!!document.getElementById('ac-h')}});
+  ok(a.card&&a.mail,'アカウントのカード（自分のページを見る・メール） '+JSON.stringify(a));
+  ok(a.rows==='プロフィールを編集/アカウントを非公開にする（鍵垢）/メッセージ設定/フォローのリクエスト/表示・テーマ/ログアウト/アカウントを削除','1行のリストの並び '+a.rows);
+  ok(a.sub==='許可したユーザーのみに投稿とメッセージを公開します'&&a.tg,'非公開の行に説明とトグル');
+  ok(/1px solid rgba\((255, 255, 255|15, 20, 25), 0\.08\)/.test(a.line)&&a.out==='rgb(244, 33, 46)','線と赤いログアウト '+a.line+' '+a.out);
+  ok(a.legal==='#/terms,#/privacy'&&a.foot==='none'&&!a.dex&&!a.form,'下に利用規約とプライバシーポリシーだけ・入力欄はない '+[a.legal,a.foot,a.dex,a.form]);
+  /* メッセージ設定の行 → 設定の画面のメッセージ設定のページ */
+  await pg.click('[data-ac2=dm]');await wait(500);
+  ok(await pg.evaluate(()=>!document.getElementById('setm').hidden&&document.getElementById('sm-t').textContent==='メッセージ設定'&&document.querySelectorAll('#setm [data-dmfrom-set]').length===2),'メッセージ設定のページが開く');
+  await pg.click('#setm [data-sm=close]');await wait(400);
+  /* 編集の画面：文字数・空の名前・IDの形では保存できない・変えたまま閉じると確かめる */
+  await pg.click('#ac-edit');await wait(500);
+  const e=await pg.evaluate(()=>{const o=document.getElementById('pem'),p=o.querySelector('.sm-p').getBoundingClientRect();
+    return [o.querySelector('#pe-t').textContent,!!o.querySelector('[data-pe=close]'),o.querySelector('#pe-save').textContent,!!o.querySelector('.pe-cam'),o.querySelector('#pe-cn').textContent,o.querySelector('#pe-cb').textContent,o.querySelector('#pe-ch').textContent,Math.round(p.width)]});
+  ok(e[0]==='プロフィールを編集'&&e[1]&&e[2]==='保存'&&e[3]&&e[4]==='5/20'&&e[5]==='0/160'&&e[6]==='10/15','編集の画面の形 '+e);
+  await pg.fill('#pe-n','');ok(await pg.$eval('#pe-save',b=>b.disabled),'名前が空なら保存できない');
+  await pg.fill('#pe-n','トレーナー');await pg.fill('#pe-h','ab');ok(await pg.$eval('#pe-save',b=>b.disabled),'IDが短ければ保存できない');
+  await pg.fill('#pe-h','trainer_01');await pg.fill('#pe-b','とちゅう');await pg.click('#pem [data-pe=close]');await wait(300);
+  ok(await pg.evaluate(()=>/変更を破棄しますか/.test(document.querySelector('.xc h3')?.textContent||'')),'変えたまま閉じると確かめる');
+  await pg.click('.xc .xc-ok');await wait(400);
+  ok(await pg.evaluate(()=>document.getElementById('pem').hidden),'破棄すると閉じる');}
+/* 2026/11/11：編集は画面の上に開く（69-profile-edit.js）。保存すると閉じてアカウントの画面に出る */
+await pg.click('#ac-edit');await wait(500);
+ok(await pg.evaluate(()=>!document.getElementById('pem').hidden&&document.getElementById('pe-save').disabled&&document.getElementById('pe-n').value==='トレーナー'),'プロフィールを編集が開かない／はじめから保存できる');
+await pg.fill('#pe-b','ガブリアス使いです');await pg.click('#pe-save');await wait(700);
+ok(await pg.evaluate(()=>document.getElementById('pem').hidden),'保存しても閉じません');
 ok(/ガブリアス使いです/.test(await txt()),'自己紹介の保存が反映されません');
 /* プロフィールの写真：選ぶと縮めて送り、自分のアイコン（プロフィール・左上）が写真になる */
 {const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGP4z8DAwMDAxMDAwAAAH/4CAR2T8lEAAAAASUVORK5CYII=','base64');
-await pg.setInputFiles('#ac-pf',{name:'me.png',mimeType:'image/png',buffer:png});await wait(800);
+await pg.click('#ac-edit');await wait(500);
+await pg.setInputFiles('#pe-pf',{name:'me.png',mimeType:'image/png',buffer:png});await wait(500);
+ok(await pg.$('#pe-av img')&&!await pg.$eval('#pe-save',b=>b.disabled),'写真を選ぶと編集の画面に出て保存できる');
+await pg.click('#pe-save');await wait(900);
 ok(await pg.$('.ac-card .ac-av img'),'写真を選んでもプロフィールに出ません');
-ok(await pg.$('#ac-prm'),'「写真を外す」が出ません');
+await pg.click('#ac-edit');await wait(500);
+ok(await pg.$('#pe-prm'),'「写真を外す」が出ません');
+await pg.click('#pem [data-pe=close]');await wait(400);
+ok(await pg.evaluate(()=>document.getElementById('pem').hidden),'変えていなければ確かめずに閉じる');
 await pg.evaluate(()=>{location.hash='#/'});await wait(500);
 ok(await pg.$('#brand img'),'写真を選んでも左上のアイコンが写真になりません');
 await pg.evaluate(()=>{location.hash='#/account'});await wait(500);
@@ -125,7 +164,8 @@ ok(await pg.evaluate(()=>team.map(x=>x.no).join()==='445,149,248'),'別の端末
 await pgB.close();
 /* ログアウト */
 await pg.evaluate(()=>{location.hash='#/account'});await wait(500);
-await pg.click('#ac-out');await wait(500);
+await pg.click('#ac-out');await wait(300);
+ok(await pg.$('.xc .xc-ok'),'ログアウトの前に確かめません');await pg.click('.xc .xc-ok');await wait(500);
 ok(await pg.$('#ac-google'),'ログアウト後にログイン画面へ戻りません');
 /* メールでログイン：リンクを送る */
 await pg.click('#ac-send');await wait(200);

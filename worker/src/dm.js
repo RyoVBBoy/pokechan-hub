@@ -36,12 +36,18 @@ function dmOutside(text){
   return null;
 }
 /* from が to（users の行）にメッセージを送れるか。送れなければ理由の文 */
+const DM_FOLLOWING='このユーザーは、自分がフォローしている人からのメッセージだけを受け取る設定にしています。';
 async function dmBlock(db,fromUid,to){
   if(!to||to.banned)return 'ユーザーが見つかりません。';
   if(to.uid===fromUid)return '自分にはメッセージを送れません。';
-  if(!to.private)return null;
-  const r=await db.prepare(`SELECT 1 AS x FROM follows WHERE ((src=?1 AND dst=?2) OR (src=?2 AND dst=?1)) AND ok=1 LIMIT 1`).bind(fromUid,to.uid).first();
-  return r?null:DM_LOCKED;
+  if(to.private){
+    const r=await db.prepare(`SELECT 1 AS x FROM follows WHERE ((src=?1 AND dst=?2) OR (src=?2 AND dst=?1)) AND ok=1 LIMIT 1`).bind(fromUid,to.uid).first();
+    if(!r)return DM_LOCKED}
+  /* メッセージの設定（2026/11/11）：「自分がフォローしている人だけ」なら、相手からフォローされている人だけ送れる */
+  if(to.dm_from==='following'){
+    const r=await db.prepare(`SELECT 1 AS x FROM follows WHERE src=? AND dst=? AND ok=1`).bind(to.uid,fromUid).first();
+    if(!r)return DM_FOLLOWING}
+  return null;
 }
 const dmUser=x=>({handle:x.handle,name:x.name,av:x.avatar||null,private:!!x.private});
 const dmMsgOut=(x,me)=>({id:x.id,body:x.body,created_at:x.created_at,mine:x.uid===me,user:x.handle?{handle:x.handle,name:x.name,av:x.avatar||null}:null});
@@ -56,7 +62,7 @@ async function dmRead(db,conv,me){
   await db.prepare(`UPDATE dm_members SET last_read=(SELECT COALESCE(MAX(id),0) FROM dm_msgs WHERE conv_id=?1) WHERE conv_id=?1 AND uid=?2`).bind(conv,me).run();
 }
 async function dmApi(req,env,db,path,u,body,now,ip,ctx){
-  if(!/^\/api\/(dm(\/|$)|me\/private$)/.test(path))return null;
+  if(!/^\/api\/(dm(\/|$)|me\/(private|dmfrom)$)/.test(path))return null;
   if(!fbPid(env))return J({error:'ログイン機能は準備中です。'},503);
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
   const me=await authOf(req,env);
@@ -68,6 +74,12 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
   const uid=meRow.uid;let m;
 
   /* 非公開アカウントの切りかえ {on}。公開に戻すと、待っていたリクエストはすべて許可する */
+  /* メッセージを受け取る相手の設定（2026/11/11 依頼主）：all＝だれでも（非公開アカウントの決まりは別に効く）／following＝自分がフォローしている人だけ */
+  if(path==='/api/me/dmfrom'&&req.method==='POST'){
+    const v=body.v==='following'?'following':'all';
+    await db.prepare(`UPDATE users SET dm_from=?,updated_at=? WHERE uid=?`).bind(v,now,uid).run();
+    return J({ok:true,dm_from:v});
+  }
   if(path==='/api/me/private'&&req.method==='POST'){
     const on=!!body.on;
     const st=[db.prepare(`UPDATE users SET private=?,updated_at=? WHERE uid=?`).bind(on?1:0,now,uid)];
@@ -96,7 +108,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 1対1の会話を開く：相手・送れるか（理由）・やりとり */
   if((m=path.match(/^\/api\/dm\/with\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const t=await db.prepare(`SELECT uid,handle,name,avatar,private,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(m[1]).first();
+    const t=await db.prepare(`SELECT uid,handle,name,avatar,private,dm_from,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(m[1]).first();
     if(!t||t.banned)return J({error:'ユーザーが見つかりません。'},404);
     if(t.uid===uid)return J({error:'自分にはメッセージを送れません。'},400);
     const reason=await dmBlock(db,uid,t);
@@ -121,8 +133,8 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
     if([...text].length>DM_MAX)return J({error:`メッセージは${DM_MAX}文字までです。`},400);
     let conv=0,others=[],url;
     if(body.to){
-      const t=await db.prepare(`SELECT uid,handle,name,private,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(String(body.to)).first();
-      const why=await dmBlock(db,uid,t);if(why)return J({error:why,locked:why===DM_LOCKED},why===DM_LOCKED?403:t?400:404);
+      const t=await db.prepare(`SELECT uid,handle,name,private,dm_from,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(String(body.to)).first();
+      const why=await dmBlock(db,uid,t);if(why)return J({error:why,locked:why===DM_LOCKED,limited:why===DM_FOLLOWING},why===DM_LOCKED||why===DM_FOLLOWING?403:t?400:404);
       others=[t.uid];url='#/messages/'+meRow.handle;
       const pair=[uid,t.uid].sort().join('|');
       const c=await db.prepare(`SELECT id FROM dm_convs WHERE pair=?`).bind(pair).first();
@@ -165,7 +177,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
     const mk=await db.prepare(`SELECT COUNT(*) AS c FROM dm_convs WHERE owner=? AND kind='group' AND created_at>?`).bind(uid,now-864e5).first();
     if(mk&&mk.c>=10)return J({error:'1日に作れるグループは10個までです。'},429);
     const mem=[];
-    for(const h of hs){const t=await db.prepare(`SELECT uid,handle,name,private,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(h).first();
+    for(const h of hs){const t=await db.prepare(`SELECT uid,handle,name,private,dm_from,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(h).first();
       const why=await dmBlock(db,uid,t);if(why)return J({error:(t?`@${t.handle}：`:'')+why,locked:why===DM_LOCKED},why===DM_LOCKED?403:400);mem.push(t.uid)}
     const c=await db.prepare(`INSERT INTO dm_convs(kind,title,owner,created_at,last_at,last_body,last_uid) VALUES('group',?,?,?,?,?,?) RETURNING id`).bind(title,uid,now,now,'グループを作りました',uid).first();
     await db.batch([uid,...mem].map(x=>db.prepare(`INSERT OR IGNORE INTO dm_members(conv_id,uid,last_read,joined_at) VALUES(?,?,0,?)`).bind(c.id,x,now)));
