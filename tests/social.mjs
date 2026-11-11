@@ -386,6 +386,19 @@ r=await call('/api/dm?kind=group',{tok:H});expect('グループの一覧',r[1].c
 r=await call('/api/dm/'+gc,{tok:H});expect('グループを開く',r[1].conv.title==='構築相談'&&r[1].conv.members.length===2&&r[1].msgs.some(x=>x.body==='よろしく'&&x.user.handle==='gina'),r[1]);
 r=await call('/api/dm?kind=dm',{tok:H});expect('個人の一覧にはグループを出さない',r[1].convs.length===0,r[1]);
 r=await call('/api/dm/'+gc+'/leave',{method:'POST',tok:H});r=await call('/api/dm/'+gc,{tok:H});expect('抜けると読めない',r[0]===404,r);
+/* フォロー中・フォロワーの一覧、リクエストの一覧（2026/11/11） */
+r=await call('/api/u/frank/follows?kind=followers',{tok:G});expect('鍵垢のフォロワー一覧は許可されていない人には見せない',r[1].locked===true&&r[1].users.length===0,r[1]);
+r=await call('/api/u/frank/follows?kind=followers',{tok:E});expect('許可されたフォロワーは一覧を見られる',!r[1].locked&&r[1].users.some(x=>x.handle==='eve'&&x.me),r[1]);
+r=await call('/api/u/frank/follows?kind=following',{tok:F});expect('本人はフォロー中を見られる（相手の状態つき）',r[1].users.some(x=>x.handle==='gina'&&x.followed===true&&x.follows_me===false),r[1]);
+r=await call('/api/u/gina/follows?kind=followers');expect('公開アカウントの一覧はログインなしでも見られる',r[0]===200&&r[1].users.some(x=>x.handle==='frank'),r[1]);
+tick(3e3);r=await call('/api/follow',{method:'POST',tok:G,body:{handle:'frank'}});
+r=await call('/api/follow/requests',{tok:F});expect('届いたリクエストの一覧',r[0]===200&&r[1].incoming.some(x=>x.handle==='gina')&&!r[1].incoming.some(x=>x.handle==='eve'),r[1]);
+r=await call('/api/follow/requests',{tok:G});expect('送ったリクエストの一覧',r[1].sent.some(x=>x.handle==='frank'),r[1]);
+r=await call('/api/notifs/count',{tok:F});expect('お知らせの数にリクエストの数',r[1].requests===1,r[1]);
+r=await call('/api/u/frank/follows?kind=followers',{tok:F});expect('リクエスト中の人はフォロワーに出ない',!r[1].users.some(x=>x.handle==='gina'),r[1]);
+r=await call('/api/follow/answer',{method:'POST',tok:F,body:{handle:'gina',ok:false}});
+r=await call('/api/follow/requests',{tok:F});expect('断るとリクエストの一覧から消える',r[1].incoming.length===0,r[1]);
+r=await call('/api/follow/requests');expect('リクエストの一覧はログインが必要',r[0]===401,r);
 /* 公開に戻すとリクエストは許可になる */
 r=await call('/api/follow',{method:'POST',tok:H,body:{handle:'frank'}});expect('リクエスト',r[1].requested,r);
 r=await call('/api/me/private',{method:'POST',tok:F,body:{on:false}});

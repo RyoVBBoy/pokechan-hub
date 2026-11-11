@@ -50,7 +50,7 @@ const dmDay=t=>{const d=new Date(t),n=new Date();if(d.toDateString()===n.toDateS
   return `${d.getFullYear()!==n.getFullYear()?d.getFullYear()+'年':''}${d.getMonth()+1}月${d.getDate()}日`};
 const dmAv=(u,sz)=>`<span class="tw-av dm-av" style="background:${avCol(u.handle||'')}${sz?`;width:${sz}px;height:${sz}px`:''}" data-notr>${avIn(u)}</span>`;
 const dmGroupAv=c=>`<span class="dm-gav">${(c.members||[]).slice(0,2).map(u=>dmAv(u)).join('')||`<span class="tw-av dm-av">${SVG(I.user,18)}</span>`}</span>`;
-function dmStop(){clearInterval(DM.timer);DM.timer=0;document.body.classList.remove('dm-talk')}
+function dmStop(){clearInterval(DM.timer);DM.timer=0;if(DM.vis){document.removeEventListener('visibilitychange',DM.vis);DM.vis=null}document.body.classList.remove('dm-talk')}
 async function messagesView(){
   dmStop();
   const seg=cur.replace(/^#\/?/,'').split('/').slice(1);
@@ -67,7 +67,7 @@ function dmNeedLogin(prof){
   return true;
 }
 async function dmListView(){
-  setHeader('メッセージ');
+  dmStop();setHeader('メッセージ');
   const kind=dmKind();
   V.innerHTML=`<div class="dm-top"><div class="dm-seg" role="tablist" aria-label="会話の種類">
       <button role="tab" data-dmk="dm" aria-selected="${kind==='dm'}">${SVG(I.user,16)}個人</button><button role="tab" data-dmk="group" aria-selected="${kind==='group'}">${SVG(I.grid,16)}グループ</button></div>
@@ -79,8 +79,11 @@ async function dmListView(){
   if(!prof){V.querySelector('.dm-top').remove();dmNeedLogin(prof);return}
   /* この端末で通知がオフなら、オンにする欄を出す（オンなら何も出さない） */
   if(typeof pushRow==='function'){let w=0;const show=()=>{const el=document.getElementById('dm-push');if(!el)return;if(!PUSH.ready&&w++<15){setTimeout(show,200);return}pushResync();pushRow(el,true)};show()}
-  try{
-    const j=await authFetch('/api/dm?kind='+kind);if(!document.getElementById('dm-list'))return;
+  /* 一覧も5秒ごとに読み直し、変わったときだけ描き直す（リアルタイム、2026/11/11） */
+  const here=cur;let last='';
+  const fill=async()=>{
+    const j=await authFetch('/api/dm?kind='+kind);if(cur!==here||!document.getElementById('dm-list'))return;
+    const sig=JSON.stringify(j.convs);if(sig===last)return;last=sig;
     box.innerHTML=j.convs.length?j.convs.map(c=>{
       const u=c.members[0]||{handle:'',name:'（退会したユーザー）'};
       const href=c.kind==='group'?'#/messages/g/'+c.id:'#/messages/'+esc(u.handle);
@@ -91,7 +94,11 @@ async function dmListView(){
         <div class="dm-l2" data-notr>${c.last_mine?'<span class="dm-you">あなた：</span>':''}${esc(c.last)}</div></div>${c.unread?`<i class="dm-badge">${c.unread}</i>`:''}</a>`}).join('')
       :`<div class="dm-empty">${SVG(kind==='group'?I.grid:I.mail,36)}<b>${kind==='group'?'グループはまだありません':'メッセージはまだありません'}</b>
         <span>${kind==='group'?'「新しいメッセージ」から、メンバーを選んでグループを作れます。':'トレーナーのプロフィールの ✉ か「新しいメッセージ」から送れます。'}</span></div>`;
-  }catch(e){box.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
+    dmBadgeRefresh();
+  };
+  try{await fill()}catch(e){box.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`;return}
+  DM.timer=setInterval(()=>{if(cur!==here){dmStop();return}if(!document.hidden)fill().catch(()=>{})},5e3);
+  DM.vis=()=>{if(!document.hidden)fill().catch(()=>{})};document.addEventListener('visibilitychange',DM.vis);
 }
 /* ---- 相手を選ぶ（個人は1人、グループは複数＋名前） ---- */
 async function dmNewView(){
@@ -194,10 +201,11 @@ async function dmTalkView(o){
   const lv=document.getElementById('dm-leave');
   if(lv)lv.onclick=async()=>{if(!await askConfirm({title:'グループを抜けますか？',text:'抜けると、このグループのメッセージは見られなくなります。',ok:'抜ける'}))return;
     try{await authFetch('/api/dm/'+conv+'/leave',{});toast('グループを抜けました');nav('#/messages')}catch(e){toast(e.message)}};
-  /* 新しいメッセージを4秒ごとに読む（この画面を開いている間だけ） */
-  const poll=async()=>{if(cur!==here){dmStop();return}if(document.hidden||!convId)return;
-    try{const r=await authFetch((group?'/api/dm/'+conv:'/api/dm/with/'+u.handle)+'?after='+lastId);if(cur===here)add(r.msgs)}catch(e){}};
-  DM.timer=setInterval(poll,4e3);
+  /* 新しいメッセージを2秒ごとに読む（この画面を開いて見ている間だけ。2026/11/11 依頼主「リアルタイムで」、前は4秒）。ほかのアプリから戻ったときはすぐ読む */
+  let busy=false;
+  const poll=async()=>{if(cur!==here){dmStop();return}if(document.hidden||!convId||busy)return;busy=true;
+    try{const r=await authFetch((group?'/api/dm/'+conv:'/api/dm/with/'+u.handle)+'?after='+lastId);if(cur===here)add(r.msgs)}catch(e){}finally{busy=false}};
+  DM.timer=setInterval(poll,2e3);DM.vis=()=>{if(!document.hidden)poll()};document.addEventListener('visibilitychange',DM.vis);
   dmBadgeRefresh();
 }
 async function dmBadgeRefresh(){try{if(!(AUTH&&AUTH.profile))return;const j=await authFetch('/api/dm/unread');dmBadge(j.unread)}catch(e){}}

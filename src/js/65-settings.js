@@ -23,7 +23,7 @@ function smMainHTML(){
   return `<section class="sm-sec" aria-label="表示・カスタマイズ"><h3 class="sm-sh">表示・カスタマイズ</h3>${ids.map(smRow).join('')}</section>
     <section class="sm-sec" aria-label="通知"><h3 class="sm-sh">通知</h3><div id="sm-push"></div></section>
     <section class="sm-sec" aria-label="アカウントとセキュリティ"><h3 class="sm-sh">アカウント＆セキュリティ</h3>
-      ${typeof AUTH!=='undefined'&&AUTH.profile&&typeof privSetRowHTML==='function'?privSetRowHTML(AUTH.profile):''}${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>`}
+      ${typeof AUTH!=='undefined'&&AUTH.profile&&typeof privSetRowHTML==='function'?privSetRowHTML(AUTH.profile)+drLink('#/requests',I.user,'フォローリクエスト'):''}${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>`}
 function smEnsure(){
   if(SM.el)return SM.el;
   const o=document.createElement('div');o.className='setm';o.id='setm';o.hidden=true;

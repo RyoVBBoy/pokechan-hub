@@ -44,6 +44,7 @@ function pfShowcase(u){
 /* フォローのボタンの文字（非公開アカウントにはリクエスト、2026/11/11） */
 const pfFollowTxt=u=>u.followed?'フォロー中':u.requested?'リクエスト中':u.private?'フォローをリクエスト':'フォローする';
 async function userView(h){
+  {const sub=(cur.replace(/^#\/?/,'').split('/')[2]||'');if(sub==='followers'||sub==='following')return followListView(h,sub)}
   setHeader('プロフィール','#/tl');
   if(!/^[A-Za-z0-9_]{3,15}$/.test(h||'')){V.innerHTML='<p class="empty">ユーザーが見つかりません。</p>';return}
   V.innerHTML='<p class="empty">読み込み中…</p>';
@@ -74,10 +75,11 @@ async function userView(h){
     </div>
     <div class="pf-card pf-stats">
       <div><b class="num">${pfNum(u.notes)}</b><span>投稿</span></div>
-      <div><b class="num" id="twp-fc">${pfNum(u.followers)}</b><span>フォロワー</span></div>
-      <div><b class="num">${pfNum(u.following)}</b><span>フォロー中</span></div>
+      <a class="pf-st" href="#/u/${esc(u.handle)}/followers"><b class="num" id="twp-fc">${pfNum(u.followers)}</b><span>フォロワー</span></a>
+      <a class="pf-st" href="#/u/${esc(u.handle)}/following"><b class="num">${pfNum(u.following)}</b><span>フォロー中</span></a>
       <div><b class="num">${pfNum(u.liked)}</b><span>もらったいいね</span></div>
     </div>
+    ${u.me&&(u.private||FREQ_N)?`<a class="pf-fq" href="#/requests">${SVG(I.user,18)}<span>フォローリクエスト</span><b id="pf-fq-n">${FREQ_N?FREQ_N+'件':''}</b>${SVG(I.chev,16)}</a>`:''}
     ${(u.results||[]).length?`<div class="pf-res">${resultBadges(u.results)}</div>`:''}
     ${pfShowcase(u)}
     ${isMuted?`<div class="bnote" style="margin:8px 12px 0">この人の投稿は、あなたの画面では表示しない設定です。<button class="bback" id="twp-um" style="padding:0">表示する</button></div>`:''}

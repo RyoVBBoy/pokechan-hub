@@ -44,18 +44,34 @@ function twMediaHTML(n){
   if(n.media_hidden)return `<div class="tw-mh">画像は確認中です（通報があったため、運営者が確認するまで表示しません）</div>`;
   const m=n.media||[];if(!m.length)return'';
   const ar=m.length===1?Math.max(.6,Math.min(1.9,(m[0].w||4)/(m[0].h||3))):0;
-  return `<div class="tw-md tw-md--${m.length}" data-mk="${m.map(x=>x.k).join(',')}"${ar?` style="aspect-ratio:${ar.toFixed(3)}"`:''}>${m.map((x,i)=>`<button class="tw-mi" data-mi="${i}" aria-label="画像${i+1}を大きく見る"><img src="${mediaUrl(x.k)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>`;
+  /* 2枚以上：パソコンは今までどおり並べて表示、スマホ（699px以下）は左右にスワイプして切りかえる（2026/11/11 依頼主。CSS の .tw-car と twCarSync） */
+  const car=m.length>1;
+  const md=`<div class="tw-md tw-md--${m.length}${car?' tw-car':''}" data-mk="${m.map(x=>x.k).join(',')}"${car?' data-noswipe':''}${ar?` style="aspect-ratio:${ar.toFixed(3)}"`:''}>${m.map((x,i)=>`<button class="tw-mi" data-mi="${i}" aria-label="画像${i+1}を大きく見る"><img src="${mediaUrl(x.k)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>`;
+  return car?`<div class="tw-mdw">${md}<span class="tw-cnum" aria-hidden="true">1/${m.length}</span><span class="tw-dots" aria-hidden="true">${m.map((x,i)=>`<i${i?'':' class="on"'}></i>`).join('')}</span></div>`:md;
 }
-/* 画像を画面いっぱいに見る（左右の矢印・キーで切りかえ、背景かボタンで閉じる） */
+/* スマホで画像を左右に切りかえたとき、下の点と「1/3」を合わせる（スクロールの位置から今の画像を決める） */
+function twCarSync(el){
+  const w=el.clientWidth||1,i=Math.max(0,Math.min(el.children.length-1,Math.round(el.scrollLeft/w))),box=el.parentElement;
+  if(!box||el._ci===i)return;el._ci=i;
+  box.querySelectorAll('.tw-dots i').forEach((d,k)=>d.classList.toggle('on',k===i));
+  const c=box.querySelector('.tw-cnum');if(c)c.textContent=`${i+1}/${el.children.length}`;
+}
+document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('tw-car'))requestAnimationFrame(()=>twCarSync(t))},true);
+/* 画像を画面いっぱいに見る：左右にスワイプ（スマホ）・矢印・キーで切りかえ、背景か ✕ で閉じる。
+   画像は横に並べて、指の動きにそのまま付いてくるスクロール（scroll-snap）で切りかえる＝なめらか */
 function twViewer(keys,i){
   const o=document.createElement('div');o.className='tw-view';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
-  o.innerHTML=`<img alt=""><button class="tw-vx" aria-label="閉じる">${SVG(I.x,22)}</button>${keys.length>1?`<button class="tw-vp" aria-label="前の画像">‹</button><button class="tw-vn" aria-label="次の画像">›</button><span class="tw-vc"></span>`:''}`;
-  const img=o.querySelector('img'),show=()=>{img.src=mediaUrl(keys[i]);const c=o.querySelector('.tw-vc');if(c)c.textContent=`${i+1} / ${keys.length}`};
-  const close=()=>{removeEventListener('keydown',key);o.remove()};
-  const step=d=>{i=(i+d+keys.length)%keys.length;show()};
-  const key=e=>{if(e.key==='Escape')close();else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1)};
-  o.onclick=e=>{if(e.target===o||e.target.closest('.tw-vx'))close();else if(e.target.closest('.tw-vp'))step(-1);else if(e.target.closest('.tw-vn'))step(1)};
-  addEventListener('keydown',key);document.body.appendChild(o);show();
+  o.innerHTML=`<div class="tw-vt">${keys.map(k=>`<div class="tw-vs"><img alt="" src="${mediaUrl(k)}" decoding="async"></div>`).join('')}</div><button class="tw-vx" aria-label="閉じる">${SVG(I.x,22)}</button>${keys.length>1?`<button class="tw-vp" aria-label="前の画像">‹</button><button class="tw-vn" aria-label="次の画像">›</button><span class="tw-vc"></span>`:''}`;
+  const tr=o.querySelector('.tw-vt'),cnt=o.querySelector('.tw-vc');
+  const cur_=()=>Math.round(tr.scrollLeft/(tr.clientWidth||1));
+  const show=()=>{if(cnt)cnt.textContent=`${cur_()+1} / ${keys.length}`};
+  const close=()=>{removeEventListener('keydown',key);document.body.classList.remove('tw-vopen');o.remove()};
+  const go=k=>{k=Math.max(0,Math.min(keys.length-1,k));tr.scrollTo({left:k*tr.clientWidth,behavior:reduceMotion?'auto':'smooth'})};
+  const key=e=>{if(e.key==='Escape')close();else if(e.key==='ArrowRight')go(cur_()+1);else if(e.key==='ArrowLeft')go(cur_()-1)};
+  o.onclick=e=>{if(e.target.closest('.tw-vx'))close();else if(e.target.closest('.tw-vp'))go(cur_()-1);else if(e.target.closest('.tw-vn'))go(cur_()+1);else if(!e.target.closest('img'))close()};
+  tr.addEventListener('scroll',()=>requestAnimationFrame(show),{passive:true});
+  addEventListener('keydown',key);document.body.appendChild(o);document.body.classList.add('tw-vopen');
+  tr.scrollLeft=i*tr.clientWidth;show();
 }
 /* 画像を縮める：長い辺1600px・WebP（使えなければ JPEG）。描き直すので、撮影場所などの情報（EXIF）は残らない */
 async function twShrink(file,maxSide=1600){
@@ -238,9 +254,9 @@ async function noteView(id){
     twFeed(document.getElementById('tw-replies'),`/api/notes/${+id}/replies`,'まだ返信はありません。');}
   catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
 }
-async function notifView(){
+async function notifView(quiet){
   setHeader('お知らせ','#/community');
-  V.innerHTML='<p class="empty">読み込み中…</p>';
+  if(quiet!==true)V.innerHTML='<p class="empty">読み込み中…</p>';
   const prof=await twAuth();if(keyOf(cur)!=='notif')return;
   if(!prof){V.innerHTML=`<div class="bnote" style="margin:16px"><a href="#/account" style="color:var(--acc)">ログイン</a>すると、いいねやフォローのお知らせがここに届きます。</div>`;return}
   try{
@@ -260,7 +276,9 @@ async function notifView(){
       try{await authFetch('/api/follow/answer',{handle:row.dataset.req,ok});row.querySelector('.twn-act').innerHTML=`<span class="tw-t">${ok?'許可しました':'断りました'}</span>`}
       catch(e){toast(e.message);row.querySelectorAll('button').forEach(x=>x.disabled=false)}});
     if(j.notifs.some(n=>n.id>j.seen))authFetch('/api/notifs/seen',{}).then(()=>notifBadge(0)).catch(()=>{});
-    V.insertAdjacentHTML('afterbegin','<div id="nf-push"></div>');if(typeof pushRow==='function')pushRow(document.getElementById('nf-push'),true);
+    V.insertAdjacentHTML('afterbegin',`<a class="nf-fq" id="nf-fq" href="#/requests"${FREQ_N?'':' hidden'}>${SVG(I.lock,18)}<span>フォローリクエスト <b class="num">${FREQ_N}</b>件</span>${SVG(I.chev,16)}</a>`);
+    V.insertAdjacentHTML('afterbegin','<div id="nf-push"></div>');
+    authFetch('/api/notifs/count').then(c=>freqBadge(c.requests||0)).catch(()=>{});if(typeof pushRow==='function')pushRow(document.getElementById('nf-push'),true);
   }catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
 }
 /* 未読のお知らせの数を「コミュニティ」タブに出す（ログインしたことがある端末だけ、1分ごと） */
@@ -275,10 +293,17 @@ function notifBadge(n){
 let notifAt=0;
 async function notifPoll(){
   let was='';try{was=localStorage.getItem('pcin')||''}catch(e){}
-  if(!PCF||!was||Date.now()-notifAt<55e3||document.hidden)return;notifAt=Date.now();
-  try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');notifBadge(keyOf(cur)==='notif'?0:j.unread);if(typeof dmBadgeRefresh==='function')dmBadgeRefresh();if(typeof pushResync==='function')pushResync()}catch(e){}
+  if(!PCF||!was||Date.now()-notifAt<12e3||document.hidden)return;notifAt=Date.now();
+  try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');
+    /* リアルタイム（2026/11/11 依頼主）：お知らせ・リクエストの画面を開いていて新しいものが来たら、その場で読み直す */
+    const k=keyOf(cur),fq=j.requests||0,chg=fq!==FREQ_N;
+    if(k==='notif'&&j.unread>0&&!document.querySelector('.psheet,.sheet:not([hidden])'))notifView(true);
+    if(k==='requests'&&chg&&!document.querySelector('.fw-out'))requestsView(true);
+    notifBadge(k==='notif'?0:j.unread);if(typeof freqBadge==='function')freqBadge(fq);if(typeof dmBadgeRefresh==='function')dmBadgeRefresh();if(typeof pushResync==='function')pushResync()}catch(e){}
 }
-setInterval(notifPoll,60e3);setTimeout(notifPoll,1500);
+/* 15秒ごと（画面を見ているときだけ）。ほかのアプリから戻ったときはすぐ読む（2026/11/11 依頼主「リアルタイムで」。前は1分ごと） */
+setInterval(notifPoll,15e3);setTimeout(notifPoll,1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){notifAt=0;notifPoll()}});
 
 /* ===================== 検索（#/search/言葉） =====================
    ポケモンの名前に合えば、いちばん上にそのポケモン（押すと図鑑の詳しい画面）。その下に人と投稿。

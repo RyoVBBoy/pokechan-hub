@@ -51,6 +51,8 @@ async function page(who,vp={width:390,height:844}){
     if(u.host==='www.gstatic.com'&&u.pathname.endsWith('/firebase-app.js'))return r.fulfill({...js,body:FB_APP});
     if(u.host==='www.gstatic.com'&&u.pathname.endsWith('/firebase-auth.js'))return r.fulfill({...js,body:FB_AUTH});
     if(u.protocol==='file:')return r.continue();
+    if(u.pathname.startsWith('/m/')){const res=await w.fetch(new Request('https://x.dev'+u.pathname),env,{waitUntil(){}});
+      return r.fulfill({status:res.status,headers:{'Access-Control-Allow-Origin':'*','Content-Type':res.headers.get('content-type')||'image/png'},body:Buffer.from(await res.arrayBuffer())})}
     if(u.pathname.startsWith('/api/')){const q=r.request(),h=Object.fromEntries(Object.entries(q.headers()));h['cf-connecting-ip']='10.2.0.'+(++ipN%200);delete h.origin;
       const res=await w.fetch(new Request('https://x.dev'+u.pathname+u.search,{method:q.method(),headers:h,body:['GET','HEAD'].includes(q.method())?undefined:q.postData()}),env,{waitUntil(){}});
       return r.fulfill({status:res.status,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json'},body:await res.text()})}
@@ -139,6 +141,59 @@ ok(!!await pg.$('[data-h="mio"]'),'相手を探せる');
 await pg.click('[data-h="mio"]');await pg.waitForTimeout(800);
 ok(await pg.evaluate(()=>location.hash)==='#/messages/mio','選ぶと会話へ');
 ok(!pg.errs.length&&!pk.errs.length,'画面のエラーなし '+JSON.stringify([...pg.errs,...pk.errs]));
+/* フォロー中・フォロワーの一覧（2026/11/11） */
+await call('/api/me/private',TK.sakura,{on:false});
+for(const [f,t] of [['ren','sakura'],['mio','sakura'],['sakura','ren']])await call('/api/follow',TK[f],{handle:t});
+await go(pg,'#/u/sakura');await pg.waitForTimeout(600);
+await pg.click('.pf-stats a[href$="/followers"]');await pg.waitForTimeout(900);
+ok(await pg.evaluate(()=>location.hash)==='#/u/sakura/followers','フォロワーの数を押すとフォロワーの一覧');
+ok((await pg.$$eval('#fw-list .fw-row',l=>l.map(x=>x.dataset.fh))).sort().join()==='mio,ren','フォロワーの一覧（ミオ・レン）');
+ok(await pg.$eval('[data-fh="ren"] [data-ff]',e=>e.textContent)==='フォロー中','フォローしている人にはフォロー中');
+ok(await pg.$eval('[data-fh="mio"]',e=>e.textContent.includes('フォローされています')),'フォローされている印');
+await shot(pg,'f-followers');
+await pg.click('.fw-seg a[href$="/following"]');await pg.waitForTimeout(800);
+ok(await pg.evaluate(()=>location.hash)==='#/u/sakura/following'&&(await pg.$$eval('#fw-list .fw-row',l=>l.map(x=>x.dataset.fh))).sort().join()==='kagi,ren','フォロー中に切りかえ（カギ・レン）');
+await go(pg,'#/u/kagi/followers');await pg.waitForTimeout(800);
+ok(!!await pg.$('#fw-list [data-fh="sakura"]'),'許可された鍵垢のフォロワー一覧は見られる');
+/* フォローのリクエストの画面（2026/11/11） */
+await call('/api/follow',TK.ren,{handle:'kagi'});await call('/api/follow',TK.mio,{handle:'kagi'});
+await go(pk,'#/notif');await pk.waitForTimeout(1200);
+ok(await pk.$eval('#nf-fq',e=>!e.hidden&&e.textContent.includes('2')),'お知らせの画面の上にフォローリクエスト2件');
+await pk.click('#nf-fq');await pk.waitForTimeout(1000);
+ok(await pk.evaluate(()=>location.hash)==='#/requests'&&(await pk.$$('#fq-list .fw-row')).length===2,'リクエストの画面に2件');
+await shot(pk,'f-requests');
+await pk.click('[data-fh="ren"] [data-ok="1"]');await pk.waitForTimeout(150);
+ok(!!await pk.$('.fw-row.fw-out'),'許可した行がなめらかに消える');await pk.waitForTimeout(500);
+ok((await pk.$$('#fq-list .fw-row')).length===1&&(await call('/api/u/kagi',TK.ren))[1].user.followed,'許可するとフォローになる');
+await pk.click('[data-fh="mio"] [data-ok="0"]');await pk.waitForTimeout(700);
+ok(await pk.$eval('#fq-list',e=>e.textContent.includes('届いているリクエストはありません'))&&!(await call('/api/u/kagi',TK.mio))[1].user.requested,'断るとリクエストが消える');
+await go(pk,'#/u/kagi');await pk.waitForTimeout(800);
+ok(!!await pk.$('.pf-fq[href="#/requests"]'),'鍵垢の本人のプロフィールにフォローリクエストの入口');
+/* リアルタイム：相手が送ったメッセージが2秒ほどで出る */
+await go(pg,'#/messages/ren');await pg.waitForTimeout(800);
+await call('/api/dm/send',TK.ren,{to:'sakura',body:'リアルタイムの確認です'});await pg.waitForTimeout(2600);
+ok(await pg.$eval('#dm-log',e=>e.textContent.includes('リアルタイムの確認です')),'会話は2秒ほどで届く');
+/* 画像を左右にスワイプ（2026/11/11） */
+const imgs=await pg.evaluate(()=>[['#e5484d','1'],['#1d9bf0','2'],['#30a46c','3']].map(([c,t])=>{const k=document.createElement('canvas');k.width=800;k.height=600;const g=k.getContext('2d');g.fillStyle=c;g.fillRect(0,0,800,600);g.fillStyle='#fff';g.font='bold 300px sans-serif';g.fillText(t,300,420);return k.toDataURL('image/png').split(',')[1]}));
+const keys=[];for(const d of imgs){const r=await w.fetch(new Request('https://x.dev/api/media?w=800&h=600',{method:'POST',headers:{authorization:'Bearer '+TK.ren,'content-type':'image/png','cf-connecting-ip':'10.3.0.1'},body:Buffer.from(d,'base64')}),env,{waitUntil(){}});keys.push((await r.json()).key)}
+ok(keys.every(Boolean),'画像を送れた');
+await call('/api/notes',TK.ren,{body:'構築の画像3枚です',media:keys});
+await go(pg,'#/u/ren');await pg.waitForTimeout(1500);
+ok(await pg.$eval('.tw-car',e=>getComputedStyle(e).display==='flex'&&getComputedStyle(e).scrollSnapType.includes('x')),'スマホでは画像が横に並んで、ぴたっと止まる');
+ok(await pg.$eval('.tw-mdw .tw-cnum',e=>e.textContent)==='1/3'&&(await pg.$$('.tw-mdw .tw-dots i')).length===3,'1/3 と点が3つ');
+await pg.$eval('.tw-car',e=>e.scrollTo({left:e.clientWidth,behavior:'instant'}));await pg.waitForTimeout(300);
+ok(await pg.$eval('.tw-mdw .tw-cnum',e=>e.textContent)==='2/3'&&await pg.$eval('.tw-dots i:nth-child(2)',e=>e.classList.contains('on')),'スワイプすると2/3・2つ目の点');
+await shot(pg,'f-carousel');
+await pg.click('.tw-car .tw-mi[data-mi="1"]');await pg.waitForTimeout(500);
+ok(await pg.$eval('.tw-vc',e=>e.textContent)==='2 / 3','押した画像から大きく見られる');
+await pg.$eval('.tw-vt',e=>e.scrollTo({left:e.clientWidth*2,behavior:'instant'}));await pg.waitForTimeout(300);
+ok(await pg.$eval('.tw-vc',e=>e.textContent)==='3 / 3','大きく見る画面でもスワイプで切りかえ');
+await shot(pg,'f-viewer');
+await pg.click('.tw-vx');await pg.waitForTimeout(200);
+ok(!await pg.$('.tw-view'),'閉じる');
+{const pc=await page('sakura',{width:1280,height:860});await pc.goto(URL0+'#/u/ren');await pc.waitForTimeout(1800);
+  ok(await pc.$eval('.tw-car',e=>getComputedStyle(e).display==='grid'),'パソコンでは画像を今までどおり並べる');await shot(pc,'f-pc-images');
+  await go(pc,'#/u/sakura/followers');await pc.waitForTimeout(1000);await shot(pc,'f-pc-followers');}
 /* PC の幅 */
 if(SHOT){const pc=await page('sakura',{width:1280,height:860});await pc.goto(URL0+'#/messages');await pc.waitForTimeout(1500);await shot(pc,'m-pc-list');
   await go(pc,'#/messages/ren');await pc.waitForTimeout(800);await shot(pc,'m-pc-talk');await go(pc,'#/messages/kagi');await pc.waitForTimeout(600);await shot(pc,'m-pc-kagi')}

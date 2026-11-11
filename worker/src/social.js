@@ -227,6 +227,30 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
       WHERE u.handle=?3 COLLATE NOCASE AND n.hidden=0 AND ${NOTE_OK} AND n.id<?2${u.searchParams.get('media')==='1'?" AND n.repost_of=0 AND n.media IS NOT NULL AND n.media<>'' AND n.media<>'[]'":''} ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),m[1]).all();
     return J(pageOut(withMine(r.results)));
   }
+  /* フォロー中・フォロワーの一覧（2026/11/11 依頼主）：?kind=following（この人がフォローしている）／followers（この人をフォローしている）。
+     許可されたフォロー（ok=1）だけ。非公開アカウントは本人と許可されたフォロワーだけが見られる。新しい順に50人ずつ（?before=フォローした時刻） */
+  if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/follows$/))&&req.method==='GET'){
+    const pu=await db.prepare(`SELECT uid,private FROM users WHERE handle=? COLLATE NOCASE AND banned=0`).bind(m[1]).first();
+    if(!pu)return J({error:'ユーザーが見つかりません。'},404);
+    if(pu.private&&pu.uid!==meUid&&!await db.prepare(`SELECT 1 AS x FROM follows WHERE src=? AND dst=? AND ok=1`).bind(meUid,pu.uid).first())return J({users:[],next:null,locked:true});
+    const fl=u.searchParams.get('kind')==='followers';
+    const before=parseInt(u.searchParams.get('before')||'',10)||9e15;
+    const r=(await db.prepare(`SELECT f.created_at AS at,x.handle,x.name,x.bio,x.avatar,x.private,
+      EXISTS(SELECT 1 FROM follows a WHERE a.src=?2 AND a.dst=x.uid AND a.ok=1) AS followed,EXISTS(SELECT 1 FROM follows a WHERE a.src=?2 AND a.dst=x.uid AND a.ok=0) AS requested,
+      EXISTS(SELECT 1 FROM follows a WHERE a.src=x.uid AND a.dst=?2 AND a.ok=1) AS follows_me,x.uid=?2 AS me
+      FROM follows f JOIN users x ON x.uid=${fl?'f.src':'f.dst'} AND x.banned=0
+      WHERE ${fl?'f.dst':'f.src'}=?1 AND f.ok=1 AND f.created_at<?3 ORDER BY f.created_at DESC LIMIT 50`).bind(pu.uid,meUid,before).all()).results;
+    return J({users:r.map(x=>({handle:x.handle,name:x.name,bio:x.bio||'',av:x.avatar||null,private:!!x.private,followed:!!x.followed,requested:!!x.requested,follows_me:!!x.follows_me,me:!!x.me})),
+      next:r.length===50?r[49].at:null});
+  }
+  /* フォローのリクエストの一覧（2026/11/11 依頼主）：届いたもの（本人に許可を待っている）と、自分が送ったもの */
+  if(path==='/api/follow/requests'&&req.method==='GET'){
+    const e=need();if(e)return e;
+    const q=sent=>db.prepare(`SELECT f.created_at AS at,x.handle,x.name,x.bio,x.avatar,x.private FROM follows f JOIN users x ON x.uid=${sent?'f.dst':'f.src'} AND x.banned=0
+      WHERE ${sent?'f.src':'f.dst'}=? AND f.ok=0 ORDER BY f.created_at DESC LIMIT 200`).bind(meUid).all();
+    const o=x=>({handle:x.handle,name:x.name,bio:x.bio||'',av:x.avatar||null,private:!!x.private,at:x.at});
+    return J({incoming:(await q(false)).results.map(o),sent:(await q(true)).results.map(o)});
+  }
   /* フォロー（on:false でやめる・リクエストを取り消す）。相手が非公開アカウントなら「リクエスト」（ok=0）になり、本人が許可するとフォロー */
   if(path==='/api/follow'&&req.method==='POST'){
     const e=need();if(e)return e;
@@ -294,7 +318,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   if(path==='/api/notifs/count'&&req.method==='GET'){
     if(!meUid)return J({unread:0});
     const r=await db.prepare(`SELECT COUNT(*) AS c FROM notifs WHERE uid=?1 AND id>COALESCE((SELECT notif_seen FROM user_state WHERE uid=?1),0)`).bind(meUid).first();
-    return J({unread:r?Math.min(r.c,99):0});
+    const rq=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE dst=? AND ok=0`).bind(meUid).first();
+    return J({unread:r?Math.min(r.c,99):0,requests:rq?Math.min(rq.c,99):0});
   }
   if(path==='/api/notifs'&&req.method==='GET'){
     const e=need();if(e)return e;
