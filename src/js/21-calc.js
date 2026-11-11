@@ -96,6 +96,33 @@ function calcSide(key,X,isAtk){
     ${(isAtk?[['atk','攻撃'],['spa','特攻']]:[['def','防御'],['spd','特防']]).map(([k,n])=>`<label><span>${n}ランク</span><select class="sel" data-c="${key}.stg.${k}">${[6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6].map(v=>`<option value="${v}"${v===(X.stg[k]||0)?' selected':''}>${v>0?'+'+v:v}</option>`).join('')}</select></label>`).join('')}</div>
   </div>`;
 }
+/* 攻守の入れかえ（2026/11/11 依頼主：⇅ を180度回し、上下の2匹を0.3秒ですべらせて入れかえる。表示だけでなく中身も入れかえる）
+   中身：2匹の育成（型・技・特性・持ち物・性格・能力ポイント・ランク）・残りHP・状態異常（攻撃側のやけど⇔受ける側の状態。
+   攻撃側はやけどしか計算に使わないので、まひ等は CS.aSt に覚えておき、もう一度入れかえると受ける側に戻る）。技は新しい攻撃側のいちばん強い技に選び直す */
+let CALC_ROT=0;
+function calcSwapData(){
+  const a=CS.a;CS.a=CS.d;CS.d=a;CS.mv=null;
+  const h=CS.aHP;CS.aHP=CS.dHP;CS.dHP=h;
+  const aSt=CS.aSt&&((CS.aSt==='brn')===!!CS.burn)?CS.aSt:(CS.burn?'brn':'');
+  CS.aSt=CS.dSt||'';CS.dSt=aSt;CS.burn=CS.aSt==='brn';
+}
+function calcSwap(draw){
+  const box=document.querySelector('#calc-root .cv-vs'),sd=box?[...box.querySelectorAll('.cv-side')]:[];
+  /* 動かす前の位置（変形を含まない位置） */
+  const t0=sd.length===2?[sd[0].offsetTop,sd[1].offsetTop]:null;
+  calcSwapData();CALC_ROT+=180;
+  const y=scrY();draw();scrTo(0,y);
+  const nb=document.querySelector('#calc-root .cv-vs'),ic=nb&&nb.querySelector('.cv-swi');
+  if(!nb||!t0||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const ns=[...nb.querySelectorAll('.cv-side')],d=t0[1]-t0[0];
+  /* ⇅ は前の向きから180度回す */
+  if(ic){ic.style.transition='none';ic.style.transform=`rotate(${CALC_ROT-180}deg)`;void ic.offsetWidth;ic.style.transition='';ic.style.transform=`rotate(${CALC_ROT}deg)`}
+  /* 新しい上の段（もとは下）は下から、新しい下の段（もとは上）は上からすべってくる */
+  ns.forEach((el,i)=>{el.classList.remove('cv-swm');el.style.transform=`translateY(${i===0?d:-d}px)`;el.style.opacity='.55'});
+  nb.classList.add('cv-anim');void nb.offsetWidth;
+  ns.forEach(el=>{el.classList.add('cv-swm');el.style.transform='';el.style.opacity=''});
+  clearTimeout(calcSwap.t);calcSwap.t=setTimeout(()=>{nb.classList.remove('cv-anim');ns.forEach(el=>el.classList.remove('cv-swm'))},340);
+}
 function calcView(){
   setHeader('ダメージ計算','#/tools');
   if(!CS)calcInit();
@@ -113,7 +140,7 @@ function calcView(){
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
     <div class="cv-vs">
       <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.a)}</span></div>
-      <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える">⇅</button>
+      <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える"><span class="cv-swi" style="transform:rotate(${CALC_ROT}deg)">⇅</span></button>
       <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.d)}</span></div>
     </div>
     ${R?`<div class="cres cv-res">
@@ -185,7 +212,7 @@ function calcView(){
     calcVerBind(R,draw);
     root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{CS.mv=+b.dataset.mvpick;const y=scrY();draw();scrTo(0,y)});
     root.querySelectorAll('details[data-more]').forEach(d=>d.addEventListener('toggle',()=>{CALC_OPEN[d.dataset.more]=d.open}));
-    document.getElementById('c-swap').onclick=()=>{const a=CS.a;CS.a=CS.d;CS.d=a;CS.mv=null;const y=scrY();draw();scrTo(0,y)};
+    document.getElementById('c-swap').onclick=()=>calcSwap(draw);
   };
   draw();
   calcEnsure(CS.a.no,CS.d.no).then(ch=>{if(ch&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}});
