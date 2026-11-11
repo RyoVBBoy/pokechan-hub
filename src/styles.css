@@ -2278,10 +2278,10 @@ body:has(#ac-root.ac2) .foot{display:none}
 /* ===== 投稿の文字とボタンの大きさを X にそろえる（2026/11/11 依頼主の X のスクリーンショット〔1179px＝幅393pt の iPhone、3倍〕と、
    同じ幅・同じ文で当サイトを測って合わせた）：X は本文「海外で話題沸騰中のX GIF保存方法」が204pt（＝13px）・行の間17.8pt、
    @ID 13px、数 約11.5px、返信・いいね等の絵は形が15〜17pt（当サイトの絵は箱の約0.65なので箱を23px）。文字サイズ「標準」のとき。
-   絵もスライダー（--fsk）に合わせて大きさが変わる */
+   文字サイズのスライダーで変わるのは文字だけ（X と同じく、絵・アイコンの大きさは変わらない）。詳しい画面の本文は一覧の1.13倍 */
 .tw-b{font-size:13px;line-height:1.37}
-.tw--big .tw-b{font-size:15px;line-height:1.37}
+.tw--big .tw-b{font-size:14.7px;line-height:1.37}
 .tw-h{font-size:13px}
 .tw-t{font-size:13px}
 .tw-a .tw-like{font-size:11.5px;gap:4px}
-.tw-a .tw-like svg{width:calc(23px * var(--fsk, 1));height:calc(23px * var(--fsk, 1));stroke-width:1.7}
+.tw-a .tw-like svg{width:23px;height:23px;stroke-width:1.7}

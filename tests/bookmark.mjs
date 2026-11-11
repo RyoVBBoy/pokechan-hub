@@ -2,7 +2,7 @@
 // 本物のサーバーのプログラム（worker/dist/worker.js、D1 は Node の SQLite）にサイトをつなぎ、ログインだけにせものにする（dm.mjs と同じ形）。
 // ①投稿の下の並び＝返信→リポスト→いいね→ブックマーク→共有 ②🔖で「ブックマークに追加しました」と保存、もう一度で外す
 // ③左のメニューの「ブックマーク」→ #/bookmarks に保存した投稿（ほかの人には見えない・消された投稿は消える）
-// ④設定とプライバシーの「文字サイズ」：見本の投稿・5段階のスライダー・その場で全体の文字が変わる・この端末に保存・入力欄は16px未満にならない
+// ④設定とプライバシーの「文字サイズ」：見本の投稿・4段階のスライダー（X と同じ）・その場で全体の文字が変わる・この端末に保存・入力欄は16px未満にならない
 import {chromium} from 'playwright';
 import path from 'node:path';
 import {makeD1} from './d1mock.mjs';
@@ -100,37 +100,37 @@ for(const W of [390,1280]){
   await pg.click('#setm [data-sm-go=fs]');await pg.waitForTimeout(400);
   const fs0=await pg.evaluate(()=>({t:document.getElementById('sm-t').textContent,prev:!!document.querySelector('#setm .fs-prev .tw .tw-b'),r:document.getElementById('fs-r')?.value,
     body:parseFloat(getComputedStyle(document.body).fontSize),tw:parseFloat(getComputedStyle(document.querySelector('#setm .fs-prev .tw-b')).fontSize),inert:document.querySelector('#setm .fs-prev').inert}));
-  ok(fs0.t==='文字サイズ'&&fs0.prev&&fs0.r==='2'&&fs0.inert,W+'：見本の投稿とスライダー '+JSON.stringify(fs0));
+  ok(fs0.t==='文字サイズ'&&fs0.prev&&fs0.r==='1'&&fs0.inert,W+'：見本の投稿とスライダー '+JSON.stringify(fs0));
   if(W===390)await shot(pg,'fs-2');
   /* いちばん大きく：その場で見本・後ろの画面・設定の画面の文字が大きくなる（読み直さない） */
   await pg.evaluate(()=>{window.__noReload=1});
   const r=await pg.$('#fs-r');const rb=await r.boundingBox();
   await pg.mouse.click(rb.x+rb.width-4,rb.y+rb.height/2);await pg.waitForTimeout(200);
-  const fs4=await pg.evaluate(()=>({r:document.getElementById('fs-r').value,cur:document.getElementById('fs-cur').textContent,save:localStorage.getItem('pcfs'),k:getComputedStyle(document.documentElement).getPropertyValue('--fsk').trim(),
+  const fs4=await pg.evaluate(()=>({r:document.getElementById('fs-r').value,cur:document.getElementById('fs-cur').textContent,save:localStorage.getItem('pcfs2'),ic:document.querySelector('#bm-list .tw-a svg').getBoundingClientRect().width,k:getComputedStyle(document.documentElement).getPropertyValue('--fsk').trim(),
     body:parseFloat(getComputedStyle(document.body).fontSize),tw:parseFloat(getComputedStyle(document.querySelector('#setm .fs-prev .tw-b')).fontSize),
     back:parseFloat(getComputedStyle(document.querySelector('#bm-list .tw-b')).fontSize),title:parseFloat(getComputedStyle(document.getElementById('sm-t')).fontSize),noReload:window.__noReload,
     dots:document.querySelectorAll('#setm .fs-dots i.on').length}));
-  ok(fs4.r==='4'&&fs4.cur==='大きい'&&fs4.save==='4'&&fs4.k==='1.2'&&fs4.dots===5&&fs4.noReload===1,W+'：大きいを選ぶと保存 '+JSON.stringify(fs4));
-  ok(Math.abs(fs4.tw/fs0.tw-1.2)<.02&&Math.abs(fs4.body/fs0.body-1.2)<.02&&fs4.back>fs0.tw,W+'：その場で全体の文字が1.2倍 '+[fs0.tw,fs4.tw,fs0.body,fs4.body,fs4.back]);
+  ok(fs4.r==='3'&&fs4.cur==='とても大きい'&&fs4.save==='3'&&fs4.k==='1.124'&&fs4.dots===4&&fs4.noReload===1&&fs4.ic===23,W+'：いちばん大きいを選ぶと保存・絵の大きさは変わらない（X と同じ） '+JSON.stringify(fs4));
+  ok(Math.abs(fs4.tw/fs0.tw-1.124)<.02&&Math.abs(fs4.body/fs0.body-1.124)<.02&&fs4.back>fs0.tw,W+'：その場で全体の文字が1.124倍 '+[fs0.tw,fs4.tw,fs0.body,fs4.body,fs4.back]);
   if(W===390)await shot(pg,'fs-4');
   /* いちばん小さく：入力欄は16px未満にならない（iPhone が拡大しないように） */
   await pg.focus('#fs-r');await pg.keyboard.press('Home');await pg.waitForTimeout(200);
   const fs1=await pg.evaluate(()=>({r:document.getElementById('fs-r').value,tw:parseFloat(getComputedStyle(document.querySelector('#setm .fs-prev .tw-b')).fontSize)}));
-  ok(fs1.r==='0'&&Math.abs(fs1.tw/fs0.tw-.88)<.02,W+'：小さい '+JSON.stringify(fs1));
+  ok(fs1.r==='0'&&Math.abs(fs1.tw/fs0.tw-.933)<.02,W+'：小さい '+JSON.stringify(fs1));
   ok(await pg.evaluate(()=>{const ok=[];for(const el of document.querySelectorAll('input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),textarea')){const s=getComputedStyle(el);if(s.display!=='none'&&parseFloat(s.fontSize)<15.9&&innerWidth<700)ok.push(el.id||el.className+':'+s.fontSize)}return !ok.length||ok}),W+'：入力欄は16px以上のまま');
   /* キーボード：矢印で1段ずつ */
   await pg.focus('#fs-r');await pg.keyboard.press('ArrowRight');await pg.waitForTimeout(100);
-  ok(await pg.evaluate(()=>document.getElementById('fs-r').value==='1'&&localStorage.getItem('pcfs')==='1'),W+'：矢印キーで1段');
+  ok(await pg.evaluate(()=>document.getElementById('fs-r').value==='1'&&localStorage.getItem('pcfs2')==='1'),W+'：矢印キーで1段');
   /* 一覧に戻ると右の表示が変わっている */
   await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(300);
-  ok(await pg.evaluate(()=>document.getElementById('sm-v-fs').textContent==='やや小さい'),W+'：一覧の右の表示');
+  ok(await pg.evaluate(()=>document.getElementById('sm-v-fs').textContent==='標準'),W+'：一覧の右の表示');
   /* 読み直しても同じ大きさ */
   /* 起動したときに保存した大きさになる（新しいページを、大きさ3を保存した状態で開く。テストのブラウザは保存の直後に読み直すと書きこみが間に合わないことがあるため） */
-  const p2=await pg.ctx.newPage();await p2.route(/^https?:/,r=>r.abort());await p2.addInitScript(()=>{try{localStorage.setItem('pcfs','3')}catch(e){}});
+  const p2=await pg.ctx.newPage();await p2.route(/^https?:/,r=>r.abort());await p2.addInitScript(()=>{try{localStorage.removeItem('pcfs2');localStorage.setItem('pcfs','3')}catch(e){}});
   await p2.goto(URL0+'#/tools');await p2.waitForTimeout(500);
   const rl=await p2.evaluate(()=>({k:getComputedStyle(document.documentElement).getPropertyValue('--fsk').trim(),body:parseFloat(getComputedStyle(document.body).fontSize),v:SM_VAL.fs()}));await p2.close();
-  ok(rl.k==='1.1'&&rl.v==='やや大きい'&&Math.abs(rl.body/fs0.body-1.1)<.02,W+'：開き直しても同じ大きさ '+JSON.stringify(rl));
-  await pg.evaluate(()=>localStorage.removeItem('pcfs'));
+  ok(rl.k==='1.067'&&rl.v==='大きい'&&Math.abs(rl.body/fs0.body-1.067)<.02,W+'：前の5段階の「やや大きい」を選んでいた人は「大きい」になる '+JSON.stringify(rl));
+  await pg.evaluate(()=>{localStorage.removeItem('pcfs');localStorage.removeItem('pcfs2')});
   ok(!pg.errs.length,W+'：エラー '+pg.errs);await pg.ctx.close();
 }
 /* ログインしていないとき：🔖はログインへ・ブックマークの画面は案内 */
