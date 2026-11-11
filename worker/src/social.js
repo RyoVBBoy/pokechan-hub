@@ -40,6 +40,10 @@ async function socialInit(db){
   /* トレーナーカード（2026/11/05）：相棒のポケモン（番号）と看板パーティ（JSON {n:名前,t:[番号…]}） */
   try{await db.prepare(`ALTER TABLE users ADD COLUMN partner INTEGER`).run()}catch(e){}
   try{await db.prepare(`ALTER TABLE users ADD COLUMN showcase TEXT`).run()}catch(e){}
+  /* 非公開アカウント（鍵垢、2026/11/11）：users.private=1 の人をフォローすると、本人が許可するまで follows.ok=0（リクエスト中）。
+     ok=1 のフォローだけをフォロー数・フォロー中のタイムライン・投稿を見られる人・メッセージを送れる人に数える */
+  try{await db.prepare(`ALTER TABLE users ADD COLUMN private INTEGER DEFAULT 0`).run()}catch(e){}
+  try{await db.prepare(`ALTER TABLE follows ADD COLUMN ok INTEGER DEFAULT 1`).run()}catch(e){}
   await db.batch([
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
     db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS notes_repost ON notes(repost_of,uid) WHERE repost_of>0`)
@@ -49,7 +53,9 @@ async function socialInit(db){
 /* 投稿の一覧で返す形（uid やIPアドレスは出さない） */
 /* リポストの行（n）は、元の投稿（o）の中身を出す。rid は並び・ページング用の行の番号 */
 const NOTE_JOIN=`JOIN users u ON u.uid=n.uid AND u.banned=0 LEFT JOIN notes o ON o.id=n.repost_of AND n.repost_of>0 LEFT JOIN users ou ON ou.uid=o.uid`;
-const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0))`;
+/* 非公開アカウントの投稿は、本人と許可されたフォロワーだけに見せる（?1＝見ている人の uid。ログインしていなければ空） */
+const VIS=a=>`(${a}.private IS NULL OR ${a}.private=0 OR ${a}.uid=?1 OR EXISTS(SELECT 1 FROM follows vf WHERE vf.src=?1 AND vf.dst=${a}.uid AND vf.ok=1))`;
+const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0 AND ${VIS('ou')})) AND ${VIS('u')}`;
 const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
   COALESCE(o.media,n.media) AS media,COALESCE(o.link,n.link) AS link,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
   CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,CASE WHEN o.id IS NULL THEN u.avatar ELSE ou.avatar END AS av,
@@ -88,7 +94,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     if(tab==='following'){
       const e=need();if(e)return e;
       const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
-        WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND (n.uid=?1 OR n.uid IN (SELECT dst FROM follows WHERE src=?1)) ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before).all();
+        WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND (n.uid=?1 OR n.uid IN (SELECT dst FROM follows WHERE src=?1 AND ok=1)) ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before).all();
       return J(pageOut(withMine(r.results)));
     }
     const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
@@ -120,15 +126,15 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 1件を読む */
   if((m=path.match(/^\/api\/notes\/(\d+)$/))&&req.method==='GET'){
-    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0`).bind(meUid,+m[1]).first();
+    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0 AND ${NOTE_OK}`).bind(meUid,+m[1]).first();
     if(!r)return J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
     /* 返信先の投稿もいっしょに返す */
-    const pa=r.reply_to?await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0`).bind(meUid,r.reply_to).first():null;
+    const pa=r.reply_to?await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0 AND ${NOTE_OK}`).bind(meUid,r.reply_to).first():null;
     return J({note:noteOut(withMine([r])[0]),parent:pa?noteOut(withMine([pa])[0]):null});
   }
   /* その投稿への返信（新しい順） */
   if((m=path.match(/^\/api\/notes\/(\d+)\/replies$/))&&req.method==='GET'){
-    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.reply_to=?3 AND n.hidden=0 AND n.repost_of=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),+m[1]).all();
+    const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN} WHERE n.reply_to=?3 AND n.hidden=0 AND n.repost_of=0 AND ${NOTE_OK} AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),+m[1]).all();
     return J(pageOut(withMine(r.results)));
   }
   /* 自分の投稿を消す */
@@ -201,42 +207,68 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 公開プロフィール（フォロー数つき） */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,partner,showcase,
+    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,partner,showcase,private,
       (SELECT COALESCE(SUM(likes),0) FROM notes WHERE uid=users.uid AND hidden=0 AND repost_of=0) AS liked,
-      (SELECT COUNT(*) FROM follows WHERE dst=users.uid) AS followers,(SELECT COUNT(*) FROM follows WHERE src=users.uid) AS following,
+      (SELECT COUNT(*) FROM follows WHERE dst=users.uid AND ok=1) AS followers,(SELECT COUNT(*) FROM follows WHERE src=users.uid AND ok=1) AS following,
       (SELECT COUNT(*) FROM notes WHERE uid=users.uid AND hidden=0 AND repost_of=0) AS notes,
-      EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=users.uid AND dst=?2) AS follows_me
+      EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid AND ok=1) AS followed,EXISTS(SELECT 1 FROM follows WHERE src=users.uid AND dst=?2 AND ok=1) AS follows_me,
+      EXISTS(SELECT 1 FROM follows WHERE src=?2 AND dst=users.uid AND ok=0) AS requested
       FROM users WHERE handle=?1 COLLATE NOCASE AND banned=0`).bind(m[1],meUid).first();
     if(!p)return J({error:'ユーザーが見つかりません。'},404);
     let sc=null;try{sc=p.showcase?JSON.parse(p.showcase):null}catch(e){}
-    return J({user:{...pubUser(p),partner:p.partner||null,showcase:sc,liked:p.liked||0,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,me:p.uid===meUid,results:await ladderResults(db,p.uid)}});
+    return J({user:{...pubUser(p),partner:p.partner||null,showcase:sc,liked:p.liked||0,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,requested:!!p.requested,private:!!p.private,
+      locked:!!p.private&&p.uid!==meUid&&!p.followed,me:p.uid===meUid,results:await ladderResults(db,p.uid)}});
   }
   /* その人の投稿 */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})\/notes$/))&&req.method==='GET'){
+    const pu=await db.prepare(`SELECT uid,private FROM users WHERE handle=? COLLATE NOCASE AND banned=0`).bind(m[1]).first();
+    if(pu&&pu.private&&pu.uid!==meUid&&!await db.prepare(`SELECT 1 AS x FROM follows WHERE src=? AND dst=? AND ok=1`).bind(meUid,pu.uid).first())return J({notes:[],next:null,locked:true});
     const r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
       WHERE u.handle=?3 COLLATE NOCASE AND n.hidden=0 AND ${NOTE_OK} AND n.id<?2${u.searchParams.get('media')==='1'?" AND n.repost_of=0 AND n.media IS NOT NULL AND n.media<>'' AND n.media<>'[]'":''} ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u),m[1]).all();
     return J(pageOut(withMine(r.results)));
   }
-  /* フォロー（on:false でやめる） */
+  /* フォロー（on:false でやめる・リクエストを取り消す）。相手が非公開アカウントなら「リクエスト」（ok=0）になり、本人が許可するとフォロー */
   if(path==='/api/follow'&&req.method==='POST'){
     const e=need();if(e)return e;
-    const t=await db.prepare(`SELECT uid FROM users WHERE handle=? COLLATE NOCASE AND banned=0`).bind(String(body.handle||'')).first();
+    const t=await db.prepare(`SELECT uid,private FROM users WHERE handle=? COLLATE NOCASE AND banned=0`).bind(String(body.handle||'')).first();
     if(!t)return J({error:'ユーザーが見つかりません。'},404);
     if(t.uid===meUid)return J({error:'自分はフォローできません。'},400);
+    let requested=false;
     if(body.on===false){
-      await db.batch([db.prepare(`DELETE FROM follows WHERE src=? AND dst=?`).bind(meUid,t.uid),db.prepare(`DELETE FROM notifs WHERE kind='follow' AND actor=? AND uid=?`).bind(meUid,t.uid)]);
+      await db.batch([db.prepare(`DELETE FROM follows WHERE src=? AND dst=?`).bind(meUid,t.uid),db.prepare(`DELETE FROM notifs WHERE kind IN ('follow','freq') AND actor=? AND uid=?`).bind(meUid,t.uid)]);
     }else{
       const c=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE src=? AND created_at>?`).bind(meUid,now-36e5).first();
       if(c&&c.c>=100)return J({error:'短い時間にフォローしすぎです。少し時間をおいてください。'},429);
       const all=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE src=?`).bind(meUid).first();
       if(all&&all.c>=5000)return J({error:'フォローできるのは5000人までです。'},400);
-      const had=await db.prepare(`SELECT 1 AS x FROM follows WHERE src=? AND dst=?`).bind(meUid,t.uid).first();
-      if(!had)await later(pushTo(db,t.uid,{title:`${meRow.name}さんにフォローされました`,body:'@'+meRow.handle,url:'#/u/'+meRow.handle,tag:'follow-'+meRow.handle},'follow:'+meUid));
-      await db.batch([db.prepare(`INSERT OR IGNORE INTO follows(src,dst,created_at) VALUES(?,?,?)`).bind(meUid,t.uid,now),
-        db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'follow',?,0,?)`).bind(t.uid,meUid,now)]);
+      const had=await db.prepare(`SELECT ok FROM follows WHERE src=? AND dst=?`).bind(meUid,t.uid).first();
+      if(had)requested=!had.ok;
+      else if(t.private){requested=true;
+        await later(pushTo(db,t.uid,{title:`${meRow.name}さんからフォローのリクエストが届きました`,body:'@'+meRow.handle,url:'#/notif',tag:'freq-'+meRow.handle},'freq:'+meUid));
+        await db.batch([db.prepare(`INSERT OR IGNORE INTO follows(src,dst,created_at,ok) VALUES(?,?,?,0)`).bind(meUid,t.uid,now),
+          db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'freq',?,0,?)`).bind(t.uid,meUid,now)]);
+      }else{
+        await later(pushTo(db,t.uid,{title:`${meRow.name}さんにフォローされました`,body:'@'+meRow.handle,url:'#/u/'+meRow.handle,tag:'follow-'+meRow.handle},'follow:'+meUid));
+        await db.batch([db.prepare(`INSERT OR IGNORE INTO follows(src,dst,created_at,ok) VALUES(?,?,?,1)`).bind(meUid,t.uid,now),
+          db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'follow',?,0,?)`).bind(t.uid,meUid,now)]);
+      }
     }
-    const f=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE dst=?`).bind(t.uid).first();
-    return J({ok:true,followed:body.on!==false,followers:f?f.c:0});
+    const f=await db.prepare(`SELECT COUNT(*) AS c FROM follows WHERE dst=? AND ok=1`).bind(t.uid).first();
+    return J({ok:true,followed:body.on!==false&&!requested,requested,followers:f?f.c:0});
+  }
+  /* フォローのリクエストに答える（非公開アカウントの本人）：{handle, ok:true 許可／false 断る} */
+  if(path==='/api/follow/answer'&&req.method==='POST'){
+    const e=need();if(e)return e;
+    const t=await db.prepare(`SELECT uid FROM users WHERE handle=? COLLATE NOCASE`).bind(String(body.handle||'')).first();
+    const q=t&&await db.prepare(`SELECT ok FROM follows WHERE src=? AND dst=?`).bind(t.uid,meUid).first();
+    if(!t||!q||q.ok)return J({error:'このリクエストはもうありません。'},404);
+    const st=[db.prepare(`DELETE FROM notifs WHERE kind='freq' AND actor=? AND uid=?`).bind(t.uid,meUid)];
+    if(body.ok){st.push(db.prepare(`UPDATE follows SET ok=1,created_at=? WHERE src=? AND dst=?`).bind(now,t.uid,meUid),
+        db.prepare(`INSERT OR IGNORE INTO notifs(uid,kind,actor,note_id,created_at) VALUES(?,'facc',?,0,?)`).bind(t.uid,meUid,now));
+      await later(pushTo(db,t.uid,{title:`${meRow.name}さんがフォローを許可しました`,body:'@'+meRow.handle,url:'#/u/'+meRow.handle,tag:'facc-'+meRow.handle},'facc:'+meUid))}
+    else st.push(db.prepare(`DELETE FROM follows WHERE src=? AND dst=?`).bind(t.uid,meUid));
+    await db.batch(st);
+    return J({ok:true,accepted:!!body.ok});
   }
   /* 検索：#タグ なら索引から、それ以外は本文に含むもの（新しい順・続きから）。人も名前・IDで探す */
   if(path==='/api/search'&&req.method==='GET'){
@@ -245,12 +277,12 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const tag=q.match(/^[#＃]([\p{L}\p{N}_ー]{1,30})$/u);
     let r;
     if(tag)r=await db.prepare(`SELECT ${NOTE_COLS} FROM note_tags g JOIN notes n ON n.id=g.note_id ${NOTE_JOIN}
-      WHERE g.tag=?3 AND n.hidden=0 AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,tag[1].normalize('NFKC').toLowerCase()).all();
+      WHERE g.tag=?3 AND n.hidden=0 AND ${NOTE_OK} AND n.id<?2 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,tag[1].normalize('NFKC').toLowerCase()).all();
     else r=await db.prepare(`SELECT ${NOTE_COLS} FROM notes n ${NOTE_JOIN}
       WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND instr(lower(n.body),lower(?3))>0 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,q).all();
     let users=[];
     if(!tag&&before>=9e15){const like='%'+q.replace(/[%_\\]/g,c=>'\\'+c)+'%';
-      users=(await db.prepare(`SELECT handle,name,bio,avatar FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like).all()).results.map(x=>({handle:x.handle,name:x.name,bio:x.bio||'',av:x.avatar||null}))}
+      users=(await db.prepare(`SELECT handle,name,bio,avatar,private FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like).all()).results.map(x=>({handle:x.handle,name:x.name,bio:x.bio||'',av:x.avatar||null,private:!!x.private}))}
     return J({...pageOut(withMine(r.results)),users});
   }
   /* よく使われているハッシュタグ（この7日間） */
@@ -301,6 +333,7 @@ async function socialDeleteUser(db,uid,env){
     db.prepare(`DELETE FROM notifs WHERE uid=? OR actor=?`).bind(uid,uid),
     db.prepare(`DELETE FROM user_state WHERE uid=?`).bind(uid)
   ]);
+  await dmDeleteUser(db,uid);
   if(tg.length)await db.batch(tg.map(id=>recount(db,id)));
 }
 async function socialCleanup(db,env){

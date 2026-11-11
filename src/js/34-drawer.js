@@ -14,7 +14,9 @@ function drawerHTML(){
     <div class="dr-head">${pr?`<a href="#/u/${esc(pr.handle)}" class="dr-me">${twAv(pr,'')}<div data-notr><b>${esc(pr.name)}</b><small>@${esc(pr.handle)}</small></div></a><div class="dr-ff" id="dr-ff"></div>`
       :`<a href="#/account" class="dr-me"><span class="tw-av" style="background:var(--elev2);color:var(--dim)">${SVG(I.user,22)}</span><div><b>ログイン</b><small>パーティをどの端末でも・投稿・フォロー</small></div></a>`}</div>
     ${it(pr?'#/u/'+esc(pr.handle):'#/account',I.user,'プロフィール')}
-    ${it('#/notif',I.bell,'お知らせ')}
+    ${it('#/notif',I.bell,'お知らせ<i class="dr-n" id="dr-nf">'+(notifN?(notifN>9?'9+':notifN):'')+'</i>')}
+    ${it('#/messages',I.mail,'メッセージ')}
+    ${it('#/community',I.chat,'コミュニティ')}
     ${it('#/team',I.grid,'パーティ')}
     ${it('#/tools',I.star,'マイツール')}
     ${MULTI_GAME?`<button class="dr-i" data-dr="game">${SVG(I.swap,24)}<span>ゲームを切り替える</span><span class="dr-g">${gameMark(g,22)}</span></button>`:''}
@@ -31,6 +33,7 @@ function drawerHTML(){
         <div class="dr-lab">${SVG(I.globe,18)}言語 / Language</div>
         <div class="pills" style="padding:4px 0 10px">${LANGS.map(([k,n])=>`<button class="pill" data-lang-set="${k}" aria-pressed="${LANG===k}">${n}</button>`).join('')}</div>
         <div id="dr-push"></div>
+        ${pr?privRowHTML(pr,true):''}
         <a class="dr-s" href="#/account">アカウント</a><a class="dr-s" href="#/privacy">プライバシーポリシー</a><a class="dr-s" href="#/terms">利用規約</a></div></details>
     <details class="dr-d"><summary>${SVG(I.help,22)}<span>ヘルプセンター</span></summary>
       <div class="dr-set"><a class="dr-s" href="#/rules">コミュニティの利用ルール</a><a class="dr-s" href="#/guide">基本ルール（計算式など）</a><a class="dr-s" href="#/sources">データの出典と確認状況</a><a class="dr-s" href="#/contact">お問い合わせ</a><a class="dr-s" href="#/contact" data-report>この画面の間違いを報告</a></div></details>
@@ -55,6 +58,7 @@ function drawerFill(){
   const pr=typeof AUTH!=='undefined'&&AUTH.profile;
   if(pr)authFetch('/api/u/'+pr.handle).then(j=>{const el=document.getElementById('dr-ff');if(el)el.innerHTML=`<a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.following}</b> フォロー</a><a href="#/u/${esc(pr.handle)}"><b class="num">${j.user.followers}</b> フォロワー</a>`}).catch(()=>{});
   if(typeof pushRow==='function')pushRow(document.getElementById('dr-push'));
+  privRowBind(o);
 }
 function drawerSet(p,anim){/* p：0＝閉じている〜1＝開いている */
   const o=DR.el;if(!o)return;const pn=o.querySelector('.dr-p'),bg=o.querySelector('.dr-bg');

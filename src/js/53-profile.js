@@ -41,6 +41,8 @@ function pfShowcase(u){
     <a class="pf-sc-go" href="#/share/${ms.map(p=>p.no).join('-')}">このパーティを見る ${SVG(I.chev,16)}</a>
   </section>`;
 }
+/* フォローのボタンの文字（非公開アカウントにはリクエスト、2026/11/11） */
+const pfFollowTxt=u=>u.followed?'フォロー中':u.requested?'リクエスト中':u.private?'フォローをリクエスト':'フォローする';
 async function userView(h){
   setHeader('プロフィール','#/tl');
   if(!/^[A-Za-z0-9_]{3,15}$/.test(h||'')){V.innerHTML='<p class="empty">ユーザーが見つかりません。</p>';return}
@@ -58,10 +60,11 @@ async function userView(h){
         <div class="pf-btns">
           <button class="pf-ic" id="pf-share" aria-label="プロフィールのリンクをコピー">${SVG(PF_I.link,19)}</button>
           ${u.me?`<a class="btn btn-s pf-b" href="#/account">プロフィールを編集</a>`
-            :`<button class="btn ${u.followed?'btn-s':'btn-p'} pf-b" id="twp-f">${u.followed?'フォロー中':'フォローする'}</button>`}
+            :`<a class="pf-ic" id="pf-dm" href="#/messages/${esc(u.handle)}" aria-label="メッセージを送る" title="メッセージを送る">${SVG(I.mail,19)}</a>
+              <button class="btn ${u.followed||u.requested?'btn-s':'btn-p'} pf-b" id="twp-f">${pfFollowTxt(u)}</button>`}
         </div>
       </div>
-      <h2 class="pf-n" data-notr>${esc(u.name)}</h2>
+      <h2 class="pf-n"><span data-notr>${esc(u.name)}</span>${u.private?`<span class="pf-lock" title="非公開アカウント" aria-label="非公開アカウント">${SVG(I.lock,17)}</span>`:''}</h2>
       <div class="pf-h">@${esc(u.handle)}${u.follows_me?'<span class="pf-fm">フォローされています</span>':''}</div>
       ${u.bio?`<p class="pf-bio" data-notr>${linkTags(u.bio)}</p>`:''}
       <div class="pf-meta">
@@ -84,8 +87,9 @@ async function userView(h){
   const fb=document.getElementById('twp-f');
   if(fb)fb.onclick=async()=>{
     if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'フォローするにはログインしてください');nav('#/account');return}
-    const on=fb.textContent!=='フォロー中';fb.disabled=true;
-    try{const j=await authFetch('/api/follow',{handle:u.handle,on});fb.textContent=j.followed?'フォロー中':'フォローする';fb.className='btn '+(j.followed?'btn-s':'btn-p')+' pf-b';document.getElementById('twp-fc').textContent=pfNum(j.followers)}
+    const on=!u.followed&&!u.requested;fb.disabled=true;
+    try{const j=await authFetch('/api/follow',{handle:u.handle,on});u.followed=j.followed;u.requested=!!j.requested;fb.textContent=pfFollowTxt(u);fb.className='btn '+(j.followed||j.requested?'btn-s':'btn-p')+' pf-b';document.getElementById('twp-fc').textContent=pfNum(j.followers);
+      if(j.requested&&on)toast('フォローのリクエストを送りました。相手が許可するとフォローになります')}
     catch(e){toast(e.message)}finally{fb.disabled=false}};
   /* リンクのコピー */
   document.getElementById('pf-share').onclick=()=>{const url=SITE_BASE()+'/#/u/'+u.handle;
@@ -94,7 +98,8 @@ async function userView(h){
   const um=document.getElementById('twp-um');if(um)um.onclick=()=>{const s=muted();s.delete(u.handle.toLowerCase());lsW('pcmute',[...s]);userView(h)};
   /* 投稿／画像 */
   const list=document.getElementById('twp-list');
-  const load=t=>{if(isMuted)return;list.innerHTML='';twFeed(list,`/api/u/${u.handle}/notes${t==='media'?'?media=1':''}`,t==='media'?'まだ画像つきの投稿がありません。':'まだ投稿がありません。')};
+  const load=t=>{if(isMuted)return;list.innerHTML='';
+    if(u.locked){list.innerHTML=`<div class="pf-locked">${SVG(I.lock,30)}<b>このアカウントは非公開です</b><span>フォローが許可されると、投稿を見たりメッセージを送ったりできます。</span></div>`;return}twFeed(list,`/api/u/${u.handle}/notes${t==='media'?'?media=1':''}`,t==='media'?'まだ画像つきの投稿がありません。':'まだ投稿がありません。')};
   V.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{if(b.getAttribute('aria-selected')==='true')return;
     V.querySelectorAll('[data-pt]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));load(b.dataset.pt)});
   load('all');

@@ -88,6 +88,8 @@ async function api(req,env,u,ctx){
   /* お問い合わせ・間違いの報告（contact.js） */
   {const r=await contactApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
   {const r=await pushApi(req,env,db,path,body,now);if(r)return r}
+  /* メッセージ（DM・グループ）と非公開アカウントの切りかえ（dm.js） */
+  {const r=await dmApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
   {const r=await socialApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
   /* シーズンごとの上位パーティ（ladder.js） */
   {const r=await ladderApi(req,env,db,path,u,body,now,isAdmin);if(r)return r}
