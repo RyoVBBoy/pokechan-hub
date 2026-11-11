@@ -159,6 +159,15 @@ for(const W of [320,390,1280]){
   ok(tp[0]==='明るさ'&&tp[1]&&tp[2]==='auto:false,light:false,dark:true',W+'：明るさのページ '+tp);
   await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(300);
   ok(await pg.evaluate(()=>document.getElementById('sm-t').textContent==='設定'&&!document.querySelector('#setm .sm-main').hidden&&!document.getElementById('setm').hidden),W+'：← で一覧へ戻る');
+  /* 一覧で ← を押すと、開いた所（左のメニュー）へ戻る。✕ とは違う（2026/11/11 依頼主） */
+  await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(700);
+  ok(await pg.evaluate(()=>document.getElementById('setm').hidden&&DR.open),W+'：一覧の ← で左のメニューに戻る');
+  await pg.click('#drawer [data-dr=settings]');await pg.waitForTimeout(700);
+  /* 一覧を通らずにページを直接開いたとき（アカウントの画面のメッセージ設定など）は、← で閉じてもとの画面へ */
+  await pg.evaluate(()=>{settingsClose();settingsOpen('theme')});await pg.waitForTimeout(450);
+  await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(450);
+  ok(await pg.evaluate(()=>document.getElementById('setm').hidden&&!DR.open),W+'：直接開いたページの ← はもとの画面へ');
+  await pg.evaluate(()=>settingsOpen(null,{from:'drawer'}));await pg.waitForTimeout(450);
   /* ✕ で閉じる・Esc でも閉じる */
   await pg.click('#setm [data-sm=close]');await pg.waitForTimeout(400);
   ok(await pg.evaluate(()=>document.getElementById('setm').hidden&&!document.body.classList.contains('sm-lock')),W+'：✕ で閉じる');
@@ -166,7 +175,7 @@ for(const W of [320,390,1280]){
   ok(await pg.evaluate(()=>document.getElementById('setm').hidden),W+'：Esc で閉じる');
   if(W===390){
     /* 明るさ・テーマの色・背景の光：押すとその場で保存して見た目が変わる（読み直さない・設定の画面は開いたまま。2026/11/11 依頼主） */
-    await pg.evaluate(()=>{window.__noReload=1;settingsOpen('theme')});await pg.waitForTimeout(400);
+    await pg.evaluate(()=>{window.__noReload=1;settingsOpen();smGo('theme',true)});await pg.waitForTimeout(400);
     const mv=await pg.evaluate(()=>{document.querySelector('#setm [data-theme-set=light]').click();
       return [document.querySelector('#setm [data-theme-set=light]').getAttribute('aria-pressed'),document.getElementById('sm-v-theme').textContent,localStorage.getItem('pctheme'),document.documentElement.dataset.theme,getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor]});
     ok(mv[0]==='true'&&mv[1]==='ライト'&&mv[2]==='light'&&mv[3]==='light'&&mv[4]==='rgb(255, 255, 255)','押したその場で明るい色になり保存 '+mv);

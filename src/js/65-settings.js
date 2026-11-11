@@ -5,7 +5,7 @@
    ・一覧：1項目＝1行（左に絵・太字の名前・右に今の設定と ›）。選ぶ項目は行を押すと、その項目のページ（✓ が今の選択）に切りかわる
    ・保存のしかた（localStorage）は前と同じ。明るさ・テーマの色・背景の光・お気に入りショートカットは読み直さずにその場で変わり、画面は開いたまま（2026/11/11）。
      言語だけは読み直し、読み直したあとに同じページを動きなしで開き直す（sessionStorage pcsmre） */
-const SM={el:null,page:null,last:null};
+const SM={el:null,page:null,last:null,from:null,direct:false};
 const SM_VAL={
   qa:()=>qaName(qaGet()),
   theme:()=>({auto:'端末に合わせる',light:'ライト',dark:'ダーク'}[THEME_PREF]),
@@ -39,7 +39,7 @@ function smEnsure(){
   document.body.appendChild(o);SM.el=o;
   o.addEventListener('click',e=>{
     if(e.target.closest('.sm-bg')||e.target.closest('[data-sm=close]')){settingsClose();return}
-    if(e.target.closest('[data-sm=back]')){SM.page?smBack():settingsClose();return}
+    if(e.target.closest('[data-sm=back]')){smPrev();return}
     const go=e.target.closest('[data-sm-go]');if(go){smGo(go.dataset.smGo);return}
     const ts=e.target.closest('[data-theme-set]');if(ts){smPick(ts,'theme',()=>setTheme(ts.dataset.themeSet));return}
     const as=e.target.closest('[data-acc-set]');if(as){if(as.dataset.accSet!==ACCENT)smPick(as,'accent',()=>setAccent('pcaccent',as.dataset.accSet));return}
@@ -51,16 +51,16 @@ function smEnsure(){
     const ls=e.target.closest('[data-lang-set]');if(ls){if(ls.dataset.langSet!==LANG)smPick(ls,'lang',()=>setLang(ls.dataset.langSet));return}
     if(e.target.closest('a[href^="#/"]'))settingsClose();
   });
-  o.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();SM.page?smBack():settingsClose()}});
+  o.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();SM.page&&!SM.direct?smBack():settingsClose()}});
   return o;
 }
 /* 開く（page を渡すとその項目のページから） */
 function settingsOpen(page,opt={}){
-  const o=smEnsure();SM.last=document.activeElement;
+  const o=smEnsure();SM.last=document.activeElement;SM.from=opt.from||null;
   o.querySelector('.sm-main').innerHTML=smMainHTML();
   if(typeof pushRow==='function')pushRow(document.getElementById('sm-push'),false,true);
   if(typeof privRowBind==='function')privRowBind(o);
-  smBack(true);if(page&&SM_PAGES[page])smGo(page,true);
+  smBack(true);if(page&&SM_PAGES[page]){smGo(page,true);SM.direct=!opt.sub}
   o.hidden=false;document.body.classList.add('sm-lock');
   /* 読み直したあとに開き直すときは、動き（下からすべり上がる・ふわっと出る）なしでその場に出す（2026/11/10 依頼主：設定を変えるたびに下から上に動くのが気になる） */
   if(opt.instant){o.classList.add('sm-now','on');o.querySelector('.sm-p').focus({preventScroll:true});requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.remove('sm-now')));return}
@@ -74,6 +74,14 @@ function settingsClose(){
   setTimeout(()=>{if(!o.classList.contains('on'))o.hidden=true},matchMedia('(prefers-reduced-motion: reduce)').matches?0:260);
   try{SM.last&&SM.last.focus&&SM.last.focus({preventScroll:true})}catch(e){}
 }
+/* ←＝一個前に戻る（2026/11/11 依頼主：← と ✕ が同じ動きだった）。
+   一覧から開いた項目のページ → 一覧へ／アカウントの画面などから項目のページを直接開いた → その画面へ（閉じる）／
+   一覧 → 開いた所へ（左のメニューから開いたなら左のメニューを開き直す、ほかは閉じてもとの画面）。✕ はいつでも全部閉じる */
+function smPrev(){
+  if(SM.page&&!SM.direct){smBack();return}
+  const from=SM.from;settingsClose();
+  if(from==='drawer'&&typeof drawerOpen==='function')setTimeout(drawerOpen,matchMedia('(prefers-reduced-motion: reduce)').matches?0:200);
+}
 /* 項目のページへ（一覧はそのまま残し、ページだけ入れかえる） */
 function smGo(id,quiet){
   const p=SM_PAGES[id],o=SM.el;if(!p||!o)return;SM.page=id;
@@ -84,7 +92,7 @@ function smGo(id,quiet){
   o.querySelector('.sm-body').scrollTop=0;
 }
 function smBack(quiet){
-  const o=SM.el;if(!o)return;const was=SM.page;SM.page=null;
+  const o=SM.el;if(!o)return;const was=SM.page;SM.page=null;SM.direct=false;
   const main=o.querySelector('.sm-main'),sub=o.querySelector('.sm-sub');
   sub.hidden=true;sub.innerHTML='';main.hidden=false;o.querySelector('#sm-t').textContent='設定';
   main.classList.remove('in');if(!quiet){void main.offsetWidth;main.classList.add('in')}
@@ -95,7 +103,7 @@ function smBack(quiet){
 function smPick(btn,id,fn){
   const box=btn.closest('.dr-opts');if(box)box.querySelectorAll('.dr-opt').forEach(x=>x.setAttribute('aria-pressed',x===btn?'true':'false'));
   const v=document.getElementById('sm-v-'+id);if(v)v.innerHTML=(id==='accent'?btn.querySelector('.dr-ri').innerHTML:'')+btn.querySelector('.dr-rt b').textContent;
-  if(id==='lang'){try{sessionStorage.setItem('pcsmre',id)}catch(e){}setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180);return}
+  if(id==='lang'){try{sessionStorage.setItem('pcsmre',id+'|'+(SM.direct?'d':'')+'|'+(SM.from||''))}catch(e){}setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180);return}
   fn();smRefresh()}
 /* 設定の画面の中身を、いまの設定で描き直す（明るさが変わると色の丸の色も変わるため）。開いているページ・スクロール位置はそのまま */
 function smRefresh(){
@@ -105,4 +113,4 @@ function smRefresh(){
   if(SM.page){const p=SM_PAGES[SM.page];o.querySelector('.sm-sub').innerHTML=`<div class="dr-opts" role="group" aria-label="${p.t()}">${p.body()}</div>`}
   body.scrollTop=y}
 /* 読み直したあと、設定の画面を開き直す（選んでいた項目のページのまま・動きなし） */
-(function(){let re=null;try{re=sessionStorage.getItem('pcsmre');sessionStorage.removeItem('pcsmre')}catch(e){}if(re)settingsOpen(SM_PAGES[re]?re:null,{instant:true})})();
+(function(){let re=null;try{re=sessionStorage.getItem('pcsmre');sessionStorage.removeItem('pcsmre')}catch(e){}if(re){const [id,d,from]=re.split('|');settingsOpen(SM_PAGES[id]?id:null,{instant:true,sub:d!=='d',from:from||null})}})();

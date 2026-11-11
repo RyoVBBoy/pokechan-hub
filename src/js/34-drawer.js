@@ -56,7 +56,7 @@ function drawerEnsure(){
   const o=document.createElement('div');o.className='drawer';o.id='drawer';document.body.appendChild(o);DR.el=o;
   o.addEventListener('click',e=>{
     if(e.target.closest('.dr-bg')){drawerClose();return}
-    if(e.target.closest('[data-dr=settings]')){drawerClose();setTimeout(()=>settingsOpen(),180);return}
+    if(e.target.closest('[data-dr=settings]')){drawerClose();setTimeout(()=>settingsOpen(null,{from:'drawer'}),180);return}
     if(e.target.closest('[data-dr=game]')){drawerClose();setTimeout(gameSheet,200);return}
     if(e.target.closest('a[href^="#/"]'))drawerClose();
   });
