@@ -101,9 +101,17 @@ function twHtml(n,big){
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
       ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
       <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}${n.link&&/^https:\/\//.test(n.link)?`<a class="tw-link" href="${esc(twInApp(n.link)||n.link)}"${twInApp(n.link)?'':' target="_blank" rel="noopener nofollow"'}><b>${/(^|\.)pokechan-hub\.pages\.dev$/.test((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())||(()=>{try{return new URL(n.link).host===location.host}catch(e){return false}})()?'くわしく見る':'公式サイトで読む'}</b><small>${esc((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())}</small></a>`:''}
-      <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(I.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(I.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button><button class="tw-like tw-bm" data-bm aria-pressed="${!!n.saved}" aria-label="${n.saved?'ブックマークから外す':'ブックマーク'}">${SVG(I.bookmark,18)}</button><button class="tw-like tw-sh" data-share aria-label="共有">${SVG(I.share,18)}</button></div>
+      <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(TW_IC.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(TW_IC.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(TW_IC.heart,18)}<span>${n.likes||''}</span></button><button class="tw-like tw-bm" data-bm aria-pressed="${!!n.saved}" aria-label="${n.saved?'ブックマークから外す':'ブックマーク'}">${SVG(TW_IC.bookmark,18)}</button><button class="tw-like tw-sh" data-share aria-label="共有">${SVG(TW_IC.share,18)}</button></div>
     </div></article>`;
 }
+/* 投稿の下の5つの絵（2026/11/11 依頼主「X と大きさをそろえて」）：X のスクリーンショットの画素で測った形の大きさ（pt）＝返信15.3×14.3・リポスト17.3×12（横長）・いいね15.3×13.7・
+   ブックマーク12.7×14.3・共有13.3×13.7、線の太さ約1.5pt に合わせて描き直した（箱23px＝0.958倍で、線を含めてこの大きさになる）。ほかの画面の I.heart 等は変えない */
+const TW_IC={
+  reply:'<path d="M12 5.8c4.1 0 7.15 2.75 7.15 6.15S16.1 18.1 12 18.1c-1 0-1.9-.15-2.75-.45L5.1 18.9l1.1-3.3C5.35 14.6 4.85 13.35 4.85 11.95 4.85 8.55 7.9 5.8 12 5.8z"/>',
+  repost:'<path d="M3.8 9.5 6.5 6.6l2.7 2.9M6.5 7v7.4a3 3 0 0 0 3 3H13M20.2 14.5l-2.7 2.9-2.7-2.9M17.5 17V9.6a3 3 0 0 0-3-3H11"/>',
+  heart:'<path d="M12 18.2s-7.15-4.1-7.15-8.7A3.85 3.85 0 0 1 12 7.4a3.85 3.85 0 0 1 7.15 2.1c0 4.6-7.15 8.7-7.15 8.7z"/>',
+  bookmark:'<path d="M7.2 5.4h9.6a1 1 0 0 1 1 1v12.2L12 15l-5.8 3.6V6.4a1 1 0 0 1 1-1z"/>',
+  share:'<path d="M12 14V5.7M8.4 9.2 12 5.7l3.6 3.5M5.9 12.5v4.8a1 1 0 0 0 1 1h10.2a1 1 0 0 0 1-1v-4.8"/>'};
 I.bookmark=I.bookmark||'<path d="M6.5 4.5h11a1 1 0 0 1 1 1v14.2l-6.5-4.4-6.5 4.4V5.5a1 1 0 0 1 1-1z"/>';
 /* 投稿のリンク（#/n/番号）を共有する。共有の画面を閉じただけなら何もしない */
 async function twShare(el,id){
