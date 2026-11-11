@@ -70,6 +70,8 @@
  "67-follow.js",
  "68-follow-modal.js",
  "69-profile-edit.js",
+ "70-bookmarks.js",
+ "71-fontsize.js",
  "97-dict-en.js",
  "98-i18n.js",
  "99-start.js"

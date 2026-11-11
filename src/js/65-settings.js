@@ -25,7 +25,7 @@ const SM_PAGES={
       +[['all','だれでも',I.globe],['following','自分がフォローしている人だけ',I.user]].map(([k,n,ic])=>drOpt(`data-dmfrom-set="${k}"`,v===k,ic,n)).join('')}}};
 const smRow=id=>{const p=SM_PAGES[id];return `<button class="dr-row" data-sm-go="${id}">${drRowIn(p.ic,p.t(),'',`<span class="dr-rv" id="sm-v-${id}">${SM_VAL[id]()}</span>${drChev()}`)}</button>`};
 function smMainHTML(){
-  const ids=(curGame().fab?['qa']:[]).concat(['theme','accent','glow','lang']);
+  const ids=(curGame().fab?['qa']:[]).concat(['theme','accent','glow'],SM_PAGES.fs?['fs']:[],['lang']);
   return `<section class="sm-sec" aria-label="表示・カスタマイズ"><h3 class="sm-sh">表示・カスタマイズ</h3>${ids.map(smRow).join('')}</section>
     <section class="sm-sec" aria-label="通知"><h3 class="sm-sh">通知</h3><div id="sm-push"></div></section>
     <section class="sm-sec" aria-label="アカウントとセキュリティ"><h3 class="sm-sh">アカウント＆セキュリティ</h3>

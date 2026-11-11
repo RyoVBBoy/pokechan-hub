@@ -30,7 +30,11 @@ async function socialInit(db){
     /* ハッシュタグ（#〇〇）：投稿ごとに取り出して索引にする。検索は tag で探して新しい順 */
     db.prepare(`CREATE TABLE IF NOT EXISTS note_tags(tag TEXT NOT NULL,note_id INTEGER NOT NULL,created_at INTEGER,PRIMARY KEY(tag,note_id))`),
     db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_note ON note_tags(note_id)`),
-    db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_time ON note_tags(created_at)`)
+    db.prepare(`CREATE INDEX IF NOT EXISTS note_tags_time ON note_tags(created_at)`),
+    /* ブックマーク（2026/11/11）：本人だけが見られる保存。相手には知らせない・数も出さない */
+    db.prepare(`CREATE TABLE IF NOT EXISTS bookmarks(uid TEXT NOT NULL,note_id INTEGER NOT NULL,created_at INTEGER,PRIMARY KEY(uid,note_id))`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS bookmarks_uid ON bookmarks(uid,created_at)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS bookmarks_note ON bookmarks(note_id)`)
   ]);
   /* あとから足した列（返信・リポスト）。すでにあるときのエラーは無視する */
   for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0','link TEXT']){
@@ -64,9 +68,10 @@ const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) A
   CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
   (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
   EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
-  EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted`;
+  EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted,
+  EXISTS(SELECT 1 FROM bookmarks bk WHERE bk.uid=?1 AND bk.note_id=COALESCE(o.id,n.id)) AS saved`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
-const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,mine:!!r.mine,
+const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
   user:{handle:r.handle,name:r.name,av:r.av||null},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
@@ -80,7 +85,7 @@ async function socialRate(db,uid,now){
 }
 async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
-  if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags)/.test(path))return null;
+  if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags|me\/bookmarks)/.test(path))return null;
   await socialInit(db);
   let m;
   /* ログイン（見るだけなら不要）。書き込みにはプロフィールが必要 */
@@ -150,8 +155,27 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     await mediaDrop(env,db,'note_id=?',id);
     if(own&&own.reply_to)await recount(db,own.reply_to).run();
     if(own&&own.repost_of)await recount(db,own.repost_of).run();
-    await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
+    await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM bookmarks WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
     return J({ok:true});
+  }
+  /* ブックマーク（on:false で外す）。本人だけの保存なので、相手への通知・数はない。1人2000件まで */
+  if((m=path.match(/^\/api\/notes\/(\d+)\/bookmark$/))&&req.method==='POST'){
+    const e=need();if(e)return e;const id=+m[1];
+    if(body.on===false){await db.prepare(`DELETE FROM bookmarks WHERE uid=? AND note_id=?`).bind(meUid,id).run();return J({ok:true,saved:false})}
+    const n=await db.prepare(`SELECT id FROM notes WHERE id=? AND hidden=0 AND repost_of=0`).bind(id).first();
+    if(!n)return J({error:'投稿が見つかりません。'},404);
+    const c=await db.prepare(`SELECT COUNT(*) AS c FROM bookmarks WHERE uid=?`).bind(meUid).first();
+    if(c&&c.c>=2000)return J({error:'ブックマークは2000件までです。いらないものを外してください。'},429);
+    await db.prepare(`INSERT OR IGNORE INTO bookmarks(uid,note_id,created_at) VALUES(?,?,?)`).bind(meUid,id,now).run();
+    return J({ok:true,saved:true});
+  }
+  /* 自分のブックマークの一覧（保存した新しい順。before＝前のページの最後の保存時刻） */
+  if(path==='/api/me/bookmarks'&&req.method==='GET'){
+    const e=need();if(e)return e;
+    const r=await db.prepare(`SELECT ${NOTE_COLS},bm.created_at AS bat FROM bookmarks bm JOIN notes n ON n.id=bm.note_id ${NOTE_JOIN}
+      WHERE bm.uid=?1 AND bm.created_at<?2 AND n.hidden=0 AND n.repost_of=0 AND ${NOTE_OK} ORDER BY bm.created_at DESC LIMIT ${PAGE}`).bind(meUid,beforeOf(u)).all();
+    const rows=withMine(r.results);
+    return J({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].bat:null});
   }
   /* いいね（on:false で取り消し） */
   if((m=path.match(/^\/api\/notes\/(\d+)\/like$/))&&req.method==='POST'){
@@ -356,6 +380,7 @@ async function socialDeleteUser(db,uid,env){
     db.prepare(`DELETE FROM notes WHERE uid=?`).bind(uid),
     db.prepare(`UPDATE notes SET likes=MAX(0,likes-1) WHERE id IN (SELECT note_id FROM likes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM likes WHERE uid=?`).bind(uid),
+    db.prepare(`DELETE FROM bookmarks WHERE uid=? OR note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid,uid),
     db.prepare(`DELETE FROM follows WHERE src=? OR dst=?`).bind(uid,uid),
     db.prepare(`DELETE FROM notifs WHERE uid=? OR actor=?`).bind(uid,uid),
     db.prepare(`DELETE FROM user_state WHERE uid=?`).bind(uid)

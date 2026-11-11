@@ -39,7 +39,7 @@ document.addEventListener('click',e=>{
   nav(h);
 });
 const NAVG={learn:'tools',arch:'tools',season:'tools',replay:'tools',item:'tools',word:'tools',move:'tools',ability:'tools',p:'search',dex:'search',cmp:'search',types:'tools',assist:'tools',pip:'tools',calc:'tools',meta:'tools',battle:'tools',guide:'tools',sources:'tools',verify:'tools',
-  games:'-',memo:'tools',kodawari:'team',team:'team',share:'team',pair:'team',tier:'tools',contact:'-',messages:'messages',requests:'',edit:'team',import:'team',report:'team',community:'-',news:'-',lobby:'-',bbs:'-',thread:'-',rules:'-',admin:'-',account:'-',tl:'',u:'',n:'',notif:'',terms:'-',privacy:'-'};
+  games:'-',memo:'tools',kodawari:'team',team:'team',share:'team',pair:'team',tier:'tools',contact:'-',messages:'messages',requests:'',bookmarks:'',edit:'team',import:'team',report:'team',community:'-',news:'-',lobby:'-',bbs:'-',thread:'-',rules:'-',admin:'-',account:'-',tl:'',u:'',n:'',notif:'',terms:'-',privacy:'-'};
 const navGroup=k=>NAVG[k]??(k||'');
 /* タブごとに最後に開いていた画面（このタブを閉じるまで覚える） */
 const TABMEM=(()=>{try{return JSON.parse(sessionStorage.getItem('pctabmem')||'{}')||{}}catch(e){return{}}})();
@@ -55,7 +55,7 @@ function route(){
   document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle'||k==='kodawari'||k==='messages'||(k==='pair'&&(location.hash==='#/pair/kd'||(()=>{try{return sessionStorage.getItem('pcprmode')==='kd'}catch(e){return false}})())));
   fabMode();
   trackTool(cur);drawSide();rememberTab();if(typeof hitSend==='function')hitSend(k);
-  ({'':home,memo:memoView,kodawari:kodawariView,news:newsView,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,pip:pipView,sources:sourcesView,verify:verifyView,import:importView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,messages:messagesView,requests:requestsView,games:gamesView,account:accountView,search:searchView,learn:learnView,arch:archView,season:seasonView,replay:replayView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,share:shareView,pair:pairView,tier:tierView,contact:contactView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
+  ({'':home,memo:memoView,kodawari:kodawariView,news:newsView,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,pip:pipView,sources:sourcesView,verify:verifyView,import:importView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,messages:messagesView,requests:requestsView,bookmarks:bookmarksView,games:gamesView,account:accountView,search:searchView,learn:learnView,arch:archView,season:seasonView,replay:replayView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,share:shareView,pair:pairView,tier:tierView,contact:contactView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
   HD.classList.toggle('sc',scrY()>4);
 }
 function onPop(){

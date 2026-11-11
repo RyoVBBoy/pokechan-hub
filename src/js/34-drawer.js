@@ -36,6 +36,7 @@ function drawerHTML(){
     ${it('#/notif',I.bell,'お知らせ<i class="dr-n" id="dr-nf">'+(notifN?(notifN>9?'9+':notifN):'')+'</i>')}
     ${pr?it('#/requests',I.user,'フォローリクエスト<i class="dr-n" id="dr-fq">'+(FREQ_N?(FREQ_N>9?'9+':FREQ_N):'')+'</i>',' id="dr-fqrow"'+(FREQ_N?'':' hidden')):''}
     ${it('#/messages',I.mail,'メッセージ')}
+    ${it('#/bookmarks',I.bookmark,'ブックマーク')}
     ${it('#/community',I.chat,'コミュニティ')}
     ${it('#/team',I.grid,'パーティ')}
     ${it('#/tools',I.star,'マイツール')}

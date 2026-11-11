@@ -13,7 +13,18 @@ const hash = s => crypto.createHash('sha256').update(s).digest('hex').slice(0, 1
 
 const order = JSON.parse(fs.readFileSync(path.join(SRC, 'js/order.json'), 'utf8'));
 const js = order.map(f => fs.readFileSync(path.join(SRC, 'js', f), 'utf8')).join('');
-const css = fs.readFileSync(path.join(SRC, 'styles.css'), 'utf8');
+/* 文字サイズ（2026/11/11、src/js/71-fontsize.js）：文字の大きさ（font-size と font の大きさ）を「もとの大きさ × var(--fsk, 1)」に書きかえて出す。
+   --fsk を変えるだけでサイト全体の文字がいっぺんに変わる（はじめは1なので見た目は同じ）。
+   iPhone は16px未満の入力欄を押すと画面が拡大されるので、入力欄（input・textarea・select）の16px以上の大きさは16px未満にしない */
+const fsScale = text => text.replace(/([^{}]*)\{([^{}]*)\}/g, (all, sel, body) => {
+  const inp = /(^|[\s,>+~(])(input|textarea|select)\b/.test(sel.replace(/\/\*[\s\S]*?\*\//g, ''));
+  const sz = px => { const k = `calc(${px}px * var(--fsk, 1))`; return inp && +px >= 16 ? `max(${px}px, ${k})` : k; };
+  const b = body
+    .replace(/(^|[;\s])font-size:\s*([\d.]+)px/g, (m, a, px) => `${a}font-size:${sz(px)}`)
+    .replace(/(^|[;\s])font:([^;}]*?)(^|\s)([\d.]+)px(?=[\s/])/g, (m, a, pre, sp, px) => `${a}font:${pre}${sp}${sz(px)}`);
+  return `${sel}{${b}}`;
+});
+const css = fsScale(fs.readFileSync(path.join(SRC, 'styles.css'), 'utf8'));
 const shell = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
 // 公開してよい設定（Firebase のウェブ用の値など）を window.PC_CONFIG としてページに入れる
 const cfgFile = path.join(ROOT, 'config/public.json');

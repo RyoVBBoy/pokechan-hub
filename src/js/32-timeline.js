@@ -101,8 +101,15 @@ function twHtml(n,big){
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
       ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
       <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}${n.link&&/^https:\/\//.test(n.link)?`<a class="tw-link" href="${esc(twInApp(n.link)||n.link)}"${twInApp(n.link)?'':' target="_blank" rel="noopener nofollow"'}><b>${/(^|\.)pokechan-hub\.pages\.dev$/.test((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())||(()=>{try{return new URL(n.link).host===location.host}catch(e){return false}})()?'くわしく見る':'公式サイトで読む'}</b><small>${esc((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())}</small></a>`:''}
-      <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(I.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(I.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button></div>
+      <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(I.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(I.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(I.heart,18)}<span>${n.likes||''}</span></button><button class="tw-like tw-bm" data-bm aria-pressed="${!!n.saved}" aria-label="${n.saved?'ブックマークから外す':'ブックマーク'}">${SVG(I.bookmark,18)}</button><button class="tw-like tw-sh" data-share aria-label="共有">${SVG(I.share,18)}</button></div>
     </div></article>`;
+}
+I.bookmark=I.bookmark||'<path d="M6.5 4.5h11a1 1 0 0 1 1 1v14.2l-6.5-4.4-6.5 4.4V5.5a1 1 0 0 1 1-1z"/>';
+/* 投稿のリンク（#/n/番号）を共有する。共有の画面を閉じただけなら何もしない */
+async function twShare(el,id){
+  const url=location.origin+location.pathname+'#/n/'+id,b=el.querySelector('.tw-b'),txt=(b&&b.textContent||'').trim().slice(0,80);
+  if(navigator.share){try{await navigator.share({title:'Game Kid/s',text:txt,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(url);toast('リンクをコピーしました')}catch(e){toast('リンクをコピーできませんでした')}
 }
 /* 一覧の中のボタン（いいね・…メニュー）。reload は消したときなどの読み直し */
 function twBind(root,reload){
@@ -125,6 +132,15 @@ function twBind(root,reload){
       b.setAttribute('aria-pressed',on);sp.textContent=cnt>0?cnt:'';
       try{const j=await authFetch(`/api/notes/${id}/repost`,{on});sp.textContent=j.reposts||'';toast(on?'リポストしました':'リポストを取り消しました')}
       catch(err){b.setAttribute('aria-pressed',!on);sp.textContent=Math.max(0,cnt+(on?-1:1))||'';toast(err.message)}};
+    /* ブックマーク（2026/11/11 依頼主）：本人だけの保存。先に見た目を変え、保存できなければ戻す */
+    el.querySelector('[data-bm]').onclick=async e=>{
+      const b=e.currentTarget;if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'ブックマークするにはログインしてください');nav('#/account');return}
+      const on=b.getAttribute('aria-pressed')!=='true';
+      const set=v=>{b.setAttribute('aria-pressed',v);b.setAttribute('aria-label',v?'ブックマークから外す':'ブックマーク')};
+      set(on);toast(on?'ブックマークに追加しました':'ブックマークから削除しました');
+      try{await authFetch(`/api/notes/${id}/bookmark`,{on})}catch(err){set(!on);toast(err.message)}};
+    /* 共有：スマホは端末の共有の画面、できなければリンクをコピー */
+    el.querySelector('[data-share]').onclick=()=>twShare(el,id);
     el.querySelector('[data-more]').onclick=async()=>{
       const h=el.dataset.h,mine=el.dataset.mine==='1';
       const opts=mine?['この投稿を削除する']:['この投稿を通報する',`@${h} の投稿を表示しない`];
