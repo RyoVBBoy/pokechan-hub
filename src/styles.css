@@ -1880,8 +1880,7 @@ body::before{inset:0;background:
 /* 通知（トースト）の文字：明るい色のときは下地が白っぽいすりガラスなので、文字を白（--onacc）から濃い色（--fg）に（2026/11/10 依頼主。暗い色のときは今までどおり） */
 :root[data-theme=light] .toast{color:var(--fg)}
 
-/* ===================== 設定とプライバシー＝X の設定画面のようなリスト（2026/11/10 依頼主） =====================
-   1項目＝1行：左に絵／中に名前（太字）と説明（小さな灰色）／右に ›・オン/オフ・今の選択。行のあいだに1pxの線、PC はマウスを乗せた行が薄く光る。
+/* ===================== 設定とプライバシー＝X の設定画面のようなリスト（2026/11/10 依頼主） ==============   1項目＝1行：左に絵／中に名前（太字）と説明（小さな灰色）／右に ›・オン/オフ・今の選択。行のあいだに1pxの線、PC はマウスを乗せた行が薄く光る。
    選ぶ項目は行を押すと下に選択肢（✓ が今の選択）。押せる所は高さ44px以上。保存のしかた（localStorage）は変えていない */
 :root{--dr-line:rgba(255,255,255,.08);--dr-hov:rgba(255,255,255,.03);--dr-prs:rgba(255,255,255,.06);--dr-sub:rgba(255,255,255,.025);--dr-tg:rgba(255,255,255,.22);--dr-t:#fff;--dr-v:rgba(255,255,255,.5)}
 :root[data-theme=light]{--dr-line:rgba(30,32,60,.08);--dr-hov:rgba(30,32,60,.03);--dr-prs:rgba(30,32,60,.06);--dr-sub:rgba(30,32,60,.025);--dr-tg:rgba(30,32,60,.2);--dr-t:#0f1419;--dr-v:rgba(15,20,25,.5)}
@@ -1977,3 +1976,101 @@ body.sm-lock{overflow:hidden}
 /* 幅の狭いスマホ（359px以下）：名前と今の設定が1行に入らないので、名前を2行にする（…で省略しない） */
 @media(max-width:359px){.setm .dr-row>.dr-rt b{white-space:normal}}
 @media(prefers-reduced-motion:reduce){.sm-p,.sm-bg{transition:none}.sm-pg.in{animation:none}}
+=======
+
+/* ===================== メッセージ（1対1・グループ）と非公開アカウント（2026/11/11、64-messages.js） ===================== */
+.dm-top{display:flex;align-items:center;gap:10px;padding:12px 12px 4px}
+.dm-seg{display:flex;flex:1;padding:3px;border-radius:99px;background:var(--card);box-shadow:inset 0 0 0 1px var(--card-b)}
+.dm-seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:36px;border:0;border-radius:99px;background:none;color:var(--dim);font:600 14px/1 inherit;font-family:inherit;cursor:pointer}
+.dm-seg button[aria-selected=true]{background:var(--accf);color:var(--onacc)}
+.dm-new{flex:none!important;width:auto!important;height:40px!important;padding:0 14px!important;display:inline-flex!important;align-items:center;gap:6px;font-size:14px!important;margin:0!important}
+@media(max-width:380px){.dm-new span{display:none}.dm-new{padding:0 11px!important}}
+.dm-row{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.dm-av{flex:none;width:44px;height:44px;font-size:18px}
+.dm-gav{position:relative;flex:none;width:44px;height:44px;display:block}
+.dm-gav .dm-av{position:absolute;width:30px;height:30px;font-size:13px;border:2px solid var(--bg)}
+.dm-gav .dm-av:first-child{left:0;top:0}.dm-gav .dm-av:nth-child(2){right:0;bottom:0}.dm-gav .dm-av:nth-child(3){display:none}
+.dm-gav .dm-av:only-child{width:44px;height:44px;font-size:18px;border:0}
+.dm-l1{display:flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
+.dm-l1 b{overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.dm-l1 svg{flex:none;color:var(--dim)}
+.dm-l1 .tw-t{overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.dm-at{margin-left:auto;padding-left:8px;flex:none;font-size:12px;color:var(--mute)}
+.dm-l2{margin-top:2px;font-size:14px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dm-unread .dm-l2{color:var(--fg);font-weight:600}
+.dm-you{color:var(--mute);font-weight:400}
+.dm-badge{flex:none;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--accf);color:var(--onacc);font:700 12px/22px Inter,sans-serif;font-style:normal;text-align:center}
+.dm-empty{display:flex;flex-direction:column;align-items:center;gap:10px;margin:28px 16px;padding:28px 20px;text-align:center;border-radius:20px;background:var(--card);border:1px solid var(--card-b);color:var(--dim);font-size:14px;line-height:1.6}
+.dm-empty svg{color:var(--acc)}.dm-empty b{color:var(--fg);font-size:17px}
+.dm-empty .btn{width:auto;flex:none;padding:0 22px;margin-top:4px}
+.dm-pick{width:calc(100% - 20px);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.dm-ck{flex:none;width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--line);display:grid;place-items:center;font-weight:700;color:var(--onacc)}
+.dm-ck.on{background:var(--accf);box-shadow:none}
+.dm-sel{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 0}
+.dm-sel:empty{display:none}
+.dm-chip{height:32px;padding:0 12px;border:0;border-radius:99px;background:var(--acc-t);color:var(--acc);font:600 13px/1 inherit;font-family:inherit;cursor:pointer}
+/* 会話の画面：スマホでは下のメニューを隠し、入力欄を画面の下に置く（LINE などと同じ形） */
+.dm-talkv{display:flex;flex-direction:column;min-height:calc(100dvh - 64px)}
+.dm-peer{display:flex;align-items:center;gap:12px;margin:8px 10px 0;padding:10px 14px;border-radius:18px;background:var(--card);border:1px solid var(--card-b);color:inherit;text-decoration:none}
+.dm-peer b{display:flex;align-items:center;gap:5px;font-size:15px}.dm-peer b svg{color:var(--dim)}
+.dm-peer .tw-t{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dm-leave{flex:none!important;width:auto!important;height:32px!important;padding:0 12px!important;font-size:13px!important;margin:0!important}
+.dm-log{flex:1;display:flex;flex-direction:column;gap:2px;padding:12px 12px 8px}
+.dm-older{align-self:center;margin-bottom:8px}
+.dm-day{align-self:center;margin:12px 0 6px;font-size:12px;color:var(--mute)}
+.dm-day span{padding:3px 10px;border-radius:99px;background:var(--card);border:1px solid var(--card-b)}
+.dm-m{display:flex;flex-direction:column;align-items:flex-start;max-width:80%;margin-top:4px}
+.dm-m.me{align-self:flex-end;align-items:flex-end}
+.dm-who{margin:6px 0 2px 6px;font-size:12px;color:var(--dim)}
+.dm-b{padding:9px 13px;border-radius:18px 18px 18px 6px;background:var(--card);border:1px solid var(--card-b);font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.dm-m.me .dm-b{border-radius:18px 18px 6px 18px;background:var(--accf);color:var(--onacc);border-color:transparent}
+.dm-tm{margin:2px 6px 0;font-size:11px;color:var(--mute)}
+.dm-first{display:flex;flex-direction:column;align-items:center;gap:6px;margin:auto 8px;padding:20px;text-align:center;font-size:14px;line-height:1.6;color:var(--dim)}
+.dm-first b{color:var(--fg);font-size:16px}
+.dm-first:empty{display:none}
+.dm-safe{display:flex;align-items:flex-start;gap:6px;margin:0 14px 6px;font-size:11.5px;line-height:1.5;color:var(--mute)}
+.dm-safe svg{flex:none;margin-top:2px}
+.dm-comp{position:sticky;bottom:0;z-index:5;padding:8px 10px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,transparent,var(--bg) 14px)}
+.dm-in{display:flex;align-items:flex-end;gap:8px;padding:6px 6px 6px 14px;border-radius:24px;background:var(--glass);border:1px solid var(--card-b);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.dm-in textarea{flex:1;min-height:24px;max-height:140px;resize:none;border:0;outline:0;background:none;color:var(--fg);font:16px/1.5 inherit;font-family:inherit;padding:6px 0}
+.dm-in textarea:disabled{color:var(--mute)}
+.dm-send{flex:none;width:40px;height:40px;border:0;border-radius:50%;display:grid;place-items:center;background:var(--accf);color:var(--onacc);cursor:pointer}
+.dm-send:disabled{background:var(--elev2);color:var(--mute);cursor:default}
+.dm-warn{min-height:0;margin:4px 8px 0;font-size:12.5px;color:var(--dim)}
+.dm-warn:empty{display:none}.dm-warn.bad{color:#e5484d;font-weight:600}
+.dm-comp.locked .dm-in{opacity:.55}
+.dm-lock{display:flex;gap:10px;margin:0 2px 8px;padding:12px 14px;border-radius:16px;background:var(--card);border:1px solid #e5484d55;font-size:13.5px;line-height:1.55;color:var(--dim)}
+.dm-lock svg{flex:none;color:#e5484d;margin-top:1px}
+.dm-lock b{display:block;color:var(--fg);font-size:14.5px;margin-bottom:2px}
+.dm-lock .btn{width:auto;flex:none;height:34px;padding:0 14px;font-size:13px}
+@media(max-width:699px){
+  body.dm-talk .tabbar,body.dm-talk #fabwrap{display:none!important}
+  body.dm-talk::after{display:none!important}
+  body.dm-talk .app{padding-bottom:0!important}
+  .dm-talkv{min-height:calc(100dvh - 56px)}
+}
+/* プロフィールの鍵・非公開のときの表示 */
+.pf-n{display:flex;align-items:center;gap:6px}
+.pf-lock{display:inline-flex;color:var(--dim)}
+a.pf-ic{text-decoration:none}
+.pf-locked{display:flex;flex-direction:column;align-items:center;gap:8px;margin:14px 10px;padding:28px 20px;text-align:center;border-radius:20px;background:var(--card);border:1px solid var(--card-b);color:var(--dim);font-size:14px;line-height:1.6}
+.pf-locked b{color:var(--fg);font-size:16px}
+/* 鍵垢の切りかえ */
+.pv-row{display:flex;align-items:center;gap:12px;margin:8px 10px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--card-b);cursor:pointer}
+.pv-row>svg{flex:none;color:var(--acc)}
+.pv-t{flex:1;min-width:0}.pv-t b{display:block;font-size:15px}.pv-t small{display:block;margin-top:3px;font-size:12.5px;line-height:1.5;color:var(--dim)}
+.pv-row--c{margin:4px 0 10px;padding:10px 12px}
+input.pv-sw[data-priv]{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:50px;height:30px;margin:0;border-radius:99px;background:var(--elev2);box-shadow:inset 0 0 0 1px var(--line);cursor:pointer;transition:background .2s}
+input.pv-sw[data-priv]::after{content:'';position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0005;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
+input.pv-sw[data-priv]:checked{background:var(--accf)}
+input.pv-sw[data-priv]:checked::after{transform:translateX(20px)}
+/* お知らせ：フォローのリクエスト */
+.twn-act{display:flex;gap:8px;margin-top:8px}
+.twn-act .btn{flex:none;width:auto;height:34px;padding:0 16px;font-size:13.5px;margin:0}
+/* お知らせの未読：左上の自分のアイコンに点、左のメニューに数 */
+body[data-nf="1"] #brand{position:relative}
+body[data-nf="1"] #brand::after{content:'';position:absolute;right:-1px;top:-1px;width:10px;height:10px;border-radius:50%;background:var(--accf);box-shadow:0 0 0 2px var(--bg)}
+.dr-n{margin-left:8px;font-style:normal;font-size:12px;font-weight:700;color:var(--onacc);background:var(--accf);border-radius:99px;padding:1px 7px}
+.dr-n:empty{display:none}
+body.dm-talk .foot{display:none}
+.pv-dr{cursor:pointer}

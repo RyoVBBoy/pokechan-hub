@@ -123,10 +123,12 @@ async function accountView(){
       ${prof.av?'<button class="btn btn-s" id="ac-prm">写真を外す</button>':''}</div></div>
     <p class="note" style="color:var(--mute);padding-top:0">写真は真ん中が正方形に切り取られ、丸く表示されます。ほかの人も見られます。</p>
     ${form(prof,false)}
+    <div class="sec"><h2>プライバシー</h2></div>
+    ${privRowHTML(prof)}
     <div class="sec"><h2>そのほか</h2></div>
     <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ac-out">ログアウト</button><button class="btn btn-s" id="ac-del" style="color:var(--w2)">アカウントを削除</button></div>
     <p class="note" style="color:var(--mute)"><a href="#/terms" style="color:var(--acc)">利用規約</a>・<a href="#/privacy" style="color:var(--acc)">プライバシーポリシー</a></p></div>`;
-  bindSave(false);
+  bindSave(false);privRowBind(V);
   /* プロフィールの写真（2026/11/03） */
   const setAv=async b=>{const j=await authFetch('/api/me/avatar',b);AUTH.profile=j.user;refreshBrand();accountView()};
   document.getElementById('ac-pf').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;

@@ -3,7 +3,7 @@
    訳が見つからない文字は日本語のまま出る（tests/i18n.mjs が主な画面の残りを一覧にする）。 */
 const EN={
 /* メニュー・共通 */
-'ホーム':'Home','図鑑':'Pokédex','ツール':'Tools','パーティ':'Team','コミュニティ':'Community','みんな':'Everyone','戻る':'Back','閉じる':'Close','やめる':'Cancel','決定':'OK',
+'ホーム':'Home','図鑑':'Pokédex','ツール':'Tools','パーティ':'Team','コミュニティ':'Community','メッセージ':'Messages','みんな':'Everyone','戻る':'Back','閉じる':'Close','やめる':'Cancel','決定':'OK',
 'すべて見る':'See all','すべて':'All','更新':'Refresh','クリア':'Clear','リセット':'Reset','保存する':'Save','読み込み中…':'Loading…','準備中':'Coming soon',
 'ポケチャン攻略Hub':'PokeChamp Hub','Game Kid/s｜ポケモンチャンピオンズ攻略':'Game Kid/s | Pokémon Champions guide','ポケチャン':'PokeChamp','ポケ':'Poké','ポケモンチャンピオンズ':'Pokémon Champions','イー':'eF','イーフト':'eFootball',
 '相性を調べる':'Matchups','相性をワンタップで調べる':'Check matchups in one tap','ポケモン名で相性を調べる':'Matchups by Pokémon name',

@@ -41,7 +41,8 @@ const GAMES=[
 /* いまはポケモンチャンピオンズ専用のサイトとして運営する（2026/10/31 依頼主の方針）。
    true にすると、ゲームの切り替え（左のメニュー・#/games・起動時の選択）が出る。ゲームを増やすときに true にする */
 const MULTI_GAME=false;
-const COMMON_TAB=['community',I.chat,'コミュニティ'];
+/* 5つ目のタブ＝メッセージ（2026/11/11。前の「コミュニティ」は左のメニューから） */
+const COMMON_TAB=['messages',I.mail,'メッセージ'];
 const BRAND={logo:null}; /* ロゴ画像のURLを入れると、左上の丸の中に表示される（例：'img/logo.png'） */
 const gpGet=()=>{const d={pins:['pokechamp'],start:'last',last:'pokechamp'};try{return{...d,...JSON.parse(localStorage.getItem('pcgames')||'{}')}}catch(e){return d}};
 const gpSet=o=>{try{localStorage.setItem('pcgames',JSON.stringify({...gpGet(),...o}))}catch(e){}};

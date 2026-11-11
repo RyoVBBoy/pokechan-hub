@@ -338,4 +338,61 @@ for(let i=0;i<8;i++)await call('/api/admin/banned',{admin:'wrong-token-'+i,ip:'1
 r=await call('/api/admin/banned',{admin:'admin-secret-123',ip:'198.51.100.7'});expect('合言葉の総当たりで止まる',r[0]===429,r);
 r=await call('/api/admin/banned',{admin:'admin-secret-123',ip:'198.51.100.8'});expect('ほかの接続元は管理機能を使える',r[0]===200,r);
 r=await call('/api/me/card',{method:'POST',body:{partner:445}});expect('ログインしないとカードを保存できない',r[0]===401||r[0]===503,r);
+/* メッセージ（DM）と非公開アカウント（2026/11/11） */
+{clock=realNow()+6e5;Date.now=()=>clock;const E=await tok('userE'),F=await tok('userF'),G=await tok('userG'),H=await tok('userH');
+for(const [t,h] of [[E,'eve'],[F,'frank'],[G,'gina'],[H,'hana']]){r=await call('/api/me',{method:'POST',tok:t,body:{handle:h,name:h.toUpperCase(),agree:true}});expect('プロフィール作成 '+h,r[0]===200,r)}
+r=await call('/api/dm');expect('ログインなしではメッセージを読めない',r[0]===401||r[0]===503,r);
+r=await call('/api/me/private',{method:'POST',tok:F,body:{on:true}});expect('非公開アカウントにできる',r[0]===200&&r[1].private===true,r);
+r=await call('/api/me',{tok:F});expect('自分のプロフィールに非公開の印',r[1].user&&r[1].user.private===true,r);
+tick();r=await call('/api/notes',{method:'POST',tok:F,body:{body:'鍵の中の投稿'}});const fn=r[1].id;
+r=await call('/api/u/frank',{tok:E});expect('非公開の人のプロフィール（locked）',r[0]===200&&r[1].user.private&&r[1].user.locked&&!r[1].user.followed,r[1].user);
+r=await call('/api/u/frank/notes',{tok:E});expect('許可されていない人には投稿を見せない',r[1].locked&&r[1].notes.length===0,r[1]);
+r=await call('/api/tl',{tok:E});expect('みんなのタイムラインにも出さない',!r[1].notes.some(x=>x.id===fn),'');
+r=await call('/api/notes/'+fn,{tok:E});expect('1件を読むのも不可',r[0]===404,r);
+r=await call('/api/dm/with/frank',{tok:E});expect('非公開の相手には送れない（理由つき）',r[0]===200&&r[1].can===false&&r[1].reason==='このユーザーは非公開アカウントのためメッセージを送信できません',r[1]);
+r=await call('/api/dm/send',{method:'POST',tok:E,body:{to:'frank',body:'こんにちは'}});expect('送信もサーバーで断る',r[0]===403&&r[1].locked,r);
+r=await call('/api/follow',{method:'POST',tok:E,body:{handle:'frank'}});expect('非公開の人へのフォローはリクエストになる',r[0]===200&&r[1].requested&&!r[1].followed&&r[1].followers===0,r);
+r=await call('/api/u/frank',{tok:E});expect('リクエスト中',r[1].user.requested&&r[1].user.locked,r[1].user);
+r=await call('/api/dm/send',{method:'POST',tok:E,body:{to:'frank',body:'こんにちは'}});expect('リクエスト中はまだ送れない',r[0]===403,r);
+r=await call('/api/notifs',{tok:F});expect('リクエストがお知らせに届く',r[1].notifs.some(x=>x.kind==='freq'&&x.user.handle==='eve'),r[1]);
+r=await call('/api/follow/answer',{method:'POST',tok:E,body:{handle:'frank',ok:true}});expect('ほかの人は答えられない',r[0]===404,r);
+r=await call('/api/follow/answer',{method:'POST',tok:F,body:{handle:'eve',ok:true}});expect('リクエストを許可',r[0]===200&&r[1].accepted,r);
+r=await call('/api/u/frank',{tok:E});expect('許可されるとフォロー',r[1].user.followed&&!r[1].user.locked&&r[1].user.followers===1,r[1].user);
+r=await call('/api/u/frank/notes',{tok:E});expect('許可されると投稿が見える',r[1].notes.some(x=>x.id===fn),r[1]);
+r=await call('/api/notifs',{tok:E});expect('許可のお知らせ',r[1].notifs.some(x=>x.kind==='facc'&&x.user.handle==='frank'),r[1]);
+r=await call('/api/dm/send',{method:'POST',tok:E,body:{to:'frank',body:'許可ありがとう'}});expect('許可されたフォロワーは送れる',r[0]===200&&r[1].conv>0,r);const cv=r[1].conv;
+for(const bad of ['ディスコやってる？','d i s c o r d で話そう','LINE交換しよう','らいん教えて','見て https://example.com','abc.xyz に来て','@taro_123 で探して','IDは abc123','メールは a@b.jp','09012345678','090-1234-5678','ツイッターやってる？','インスタ見て']){
+  tick(3e3);r=await call('/api/dm/send',{method:'POST',tok:E,body:{to:'frank',body:bad}});expect('外部への誘導を止める：'+bad,r[0]===400&&r[1].outside,r)}
+for(const ok of ['オンラインで対戦しよう','ガブリアスの型どうしてる？','1.5倍になるよ','HP 252振り']){
+  tick(3e3);r=await call('/api/dm/send',{method:'POST',tok:E,body:{to:'frank',body:ok}});expect('ふつうの文は送れる：'+ok,r[0]===200,r)}
+r=await call('/api/dm/send',{method:'POST',tok:E,body:{to:'frank',body:'すぐ次'}});expect('連続の送信は少しあける',r[0]===429,r);
+r=await call('/api/dm/unread',{tok:F});expect('読んでいない数',r[1].unread===5,r[1]);
+r=await call('/api/dm',{tok:F});expect('会話の一覧（個人）',r[1].convs.length===1&&r[1].convs[0].members[0].handle==='eve'&&r[1].convs[0].unread===5,r[1]);
+r=await call('/api/dm/with/eve',{tok:F});expect('会話を開く（古い順・既読になる）',r[1].can&&r[1].msgs.length===5&&r[1].msgs[0].body==='許可ありがとう'&&!r[1].msgs[0].mine,r[1]);
+r=await call('/api/dm/unread',{tok:F});expect('開くと既読',r[1].unread===0,r[1]);
+tick(3e3);r=await call('/api/dm/send',{method:'POST',tok:F,body:{conv:cv,body:'どういたしまして'}});expect('非公開の本人は返事できる',r[0]===200&&r[1].conv===cv,r);
+r=await call('/api/dm/with/eve?after='+r[1].msg.id,{tok:F});expect('続きだけ読む',r[1].msgs.length===0,r[1]);
+r=await call('/api/dm/'+cv,{tok:G});expect('会話に入っていない人は読めない',r[0]===404,r);
+r=await call('/api/dm/send',{method:'POST',tok:G,body:{conv:cv,body:'のぞき'}});expect('会話に入っていない人は送れない',r[0]===404,r);
+/* 相手が非公開の人をフォローしている（こちらから頼んでいない）なら送れる */
+r=await call('/api/follow',{method:'POST',tok:F,body:{handle:'gina'}});
+r=await call('/api/dm/with/frank',{tok:G});expect('非公開の人にフォローされていれば送れる',r[1].can===true,r[1]);
+/* グループ */
+tick(3e3);r=await call('/api/dm/group',{method:'POST',tok:E,body:{title:'構築相談',handles:['gina','hana']}});expect('グループを作る',r[0]===200&&r[1].conv>0,r);const gc=r[1].conv;
+r=await call('/api/dm/group',{method:'POST',tok:G,body:{title:'x',handles:['eve','frank']}});expect('グループでも非公開の人は入れられない（フォロー関係があれば可）',r[0]===200,r);
+r=await call('/api/dm/group',{method:'POST',tok:H,body:{title:'x',handles:['frank']}});expect('関係のない非公開の人はグループに入れられない',r[0]===403&&r[1].locked,r);
+tick(3e3);r=await call('/api/dm/send',{method:'POST',tok:G,body:{conv:gc,body:'よろしく'}});expect('グループで送れる',r[0]===200,r);
+r=await call('/api/dm?kind=group',{tok:H});expect('グループの一覧',r[1].convs.some(c=>c.id===gc&&c.title==='構築相談'&&c.n===3),r[1]);
+r=await call('/api/dm/'+gc,{tok:H});expect('グループを開く',r[1].conv.title==='構築相談'&&r[1].conv.members.length===2&&r[1].msgs.some(x=>x.body==='よろしく'&&x.user.handle==='gina'),r[1]);
+r=await call('/api/dm?kind=dm',{tok:H});expect('個人の一覧にはグループを出さない',r[1].convs.length===0,r[1]);
+r=await call('/api/dm/'+gc+'/leave',{method:'POST',tok:H});r=await call('/api/dm/'+gc,{tok:H});expect('抜けると読めない',r[0]===404,r);
+/* 公開に戻すとリクエストは許可になる */
+r=await call('/api/follow',{method:'POST',tok:H,body:{handle:'frank'}});expect('リクエスト',r[1].requested,r);
+r=await call('/api/me/private',{method:'POST',tok:F,body:{on:false}});
+r=await call('/api/u/frank',{tok:H});expect('公開に戻すと待っていたリクエストが許可される',r[1].user.followed&&!r[1].user.private,r[1].user);
+/* アカウントを消すと会話も消える */
+r=await call('/api/me/delete',{method:'POST',tok:E,body:{confirm:'DELETE'}});
+r=await call('/api/dm',{tok:F});expect('消した人との会話は消える',r[0]===200&&r[1].convs.length===0,[r[0],r[1]]);
+r=await call('/api/dm/'+gc,{tok:G});expect('グループのその人のメッセージは消える',r[0]===200&&!r[1].msgs.some(x=>x.user&&x.user.handle==='eve'),r[1]);
+Date.now=realNow;}
 console.log(bad?`social: NG（${bad}件）`:`social: OK（${n}項目）`);if(bad)process.exitCode=1;

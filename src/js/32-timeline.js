@@ -245,12 +245,20 @@ async function notifView(){
   if(!prof){V.innerHTML=`<div class="bnote" style="margin:16px"><a href="#/account" style="color:var(--acc)">ログイン</a>すると、いいねやフォローのお知らせがここに届きます。</div>`;return}
   try{
     const j=await authFetch('/api/notifs');
-    const NK={like:[I.heart,'あなたの投稿にいいねしました'],reply:[I.reply,'あなたの投稿に返信しました'],repost:[I.repost,'あなたの投稿をリポストしました'],follow:[I.user,'あなたをフォローしました']};
-    V.innerHTML=j.notifs.length?j.notifs.map(n=>`<a class="twn${n.id>j.seen?' new':''}" href="${n.kind!=='follow'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}">
+    const NK={like:[I.heart,'あなたの投稿にいいねしました'],reply:[I.reply,'あなたの投稿に返信しました'],repost:[I.repost,'あなたの投稿をリポストしました'],follow:[I.user,'あなたをフォローしました'],freq:[I.lock,'フォローをリクエストしています'],facc:[I.user,'フォローのリクエストを許可しました']};
+    V.innerHTML=j.notifs.length?j.notifs.map(n=>n.kind==='freq'?`<div class="twn twn-req${n.id>j.seen?' new':''}" data-req="${esc(n.user.handle)}">
+      <span class="twn-i twn-i--follow">${SVG(I.lock,22)}</span>
+      <div class="tw-m"><a href="#/u/${esc(n.user.handle)}" data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></a>
+      <div>${NK.freq[1]}<span class="tw-t">　${ago(n.created_at)}</span></div>
+      <div class="twn-act"><button class="btn btn-p" data-ans="1">許可する</button><button class="btn btn-s" data-ans="0">断る</button></div></div></div>`
+      :`<a class="twn${n.id>j.seen?' new':''}" href="${n.kind!=='follow'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}">
       <span class="twn-i twn-i--${n.kind}">${SVG((NK[n.kind]||NK.follow)[0],22)}</span>
       <div class="tw-m"><div data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></div>
       <div>${(NK[n.kind]||NK.follow)[1]}<span class="tw-t">　${ago(n.created_at)}</span></div>
       ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいね・返信・リポスト・フォローされると、ここに届きます。</p>';
+    V.querySelectorAll('[data-req] [data-ans]').forEach(b=>b.onclick=async()=>{const row=b.closest('[data-req]'),ok=b.dataset.ans==='1';row.querySelectorAll('button').forEach(x=>x.disabled=true);
+      try{await authFetch('/api/follow/answer',{handle:row.dataset.req,ok});row.querySelector('.twn-act').innerHTML=`<span class="tw-t">${ok?'許可しました':'断りました'}</span>`}
+      catch(e){toast(e.message);row.querySelectorAll('button').forEach(x=>x.disabled=false)}});
     if(j.notifs.some(n=>n.id>j.seen))authFetch('/api/notifs/seen',{}).then(()=>notifBadge(0)).catch(()=>{});
     V.insertAdjacentHTML('afterbegin','<div id="nf-push"></div>');if(typeof pushRow==='function')pushRow(document.getElementById('nf-push'),true);
   }catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div>`}
@@ -259,15 +267,16 @@ async function notifView(){
 let notifN=0;
 function notifBadge(n){
   notifN=n;
-  document.querySelectorAll('.tb[data-k="community"]').forEach(t=>{let b=t.querySelector('.tb-badge');
-    if(!n){b&&b.remove();return}if(!b){b=document.createElement('i');b.className='tb-badge';t.appendChild(b)}b.textContent=n>9?'9+':n});
+  /* 2026/11/11：タブが「メッセージ」になったので、お知らせの未読は左上の自分のアイコンの点と左のメニューに出す */
+  document.body.dataset.nf=n?'1':'';
+  const d=document.getElementById('dr-nf');if(d)d.textContent=n?(n>9?'9+':n):'';
   const c=document.getElementById('cm-notif-n');if(c)c.textContent=n?`未読 ${n}件`:'';
 }
 let notifAt=0;
 async function notifPoll(){
   let was='';try{was=localStorage.getItem('pcin')||''}catch(e){}
   if(!PCF||!was||Date.now()-notifAt<55e3||document.hidden)return;notifAt=Date.now();
-  try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');notifBadge(keyOf(cur)==='notif'?0:j.unread)}catch(e){}
+  try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');notifBadge(keyOf(cur)==='notif'?0:j.unread);if(typeof dmBadgeRefresh==='function')dmBadgeRefresh()}catch(e){}
 }
 setInterval(notifPoll,60e3);setTimeout(notifPoll,1500);
 

@@ -39,7 +39,7 @@ function handleError(h){
   const l=h.toLowerCase();if(HANDLE_NG.some(x=>l===x||l.startsWith('official')||l.includes('pokemon')||l.includes('nintendo')))return 'このユーザーIDは使えません。';
   return null;
 }
-const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',av:u.avatar||null,created_at:u.created_at};
+const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',av:u.avatar||null,created_at:u.created_at,private:!!u.private};
 async function userApi(req,env,db,path,body,now){
   /* 公開プロフィール（/api/u/…）は social.js */
   if(!path.startsWith('/api/me'))return null;

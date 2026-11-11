@@ -23,7 +23,7 @@ function smMainHTML(){
   return `<section class="sm-sec" aria-label="表示・カスタマイズ"><h3 class="sm-sh">表示・カスタマイズ</h3>${ids.map(smRow).join('')}</section>
     <section class="sm-sec" aria-label="通知"><h3 class="sm-sh">通知</h3><div id="sm-push"></div></section>
     <section class="sm-sec" aria-label="アカウントとセキュリティ"><h3 class="sm-sh">アカウント＆セキュリティ</h3>
-      ${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>`}
+      ${typeof AUTH!=='undefined'&&AUTH.profile&&typeof privSetRowHTML==='function'?privSetRowHTML(AUTH.profile):''}${drLink('#/account',I.user,'アカウント')}${drLink('#/privacy',I.lock,'プライバシーポリシー')}${drLink('#/terms',I.doc,'利用規約')}</section>`}
 function smEnsure(){
   if(SM.el)return SM.el;
   const o=document.createElement('div');o.className='setm';o.id='setm';o.hidden=true;
@@ -49,6 +49,7 @@ function settingsOpen(page,opt={}){
   const o=smEnsure();SM.last=document.activeElement;
   o.querySelector('.sm-main').innerHTML=smMainHTML();
   if(typeof pushRow==='function')pushRow(document.getElementById('sm-push'),false,true);
+  if(typeof privRowBind==='function')privRowBind(o);
   smBack(true);if(page&&SM_PAGES[page])smGo(page,true);
   o.hidden=false;document.body.classList.add('sm-lock');
   /* 読み直したあとに開き直すときは、動き（下からすべり上がる・ふわっと出る）なしでその場に出す（2026/11/10 依頼主：設定を変えるたびに下から上に動くのが気になる） */
