@@ -100,6 +100,8 @@ function calcSide(key,X,isAtk){
    中身：2匹の育成（型・技・特性・持ち物・性格・能力ポイント・ランク）・残りHP・状態異常（攻撃側のやけど⇔受ける側の状態。
    攻撃側はやけどしか計算に使わないので、まひ等は CS.aSt に覚えておき、もう一度入れかえると受ける側に戻る）。技は新しい攻撃側のいちばん強い技に選び直す */
 let CALC_ROT=0;
+/* 入れかえの印：回る2本の矢印（🔄 の形を自分で描いたもの。2026/11/11 依頼主：回転するので ⇅ より 🔄） */
+I.cycle='<path d="M5 12a7 7 0 0 1 12.2-4.7"/><path d="M17.5 3.8v3.7h-3.7"/><path d="M19 12a7 7 0 0 1-12.2 4.7"/><path d="M6.5 20.2v-3.7h3.7"/>';
 function calcSwapData(){
   const a=CS.a;CS.a=CS.d;CS.d=a;CS.mv=null;
   const h=CS.aHP;CS.aHP=CS.dHP;CS.dHP=h;
@@ -140,7 +142,7 @@ function calcView(){
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
     <div class="cv-vs">
       <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.a)}</span></div>
-      <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える"><span class="cv-swi" style="transform:rotate(${CALC_ROT}deg)">⇅</span></button>
+      <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える"><span class="cv-swi" style="transform:rotate(${CALC_ROT}deg)">${SVG(I.cycle,22)}</span></button>
       <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.d)}</span></div>
     </div>
     ${R?`<div class="cres cv-res">
