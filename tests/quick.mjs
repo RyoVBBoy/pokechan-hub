@@ -126,7 +126,8 @@ for(const W of [1000,1280]){const pg=await page(W);await pg.goto(URL0+'#/dex');a
 /* 6. 設定とプライバシー＝画面の真ん中に開く設定の画面（2026/11/10 依頼主「X の設定画面と同じに」）：
    メニューの「設定とプライバシー」で開く・PC は真ん中に600pxまで／スマホは全画面・上に ← 題名 ✕・1行＝絵・太字の名前・右に今の設定と ›・名前は省略しない・選ぶ項目は行を押すとページが切りかわる */
 for(const W of [320,390,1280]){
-  const pg=await page(W,()=>{try{if(!localStorage.getItem('pctheme'))localStorage.setItem('pctheme','dark')}catch(e){}});await pg.goto(URL0+'#/tools');await pg.waitForTimeout(700);
+  /* はじめはダーク。読み直すたびに動く addInitScript で書くと、読み直した直後にまれに保存が見えず（null）上書きしてしまうので、最初に1回だけ書いて読み直す（2026/11/11） */
+  const pg=await page(W);await pg.goto(URL0+'#/tools');await pg.evaluate(()=>localStorage.setItem('pctheme','dark'));await pg.reload();await pg.waitForTimeout(700);
   /* メニューの「設定とプライバシー」を押すと、メニューが閉じて設定の画面が開く */
   await pg.evaluate(()=>drawerOpen());await pg.waitForTimeout(450);
   ok(await pg.evaluate(()=>!document.querySelector('#drawer .dr-acc,#drawer .qa-set,#drawer #dr-push')&&!!document.querySelector('#drawer [data-dr=settings]')),W+'：メニューには設定の中身がなく「設定とプライバシー」の行だけ');
