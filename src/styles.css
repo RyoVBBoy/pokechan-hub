@@ -2074,3 +2074,5 @@ body[data-nf="1"] #brand::after{content:'';position:absolute;right:-1px;top:-1px
 .dr-n:empty{display:none}
 body.dm-talk .foot{display:none}
 .pv-dr{cursor:pointer}
+.dm-push .push-row{margin:8px 12px 0}
+.dm-push:empty{display:none}

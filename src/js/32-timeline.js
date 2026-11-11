@@ -276,7 +276,7 @@ let notifAt=0;
 async function notifPoll(){
   let was='';try{was=localStorage.getItem('pcin')||''}catch(e){}
   if(!PCF||!was||Date.now()-notifAt<55e3||document.hidden)return;notifAt=Date.now();
-  try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');notifBadge(keyOf(cur)==='notif'?0:j.unread);if(typeof dmBadgeRefresh==='function')dmBadgeRefresh()}catch(e){}
+  try{if(!(await twAuth()))return;const j=await authFetch('/api/notifs/count');notifBadge(keyOf(cur)==='notif'?0:j.unread);if(typeof dmBadgeRefresh==='function')dmBadgeRefresh();if(typeof pushResync==='function')pushResync()}catch(e){}
 }
 setInterval(notifPoll,60e3);setTimeout(notifPoll,1500);
 

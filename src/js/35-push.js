@@ -25,6 +25,14 @@ async function pushOff(){
   try{await s.unsubscribe()}catch(e){}
   PUSH.sub=null;toast('通知をオフにしました');
 }
+/* この端末で通知がオンなら、ログインしている人の宛先としてサーバーに登録し直す（2026/11/11 依頼主：自分には届くのに友人には届かない）。
+   前は「オンにする」を押したときだけ登録していたので、ほかのアカウントでオンにした端末・サーバー側で消えた宛先は、画面ではオンなのに届かなかった */
+let PUSH_SYNC='';
+function pushResync(){
+  try{if(!PUSH.sub||!window.Notification||Notification.permission!=='granted'||!AUTH.user||!AUTH.profile)return;
+    const k=AUTH.user.uid+'|'+PUSH.sub.endpoint;if(PUSH_SYNC===k)return;PUSH_SYNC=k;
+    authFetch('/api/me/push',PUSH.sub.toJSON()).catch(()=>{PUSH_SYNC=''})}catch(e){}
+}
 /* 通知の設定の欄（メニューの「設定」とお知らせの画面に出す） */
 function pushRow(el,compact,list){
   if(!el)return;
@@ -50,8 +58,8 @@ function pushRow(el,compact,list){
     return;
   }
   if(window.Notification&&Notification.permission==='denied'){el.innerHTML=box('通知がブロックされています。端末（ブラウザ）の設定で、このサイトの通知を「許可」にしてください。');return}
-  if(on){el.innerHTML=compact?'':box('<b>通知：オン</b>　いいね・フォローされたときに、スマホに届きます。',`<div class="push-b"><button class="btn btn-s" data-push="test">テスト通知を送る</button><button class="btn btn-s" data-push="off">オフにする</button></div>`)}
-  else el.innerHTML=box('いいね・フォローされたときに、スマホに通知が届くようにできます。',`<div class="push-b"><button class="btn btn-p" data-push="on">${SVG(I.bell,16)}通知をオンにする</button></div>`);
+  if(on){el.innerHTML=compact?'':box('<b>通知：オン</b>　メッセージ・いいね・フォローが届いたときに、スマホに届きます。',`<div class="push-b"><button class="btn btn-s" data-push="test">テスト通知を送る</button><button class="btn btn-s" data-push="off">オフにする</button></div>`)}
+  else el.innerHTML=box('メッセージ・いいね・フォローが届いたときに、スマホに通知が届くようにできます。',`<div class="push-b"><button class="btn btn-p" data-push="on">${SVG(I.bell,16)}通知をオンにする</button></div>`);
   el.onclick=async e=>{const b=e.target.closest('[data-push]');if(!b)return;b.disabled=true;
     if(b.dataset.push==='on')await pushOn();else if(b.dataset.push==='off')await pushOff();
     else{try{await authFetch('/api/me/push/test',{});toast('テスト通知を送りました')}catch(err){toast(err.message)}}

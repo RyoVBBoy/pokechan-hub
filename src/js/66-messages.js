@@ -72,11 +72,13 @@ async function dmListView(){
   V.innerHTML=`<div class="dm-top"><div class="dm-seg" role="tablist" aria-label="会話の種類">
       <button role="tab" data-dmk="dm" aria-selected="${kind==='dm'}">${SVG(I.user,16)}個人</button><button role="tab" data-dmk="group" aria-selected="${kind==='group'}">${SVG(I.grid,16)}グループ</button></div>
     <a class="btn btn-p dm-new" href="#/messages/new" aria-label="新しいメッセージ">${SVG(I.mail,17)}<span>新しいメッセージ</span></a></div>
-    <div id="dm-list"><p class="empty">読み込み中…</p></div>`;
+    <div id="dm-push" class="dm-push"></div><div id="dm-list"><p class="empty">読み込み中…</p></div>`;
   V.querySelectorAll('[data-dmk]').forEach(b=>b.onclick=()=>{if(b.dataset.dmk===dmKind())return;try{sessionStorage.setItem('pcdmk',b.dataset.dmk)}catch(e){}haptic();dmListView()});
   const prof=await twAuth();if(keyOf(cur)!=='messages')return;
   const box=document.getElementById('dm-list');if(!box)return;
   if(!prof){V.querySelector('.dm-top').remove();dmNeedLogin(prof);return}
+  /* この端末で通知がオフなら、オンにする欄を出す（オンなら何も出さない） */
+  if(typeof pushRow==='function'){let w=0;const show=()=>{const el=document.getElementById('dm-push');if(!el)return;if(!PUSH.ready&&w++<15){setTimeout(show,200);return}pushResync();pushRow(el,true)};show()}
   try{
     const j=await authFetch('/api/dm?kind='+kind);if(!document.getElementById('dm-list'))return;
     box.innerHTML=j.convs.length?j.convs.map(c=>{
