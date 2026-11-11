@@ -1104,6 +1104,12 @@ a.mega{display:block;color:var(--fg)}a.mega:active{opacity:.8}
 .mpsheet.mpfull{bottom:auto;height:100%;align-items:stretch}
 .mpsheet.mpfull .psheet-p{height:100%;max-width:none;border-radius:0;padding:calc(10px + env(safe-area-inset-top)) 16px 0;transform:translateY(16px);opacity:0;transition:transform .16s ease-out,opacity .16s}
 .mpsheet.mpfull.on .psheet-p{transform:none;opacity:1}
+/* 2026/11/11 依頼主の画面（iPhone）：キーボードを出すと、この画面はキーボードの上までの高さになる。新しい iPhone のキーボードと上の帯（^ v ✓）は透けるので、
+   その下のパーティの画面（「追加する」の枠）が見えていた。スマホの全画面のときは、画面とその下（キーボードの後ろ）を下地の色でふさぐ */
+.mpsheet.mpfull .psheet-bg{background:var(--bg)}
+.mpsheet.mpfull .psheet-p{background:var(--bg)!important;-webkit-backdrop-filter:none;backdrop-filter:none;border:0}
+.mpsheet.mpfull::after{content:'';position:absolute;left:0;right:0;top:100%;height:100vh;height:100lvh;background:var(--bg);pointer-events:none;opacity:0;transition:opacity .16s}
+.mpsheet.mpfull.on::after{opacity:1}
 .mp-x{flex:none;margin:0 0 6px;padding:8px 4px;font-size:15px;color:var(--acc);background:none;border:0;font-weight:700}
 /* パーティのタブ：スワイプで切りかえ、新しい中身は進む向きからすべり込む */
 .tt-pages{overflow-x:clip;min-height:50vh;touch-action:pan-y}
