@@ -33,7 +33,10 @@ jobs:
       - name: 道具をそろえる
         run: |
           npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          # 2026/11/11：GitHub の公開用のパソコンから Ubuntu の配布元に一時的につながらず（Temporary failure resolving）、
+          # 3回つづけて公開が止まった。3回までやり直し、それでもだめならブラウザ本体だけ入れる（配布元を使わない）
+          for i in 1 2 3; do npx playwright install --with-deps chromium && break; echo "やり直し $i"; sleep $((i*20)); done || true
+          npx playwright install chromium
 
       - name: 組み立て（サイト・サーバー・検索向けページ）
         env:
