@@ -3,7 +3,8 @@
    ・PC：画面の真ん中に幅600pxまでの画面。スマホ（699px以下）：下からすべり上がる全画面
    ・上：←（中のページなら一覧へ戻る／一覧なら閉じる）・題名「設定」・✕（閉じる）
    ・一覧：1項目＝1行（左に絵・太字の名前・右に今の設定と ›）。選ぶ項目は行を押すと、その項目のページ（✓ が今の選択）に切りかわる
-   ・保存のしかた（setTheme・setAccent・setLang＝読み直す／qaSet）は前と同じ。読み直す設定を選んだときは、読み直したあとにこの画面を開き直す（sessionStorage pcsmre） */
+   ・保存のしかた（localStorage）は前と同じ。明るさ・テーマの色・背景の光・お気に入りショートカットは読み直さずにその場で変わり、画面は開いたまま（2026/11/11）。
+     言語だけは読み直し、読み直したあとに同じページを動きなしで開き直す（sessionStorage pcsmre） */
 const SM={el:null,page:null,last:null};
 const SM_VAL={
   qa:()=>qaName(qaGet()),
@@ -78,11 +79,19 @@ function smBack(quiet){
   main.classList.remove('in');if(!quiet){void main.offsetWidth;main.classList.add('in')}
   const r=was&&o.querySelector(`[data-sm-go="${was}"]`);if(r&&!quiet)r.focus({preventScroll:true});
 }
-/* 選択肢を押したとき：✓ と一覧の右の表示をすぐ変え、少し見せてから切りかえる（切りかえると読み直す→読み直したあと同じページを動きなしで開き直す） */
+/* 選択肢を押したとき：✓ と一覧の右の表示をすぐ変えて保存し、その場で見た目を変える（2026/11/11 依頼主：読み直さない・設定の画面は開いたまま）。
+   言語だけは、ポケモン・技などの名前を起動のときに入れかえる作りなので読み直す（読み直したあと同じページを動きなしで開き直す） */
 function smPick(btn,id,fn){
   const box=btn.closest('.dr-opts');if(box)box.querySelectorAll('.dr-opt').forEach(x=>x.setAttribute('aria-pressed',x===btn?'true':'false'));
   const v=document.getElementById('sm-v-'+id);if(v)v.innerHTML=(id==='accent'?btn.querySelector('.dr-ri').innerHTML:'')+btn.querySelector('.dr-rt b').textContent;
-  try{sessionStorage.setItem('pcsmre',id)}catch(e){}
-  setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180)}
+  if(id==='lang'){try{sessionStorage.setItem('pcsmre',id)}catch(e){}setTimeout(fn,matchMedia('(prefers-reduced-motion: reduce)').matches?0:180);return}
+  fn();smRefresh()}
+/* 設定の画面の中身を、いまの設定で描き直す（明るさが変わると色の丸の色も変わるため）。開いているページ・スクロール位置はそのまま */
+function smRefresh(){
+  const o=SM.el;if(!o||o.hidden)return;const body=o.querySelector('.sm-body'),y=body.scrollTop;
+  o.querySelector('.sm-main').innerHTML=smMainHTML();
+  if(typeof pushRow==='function')pushRow(document.getElementById('sm-push'),false,true);
+  if(SM.page){const p=SM_PAGES[SM.page];o.querySelector('.sm-sub').innerHTML=`<div class="dr-opts" role="group" aria-label="${p.t()}">${p.body()}</div>`}
+  body.scrollTop=y}
 /* 読み直したあと、設定の画面を開き直す（選んでいた項目のページのまま・動きなし） */
 (function(){let re=null;try{re=sessionStorage.getItem('pcsmre');sessionStorage.removeItem('pcsmre')}catch(e){}if(re)settingsOpen(SM_PAGES[re]?re:null,{instant:true})})();

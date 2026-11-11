@@ -75,8 +75,8 @@ async function userView(h){
     </div>
     <div class="pf-card pf-stats">
       <div><b class="num">${pfNum(u.notes)}</b><span>投稿</span></div>
-      <a class="pf-st" href="#/u/${esc(u.handle)}/followers"><b class="num" id="twp-fc">${pfNum(u.followers)}</b><span>フォロワー</span></a>
-      <a class="pf-st" href="#/u/${esc(u.handle)}/following"><b class="num">${pfNum(u.following)}</b><span>フォロー中</span></a>
+      <button class="pf-st-b" data-fl="followers" data-flh="${esc(u.handle)}" data-fln="${esc(u.name)}" aria-label="フォロワーの一覧を見る"><b class="num" id="twp-fc">${pfNum(u.followers)}</b><span>フォロワー</span></button>
+      <button class="pf-st-b" data-fl="following" data-flh="${esc(u.handle)}" data-fln="${esc(u.name)}" aria-label="フォロー中の一覧を見る"><b class="num">${pfNum(u.following)}</b><span>フォロー中</span></button>
       <div><b class="num">${pfNum(u.liked)}</b><span>もらったいいね</span></div>
     </div>
     ${u.me&&(u.private||FREQ_N)?`<a class="pf-fq" href="#/requests">${SVG(I.user,18)}<span>フォローリクエスト</span><b id="pf-fq-n">${FREQ_N?FREQ_N+'件':''}</b>${SVG(I.chev,16)}</a>`:''}
@@ -105,6 +105,7 @@ async function userView(h){
   V.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{if(b.getAttribute('aria-selected')==='true')return;
     V.querySelectorAll('[data-pt]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));load(b.dataset.pt)});
   load('all');
+
 }
 /* カードを編集：相棒と看板パーティ */
 function pfEdit(u,done){

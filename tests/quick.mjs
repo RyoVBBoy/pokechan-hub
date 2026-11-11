@@ -165,20 +165,30 @@ for(const W of [320,390,1280]){
   await pg.evaluate(()=>settingsOpen());await pg.waitForTimeout(400);await pg.keyboard.press('Escape');await pg.waitForTimeout(400);
   ok(await pg.evaluate(()=>document.getElementById('setm').hidden),W+'：Esc で閉じる');
   if(W===390){
-    /* 明るさ：ライトを押すと ✓ と一覧の表示が変わり、少しあとで保存・切りかえ（保存のしかたは前と同じ pctheme）、読み直したあと設定の画面が開き直る */
-    await pg.evaluate(()=>settingsOpen('theme'));await pg.waitForTimeout(400);
-    const mv=await pg.evaluate(()=>{document.querySelector('#setm [data-theme-set=light]').click();return [document.querySelector('#setm [data-theme-set=light]').getAttribute('aria-pressed'),document.getElementById('sm-v-theme').textContent,localStorage.getItem('pctheme')]});
-    ok(mv[0]==='true'&&mv[1]==='ライト'&&mv[2]==='dark','押した直後の表示 '+mv);await pg.waitForTimeout(1200);
-    const t=await pg.evaluate(()=>[localStorage.getItem('pctheme'),document.documentElement.dataset.theme,!!document.getElementById('setm')&&!document.getElementById('setm').hidden,document.getElementById('sm-v-theme')?.textContent,getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor,document.getElementById('sm-t').textContent,document.querySelector('#setm [data-theme-set=light]')?.getAttribute('aria-pressed')]);
-    ok(t[0]==='light'&&t[1]==='light'&&t[2]&&t[3]==='ライト'&&t[4]==='rgb(255, 255, 255)'&&t[5]==='明るさ'&&t[6]==='true','明るさの切りかえ・読み直して同じページを開き直す '+t);
-    /* 開き直すときは動かさない（下からすべり上がらない）：開いたその瞬間から位置が決まっている */
+    /* 明るさ・テーマの色・背景の光：押すとその場で保存して見た目が変わる（読み直さない・設定の画面は開いたまま。2026/11/11 依頼主） */
+    await pg.evaluate(()=>{window.__noReload=1;settingsOpen('theme')});await pg.waitForTimeout(400);
+    const mv=await pg.evaluate(()=>{document.querySelector('#setm [data-theme-set=light]').click();
+      return [document.querySelector('#setm [data-theme-set=light]').getAttribute('aria-pressed'),document.getElementById('sm-v-theme').textContent,localStorage.getItem('pctheme'),document.documentElement.dataset.theme,getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor]});
+    ok(mv[0]==='true'&&mv[1]==='ライト'&&mv[2]==='light'&&mv[3]==='light'&&mv[4]==='rgb(255, 255, 255)','押したその場で明るい色になり保存 '+mv);
+    await pg.waitForTimeout(600);
+    const t=await pg.evaluate(()=>[window.__noReload,!document.getElementById('setm').hidden,document.getElementById('sm-t').textContent,document.querySelector('#setm [data-theme-set=light]')?.getAttribute('aria-pressed')]);
+    ok(t[0]===1&&t[1]&&t[2]==='明るさ'&&t[3]==='true','読み直さず・開いたまま・同じページ '+t);
+    /* ← で一覧へ戻ると右の表示が新しい値、色の丸は明るい色の塗り */
+    await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(300);
+    ok(await pg.evaluate(()=>document.getElementById('sm-t').textContent==='設定'&&document.getElementById('sm-v-theme').textContent==='ライト'&&!document.getElementById('setm').hidden),'← で一覧（読み直さない）');
+    await pg.click('#setm [data-sm-go=accent]');await pg.waitForTimeout(300);
+    await pg.evaluate(()=>document.querySelector('#setm [data-acc-set=blue]').click());await pg.waitForTimeout(300);
+    const ac=await pg.evaluate(()=>[window.__noReload,localStorage.getItem('pcaccent'),getComputedStyle(document.documentElement).getPropertyValue('--accf').trim(),document.querySelector('#setm [data-acc-set=blue]').getAttribute('aria-pressed'),!document.getElementById('setm').hidden]);
+    ok(ac[0]===1&&ac[1]==='blue'&&ac[2].toLowerCase()==='#2f6fe0'&&ac[3]==='true'&&ac[4],'テーマの色がその場で変わる '+ac);
+    await pg.click('#setm [data-sm=back]');await pg.waitForTimeout(250);await pg.click('#setm [data-sm-go=glow]');await pg.waitForTimeout(300);
+    await pg.evaluate(()=>document.querySelector('#setm [data-glow-set=off]').click());await pg.waitForTimeout(300);
+    ok(await pg.evaluate(()=>window.__noReload===1&&localStorage.getItem('pcglow')==='off'&&document.documentElement.dataset.glow==='off'&&!document.getElementById('setm').hidden),'背景の光がその場で変わる');
+    /* ✕ で閉じるまで開いたまま。暗い色に戻すとタイプの文字の色も作り直される */
+    await pg.evaluate(()=>{smBack(true);smGo('theme',true)});await pg.evaluate(()=>document.querySelector('#setm [data-theme-set=dark]').click());await pg.waitForTimeout(300);
+    ok(await pg.evaluate(()=>window.__noReload===1&&document.documentElement.dataset.theme==='dark'&&getComputedStyle(document.querySelector('#setm .sm-p')).backgroundColor==='rgb(0, 0, 0)'),'暗い色に戻る');
+    /* 言語だけは読み直す。読み直したあと同じページを動きなしで開き直す */
     const nm=await pg.evaluate(()=>{settingsClose();const o=document.getElementById('setm');o.hidden=true;o.classList.remove('on');settingsOpen('theme',{instant:true});const p=getComputedStyle(o.querySelector('.sm-p'));return [p.transform,p.opacity,getComputedStyle(o.querySelector('.sm-bg')).opacity]});
     ok(nm[0]==='none'&&nm[1]==='1'&&nm[2]==='1','開き直すときは動かない '+nm);
-    /* テーマの色・背景の光も保存される */
-    await pg.evaluate(()=>settingsOpen('accent'));await pg.waitForTimeout(300);await pg.evaluate(()=>document.querySelector('#setm [data-acc-set=blue]').click());await pg.waitForTimeout(1200);
-    ok(await pg.evaluate(()=>localStorage.getItem('pcaccent')==='blue'),'テーマの色の保存');
-    await pg.evaluate(()=>settingsOpen('glow'));await pg.waitForTimeout(300);await pg.evaluate(()=>document.querySelector('#setm [data-glow-set=off]').click());await pg.waitForTimeout(1200);
-    ok(await pg.evaluate(()=>localStorage.getItem('pcglow')==='off'),'背景の光の保存');
     /* お気に入りショートカット：行を押すとページ（説明の文＋3つ）、選ぶと保存・一覧へ戻って右の表示が変わる */
     await pg.evaluate(()=>{settingsClose();settingsOpen()});await pg.waitForTimeout(400);
     await pg.click('#setm [data-sm-go=qa]');await pg.waitForTimeout(350);

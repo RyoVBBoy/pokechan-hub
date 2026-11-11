@@ -1423,7 +1423,7 @@ body::before{inset:0;background:
 .pf-chip--add{padding:0 12px;color:var(--acc);background:var(--acc-t);box-shadow:none}
 .pf-card{margin:14px 12px 0;border:1px solid var(--card-b);border-radius:20px;background:var(--card);box-shadow:var(--card-s)}
 .pf-stats{display:grid;grid-template-columns:repeat(4,1fr);padding:12px 4px}
-.pf-stats>div,.pf-stats>a{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.pf-stats>div,.pf-stats>a,.pf-stats>.pf-st-b{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
 .pf-stats>*+*{border-left:1px solid var(--line-in)}
 .pf-stats b{font-size:20px;font-weight:800;line-height:1.2}
 .pf-stats span{font-size:11px;color:var(--dim);white-space:nowrap}
@@ -1976,7 +1976,6 @@ body.sm-lock{overflow:hidden}
 /* 幅の狭いスマホ（359px以下）：名前と今の設定が1行に入らないので、名前を2行にする（…で省略しない） */
 @media(max-width:359px){.setm .dr-row>.dr-rt b{white-space:normal}}
 @media(prefers-reduced-motion:reduce){.sm-p,.sm-bg{transition:none}.sm-pg.in{animation:none}}
-=======
 
 /* ===================== メッセージ（1対1・グループ）と非公開アカウント（2026/11/11、64-messages.js） ===================== */
 .dm-top{display:flex;align-items:center;gap:10px;padding:12px 12px 4px}
@@ -2131,3 +2130,50 @@ body.tw-vopen{overflow:hidden}
 .fw-bs{display:flex;flex-direction:column;gap:6px}
 @media(min-width:400px){.fw-bs{flex-direction:row}}
 .fw-more{display:block;margin:4px auto 16px}
+/* ===================== フォロー中・フォロワーの一覧を画面の上に開く（2026/11/11、68-follow-modal.js） =====================
+   外の形（真ん中600px／スマホは全画面・← 題名 ✕）は設定の画面と同じ .setm .sm-*。押せる数（左のメニュー・プロフィール）は指の形＋うすい下地 */
+.pf-st-b{border:0;background:none;color:inherit;font:inherit;padding:2px 0;border-radius:10px;cursor:pointer;transition:background .2s}
+@media(hover:hover){.pf-st-b:hover{background:var(--dr-hov,var(--hov))}.pf-st-b:hover span{text-decoration:underline}}
+.pf-st-b:focus-visible,.dr-ffb:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.dr-ffb{border:0;background:none;color:var(--dim);font:inherit;font-size:14px;padding:4px 6px;margin:-4px -6px;border-radius:8px;cursor:pointer;transition:background .2s}
+.dr-ffb b{color:var(--fg);margin-right:3px}
+@media(hover:hover){.dr-ffb:hover{background:var(--dr-hov,var(--hov));text-decoration:underline}}
+.fl-h{gap:8px}
+.fl-ttl{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:8px}
+.fl-ttl h2{margin:0;font-size:18px;font-weight:800;color:var(--dr-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-ttl small{font-size:13px;color:var(--dr-v);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flm .sm-h{border-bottom:0}
+.fl-tabs{position:relative;flex:none;display:flex;border-bottom:1px solid var(--sm-line)}
+.fl-tabs button{flex:1;min-height:52px;border:0;background:none;color:var(--dr-v);font:600 15px var(--ff);cursor:pointer;transition:background .2s,color .2s}
+@media(hover:hover){.fl-tabs button:hover{background:var(--dr-hov)}}
+.fl-tabs button[aria-selected=true]{color:var(--dr-t);font-weight:800}
+.fl-tabs button:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.fl-ind{position:absolute;left:0;bottom:-1px;width:50%;height:4px;display:flex;justify-content:center;pointer-events:none;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.fl-ind i{width:64px;height:4px;border-radius:4px;background:var(--accf)}
+.fl-list.fl-in-r{animation:smIn .24s cubic-bezier(.2,.8,.2,1)}
+.fl-list.fl-in-l{animation:smBackIn .24s cubic-bezier(.2,.8,.2,1)}
+.fl-row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;transition:background .2s}
+:root[data-theme=light] .fl-row{border-bottom-color:rgba(15,20,25,.08)}
+@media(hover:hover){.fl-row:hover{background:var(--dr-hov)}}
+.fl-row:active{background:var(--dr-prs)}
+.fl-row:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.fl-av{flex:none;width:44px;height:44px;font-size:18px}
+.fl-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.fl-nm{display:flex;align-items:center;gap:4px;min-width:0}
+.fl-nm b{font-size:15px;font-weight:700;color:var(--dr-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-lock{flex:none;display:inline-flex;color:var(--dr-t)}
+.fl-lockbig{display:flex;justify-content:center;margin-bottom:8px;color:var(--dr-t)}
+.fl-msg b{color:var(--dr-t)}
+.fl-hd{font-size:14px;color:var(--dr-v);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-hd em{font-style:normal;font-size:12px;margin-left:6px;padding:1px 6px;border-radius:4px;background:var(--dr-prs)}
+.fl-bio{margin-top:4px;font-size:14px;line-height:1.45;color:var(--dr-t);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* フォローする（白黒の塗り）／フォロー中（枠だけ。マウスを乗せると赤い「フォロー解除」） */
+.fl-fb{flex:none;align-self:center;min-width:100px;min-height:36px;padding:0 16px;border-radius:999px;border:1px solid transparent;background:var(--dr-t);color:var(--sm-bg);font:700 14px var(--ff);cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.fl-fb.on{background:none;color:var(--dr-t);border-color:var(--line2,var(--line))}
+.fl-fb .fl-b{display:none}
+@media(hover:hover){.fl-fb:not(.on):hover{opacity:.88}.fl-fb.on:hover{color:#f4212e;border-color:rgba(244,33,46,.45);background:rgba(244,33,46,.1)}.fl-fb.on:hover .fl-a{display:none}.fl-fb.on:hover .fl-b{display:inline}}
+.fl-fb:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.fl-fb:disabled{opacity:.6}
+.fl-msg{margin:0;padding:32px 20px;text-align:center;color:var(--dr-v);font-size:15px;line-height:1.7}
+@media(max-width:359px){.fl-row{padding:12px}.fl-fb{min-width:88px;padding:0 12px}}
+@media(prefers-reduced-motion:reduce){.fl-ind,.fl-row,.fl-fb{transition:none}.fl-list.fl-in-r,.fl-list.fl-in-l{animation:none}}

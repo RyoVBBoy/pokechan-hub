@@ -12,7 +12,7 @@ document.documentElement.lang=LANG;
 
 /* ===================== 画面の明るさ（端末に合わせる／ライト／ダーク） =====================
    pctheme：'auto'（はじめ）・'light'・'dark'。決まった色は styles.css の [data-theme=light]。 */
-const THEME_PREF=(()=>{try{const v=localStorage.getItem('pctheme');return['auto','light','dark'].includes(v)?v:'auto'}catch(e){return'auto'}})();
+let THEME_PREF=(()=>{try{const v=localStorage.getItem('pctheme');return['auto','light','dark'].includes(v)?v:'auto'}catch(e){return'auto'}})();
 const themeMQ=window.matchMedia?matchMedia('(prefers-color-scheme: light)'):null;
 const themeNow=()=>THEME_PREF==='light'||(THEME_PREF==='auto'&&themeMQ&&themeMQ.matches)?'light':'dark';
 let THEME=themeNow();
@@ -22,8 +22,8 @@ let THEME=themeNow();
 const ACCENTS={purple:['紫','Purple','#5B57D9','#5B57D9','#A99CFF','#7C6CF0','#fff'],blue:['青','Blue','#2563D9','#2F6FE0','#6AAEFF','#3B82F6','#fff'],
   green:['緑','Green','#12805F','#138A66','#4AD3A0','#17A07A','#fff'],pink:['ピンク','Pink','#C93360','#D63B63','#FF7A99','#E5476F','#fff'],
   orange:['オレンジ','Orange','#B85E08','#C76A0A','#FFAD5C','#E07B12','#fff'],mono:['灰色','Gray','#1E2030','#1E2030','#D5D7DE','#E8E9EE','#000']};
-const ACCENT=(()=>{try{const v=localStorage.getItem('pcaccent');return ACCENTS[v]?v:'purple'}catch(e){return'purple'}})();
-const GLOW=(()=>{try{const v=localStorage.getItem('pcglow');return['strong','normal','off'].includes(v)?v:'normal'}catch(e){return'normal'}})();
+let ACCENT=(()=>{try{const v=localStorage.getItem('pcaccent');return ACCENTS[v]?v:'purple'}catch(e){return'purple'}})();
+let GLOW=(()=>{try{const v=localStorage.getItem('pcglow');return['strong','normal','off'].includes(v)?v:'normal'}catch(e){return'normal'}})();
 const hexRgb=h=>{const n=parseInt(h.slice(1),16);return `${n>>16},${n>>8&255},${n&255}`};
 function accentApply(){const a=ACCENTS[ACCENT],L=THEME==='light',s=document.documentElement.style;
   const tx=L?a[2]:a[4],fill=L?a[3]:a[5],glow=a[5];
@@ -34,5 +34,10 @@ function accentApply(){const a=ACCENTS[ACCENT],L=THEME==='light',s=document.docu
   document.documentElement.dataset.glow=GLOW}
 function themeApply(){document.documentElement.dataset.theme=THEME;accentApply();const m=document.querySelector('meta[name=theme-color]');if(m)m.content=THEME==='light'?'#EEF0F5':'#000000'}
 themeApply();
-function setTheme(v){try{localStorage.setItem('pctheme',v)}catch(e){}location.reload()}
-function setAccent(k,v){try{localStorage.setItem(k,v)}catch(e){}location.reload()}
+/* 明るさ・テーマの色・背景の光を変える（2026/11/11 依頼主：読み直さずにその場で変える）。保存してから、色の変数と data-theme を入れかえる。
+   明るさが変わったときはタイプの文字の色（txtCalc）も作り直し、いまの画面を描き直す（端末の明るさが変わったときと同じ処理） */
+function setTheme(v){try{localStorage.setItem('pctheme',v)}catch(e){}
+  if(!['auto','light','dark'].includes(v))v='auto';THEME_PREF=v;const was=THEME;THEME=themeNow();themeApply();
+  if(THEME!==was){if(typeof txtCalc==='function')txtCalc();if(typeof route==='function')route()}}
+function setAccent(k,v){try{localStorage.setItem(k,v)}catch(e){}
+  if(k==='pcaccent'&&ACCENTS[v])ACCENT=v;if(k==='pcglow'&&['strong','normal','off'].includes(v))GLOW=v;accentApply()}

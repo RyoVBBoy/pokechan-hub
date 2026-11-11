@@ -145,8 +145,12 @@ ok(!pg.errs.length&&!pk.errs.length,'画面のエラーなし '+JSON.stringify([
 await call('/api/me/private',TK.sakura,{on:false});
 for(const [f,t] of [['ren','sakura'],['mio','sakura'],['sakura','ren']])await call('/api/follow',TK[f],{handle:t});
 await go(pg,'#/u/sakura');await pg.waitForTimeout(600);
-await pg.click('.pf-stats a[href$="/followers"]');await pg.waitForTimeout(900);
-ok(await pg.evaluate(()=>location.hash)==='#/u/sakura/followers','フォロワーの数を押すとフォロワーの一覧');
+/* 2026/11/11 依頼主（別の作業）：プロフィールの数を押すと、画面の上に一覧（68-follow-modal.js）。アドレス #/u/ID/followers の一覧の画面はそのまま */
+await pg.click('.pf-stats [data-fl="followers"]');await pg.waitForTimeout(900);
+ok(await pg.evaluate(()=>!document.getElementById('flm').hidden&&[...document.querySelectorAll('#flm .fl-row')].map(x=>x.dataset.flGo).sort().join()==='mio,ren'),'フォロワーの数を押すと一覧が画面の上に開く（ミオ・レン）');
+await pg.click('#flm [data-fl-x=close]');await pg.waitForTimeout(400);
+await go(pg,'#/u/sakura/followers');await pg.waitForTimeout(900);
+ok(await pg.evaluate(()=>location.hash)==='#/u/sakura/followers','アドレスでフォロワーの一覧の画面');
 ok((await pg.$$eval('#fw-list .fw-row',l=>l.map(x=>x.dataset.fh))).sort().join()==='mio,ren','フォロワーの一覧（ミオ・レン）');
 ok(await pg.$eval('[data-fh="ren"] [data-ff]',e=>e.textContent)==='フォロー中','フォローしている人にはフォロー中');
 ok(await pg.$eval('[data-fh="mio"]',e=>e.textContent.includes('フォローされています')),'フォローされている印');
