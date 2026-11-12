@@ -99,6 +99,20 @@ async function userApi(req,env,db,path,body,now){
       await db.prepare(`INSERT INTO user_data(uid,memo,updated_at) VALUES(?,?,0) ON CONFLICT(uid) DO UPDATE SET memo=excluded.memo`).bind(me.uid,txt).run();
       return J({ok:true})}
   }
+  /* お気に入りのポケモン（2026/11/12 依頼主）：戦術メモと同じ形。1匹ずつ {on:1|0, at}。外したものも at 付きで残し（on:0）、
+     ほかの端末で外したことが伝わるようにする。サイトが1匹ずつ at の新しいほうを残す */
+  if(path==='/api/me/favs'){
+    try{await db.prepare(`ALTER TABLE user_data ADD COLUMN favs TEXT`).run()}catch(e){}
+    if(req.method==='GET'){const r=await db.prepare(`SELECT favs FROM user_data WHERE uid=?`).bind(me.uid).first();let f=null;try{f=r&&r.favs?JSON.parse(r.favs):null}catch(e){}return J({favs:f})}
+    if(req.method==='POST'){const m=body.favs,out={};
+      if(!m||typeof m!=='object'||Array.isArray(m))return J({error:'お気に入りの形が正しくありません。'},400);
+      for(const [id,e] of Object.entries(m).slice(0,1000)){
+        if(!/^\d{1,5}$/.test(id)||!e||typeof e!=='object')continue;
+        out[id]={on:e.on?1:0,at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+e.at||0)))}}
+      const txt=JSON.stringify(out);if(txt.length>60000)return J({error:'お気に入りが多すぎます。'},400);
+      await db.prepare(`INSERT INTO user_data(uid,favs,updated_at) VALUES(?,?,0) ON CONFLICT(uid) DO UPDATE SET favs=excluded.favs`).bind(me.uid,txt).run();
+      return J({ok:true})}
+  }
   /* パーティ（3つまで）をどの端末でも同じにする。中身はその人だけが読める。新しい方（updated_at）を残す */
   if(path==='/api/me/teams'&&req.method==='GET'){
     const r=await db.prepare(`SELECT teams,updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();

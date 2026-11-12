@@ -30,7 +30,7 @@ function dex(){
     else if(dq.sort!=='no')l=[...l].sort((a,b)=>b.s[dq.sort]-a.s[dq.sort]);
     const m=dq.sort==='no'||dq.sort==='bst'?null:+dq.sort;
     document.getElementById('dl').innerHTML=l.length
-      ?`<div class="dx-meta"><p class="dx-cnt"><b>${l.length}匹</b>${dxCond()}</p><div class="dx-src"><span class="dx-src-k">${L('データの出典','Data source')}</span>${srcBadge('stats',null,{long:true})}<span class="dx-src-d">${esc(L(`${LV[lvOf('stats').lv][0]}＝${LV[lvOf('stats').lv][2]}。押すと出典の名前とくわしい説明が出ます。`,`${EN[LV[lvOf('stats').lv][0]]||LV[lvOf('stats').lv][0]} = ${EN[LV[lvOf('stats').lv][2]]||'how this data was checked'}. Tap for the source names and details.`))}</span></div></div>`+l.map(p=>rowP(p,m)).join('')
+      ?`<div class="dx-meta"><p class="dx-cnt"><b>${l.length}匹</b>${dxCond()}</p><div class="dx-src"><span class="dx-src-k">${L('データの出典','Data source')}</span>${srcBadge('stats',null,{long:true})}<span class="dx-src-d">${esc(L(`${LV[lvOf('stats').lv][0]}＝${LV[lvOf('stats').lv][2]}。押すと出典の名前とくわしい説明が出ます。`,`${EN[LV[lvOf('stats').lv][0]]||LV[lvOf('stats').lv][0]} = ${EN[LV[lvOf('stats').lv][2]]||'how this data was checked'}. Tap for the source names and details.`))}</span></div></div>`+l.map(p=>rowP(p,m,{fav:true})).join('')
       :`<p class="empty">条件に合うポケモンがいません。<br>検索語や絞り込みを変えてください。</p>`;
   };
   document.getElementById('dq').oninput=e=>{dq.q=e.target.value;upd()};

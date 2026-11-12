@@ -46,8 +46,9 @@ const nm=(p,o={})=>{const f=formInfo(p);return `<span class="pn${o.big?' pn-big'
 const spdRank=(v,self)=>{const o=P.filter(q=>q.no!==self);return{rank:o.filter(q=>maxSpe(q)>v).length+1,same:o.filter(q=>maxSpe(q)===v).length,n:o.length+1}};
 const spdRankHTML=(v,self)=>{const r=spdRank(v,self);return L(`収録${r.n}匹の最速（性格で上げ・ポイント32）と比べると、<b>全体で${r.rank}位</b>${r.same?`（同じ速さが${r.same}匹）`:''}です。`,
   `Compared with the max Speed (boosting nature, 32 points) of all ${r.n} Pokémon, this ranks <b>#${r.rank}</b>${r.same?` (tied with ${r.same})`:''}.`)};
-const rowP=(p,metric)=>{const v=metric==null?p.bst:p.s[metric],lb=metric==null?'合計':SN[metric];
-  return `<a class="row" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}<span class="rt">${p.roles.join('・')}</span></div></div><div class="row-n"><b>${v}</b><span>${lb}</span></div><span class="chev">${SVG(I.chev,18)}</span></a>`};
+/* opt.fav：右に お気に入りの ☆（72-favs.js の favBtn。図鑑の一覧で使う） */
+const rowP=(p,metric,opt={})=>{const v=metric==null?p.bst:p.s[metric],lb=metric==null?'合計':SN[metric];
+  return `<a class="row" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}<span class="rt">${p.roles.join('・')}</span></div></div><div class="row-n"><b>${v}</b><span>${lb}</span></div>${opt.fav&&typeof favBtn==='function'?favBtn(p.no):''}<span class="chev">${SVG(I.chev,18)}</span></a>`};
 const counters=types=>P.filter(p=>p.t.some(t=>mult(t,types)>=2)).sort((a,b)=>b.bst-a.bst);
 /* 広告の置き場所。広告を始めるまでは何も出さない（ADS_ON を true にすると枠が出る） */
 const ADS_ON=false;

@@ -2293,3 +2293,42 @@ body:has(#ac-root.ac2) .foot{display:none}
 .jwrap{word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
 /* 通知は左が画面の真ん中なので、幅が画面の半分までに縮んでいた。文の長さに合わせ、画面の幅（左右16pxあけ）まで広がるように */
 .toast{width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box}
+
+/* ===== お気に入りの ☆ と、ポケモンを選ぶ画面のカテゴリ（2026/11/12、72-favs.js・11-matchup.js の pickMon） ===== */
+.fav-b{flex:none;display:inline-grid;place-items:center;width:44px;height:44px;margin:-6px -4px -6px 2px;border-radius:50%;color:var(--dim);cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:color .15s,background .15s}
+.fav-b svg{display:block}
+.fav-b:hover{background:rgba(var(--acc-rgb),.1);color:var(--fg)}
+.fav-b:focus-visible{outline:2px solid var(--acc);outline-offset:-4px}
+.fav-b.on{color:#f5b800}
+:root[data-theme=light] .fav-b.on{color:#e0a100}
+.ph-nm{display:flex;align-items:center;gap:4px;min-width:0}
+.ph-nm h2{min-width:0}
+.fav-big{margin:0 0 0 2px}
+.mp-cats{display:flex;justify-content:space-between;gap:2px;margin:2px -4px 8px;padding:0 0 10px;border-bottom:1px solid var(--line);transition:opacity .2s}
+.mp-cats.mp-dim{opacity:.45}
+.mp-cat{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0 2px;background:none;border:0;color:var(--dim);font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mp-ci{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--elev);border:1px solid var(--line);color:var(--fg);transition:background .2s,color .2s,border-color .2s,transform .15s}
+.mp-cat:active .mp-ci{transform:scale(.93)}
+.mp-ct{font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap}
+.mp-cat[aria-selected=true] .mp-ci{background:var(--accf);border-color:var(--accf);color:var(--onacc)}
+.mp-cat[aria-selected=true] .mp-ct{color:var(--acc);font-weight:800}
+.mp-cat:focus-visible .mp-ci{outline:2px solid var(--acc);outline-offset:2px}
+.mp-cat[data-cat=fav][aria-selected=true] .mp-ci svg{fill:currentColor}
+.mp-r{display:flex;align-items:center}
+.mp-r .row-m{flex:1;min-width:0}
+.mp-fav{margin-right:4px}
+.mp-off{opacity:.5;cursor:default}
+.mp-off .fav-b{opacity:1}
+.mp-off-t{font-size:12px;color:var(--dim);margin-top:2px}
+.mp-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;margin:22px 16px;padding:26px 20px 24px;border-radius:16px;background:var(--elev);border:1px solid var(--line)}
+.mp-ei{display:grid;place-items:center;width:56px;height:56px;margin-bottom:6px;border-radius:50%;background:rgba(var(--acc-rgb),.12);color:var(--acc)}
+.mp-empty b{font-size:16px;color:var(--fg)}
+.mp-empty p{margin:0;max-width:300px;font-size:13.5px;line-height:1.6;color:var(--dim)}
+.mp-empty .btn{margin-top:10px}
+@media (max-width:359px){.mp-ci{width:42px;height:42px}.mp-ct{font-size:11px}}
+/* 戦術メモの .mp-r・.mp-h（55-memo.js）と名前が同じで、ポケモンを選ぶ画面の行の余白・文字色が崩れていたのを、選ぶ画面の中だけ戻す（2026/11/12） */
+.mpsheet .mp-r{padding:12px 16px;color:var(--fg);font-size:inherit;font-weight:inherit;border-bottom:1px solid var(--line)}
+.mpsheet .mp-r .row-t{color:var(--fg)}
+.mpsheet .mp-h{display:block;padding:14px 16px 6px;font-size:13px;font-weight:700;color:var(--dim)}
+.mpsheet .mp-empty{margin:22px 16px}

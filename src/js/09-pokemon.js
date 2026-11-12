@@ -6,6 +6,7 @@ function detail(no){
   const p=byNo[no];
   if(!p){setHeader('ポケモン');V.innerHTML='<p class="empty">ポケモンが見つかりません。<br><a href="#/dex" style="color:var(--fg);text-decoration:underline">図鑑へ戻る</a></p>';return}
   setHeader(p.n,p.base?'#/p/'+p.base:'#/dex');
+  if(typeof monRecentAdd==='function')monRecentAdd(p.no);
   /* 姿の切りかえ（元の姿とメガシンカの姿） */
   const fam=p.base?[byNo[p.base],...megasOf(p.base)]:megasOf(p.no).length?[p,...megasOf(p.no)]:[];
   curNo=+no;st={sp:[0,0,0,0,0,0],up:-1,dn:-1};
@@ -16,7 +17,7 @@ function detail(no){
   <section class="phead"><span class="wash" style="background:${wash}"></span>
     <div style="position:relative;min-width:0">
       <span class="no">#${String(p.dno).padStart(4,'0')}</span>
-      <h2>${nm(p,{no:false,big:true})}</h2>
+      <div class="ph-nm"><h2>${nm(p,{no:false,big:true})}</h2>${typeof favBtn==='function'?favBtn(p.no,{cls:'fav-big',size:24}):''}</div>
       <div class="chips" style="margin-top:9px">${p.t.map(chip).join('')}</div>
       ${zukanLink(p)}
     </div>

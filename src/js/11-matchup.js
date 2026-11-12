@@ -192,32 +192,72 @@ const monField=(attrs,no)=>{const p=byNo[no];return `<span class="mpick-w"><sele
   <button type="button" class="mpick" aria-label="ポケモンを選ぶ">${p?`<span class="av">${stamp(p)}</span><span class="mpick-n">${nm(p)}</span>`:'<b>ポケモンを選ぶ</b>'}<span class="mpick-s">${SVG(I.search,17)}</span></button></span>`};
 /* opt.add：パーティに追加するとき（パーティにいる匹は出さない）
    スマホは画面いっぱいに開き、キーボードが出ても見える高さ（visualViewport）に合わせる。iPhone でキーボードを出すと、下から出る形だと上がずれて空白ができるため */
+/* ポケモンを選ぶ画面。2026/11/12 依頼主：乗換案内のアプリのように、上の丸いアイコンで「履歴・お気に入り・環境上位・パーティ・すべて」を切りかえる（画面は移らない）。
+   ・履歴＝pcmonrecent（ここで選んだ匹＋図鑑のページを開いた匹、20匹まで）。お気に入り＝72-favs.js の favList（メガの姿は元の姿で出す）。
+     環境上位＝ランクバトルの使用率の集計 META.rank の上位30匹。パーティ＝いま選んでいるパーティ。すべて＝P。
+   ・名前を打つと、どのカテゴリでも全部のポケモンから探す（前と同じ）。最後に開いたカテゴリは端末に覚える（pcmptab、はじめは「すべて」）。
+   ・opt.add（パーティに足す）のときは、パーティにいる匹は前と同じく出さず、パーティのカテゴリでは薄くして選べないようにする */
+const MP_CATS=[['hist','履歴','clock'],['fav','お気に入り','star'],['top','環境上位','trophy'],['party','パーティ','grid'],['all','すべて','list']];
+const MP_TOP_N=30;
 function pickMon(cur,opt={}){
   return new Promise(res=>{
     const full=!matchMedia('(min-width:700px)').matches;
+    let cat=lsJ('pcmptab','all');if(!MP_CATS.some(c=>c[0]===cat))cat='all';
     const o=document.createElement('div');o.className='psheet mpsheet'+(full?' mpfull':'');
     o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="ポケモンを選ぶ">
       <div class="mp-top"><div class="srch">${SVG(I.search,18)}<input id="mp-q" placeholder="ポケモン名を入力（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="ポケモン名"></div>${full?'<button class="mp-x">やめる</button>':''}</div>
-      <div class="mp-list" id="mp-list"></div>${full?'':'<button class="psheet-x">やめる</button>'}</div>`;
+      <div class="mp-cats" role="tablist" aria-label="表示するポケモン">${MP_CATS.map(([k,t,ic])=>`<button class="mp-cat" role="tab" data-cat="${k}" aria-selected="${k===cat}"><span class="mp-ci">${SVG(I[ic]||I.list,22)}</span><span class="mp-ct">${t}</span></button>`).join('')}</div>
+      <div class="mp-list" id="mp-list" role="tabpanel"></div>${full?'':'<button class="psheet-x">やめる</button>'}</div>`;
     const vv=window.visualViewport,fit=()=>{if(!full||!vv)return;o.style.top=vv.offsetTop+'px';o.style.height=vv.height+'px'};
     if(full&&vv){fit();vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit)}
     document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
-    const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list');
+    const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list'),cats=o.querySelector('.mp-cats');
+    const onFav=()=>{if(cat==='fav'&&!q.value.trim())draw()};
+    document.addEventListener('pcfav',onFav);
     const done=v=>{if(full&&vv){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit)}
+      document.removeEventListener('pcfav',onFav);
       /* 2026/11/09 フィードバック（2匹目を選んだあと先に進めない）：iPhone はキーボードを出したまま欄を消すと、画面のずれが残って押した場所と反応する場所が食い違うことがある。先にキーボードを閉じ、ずれを戻す */
       try{q.blur();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(e){}
       if(full)setTimeout(()=>{try{window.scrollTo(0,0);document.documentElement.scrollTop=0}catch(e){}},60);
-      o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,8))}res(v)};
-    const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`;
+      o.classList.remove('on');setTimeout(()=>o.remove(),180);if(v){lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,typeof MON_RECENT_N!=='undefined'?MON_RECENT_N:8))}res(v)};
+    const inTeam=p=>team.some(x=>x.no===p.no),hide=p=>opt.add&&inTeam(p);
+    const fav=no=>typeof favBtn==='function'?favBtn(no,{cls:'mp-fav'}):'';
+    const row=p=>`<button class="row mp-r${p.no===cur?' on':''}" data-no="${p.no}"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div>${fav(p.no)}</button>`;
+    const rowOff=p=>`<div class="row mp-r mp-off" aria-disabled="true"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="mp-off-t">パーティに入っています</div></div>${fav(p.no)}</div>`;
     const sec=t=>`<div class="mp-h">${t}</div>`;
+    const empty=(ic,h,t,btn='')=>`<div class="mp-empty"><span class="mp-ei">${SVG(I[ic]||I.list,28)}</span><b>${h}</b><p>${t}</p>${btn}</div>`;
+    const inP=new Set(P.map(p=>p.no));
+    const base=p=>p&&(p.base?byNo[p.base]:p);
+    const uniq=a=>{const s=new Set();return a.filter(p=>p&&inP.has(p.no)&&!s.has(p.no)&&s.add(p.no))};
     const draw=()=>{const t=q.value.trim();
-      if(t){const hit=P.filter(p=>nmHit(p,t)&&!(opt.add&&team.some(x=>x.no===p.no)));
+      cats.classList.toggle('mp-dim',!!t);
+      if(t){const hit=P.filter(p=>nmHit(p,t)&&!hide(p));
         /* 名前の先頭が合うものを上に */
         const k=kata(t).toLowerCase(),kf=kfold(t),head=p=>p.n.toLowerCase().startsWith(k)||(p.ja&&p.ja.startsWith(kata(t)))||(!!kf&&kfold(p.n).startsWith(kf));
         hit.sort((a,b)=>head(b)-head(a));
-        list.innerHTML=hit.length?hit.slice(0,60).map(row).join(''):'<p class="empty" style="padding:28px 16px">見つかりません</p>';return}
-      const inT=team.map(x=>byNo[x.no]).filter(Boolean),tm=opt.add?[]:inT,rc=monRecent().map(n=>byNo[n]).filter(p=>p&&!inT.includes(p));
-      list.innerHTML=(tm.length?sec('パーティ')+tm.map(row).join(''):'')+(rc.length?sec('最近選んだ')+rc.map(row).join(''):'')+sec('すべてのポケモン')+P.filter(p=>!(opt.add&&team.some(x=>x.no===p.no))).map(row).join('')};
+        list.innerHTML=sec('すべてのポケモンから検索')+(hit.length?hit.slice(0,60).map(row).join(''):'<p class="empty" style="padding:28px 16px">見つかりません</p>');return}
+      if(cat==='hist'){const l=uniq(monRecent().map(n=>base(byNo[n]))).filter(p=>!hide(p));
+        list.innerHTML=l.length?sec('最近選んだ・見たポケモン')+l.map(row).join(''):empty('clock','履歴はまだありません','ポケモンを選んだり、図鑑のページを開いたりすると、ここに表示されます。')}
+      else if(cat==='fav'){const l=uniq((typeof favList==='function'?favList():[]).map(n=>base(byNo[n]))).filter(p=>!hide(p));
+        list.innerHTML=l.length?sec('お気に入り（新しく登録した順）')+l.map(row).join('')
+          :empty('star','お気に入りはまだありません','図鑑の一覧や図鑑のページ、この画面にある☆を押すと、お気に入りに登録できます。')}
+      else if(cat==='top'){const ready=typeof META!=='undefined'&&META.rank&&META.rank.length;
+        if(ready){const l=uniq(META.rank.slice(0,MP_TOP_N).map(r=>base(byNo[+r.no]))).filter(p=>!hide(p));
+          list.innerHTML=l.length?sec(`ランクバトルの使用率 上位${MP_TOP_N}匹`)+l.map(row).join(''):empty('trophy','表示できるポケモンがいません','環境上位のポケモンは、すべてパーティに入っています。')}
+        else if(typeof META!=='undefined'&&META.st==='fail')list.innerHTML=empty('trophy','ランキングを読み込めませんでした','ランクバトルの使用率の集計を読み込めませんでした。通信できる場所で、もう一度お試しください。','<button class="btn btn-s" id="mp-retry">もう一度読み込む</button>');
+        else{list.innerHTML=empty('trophy','ランキングを読み込んでいます','ランクバトルの使用率の集計を読み込んでいます。少しお待ちください。');
+          if(typeof metaLoad==='function')metaLoad().catch(()=>{}).then(()=>{if(o.isConnected&&cat==='top'&&!q.value.trim())draw()})}
+        const rb=list.querySelector('#mp-retry');if(rb)rb.onclick=()=>{META.st='idle';META.p=null;draw()}}
+      else if(cat==='party'){const l=team.map(x=>byNo[x.no]).filter(Boolean);
+        list.innerHTML=l.length?sec(opt.add?'いまのパーティ（入っている匹は選べません）':'いまのパーティ')+l.map(p=>opt.add?rowOff(p):row(p)).join('')
+          :empty('grid','パーティにまだポケモンがいません','パーティの画面の「追加する」からポケモンを入れると、ここに表示されます。')}
+      else list.innerHTML=sec('すべてのポケモン')+P.filter(p=>!hide(p)).map(row).join('');
+    };
+    const setCat=k=>{cat=k;try{localStorage.setItem('pcmptab',JSON.stringify(k))}catch(e){}
+      cats.querySelectorAll('.mp-cat').forEach(b=>b.setAttribute('aria-selected',b.dataset.cat===k));
+      if(q.value){q.value=''}draw();list.scrollTop=0};
+    cats.onclick=e=>{const b=e.target.closest('.mp-cat');if(b)setCat(b.dataset.cat)};
+    cats.onkeydown=e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const i=MP_CATS.findIndex(c=>c[0]===cat),n=MP_CATS[(i+(e.key==='ArrowRight'?1:MP_CATS.length-1))%MP_CATS.length][0];setCat(n);cats.querySelector(`[data-cat="${n}"]`).focus()};
     q.oninput=draw;
     q.onkeydown=e=>{if(e.key==='Enter'){const b=list.querySelector('[data-no]');if(b)done(+b.dataset.no)}};
     list.onclick=e=>{const b=e.target.closest('[data-no]');if(b)done(+b.dataset.no)};
