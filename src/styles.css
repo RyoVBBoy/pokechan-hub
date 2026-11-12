@@ -2479,3 +2479,62 @@ body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
 .dgw-n{font-size:12px!important}
 .dgw-note{margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:var(--acc-t);font-size:12.5px;line-height:1.7;color:var(--fg)}
 .dgw-note .dgu-link{margin-left:6px}
+
+/* ===== 2026/11/12 管理画面の「アクセス」タブ ===== */
+.adh-per{display:flex;gap:8px;padding:4px 16px 8px;flex-wrap:wrap}
+.adh-range{margin:0;padding:0 16px 4px;font-size:13px;font-weight:700;color:var(--fg)}
+.adh-range span{display:block;font-weight:500;font-size:12px;color:var(--dim)}
+.adh-note{margin:6px 16px;font-size:12px;line-height:1.7;color:var(--dim)}
+.adh-h{font-size:12px;color:var(--dim)}
+.adh-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin:8px 16px;border-radius:14px;overflow:hidden;background:var(--line);border:1px solid var(--line)}
+.adh-k{background:var(--elev);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.adh-k span{font-size:11.5px;color:var(--dim)}
+.adh-k b{font:800 22px Inter,var(--ff);font-variant-numeric:tabular-nums;color:var(--fg);line-height:1.2}
+.adh-k small{font-size:11.5px;color:var(--dim)}
+.adh-kw{grid-column:span 2}
+.adh-kt{font-size:15px!important;font-family:var(--ff)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adh-dl{font-size:11.5px;font-weight:700;color:var(--dim)}
+.adh-dl.up{color:#00a36c}.adh-dl.dn{color:#e0245e}.adh-dl.na{font-weight:500;color:var(--mute)}
+.adh-chs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 16px}
+.adh-ch{margin:0;min-width:0}
+.adh-ch figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:12.5px;margin-bottom:4px}
+.adh-ch figcaption span{font-size:11px;color:var(--dim);white-space:nowrap}
+.adh-ch svg{display:block;width:100%;height:64px;overflow:visible}
+.adh-bar{fill:var(--acc)}
+.adh-b:hover .adh-bar{fill:var(--fg)}
+.adh-b.off rect:first-child{fill:var(--line);opacity:.5}
+.adh-base{stroke:var(--line);stroke-width:.6;vector-effect:non-scaling-stroke}
+.adh-ax{display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:var(--mute);margin-top:2px}
+.adh-axn{color:var(--dim)}
+.adh-tw{padding:0 16px;overflow-x:auto}
+.adh-t{width:100%;border-collapse:collapse;font-size:13px}
+.adh-t td,.adh-t th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.adh-t th{font-size:11.5px;color:var(--dim);font-weight:700}
+.adh-t td small{display:block;font-size:11px;color:var(--dim);margin-top:1px;line-height:1.5}
+.adh-t .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.adh-zero td{color:var(--mute)}
+.adh-bc{width:34%}
+.adh-na{font-size:11.5px;color:var(--mute)}
+.adh-g,.adh-un{margin:0 16px 8px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.adh-g summary,.adh-un summary{display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:44px;cursor:pointer;list-style:none;font-size:13.5px}
+.adh-g summary::-webkit-details-marker,.adh-un summary::-webkit-details-marker{display:none}
+.adh-g summary .adh-gn{flex:1;font-weight:700}
+.adh-g summary b{font-variant-numeric:tabular-nums}
+.adh-g .adh-tw,.adh-un .adh-tw{padding:0 6px 6px}
+.adh-un summary{color:var(--dim)}
+.adh-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 16px 12px}
+.adh-split h3{margin:0 0 6px;font-size:13px}
+.adh-sr{display:grid;grid-template-columns:7.5em 1fr 3em 3.5em;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.adh-sr b,.adh-sr small{text-align:right;font-variant-numeric:tabular-nums}
+.adh-sr small{color:var(--dim)}
+.adh-sb{display:block;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.adh-sb i{display:block;height:100%;border-radius:4px;background:var(--acc);min-width:2px}
+.adh-err{margin:12px 16px;padding:14px;border-radius:12px;background:var(--elev);box-shadow:inset 3px 0 0 #f4212e}
+.adh-err b{display:block;margin-bottom:4px}.adh-err p{margin:0 0 10px;font-size:13px;color:var(--dim);line-height:1.7}
+.adh-empty{box-shadow:inset 3px 0 0 var(--line2,var(--line))}
+@media(max-width:699px){
+  .adh-sum{grid-template-columns:1fr 1fr}
+  .adh-chs{grid-template-columns:1fr}
+  .adh-split{grid-template-columns:1fr}
+  .adh-sr{grid-template-columns:7em 1fr 2.6em 3.2em}
+}

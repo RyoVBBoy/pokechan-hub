@@ -143,6 +143,8 @@ function asDraw(){
   if(team.length<4){el.innerHTML=`<div class="bnote" style="margin-top:20px"><b>先にあなたのパーティを登録してください</b><br>選出を考えるには、4〜6匹の登録が必要です（いま${team.length}匹）。</div><div class="btns"><a class="btn btn-p" href="#/team">パーティを登録する</a></div>`;return}
   if(!opp6.length){el.innerHTML=`<p class="empty" style="padding:36px 24px">対戦前の画面に出る<b>相手の6匹</b>を、上の欄から入れてください。<br>1匹入れるごとに結果が更新されます。</p>`;return}
   const myNos=team.map(x=>x.no),PR=oppPredict(myNos,opp6),A=analyze(myNos,opp6,null,null,PR.w);
+  /* 操作の回数（2026/11/12）：相手6匹がそろって計算できたとき。同じパーティ・同じ相手は1回 */
+  if(opp6.length>=6&&typeof evCount==='function')evCount('assist_done',JSON.stringify([myNos,[...opp6].sort((a,b)=>a-b),FMT]));
   const pIdx=PR.top[0].c,pNos=pIdx.map(j=>opp6[j]),A2=opp6.length>PICK()?analyze(myNos,pNos):null;
   const same=A2&&A2.best.map(i=>myNos[i]).sort().join()===A.best.map(i=>myNos[i]).sort().join();
   const pct=v=>Math.round(v*100);
@@ -225,11 +227,12 @@ function assistView(arg){
       if(!AUTH.user){say('スクショから読むには<a href="#/account" style="color:var(--acc)">ログイン</a>が必要です（AIの利用回数を守るため）。',true);return}
       const x=await twShrink(f,1100);say('相手の6匹を読み取っています…（数秒かかります）');
       let r;try{r=await fetch(COMM_API+'/api/opp-read?fmt='+FMT,{method:'POST',headers:{'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()},body:x.blob})}
-      catch(err){say('通信できませんでした。電波のよいところで、もう一度選んでください。',true);return}
-      const j=await r.json().catch(()=>({}));if(!r.ok){say((r.status===429?'<b>今日のAI読み取りの回数を使い切りました（明日また使えます）。</b>相手のポケモンは、下の欄から名前か「タイプで探す」で手で入れられます。':esc(j.error||'読み取れませんでした。'))+(j.busy?'<br><b>下の「タイプで探す」で、画面のタイプのマークを押すと、すぐに入れられます。</b>選出の計算はこれまでどおり使えます。':'<br>もう一度選ぶか、下の欄から名前か「タイプで探す」で入れてください。'),true);
+      catch(err){if(typeof evCount==='function')evCount('oppread_ng');say('通信できませんでした。電波のよいところで、もう一度選んでください。',true);return}
+      const j=await r.json().catch(()=>({}));if(!r.ok){if(typeof evCount==='function')evCount('oppread_ng');say((r.status===429?'<b>今日のAI読み取りの回数を使い切りました（明日また使えます）。</b>相手のポケモンは、下の欄から名前か「タイプで探す」で手で入れられます。':esc(j.error||'読み取れませんでした。'))+(j.busy?'<br><b>下の「タイプで探す」で、画面のタイプのマークを押すと、すぐに入れられます。</b>選出の計算はこれまでどおり使えます。':'<br>もう一度選ぶか、下の欄から名前か「タイプで探す」で入れてください。'),true);
         const d=document.getElementById('as-ty');if(d){d.open=true;d.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'center'})}return}
       const got=(j.opps||[]).filter(o=>o.no&&byNo[o.no]),nos=[...new Set(got.map(o=>o.no))].slice(0,6);
-      if(!nos.length){say('相手のポケモンを読み取れませんでした。選出画面（相手の6匹が並ぶ画面）のスクリーンショットか確かめて、もう一度選んでください。',true);return}
+      if(!nos.length){if(typeof evCount==='function')evCount('oppread_ng');say('相手のポケモンを読み取れませんでした。選出画面（相手の6匹が並ぶ画面）のスクリーンショットか確かめて、もう一度選んでください。',true);return}
+      if(typeof evCount==='function')evCount('oppread_ok');
       opp6=nos;saveOpp6();q.value='';sug();asDraw();asFetch();
       const unsure=got.filter(o=>!o.sure).map(o=>byNo[o.no].n),miss=(j.opps||[]).length-got.length;
       say(`${nos.length}匹を読み取りました（${j.sec}秒）。${unsure.length?`<b>${esc(unsure.join('・'))}</b>は自信が低めです。`:''}${miss?`読めなかったポケモンが${miss}匹います。`:''}違っていたら、下の「相手の6匹」で×を押して入れ直してください。`);

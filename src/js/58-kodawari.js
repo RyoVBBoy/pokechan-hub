@@ -224,7 +224,7 @@ function kdPanel(root){
 /* 結果は5案ずつ（2026/11/08 依頼主）：1・2…のページボタンで次の案へ。一覧は6匹の名前と種族値の形だけ、押すと詳しく（条件の✓・育成・理由・パーティにするボタン）。
    案1は揺らさずにいちばん点の高い組み方（seed 0）、2案目からは seed を変えて少しずつ違う組み方。同じ6匹の案は出さない。ページは見たときに組む（1案0.2秒ほど）。 */
 const KD_PER=5,KD_PAGES=4;
-function kdRun(){KD.res={list:[],sigs:new Set(),seed:0,page:0,open:-1};kdEnsure(0)}
+function kdRun(){KD.res={list:[],sigs:new Set(),seed:0,page:0,open:-1};kdEnsure(0);if(typeof evCount==='function')evCount('kd_done')}
 function kdEnsure(page){
   const R=KD.res;if(!R)return;R.page=page;R.open=-1;
   const need=(page+1)*KD_PER,box=document.getElementById('kd-res');

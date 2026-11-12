@@ -184,6 +184,8 @@ function prDraw(){
   if(full&&!PR_OUT.size){setTimeout(()=>prSwapDraw(),30);return}
   setTimeout(()=>{
     const list=prRank(mem).slice(0,PR_N),el=document.getElementById('pr-list');if(!el)return;
+    /* 操作の回数（2026/11/12）：おすすめを出したとき。同じパーティは1回 */
+    if(list.length&&typeof evCount==='function')evCount('pair_done',JSON.stringify([mem.map(x=>x.no||x),FMT]));
     el.innerHTML=list.map((o,k)=>{const c=o.c,rs=o.R.filter(r=>r.k!=='bad'&&r.txt).sort((a,b)=>b.pts-a.pts).slice(0,4),bad=o.R.filter(r=>r.k==='bad');
       return `<div class="pr-c"><a class="row" href="#/p/${c.no}"><span class="av">${stamp(c)}</span><div class="row-m"><div class="row-t">${k<3?`<span class="pr-rank">${k+1}</span>`:''}${nm(c)}</div><div class="chips">${c.t.map(chip).join('')}<span class="rt">${c.roles.join('・')}</span></div></div></a>
         <ul class="pr-why">${rs.map(r=>`<li><span class="pr-tag pr-${r.k}">${PR_TAG[r.k]}</span>${esc(r.txt)}</li>`).join('')}${bad.map(r=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(r.txt)}</li>`).join('')}${!rs.length?'<li>能力の高さで選んだ候補です</li>':''}</ul>

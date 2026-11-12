@@ -8,6 +8,7 @@ function dxCond(){const f=[];if(dq.q.trim())f.push(L(`名前「${dq.q.trim()}」
   if(dq.role){const d=RDESC.find(x=>x[0]===dq.role);f.push(L(dxRoleDesc(dq.role),dq.role==='高速'?'Fast (base Speed 100 or more)':(EN[`${d[0]}：${d[2]}`]||dq.role)))}
   const so=dq.sort==='no'?L('図鑑番号順','Pokédex order'):dq.sort==='bst'?L('合計種族値順','Base stat total'):L(`${SN[+dq.sort]}が高い順`,`${DX_SN_EN[+dq.sort]}, high to low`);
   return `<span class="dx-cond">${esc(f.length?L(`絞り込み：${f.join('・')}／並び替え：${so}（絞り込んだ中で並び替え）`,`Filter: ${f.join(', ')} / Sort: ${so} (within the filtered list)`):L(`並び替え：${so}`,`Sort: ${so}`))}</span>`}
+let DX_EVN=0;
 function dex(){
   setHeader('図鑑');
   if(typeof toastDropOld==='function')toastDropOld();
@@ -33,12 +34,14 @@ function dex(){
       ?`<div class="dx-meta"><p class="dx-cnt"><b>${l.length}匹</b>${dxCond()}</p><div class="dx-src"><span class="dx-src-k">${L('データの出典','Data source')}</span>${srcBadge('stats',null,{long:true})}<span class="dx-src-d">${esc(L(`${LV[lvOf('stats').lv][0]}＝${LV[lvOf('stats').lv][2]}。押すと出典の名前とくわしい説明が出ます。`,`${EN[LV[lvOf('stats').lv][0]]||LV[lvOf('stats').lv][0]} = ${EN[LV[lvOf('stats').lv][2]]||'how this data was checked'}. Tap for the source names and details.`))}</span></div></div>`+l.map(p=>rowP(p,m,{fav:true})).join('')
       :`<p class="empty">条件に合うポケモンがいません。<br>検索語や絞り込みを変えてください。</p>`;
   };
-  document.getElementById('dq').oninput=e=>{dq.q=e.target.value;upd()};
-  document.getElementById('dt').onchange=e=>{dq.type=e.target.value;upd()};
-  document.getElementById('ds').onchange=e=>{dq.sort=e.target.value;upd()};
+  /* 操作の回数（2026/11/12）：検索・絞り込み・並び替えを使ったら、この表示で1回だけ数える（検索語は送らない） */
+  const dxv=++DX_EVN,dxEv=()=>{if(typeof evCount==='function')evCount('dex_find','v'+dxv)};
+  document.getElementById('dq').oninput=e=>{dq.q=e.target.value;upd();dxEv()};
+  document.getElementById('dt').onchange=e=>{dq.type=e.target.value;upd();dxEv()};
+  document.getElementById('ds').onchange=e=>{dq.sort=e.target.value;upd();dxEv()};
   const pl=document.getElementById('pills');
   const sync=()=>pl.querySelectorAll('.pill').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.r||'')===(dq.role||'')));
-  pl.querySelectorAll('.pill').forEach(b=>b.onclick=()=>{dq.role=b.dataset.r||'';sync();upd()});
+  pl.querySelectorAll('.pill').forEach(b=>b.onclick=()=>{dq.role=b.dataset.r||'';sync();upd();dxEv()});
   sync();
   upd();
 }

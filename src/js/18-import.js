@@ -249,9 +249,10 @@ async function imRun(files){
       r.cards.forEach(c=>{const sl=IM.slots[c.pos];if(!sl.nameRaw||c.name.length>sl.nameRaw.length)sl.nameRaw=c.name;
         if(r.kind==='stat'){sl.vals=c.vals;sl.spr=c.spr;sl.alt=c.alt;sl.spalt=c.spalt}else{sl.abRaw=c.ab;sl.itRaw=c.it;sl.mvRaw=c.mv}});
     }
-    if(!IM.kinds.length){IM=null;return}
-    IM.slots.forEach(imResolve);pr.innerHTML='';imDraw();
-  }catch(e){say('読み取りに失敗しました：'+esc(String(e.message||e))+'<br>はじめて使うときは文字を読む部品を通信で読み込むので、通信できる環境でもう一度お試しください。<b>パーティの画面の「追加する」から手で入れることもできます。</b>')}
+    /* 操作の回数（2026/11/12）：選んだ画像を読み取れたか（画像そのものは送らない） */
+    if(!IM.kinds.length){IM=null;if(typeof evCount==='function')evCount('import_ng');return}
+    IM.slots.forEach(imResolve);pr.innerHTML='';imDraw();if(typeof evCount==='function')evCount('import_ok');
+  }catch(e){if(typeof evCount==='function')evCount('import_ng');say('読み取りに失敗しました：'+esc(String(e.message||e))+'<br>はじめて使うときは文字を読む部品を通信で読み込むので、通信できる環境でもう一度お試しください。<b>パーティの画面の「追加する」から手で入れることもできます。</b>')}
 }
 function importView(){
   setHeader('画像から取り込む','#/team');

@@ -159,6 +159,37 @@ r=await call('/api/admin/hits');expect('アクセス解析：管理者以外は�
 r=await call('/api/admin/hits',{admin:'admin-secret-123'});const hitN=k=>(r[1].rows.find(x=>x.k===k)||{}).n;
 expect('アクセス解析：画面・訪問・端末・来た場所を数える',hitN('p:assist')===2&&hitN('_visit')===1&&hitN('d:sp')===1&&hitN('r:search')===1&&!r[1].rows.some(x=>/bad/.test(x.k)),r[1]);
 r=await call('/api/admin/ban',{method:'POST',admin:'admin-secret-123',body:{handle:'dave',on:false}});r=await call('/api/u/dave');expect('停止を解除できる',r[0]===200,r);
+/* 機能の操作の回数（2026/11/12）：決めた種類だけ・日付ごとの合計。中身は受け取らない。表示の記録とは分けて数える */
+{const hit=async b=>{const rr=await w.fetch(new Request('https://x.dev/api/hit',{method:'POST',headers:{'content-type':'text/plain','cf-connecting-ip':'10.7.7.7'},body:typeof b==='string'?b:JSON.stringify(b)}),env,{waitUntil(){}});return rr.status};
+  const st=[await hit({e:'calc_done'}),await hit({e:'calc_done'}),await hit({e:'oppread_ng'}),await hit({e:'oppread_ok'})];
+  expect('操作：決めた種類は数える',st.every(x=>x===204),st);
+  const bad=[await hit({e:'bogus'}),await hit({e:'calc_done',k:'x'}),await hit({e:5}),await hit({e:'calc_done',q:'ガブリアス'}),await hit({e:'CALC_DONE'}),await hit('{bad json')];
+  expect('操作：知らない種類・中身つき・形のおかしいものは断る',bad.slice(0,5).every(x=>x===400),bad);
+  r=await call('/api/admin/hits?days=7&cmp=1',{admin:'admin-secret-123'});const en=k=>(r[1].rows.find(x=>x.k===k)||{}).n;
+  expect('操作：種類ごと・成功と失敗を分けて数える',en('e:calc_done')===2&&en('e:oppread_ng')===1&&en('e:oppread_ok')===1&&!r[1].rows.some(x=>/bogus|CALC/.test(x.k)),r[1].rows);
+  expect('操作を足しても、表示・訪問・端末・来た場所の数は前のまま',en('p:assist')===2&&en('_visit')===1&&en('d:sp')===1&&en('r:search')===1,r[1].rows);
+  expect('操作：記録を始めた日・期間・日本時間を返す',r[1].evStart&&r[1].tz==='Asia/Tokyo'&&r[1].days===7&&r[1].from&&r[1].to&&r[1].pfrom&&r[1].pto,r[1]);
+  r=await call('/api/admin/hits?days=7&cmp=1');expect('操作：管理者以外は見られない',r[0]===401,r);
+  r=await call('/api/admin/hits?days=7&cmp=1',{admin:'wrong-secret-xyz'});expect('操作：合言葉が違うと見られない',r[0]===401,r);
+  /* 期間（7・30・90日）と前の期間：日本時間の日付で区切る */
+  const jd=ms=>new Date(ms+9*36e5).toISOString().slice(0,10),T0=Date.now(),dd=k=>jd(T0-k*864e5);
+  for(const k of [0,6,7,13,14,29,30,59,60,89,90,179,180])await env.DB.prepare(`INSERT INTO page_hits(day,k,n) VALUES(?,?,?)`).bind(dd(k),'p:zz',1000+k).run();
+  const got=async d=>{const q=await call(`/api/admin/hits?days=${d}&cmp=1`,{admin:'admin-secret-123'});const x=q[1];
+    const inR=(a,b)=>x.rows.filter(y=>y.k==='p:zz'&&y.day>=a&&y.day<=b).map(y=>y.n-1000).sort((a,b)=>a-b).join();return[inR(x.from,x.to),inR(x.pfrom,x.pto),x.from,x.to,x.pfrom,x.pto]};
+  let g=await got(7);expect('期間7日：今日〜6日前、前の期間は7〜13日前',g[0]==='0,6'&&g[1]==='7,13'&&g[2]===dd(6)&&g[3]===dd(0)&&g[4]===dd(13)&&g[5]===dd(7),g);
+  g=await got(30);expect('期間30日：今日〜29日前、前の期間は30〜59日前',g[0]==='0,6,7,13,14,29'&&g[1]==='30,59',g);
+  g=await got(90);expect('期間90日：今日〜89日前、前の期間は90〜179日前',g[0]==='0,6,7,13,14,29,30,59,60,89'&&g[1]==='90,179',g);
+  r=await call('/api/admin/hits?days=30',{admin:'admin-secret-123'});expect('前の呼び方（cmp なし）は今までどおり期間の中だけ',!r[1].from&&r[1].rows.every(y=>y.day>=dd(29))&&r[1].rows.some(y=>y.k==='p:assist'),r[1]);
+  /* 日本時間の0時で日付が変わる（世界時の15時） */
+  const realNow=Date.now;try{
+    Date.now=()=>Date.UTC(2031,0,1,14,59,59);await hit({e:'kd_done'});
+    Date.now=()=>Date.UTC(2031,0,1,15,0,0);await hit({e:'kd_done'});await hit({e:'kd_done'});
+  }finally{Date.now=realNow}
+  const jr=(await env.DB.prepare(`SELECT day,n FROM page_hits WHERE k='e:kd_done' ORDER BY day`).all()).results.map(x=>x.day+':'+x.n).join();
+  expect('日本時間の0時で日付が変わる',jr==='2031-01-01:1,2031-01-02:2',jr);
+  await env.DB.prepare(`DELETE FROM page_hits WHERE day LIKE '2031-%' OR k='p:zz'`).run();
+  r=await call('/api/admin/quota',{admin:'admin-secret-123'});expect('使用量は今までどおり読める',r[0]===200&&r[1].days,r[0]);}
+
 /* 画像つき投稿 */
 const up=async(t,bytes,q='w=4&h=3')=>{const h={'content-type':'application/octet-stream','cf-connecting-ip':'10.9.9.9'};if(t)h.authorization='Bearer '+t;
   const r=await w.fetch(new Request('https://x.dev/api/media?'+q,{method:'POST',headers:h,body:bytes}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};

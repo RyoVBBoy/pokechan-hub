@@ -9,12 +9,23 @@ async function hitsInit(db){
   HITS_READY=true;
 }
 const hitDay=now=>new Date(now+9*36e5).toISOString().slice(0,10);
+/* 機能の操作の回数（2026/11/12 依頼主「開いただけでなく、実際に使われたかを知りたい」）。
+   決めた種類（この表にあるものだけ）を、日付ごとの合計として page_hits に 'e:種類' で足す。中身（ポケモン・検索語・画像など）は受け取らない。
+   表にないもの・形のおかしいものは 400 で断る（数えない）。サイトの 43-usage.js の EV_KEYS と同じ並び */
+const HIT_EV=['calc_done','dex_find','diag_done','diag_ng','assist_done','oppread_ok','oppread_ng','import_ok','import_ng','replay_start','replay_ok','replay_ng','pair_done','kd_done','tier_ok','tier_nolive'];
 /* 使用量の記録（2026/11/05 管理画面の「使用量」）：page_hits に日付ごとの合計として足す。_req＝サーバーへのアクセス（20回に1回だけ書いて20を足す見積もり）、_ai＝AI を呼んだ回数、_ai_ng＝混雑・回数制限で断られた回数 */
 async function useTick(env,k,n=1){try{if(!env||!env.DB)return;await hitsInit(env.DB);await env.DB.prepare(`INSERT INTO page_hits(day,k,n) VALUES(?,?,?) ON CONFLICT(day,k) DO UPDATE SET n=n+?3`).bind(hitDay(Date.now()),k,n).run()}catch(e){}}
 const aiTick=(env,st)=>useTick(env,[429,503].includes(st)?'_ai_ng':'_ai');
 async function hitsApi(req,env,db,path,now,isAdmin){
   if(path==='/api/hit'&&req.method==='POST'){
     let b={};try{b=JSON.parse(await req.text())}catch(e){}
+    /* 操作の記録（{e:'種類'} だけ。表示の記録 {k:…} とは別に数える） */
+    if(b&&b.e!==undefined){
+      if(typeof b.e!=='string'||!HIT_EV.includes(b.e)||Object.keys(b).length!==1)return new Response(null,{status:400});
+      await hitsInit(db);
+      await db.prepare(`INSERT INTO page_hits(day,k,n) VALUES(?,?,1) ON CONFLICT(day,k) DO UPDATE SET n=n+1`).bind(hitDay(now),'e:'+b.e).run();
+      return new Response(null,{status:204});
+    }
     const k=String(b.k||'').slice(0,24);if(!/^[a-z0-9_-]{0,24}$/.test(k))return new Response(null,{status:204});
     await hitsInit(db);const day=hitDay(now),keys=['p:'+(k||'home')];
     if(b.v){keys.push('_visit');if(b.d==='pc'||b.d==='sp')keys.push('d:'+b.d);if(['search','social','direct','other'].includes(b.r))keys.push('r:'+b.r)}
@@ -41,9 +52,17 @@ async function hitsApi(req,env,db,path,now,isAdmin){
   }
   if(path==='/api/admin/hits'&&req.method==='GET'){
     if(!isAdmin)return J({error:'管理用の合言葉が違います。'},401);
-    await hitsInit(db);const days=Math.max(1,Math.min(90,+new URL(req.url).searchParams.get('days')||30));
-    const r=await db.prepare(`SELECT day,k,n FROM page_hits WHERE day>=? ORDER BY day`).bind(hitDay(now-(days-1)*864e5)).all();
-    return J({days,rows:r.results});
+    const q=new URL(req.url).searchParams;
+    await hitsInit(db);const days=Math.max(1,Math.min(90,+q.get('days')||30));
+    /* cmp=1（2026/11/12）：前の同じ長さの期間も返す（比べるため）。日付はすべて日本時間の日付（hitDay）で区切る */
+    const cmp=q.get('cmp')==='1',from=hitDay(now-(days-1)*864e5),to=hitDay(now);
+    const pfrom=hitDay(now-(2*days-1)*864e5),pto=hitDay(now-days*864e5);
+    const r=await db.prepare(`SELECT day,k,n FROM page_hits WHERE day>=? AND day<=? ORDER BY day`).bind(cmp?pfrom:from,to).all();
+    if(!cmp)return J({days,rows:r.results});
+    /* 操作の記録を始めた日（この日より前は「未計測」。0回とは区別する） */
+    const ev=await db.prepare(`SELECT MIN(day) AS d FROM page_hits WHERE k LIKE 'e:%'`).first().catch(()=>null);
+    const pv=await db.prepare(`SELECT MIN(day) AS d FROM page_hits WHERE k LIKE 'p:%'`).first().catch(()=>null);
+    return J({days,rows:r.results,from,to,pfrom,pto,today:to,tz:'Asia/Tokyo',evStart:ev&&ev.d||null,pvStart:pv&&pv.d||null,evKeys:HIT_EV});
   }
   return null;
 }

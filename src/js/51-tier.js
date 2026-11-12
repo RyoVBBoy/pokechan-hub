@@ -63,6 +63,8 @@ async function tierView(){
   if(!T){V.innerHTML='<p class="empty">強さを計算中…（数秒かかります）</p>';await new Promise(r=>setTimeout(r,30));if(keyOf(cur)!=='tier')return;
     T=tierCompute();
     try{localStorage.setItem(ck,JSON.stringify({...T,rows:T.rows.map(r=>({...r,p:r.p.no,good:r.good.map(q=>q.no),bad:r.bad.map(q=>q.no),mega:r.mega?r.mega.no:null}))}))}catch(e){}}
+  /* 操作の回数（2026/11/12）：集計ありで出せたか／代わりの表示か。このタブで1日1回 */
+  if(typeof evCount==='function')evCount(T.live&&!T.stale?'tier_ok':'tier_nolive',new Date().toISOString().slice(0,10)+FMT);
   const fb=T.stale?`集計の提供元に今つながらないため、${+T.stale.slice(5,7)}/${+T.stale.slice(8)}に集計ありで計算したランキングを表示しています。`
     :!T.live?'集計の提供元に今つながらないため、使用率を使わず、合計種族値の高いポケモンどうしの計算だけで並べています。':'';
   V.innerHTML=(fb?`<p class="fbk">${SVG(I.info,15)}<span>${fb}</span></p>`:'')+tierHTML(T)+`<div class="btns"><a class="btn btn-s" href="#/meta">使用率と流行のパーティを見る</a><a class="btn btn-s" href="#/pair">相性のいい仲間を探す</a></div>`;

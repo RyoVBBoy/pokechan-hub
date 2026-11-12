@@ -78,7 +78,7 @@ function adminView(){
       }else if(admTab==='quota'){
         const j=await aget('/api/admin/quota');el.innerHTML=quotaHTML(j);
       }else if(admTab==='hits'){
-        const j=await aget('/api/admin/hits?days=30');el.innerHTML=hitsHTML(j.rows);
+        await hitsDash(el,aget);
       }else if(admTab==='season'){
         /* シーズンの登録・上位パーティの登録と確認（ladder.js） */
         const [sj,tj]=await Promise.all([fetch(COMM_API+'/api/seasons').then(r=>r.json()),aget('/api/admin/season-teams')]);

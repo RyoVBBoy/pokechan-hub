@@ -46,13 +46,15 @@ async function replayView(){
   const msg=(t,bad)=>{document.getElementById('rp-msg').innerHTML=t?`<div class="bnote" style="margin:8px 0 0${bad?';box-shadow:inset 0 0 0 1px var(--w2)':''}">${t}</div>`:''};
   document.getElementById('rp-file').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
+    if(typeof evCount==='function')evCount('replay_start');
     try{msg('動画から静止画を取り出しています…');
       const fr=await rpFrames(f,(i,n,k)=>msg(`動画を確かめています… ${Math.round(i/n*100)}%（画面が変わった場面 ${k}枚）`));
       msg(`AIが読み取っています…（${fr.length}枚・30〜60秒ほど）`);
       const j=await authFetch('/api/replay-read',{frames:fr});
       RP.read={fmt:j.fmt||FMT,result:j.result,opp:j.opp,my:j.my.length?j.my:team.map(x=>x.no),opp_sel:j.opp_sel,my_sel:j.my_sel,info:j.info||{}};
+      if(typeof evCount==='function')evCount('replay_ok');
       msg(`読み取りました（${j.sec}秒）。違うところがあれば直してから「記録する」を押してください。`);rpEdit();
-    }catch(err){
+    }catch(err){if(typeof evCount==='function')evCount('replay_ng');
       /* AI の回数切れ・混雑（2026/11/12）：手で記録できることをはっきり伝え、その欄を開く */
       if(err.status===429||err.status===503){msg(`<b>${err.status===429?'今日のAI読み取りの回数を使い切りました（明日また使えます）。':'AIが混み合っていて、いまは読み取れません。'}</b><br>手で記録することはできます。下の欄でポケモンと勝ち負けを入れて「記録する」を押してください。`,true);rpManual();return}
       msg(esc(err.message||'読み取れませんでした。')+'<br>「動画を使わずに手で記録する」から、手で入れることもできます。',true)}};

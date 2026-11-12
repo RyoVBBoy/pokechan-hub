@@ -26,6 +26,9 @@ const koLabel=k=>!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
 const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
+/* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
+function calcEv(){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
+  evCount('calc_done',JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,FMT]))}catch(e){}}
 const koBadge=k=>!k||!k.n||k.n>8?'':k.p>=.9999?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
 const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
 const koShort=k=>!k.n||k.n>8?'—':(k.p>=.9999?'確':'乱')+k.n;
@@ -209,15 +212,15 @@ function calcView(){
           else if(k2==='stg')X.stg[k3]=+v;
           else if(k2.startsWith('sp')){const i=+k2.slice(2),others=X.sp.reduce((s,x,j)=>j===i?s:s+x,0);X.sp[i]=Math.max(0,Math.min(+v||0,SP_CAP,SP_TOTAL-others))}
         }
-        const y=scrY();if(el.tagName==='INPUT')setTimeout(()=>{draw();scrTo(0,y)},0);else{draw();scrTo(0,y)}
+        const y=scrY();if(el.tagName==='INPUT')setTimeout(()=>{draw();scrTo(0,y);calcEv()},0);else{draw();scrTo(0,y);calcEv()}
       });
     });
-    root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y)});
+    root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y);calcEv()});
     bindFmt(root,()=>{CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw();calcEnsure(CS.a.no,CS.d.no).then(c=>{if(c&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}})});
     calcVerBind(R,draw);
-    root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{CS.mv=+b.dataset.mvpick;const y=scrY();draw();scrTo(0,y)});
+    root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{CS.mv=+b.dataset.mvpick;const y=scrY();draw();scrTo(0,y);calcEv()});
     root.querySelectorAll('details[data-more]').forEach(d=>d.addEventListener('toggle',()=>{CALC_OPEN[d.dataset.more]=d.open}));
-    document.getElementById('c-swap').onclick=()=>calcSwap(draw);
+    document.getElementById('c-swap').onclick=()=>{calcSwap(draw);setTimeout(calcEv,400)};
     /* 長い一覧（特性・持ち物・ほかの技）は名前で探して選べる（74-sselect.js。中身は今までの select のまま） */
     if(typeof ssEnhance==='function')ssEnhance(root,'[data-c="a.ab"],[data-c="a.item"],[data-c="d.ab"],[data-c="d.item"],[data-c="mv"]');
   };
