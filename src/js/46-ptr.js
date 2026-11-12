@@ -140,3 +140,18 @@ function postSheetClose(){
   o.classList.remove('on');setTimeout(()=>o.remove(),180);
 }
 addEventListener('hashchange',()=>{if(PS)postSheetClose()});
+/* 右下の⚡（相性）ボタンを、数字や入力欄に重ねない（2026/11/12 依頼主）。
+   ・数字が右に並ぶ画面（ダメージ計算・育成・図鑑のページ・パーティ）では、はじめから画面の右の端（ページの余白）に収まる細いつまみにする。
+   ・ほかの画面は、下にスクロールしたらつまみにして、上に戻ると元の形に。
+   ・スマホで文字を入れている間（キーボードが出ている間）は隠す。押したときの動き（相性を調べる等）は同じ。投稿のボタン（ホーム）は変えない */
+const FAB_DOCK=new Set(['calc','edit','p','team']);
+let FAB_DY=-1;
+function fabDock(){
+  const w=document.getElementById('fabwrap'),b=document.getElementById('fab');if(!w||!b)return;
+  const dock=b.dataset.mode!=='post'&&(FAB_DOCK.has(keyOf(cur))||scrY()>120);
+  if(dock!==w.classList.contains('dock'))w.classList.toggle('dock',dock);
+}
+SCROLLER.addEventListener('scroll',()=>{if(FAB_DY>=0)return;FAB_DY=requestAnimationFrame(()=>{FAB_DY=-1;fabDock()})},{passive:true});
+const fabKbEl=t=>t&&t.matches&&t.matches('textarea,select,[contenteditable=""],[contenteditable=true],input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]):not([type=submit]):not([type=file])');
+document.addEventListener('focusin',e=>{if(fabKbEl(e.target)&&matchMedia('(max-width:699px)').matches)document.body.classList.add('kb-open')});
+document.addEventListener('focusout',()=>setTimeout(()=>{if(!fabKbEl(document.activeElement))document.body.classList.remove('kb-open')},120));

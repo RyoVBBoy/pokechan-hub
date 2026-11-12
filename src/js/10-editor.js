@@ -30,6 +30,30 @@ function setToSaved(p,c){
     mv:(c.moves||[]).slice(0,4).map(m=>m.prot?{n:'まもる',id:182}:m.id>0?{n:m.n,id:m.id}:null).filter(Boolean),sp:[...sp],up,dn};
 }
 let ED=null;
+/* 自動保存の表示（2026/11/12）：保存中… → 自動保存済み ✓／保存できませんでした。
+   ・端末への保存（saveTeam が true）が終わった時点で、ログインしていなければ「自動保存済み ✓」。
+   ・ログイン中は、変えた時刻より後に始まったサーバーとの同期（33-sync.js の 'pcsync' の合図）が成功してはじめて ✓。続けて変えている間は「保存中…」のまま。
+   ・20秒たっても同期が終わらなければ「保存できませんでした」（この端末には保存済み。あとで同期が成功すれば ✓ に変わる）。
+   ・新しい保存のしくみは作らない（saveTeam と teamSync のまま） */
+const EDS={st:'',at:0,t:null};
+function edSaveShow(){const el=document.getElementById('ed-save');if(!el)return;
+  const m={saving:['保存中…',''],ok:['自動保存済み ✓','ok'],ng:['保存できませんでした','ng']}[EDS.st];
+  el.textContent=m?m[0]:'変更は自動で保存されます';el.dataset.k=m?m[1]||'saving':'';
+  el.title=EDS.st==='ng'?(EDS.local?'この端末には保存しています。電波のよいところで自動でやり直します':'この端末に保存できませんでした。ブラウザの保存領域を確かめてください'):EDS.st==='ok'&&!edOnline()?'この端末に保存しました（ログインすると、ほかの端末とも同じになります）':''}
+const edOnline=()=>!!(PCF&&typeof AUTH!=='undefined'&&AUTH.user);
+function edSaved(ok){
+  clearTimeout(EDS.t);EDS.at=Date.now();EDS.local=!!ok;
+  if(!ok){EDS.st='ng';edSaveShow();return}
+  if(!edOnline()){EDS.st='ok';edSaveShow();return}
+  EDS.st='saving';edSaveShow();
+  /* 中身が変わらなかったとき（同じ値を選び直した等）は saveTeam が同期を予約しないので、ここで予約して必ず合図をもらう */
+  if(typeof teamSyncSoon==='function')teamSyncSoon();
+  EDS.t=setTimeout(()=>{if(EDS.st==='saving'){EDS.st='ng';edSaveShow()}},20e3);
+}
+document.addEventListener('pcsync',e=>{const d=e.detail||{};if(EDS.st!=='saving'&&EDS.st!=='ng')return;if(!EDS.local)return;
+  if(!(d.started>=EDS.at))return;
+  if(d.state==='ok'||d.state==='off'){clearTimeout(EDS.t);EDS.st='ok';edSaveShow()}
+  else if(d.state==='err'){clearTimeout(EDS.t);EDS.st='ng';edSaveShow()}});
 function editView(a){
   const idx=+a,x=team[idx],p=x&&byNo[x.no];
   if(!p){nav('#/team');return}
@@ -38,6 +62,7 @@ function editView(a){
   const base=x.set&&x.set.sp?JSON.parse(JSON.stringify(x.set)):{...setToSaved(p,mySetFor(p.no)),...(x.set?{ab:x.set.ab||setToSaved(p,mySetFor(p.no)).ab,it:x.set.it||null,mv:x.set.mv&&x.set.mv.length?x.set.mv:setToSaved(p,mySetFor(p.no)).mv}:{})};
   while(base.mv.length<4)base.mv.push(null);
   ED={idx,no:p.no,s:base,dirty:false};
+  if(EDS.idx!==idx||EDS.no!==p.no){clearTimeout(EDS.t);EDS.st='';EDS.idx=idx;EDS.no=p.no}
   const ls=LSD[p.no],abl=ABD[p.no]||[];
   const mvIds=ls?ls[1].filter(id=>MV[id]):[];
   /* ランクバトルの採用率（2026/11/09 依頼主：持ち物の採用率もきちんと反映）。読めていれば持ち物・技の横に％を出し、持ち物は使われている順に上へ */
@@ -68,8 +93,8 @@ function editView(a){
     if(!abl.length)h+=`<option value="${cur&&cur.k||''}">${cur&&cur.n||'（データなし）'}</option>`;
     return h+abl.map(([k,hid])=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ABN[k]||k}${hid?'（隠れ特性）':''}${ABIMPL.has(k)?'':'　※計算では効果なし'}</option>`).join('')};
   V.innerHTML=`<div id="ed-root">
-  <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></div>
-  ${fresh?`<div class="bnote" style="margin:12px 16px 0">いまは${LD?'ランクバトルの集計から組んだ<b>使用率の高い型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</div>`:''}
+  <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div><span class="ed-save" id="ed-save" role="status" aria-live="polite"></span></div></div>
+  ${fresh?`<details class="ed-intro"><summary><span>${LD?'使用率の高い型':'自動で決めた型'}で計算中です。値を変えると、あなたの育成になります。</span></summary><p>いまは${LD?'ランクバトルの集計から組んだ<b>使用率の高い型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として自動で保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</p></details>`:''}
   <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}使用率の高い型を入れる</button></div>
   <div class="sec"><h2>特性・持ち物</h2></div>
   <div class="natr"><span style="width:56px">特性</span><select class="sel" id="ed-ab">${abOpts()}</select></div>
@@ -93,10 +118,10 @@ function editView(a){
     <div class="btns"><button class="btn btn-p" id="ed-solve">能力ポイントを計算</button></div>
   </details>
   <div class="btns" style="flex-wrap:wrap"><a class="btn btn-p" href="#/team">完了</a><button class="btn btn-s" id="ed-clear" style="flex:none;padding:0 18px">未設定に戻す</button></div>
-  <p class="note" style="color:var(--mute)">入力した内容はこの端末の中だけに保存されます。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
+  <p class="note" style="color:var(--mute)">入力した内容は自動で保存されます（ログイン中は、ほかの端末とも同じになります）。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
   </div>`;
   const save=()=>{const cur=team[ED.idx];if(!cur||cur.no!==ED.no)return;
-    const o=ED.s;cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual'};saveTeam()};
+    const o=ED.s;cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual'};edSaved(saveTeam()!==false)};
   const upd=()=>{const o=ED.s,r=calcStats(p,o.sp,o.up,o.dn);
     r.forEach((v,i)=>{document.getElementById('ed-o'+i).textContent=v;document.getElementById('ed-v'+i).textContent=o.sp[i];
       const el=document.getElementById('ed-sp'+i);el.value=o.sp[i];el.style.setProperty('--p',(o.sp[i]/SP_CAP*100)+'%');
@@ -126,7 +151,8 @@ function editView(a){
     ED.s={...sv,mv:top4&&top4.length?top4:[...sv.mv]};while(ED.s.mv.length<4)ED.s.mv.push(null);save();
     toast(d?'使用率の集計（championsbattledata）で最も多い型を入れました':'集計データが取れないため、自動で決めた型を入れました');editView(String(idx))};
   document.getElementById('ed-clear').onclick=()=>{const cur=team[ED.idx];if(cur){delete cur.set;saveTeam()}toast('未設定に戻しました');nav('#/team')};
-  upd();pipBuildBind(idx);
+  upd();pipBuildBind(idx);edSaveShow();
+  if(typeof ssEnhance==='function')ssEnhance(document.getElementById('ed-root'),'#ed-ab,#ed-it,[data-mv]');
   if(!LD&&LIVE.csv[p.no]===undefined)calcEnsure(p.no).then(ch=>{if(ch&&ED&&ED.idx===idx&&ED.no===p.no&&!ED.dirty&&keyOf(cur)==='edit')editView(String(idx))});
 }
 

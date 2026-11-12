@@ -2384,3 +2384,69 @@ body:has(#ac-root.ac2) .foot{display:none}
 /* 集計・AI が使えないときの控えめな知らせ（2026/11/12） */
 .fbk{display:flex;gap:8px;align-items:flex-start;margin:10px 16px;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.55;color:var(--dim);background:var(--acc-t);box-shadow:inset 0 0 0 1px var(--line)}
 .fbk svg{flex:none;margin-top:2px;color:var(--acc)}
+
+/* ===== 2026/11/12 使いやすさの改善（第1段階） ===== */
+/* 空のパーティのはじめ方 */
+.tonb{margin:6px 16px 4px;padding:20px 18px 14px;border-radius:18px;background:var(--glass,var(--elev));border:1px solid var(--glass-b,var(--line));text-align:center}
+.tonb h2{margin:0 0 6px;font-size:17px;font-weight:800;line-height:1.45}
+.tonb p{margin:0 0 14px;font-size:13px;color:var(--dim);line-height:1.6}
+.tonb-b{display:flex;flex-direction:column;gap:10px}
+.tonb-b .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin:0;text-decoration:none}
+.tonb-l{display:inline-flex;align-items:center;gap:6px;margin-top:10px;min-height:44px;padding:0 12px;border:0;background:none;color:var(--acc);font:700 14px var(--ff);cursor:pointer;border-radius:10px}
+.tonb-l:hover{background:var(--acc-t)}
+.tonb-l:focus-visible,.tonb-b .btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(min-width:700px){.tonb-b{flex-direction:row}.tonb-b .btn{flex:1}}
+.tqa-b[hidden],#slots[hidden]{display:none!important}
+/* 続けて選ぶ：上にいまのパーティ・何匹目か */
+.mp-pt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 2px 6px}
+.mp-pt-n{font-size:13px;color:var(--dim);white-space:nowrap}.mp-pt-n b{color:var(--fg);font-size:15px}
+.mp-pt-s{display:flex;gap:4px}
+.mp-pt-i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--elev)}
+.mp-pt-i svg{width:24px;height:24px}
+.mp-pt-e{border:1.5px dashed var(--line);background:none}
+.mp-st{min-height:18px;padding:0 2px 6px;font-size:12.5px;color:var(--dim)}
+.mp-st[data-k=ok]{color:var(--acc)}.mp-st[data-k=ng]{color:#f4212e}
+/* 育成：自動保存の表示・たためる説明 */
+.ed-save{display:block;margin-top:4px;font-size:12px;color:var(--mute);line-height:1.4}
+.ed-save[data-k=ok]{color:#00a36c}.ed-save[data-k=ng]{color:#f4212e;font-weight:700}
+[data-theme=dark] .ed-save[data-k=ok],:root:not([data-theme=light]) .ed-save[data-k=ok]{color:#2fd394}
+.ed-intro{margin:10px 16px 0;padding:0 14px;border-radius:12px;background:var(--elev);font-size:12.5px;color:var(--dim)}
+.ed-intro summary{list-style:none;display:flex;align-items:center;gap:6px;min-height:44px;cursor:pointer;line-height:1.5}
+.ed-intro summary::-webkit-details-marker{display:none}
+.ed-intro summary span{flex:1;min-width:0}
+.ed-intro summary::after{content:'くわしく';flex:none;font-size:12px;font-weight:700;color:var(--acc)}
+.ed-intro[open] summary::after{content:'閉じる'}
+.ed-intro summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:8px}
+.ed-intro p{margin:0;padding:0 0 12px;line-height:1.7}
+/* 名前で絞り込める選ぶ欄（74-sselect.js） */
+.ss-src{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;overflow:hidden;clip:rect(0 0 0 0)}
+.ss-btn{display:block;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:40px}
+.ss-btn:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.ss-cur{padding:0 2px 8px;font-size:12.5px;color:var(--dim)}.ss-cur b{color:var(--fg)}
+.ssheet .ss-r{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer;min-height:48px}
+.ssheet .ss-r .row-s{display:block;font-size:12px;color:var(--dim);margin-top:1px}
+.ssheet .ss-r.on{background:var(--acc-t)}.ssheet .ss-r.on .row-t{font-weight:800}
+.ssheet .ss-r.act,.ssheet .ss-r:hover{background:var(--elev)}
+.ssheet .ss-r:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.ss-ck{flex:none;color:var(--acc);display:grid}
+/* ダメージ計算の結果：％と「確定○発」を目立たせ、ダメージの数は小さく */
+.cv-main{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px}
+.cv-main .cres-big{margin:6px 0 2px}
+.cv-kb{display:inline-flex;align-items:baseline;gap:5px;padding:5px 11px;border-radius:999px;font-size:15px;font-weight:800;line-height:1.2;white-space:nowrap}
+.cv-kb.sure{background:var(--accf);color:var(--onacc)}
+.cv-kb.rand{box-shadow:inset 0 0 0 1.5px var(--acc);color:var(--acc)}
+.cv-kb small{font-size:12.5px;font-weight:700}
+.cv-res .cv-ko{font-size:14px;font-weight:700;color:var(--dim)}
+.cv-raw{margin-top:2px;font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.cv-raw span{margin:0 4px}
+/* 右下の⚡：画面の右の端に収まるつまみ・入力中は隠す */
+.fab{transition:width .2s ease,height .2s ease,border-radius .2s ease,clip-path .2s ease}
+.fabwrap .fabin{transition:padding .2s ease}
+.fabwrap.dock .fabin{max-width:none;padding-right:0}
+.fabwrap.dock .fab{width:22px!important;height:52px!important;border-radius:12px 0 0 12px!important;clip-path:polygon(50% 0,100% 0,100% 100%,50% 100%,0 100%,0 0)!important}
+.fabwrap.dock .fab .fl{display:none!important}
+.fabwrap.dock .fab svg{width:16px!important;height:16px!important}
+.fab:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
+.fabwrap{transition:opacity .15s,visibility .15s}
+@media(prefers-reduced-motion:reduce){.fab,.fabwrap,.fabwrap .fabin{transition:none!important}}

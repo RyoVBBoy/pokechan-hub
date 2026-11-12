@@ -39,7 +39,7 @@ async function teamSync(force,retry=0){
   if(!PCF)return;
   if(SYNC.busy){if(force)SYNC.again=true;return}
   if(!force&&Date.now()-SYNC.at<20e3)return;
-  SYNC.busy=true;SYNC.again=false;let conflict=false;
+  SYNC.busy=true;SYNC.again=false;let conflict=false;const started=Date.now();
   try{
     await twAuth();
     if(!AUTH.user){SYNC.state='off';return}
@@ -56,10 +56,13 @@ async function teamSync(force,retry=0){
       try{await authFetch('/api/me/teams',{teams:{cur:TEAMS.cur,list:m.list},updated_at:up});TEAMS.updated=Math.max(TEAMS.updated||0,up);try{localStorage.setItem('pcteams',JSON.stringify(TEAMS))}catch(e){}}
       catch(e){if(e.status===409)conflict=true;else throw e}
     }
-    SYNC.state='ok';SYNC.at=Date.now();
+    /* 同時に書いてサーバーに入らなかったときは「保存済み」にしない（読み直して合わせ直す。3回でだめなら失敗） */
+    if(conflict)SYNC.state=retry<3?'retry':'err';else{SYNC.state='ok';SYNC.at=Date.now()}
   }catch(e){SYNC.state='err'}
   finally{
     SYNC.busy=false;syncBadge();
+    /* 同期が終わった合図（2026/11/12、育成の画面の「自動保存済み ✓」用）。started より後に変えた分は、この同期には入っていない */
+    try{document.dispatchEvent(new CustomEvent('pcsync',{detail:{state:SYNC.state,started}}))}catch(e){}
     /* ほかの端末と同時に書いた・同期の途中でまた変えた：もう一度読み直して合わせる（3回まで） */
     if((conflict||SYNC.again)&&retry<3){SYNC.again=false;setTimeout(()=>teamSync(true,retry+1),conflict?400:50)}
   }

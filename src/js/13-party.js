@@ -23,7 +23,8 @@ const saveTeam=fromServer=>{TEAMS.list[TEAMS.cur].team=team;
   let ch=false;
   TEAMS.list.forEach((s,i)=>{const g=slotSig(s);if(g===TEAM_SIG[i])return;TEAM_SIG[i]=g;if(fromServer!==true){s.at=teamNow();ch=true}});
   if(ch){TEAMS.updated=Math.max(TEAMS.updated||0,...TEAMS.list.map(s=>s.at||0));if(typeof teamSyncSoon==='function')teamSyncSoon()}
-  try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
+  /* 端末に保存できたら true（2026/11/12、育成の画面の保存の表示に使う。前は失敗しても何も返さなかった） */
+  try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team));return true}catch(e){return false}};
 function switchTeam(i){if(i===TEAMS.cur||!TEAMS.list[i])return;saveTeam();TEAMS.cur=i;team=TEAMS.list[i].team.map(x=>({...x}));saveTeam()}
 /* 同じブラウザのほかのタブでパーティを変えたら、このタブの中身も読み直す（2026/11/12。前は古い中身のまま保存して、ほかのタブの変更を消していた）。
    選んでいる枠はタブごとのまま */
@@ -40,6 +41,22 @@ function teamsFromStore(v){
 }
 addEventListener('storage',e=>{if(e.storageArea===localStorage&&(e.key==='pcteams'||e.key===null))teamsFromStore(e.key===null?null:e.newValue)});
 let tq='';
+/* 選ぶ画面を閉じずに続けて足す（2026/11/12）。重なり・6匹の上限は addTeam と同じ決まり。描き直しは選ぶ画面を閉じたあと1回だけ（teamPickMany） */
+function teamAddQuiet(no){
+  const p=byNo[no];if(!p)return{ok:false,msg:'このポケモンは選べません'};
+  if(team.some(x=>x.no===no))return{ok:false,msg:`${p.n}はもうパーティに入っています`};
+  if(team.length>=6)return{ok:false,full:true,msg:'パーティは6匹までです'};
+  team.push({no,sel:team.filter(x=>x.sel).length<PICK()});
+  if(saveTeam()===false)toast('この端末に保存できませんでした');
+  return{ok:true,n:team.length,max:6,full:team.length>=6};
+}
+async function teamPickMany(){
+  if(team.length>=6){toast('パーティは6匹までです');return}
+  const n0=team.length;
+  await pickMon(0,{add:true,multi:teamAddQuiet,slots:()=>team.map(x=>x.no),max:6});
+  if(keyOf(cur)==='team'&&document.getElementById('slots'))teamRender();
+  if(team.length>n0)toast(team.length>=6?'パーティが6匹そろいました':`${team.length-n0}匹を追加しました（${team.length}/6）`);
+}
 function addTeam(no){
   if(team.some(x=>x.no===no)){nav('#/team');return}
   if(team.length>=6){toast('パーティは6匹までです');return}
@@ -55,6 +72,7 @@ function teamView(arg){
   V.innerHTML=`
   <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
   <div class="thd"><p class="note thd-n">6匹まで登録し、<b>「選出する」を押して、出す${PICK()}匹</b>を決めます（${FMTN()}）。</p><div class="tarch" id="tarch"></div></div>
+  <div id="tonb"></div>
   <div class="grid3" id="slots"></div>
   <nav class="tqa" aria-label="よく使う操作"><button class="tqa-b" data-tqa="check">${SVG(I.check,16)}<span>診断</span></button><button class="tqa-b" data-tqa="plan">${SVG(I.target,16)}<span>選出</span></button><a class="tqa-b" href="#/calc">${SVG(I.calc,16)}<span>ダメージ計算</span></a></nav>
   <div class="seg" id="tt-seg" style="margin-top:8px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
@@ -108,6 +126,14 @@ function tsLiveLine(x){const d=LIVE.csv[x.no];if(!d||(x.set&&x.set.it&&x.set.it.
   let c;try{c=mySetFor(x.no)}catch(e){return ''}const k=c&&c.item;if(!k||!ITEMN[k])return '';
   const pc=(d.it.find(([n])=>nrm(n)===k)||[])[1];
   return `<div class="row-s" style="color:var(--mute)">持ち物：${esc(ITEMN[k])}${pc!=null?`（採用率${pc}%）`:''}</div>`}
+/* 空のパーティのはじめ方（おすすめ＝構築の型の一覧〔型ごとに「このパーティを使う」〕・画像から取り込む・1匹ずつ選ぶ） */
+function teamOnbHTML(){
+  return `<section class="tonb" aria-labelledby="tonb-h"><h2 id="tonb-h">「${esc(teamName(TEAMS.cur))}」はまだ空です</h2>
+    <p>はじめ方を選んでください。あとから入れかえ・育成の変更ができます。</p>
+    <div class="tonb-b"><a class="btn btn-p" href="#/learn/build">${SVG(I.grid,18)}おすすめパーティから始める</a>
+    <a class="btn btn-s" href="#/import">${SVG(I.image||I.share,18)}画像から取り込む</a></div>
+    <button class="tonb-l" id="tonb-pick">${SVG(I.plus,16)}ポケモンを1匹ずつ選ぶ</button></section>`;
+}
 function teamRender(){
   const ts=document.getElementById('tslots');
   if(ts)ts.innerHTML=TEAMS.list.map((s,i)=>`<button class="pill" data-tslot="${i}" aria-pressed="${i===TEAMS.cur}"><span data-notr>${esc(teamName(i))}</span><small>${(i===TEAMS.cur?team:s.team).length}${L('匹','')}</small></button>`).join('');
@@ -123,7 +149,12 @@ function teamRender(){
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
       :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（使用率の高い型で計算中）</div>${tsLiveLine(x)}`;
     return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
-  document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=async()=>{const no=await pickMon(0,{add:true});if(no)addTeam(no)});
+  document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=()=>teamPickMany());
+  /* 空のパーティ（2026/11/12）：6つの「追加する」の代わりに、はじめ方を3つ出す。パーティが要る「診断」「選出」のボタンは隠す（ダメージ計算はパーティなしでも使えるので残す） */
+  {const ob=document.getElementById('tonb'),sl=document.getElementById('slots'),em=!team.length;
+    if(ob){ob.innerHTML=em?teamOnbHTML():'';const pk=ob.querySelector('#tonb-pick');if(pk)pk.onclick=()=>teamPickMany()}
+    sl.hidden=em;
+    document.querySelectorAll('[data-tqa]').forEach(b=>b.hidden=em);}
   document.querySelectorAll('#slots .tile[data-ti]').forEach(t=>t.onclick=e=>{if(e.target.closest('button'))return;nav('#/edit/'+t.dataset.ti)});
   document.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>{
     const x=team[+b.dataset.sel];

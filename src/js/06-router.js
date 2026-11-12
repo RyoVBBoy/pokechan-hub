@@ -53,7 +53,7 @@ function route(){
   closeSheet();
   if(k!=='messages'&&typeof dmStop==='function')dmStop();
   document.getElementById('fabwrap').hidden=!curGame().fab||(k==='types'||k==='battle'||k==='kodawari'||k==='messages'||(k==='pair'&&(location.hash==='#/pair/kd'||(()=>{try{return sessionStorage.getItem('pcprmode')==='kd'}catch(e){return false}})())));
-  fabMode();
+  fabMode();if(typeof fabDock==='function')fabDock();
   trackTool(cur);drawSide();rememberTab();if(typeof hitSend==='function')hitSend(k);
   ({'':home,memo:memoView,kodawari:kodawariView,news:newsView,dex,p:detail,types:typesView,cmp:cmpView,team:teamView,guide,battle:battleView,assist:assistView,pip:pipView,sources:sourcesView,verify:verifyView,import:importView,edit:editView,calc:calcView,meta:metaView,report:reportView,lobby:lobbyView,bbs:bbsView,thread:threadView,rules:rulesView,admin:adminView,tools:toolsView,community:communityView,messages:messagesView,requests:requestsView,bookmarks:bookmarksView,help:helpView,games:gamesView,account:accountView,search:searchView,learn:learnView,arch:archView,season:seasonView,replay:replayView,item:itemView,word:wordView,move:moveView,ability:abilityView,tl:tlView,share:shareView,pair:pairView,tier:tierView,contact:contactView,u:userView,n:noteView,notif:notifView,terms:termsView,privacy:privacyView})[k||'']?.(a);
   if(typeof howtoTip==='function')howtoTip(k);

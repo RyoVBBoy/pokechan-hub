@@ -196,7 +196,9 @@ const monField=(attrs,no)=>{const p=byNo[no];return `<span class="mpick-w"><sele
    ・履歴＝pcmonrecent（ここで選んだ匹＋図鑑のページを開いた匹、20匹まで）。お気に入り＝72-favs.js の favList（メガの姿は元の姿で出す）。
      環境上位＝ランクバトルの使用率の集計 META.rank の上位30匹。パーティ＝いま選んでいるパーティ。すべて＝P。
    ・名前を打つと、どのカテゴリでも全部のポケモンから探す（前と同じ）。最後に開いたカテゴリは端末に覚える（pcmptab、はじめは「すべて」）。
-   ・opt.add（パーティに足す）のときは、パーティにいる匹は前と同じく出さず、パーティのカテゴリでは薄くして選べないようにする */
+   ・opt.add（パーティに足す）のときは、パーティにいる匹は前と同じく出さず、パーティのカテゴリでは薄くして選べないようにする
+   ・opt.multi（2026/11/12）：選んでも閉じずに続けて選ぶ。opt.multi(番号)→{ok,msg,n,max,full}（足す・重なり・上限の判定は呼ぶ側）。
+     上に opt.slots()（いま入っている番号）を小さく並べ、何匹目かを知らせる。上限に届いたら少し待って閉じる。閉じたら null を返す */
 const MP_CATS=[['hist','履歴','clock'],['fav','お気に入り','star'],['top','環境上位','trophy'],['party','パーティ','grid'],['all','すべて','list']];
 const MP_TOP_N=30;
 function pickMon(cur,opt={}){
@@ -205,16 +207,18 @@ function pickMon(cur,opt={}){
     let cat=lsJ('pcmptab','all');if(!MP_CATS.some(c=>c[0]===cat))cat='all';
     const o=document.createElement('div');o.className='psheet mpsheet'+(full?' mpfull':'');
     o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="ポケモンを選ぶ">
-      <div class="mp-top"><div class="srch">${SVG(I.search,18)}<input id="mp-q" placeholder="ポケモン名を入力（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="ポケモン名"></div>${full?'<button class="mp-x">やめる</button>':''}</div>
+      <div class="mp-top"><div class="srch">${SVG(I.search,18)}<input id="mp-q" placeholder="ポケモン名を入力（ひらがなOK）" autocomplete="off" enterkeyhint="done" aria-label="ポケモン名"></div>${full?`<button class="mp-x">${opt.multi?'完了':'やめる'}</button>`:''}</div>
       <div class="mp-cats" role="tablist" aria-label="表示するポケモン">${MP_CATS.map(([k,t,ic])=>`<button class="mp-cat" role="tab" data-cat="${k}" aria-selected="${k===cat}"><span class="mp-ci">${SVG(I[ic]||I.list,22)}</span><span class="mp-ct">${t}</span></button>`).join('')}</div>
-      <div class="mp-list" id="mp-list" role="tabpanel"></div>${full?'':'<button class="psheet-x">やめる</button>'}</div>`;
+      ${opt.multi?'<div class="mp-pt" id="mp-pt"></div><div class="mp-st" id="mp-st" role="status" aria-live="polite"></div>':''}
+      <div class="mp-list" id="mp-list" role="tabpanel"></div>${full?'':`<button class="psheet-x">${opt.multi?'完了':'やめる'}</button>`}</div>`;
     const vv=window.visualViewport,fit=()=>{if(!full||!vv)return;o.style.top=vv.offsetTop+'px';o.style.height=vv.height+'px'};
     if(full&&vv){fit();vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit)}
     document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
     const q=o.querySelector('#mp-q'),list=o.querySelector('#mp-list'),cats=o.querySelector('.mp-cats');
     const onFav=()=>{if(cat==='fav'&&!q.value.trim())draw()};
     document.addEventListener('pcfav',onFav);
-    const done=v=>{if(full&&vv){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit)}
+    let fin=false;
+    const done=v=>{if(fin)return;fin=true;if(full&&vv){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit)}
       document.removeEventListener('pcfav',onFav);
       /* 2026/11/09 フィードバック（2匹目を選んだあと先に進めない）：iPhone はキーボードを出したまま欄を消すと、画面のずれが残って押した場所と反応する場所が食い違うことがある。先にキーボードを閉じ、ずれを戻す */
       try{q.blur();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(e){}
@@ -258,11 +262,24 @@ function pickMon(cur,opt={}){
       if(q.value){q.value=''}draw();list.scrollTop=0};
     cats.onclick=e=>{const b=e.target.closest('.mp-cat');if(b)setCat(b.dataset.cat)};
     cats.onkeydown=e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const i=MP_CATS.findIndex(c=>c[0]===cat),n=MP_CATS[(i+(e.key==='ArrowRight'?1:MP_CATS.length-1))%MP_CATS.length][0];setCat(n);cats.querySelector(`[data-cat="${n}"]`).focus()};
+    /* 続けて選ぶ（opt.multi）：選んだら呼ぶ側に足してもらい、閉じずに一覧と上の並びを描き直す */
+    const st=o.querySelector('#mp-st'),pt=o.querySelector('#mp-pt');let closing=false;
+    const slotsDraw=()=>{if(!pt)return;const a=(opt.slots?opt.slots():[]).slice(0,opt.max||6),mx=opt.max||6;
+      pt.innerHTML=`<span class="mp-pt-n">パーティ <b>${a.length}</b>/${mx}</span><span class="mp-pt-s">${Array.from({length:mx},(_,i)=>{const p=byNo[a[i]];return p?`<span class="mp-pt-i" title="${esc(p.n)}">${stamp(p)}</span>`:'<span class="mp-pt-i mp-pt-e"></span>'}).join('')}</span>`};
+    const pick=no=>{if(closing)return;if(!opt.multi){done(no);return}
+      const r=opt.multi(no)||{};const p=byNo[no];
+      if(!r.ok){st.textContent=r.msg||'選べませんでした';st.dataset.k='ng';if(r.full){closing=true;setTimeout(()=>done(null),900)}return}
+      lsW('pcmonrecent',[no,...monRecent().filter(x=>x!==no)].slice(0,typeof MON_RECENT_N!=='undefined'?MON_RECENT_N:8));
+      st.dataset.k='ok';
+      st.textContent=r.full?`${p?p.n:''}を追加しました。${r.max||6}匹そろいました`:`${p?p.n:''}を追加しました（${r.n}/${r.max||6}）。続けて選べます`;
+      if(q.value){q.value=''}const y=list.scrollTop;draw();list.scrollTop=y;slotsDraw();
+      if(r.full){closing=true;setTimeout(()=>done(null),900)}};
+    slotsDraw();
     q.oninput=draw;
-    q.onkeydown=e=>{if(e.key==='Enter'){const b=list.querySelector('[data-no]');if(b)done(+b.dataset.no)}};
-    list.onclick=e=>{const b=e.target.closest('[data-no]');if(b)done(+b.dataset.no)};
+    q.onkeydown=e=>{if(e.key==='Enter'){const b=list.querySelector('[data-no]');if(b)pick(+b.dataset.no)}};
+    list.onclick=e=>{const b=e.target.closest('[data-no]');if(b)pick(+b.dataset.no)};
     o.querySelector('.psheet-bg').onclick=()=>done(null);o.querySelector('.psheet-x,.mp-x').onclick=()=>done(null);
-    draw();q.focus();
+    draw();if(!(opt.multi&&full))q.focus();
   });
 }
 document.addEventListener('click',async e=>{
