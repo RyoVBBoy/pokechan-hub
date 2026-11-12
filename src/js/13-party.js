@@ -29,10 +29,10 @@ function teamView(arg){
     if(ids.length){team=ids.map((no,i)=>({no,sel:i<PICK()}));saveTeam();cur='#/team';setUrl('#/team')}}
   V.innerHTML=`
   <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
-  <p class="note" style="padding:6px 16px 12px">6匹まで登録し、<b>★で選出する${PICK()}匹</b>を決めます（${FMTN()}の形式）。</p>
-  <div class="tarch" id="tarch"></div>
+  <div class="thd"><p class="note thd-n">6匹まで登録し、<b>「選出する」を押して、出す${PICK()}匹</b>を決めます（${FMTN()}）。</p><div class="tarch" id="tarch"></div></div>
   <div class="grid3" id="slots"></div>
-  <div class="seg" id="tt-seg" style="margin-top:14px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
+  <nav class="tqa" aria-label="よく使う操作"><button class="tqa-b" data-tqa="check">${SVG(I.check,16)}<span>診断</span></button><button class="tqa-b" data-tqa="plan">${SVG(I.target,16)}<span>選出</span></button><a class="tqa-b" href="#/calc">${SVG(I.calc,16)}<span>ダメージ計算</span></a></nav>
+  <div class="seg" id="tt-seg" style="margin-top:8px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
   <div id="tt-pages" class="tt-pages">
   <div data-sw data-tp="sets"${TTAB!=='sets'?' hidden':''}>
   <div id="tsteps"></div><div id="tsets"></div>
@@ -46,6 +46,7 @@ function teamView(arg){
   <div data-sw data-tp="check"${TTAB!=='check'?' hidden':''}><div id="tout"></div></div>
   <div data-sw data-tp="plan"${TTAB!=='plan'?' hidden':''}><div id="tplan"></div></div>
   </div>`;
+  V.querySelectorAll('[data-tqa]').forEach(b=>b.onclick=()=>ttJump(b.dataset.tqa,'tt-seg'));
   /* タブの切りかえ：押す・左右にスワイプ。新しい中身は進む向きからすべり込む */
   const ttIdx=()=>TTABS.findIndex(x=>x[0]===TTAB),ind=V.querySelector('#tt-seg .seg-i');
   const ttGo=(k,dir)=>{if(k===TTAB)return;const from=ttIdx();TTAB=k;try{sessionStorage.setItem('pcttab',TTAB)}catch(e){}
@@ -91,7 +92,7 @@ function teamRender(){
     return p?`<div class="tile${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
       <button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
       <span class="av" style="width:38px;height:38px">${stamp(p)}</span><div class="nm">${nm(p,{no:false})}</div><div class="tt">${p.t.map(t=>`<span style="background:${COL[t]};color:${ONC[t]}" title="${t}">${ticon(t,14)}</span>`).join('')}</div>
-      <button class="t-sel${x.sel?' lit':''}" data-sel="${i}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${SVG(I.star,16).replace('fill="none"',x.sel?'fill="currentColor"':'fill="none"')}<span>${x.sel?L('選出','Picked'):L('選出する','Pick')}</span></button></div>`
+      <button class="t-sel${x.sel?' lit':''}" data-sel="${i}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${x.sel?SVG(I.check,16):SVG('<circle cx="12" cy="12" r="7.5"/>',16)}<span>${x.sel?L('選出','Picked'):L('選出する','Pick')}</span></button></div>`
     :`<button class="tile empty tadd" data-add="1">${SVG(I.plus,22)}<span>追加する</span></button>`}).join('');
   document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
@@ -112,8 +113,8 @@ function teamRender(){
   if(TTAB!=='check'){out.innerHTML='';return}
   const C=partyCheck(team);
   /* 2026/11/10 UI改善 第2段階：カードの形は 63-diag-ui.js の dguCard（重要度・起きる相手・理由・改善・計算根拠をたたむ） */
-  const swOf=x=>`${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}${w.set?`<small class="pc-swc"><b>計算に使った${esc(w.inP.n)}の育成</b>（${esc(byNo[w.out.x.no].n)}の持ち物・技は引きつがない）：${esc(w.set)}</small>`:''}${w.cb&&typeof dguChgHTML==='function'?dguChgHTML(w.cb,w.ca,{title:'入れかえた6匹で計算し直した数',note:w.cnote}):w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}${w.up?`<small class="pc-swc pc-up"><b>良くなる：</b>${w.up.length?w.up.map(esc).join('／'):'なし'}</small><small class="pc-swc pc-dn"><b>悪くなる：</b>${w.dn.length?w.dn.map(esc).join('／'):'なし'}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}`,chOf=x=>`${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}`;
-  const item=(x,bad)=>typeof dguCard==='function'?dguCard(x,bad,swOf(x),chOf(x)):`<div class="pc-i ${bad?'pc-fix':'pc-ok'}${x.sev&&bad?' pc-s'+x.sev:''}"${x.id?` id="${x.id}"`:''}><b>${bad?'！':'✓'} ${x.area?`<span class="pc-area">${esc(x.area)}</span>`:''}${x.sev&&bad?`<span class="pc-sev pc-sev${x.sev}">${DG_SEV[x.sev]}</span>`:''}${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>★を付けかえ</small>':''}${w.set?`<small class="pc-swc"><b>計算に使った${esc(w.inP.n)}の育成</b>（${esc(byNo[w.out.x.no].n)}の持ち物・技は引きつがない）：${esc(w.set)}</small>`:''}${w.cb&&typeof dguChgHTML==='function'?dguChgHTML(w.cb,w.ca,{title:'入れかえた6匹で計算し直した数',note:w.cnote}):w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}${w.up?`<small class="pc-swc pc-up"><b>良くなる：</b>${w.up.length?w.up.map(esc).join('／'):'なし'}</small><small class="pc-swc pc-dn"><b>悪くなる：</b>${w.dn.length?w.dn.map(esc).join('／'):'なし'}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
+  const swOf=x=>`${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>選出を付けかえ</small>':''}${w.set?`<small class="pc-swc"><b>計算に使った${esc(w.inP.n)}の育成</b>（${esc(byNo[w.out.x.no].n)}の持ち物・技は引きつがない）：${esc(w.set)}</small>`:''}${w.cb&&typeof dguChgHTML==='function'?dguChgHTML(w.cb,w.ca,{title:'入れかえた6匹で計算し直した数',note:w.cnote}):w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}${w.up?`<small class="pc-swc pc-up"><b>良くなる：</b>${w.up.length?w.up.map(esc).join('／'):'なし'}</small><small class="pc-swc pc-dn"><b>悪くなる：</b>${w.dn.length?w.dn.map(esc).join('／'):'なし'}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}`,chOf=x=>`${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}`;
+  const item=(x,bad)=>typeof dguCard==='function'?dguCard(x,bad,swOf(x),chOf(x)):`<div class="pc-i ${bad?'pc-fix':'pc-ok'}${x.sev&&bad?' pc-s'+x.sev:''}"${x.id?` id="${x.id}"`:''}><b>${bad?'！':'✓'} ${x.area?`<span class="pc-area">${esc(x.area)}</span>`:''}${x.sev&&bad?`<span class="pc-sev pc-sev${x.sev}">${DG_SEV[x.sev]}</span>`:''}${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>選出を付けかえ</small>':''}${w.set?`<small class="pc-swc"><b>計算に使った${esc(w.inP.n)}の育成</b>（${esc(byNo[w.out.x.no].n)}の持ち物・技は引きつがない）：${esc(w.set)}</small>`:''}${w.cb&&typeof dguChgHTML==='function'?dguChgHTML(w.cb,w.ca,{title:'入れかえた6匹で計算し直した数',note:w.cnote}):w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}${w.up?`<small class="pc-swc pc-up"><b>良くなる：</b>${w.up.length?w.up.map(esc).join('／'):'なし'}</small><small class="pc-swc pc-dn"><b>悪くなる：</b>${w.dn.length?w.dn.map(esc).join('／'):'なし'}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
   C.fix.filter(x=>x.k==='calc').forEach((x,k)=>x.id='pcw'+k);
   out.innerHTML=`${typeof dguSumHTML==='function'&&team.length>=2?dguSumHTML():''}${teamStepsHTML()}${loseHTML()}${dgHTML()}${typeof impHTML==='function'&&team.length>=3?impHTML():''}
   <div class="sec"><h2>パーティのチェック</h2></div>
@@ -130,7 +131,7 @@ function teamRender(){
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
   out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=async()=>{
     const [i,v]=b.dataset.psw.split(':'),o=team[+i];if(!o)return;
-    if(v[0]==='x'){const n=team[+v.slice(1)];if(!n)return;n.sel=o.sel;o.sel=false;saveTeam();toast(`${byNo[o.no].n} → ${byNo[n.no].n}（★を付けかえました）`);teamRender();return}
+    if(v[0]==='x'){const n=team[+v.slice(1)];if(!n)return;n.sel=o.sel;o.sel=false;saveTeam();toast(`${byNo[o.no].n} → ${byNo[n.no].n}（選出を付けかえました）`);teamRender();return}
     const q=byNo[+v];if(!q||!await askConfirm({title:`${byNo[o.no].n}を${q.n}に入れかえますか？`,text:`${byNo[o.no].n}の育成は消えます。${PC_SWSET[q.no]?`${q.n}は、計算に使った育成で入ります（あとで変えられます）。`:''}`,ok:'入れかえる',danger:false}))return;
     const st=PC_SWSET[q.no];team[+i]={no:q.no,sel:o.sel,...(st?{set:JSON.parse(JSON.stringify(st))}:{})};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
 }
@@ -141,10 +142,10 @@ function ttJump(k,id){const b=document.querySelector(`#tt-seg [data-tt="${k}"]`)
 function planBind(pl){
   const fb=pl.querySelector('[data-bdfill]');if(fb)fb.onclick=()=>bdFill();
   pl.querySelectorAll('[data-axis-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.axisPick,on=!team[i].axis;team.forEach(x=>delete x.axis);if(on)team[i].axis=true;saveTeam();toast(on?`${byNo[team[i].no].n}を軸にしました`:'軸を外しました');teamRender()});
-  const pb=pl.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出に★を付けました');teamRender()};
+  const pb=pl.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出を選出にしました');teamRender()};
   /* 関連画面（2026/11/10 UI改善 第7段階）：かんたんな計算の注意から、チェックタブのくわしい計算へ */
   pl.querySelectorAll('[data-go-check]').forEach(b=>b.onclick=()=>ttJump('check',b.dataset.goCheck));
-  pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}の選出に★を付けました`);teamRender()});
+  pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}を選出に入れました`);teamRender()});
 }
 function planHTML(entries){
   /* 上位構築のデータがまだなら読んで、届いたら作り直す */
@@ -175,7 +176,7 @@ function planHTML(entries){
     <h4>勝ち筋</h4><ol class="pc-story"><li>先発の<b>${P0.lead.map(nmI).join('・')}</b>で、相手の先発に有利をとって削る。${R[P0.lead[0]].go.length?`（有利な相手：${R[P0.lead[0]].go.slice(0,3).map(q=>esc(q.n)).join('・')}）`:''}</li>
       ${mid.length?`<li>不利な相手が出てきたら<b>${mid.map(nmI).join('・')}</b>に任せて、数を減らす。</li>`:''}
       <li>${P0.finWhy?`最後は<b>${nmI(P0.finisher)}</b>の${finTxt}で、削れた相手を詰める。`:`最後の詰め役がはっきりしません。いちばん速い<b>${nmI(P0.finisher)}</b>で詰めることになりますが、先制技・こだわりスカーフ・積み技のどれかを持たせると、終盤に競り負けにくくなります。`}</li></ol>
-    ${isSel?'<p class="vcap">いま★を付けている選出です。</p>':`<button class="btn btn-p pc-planbtn" data-plan="${P0.base.join(',')}">この選出に★を付ける</button>`}
+    ${isSel?'<p class="vcap">いま選出に選んでいる組み合わせです。</p>':`<button class="btn btn-p pc-planbtn" data-plan="${P0.base.join(',')}">この組み合わせを選出にする</button>`}
     ${P0.situ.length?`<h4>こういう相手のときは入れかえる</h4>${P0.situ.map(x=>`<div class="pc-situ"><p>相手に ${chipsOf(x.opps)}${x.opps.length>5?` など${x.opps.length}匹`:''} がいるとき</p><div class="pc-sw"><span><b>${nmI(x.out)}</b> → <b style="color:var(--acc)">${nmI(x.in)}</b></span><button class="bback" data-plsw="${x.out}:${x.in}">この選出にする</button></div></div>`).join('')}`:''}
   </div>
   ${typeof dgSelHTML==='function'?dgSelHTML(P0.DS,entries):''}
@@ -190,7 +191,7 @@ function planHTML(entries){
   ${typeof buildDiagHTML==='function'?buildDiagHTML(entries,P0):''}
   ${typeof topCoresHTML==='function'?topCoresHTML(entries):''}
   ${zur.length?`<div class="pc-i pc-ok"><b>✓ 読まれにくい要素</b><p>ランクバトルであまり使われていない持ち物・技です。相手が型を読み違えやすくなります。</p><p>${zur.slice(0,4).join('<br>')}</p></div>`:''}
-  ${P0.sel.length===P0.base.length&&!isSel&&P0.selWeak.length?`<div class="pc-i pc-fix"><b>いまの★の選出が苦手な相手</b><p>${P0.selWeak.map(({q})=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}</a>`).join('')}</p><p>選出のだれも有利に戦いにくい相手です。この相手が見えたら、上の基本選出や入れかえを考えます。</p></div>`:''}`;
+  ${P0.sel.length===P0.base.length&&!isSel&&P0.selWeak.length?`<div class="pc-i pc-fix"><b>いまの選出が苦手な相手</b><p>${P0.selWeak.map(({q})=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}</a>`).join('')}</p><p>選出のだれも有利に戦いにくい相手です。この相手が見えたら、上の基本選出や入れかえを考えます。</p></div>`:''}`;
 }
 /* ---- パーティのチェック：タイプだけでなく、組み合わせ・持ち物・技・素早さも見て、直し方を添える（点数はつけない） ---- */
 const PC_SWSET={};
@@ -198,7 +199,7 @@ function partyCheck(entries){
   /* 選出（★）が決まっていれば（${PICK()}匹）その匹で、決まっていなければパーティ全体で見る */
   const sel=entries.filter(x=>x.sel),full=sel.length===Math.min(PICK(),entries.length);
   const use=full?sel:entries;
-  const scope=full?`★を付けた選出の${sel.length}匹（${FMTN()}）`:`パーティの${entries.length}匹全体（★を${PICK()}匹付けると、選出の${PICK()}匹で見ます${sel.length?`。いま★は${sel.length}匹`:''}）`;
+  const scope=full?`選出に選んだ${sel.length}匹（${FMTN()}）`:`パーティの${entries.length}匹全体（選出を${PICK()}匹選ぶと、選出の${PICK()}匹で見ます${sel.length?`。いま選出は${sel.length}匹`:''}）`;
   const allMs=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
   const ms=use.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
   const inTeam=new Set(entries.map(x=>formInfo(byNo[x.no]||{n:''}).base));

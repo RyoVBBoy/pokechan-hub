@@ -184,7 +184,7 @@ function dgSelHTML(S,entries){
       ${W.warn.length?`<p class="sel-wh">気をつけること</p><ul class="sel-why sel-warn selu-warn">${W.warn.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}</div>
     ${dgLeadHTML(S,B)}
     ${cmp}
-    ${S.mine?`<div class="selu-sub"><h4>いま★を付けている選出</h4>${line(S.mine,S.mineRank-1)}<p class="dgu-note">${S.list.length}通りのうち<b>${S.mineRank}番目</b>${S.mine===B?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}</div>`:''}
+    ${S.mine?`<div class="selu-sub"><h4>いま選んでいる選出</h4>${line(S.mine,S.mineRank-1)}<p class="dgu-note">${S.list.length}通りのうち<b>${S.mineRank}番目</b>${S.mine===B?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}</div>`:''}
     <details class="sel-all"><summary>${S.list.length}通りすべてを見る</summary>${S.list.map((x,k)=>line(x,k)).join('')}
       <p class="vcap">並びは点の順です（点の決め方は「1番と2番の点の内訳」）。「先発」の印は、その選出の中で比べた先発です。</p></details>
     <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`パーティの天気（${esc(S.tw.by)}の特性）は、その匹を選んだ選出でだけ入れています。`:''}${S.tr&&S.tr.on?'トリックルームは、張れる匹を選んだ選出でだけ、遅い匹に入れています。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較は、使用率の上位を相手の先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>

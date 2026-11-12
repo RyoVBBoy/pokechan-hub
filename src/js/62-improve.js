@@ -156,7 +156,7 @@ function dgImprove(entries){
   DG_SELC.clear();
   /* 選出の変え方：★の選出が1番でないとき */
   if(S0&&S0.mine&&S0.mine!==S0.best){const b=S0.mine,a=S0.best,W=dgSelWhy(S0,a,b);
-    top.push({kind:'sel',title:`選出：${b.c.map(S0.nm).join('・')} → ${a.c.map(S0.nm).join('・')}`,why:`いまの★の選出は${S0.list.length}通りのうち${S0.mineRank}番目です。`,selFix:a.c,
+    top.push({kind:'sel',title:`選出：${b.c.map(S0.nm).join('・')} → ${a.c.map(S0.nm).join('・')}`,why:`いまの選出は${S0.list.length}通りのうち${S0.mineRank}番目です。`,selFix:a.c,
       J:{gain:0,b:{x:b.cnt[1],w:b.cnt[1]+b.cnt[2],st:b.cnt[4]},a:{x:a.cnt[1],w:a.cnt[1]+a.cnt[2],st:a.cnt[4]},D:{up:W.good.filter(t=>/2番目の選出/.test(t)).map(t=>t.replace(/^2番目の選出（[^）]*）と比べて、/,'')),dn:[],note:''},lost:[],soft:[]}})}
   return{list:top,tried:out.length,dropped,T0};
 }
@@ -181,7 +181,7 @@ function impCard(o,k){
       ${o.mem&&o.mem.length?`<p class="sel-wh">変える匹の変化</p><ul class="sel-why">${o.mem.map(m=>`<li${m.bad?' class="sel-w"':''}>${esc(m.t)}</li>`).join('')}</ul>`:''}
       ${o.sel?`<p class="sel-wh">選出の比較の1番</p><p class="vcap">${o.sel.b.c.map(o.sel.nm).join('・')}（◎${o.sel.b.cnt[4]}○${o.sel.b.cnt[3]}△${o.sel.b.cnt[2]}×${o.sel.b.cnt[1]}）→ ${o.sel.a.c.map(o.sel.nm).join('・')}（◎${o.sel.a.cnt[4]}○${o.sel.a.cnt[3]}△${o.sel.a.cnt[2]}×${o.sel.a.cnt[1]}）</p>`:''}
       ${o.J.D&&o.J.D.note?`<p class="vcap">${esc(o.J.D.note)}</p>`:''}</details>`:''}
-    <button class="btn ${k===0?'btn-p':'btn-s'} imp-go" data-imp="${k}">${o.kind==='sel'?'この選出に★を付ける':'この変更をする'}</button></div>`;
+    <button class="btn ${k===0?'btn-p':'btn-s'} imp-go" data-imp="${k}">${o.kind==='sel'?'この組み合わせを選出にする':'この変更をする'}</button></div>`;
 }
 let IMP_LAST=null;
 /* 同じパーティ・同じ条件の計算結果は使い回す（2026/11/10 依頼主：診断のまとめと改善案の一覧で同じ結果を使う） */
@@ -199,7 +199,7 @@ function impRender(box,R){
         ${R.dropped&&R.dropped.length?`<details class="pc-ref"><summary>数は良くなるが、変える匹の大事な役目を失うので出さなかった案（${R.dropped.length}件）</summary><ul class="sel-why">${R.dropped.slice(0,10).map(d=>`<li>${esc(d.title)}：${esc(d.loss)}</li>`).join('')}</ul></details>`:''}
         <details class="pc-ref"><summary>改善案の決め方と、計算していないこと</summary><p class="note">良さの点＝×が減る×3・△以下が減る×1.5・後出しできない相手が減る×1・一撃で半分以上倒される相手が減る×1・だれも先に動けない相手が減る×0.7・◎が増える×0.3。変更前に◎○だった相手が△以下になる案、×が増える案、変える匹自身が上から倒せる相手・有利に戦える相手・後出しして勝てる相手を大きく減らす案（3匹以上かつ半分以上、有利は3割以上）は出しません。比べるのは変更前と変更後の両方にいる相手だけです（入れかえると、入れた種類が相手の候補から外れるため）。技は覚える攻撃技、持ち物はゲームにあってほかの匹と重ならないもの、メガストーンは変えません。計算していないこと：${esc(DG_NOTE)}。ダブルの範囲技・同時攻撃・味方のサポート。相手の型は使用率の高い型（集計がなければ自動の型）です。</p></details>`;
   box.querySelectorAll('[data-imp]').forEach(b=>b.onclick=async()=>{const o=IMP_LAST&&IMP_LAST.list[+b.dataset.imp];if(!o)return;
-    if(o.kind==='sel'){team.forEach((x,k)=>x.sel=o.selFix.includes(k));saveTeam();toast('選出に★を付けました');teamRender();return}
+    if(o.kind==='sel'){team.forEach((x,k)=>x.sel=o.selFix.includes(k));saveTeam();toast('選出を変えました');teamRender();return}
     if(!await askConfirm({title:'この変更をしますか？',text:`${o.title}${o.kind==='swap'?'（外す匹の育成は消えます）':''}`,ok:'変更する',danger:false}))return;
     const nx=o.entries[o.i];team[o.i]={...nx,sel:team[o.i]?team[o.i].sel:false,axis:team[o.i]&&team[o.i].axis};if(!team[o.i].axis)delete team[o.i].axis;
     saveTeam();toast('変更しました');teamRender()});

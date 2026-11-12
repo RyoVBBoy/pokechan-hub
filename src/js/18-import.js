@@ -251,7 +251,7 @@ async function imRun(files){
     }
     if(!IM.kinds.length){IM=null;return}
     IM.slots.forEach(imResolve);pr.innerHTML='';imDraw();
-  }catch(e){say('読み取りに失敗しました：'+(e.message||e)+'<br>通信できる環境で、もう一度お試しください。')}
+  }catch(e){say('読み取りに失敗しました：'+esc(String(e.message||e))+'<br>はじめて使うときは文字を読む部品を通信で読み込むので、通信できる環境でもう一度お試しください。<b>パーティの画面の「追加する」から手で入れることもできます。</b>')}
 }
 function importView(){
   setHeader('画像から取り込む','#/team');

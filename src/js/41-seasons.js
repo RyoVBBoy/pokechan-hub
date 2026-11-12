@@ -181,7 +181,7 @@ function szVs(t){
   const wall=A.O.map((o,j)=>({o,j,mx:Math.max(...A.M.map((_,i)=>A.D[i][j].pct))})).filter(x=>x.mx<50);
   const threat=A.O.map((o,j)=>({o,j,n:A.M.filter((_,i)=>A.R[j][i].pct>=100).length})).filter(x=>x.n>=Math.ceil(A.M.length/2)).sort((a,b)=>b.n-a.n);
   const cell=v=>{const r=Math.round(v);return `<td class="${r>=100?'k1':r>=50?'k2':''}">${r>=100?'確1':r+'%'}</td>`};
-  const row=i=>`<tr><th>${A.best.includes(i)?'<i class="sz-star">★</i>':''}${nmS(A.M[i].p)}</th>${A.O.map((_,j)=>cell(Math.min(A.D[i][j].pct,999))).join('')}</tr>`;
+  const row=i=>`<tr><th>${A.best.includes(i)?'<i class="sz-star">◎</i>':''}${nmS(A.M[i].p)}</th>${A.O.map((_,j)=>cell(Math.min(A.D[i][j].pct,999))).join('')}</tr>`;
   const rowR=j=>`<tr><th>${nmS(A.O[j].p)}</th>${order.map(i=>cell(Math.min(A.R[j][i].pct,999))).join('')}</tr>`;
   const headOf=ps=>`<thead><tr><th></th>${ps.map(p=>`<th><span class="av">${stamp(p)}</span><small>${nmS(p)}</small></th>`).join('')}</tr></thead>`;
   const order=[...A.best,...A.M.map((_,i)=>i).filter(i=>!A.best.includes(i))];
@@ -195,7 +195,7 @@ function szVs(t){
     <p class="sz-vp"><b>こちら → 相手</b>（左のポケモンが、上の相手に与えるダメージ）</p>
     <div class="sz-tw"><table class="sz-tb">${headOf(A.O.map(o=>o.p))}<tbody>${order.map(row).join('')}</tbody></table></div>
     <details class="sz-det"><summary>相手 → こちら（受けるダメージ）を見る</summary><div class="sz-tw"><table class="sz-tb">${headOf(order.map(i=>A.M[i].p))}<tbody>${A.O.map((_,j)=>rowR(j)).join('')}</tbody></table></div></details>
-    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（★はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「使用率の高い型」）':'「使用率の高い型」'}で計算しています。</p>
+    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（◎はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「使用率の高い型」）':'「使用率の高い型」'}で計算しています。</p>
     <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-goassist>選出アシストでくわしく見る</button></div></div>`;
 }
 /* 出典のリンク（アドレスの名前だけを出す。リンク先の評価はしない＝nofollow） */

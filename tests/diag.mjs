@@ -93,7 +93,7 @@ const R4=await pg.evaluate(()=>{
   r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
   r.unk=/計算に入っていない特性/.test(C.premise);
   /* ★で選出を見るとき・ダブル */
-  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/★/.test(C3.scope);
+  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);
   setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);setFmt('single');
   return r;
 });

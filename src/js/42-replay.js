@@ -40,7 +40,7 @@ async function replayView(){
   if(keyOf(cur)!=='replay')return;
   if(!AUTH.user){V.innerHTML=`<div class="bnote" style="margin:16px">対戦の振り返りは、記録を自分だけのものとして残すため、<a href="#/account" style="color:var(--acc)">ログイン</a>が必要です。</div>`;return}
   V.innerHTML=`<div id="rp-root"><p class="note" style="padding-top:14px">iPhoneの<b>画面収録</b>で対戦を録画し、その動画を選ぶと、相手の6匹・お互いの選出・相手が使った技と持ち物・勝ち負けを読み取って記録します。記録がたまると、勝率や苦手な相手が分かります。</p>
-    <div class="as-read"><label class="btn btn-p" for="rp-file" style="cursor:pointer">${SVG(I.image,18)}対戦の動画を選ぶ</label><input type="file" id="rp-file" accept="video/*" hidden>
+    <div class="as-read"><label class="btn btn-p" for="rp-file" style="cursor:pointer">${SVG(I.image,18)}対戦の動画を選ぶ</label><input type="file" id="rp-file" accept="video/*" hidden><button class="btn btn-s" id="rp-man" style="margin-top:8px">動画を使わずに手で記録する</button>
       <p class="vcap">動画はこの端末の中で、画面が変わった場面の静止画だけを取り出して送ります。、動画そのものは送りません（静止画も読み取りに使うだけで保存しません）。選出画面から結果の画面まで入っている動画がいちばん正確です。1日20本まで。</p><div id="rp-msg"></div></div>
     <div id="rp-edit"></div><div id="rp-stats"><p class="empty">記録を読み込み中…</p></div></div>`;
   const msg=(t,bad)=>{document.getElementById('rp-msg').innerHTML=t?`<div class="bnote" style="margin:8px 0 0${bad?';box-shadow:inset 0 0 0 1px var(--w2)':''}">${t}</div>`:''};
@@ -52,9 +52,15 @@ async function replayView(){
       const j=await authFetch('/api/replay-read',{frames:fr});
       RP.read={fmt:j.fmt||FMT,result:j.result,opp:j.opp,my:j.my.length?j.my:team.map(x=>x.no),opp_sel:j.opp_sel,my_sel:j.my_sel,info:j.info||{}};
       msg(`読み取りました（${j.sec}秒）。違うところがあれば直してから「記録する」を押してください。`);rpEdit();
-    }catch(err){msg(esc(err.message||'読み取れませんでした。'),true)}};
+    }catch(err){
+      /* AI の回数切れ・混雑（2026/11/12）：手で記録できることをはっきり伝え、その欄を開く */
+      if(err.status===429||err.status===503){msg(`<b>${err.status===429?'今日のAI読み取りの回数を使い切りました（明日また使えます）。':'AIが混み合っていて、いまは読み取れません。'}</b><br>手で記録することはできます。下の欄でポケモンと勝ち負けを入れて「記録する」を押してください。`,true);rpManual();return}
+      msg(esc(err.message||'読み取れませんでした。')+'<br>「動画を使わずに手で記録する」から、手で入れることもできます。',true)}};
+  document.getElementById('rp-man').onclick=()=>{rpManual();const e=document.getElementById('rp-edit');if(e)e.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'})};
   rpLoad();
 }
+/* 手で記録する（AI を使わない） */
+function rpManual(){if(!RP.read)RP.read={fmt:FMT,result:null,opp:[],my:team.map(x=>x.no),opp_sel:[],my_sel:[],info:{}};rpEdit()}
 /* 読み取った結果を直す欄 */
 function rpEdit(){
   const el=document.getElementById('rp-edit'),r=RP.read;if(!el)return;if(!r){el.innerHTML='';return}

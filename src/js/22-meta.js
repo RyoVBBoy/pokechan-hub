@@ -56,25 +56,34 @@ function metaView(){
   setHeader('流行のポケモンとパーティ','#/tools');
   usageGet(FMT,()=>{if(keyOf(cur)==='meta')metaView()});
   const draw=()=>{
-    if(META.st!=='ready'){
+    /* 読めないとき（2026/11/12）：前に読めた集計（端末に覚えた pcmetalast＋形式）か、なければ合計種族値の高いポケモンを代わりに出す。空の画面にしない */
+    const sk='pcmetalast'+FMT;let R=META.rank,TM=META.teams,fb='',gm=false;
+    if(META.st==='ready'){try{localStorage.setItem(sk,JSON.stringify({at:Date.now(),r:R.slice(0,30).map(x=>[x.no,x.rank]),t:TM}))}catch(e){}}
+    else if(META.st==='fail'){
+      const c=lsJ(sk,null);
+      if(c&&Array.isArray(c.r)&&c.r.length){R=c.r.filter(([n])=>byNo[n]).map(([no,rank])=>({no,rank}));TM=(c.t||[]).filter(t=>t.every(n=>byNo[n]));
+        const d=new Date(c.at);fb=`集計の提供元に今つながらないため、${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}に読めた集計を表示しています。`}
+      else{gm=true;R=gmOpps().filter(q=>!q.mega).slice(0,30).map((q,i)=>({no:q.no,rank:i+1}));TM=[];
+        fb='集計の提供元に今つながらないため、使用率の代わりに<b>合計種族値の高いポケモン</b>を表示しています（使用率の順位ではありません）。'}}
+    if(META.st!=='ready'&&!fb){
       V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">${FMTN()}のランクバトルで、いま多く使われているポケモンと、その組み合わせから作った<b>流行パーティ</b>を表示します。</p>${usageMetaHTML()}
       <div class="bnote" style="margin:12px 16px">${META.st==='fail'?'集計データを取得できませんでした。通信できる環境で、もう一度開いてください。':'集計データを読み込んでいます…'}<span id="meta-n"></span></div>`;bindFmt(V,()=>metaView());return}
     V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div><p class="note" style="padding-top:4px">${FMTN()}のランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ<b>代表的な組み合わせ</b>です（実在の特定のプレイヤーの構築ではありません）。</p>${usageMetaHTML()}
-    <div class="sec"><h2>流行パーティ</h2><span style="font-size:13px;color:var(--dim)">${META.teams.length}組</span></div>
-    ${META.teams.map((t,k)=>`<div class="mteam">
+    ${fb?`<p class="fbk">${SVG(I.info||I.help,15)}<span>${fb}</span></p>`:''}${TM.length?`<div class="sec"><h2>流行パーティ</h2><span style="font-size:13px;color:var(--dim)">${TM.length}組</span></div>
+    ${TM.map((t,k)=>`<div class="mteam">
       <div class="mteam-h"><b>パーティ${k+1}</b><span>${byNo[t[0]].n}軸</span></div>
       <div class="mteam-m">${t.map(n=>`<a href="#/p/${n}" class="mmon"><span class="av">${stamp(byNo[n])}</span><b>${byNo[n].n}</b><small>${metaSetLine(n)}</small></a>`).join('')}</div>
       <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-opp="${k}">選出アシストで対策</button></div>
-    </div>`).join('')}
-    <div class="sec"><h2>使用率ランキング（上位）</h2><span style="font-size:13px;color:var(--dim)">${FMTN()}・現在のシーズン</span></div>
-    ${META.rank.slice(0,30).map(x=>`<a class="row" href="#/p/${x.no}"><span class="rk">${x.rank}</span><span class="av">${stamp(byNo[x.no])}</span><div class="row-m"><div class="row-t">${byNo[x.no].n}</div><div class="row-s">${metaSetLine(x.no)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}
-    <p class="note" style="color:var(--mute)">順位は、データ提供元の集計で「一緒によく使われるポケモン」をたどって見つかった範囲のものです。すべてのポケモンを調べているわけではないため、30位より下は抜けている場合があります。</p>
+    </div>`).join('')}`:''}
+    <div class="sec"><h2>${gm?'合計種族値の高いポケモン':'使用率ランキング（上位）'}</h2><span style="font-size:13px;color:var(--dim)">${gm?'代わりの表示':FMTN()+'・現在のシーズン'}</span></div>
+    ${R.slice(0,30).map(x=>`<a class="row" href="#/p/${x.no}"><span class="rk">${x.rank}</span><span class="av">${stamp(byNo[x.no])}</span><div class="row-m"><div class="row-t">${byNo[x.no].n}</div><div class="row-s">${metaSetLine(x.no)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}
+    ${gm?'':`<p class="note" style="color:var(--mute)">順位は、データ提供元の集計で「一緒によく使われるポケモン」をたどって見つかった範囲のものです。すべてのポケモンを調べているわけではないため、30位より下は抜けている場合があります。</p>`}
     ${srcLine('ladder')}`;
     bindFmt(V,()=>metaView());
-    V.querySelectorAll('[data-opp]').forEach(b=>b.onclick=()=>{opp6=[...META.teams[+b.dataset.opp]];saveOpp6();nav('#/assist')});
+    V.querySelectorAll('[data-opp]').forEach(b=>b.onclick=()=>{opp6=[...TM[+b.dataset.opp]];saveOpp6();nav('#/assist')});
     V.querySelectorAll('[data-sim]').forEach(b=>b.onclick=()=>{
       if(team.length<4){toast('先にあなたのパーティを4匹以上登録してください');return}
-      const t=META.teams[+b.dataset.sim],myNos=team.map(x=>x.no);const sets={};myNos.forEach(n=>sets[n]=mySetFor(n));
+      const t=TM[+b.dataset.sim],myNos=team.map(x=>x.no);const sets={};myNos.forEach(n=>sets[n]=mySetFor(n));
       const osets={};t.forEach(n=>osets[n]=LIVE.csv[n]?buildSet(byNo[n],LIVE.csv[n],false):chooseSet(byNo[n]));
       const A=analyze(myNos,t);
       B={phase:'pick',my:{name:'あなたのパーティ',nos:myNos,src:'own'},mySets:sets,opT:{name:`流行パーティ（${byNo[t[0]].n}軸）`,nos:[...t],sets:osets},sel:[...A.lead,...A.back].map(i=>myNos[i])};

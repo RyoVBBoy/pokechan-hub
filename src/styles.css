@@ -949,12 +949,12 @@ html{height:100%;overflow:hidden}
 body{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;-webkit-overflow-scrolling:touch}
 .tabbar,.fabwrap{transform:translateZ(0)}
 /* パーティの枠：選出ボタンを大きく（枠の下いっぱい）、外すボタンも押しやすく */
-.tile{aspect-ratio:auto;min-height:150px;padding:10px 6px 0;gap:4px;justify-content:flex-start}
+.tile{aspect-ratio:auto;min-height:128px;padding:10px 6px 0;gap:4px;justify-content:flex-start}
 .t-rm{position:absolute;top:0;right:0;width:40px;height:40px;border:0;background:none;color:var(--mute);display:grid;place-items:center;border-radius:0 10px 0 50%;cursor:pointer}
 .t-rm:active{background:var(--prs)}
-.t-sel{margin:auto -6px 0;width:calc(100% + 12px);height:44px;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-top:1px solid var(--line);
+.t-sel{margin:auto -6px 0;width:calc(100% + 12px);height:40px;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-top:1px solid var(--line);
   border-radius:0 0 10px 10px;background:var(--elev2);color:var(--dim);font:800 13.5px var(--ff);cursor:pointer;transition:background .15s,color .15s}
-.t-sel.lit{background:var(--gold);color:#000;border-top-color:var(--gold)}
+.t-sel.lit{background:var(--accf);color:var(--onacc);border-top-color:var(--accf)}
 .t-sel:active{filter:brightness(.92)}
 .tile.empty{justify-content:center;padding:6px}
 /* 選出のアドバイス */
@@ -2358,3 +2358,29 @@ body:has(#ac-root.ac2) .foot{display:none}
 .ht-steps--big{font-size:15px;line-height:1.7}
 .ht-steps--big li{margin:6px 0}
 .ht-tips{margin:0;padding:0 0 0 1.2em;font-size:14px;line-height:1.7;color:var(--dim)}
+
+/* ツールの画面の「まずはこの3つ」と「そのほかのツール」（2026/11/12、26-hub.js の toolsView） */
+.tprim{margin:14px 12px 6px}
+.tprim-h{margin:0 4px 10px;font-size:17px}
+.tprim-g{display:grid;gap:10px}
+.tprim-c{position:relative;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;padding:14px 12px 14px 14px;border-radius:16px;background:var(--card);border:1px solid var(--card-b);box-shadow:var(--card-s);color:var(--fg);text-decoration:none;min-height:64px}
+.tprim-c:hover{border-color:rgba(var(--acc-rgb),.5)}
+.tprim-i{grid-row:1/3;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accf);color:var(--onacc)}
+.tprim-t{font-size:16.5px;font-weight:800}
+.tprim-d{grid-column:2;font-size:13px;line-height:1.45;color:var(--dim)}
+.tprim-go{grid-row:1/3;grid-column:3;color:var(--dim)}
+@media(min-width:700px){.tprim-g{grid-template-columns:repeat(3,1fr)}.tprim-c{grid-template-columns:1fr auto;grid-template-rows:auto auto auto;align-items:start;padding:16px}.tprim-i{grid-row:auto;margin-bottom:10px}.tprim-t,.tprim-d{grid-column:1/3}.tprim-go{position:absolute;top:16px;right:12px}}
+.tother-h{margin:22px 16px 0;font-size:17px}
+.tother-s h3{margin:0;font-size:13px;font-weight:700;color:var(--dim)}
+
+/* パーティの画面を詰める（2026/11/12）：説明と構築の型の札を1つの段に、6匹のすぐ下に「診断・選出・ダメージ計算」 */
+.thd{display:flex;align-items:flex-start;gap:8px;padding:4px 16px 8px;flex-wrap:wrap}
+.thd .thd-n{flex:1 1 220px;margin:0;padding:0;font-size:12.5px;line-height:1.5}
+.thd .tarch{padding:0;margin-left:auto}
+.tsync{margin:4px 16px 0;padding:6px 10px;font-size:12.5px}
+.tqa{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 16px 0}
+.tqa-b{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border-radius:12px;border:0;box-shadow:inset 0 0 0 1px var(--line);background:var(--acc-t);color:var(--acc);font:800 13px var(--ff);text-decoration:none;cursor:pointer}
+.tqa-b:active{filter:brightness(.9)}
+/* 集計・AI が使えないときの控えめな知らせ（2026/11/12） */
+.fbk{display:flex;gap:8px;align-items:flex-start;margin:10px 16px;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.55;color:var(--dim);background:var(--acc-t);box-shadow:inset 0 0 0 1px var(--line)}
+.fbk svg{flex:none;margin-top:2px;color:var(--acc)}

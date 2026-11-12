@@ -226,7 +226,7 @@ function assistView(arg){
       const x=await twShrink(f,1100);say('相手の6匹を読み取っています…（数秒かかります）');
       let r;try{r=await fetch(COMM_API+'/api/opp-read?fmt='+FMT,{method:'POST',headers:{'Content-Type':x.blob.type,Authorization:'Bearer '+await AUTH.user.getIdToken()},body:x.blob})}
       catch(err){say('通信できませんでした。電波のよいところで、もう一度選んでください。',true);return}
-      const j=await r.json().catch(()=>({}));if(!r.ok){say(esc(j.error||'読み取れませんでした。')+(j.busy?'<br><b>下の「タイプで探す」で、画面のタイプのマークを押すと、すぐに入れられます。</b>選出の計算はこれまでどおり使えます。':'<br>もう一度選ぶか、下の欄から名前か「タイプで探す」で入れてください。'),true);
+      const j=await r.json().catch(()=>({}));if(!r.ok){say((r.status===429?'<b>今日のAI読み取りの回数を使い切りました（明日また使えます）。</b>相手のポケモンは、下の欄から名前か「タイプで探す」で手で入れられます。':esc(j.error||'読み取れませんでした。'))+(j.busy?'<br><b>下の「タイプで探す」で、画面のタイプのマークを押すと、すぐに入れられます。</b>選出の計算はこれまでどおり使えます。':'<br>もう一度選ぶか、下の欄から名前か「タイプで探す」で入れてください。'),true);
         const d=document.getElementById('as-ty');if(d){d.open=true;d.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'center'})}return}
       const got=(j.opps||[]).filter(o=>o.no&&byNo[o.no]),nos=[...new Set(got.map(o=>o.no))].slice(0,6);
       if(!nos.length){say('相手のポケモンを読み取れませんでした。選出画面（相手の6匹が並ぶ画面）のスクリーンショットか確かめて、もう一度選んでください。',true);return}
