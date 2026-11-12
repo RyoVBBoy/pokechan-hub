@@ -31,7 +31,7 @@ function dguSumFill(entries,C){
   const sel=S&&S.best?(()=>{const b=S.best,ld=b.pairs?b.pairs[0].pr:[b.lead1[0].i];
     return `<div class="dgu-sec"><h3>おすすめの選出</h3><p class="dgu-sel">${b.c.map(i=>`<span class="dgu-mon${ld.includes(i)?' dgu-lead':''}">${nm(i)}${ld.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
       <p class="dgu-note">${S.list.length}通りの選出を比べた1番です。この選出で ◎${b.cnt[4]}・○${b.cnt[3]}・△${b.cnt[2]}・×${b.cnt[1]}（上位${S.N}匹）。${b.pairs?'先発2匹は簡易比較です。':''}</p>
-      <button class="dgu-link" data-dgu-tab="plan">選出の理由・先発の比較を見る（構築と選出）</button></div>`})():'';
+      <button class="dgu-link" data-dgu-tab="plan">選出の理由・先発の比較を見る（構築 › 選出アシスト）</button></div>`})():'';
   box.innerHTML=`<div class="dgu-head"><h2>診断のまとめ</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
     <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','弱点のカード'],['lose-box','敗因の診断'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
     <div class="dgu-sec"><h3>総合評価</h3>

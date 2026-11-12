@@ -17,9 +17,9 @@ const W=ms=>pg.waitForTimeout(ms);
 /* ---------- ①空のパーティ ---------- */
 await pg.evaluate(()=>{team=[];saveTeam();teamRender()});await W(200);
 let st=await pg.evaluate(()=>({onb:!!document.querySelector('#tonb .tonb'),rec:document.querySelector('#tonb a[href="#/learn/build"]')?.textContent,imp:!!document.querySelector('#tonb a[href="#/import"]'),
-  slots:document.getElementById('slots').hidden,diag:[...document.querySelectorAll('[data-tqa]')].every(b=>b.hidden&&getComputedStyle(b).display==='none'),calc:!!document.querySelector('.tqa a[href="#/calc"]')&&getComputedStyle(document.querySelector('.tqa a[href="#/calc"]')).display!=='none'}));
+  slots:document.getElementById('slots').hidden,diag:!document.querySelector('[data-tqa]')&&![...document.querySelectorAll('.tqa a,.tqa button')].some(b=>/^(診断|選出)$/.test(b.textContent.trim())),calc:!!document.querySelector('.tqa a[href="#/calc"]')&&getComputedStyle(document.querySelector('.tqa a[href="#/calc"]')).display!=='none'}));
 ok(st.onb&&/おすすめパーティから始める/.test(st.rec||'')&&st.imp,'空のパーティのはじめ方が出ません '+JSON.stringify(st));
-ok(st.slots&&st.diag&&st.calc,'空のパーティで診断・選出を隠し、ダメージ計算を残していません '+JSON.stringify(st));
+ok(st.slots&&st.diag&&st.calc,'診断・選出のボタンが残っているか、ダメージ計算がありません '+JSON.stringify(st));
 
 /* ---------- ②続けて選ぶ ---------- */
 await pg.click('#tonb-pick');await W(400);
@@ -38,7 +38,7 @@ ok(st.n===6&&/6匹そろいました/.test(st.st||''),'6匹そろったことが
 await W(1100);
 ok(!(await pg.$('.mpsheet')),'6匹そろっても選ぶ画面が閉じません');
 ok(await pg.evaluate(()=>teamAddQuiet(94).ok===false&&team.length===6),'7匹目が入ります');
-st=await pg.evaluate(()=>({tiles:document.querySelectorAll('#slots .tile[data-ti]').length,onb:!!document.querySelector('#tonb .tonb'),diag:[...document.querySelectorAll('[data-tqa]')].every(b=>!b.hidden)}));
+st=await pg.evaluate(()=>({tiles:document.querySelectorAll('#slots .tile[data-ti]').length,onb:!!document.querySelector('#tonb .tonb'),diag:/ダメージ計算/.test(document.querySelector('.tqa').textContent)&&/↗/.test(document.querySelector('.tqa').textContent)}));
 ok(st.tiles===6&&!st.onb&&st.diag,'閉じたあとにパーティの画面が描き直されません '+JSON.stringify(st));
 /* やめると何も足さない・3つの枠 */
 await pg.evaluate(()=>{switchTeam(1);team=[{no:445,sel:true}];saveTeam();teamRender()});await W(100);

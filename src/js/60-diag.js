@@ -174,12 +174,95 @@ function dgMatch0(a,o){
   const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':spd!==1&&!tr?`先制技のとどめで${myN}発で倒しきれる`:myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
   return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
 }
+/* ===================== 診断の準備（2026/11/12 依頼主：同じパーティなのに「総合評価」が開くたびに変わる） =====================
+   原因：①使用率の集計・各ポケモンの集計・上位パーティのデータが届く前に、手元のデータ（なければ種族値の上位）で計算して出していた
+   ②一時的に読めなかった匹を「集計なし」として黙って計算していた ③前の計算を使い回す鍵がデータの件数だけで、中身の違いを見ていなかった。
+   そこで、診断に使うデータ（使用率の集計＝相手の候補・パーティと相手と入れかえ候補の匹の集計・上位パーティ）がそろうまで計算しない。
+   読めなかったときは何が読めなかったかを出し、「もう一度読み込む」か、自分で選んだときだけ「読めたデータだけ（集計なし）」で計算する（結果にその旨を出す）。
+   判定の基準・重みは変えない。テスト（navigator.webdriver）は、window.__DG_STRICT を付けたときだけこの準備を通す（ほかのテストは前と同じ） */
+const DGD={st:'idle',tok:0,p:null,fails:[],allow:null};
+const dgStrict=()=>!(typeof navigator!=='undefined'&&navigator.webdriver)||(typeof window!=='undefined'&&!!window.__DG_STRICT);
+const dgTopNeed=()=>typeof topLoad==='function'&&typeof location!=='undefined'&&location.protocol!=='file:';
+/* 診断で集計を使う匹：パーティ・相手の候補（使用率の上位40）・入れかえ候補（種族値の上位）と、そのメガシンカ前の姿 */
+function dgReqNos(entries){
+  const s=new Set(),add=p=>{if(!p)return;s.add(p.no);if(p.base)s.add(p.base)};
+  entries.forEach(x=>add(byNo[x.no]));metaOpps(40).forEach(add);if(typeof gmOpps==='function')gmOpps().forEach(add);
+  return [...s].filter(n=>ENSP[n]).sort((a,b)=>a-b);
+}
+/* いま診断できるか（同期）：'ready'（そろっている）・'off'（集計なしで計算すると利用者が選んだ）・'partial'（読めたものだけで計算すると選んだ）・'loading'・'error' */
+function dgState(entries){
+  if(!dgStrict())return 'ready';
+  if(DGD.allow==='off'&&LIVE.st==='fail')return 'off';
+  if(LIVE.st==='fail'||(typeof META!=='undefined'&&META.st==='fail'))return DGD.allow==='off'?'off':'error';
+  if(LIVE.st!=='ready'||typeof META==='undefined'||META.st!=='ready')return DGD.st==='error'?'error':'loading';
+  if(dgTopNeed()&&!(TOPT.fmt===FMT&&(TOPT.st==='ok'||TOPT.st==='err')))return 'loading';
+  const nos=dgReqNos(entries);
+  if(nos.some(n=>LIVE.csv[n]===undefined))return DGD.st==='error'?'error':'loading';
+  const bad=nos.some(n=>LIVE.err[n])||(META.errs>0)||(dgTopNeed()&&TOPT.st==='err');
+  if(bad)return DGD.allow==='partial'?'partial':'error';
+  return 'ready';
+}
+/* 読めなかったもの（表示用） */
+function dgFails(){const f=[];
+  if(LIVE.st==='fail')f.push('ランクバトルの使用率の集計（つながりませんでした）');
+  else if(typeof META!=='undefined'&&META.st==='fail')f.push('使用率の上位のポケモン');
+  const e=Object.keys(LIVE.err).map(Number).filter(n=>byNo[n]);if(e.length)f.push(`ポケモンごとの集計（${e.slice(0,4).map(n=>byNo[n].n).join('・')}${e.length>4?` ほか${e.length-4}匹`:''}）`);
+  if(dgTopNeed()&&TOPT.st==='err')f.push('上位パーティのデータ');return f}
+/* データを読む（読む順番に関係なく、全部そろってから done を呼ぶ）。読んでいる途中にまた呼ばれたら、読み直さずに done だけ新しいものに替える
+   （終わったら最後に頼まれた done を1回だけ呼ぶ＝古い画面の描き直しはしない。描き直す側も、そのときのパーティで dgState を見直す） */
+async function dgPrepare(entries,done){
+  DGD.cb=done||null;if(DGD.run)return;
+  DGD.run=true;const tok=++DGD.tok;DGD.st='loading';
+  const fin=st=>{DGD.run=false;if(tok!==DGD.tok)return;DGD.st=st;const cb=DGD.cb;DGD.cb=null;if(cb)cb(st)};
+  try{
+    if(!(await liveInit()))return fin('error');
+    if(!(await metaLoad()))return fin('error');
+    if(dgTopNeed()&&!(TOPT.fmt===FMT&&(TOPT.st==='ok'||TOPT.st==='err'))){
+      const t0=Date.now();try{await topLoad()}catch(e){}
+      while(TOPT.st==='busy'&&Date.now()-t0<20e3)await new Promise(r=>setTimeout(r,200));
+      if(TOPT.st==='busy')TOPT.st='err';}
+    const nos=dgReqNos(entries).filter(n=>LIVE.csv[n]===undefined);
+    for(let i=0;i<nos.length;i+=8)await Promise.all(nos.slice(i,i+8).map(liveMon));
+    /* 読み終わっても足りない（読む途中で相手の候補が変わった等）なら、もう一度だけ読みにいく。3回続いたら読めなかったことにする（読み続けない） */
+    const s2=dgState(entries);if(s2==='ready'){DGD.loops=0;fin('ready')}else if(s2==='loading'&&(DGD.loops=(DGD.loops||0)+1)<=3)fin('loading');else{DGD.loops=0;fin('error')}
+  }catch(e){fin('error')}
+}
+/* もう一度読み込む：読めなかった匹だけ読み直す（読めた分はそのまま） */
+function dgRetry(){
+  Object.keys(LIVE.err).forEach(n=>{delete LIVE.csv[n];delete LIVE.err[n]});
+  if(LIVE.st==='fail'){LIVE.st='idle'}
+  if(typeof META!=='undefined'&&(META.st==='fail'||META.errs>0)){META.st='idle';META.p=null;META.errs=0}
+  if(typeof TOPT!=='undefined'&&TOPT.st==='err'){TOPT.st='idle';TOPT.at=0}
+  DGD.allow=null;DGD.st='idle';
+}
+/* 読み込み中・読めなかったときの表示（評価は出さない） */
+function dgWaitHTML(st){
+  if(st==='loading')return `<div class="dgw" role="status" aria-live="polite"><span class="dgw-sp" aria-hidden="true"></span><b>診断に必要なデータを読み込んでいます…</b><p>使用率の集計・相手のポケモンの型・上位パーティのデータがそろってから計算します（途中のデータで計算した結果は出しません）。</p></div>`;
+  const f=dgFails(),offOnly=LIVE.st==='fail';
+  return `<div class="dgw dgw-err" role="alert"><b>診断に必要なデータを読み込めませんでした</b><p>読めなかったもの：${f.length?f.map(esc).join('、'):'通信'}。<br>そろっていないデータで計算すると、結果がいつもと違ってしまうため、まだ評価を出していません。</p>
+    <div class="dgw-b"><button class="btn btn-p" data-dg-retry>もう一度読み込む</button><button class="btn btn-s" data-dg-allow="${offOnly?'off':'partial'}">${offOnly?'集計なしで診断する':'読めたデータだけで診断する'}</button></div>
+    <p class="dgw-n">${offOnly?'集計なし＝相手は合計種族値の上位、型は自動で決めた型で計算します。':'読めなかった匹は、自動で決めた型で計算します。'}結果の上にその旨を表示します。</p></div>`;
+}
+/* 結果の上に出す注意（読めたデータだけ・集計なしで計算したとき） */
+function dgModeNote(st){return st==='off'?'<p class="dgw-note">ランクバトルの集計を読み込めなかったため、<b>集計なし</b>（相手は合計種族値の上位・自動で決めた型）で計算した結果です。<button class="dgu-link" data-dg-retry>もう一度読み込む</button></p>'
+  :st==='partial'?`<p class="dgw-note">一部のデータ（${dgFails().map(esc).join('、')}）を読めなかったため、<b>読めたデータだけ</b>で計算した結果です。<button class="dgu-link" data-dg-retry>もう一度読み込む</button></p>`:''}
+/* ボタン：もう一度読み込む・読めたデータだけで計算する。押したら描き直す */
+function dgWaitBind(root,redraw){if(!root)return;
+  root.querySelectorAll('[data-dg-retry]').forEach(b=>b.onclick=()=>{dgRetry();redraw()});
+  root.querySelectorAll('[data-dg-allow]').forEach(b=>b.onclick=()=>{DGD.allow=b.dataset.dgAllow;redraw()})}
+/* 診断に使ったデータの中身（使い回しの鍵）：形式・相手の候補の並び・集計のある匹・上位パーティ・計算の方法 */
+function dgDataSig(){
+  const rk=typeof META!=='undefined'&&META.rank?META.rank.map(x=>x.no).join('.'):'';
+  const have=Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).sort((a,b)=>a-b).join('.');
+  const tp=typeof TOPT!=='undefined'&&typeof topReady==='function'&&topReady()?TOPT.at+':'+TOPT.n:'0';
+  return [FMT,rk,have,tp].join('|');
+}
 /* パーティ（entries）× 相手（metaOpps）の表。相手の型は使用率の高い型（detSet）。集計の有無も返す */
 /* 同じパーティ・形式・集計の読み込み状況なら、計算を使い回す（パーティのチェックと「相手ごとの対応力」で同じ結果を使う） */
 const DG_CACHE={};
 function dgTeam(entries,n){
   n=n||20;
-  const key=JSON.stringify([FMT,n,Object.keys(LIVE.csv).length,typeof META!=='undefined'&&META.rank?META.rank.length:0,entries.map(x=>[x.no,x.set||0])]);
+  const key=JSON.stringify([n,dgDataSig(),entries.map(x=>[x.no,x.set||0])]);
   if(DG_CACHE.k===key)return DG_CACHE.v;
   const v=dgTeam0(entries,n);DG_CACHE.k=key;DG_CACHE.v=v;return v;
 }
@@ -450,6 +533,8 @@ function teamArch(entries){
 }
 function teamArchHTML(entries){
   if(!entries||entries.length<2)return '';
+  /* 診断に使うデータがそろうまでは決めない（2026/11/12） */
+  if(typeof dgState==='function'&&!['ready','off','partial'].includes(dgState(entries)))return `<span class="tarch-l">構築の型</span><span class="tarch-b tarch-none" title="診断に必要なデータを読み込んでいます">判定中</span>`;
   const A=teamArch(entries);
   if(!A.length)return `<span class="tarch-l">構築の型</span><span class="tarch-b tarch-none" title="技・持ち物を3匹以上登録すると、対面・サイクル・積みなども判定できます">判定中</span>`;
   return `<span class="tarch-l">構築の型</span>${A.map(a=>{const B=ARCH_BADGE[a.k];return `<a class="tarch-b tarch-${a.k}${a.unset?' tarch-unset':''}" href="#/arch/${B[1]}" title="${esc(a.why)}">${esc(B[0])}${a.unset?'（技が未登録）':''}</a>`}).join('')}`;

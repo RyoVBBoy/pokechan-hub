@@ -1,7 +1,7 @@
 /* ===================== 流行（使用率ランキングと流行パーティ） ===================== */
 /* 集計データの各ポケモンのファイルには、使用率の順位（column_position）が入っている。
    上位のポケモンは互いの「一緒によく使われる」に出てくるので、それをたどって上位をまとめて集める。 */
-const META={st:'idle',rank:[],teams:[],at:null,p:null};
+const META={st:'idle',rank:[],teams:[],at:null,p:null,errs:0};
 const tmNo=n=>{const l=(SP2NO[nrm(n)]||[]).filter(x=>byNo[x]);return l.find(x=>!byNo[x].ext)||l[0]||null};
 function metaLoad(onStep){
   if(META.st==='ready')return Promise.resolve(true);
@@ -10,7 +10,8 @@ function metaLoad(onStep){
     if(!(await liveInit())){META.st='fail';return false}
     META.st='loading';
     const seen=new Set(),got=new Map();
-    let queue=[445,727,812,...team.map(t=>t.no)].filter(n=>byNo[n]);
+    /* 2026/11/12：出発点は決まった3匹だけ（前はいまのパーティの匹も入れていて、読みこんだときのパーティで上位の並び＝診断の相手が変わっていた） */
+    let queue=[445,727,812].filter(n=>byNo[n]);
     const prio=new Map();queue.forEach(n=>prio.set(n,50));
     let fetched=0;
     while(queue.length&&fetched<48){
@@ -18,6 +19,8 @@ function metaLoad(onStep){
       const batch=[];while(queue.length&&batch.length<6){const n=queue.shift();if(!seen.has(n)){seen.add(n);batch.push(n)}}
       if(!batch.length)break;
       const ds=await Promise.all(batch.map(liveMon));fetched+=batch.length;
+      /* 通信で読めなかった匹があれば覚えておく（上位の並びが欠けているかもしれない。診断は読み直すまで使わない） */
+      batch.forEach(n=>{if(LIVE.err&&LIVE.err[n])META.errs=(META.errs||0)+1});
       ds.forEach((d,i)=>{if(!d)return;const no=batch[i];got.set(no,d);const r=d.rank||99;
         d.tm.slice(0,8).forEach((nm,k)=>{const t=tmNo(nm);if(!t||seen.has(t))return;prio.set(t,Math.min(prio.get(t)||99,r+k*.5));if(!queue.includes(t))queue.push(t)})});
       onStep&&onStep(got.size);

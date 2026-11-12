@@ -186,7 +186,7 @@ function impCard(o,k){
 let IMP_LAST=null;
 /* 同じパーティ・同じ条件の計算結果は使い回す（2026/11/10 依頼主：診断のまとめと改善案の一覧で同じ結果を使う） */
 const IMP_CACHE=new Map();
-const impKey=entries=>JSON.stringify([FMT,entries.map(x=>[x.no,x.set||0,!!x.sel,!!x.axis]),Object.keys(LIVE.csv).length,typeof META!=='undefined'&&META.rank?META.rank.length:0]);
+const impKey=entries=>JSON.stringify([entries.map(x=>[x.no,x.set||0,!!x.sel,!!x.axis]),dgDataSig()]);
 function impGet(entries){const k=impKey(entries);if(IMP_CACHE.has(k))return IMP_CACHE.get(k);
   const R=dgImprove(entries);if(IMP_CACHE.size>8)IMP_CACHE.clear();IMP_CACHE.set(k,R);return R}
 const impCached=entries=>IMP_CACHE.get(impKey(entries))||null;

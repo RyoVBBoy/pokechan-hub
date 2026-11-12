@@ -12,7 +12,7 @@ function dgSelect(entries){
   const n=entries.length,K=Math.min(PICK(),n);if(n<=K)return null;
   let T;try{T=dgTeam(entries,20)}catch(e){return null}
   const R=T.rows;if(!R.length)return null;
-  const key=JSON.stringify([FMT,K,entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),R.length,Object.keys(LIVE.csv).length]);
+  const key=JSON.stringify([K,entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),R.length,dgDataSig()]);
   if(DG_SELC.has(key))return DG_SELC.get(key);
   const nm=i=>formInfo(T.ms[i].p).base;
   const stone=i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return !!k&&isStone(k)};

@@ -35,7 +35,7 @@ const ITEMT={softsand:'じめん',charcoal:'ほのお',mysticwater:'みず',magn
    提供元：https://championsbattledata.com （非公式。Pokémon関連企業とは無関係） */
 const CBD='https://championsbattledata.com';
 const nrm=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-const LIVE={st:'idle',files:null,csv:{},at:null};
+const LIVE={st:'idle',files:null,csv:{},at:null,err:{}};
 /* 対戦形式：シングル（3匹選出・先発1）を基本に、ダブル（4匹選出・先発2）にも切り替えられる */
 let FMT=(()=>{try{return localStorage.getItem('pcfmt')||'single'}catch(e){return'single'}})();
 const PICK=()=>FMT==='single'?3:4;
@@ -45,7 +45,7 @@ const FMTDIR=()=>FMT==='single'?'Singles':'Doubles';
 function setFmt(f){
   if(f===FMT||(f!=='single'&&f!=='double'))return;
   FMT=f;try{localStorage.setItem('pcfmt',f)}catch(e){}
-  LIVE.csv={};if(typeof META!=='undefined'){META.st='idle';META.p=null;META.rank=[];META.teams=[]}
+  LIVE.csv={};LIVE.err={};if(typeof META!=='undefined'){META.st='idle';META.p=null;META.rank=[];META.teams=[];META.errs=0}
   const n=PICK();let c=0;team.forEach(x=>{x.sel=c<n;if(x.sel)c++});saveTeam();
 }
 const fmtSwitch=()=>`<div class="fmtsw" role="group" aria-label="対戦形式"><button data-fmtsw="single" aria-pressed="${FMT==='single'}">シングル</button><button data-fmtsw="double" aria-pressed="${FMT==='double'}">ダブル</button></div>`;
@@ -94,7 +94,7 @@ async function liveMon(no){
     if(!r.ok)throw 0;
     const d=digest(await r.text());if(!d.mv.length)throw 0;
     LIVE.csv[no]=d;lsSet('pccsv3'+FMT+no,d);return d;
-  }catch(e){LIVE.csv[no]=null;return null}
+  }catch(e){LIVE.csv[no]=null;LIVE.err[no]=1;return null}
 }
 const wpick=(arr,w)=>{let t=arr.reduce((a,x)=>a+Math.max(w(x),.001),0),r=Math.random()*t;for(const x of arr){r-=Math.max(w(x),.001);if(r<=0)return x}return arr[arr.length-1]};
 const STI={'attack':1,'defense':2,'sp.atk':3,'sp.def':4,'speed':5};
@@ -160,7 +160,9 @@ function liveFit(p,d,ab,order){
 }
 /* 集計データから型を1つ組む。top=true なら最頻の型、false なら使用率に応じてランダム */
 function buildSet(p,d,top){
-  const base=chooseSet(p);
+  /* 2026/11/12 依頼主（総合評価が開くたびに変わる）：使用率の高い型（top）は土台の型も乱数なしで組む。
+     前は chooseSet(p) が乱数で特性・技を選び、集計に特性がない匹や技が4つそろわない匹の型が毎回変わっていた */
+  const base=chooseSet(p,top);
   if(!d)return base;
   let ab=base.ab;
   const abl=d.ab.map(([n,pc])=>[ABK[nrm(n)],pc]).filter(x=>x[0]);
