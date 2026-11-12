@@ -2288,3 +2288,8 @@ body:has(#ac-root.ac2) .foot{display:none}
 .tw--big .tw-a .tw-like{font-size:14.4px;gap:6px}
 .tw--big .tw-a .tw-like svg{width:28.5px;height:28.5px}
 .tw-a .tw-like svg{width:23.5px;height:23.5px;stroke-width:1.6}
+
+/* 日本語の短い文は文節の切れ目でだけ改行（04-common.js の jaWrap） */
+.jwrap{word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
+/* 通知は左が画面の真ん中なので、幅が画面の半分までに縮んでいた。文の長さに合わせ、画面の幅（左右16pxあけ）まで広がるように */
+.toast{width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box}

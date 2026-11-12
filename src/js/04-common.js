@@ -110,6 +110,21 @@ function zukanLink(p){const u=zukanUrl(p);if(!u)return '';
    iPhone（iOS 18 以降）でスイッチ部品（<input type="checkbox" switch>）を切りかえると触覚が出るしくみを使う：
    見えないスイッチの label を押したことにする。押した操作の中で呼ぶ必要がある。localStorage pchaptic='off' で止める */
 let HAPTIC_EL=null;
+/* 日本語の短い文を、ことばの切れ目（文節）でだけ改行する（2026/11/12 依頼主：通知の「ログイン」が「ロ／グイン」で改行されていた）。
+   ひらがなのあとに漢字・カタカナ・英数字が来る所と、句読点のあとにだけ <wbr> を入れ、CSS の word-break:keep-all（.jwrap）でほかの所では改行しない。
+   1つの文節が幅に入らないときは overflow-wrap:anywhere で折り返す。文字は textContent で入れる（HTML として読まない） */
+function jaWrap(el,text){
+  el.textContent='';el.classList.add('jwrap');
+  const s=String(text==null?'':text),hira=c=>c>='\u3041'&&c<='\u309f';
+  let buf='';
+  for(let i=0;i<s.length;i++){
+    const c=s[i],p=s[i-1];
+    if(i&&buf&&((hira(p)&&!hira(c)&&!/[\s、。，．！？!?・…ー）」』】)]/.test(c))||/[、。，！？!?]/.test(p))){el.append(buf,document.createElement('wbr'));buf=''}
+    buf+=c;
+  }
+  if(buf)el.append(buf);
+  return el;
+}
 function haptic(){
   try{if(localStorage.getItem('pchaptic')==='off')return}catch(e){}
   try{if(navigator.vibrate&&!/iP(hone|ad|od)/.test(navigator.userAgent)){navigator.vibrate(8);return}}catch(e){}
