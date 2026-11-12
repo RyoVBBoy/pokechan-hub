@@ -117,13 +117,13 @@ async function userApi(req,env,db,path,body,now){
   if(path==='/api/me/teams'&&req.method==='GET'){
     const r=await db.prepare(`SELECT teams,updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();
     let t=null;try{t=r&&r.teams?JSON.parse(r.teams):null}catch(e){}
-    return J({teams:t,updated_at:r?r.updated_at:0});
+    return J({teams:t,updated_at:r?r.updated_at:0,now:Date.now()});
   }
   if(path==='/api/me/teams'&&req.method==='POST'){
     const t=body.teams,at=Math.floor(+body.updated_at||0);
     const ok=t&&typeof t==='object'&&Array.isArray(t.list)&&t.list.length<=3&&t.list.every(s=>s&&Array.isArray(s.team)&&s.team.length<=6&&s.team.every(x=>x&&Number.isInteger(x.no)));
     if(!ok||!(at>0)||at>now+864e5)return J({error:'パーティの形が正しくありません。'},400);
-    const txt=JSON.stringify({cur:Math.max(0,Math.min(2,+t.cur||0)),list:t.list.map(s=>({name:clean(s.name,20),team:s.team}))});
+    const txt=JSON.stringify({cur:Math.max(0,Math.min(2,+t.cur||0)),list:t.list.map(s=>({name:clean(s.name,20),team:s.team,at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+s.at||0)))}))});
     if(txt.length>30000)return J({error:'パーティのデータが大きすぎます。'},400);
     const r=await db.prepare(`SELECT updated_at FROM user_data WHERE uid=?`).bind(me.uid).first();
     if(r&&r.updated_at>at)return J({ok:false,newer:true,updated_at:r.updated_at},409);

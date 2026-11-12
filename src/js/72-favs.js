@@ -44,18 +44,29 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const b=e.target.closest&&e.target.closest('[data-fav]');if(!b)return;
   e.preventDefault();e.stopPropagation();favToggle(b)},true);
 /* ---- ログイン中はサーバーと合わせる（戦術メモの memoPull/memoPush と同じ形） ---- */
-function favSyncSoon(){if(typeof AUTH==='undefined'||!AUTH.user)return;clearTimeout(FAV_T);FAV_T=setTimeout(favPush,1200)}
-async function favPush(){try{await authFetch('/api/me/favs',{favs:FAV})}catch(e){}}
+function favSyncSoon(){if(typeof AUTH==='undefined'||!AUTH.user)return;clearTimeout(FAV_T);FAV_T=setTimeout(favPull,1200)}
+async function favPush(){if(typeof AUTH==='undefined'||!AUTH.user)return true;try{await authFetch('/api/me/favs',{favs:FAV});return true}catch(e){return false}}
 async function favPull(){
-  if(typeof AUTH==='undefined'||!AUTH.user)return;
-  let j;try{j=await authFetch('/api/me/favs')}catch(e){return}
-  const s=j&&j.favs;if(!s){if(Object.keys(FAV).length)favPush();return}
+  if(typeof AUTH==='undefined'||!AUTH.user)return true;
+  let j;try{j=await authFetch('/api/me/favs')}catch(e){return false}
+  const s=j&&j.favs;if(!s)return Object.keys(FAV).length?favPush():true;
   const ch=[];
   Object.entries(s).forEach(([no,e])=>{const l=FAV[no];if(e&&(!l||(e.at||0)>(l.at||0))){FAV[no]={on:e.on?1:0,at:e.at||0};ch.push(+no)}});
   if(ch.length){favSave();ch.forEach(favPaint);try{document.dispatchEvent(new CustomEvent('pcfav',{detail:{pull:true}}))}catch(e){}}
-  if(Object.entries(FAV).some(([no,e])=>!s[no]||(e.at||0)>(s[no].at||0)))favPush();
+  if(Object.entries(FAV).some(([no,e])=>!s[no]||(e.at||0)>(s[no].at||0)))return favPush();
+  return true;
 }
 /* ---- 履歴：図鑑のページを開いたポケモンも「最近」に入れる（ポケモンを選ぶ画面の pcmonrecent と同じ並び。メガは元の姿で） ---- */
 const MON_RECENT_N=20;
 function monRecentAdd(no){const p=byNo[no];if(!p)return;const v=p.base||p.no;if(!byNo[v])return;
   try{lsW('pcmonrecent',[v,...monRecent().filter(x=>x!==v)].slice(0,MON_RECENT_N))}catch(e){}}
+/* 同じブラウザのほかのタブで ☆ を変えたら、このタブの ☆ も合わせる（2026/11/12。前は古い中身のまま保存して、ほかのタブの変更を消していた） */
+addEventListener('storage',e=>{
+  if(e.storageArea!==localStorage||(e.key!=='pcfavs'&&e.key!==null))return;
+  let o={};try{o=JSON.parse(e.key===null?'{}':e.newValue||'{}')||{}}catch(_){return}
+  if(typeof o!=='object'||Array.isArray(o))o={};
+  const nos=new Set([...Object.keys(FAV),...Object.keys(o)]);
+  Object.keys(FAV).forEach(k=>delete FAV[k]);Object.assign(FAV,o);
+  nos.forEach(n=>favPaint(+n));
+  try{document.dispatchEvent(new CustomEvent('pcfav',{detail:{pull:true}}))}catch(_){}
+});

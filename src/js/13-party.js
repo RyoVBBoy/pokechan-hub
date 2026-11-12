@@ -9,11 +9,36 @@ const cleanTeam=a=>(Array.isArray(a)?a:[]).map(x=>x&&NO_MOVED[x.no]?{...x,no:NO_
 let TEAMS=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem('pcteams')||'null')}catch(e){}
   if(!o||!Array.isArray(o.list)){let old=[];try{old=JSON.parse(localStorage.getItem('pcteam')||'[]')}catch(e){}o={cur:0,list:[{name:'',team:old}]}}
   while(o.list.length<TEAM_N)o.list.push({name:'',team:[]});o.list=o.list.slice(0,TEAM_N);if(!(o.cur>=0&&o.cur<TEAM_N))o.cur=0;
-  o.list.forEach(s=>{s.team=cleanTeam(s.team);s.name=String(s.name||'').slice(0,20)});return o})();
+  o.list.forEach(s=>{s.team=cleanTeam(s.team);s.name=String(s.name||'').slice(0,20);s.at=Math.max(0,Math.floor(+s.at||0))});return o})();
 team=TEAMS.list[TEAMS.cur].team.map(x=>({...x}));
 const teamName=i=>TEAMS.list[i].name||L(`パーティ${i+1}`,`Team ${i+1}`);
-const saveTeam=fromServer=>{TEAMS.list[TEAMS.cur].team=team;if(fromServer!==true){TEAMS.updated=Date.now();if(typeof teamSyncSoon==='function')teamSyncSoon()}try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
+/* 枠ごとの変更時刻 at（2026/11/12）：中身（名前・6匹・育成）が変わった枠だけ進める。選んでいる枠を切りかえただけでは進めない
+   （前は切りかえでもパーティ全体の時刻が進み、古い中身の端末がほかの端末で直した新しいパーティを上書きすることがあった）。
+   中身が変わったかは、最後に保存したときの文字列 TEAM_SIG と比べる（育成をその場で書きかえる画面もあるため、中身どうしでは比べない）。
+   時刻はサーバーの時計に合わせる（SYNC.skew、33-sync.js）＝端末の時計がずれていても順番がくるいにくい */
+const slotSig=s=>JSON.stringify([s.name||'',s.team]);
+let TEAM_SIG=TEAMS.list.map(slotSig);
+const teamNow=()=>{const t=Math.round(Date.now()+(typeof SYNC!=='undefined'&&SYNC.skew||0));return Math.max(t,...TEAMS.list.map(s=>(s.at||0)+1))};
+const saveTeam=fromServer=>{TEAMS.list[TEAMS.cur].team=team;
+  let ch=false;
+  TEAMS.list.forEach((s,i)=>{const g=slotSig(s);if(g===TEAM_SIG[i])return;TEAM_SIG[i]=g;if(fromServer!==true){s.at=teamNow();ch=true}});
+  if(ch){TEAMS.updated=Math.max(TEAMS.updated||0,...TEAMS.list.map(s=>s.at||0));if(typeof teamSyncSoon==='function')teamSyncSoon()}
+  try{localStorage.setItem('pcteams',JSON.stringify(TEAMS));localStorage.setItem('pcteam',JSON.stringify(team))}catch(e){}};
 function switchTeam(i){if(i===TEAMS.cur||!TEAMS.list[i])return;saveTeam();TEAMS.cur=i;team=TEAMS.list[i].team.map(x=>({...x}));saveTeam()}
+/* 同じブラウザのほかのタブでパーティを変えたら、このタブの中身も読み直す（2026/11/12。前は古い中身のまま保存して、ほかのタブの変更を消していた）。
+   選んでいる枠はタブごとのまま */
+function teamsFromStore(v){
+  let o=null;try{o=v?JSON.parse(v):null}catch(e){return}
+  const src=o&&Array.isArray(o.list)?o.list:[];
+  const list=src.slice(0,TEAM_N).map(s=>({name:String(s&&s.name||'').slice(0,20),team:cleanTeam(s&&s.team),at:Math.max(0,Math.floor(+(s&&s.at)||0))}));
+  while(list.length<TEAM_N)list.push({name:'',team:[],at:0});
+  TEAMS.list=list;TEAMS.updated=o&&+o.updated||0;
+  TEAM_SIG=list.map(slotSig);team=list[TEAMS.cur].team.map(x=>({...x}));
+  const k=keyOf(cur);
+  if(k==='team'&&document.getElementById('slots'))teamRender();
+  else if(k==='edit'||k==='share')route();
+}
+addEventListener('storage',e=>{if(e.storageArea===localStorage&&(e.key==='pcteams'||e.key===null))teamsFromStore(e.key===null?null:e.newValue)});
 let tq='';
 function addTeam(no){
   if(team.some(x=>x.no===no)){nav('#/team');return}

@@ -39,19 +39,31 @@ function memoShown(q){
 }
 /* ---- サーバーと合わせる（ログイン中だけ） ---- */
 let MEMO_T=null;
-function memoSyncSoon(){if(typeof AUTH==='undefined'||!AUTH.user)return;clearTimeout(MEMO_T);MEMO_T=setTimeout(memoPush,1500)}
-async function memoPush(){try{await authFetch('/api/me/memo',{memo:{mon:MEMO.mon,type:MEMO.type,party:MEMO.party}})}catch(e){}}
+function memoSyncSoon(){if(typeof AUTH==='undefined'||!AUTH.user)return;clearTimeout(MEMO_T);MEMO_T=setTimeout(memoPull,1500)}
+async function memoPush(){if(typeof AUTH==='undefined'||!AUTH.user)return true;try{await authFetch('/api/me/memo',{memo:{mon:MEMO.mon,type:MEMO.type,party:MEMO.party}});return true}catch(e){return false}}
 async function memoPull(){
-  if(typeof AUTH==='undefined'||!AUTH.user)return;
-  let j;try{j=await authFetch('/api/me/memo')}catch(e){return}
+  if(typeof AUTH==='undefined'||!AUTH.user)return true;
+  let j;try{j=await authFetch('/api/me/memo')}catch(e){return false}
   const s=j&&j.memo;if(!s)return memoPush();
   let ch=false;
   for(const k of ['mon','type','party'])Object.entries(s[k]||{}).forEach(([id,e])=>{const l=MEMO[k][id];if(e&&(!l||(e.at||0)>(l.at||0))){MEMO[k][id]=e;ch=true}});
   try{localStorage.setItem('pcmemo',JSON.stringify(MEMO))}catch(e){}
   const send=['mon','type','party'].some(k=>Object.entries(MEMO[k]).some(([id,e])=>!s[k]||!s[k][id]||(e.at||0)>(s[k][id].at||0)));
-  if(send)memoPush();
-  if(ch&&typeof keyOf==='function'&&keyOf(cur)==='memo')memoView(cur.split('/').slice(2).join('/'));
+  const ok=send?await memoPush():true;
+  /* 書いている途中（入力欄にいる）なら描き直さない */
+  const typing=document.activeElement&&/^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName);
+  if(ch&&!typing&&typeof keyOf==='function'&&keyOf(cur)==='memo')memoView(cur.split('/').slice(2).join('/'));
+  return ok;
 }
+/* 同じブラウザのほかのタブでメモを変えたら、このタブの中身も読み直す（2026/11/12。書いている途中の画面は描き直さない） */
+addEventListener('storage',e=>{
+  if(e.storageArea!==localStorage||(e.key!=='pcmemo'&&e.key!==null))return;
+  let m=null;try{m=e.key===null?null:JSON.parse(e.newValue||'null')}catch(_){return}
+  m=m&&typeof m==='object'?m:{};
+  MEMO.mon=m.mon||{};MEMO.type=m.type||{};MEMO.party=m.party&&typeof m.party==='object'?m.party:{};MEMO.mode=m.mode==='manual'?'manual':'hybrid';
+  const typing=document.activeElement&&/^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName);
+  if(!typing&&typeof keyOf==='function'&&keyOf(cur)==='memo')memoView(cur.split('/').slice(2).join('/'));
+});
 /* ---- 画面：#/memo（一覧）・#/memo/番号（ポケモン）・#/memo/t/タイプ ---- */
 function memoView(arg){
   arg=decodeURIComponent(arg||'');

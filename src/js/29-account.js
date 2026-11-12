@@ -22,8 +22,28 @@ async function fbLoad(){
   const a=app.initializeApp(cfg);const auth=au.getAuth(a);auth.languageCode='ja';
   AUTH.redir=AUTH_SAMEORIGIN&&au.getRedirectResult?au.getRedirectResult(auth).catch(e=>{AUTH.redirectErr=e}):Promise.resolve();
   AUTH.fb={au,auth};
-  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch){AUTH.profile=u?undefined:null;refreshBrand()}if(u){try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
+  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch){AUTH.profile=u?undefined:null;refreshBrand()}if(u){if(ch)acOwner(u.uid);try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}else if(ch){try{localStorage.removeItem('pcin')}catch(e){}}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
   return AUTH.fb;
+}
+/* この端末のパーティ・お気に入り・戦術メモがだれのものか（localStorage pcowner＝ログインした人の uid。2026/11/12）。
+   前と違う人がログインしたら、前の人のデータを新しい人のアカウントに送らないよう、端末の分を消してからサーバーの分を読む。
+   まだだれのものでもない（ログインする前に作った）データは、はじめてログインした人のものにする（前と同じ） */
+function acOwner(uid){
+  let prev='';try{prev=localStorage.getItem('pcowner')||''}catch(e){}
+  if(prev&&prev!==uid&&typeof userLocalReset==='function')userLocalReset();
+  try{localStorage.setItem('pcowner',uid)}catch(e){}
+}
+/* ログアウト：まだ送っていない変更を送ってから、この端末の分を消す（サーバーには残るので、もう一度ログインすれば戻る） */
+async function acSignOut(){
+  const ok=typeof userFlush==='function'?await userFlush():true;
+  if(!ok&&!await askConfirm({title:'まだ保存できていない変更があります',text:'サーバーにつながりませんでした。このままログアウトすると、この端末で最後に変えたパーティ・お気に入り・戦術メモが消えることがあります。電波のよいところでもう一度お試しください。',ok:'ログアウトする'}))return false;
+  const {au,auth}=AUTH.fb;await au.signOut(auth);
+  acForget();
+  return true;
+}
+function acForget(){
+  if(typeof userLocalReset==='function')userLocalReset();
+  try{localStorage.removeItem('pcowner');localStorage.removeItem('pcin')}catch(e){}
 }
 async function authFetch(path,body){
   const h={'Content-Type':'application/json'};
@@ -95,7 +115,7 @@ async function accountView(){
     return;
   }
   /* ログイン済み：プロフィールの確認 */
-  let prof;try{prof=await loadProfile()}catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div><div class="btns"><button class="btn btn-s" id="ac-out">ログアウト</button></div>`;document.getElementById('ac-out').onclick=()=>au.signOut(auth);return}
+  let prof;try{prof=await loadProfile()}catch(e){V.innerHTML=`<div class="bnote" style="margin:16px">${esc(e.message)}</div><div class="btns"><button class="btn btn-s" id="ac-out">ログアウト</button></div>`;document.getElementById('ac-out').onclick=()=>acSignOut();return}
   const form=(p,first)=>`<div class="cform" style="padding:0 16px">
       <label>ユーザーID（半角英数字と _ の3〜15文字）<input id="ac-h" value="${esc(p?p.handle:'')}" maxlength="15" autocapitalize="off" autocomplete="off" placeholder="例：trainer_01"></label>
       <label>表示名（20文字まで）<input id="ac-n" value="${esc(p?p.name:'')}" maxlength="20" placeholder="例：トレーナー"></label>
@@ -110,7 +130,7 @@ async function accountView(){
   if(!prof){
     V.innerHTML=`<div id="ac-root"><p class="note" style="padding-top:16px">ログインできました。最後に、ほかの人に表示されるプロフィールを作りましょう。ユーザーIDはあとから変えられます。</p>${form(null,true)}
     <div class="btns"><button class="btn btn-s" id="ac-out">ログアウト</button></div></div>`;
-    bindSave(true);document.getElementById('ac-out').onclick=()=>au.signOut(auth);return;
+    bindSave(true);document.getElementById('ac-out').onclick=()=>acSignOut();return;
   }
   /* 2026/11/11 依頼主「X のアカウント画面と同じに」：上に自分のカード（アイコン・名前・@ID・ログイン中のメール・「自分のページを見る」）、
      その下は1行ずつのリスト（プロフィールを編集＝画面の上に開く編集〔69-profile-edit.js〕・非公開の切りかえ・メッセージ設定・表示とテーマ・フォローのリクエスト）、
@@ -148,12 +168,12 @@ async function accountView(){
     try{await authFetch('/api/me/private',{on});if(AUTH.profile)AUTH.profile.private=on;if(typeof haptic==='function')haptic();
       pv.setAttribute('aria-checked',String(on));document.getElementById('ac2-lk').hidden=!on;toast(on?'アカウントを非公開にしました':'アカウントを公開しました')}
     catch(e){pv.checked=!on;toast(e.message)}finally{pv.disabled=false}};
-  document.getElementById('ac-out').onclick=async()=>{if(!await askConfirm({title:'ログアウトしますか？',text:'もう一度ログインすれば、パーティや投稿はそのまま使えます。',ok:'ログアウト'}))return;await au.signOut(auth);toast('ログアウトしました')};
+  document.getElementById('ac-out').onclick=async()=>{if(!await askConfirm({title:'ログアウトしますか？',text:'もう一度ログインすれば、パーティや投稿はそのまま使えます。',ok:'ログアウト'}))return;if(await acSignOut())toast('ログアウトしました')};
   document.getElementById('ac-del').onclick=async()=>{
     const v=await askText(`削除すると元に戻せません。確認のため、ユーザーID（${prof.handle}）を入れてください`,'ユーザーID');
     if(v!==prof.handle){if(v!=null)toast('ユーザーIDが一致しませんでした');return}
-    try{await authFetch('/api/me/delete',{});await AUTH.user.delete();AUTH.profile=null;refreshBrand();toast('アカウントを削除しました')}
-    catch(e){toast(authErr(e));if(e.code==='auth/requires-recent-login'){await au.signOut(auth)}}
+    try{await authFetch('/api/me/delete',{});await AUTH.user.delete();AUTH.profile=null;acForget();refreshBrand();toast('アカウントを削除しました')}
+    catch(e){toast(authErr(e));if(e.code==='auth/requires-recent-login'){await au.signOut(auth);acForget()}}
   };
 }
 /* アカウントの画面の右の表示（メッセージ設定・表示とテーマ）。設定の画面（65-settings.js）で変えて閉じたら acSync で入れかえる */
