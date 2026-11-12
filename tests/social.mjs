@@ -363,7 +363,8 @@ r=await call('/api/me/memo',{tok:B});expect('ほかの人のメモは見えな�
 /* 使用量（2026/11/05）：AI を呼んだ回数・断られた回数が数えられ、管理者だけが見られる */
 r=await call('/api/admin/quota');expect('使用量は管理者だけ',r[0]===401,r);
 r=await call('/api/admin/quota',{admin:'admin-secret-123'});
-{const d=r[1].days&&r[1].days[r[1].today]||{};expect('使用量：AIの回数と断られた回数',r[0]===200&&d.ai>=1&&d.ai_ng>=1&&typeof r[1].opp_reads==='number',r[1]);}
+/* テストは時計を先に進めて記録するので、日本時間の0時の直前に動くと、記録の日付が「今日」より1日先になる（2026/11/12 公開で失敗）。いちばん新しい日で見る */
+{const dk=Object.keys(r[1].days||{}).sort().pop(),d=dk&&r[1].days[dk]||{};expect('使用量：AIの回数と断られた回数',r[0]===200&&d.ai>=1&&d.ai_ng>=1&&typeof r[1].opp_reads==='number',r[1]);}
 /* セキュリティ対策（2026/11/05）：管理用の合言葉の総当たり。同じ接続元から8回まちがえると、正しい合言葉でも1時間止まる。ほかの接続元は使える */
 for(let i=0;i<8;i++)await call('/api/admin/banned',{admin:'wrong-token-'+i,ip:'198.51.100.7'});
 r=await call('/api/admin/banned',{admin:'admin-secret-123',ip:'198.51.100.7'});expect('合言葉の総当たりで止まる',r[0]===429,r);
