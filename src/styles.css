@@ -2275,6 +2275,9 @@ body:has(#ac-root.ac2) .foot{display:none}
 .tw--big .tw-a .tw-like{font-size:14.4px;gap:6px}
 .tw--big .tw-a .tw-like svg{width:28.5px;height:28.5px}
 .tw-a .tw-like svg{width:23.5px;height:23.5px;stroke-width:1.6}
+/* 2026/11/12 依頼主：タイムラインの返信〜共有の絵と数は、投稿を開いた画面と同じ大きさ（箱28.5px・数14.4px）に。文字の大きさは前のまま */
+.tw-a .tw-like{font-size:14.4px;gap:6px}
+.tw-a .tw-like svg{width:28.5px;height:28.5px}
 
 /* 日本語の短い文は文節の切れ目でだけ改行（04-common.js の jaWrap） */
 .jwrap{word-break:keep-all;overflow-wrap:anywhere;line-break:strict}

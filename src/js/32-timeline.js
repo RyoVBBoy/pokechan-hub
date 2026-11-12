@@ -184,7 +184,7 @@ function twFeed(el,path,emptyMsg,o={}){
       const list=j.notes.filter(n=>!mu.has(n.user.handle.toLowerCase()));
       if(first)el.innerHTML='';
       el.querySelector('.tw-sent')?.remove();
-      el.insertAdjacentHTML('beforeend',list.map(twHtml).join(''));
+      el.insertAdjacentHTML('beforeend',list.map(n=>twHtml(n)).join(''));  /* map(twHtml) だと2つ目の引数（big）に番号が入り、2件目からが詳しい画面の大きさになっていた（2026/11/12） */
       next=j.next;done=!next;
       if(first&&!el.querySelector('.tw'))el.innerHTML=`<p class="empty" style="padding:40px 24px">${emptyMsg}</p>`;
       if(!done){el.insertAdjacentHTML('beforeend','<div class="tw-sent"><div class="btns"><button class="btn btn-s" data-more-load>もっと見る</button></div></div>');

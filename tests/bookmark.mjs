@@ -66,6 +66,9 @@ const shot=async(pg,name)=>{if(SHOT)await pg.screenshot({path:path.join(SHOT,nam
 for(const W of [390,1280]){
   const pg=await page('sakura',{width:W,height:W<700?844:900});
   await pg.goto(URL0+'#/tl');await pg.waitForSelector('.tw[data-id]',{timeout:15000});await pg.waitForTimeout(500);
+  /* 2026/11/12：一覧の投稿はどれも同じ大きさ（前は2件目から詳しい画面の大きさになっていた） */
+  const sizes=await pg.$$eval('#view .tw',a=>a.map(t=>[t.classList.contains('tw--big'),Math.round(t.querySelector('.tw-a svg').getBoundingClientRect().width*10)/10]));
+  ok(sizes.length>=2&&sizes.every(x=>!x[0]&&x[1]===28.5),W+'：一覧の投稿の絵はどれも同じ大きさ '+JSON.stringify(sizes));
   /* ① 並び */
   const order=await pg.$eval('.tw .tw-a',a=>[...a.children].map(b=>b.getAttribute('aria-label')).join('>'));
   ok(order==='返信>リポスト>いいね>ブックマーク>共有',W+'：並び '+order);
@@ -110,7 +113,7 @@ for(const W of [390,1280]){
     body:parseFloat(getComputedStyle(document.body).fontSize),tw:parseFloat(getComputedStyle(document.querySelector('#setm .fs-prev .tw-b')).fontSize),
     back:parseFloat(getComputedStyle(document.querySelector('#bm-list .tw-b')).fontSize),title:parseFloat(getComputedStyle(document.getElementById('sm-t')).fontSize),noReload:window.__noReload,
     dots:document.querySelectorAll('#setm .fs-dots i.on').length}));
-  ok(fs4.r==='3'&&fs4.cur==='とても大きい'&&fs4.save==='3'&&fs4.k==='1.124'&&fs4.dots===4&&fs4.noReload===1&&fs4.ic===23.5,W+'：いちばん大きいを選ぶと保存・絵の大きさは変わらない（X と同じ） '+JSON.stringify(fs4));
+  ok(fs4.r==='3'&&fs4.cur==='とても大きい'&&fs4.save==='3'&&fs4.k==='1.124'&&fs4.dots===4&&fs4.noReload===1&&fs4.ic===28.5,W+'：いちばん大きいを選ぶと保存・絵の大きさは変わらない（X と同じ） '+JSON.stringify(fs4));
   ok(Math.abs(fs4.tw/fs0.tw-1.124)<.02&&Math.abs(fs4.body/fs0.body-1.124)<.02&&fs4.back>fs0.tw,W+'：その場で全体の文字が1.124倍 '+[fs0.tw,fs4.tw,fs0.body,fs4.body,fs4.back]);
   if(W===390)await shot(pg,'fs-4');
   /* いちばん小さく：入力欄は16px未満にならない（iPhone が拡大しないように） */
