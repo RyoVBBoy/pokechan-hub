@@ -2,6 +2,10 @@
    キーは画面に出る日本語そのまま（前後の空白は無視）。EN_RE は数字や名前が入る文の置きかえ。
    訳が見つからない文字は日本語のまま出る（tests/i18n.mjs が主な画面の残りを一覧にする）。 */
 const EN={
+'はじめ方を選んでください。あとから入れかえ・育成の変更ができます。':'Choose how to start. You can swap Pokémon and edit sets later.',
+'おすすめパーティから始める':'Start from a recommended team','ポケモンを1匹ずつ選ぶ':'Pick Pokémon one by one',
+'変更は自動で保存されます':'Changes are saved automatically','保存中…':'Saving…','自動保存済み ✓':'Saved automatically ✓','保存できませんでした':'Could not save',
+'くわしく':'More','完了':'Done',
 /* メニュー・共通 */
 'ホーム':'Home','図鑑':'Pokédex','ツール':'Tools','パーティ':'Team','コミュニティ':'Community','メッセージ':'Messages','みんな':'Everyone','戻る':'Back','閉じる':'Close','やめる':'Cancel','決定':'OK',
 'すべて見る':'See all','すべて':'All','更新':'Refresh','クリア':'Clear','リセット':'Reset','保存する':'Save','読み込み中…':'Loading…','準備中':'Coming soon',
@@ -147,6 +151,7 @@ const EN={
 /* 数字や名前が入る文 */
 const enT=s=>EN[s]!=null?EN[s]:s;
 const EN_RE=[
+  [/^「(.+)」はまだ空です$/,(m,a)=>`“${a}” is empty`],
   [/^集計の提供元に今つながらないため、(\d+\/\d+) ?(\d+:\d+)?に読めた集計を表示しています。$/,(m,a,b)=>`The usage data source is unreachable; showing data loaded on ${a}${b?' '+b:''}.`],
   [/^集計の提供元に今つながらないため、(\d+\/\d+)に集計ありで計算したランキングを表示しています。$/,'The usage data source is unreachable; showing the ranking computed with usage data on $1.'],
   [/^(.+)の種族値の形$/,(m,a)=>`${a} stat shape`],
