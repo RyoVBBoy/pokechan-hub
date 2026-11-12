@@ -192,20 +192,35 @@ const keys=[];for(const d of imgs){const r=await w.fetch(new Request('https://x.
 ok(keys.every(Boolean),'画像を送れた');
 await call('/api/notes',TK.ren,{body:'構築の画像3枚です',media:keys});
 await go(pg,'#/u/ren');await pg.waitForTimeout(1500);
-ok(await pg.$eval('.tw-car',e=>getComputedStyle(e).display==='flex'&&getComputedStyle(e).scrollSnapType.includes('x')),'スマホでは画像が横に並んで、ぴたっと止まる');
-ok(await pg.$eval('.tw-mdw .tw-cnum',e=>e.textContent)==='1/3'&&(await pg.$$('.tw-mdw .tw-dots i')).length===3,'1/3 と点が3つ');
-await pg.$eval('.tw-car',e=>e.scrollTo({left:e.clientWidth,behavior:'instant'}));await pg.waitForTimeout(300);
-ok(await pg.$eval('.tw-mdw .tw-cnum',e=>e.textContent)==='2/3'&&await pg.$eval('.tw-dots i:nth-child(2)',e=>e.classList.contains('on')),'スワイプすると2/3・2つ目の点');
-await shot(pg,'f-carousel');
-await pg.click('.tw-car .tw-mi[data-mi="1"]');await pg.waitForTimeout(500);
+/* 2026/11/12 依頼主：スマホでも投稿の中に画像を並べて出し（1枚ずつのスワイプはやめた）、押すと大きく見る。大きく見る画面は上下にスワイプして閉じる */
+ok(await pg.$eval('.tw-md--3',e=>getComputedStyle(e).display==='grid'&&e.querySelectorAll('.tw-mi').length===3&&[...e.querySelectorAll('.tw-mi')].every(b=>{const r=b.getBoundingClientRect(),p=e.getBoundingClientRect();return r.width>0&&r.right<=p.right+1&&r.bottom<=p.bottom+1})),'スマホでも画像3枚が投稿の中に並ぶ');
+ok(!await pg.$('.tw-car,.tw-cnum,.tw-dots'),'1枚ずつのスワイプの部品は出さない');
+await shot(pg,'f-images');
+await pg.click('.tw-md--3 .tw-mi[data-mi="1"]');await pg.waitForTimeout(500);
 ok(await pg.$eval('.tw-vc',e=>e.textContent)==='2 / 3','押した画像から大きく見られる');
 await pg.$eval('.tw-vt',e=>e.scrollTo({left:e.clientWidth*2,behavior:'instant'}));await pg.waitForTimeout(300);
 ok(await pg.$eval('.tw-vc',e=>e.textContent)==='3 / 3','大きく見る画面でもスワイプで切りかえ');
 await shot(pg,'f-viewer');
+/* 上下のスワイプ：少しだけなら元に戻る・大きく動かすと閉じる（指の動きを作って送る） */
+const swipe=async(dy,steps=8,ms=20)=>pg.evaluate(async([dy,steps,ms])=>{const el=document.querySelector('.tw-vt'),x=200,y0=400;
+  const T=(y)=>new Touch({identifier:1,target:el,clientX:x,clientY:y});
+  el.dispatchEvent(new TouchEvent('touchstart',{touches:[T(y0)],bubbles:true,cancelable:true}));
+  for(let k=1;k<=steps;k++){await new Promise(r=>setTimeout(r,ms));el.dispatchEvent(new TouchEvent('touchmove',{touches:[T(y0+dy*k/steps)],bubbles:true,cancelable:true}))}
+  const mid=document.querySelector('.tw-vs:nth-child(3)').style.transform;
+  el.dispatchEvent(new TouchEvent('touchend',{touches:[],changedTouches:[T(y0+dy)],bubbles:true,cancelable:true}));return mid},[dy,steps,ms]);
+let mid=await swipe(40,8,60);await pg.waitForTimeout(400);
+ok(mid.includes('translateY(40px)'),'指に付いて画像が動く '+mid);
+ok(!!await pg.$('.tw-view')&&await pg.$eval('.tw-vs:nth-child(3)',e=>e.style.transform==='')&&await pg.$eval('.tw-vc',e=>e.textContent)==='3 / 3','少しだけなら元に戻る');
+mid=await swipe(260);await pg.waitForTimeout(500);
+ok(!await pg.$('.tw-view')&&!(await pg.evaluate(()=>document.body.classList.contains('tw-vopen'))),'下にスワイプすると閉じる');
+await pg.click('.tw-md--3 .tw-mi[data-mi="0"]');await pg.waitForTimeout(500);
+await swipe(-260);await pg.waitForTimeout(500);
+ok(!await pg.$('.tw-view'),'上にスワイプしても閉じる');
+await pg.click('.tw-md--3 .tw-mi[data-mi="0"]');await pg.waitForTimeout(400);
 await pg.click('.tw-vx');await pg.waitForTimeout(200);
-ok(!await pg.$('.tw-view'),'閉じる');
+ok(!await pg.$('.tw-view'),'✕ でも閉じる');
 {const pc=await page('sakura',{width:1280,height:860});await pc.goto(URL0+'#/u/ren');await pc.waitForTimeout(1800);
-  ok(await pc.$eval('.tw-car',e=>getComputedStyle(e).display==='grid'),'パソコンでは画像を今までどおり並べる');await shot(pc,'f-pc-images');
+  ok(await pc.$eval('.tw-md--3',e=>getComputedStyle(e).display==='grid'),'パソコンでは画像を今までどおり並べる');await shot(pc,'f-pc-images');
   await go(pc,'#/u/sakura/followers');await pc.waitForTimeout(1000);await shot(pc,'f-pc-followers');}
 /* PC の幅 */
 if(SHOT){const pc=await page('sakura',{width:1280,height:860});await pc.goto(URL0+'#/messages');await pc.waitForTimeout(1500);await shot(pc,'m-pc-list');

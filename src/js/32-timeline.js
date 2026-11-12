@@ -44,21 +44,13 @@ function twMediaHTML(n){
   if(n.media_hidden)return `<div class="tw-mh">画像は確認中です（通報があったため、運営者が確認するまで表示しません）</div>`;
   const m=n.media||[];if(!m.length)return'';
   const ar=m.length===1?Math.max(.6,Math.min(1.9,(m[0].w||4)/(m[0].h||3))):0;
-  /* 2枚以上：パソコンは今までどおり並べて表示、スマホ（699px以下）は左右にスワイプして切りかえる（2026/11/11 依頼主。CSS の .tw-car と twCarSync） */
-  const car=m.length>1;
-  const md=`<div class="tw-md tw-md--${m.length}${car?' tw-car':''}" data-mk="${m.map(x=>x.k).join(',')}"${car?' data-noswipe':''}${ar?` style="aspect-ratio:${ar.toFixed(3)}"`:''}>${m.map((x,i)=>`<button class="tw-mi" data-mi="${i}" aria-label="画像${i+1}を大きく見る"><img src="${mediaUrl(x.k)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>`;
-  return car?`<div class="tw-mdw">${md}<span class="tw-cnum" aria-hidden="true">1/${m.length}</span><span class="tw-dots" aria-hidden="true">${m.map((x,i)=>`<i${i?'':' class="on"'}></i>`).join('')}</span></div>`:md;
+  /* 2枚以上も、スマホ・パソコンとも投稿の中に並べて表示し、押すと大きく見る画面を開く（2026/11/12 依頼主：1枚ずつスワイプする形をやめる） */
+  return `<div class="tw-md tw-md--${m.length}" data-mk="${m.map(x=>x.k).join(',')}"${ar?` style="aspect-ratio:${ar.toFixed(3)}"`:''}>${m.map((x,i)=>`<button class="tw-mi" data-mi="${i}" aria-label="画像${i+1}を大きく見る"><img src="${mediaUrl(x.k)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>`;
 }
-/* スマホで画像を左右に切りかえたとき、下の点と「1/3」を合わせる（スクロールの位置から今の画像を決める） */
-function twCarSync(el){
-  const w=el.clientWidth||1,i=Math.max(0,Math.min(el.children.length-1,Math.round(el.scrollLeft/w))),box=el.parentElement;
-  if(!box||el._ci===i)return;el._ci=i;
-  box.querySelectorAll('.tw-dots i').forEach((d,k)=>d.classList.toggle('on',k===i));
-  const c=box.querySelector('.tw-cnum');if(c)c.textContent=`${i+1}/${el.children.length}`;
-}
-document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('tw-car'))requestAnimationFrame(()=>twCarSync(t))},true);
 /* 画像を画面いっぱいに見る：左右にスワイプ（スマホ）・矢印・キーで切りかえ、背景か ✕ で閉じる。
-   画像は横に並べて、指の動きにそのまま付いてくるスクロール（scroll-snap）で切りかえる＝なめらか */
+   画像は横に並べて、指の動きにそのまま付いてくるスクロール（scroll-snap）で切りかえる＝なめらか。
+   2026/11/12 依頼主：上か下にスワイプしても閉じる（X と同じ）。指に付いて画像が動き、後ろがだんだん透け、
+   少し（画面の高さの13%か速く動かす）で閉じ、足りなければ元の位置に戻る */
 function twViewer(keys,i){
   const o=document.createElement('div');o.className='tw-view';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
   o.innerHTML=`<div class="tw-vt">${keys.map(k=>`<div class="tw-vs"><img alt="" src="${mediaUrl(k)}" decoding="async"></div>`).join('')}</div><button class="tw-vx" aria-label="閉じる">${SVG(I.x,22)}</button>${keys.length>1?`<button class="tw-vp" aria-label="前の画像">‹</button><button class="tw-vn" aria-label="次の画像">›</button><span class="tw-vc"></span>`:''}`;
@@ -68,8 +60,24 @@ function twViewer(keys,i){
   const close=()=>{removeEventListener('keydown',key);document.body.classList.remove('tw-vopen');o.remove()};
   const go=k=>{k=Math.max(0,Math.min(keys.length-1,k));tr.scrollTo({left:k*tr.clientWidth,behavior:reduceMotion?'auto':'smooth'})};
   const key=e=>{if(e.key==='Escape')close();else if(e.key==='ArrowRight')go(cur_()+1);else if(e.key==='ArrowLeft')go(cur_()-1)};
-  o.onclick=e=>{if(e.target.closest('.tw-vx'))close();else if(e.target.closest('.tw-vp'))go(cur_()-1);else if(e.target.closest('.tw-vn'))go(cur_()+1);else if(!e.target.closest('img'))close()};
+  o.onclick=e=>{if(o._drag)return;if(e.target.closest('.tw-vx'))close();else if(e.target.closest('.tw-vp'))go(cur_()-1);else if(e.target.closest('.tw-vn'))go(cur_()+1);else if(!e.target.closest('img'))close()};
   tr.addEventListener('scroll',()=>requestAnimationFrame(show),{passive:true});
+  /* 上下にスワイプして閉じる */
+  let t0=null;
+  const slide=()=>tr.children[cur_()];
+  const setY=(dy,anim)=>{const s=slide();if(!s)return;const k=Math.min(1,Math.abs(dy)/(innerHeight*.5));
+    s.style.transition=anim?`transform ${anim}ms cubic-bezier(.2,.8,.2,1)`:"none";o.style.transition=anim?`background ${anim}ms`:"none";
+    s.style.transform=dy?`translateY(${dy}px) scale(${1-k*.08})`:'';
+    o.style.setProperty('--tw-vk',String(1-k*.85));o.classList.toggle('tw-vdrag',!!dy)};
+  tr.addEventListener('touchstart',e=>{if(e.touches.length!==1){t0=null;return}const p=e.touches[0];t0={x:p.clientX,y:p.clientY,t:performance.now(),mode:null,dy:0}},{passive:true});
+  tr.addEventListener('touchmove',e=>{if(!t0||e.touches.length!==1)return;const p=e.touches[0],dx=p.clientX-t0.x,dy=p.clientY-t0.y;
+    if(!t0.mode){if(Math.abs(dx)<8&&Math.abs(dy)<8)return;t0.mode=Math.abs(dy)>Math.abs(dx)*1.2?'y':'x';if(t0.mode==='y')tr.style.overflowX='hidden'}
+    if(t0.mode!=='y')return;e.preventDefault();t0.dy=dy;t0.v=dy/Math.max(1,performance.now()-t0.t);setY(dy)},{passive:false});
+  const end=()=>{if(!t0)return;const st=t0;t0=null;if(st.mode!=='y')return;tr.style.overflowX='';
+    o._drag=true;setTimeout(()=>{o._drag=false},350);
+    if(Math.abs(st.dy)>innerHeight*.13||Math.abs(st.v||0)>.6){const d=reduceMotion?0:200;setY(Math.sign(st.dy)*innerHeight,d);o.style.setProperty('--tw-vk','0');setTimeout(close,d)}
+    else setY(0,reduceMotion?0:220)};
+  tr.addEventListener('touchend',end);tr.addEventListener('touchcancel',end);
   addEventListener('keydown',key);document.body.appendChild(o);document.body.classList.add('tw-vopen');
   tr.scrollLeft=i*tr.clientWidth;show();
 }

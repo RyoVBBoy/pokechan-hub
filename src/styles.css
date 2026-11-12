@@ -2092,20 +2092,7 @@ body.dm-talk .foot{display:none}
 .dm-push .push-row{margin:8px 12px 0}
 .dm-push:empty{display:none}
 
-/* ===================== 画像を左右にスワイプして切りかえる（2026/11/11 依頼主、32-timeline.js の twMediaHTML・twCarSync・twViewer） =====================
-   指の動きにそのまま付いてくるスクロール＋ぴたっと止まる位置（scroll-snap）でなめらかに。パソコンは今までどおり並べて表示 */
-.tw-mdw{position:relative}
-.tw-cnum,.tw-dots{display:none}
-@media(max-width:699px){
-  .tw-md.tw-car{display:flex!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;gap:0;aspect-ratio:4/3!important;touch-action:pan-x pan-y}
-  .tw-md.tw-car::-webkit-scrollbar{display:none}
-  .tw-car .tw-mi{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;grid-row:auto!important}
-  .tw-mdw .tw-cnum{display:block;position:absolute;top:18px;right:10px;padding:2px 9px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;font:600 12px/18px Inter,sans-serif;pointer-events:none}
-  .tw-mdw .tw-dots{display:flex;justify-content:center;gap:6px;padding:8px 0 0}
-  .tw-dots i{width:6px;height:6px;border-radius:50%;background:var(--line);transition:background .2s,transform .2s}
-  .tw-dots i.on{background:var(--acc);transform:scale(1.25)}
-}
-@media(prefers-reduced-motion:reduce){.tw-md.tw-car{scroll-behavior:auto}}
+/* 投稿の画像は2枚以上もスマホ・パソコンとも並べて表示（2026/11/12 依頼主。前の左右にスワイプする形 .tw-car はやめた） */
 /* 大きく見る画面：横に並べてスワイプ */
 .tw-view{display:block}
 .tw-vt{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -2332,3 +2319,9 @@ body:has(#ac-root.ac2) .foot{display:none}
 .mpsheet .mp-r .row-t{color:var(--fg)}
 .mpsheet .mp-h{display:block;padding:14px 16px 6px;font-size:13px;font-weight:700;color:var(--dim)}
 .mpsheet .mp-empty{margin:22px 16px}
+
+/* 大きく見る画面を上下にスワイプして閉じる（2026/11/12、32-timeline.js の twViewer）：動かしている間、後ろの黒が透け、ボタンは薄くなる */
+.tw-view{background:rgba(0,0,0,calc(.96 * var(--tw-vk,1)))}
+.tw-view.tw-vdrag .tw-vx,.tw-view.tw-vdrag .tw-vp,.tw-view.tw-vdrag .tw-vn,.tw-view.tw-vdrag .tw-vc{opacity:0;transition:opacity .15s}
+.tw-vt{touch-action:pan-x pan-y}
+.tw-vs{will-change:transform}
