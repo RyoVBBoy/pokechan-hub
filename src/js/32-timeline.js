@@ -57,29 +57,79 @@ function twViewer(keys,i){
   const tr=o.querySelector('.tw-vt'),cnt=o.querySelector('.tw-vc');
   const cur_=()=>Math.round(tr.scrollLeft/(tr.clientWidth||1));
   const show=()=>{if(cnt)cnt.textContent=`${cur_()+1} / ${keys.length}`};
-  const close=()=>{removeEventListener('keydown',key);document.body.classList.remove('tw-vopen');o.remove()};
+  const close=()=>{removeEventListener('keydown',key);removeEventListener('mousemove',mm);removeEventListener('mouseup',mu);document.body.classList.remove('tw-vopen');o.remove()};
   const go=k=>{k=Math.max(0,Math.min(keys.length-1,k));tr.scrollTo({left:k*tr.clientWidth,behavior:reduceMotion?'auto':'smooth'})};
   const key=e=>{if(e.key==='Escape')close();else if(e.key==='ArrowRight')go(cur_()+1);else if(e.key==='ArrowLeft')go(cur_()-1)};
-  o.onclick=e=>{if(o._drag)return;if(e.target.closest('.tw-vx'))close();else if(e.target.closest('.tw-vp'))go(cur_()-1);else if(e.target.closest('.tw-vn'))go(cur_()+1);else if(!e.target.closest('img'))close()};
-  tr.addEventListener('scroll',()=>requestAnimationFrame(show),{passive:true});
-  /* 上下にスワイプして閉じる */
-  let t0=null;
+  /* 2026/11/12 依頼主「画像を大きく見る画面で拡大できない」：サイト全体はズームを止めているので、この画面だけ自分で拡大する。
+     2本の指で広げる／縮める（1〜4倍）、2回たたくと2.5倍⇔元の大きさ、拡大中は1本の指で動かす（端より外には動かない）。
+     拡大中は左右の切りかえ・上下で閉じる・背景を押して閉じるをしない（✕ では閉じる）。パソコンはホイールとダブルクリック、拡大中はドラッグで動かす */
+  const Z={s:1,x:0,y:0,img:null};
+  const zImg=()=>{const s=tr.children[cur_()];return s&&s.querySelector('img')};
+  const zBound=()=>{const im=Z.img;if(!im)return;const mx=Math.max(0,(im.offsetWidth*Z.s-tr.clientWidth)/2),my=Math.max(0,(im.offsetHeight*Z.s-tr.clientHeight)/2);
+    Z.x=Math.max(-mx,Math.min(mx,Z.x));Z.y=Math.max(-my,Math.min(my,Z.y))};
+  const zApply=anim=>{const im=Z.img;if(!im)return;im.style.transition=anim&&!reduceMotion?'transform .22s cubic-bezier(.2,.8,.2,1)':'none';
+    im.style.transform=Z.s>1.001||Z.x||Z.y?`translate(${Z.x}px,${Z.y}px) scale(${Z.s})`:'';
+    const on=Z.s>1.001;o.classList.toggle('tw-vzoom',on);tr.style.overflowX=on?'hidden':''};
+  const zSet=(s,cx,cy,anim)=>{Z.img=Z.img||zImg();if(!Z.img)return;const r=tr.getBoundingClientRect(),C={x:r.left+r.width/2,y:r.top+r.height/2};
+    s=Math.max(1,Math.min(4,s));const qx=(cx-C.x-Z.x)/Z.s,qy=(cy-C.y-Z.y)/Z.s;Z.x=cx-C.x-qx*s;Z.y=cy-C.y-qy*s;Z.s=s;if(s<=1.001){Z.s=1;Z.x=Z.y=0}zBound();zApply(anim)};
+  const zReset=anim=>{if(Z.img){Z.s=1;Z.x=Z.y=0;zApply(anim)}Z.img=null};
+  const zOn=()=>Z.s>1.001;
+  o.onclick=e=>{if(o._drag)return;if(e.target.closest('.tw-vx'))close();else if(zOn())return;else if(e.target.closest('.tw-vp'))go(cur_()-1);else if(e.target.closest('.tw-vn'))go(cur_()+1);else if(!e.target.closest('img'))close()};
+  let lastCur=-1;
+  tr.addEventListener('scroll',()=>requestAnimationFrame(()=>{show();const c=cur_();if(c!==lastCur){if(lastCur>=0)zReset(false);lastCur=c}}),{passive:true});
+  /* 上下にスワイプして閉じる（拡大していないときだけ） */
+  let t0=null,tap=null;
   const slide=()=>tr.children[cur_()];
   const setY=(dy,anim)=>{const s=slide();if(!s)return;const k=Math.min(1,Math.abs(dy)/(innerHeight*.5));
     s.style.transition=anim?`transform ${anim}ms cubic-bezier(.2,.8,.2,1)`:"none";o.style.transition=anim?`background ${anim}ms`:"none";
     s.style.transform=dy?`translateY(${dy}px) scale(${1-k*.08})`:'';
     o.style.setProperty('--tw-vk',String(1-k*.85));o.classList.toggle('tw-vdrag',!!dy)};
-  tr.addEventListener('touchstart',e=>{if(e.touches.length!==1){t0=null;return}const p=e.touches[0];t0={x:p.clientX,y:p.clientY,t:performance.now(),mode:null,dy:0}},{passive:true});
-  tr.addEventListener('touchmove',e=>{if(!t0||e.touches.length!==1)return;const p=e.touches[0],dx=p.clientX-t0.x,dy=p.clientY-t0.y;
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2});
+  const dist=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  const panStart=p=>({mode:'pan',px:p.clientX,py:p.clientY,bx:Z.x,by:Z.y,t:performance.now(),moved:false});
+  tr.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){if(t0&&t0.mode==='y')setY(0,0);Z.img=Z.img||zImg();const m=mid(e);t0={mode:'pinch',d0:dist(e),s0:Z.s,last:m};tr.style.overflowX='hidden';tap=null;return}
+    if(e.touches.length!==1){t0=null;return}
+    const p=e.touches[0];
+    if(zOn()){t0=panStart(p);return}
+    t0={x:p.clientX,y:p.clientY,t:performance.now(),mode:null,dy:0}},{passive:true});
+  tr.addEventListener('touchmove',e=>{if(!t0)return;
+    if(t0.mode==='pinch'){if(e.touches.length<2)return;e.preventDefault();const m=mid(e);
+      /* 指の真ん中が動いた分も画像を動かす */
+      Z.x+=m.x-t0.last.x;Z.y+=m.y-t0.last.y;t0.last=m;zSet(t0.s0*dist(e)/t0.d0,m.x,m.y,false);return}
+    if(t0.mode==='pan'){e.preventDefault();const p=e.touches[0];if(Math.abs(p.clientX-t0.px)+Math.abs(p.clientY-t0.py)>6)t0.moved=true;
+      Z.x=t0.bx+p.clientX-t0.px;Z.y=t0.by+p.clientY-t0.py;zBound();zApply(false);return}
+    if(e.touches.length!==1)return;const p=e.touches[0],dx=p.clientX-t0.x,dy=p.clientY-t0.y;
     if(!t0.mode){if(Math.abs(dx)<8&&Math.abs(dy)<8)return;t0.mode=Math.abs(dy)>Math.abs(dx)*1.2?'y':'x';if(t0.mode==='y')tr.style.overflowX='hidden'}
     if(t0.mode!=='y')return;e.preventDefault();t0.dy=dy;t0.v=dy/Math.max(1,performance.now()-t0.t);setY(dy)},{passive:false});
-  const end=()=>{if(!t0)return;const st=t0;t0=null;if(st.mode!=='y')return;tr.style.overflowX='';
+  const end=e=>{if(!t0)return;const st=t0;
+    if(st.mode==='pinch'){if(e&&e.touches&&e.touches.length===1){t0=panStart(e.touches[0]);return}
+      t0=null;if(Z.s<1.05)zReset(true);else zApply(false);o._drag=true;setTimeout(()=>{o._drag=false},350);return}
+    t0=null;
+    /* たたいた（動かしていない）ときだけ、2回たたくで拡大／元に戻す */
+    const p=e&&e.changedTouches&&e.changedTouches[0];
+    const still=st.mode==='pan'?!st.moved:!st.mode;
+    if(st.mode==='pan'&&st.moved){o._drag=true;setTimeout(()=>{o._drag=false},350)}
+    if(p&&still&&performance.now()-st.t<300){const now=performance.now();
+      if(tap&&now-tap.t<320&&Math.hypot(p.clientX-tap.x,p.clientY-tap.y)<30&&e.target.closest&&e.target.closest('.tw-vs')){tap=null;o._drag=true;setTimeout(()=>{o._drag=false},350);
+        if(zOn())zReset(true);else{Z.img=zImg();zSet(2.5,p.clientX,p.clientY,true)}if(e.cancelable)e.preventDefault();return}
+      tap={t:now,x:p.clientX,y:p.clientY}}
+    if(st.mode!=='y'){if(!zOn())tr.style.overflowX='';return}
+    tr.style.overflowX='';
     o._drag=true;setTimeout(()=>{o._drag=false},350);
     if(Math.abs(st.dy)>innerHeight*.13||Math.abs(st.v||0)>.6){const d=reduceMotion?0:200;setY(Math.sign(st.dy)*innerHeight,d);o.style.setProperty('--tw-vk','0');setTimeout(close,d)}
     else setY(0,reduceMotion?0:220)};
   tr.addEventListener('touchend',end);tr.addEventListener('touchcancel',end);
+  /* パソコン：ホイールで拡大・縮小、ダブルクリックで2.5倍⇔元、拡大中はドラッグで動かす */
+  tr.addEventListener('wheel',e=>{if(!e.target.closest('img')&&!zOn())return;e.preventDefault();Z.img=Z.img||zImg();zSet(Z.s*Math.exp(-e.deltaY*(e.ctrlKey?.01:.0015)),e.clientX,e.clientY,false)},{passive:false});
+  tr.addEventListener('dblclick',e=>{if(!e.target.closest('img'))return;e.preventDefault();if(zOn())zReset(true);else{Z.img=zImg();zSet(2.5,e.clientX,e.clientY,true)}});
+  let md=null;
+  tr.addEventListener('mousedown',e=>{if(!zOn()||e.button)return;e.preventDefault();md={px:e.clientX,py:e.clientY,bx:Z.x,by:Z.y,moved:false}});
+  const mm=e=>{if(!md)return;if(Math.abs(e.clientX-md.px)+Math.abs(e.clientY-md.py)>4)md.moved=true;Z.x=md.bx+e.clientX-md.px;Z.y=md.by+e.clientY-md.py;zBound();zApply(false)};
+  const mu=()=>{if(md&&md.moved){o._drag=true;setTimeout(()=>{o._drag=false},50)}md=null};
+  addEventListener('mousemove',mm);addEventListener('mouseup',mu);
   addEventListener('keydown',key);document.body.appendChild(o);document.body.classList.add('tw-vopen');
-  tr.scrollLeft=i*tr.clientWidth;show();
+  tr.scrollLeft=i*tr.clientWidth;show();lastCur=cur_();
 }
 /* 画像を縮める：長い辺1600px・WebP（使えなければ JPEG）。描き直すので、撮影場所などの情報（EXIF）は残らない */
 async function twShrink(file,maxSide=1600){

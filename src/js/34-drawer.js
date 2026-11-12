@@ -48,7 +48,7 @@ function drawerHTML(){
     <details class="dr-d"><summary>${SVG(I.help,22)}<span>ヘルプセンター</span></summary>
       <div class="dr-set">
         <section class="dr-sec" aria-label="ヘルプとサポート"><h3 class="dr-sh">ヘルプ＆サポート</h3>
-          ${drLink('#/rules',I.chat,'コミュニティの利用ルール')}${drLink('#/guide',I.book,'基本ルール（計算式など）')}${drLink('#/sources',I.info,'データの出典と確認状況')}${drLink('#/contact',I.mail,'お問い合わせ')}${drLink('#/contact',I.flag,'この画面の間違いを報告',' data-report')}</section>
+          ${drLink('#/help',I.help,'ツールの使い方')}${drLink('#/rules',I.chat,'コミュニティの利用ルール')}${drLink('#/guide',I.book,'基本ルール（計算式など）')}${drLink('#/sources',I.info,'データの出典と確認状況')}${drLink('#/contact',I.mail,'お問い合わせ')}${drLink('#/contact',I.flag,'この画面の間違いを報告',' data-report')}</section>
       </div></details>
   </nav>`;
 }

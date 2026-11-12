@@ -2328,3 +2328,33 @@ body:has(#ac-root.ac2) .foot{display:none}
 .tw-view.tw-vdrag .tw-vx,.tw-view.tw-vdrag .tw-vp,.tw-view.tw-vdrag .tw-vn,.tw-view.tw-vdrag .tw-vc{opacity:0;transition:opacity .15s}
 .tw-vt{touch-action:pan-x pan-y}
 .tw-vs{will-change:transform}
+
+/* 画像を大きく見る画面の拡大（2026/11/12、32-timeline.js の twViewer）：拡大中は前後の矢印・枚数を隠し、画像は手でつかむ形のカーソル */
+.tw-vs img{transform-origin:50% 50%;will-change:transform;touch-action:none;-webkit-user-drag:none;user-select:none}
+.tw-view.tw-vzoom .tw-vp,.tw-view.tw-vzoom .tw-vn,.tw-view.tw-vzoom .tw-vc{opacity:0;pointer-events:none}
+.tw-view.tw-vzoom .tw-vs img{cursor:grab}
+.tw-vs{overflow:hidden}
+/* はじめての方へのカードと、ツールの使い方（2026/11/12、73-help.js） */
+.ht-tip{margin:12px 12px 4px;padding:14px 14px 12px;border-radius:16px;background:var(--card);border:1px solid var(--card-b);box-shadow:var(--card-s);border-left:4px solid var(--accf);animation:ht-in .28s cubic-bezier(.2,.8,.2,1)}
+.ht-tip.ht-out{opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s}
+@keyframes ht-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.ht-tip{animation:none}}
+.ht-top{display:flex;align-items:center;gap:8px}
+.ht-top b{flex:1;min-width:0;font-size:15px;color:var(--fg)}
+.ht-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(var(--acc-rgb),.14);color:var(--acc);flex:none}
+.ht-x{display:grid;place-items:center;width:40px;height:40px;margin:-8px -8px -8px 0;border:0;border-radius:50%;background:none;color:var(--dim);cursor:pointer}
+.ht-x:hover{background:var(--hov)}
+.ht-steps{margin:10px 0 0;padding:0 0 0 1.4em;font-size:14px;line-height:1.6;color:var(--fg)}
+.ht-steps li{margin:3px 0}
+.ht-steps li::marker{color:var(--acc);font-weight:800}
+.ht-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ht-btns .btn{min-height:40px}
+.ht-ric{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(var(--acc-rgb),.12);color:var(--acc);flex:none}
+.ht-doc{margin:12px;padding:18px 16px;border-radius:16px;background:var(--card);border:1px solid var(--card-b);box-shadow:var(--card-s)}
+.ht-hd{display:flex;align-items:center;gap:12px}
+.ht-hd h2{margin:0;font-size:20px}
+.ht-lead{margin:12px 0 4px;font-size:14.5px;line-height:1.7;color:var(--fg)}
+.ht-doc h3{margin:18px 0 6px;font-size:15px}
+.ht-steps--big{font-size:15px;line-height:1.7}
+.ht-steps--big li{margin:6px 0}
+.ht-tips{margin:0;padding:0 0 0 1.2em;font-size:14px;line-height:1.7;color:var(--dim)}
