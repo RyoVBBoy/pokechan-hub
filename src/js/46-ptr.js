@@ -44,7 +44,9 @@ function ptrSynth(c,out,t,kind){
     const fh=c.createBiquadFilter();fh.type='highpass';fh.frequency.value=1500;const gh=c.createGain();
     gh.gain.setValueAtTime(.0001,t);gh.gain.exponentialRampToValueAtTime(.05,t+.07);gh.gain.exponentialRampToValueAtTime(.0005,t+.12);
     s1.connect(fh);fh.connect(gh);gh.connect(g);
-    g.gain.value=2.4;s1.start(t);s1.stop(t+L);
+    /* 2026/11/12 依頼主「1音目（シュッ）が大きいので2音目（ポッ）にそろえて」：スマホのスピーカーに近い聞こえ方（900Hz より低い音が弱い）で、
+       2つの音の強さ（0.3秒の中の音の量）が同じになるように 2.4→1.55 に下げた */
+    g.gain.value=1.55;s1.start(t);s1.stop(t+L);
   }else{
     /* ポッ：澄んだ音で、高さが上がる（590→1100Hz、約0.03秒） */
     const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(590,t);o.frequency.exponentialRampToValueAtTime(1120,t+.026);
