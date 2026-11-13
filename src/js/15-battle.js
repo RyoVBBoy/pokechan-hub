@@ -383,19 +383,25 @@ const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
 const chM=(c,m)=>(c*m+2048)>>12;
 const apM=(v,c)=>pR(v*c/4096);
 const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
+/* ばけのかわがはがれたときに減るHP：最大HPの1/8。端数は切り捨て、ただし最低1
+   （ポケモン対戦シミュレーター Showdown の処理と同じ：this.damage(baseMaxhp/8) → 1未満は1にし、小数を切り捨てる。チャンピオンズ用の変更もない） */
+const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
 function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
   if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
-  if(d.disg&&!ig)return{dmg:0,eff:1,disg:true};
   const mk=mkey(mv);
   let eff=mult(t,d.p.t);
   if(mk==='freezedry'&&d.p.t.includes('みず'))eff=mult(t,d.p.t.filter(x=>x!=='みず'))*2;
   if(mk==='flyingpress')eff=mult('かくとう',d.p.t)*mult('ひこう',d.p.t);
   if(!eff&&a.ab==='scrappy'&&(t==='ノーマル'||t==='かくとう')&&d.p.t.includes('ゴースト'))eff=mult(t,d.p.t.filter(x=>x!=='ゴースト'));
   if(!eff)return{dmg:0,eff:0};
+  /* ばけのかわ（2026/11/13 見直し）：タイプで効かない技でははがれない（上で先に0を返す）。効く技（固定ダメージの技・急所も）の1発目は
+     技のダメージを0にして、はがれる。かわりに最大HPの1/8（disgLoss）が減る。この減少は技のダメージではないので dmg には入れず loss で返す。
+     かたやぶりは、ばけのかわを無視してふつうにダメージを与える（はがれない） */
+  if(d.disg&&!ig)return{dmg:0,eff,disg:true,loss:disgLoss(d)};
   const fx=fixedDmg(a,mv,d);if(fx!=null)return{dmg:fx,eff,fixed:true};
   /* シェルアームズ：物理と特殊でダメージが大きいほうになる */
   let phys=!mv.cls;
@@ -490,7 +496,10 @@ function bcalc(a,mv,d,o){
    1発ごとに、その時点の相手のHP（マルチスケイルは満タンのときだけ）・乱数（o.rolls[i]、なければ o.r）・急所（o.crits[i]、なければ o.crit）で bcalc を呼ぶ。
    半減きのみは最初に効いた当たりで使われ、次の当たりからは効かない。トリプルアクセルは 20→40→60、おやこあいは2発目が1/4。
    当たる回数：o.hits があればそれ。なければ 決まった回数の技はその回数、スキルリンクは最大、ネズミざんは10回、2〜5回の技は3回。
-   相手が途中で倒れても、合計は全部の当たりを足す（ほかの計算機と同じ見せ方。倒せるかは koInfo で見る） */
+   相手が途中で倒れても、合計は全部の当たりを足す（ほかの計算機と同じ見せ方。倒せるかは koInfo で見る）。
+   ばけのかわ（2026/11/13）：残っていれば最初の当たりは技のダメージ0（dmg:0, disg:true）で、かわりに最大HPの1/8（loss）が減り、はがれる。
+   この減少で倒れたら、そこで止める（あとの当たりはない＝fainted）。倒れなければ、残りの当たりはふつうのダメージ（その時点のHP・乱数・急所）。
+   total は技のダメージだけ（ばけのかわの減少は入れない）。HPの減りは total＋loss */
 function mhCount(a,mv,o){
   if(!(mv.maxH>1))return 1;
   /* 回数が決まった技とスキルリンク（いつも最大）は、選んだ回数より優先する */
@@ -501,7 +510,7 @@ function mhCount(a,mv,o){
 function bhits(a,mv,d,o){
   o=o||{};const k=mkey(mv),n=mhCount(a,mv,o);
   const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&fixedDmg(a,mv,d)==null;
-  const hp0=d.hp,it0=d.item,out=[];let hp=hp0,eff=null;
+  const hp0=d.hp,it0=d.item,dg0=d.disg,out=[];let hp=hp0,eff=null,loss=0,fainted=false;
   try{
     for(let i=0;i<(pb?2:n);i++){
       d.hp=Math.max(0,hp);
@@ -509,13 +518,21 @@ function bhits(a,mv,d,o){
       const m=k==='tripleaxel'?{...mv,pow:[20,40,60][i]||60}:mv;
       const x=bcalc(a,m,d,{...o,r,crit:cr,pb:pb&&i===1});
       if(eff==null)eff=x.eff;
+      if(x.disg){
+        /* ばけのかわ：この当たりは技のダメージ0・急所にもならない。最大HPの1/8が減り、はがれる */
+        loss=x.loss;out.push({dmg:0,disg:true,loss,crit:false,r:r||null,hp:d.hp});
+        d.disg=false;hp-=loss;
+        if(hp<=0){fainted=true;break}
+        continue;
+      }
       out.push({dmg:x.dmg,crit:cr,r:r||null,hp:d.hp});
       if(!x.eff)break;
       if(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,m)&&(x.eff>=2||d.item==='chilanberry'))d.item=null;
       hp-=x.dmg;
     }
-  }finally{d.hp=hp0;d.item=it0}
-  return{hits:out,total:out.reduce((s,h)=>s+h.dmg,0),eff,n:pb?2:n};
+  }finally{d.hp=hp0;d.item=it0;d.disg=dg0}
+  const total=out.reduce((s,h)=>s+h.dmg,0);
+  return{hits:out,total,eff,n:pb?2:n,loss,hpLoss:total+loss,fainted:fainted||hp<=0,disgFaint:fainted};
 }
 /* 1回の使用の合計ダメージの分布（当たりごとに乱数は別々）。[[合計,確率],…]。1発ごとの値は乱数によらず状態が同じ（2発目からは満タンでない等）なので、乱数ごとの値を畳み込む */
 function hitDist(a,mv,d,o){
@@ -589,12 +606,20 @@ function runTurn(){
       if(t.prot){log(`${bn(t)}は 攻撃を まもった！`);continue}
       if(Math.random()*100>=accOf(b,mv,t)){log(`${bn(b)}の 攻撃は 外れた！`);if(mv.e&&mv.e.cx){b.hp=Math.max(0,b.hp-Math.floor(b.max/2));log(`${bn(b)}は 反動を 受けた！`);if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は たおれた！</span>`)}}continue}
       const hits=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:b.ab==='skill-link'?5:[2,2,3,3,4,5][rnd(6)]):1;
-      let tot=0,eff=1,n=0,none=false,abs=null;
+      let tot=0,eff=1,n=0,none=false,abs=null,dsg=0;
       for(let h=0;h<hits&&!t.fainted;h++){
         const cr=(mv.e&&mv.e.cr)||0,crit=Math.random()<[1/24,1/8,1/2,1][Math.min(3,cr)];
         const r=bcalc(b,mv,t,{roll:true,spread,crit});if(crit&&r.eff&&!r.absorb&&!r.disg)log('急所に 当たった！');
         if(r.absorb){abs=r.absorb;break}
-        if(r.disg){t.disg=false;log(`${bn(t)}の ばけのかわが はがれた！`);none=true;break}
+        /* ばけのかわ（2026/11/13 見直し）：前はここで連続技を止め、HPも減らしていなかった。
+           この当たりの技のダメージは0。はがれて最大HPの1/8が減る（技のダメージではない）。0になれば倒れて、残りの当たりはない（for の !t.fainted）。
+           倒れなければ、同じ技の残りの当たりはふつうに受ける */
+        if(r.disg){t.disg=false;n++;B.hit.push(t);
+          const ls=Math.min(r.loss,t.hp);t.hp-=ls;dsg=ls;
+          log(`${bn(t)}の ばけのかわが はがれた！ 技の ダメージは 受けなかったが、HPが ${ls}（最大HPの1/8） へった`);
+          if(!t.hp)t.fainted=true;
+          else if(t.item==='sitrusberry'&&t.hp*2<=t.max){t.hp=Math.min(t.max,t.hp+Math.floor(t.max/4));t.item=null;log(`${bn(t)}は オボンのみで 回復した！`)}
+          continue}
         if(!r.eff){none=true;break}
         eff=r.eff;let dm=r.dmg;
         if(t.hp===t.max&&dm>=t.hp){if(t.ab==='sturdy'&&b.ab!=='mold-breaker'){dm=t.hp-1;log(`${bn(t)}は がんじょうで もちこたえた！`)}else if(t.item==='focussash'){dm=t.hp-1;t.item=null;log(`${bn(t)}は きあいのタスキで もちこたえた！`)}}
@@ -618,7 +643,7 @@ function runTurn(){
       const pc=Math.round(tot/t.max*100);
       if(t.side!==b.side&&eff>=2)B.se[b.side]++;
       const txt=eff>=2?`<span class="se">こうかは ばつぐんだ！${eff>=4?'(4倍) ':''}</span>`:eff<1?'<span class="nv">こうかは いまひとつ…</span>':'';
-      log(`${txt}${bn(t)}に ${pc}%${n>1?`（${n}回）`:''}`);
+      if(!(dsg&&n===1))log(`${txt}${bn(t)}に ${pc}%${n>1?`（${n}回）`:''}${dsg?'（ばけのかわの分を除く技のダメージ）':''}`);
       if(mv.drain>0){const hv=Math.floor(tot*mv.drain/100);b.hp=Math.min(b.max,b.hp+hv)}
       if(mv.drain<0&&!b.fainted){b.hp=Math.max(0,b.hp-Math.floor(tot*-mv.drain/100));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は 反動で たおれた！</span>`)}}
       if(t.fainted){log(`<span class="ko">${bn(t)}は たおれた！</span>`);if(b.ab==='moxie'&&!b.fainted)chg(b,'atk',1,log,'じしんかじょう')}

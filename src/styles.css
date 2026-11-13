@@ -2439,6 +2439,7 @@ body:has(#ac-root.ac2) .foot{display:none}
 .cv-res .cv-ko{font-size:14px;font-weight:700;color:var(--dim)}
 .cv-raw{margin-top:2px;font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
 .cv-raw span{margin:0 4px}
+.cv-disg{margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:var(--acc-t);font-size:12.5px;line-height:1.55;color:var(--fg)}
 /* 右下の⚡：画面の右の端に収まるつまみ・入力中は隠す */
 .fab{transition:width .2s ease,height .2s ease,border-radius .2s ease,clip-path .2s ease}
 .fabwrap .fabin{transition:padding .2s ease}
