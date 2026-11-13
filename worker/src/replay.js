@@ -101,13 +101,17 @@ async function replayApi(req,env,db,path,now){
     const t0=Date.now();
     const rs=await Promise.allSettled(chunks.map(async ch=>{
       const parts=[];ch.forEach(f=>{parts.push({text:rpSec(f.t)});parts.push({inline_data:{mime_type:'image/jpeg',data:f.d}})});parts.push({text:REPLAY_PROMPT});
-      const {text}=await gemText(env,{contents:[{parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}},true);
+      /* 1つの束が遅くても全体を待たせない（2026/11/13 依頼主の iPhone で、読み取りが150秒を超えてサイトが待つのをやめた）。
+         決めた時間（はじめ100秒）を過ぎた束は「読めなかった」にして、読めた束だけで返す */
+      let tm;const {text}=await Promise.race([gemText(env,{contents:[{parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}},true),
+        new Promise((_,rej)=>{tm=setTimeout(()=>rej(new Error('時間切れ')),+env.RP_BATCH_MS||100000)})]).finally(()=>clearTimeout(tm));
       const x=rpParse(text);if(!x)throw new Error('AIの答えの形が正しくありませんでした');return x;
     }));
     const bs=rs.map((r,i)=>({t0:chunks[i][0].t,t1:chunks[i][chunks[i].length-1].t,x:r.status==='fulfilled'?r.value:null}));
     if(!bs.some(x=>x.x)){
       /* 全部の束が読めなかった：AI の混雑・無料枠なら busy（サイトは手で記録する欄を開く）。回数には数えない */
       const why=rs.map(r=>String(r.reason&&r.reason.message||r.reason||''));
+      if(why.every(w=>/時間切れ/.test(w)))return J({error:'AIの読み取りに時間がかかりすぎました。少し時間をおいてもう一度試すか、手で記録してください。'},504);
       if(why.some(w=>/混雑|無料枠|Gemini (429|5\d\d)/.test(w)))return J({error:'AIが混み合っていて、いまは読み取れません。',busy:true},503);
       return J({error:'AIの読み取りがうまくいきませんでした。少し時間をおいてもう一度試すか、手で記録してください。',detail:why[0].slice(0,80)},502);
     }

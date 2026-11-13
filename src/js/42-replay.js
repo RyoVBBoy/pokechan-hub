@@ -3,7 +3,7 @@
    AI が読んだ事実（相手の6匹・お互いの選出・相手の技と持ち物・勝ち負け）を直してから記録し、記録から勝率や苦手な相手を出す。
    動画そのものはどこにも送らない・保存しない */
 const RP={read:null,list:null,busy:false,saving:false};
-const RP_MAXF=96,RP_SEEKS=700,RP_FEW=5;
+const RP_MAXF=96,RP_SEEKS=700,RP_FEW=5,RP_AI_WAIT=300000;
 const rpErr=(m,code)=>Object.assign(new Error(m),{code});
 /* 決めた時間で待つのをやめる（動画が開けない・読み取りの返事が来ないままにしない） */
 const rpWait=(p,ms,m)=>{let tm;return Promise.race([p,new Promise((_,rej)=>{tm=setTimeout(()=>rej(rpErr(m,'timeout')),ms)})]).finally(()=>clearTimeout(tm))};
@@ -58,6 +58,7 @@ function rpErrText(err){
   if(s===429)return'今日のAI読み取りの回数（1日20本）を使い切りました（明日また使えます）。';
   if(s===503)return/設定/.test(err.message||'')?err.message:'AIが混み合っていて、いまは読み取れません。少し時間をおいてもう一度試してください。';
   if(s===401)return'ログインの期限が切れました。もう一度ログインしてください。';
+  if(s===504)return'AIの読み取りに時間がかかりすぎました。少し時間をおいてもう一度試すか、手で記録してください。';
   if(s===400||s===404)return err.message||'送った内容を読めませんでした。';
   if(s>=500)return'AIの読み取りがうまくいきませんでした（サーバーの不具合か時間切れ）。少し時間をおいてもう一度試してください。';
   if(err&&err.code==='timeout')return err.message||'時間がかかりすぎたため、読み取りをやめました。';
@@ -106,8 +107,10 @@ async function replayView(){
     try{msg('1/3　動画から場面を取り出しています…（この端末の中で行います）');
       const X=await rpFrames(f,(i,n,k)=>msg(`1/3　動画から場面を取り出しています… ${Math.round(i/n*100)}%（画面が変わった場面 ${k}枚）`));
       stage='ai';
-      msg(`2/3　AIが読み取っています…（${X.frames.length}枚・30〜60秒ほど）。この画面のままお待ちください。`);
-      const j=await rpWait(authFetch('/api/replay-read',{frames:X.frames}),150000,'AIの読み取りに時間がかかりすぎたため、待つのをやめました。少し時間をおいてもう一度試すか、手で記録してください。');
+      /* 待っている間は経過の秒数を出す（止まっていないと分かるように）。サーバーは遅い束を100秒で切るので、ここでは長めに待つ（2026/11/13：150秒で待つのをやめていた） */
+      const t0=Date.now(),aiMsg=()=>msg(`2/3　AIが読み取っています…（${X.frames.length}枚・${Math.round((Date.now()-t0)/1000)}秒経過。1〜2分ほど、長いときは3分ほどかかります）。この画面のままお待ちください。`);
+      aiMsg();const tick=setInterval(()=>{if(document.getElementById('rp-msg'))aiMsg();else clearInterval(tick)},1000);
+      let j;try{j=await rpWait(authFetch('/api/replay-read',{frames:X.frames}),RP_AI_WAIT,'AIの読み取りに時間がかかりすぎたため、待つのをやめました。少し時間をおいてもう一度試すか、手で記録してください。')}finally{clearInterval(tick)}
       if(!document.getElementById('rp-msg'))return;
       const r=rpFromRead(j,team.map(x=>x.no));
       if(X.step>1.05)r.warn.push(`長い動画なので、${X.step}秒ごとに見ています。短い時間だけ出た文字は読めていないことがあります。`);

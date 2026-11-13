@@ -23,7 +23,7 @@ globalThis.fetch=async(u,o)=>{u=String(u);
   if(u.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[jwk]}));
   if(u.includes('generativelanguage')&&u.includes('/models?'))return new Response(JSON.stringify({models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']}]}));
   if(u.includes('generativelanguage')&&u.includes(':generateContent')){CALLS++;const b=JSON.parse(o.body),t0=parseInt(b.contents[0].parts[0].text);
-    const a=SCRIPT[t0]??SCRIPT.def;if(typeof a==='number')return new Response(JSON.stringify({error:{message:'x'}}),{status:a});return gemReply(typeof a==='string'?a:JSON.stringify(a||{}))}
+    const a=SCRIPT[t0]??SCRIPT.def;if(a&&a.__slow){await new Promise(r=>setTimeout(r,a.__slow));return gemReply(JSON.stringify(a.x||{}))}if(typeof a==='number')return new Response(JSON.stringify({error:{message:'x'}}),{status:a});return gemReply(typeof a==='string'?a:JSON.stringify(a||{}))}
   return new Response('',{status:404})};
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
 const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key'};
@@ -72,6 +72,12 @@ r=await read({def:{format:7,result:'draw',opponent_team:'ガブリアス',my_tea
 expect('型の違う答えでも止まらず、使える所だけ使う',r[0]===200&&r[1].fmt===null&&r[1].result===null&&r[1].opp.length===0&&r[1].my.join()==='6',r[1]);
 r=await read({0:S1,12:{opponent_team:['バンギラス','メタグロス','ペリッパー','イダイトウ','ハリーマン','シャワーズ']},24:S3});
 expect('6匹が場面によって違う：知らせる',r[1].warn.some(x=>/相手の6匹が、場面によって違って/.test(x)),r[1].warn);
+/* 遅い束は決めた時間で切って、読めた束だけ返す（2026/11/13 依頼主の iPhone で150秒を超えた件） */
+env.RP_BATCH_MS=300;
+{const t0=Date.now();r=await read({0:S1,12:{__slow:2000,x:S2},24:S3});
+expect('遅い束を待たずに返す・その場面は読めなかったと知らせる',r[0]===200&&Date.now()-t0<1500&&r[1].batches.failed===1&&r[1].opp.length===6&&r[1].result==='win'&&r[1].warn.some(x=>/12秒〜23秒/.test(x)),[Date.now()-t0,r[1].batches]);}
+r=await read({def:{__slow:2000,x:S1}},B);expect('全部の束が時間切れ：504（回数に数えない）',r[0]===504&&/時間がかかりすぎ/.test(r[1].error),r);
+delete env.RP_BATCH_MS;
 /* 全部失敗：回数に数えない・理由を返す */
 const cnt=async()=>(await env.DB.prepare('SELECT COUNT(*) AS c FROM replay_reads WHERE uid=?').bind('rpB').first()).c;
 const c0=await cnt();
@@ -197,7 +203,7 @@ ok(!(await pg.$('#rp-save'))&&SV.battles[0].opp.join()==='445,149,1000'&&SV.batt
 SV.slow=0;await wait(300);
 t=await pg.textContent('#rp-stats');ok(/勝ち負けがわからない対戦が1件/.test(t)&&/勝敗不明/.test(t),'わからない対戦は勝敗不明として出す',t.slice(0,300));
 /* 読み取りの失敗 → 手で記録する欄が開く */
-for(const [st,re] of [[429,/回数.*使い切りました/],[503,/混み合って/],[502,/うまくいきませんでした/]]){
+for(const [st,re] of [[429,/回数.*使い切りました/],[503,/混み合って/],[502,/うまくいきませんでした/],[504,/時間がかかりすぎ/]]){
   await pg.evaluate(()=>{RP.read=null;rpEdit()});SV.read=st;
   await pg.setInputFiles('#rp-file',path.join(ROOT,'tests/fixtures/rp-scenes.webm'));
   await pg.waitForSelector('#rp-msg .rp-bad',{timeout:30000});await wait(200);t=await pg.textContent('#rp-root');
