@@ -196,7 +196,7 @@ function headline(opps,mine,sc,demo){
 /* ===================== 対戦計算（サイトの選出アシストと同じ計算） =====================
    build.py がサイト（champions-hub.html）から計算部分とデータを取り込みます。 */
 const ENG=__ENGDATA__;
-const MV=ENG.MV,MVE=ENG.MVE,LSD=ENG.LSD,ABD=ENG.ABD,MVK=ENG.MVK,ABK=ENG.ABK,ABN=ENG.ABN;
+const MV=ENG.MV,MVE=ENG.MVE,LSD=ENG.LSD,ABD=ENG.ABD,MVK=ENG.MVK,ABK=ENG.ABK,ABN=ENG.ABN,MVN=ENG.MVN||{};
 const B={weather:null};
 let FMT='single';
 const byNo=BYNO;

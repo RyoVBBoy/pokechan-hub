@@ -59,6 +59,8 @@ def obj(name, pat=None):
 funcs = '\n'.join(get(n) for n in NAMES)
 eng = {k: obj(k) for k in DATA}
 eng['MVE'] = obj('MVE', r'MVE=(\{.*?\});')
+# 技の名前（変化技も入れた全部の技。MV は攻撃技だけ）：対戦の振り返りで相手が使った「まもる」等も番号にするため
+eng['MVN'] = {k: v[0] for k, v in obj('MD').items()}
 sp = open(os.path.join(SRC, 'species.txt'), encoding='utf-8').read()
 raw, tc = open(os.path.join(SRC, 'chart.txt'), encoding='utf-8').read().split('\n')
 code = open(os.path.join(SRC, 'worker_src.js'), encoding='utf-8').read()
