@@ -54,12 +54,24 @@ async function rpGem(env,parts,ms){
         if(r.ok){const j=await Promise.race([r.json(),stop]);const c=(j.candidates||[])[0]||{};return(c.content&&c.content.parts||[]).map(p=>p.text||'').join('')}
         const t=await Promise.race([r.text(),stop]);
         if(r.status===400&&gc.thinkingConfig&&/thinking/i.test(t))continue;
-        last=rpE([429,503].includes(r.status)?'busy':'error',`AI ${r.status}`);break;
+        /* 断られたときに Google が「〇秒待って」と返すことがある（retryDelay）。読み直す前に待つ秒数に使う */
+        const wt=+((t.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/)||[])[1]||0);
+        last=Object.assign(rpE([429,503].includes(r.status)?'busy':'error',`AI ${r.status}`),{wait:wt});break;
       }catch(e){if(e.why==='timeout'||ctl.signal.aborted)throw rpE('timeout','時間切れ');last=rpE('error',String(e.message||e).slice(0,60));break}
       finally{clearTimeout(tm)}
     }
   }
   throw last;
+}
+/* Gemini に断られたときの予備：ANTHROPIC_API_KEY があれば Claude で同じ束を読む（選出画面の読み取りと同じ考え方） */
+async function rpClaude(env,ch,ms){
+  const content=[];ch.forEach(f=>{content.push({type:'text',text:rpSec(f.t)});content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:f.d}})});content.push({type:'text',text:REPLAY_PROMPT});
+  const ctl=new AbortController();let tm;const stop=new Promise((_,rej)=>{tm=setTimeout(()=>{try{ctl.abort()}catch(e){}rej(rpE('timeout','時間切れ'))},ms)});
+  try{const r=await Promise.race([fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ctl.signal,headers:{'x-api-key':env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01','content-type':'application/json'},
+      body:JSON.stringify({model:env.MODEL||'claude-haiku-5-5',max_tokens:1500,messages:[{role:'user',content}]})}),stop]);
+    if(!r.ok)throw rpE([429,529,503].includes(r.status)?'busy':'error',`AI2 ${r.status}`);
+    const j=await Promise.race([r.json(),stop]);return(j.content||[]).map(c=>c.text||'').join('');
+  }catch(e){if(e.why)throw e;throw rpE(ctl.signal.aborted?'timeout':'error',String(e.message||e).slice(0,60))}finally{clearTimeout(tm)}
 }
 /* 決めた数ずつ同時に動かす（8か所を一度に送ると AI に断られやすい） */
 async function rpPool(items,n,fn){const out=new Array(items.length);let i=0;
@@ -133,18 +145,20 @@ async function replayApi(req,env,db,path,now){
     const fr=(Array.isArray(b.frames)?b.frames:[]).slice(0,100).filter(f=>f&&typeof f.d==='string'&&f.d.length<400000&&/^[A-Za-z0-9+/=]+$/.test(f.d.slice(0,100))).map(f=>({t:Number.isFinite(+f.t)?Math.max(0,+f.t):0,d:f.d}));
     if(fr.length<3)return J({error:'動画から静止画を取り出せませんでした。'},400);
     fr.sort((x,y)=>x.t-y.t);
-    /* 1回で全部送ると時間切れ（524）になりやすいので、12枚ずつに分けて同時に読み、あとで時間の順に合わせる */
-    const chunks=[];for(let i=0;i<fr.length;i+=12)chunks.push(fr.slice(i,i+12));
+    /* 束に分けて読み、あとで時間の順に合わせる。2026/11/13：12枚ずつ8回を同時に呼ぶと AI の無料枠の回数の上限に当たっていた
+       （依頼主の iPhone で8か所中6か所が「混み合っていた・回数の上限」）→ 24枚ずつ（96枚で4回）・2つずつに減らした */
+    const CH=+env.RP_CHUNK||24,chunks=[];for(let i=0;i<fr.length;i+=CH)chunks.push(fr.slice(i,i+CH));
     const t0=Date.now(),ms=+env.RP_BATCH_MS||75000;
     const read1=async ch=>{
       const parts=[];ch.forEach(f=>{parts.push({text:rpSec(f.t)});parts.push({inline_data:{mime_type:'image/jpeg',data:f.d}})});parts.push({text:REPLAY_PROMPT});
-      const x=rpParse(await rpGem(env,parts,ms));if(!x)throw rpE('invalid','AIの答えの形が正しくありませんでした');return x};
-    /* 4つずつ読む。読めなかった束は、時間が残っていれば1回だけ読み直す（混雑なら少し待ってから） */
-    const res=await rpPool(chunks,4,read1);
+      let txt;try{txt=await rpGem(env,parts,ms)}catch(e){if(!env.ANTHROPIC_API_KEY||e.why==='timeout')throw e;txt=await rpClaude(env,ch,ms)}
+      const x=rpParse(txt);if(!x)throw rpE('invalid','AIの答えの形が正しくありませんでした');return x};
+    /* 2つずつ読む。読めなかった束は、時間が残っていれば1回だけ読み直す（混雑なら Google が言う秒数だけ待つ。20秒まで） */
+    const res=await rpPool(chunks,2,read1);
     const again=res.map((r,i)=>r.ok?-1:i).filter(i=>i>=0);
     if(again.length&&Date.now()-t0<120000){
-      if(again.some(i=>res[i].e.why==='busy'))await new Promise(r=>setTimeout(r,+env.RP_RETRY_WAIT||3000));
-      const r2=await rpPool(again,4,i=>read1(chunks[i]));r2.forEach((r,k)=>{if(r.ok)res[again[k]]=r;else res[again[k]]=r});
+      if(again.some(i=>res[i].e.why==='busy')){const w=Math.max(0,...again.map(i=>+res[i].e.wait||0))*1000;await new Promise(r=>setTimeout(r,Math.min(20000,w||+env.RP_RETRY_WAIT||3000)))}
+      const r2=await rpPool(again,2,i=>read1(chunks[i]));r2.forEach((r,k)=>{if(r.ok)res[again[k]]=r;else res[again[k]]=r});
     }
     const bs=res.map((r,i)=>({t0:chunks[i][0].t,t1:chunks[i][chunks[i].length-1].t,x:r.ok?r.v:null,why:r.ok?null:(r.e&&r.e.why)||'error'}));
     const whyN={};bs.forEach(b=>{if(b.why)whyN[b.why]=(whyN[b.why]||0)+1});

@@ -27,9 +27,9 @@ globalThis.fetch=async(u,o)=>{u=String(u);
   return new Response('',{status:404})};
 let INF=0,MAXINF=0,LASTGC=null;
 async function gemAns(b,t0){LASTGC=b.generationConfig;await new Promise(r=>setTimeout(r,5));
-    let a=SCRIPT[t0]??SCRIPT.def;if(a&&a.__seq){a=a.__seq.length>1?a.__seq.shift():a.__seq[0]}if(a&&a.__slow){await new Promise(r=>setTimeout(r,a.__slow));return gemReply(JSON.stringify(a.x||{}))}if(typeof a==='number')return new Response(JSON.stringify({error:{message:'x'}}),{status:a});return gemReply(typeof a==='string'?a:JSON.stringify(a||{}))}
+    let a=SCRIPT[t0]??SCRIPT.def;if(a&&a.__seq){a=a.__seq.length>1?a.__seq.shift():a.__seq[0]}if(a&&a.__err)return new Response(a.body||'{}',{status:a.__err});if(a&&a.__slow){await new Promise(r=>setTimeout(r,a.__slow));return gemReply(JSON.stringify(a.x||{}))}if(typeof a==='number')return new Response(JSON.stringify({error:{message:'x'}}),{status:a});return gemReply(typeof a==='string'?a:JSON.stringify(a||{}))}
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
-const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key',RP_RETRY_WAIT:'10'};
+const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key',RP_RETRY_WAIT:'10',RP_CHUNK:'12'};
 let ipN=0;
 const call=async(p,{method='GET',tok,body}={})=>{const h={'content-type':'application/json','cf-connecting-ip':'10.1.0.'+(++ipN%250)};if(tok)h.authorization='Bearer '+tok;
   const r=await w.fetch(new Request('https://x.dev'+p,{method,headers:h,body:body?JSON.stringify(body):undefined}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
@@ -87,10 +87,17 @@ const c0=await cnt();
 r=await read({def:429},B);expect('AIの回数切れ・混雑：503 と busy（理由の数つき）',r[0]===503&&r[1].busy===true&&r[1].why.busy===3,r);
 /* 2026/11/13 2回目：同時に送るのは4つまで・一度断られた束は読み直す・理由を知らせる・考える時間を止める・[ {...} ] の形も読む */
 {await new Promise(r=>setTimeout(r,2500));const opp=Array.from({length:96},(_,i)=>({t:i*3,d:'QUJD'+'A'.repeat(100)}));SCRIPT={def:S2};MAXINF=0;
-r=await call('/api/replay-read',{method:'POST',tok:A,body:{frames:opp}});expect('同時に送るのは4つまで（8つの束）',r[0]===200&&r[1].batches.total===8&&MAXINF<=4&&MAXINF>=2,[MAXINF,r[1].batches]);
+delete env.RP_CHUNK;CALLS=0;
+r=await call('/api/replay-read',{method:'POST',tok:A,body:{frames:opp}});expect('96枚は24枚ずつ4回・同時に送るのは2つまで',r[0]===200&&r[1].batches.total===4&&CALLS===4&&MAXINF===2,[MAXINF,CALLS,r[1].batches]);
+env.RP_CHUNK='12';
 expect('2.5 では考える時間を止める',LASTGC&&LASTGC.thinkingConfig&&LASTGC.thinkingConfig.thinkingBudget===0,LASTGC);}
 r=await read({0:S1,12:{__seq:[429,S2]},24:S3});expect('一度断られた束は読み直して読める',r[0]===200&&r[1].batches.failed===0&&r[1].opp_sel.includes(149),r[1].batches);
 r=await read({0:S1,12:500,24:'[{"result":"win"}]'});expect('[ {...} ] の形の答えも読む・読めなかった理由を知らせる',r[1].result==='win'&&r[1].batches.failed===1&&r[1].why.error===1&&r[1].warn.some(x=>/読み取れなかった理由：AIとの通信の失敗（1か所）/.test(x)),r[1]);
+{const of=globalThis.fetch;let claude=0;globalThis.fetch=async(u,o)=>{if(String(u).includes('api.anthropic.com')){claude++;return new Response(JSON.stringify({content:[{type:'text',text:JSON.stringify(S2)}]}))}return of(u,o)};
+env.ANTHROPIC_API_KEY='k';r=await read({0:S1,12:429,24:S3});delete env.ANTHROPIC_API_KEY;globalThis.fetch=of;
+expect('Gemini に断られたら Claude（設定があれば）で読む',r[0]===200&&r[1].batches.failed===0&&claude===1&&r[1].opp_sel.includes(149),[claude,r[1].batches]);}
+{const t0=Date.now();SCRIPT={0:S1,12:{__seq:[{__err:429,body:'{"error":{"details":[{"retryDelay":"1s"}]}}'},S2]},24:S3};r=await call('/api/replay-read',{method:'POST',tok:A,body:{frames:FR(36)}});
+expect('Google の「〇秒待って」を守ってから読み直す',r[1].batches.failed===0&&Date.now()-t0>=950,[Date.now()-t0,r[1].batches]);}
 r=await read({0:S1,12:429,24:S3});expect('混雑で読めなかった理由も出す',r[1].warn.some(x=>/AIが混み合っていた・回数の上限（1か所）/.test(x)),r[1].warn);
 r=await read({def:'{{{'},B);expect('全部おかしな答え：502（日本語の理由）',r[0]===502&&/AIの読み取り/.test(r[1].error),r);
 expect('全部失敗は回数に数えない',await cnt()===c0,await cnt());
