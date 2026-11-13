@@ -3,9 +3,11 @@
 const PRESETS=[]; /* 将来: 許可を得た実在の構築を {name,src,mons:[図鑑no×6]} で入れると、相手はそこからランダムに選ばれます */
 const rnd=n=>Math.floor(Math.random()*n);
 const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
-const mvObj=id=>{const a=MV[id],e=(typeof MVE!=='undefined'&&MVE[id])||{};let drain=a[9];if(e.dr)drain=e.dr;if(e.rc)drain=-e.rc;return{id,n:a[0],t:a[1],pow:a[2],acc:a[3],cls:a[4],pri:a[5],tg:a[6],minH:a[7],maxH:a[8],drain,e}};
+/* 当たる回数：データ（MV）で1回になっていた連続技を直す（2026/11/13 ダメージ計算の点検）。860 ネズミざん＝1〜10回（1回ごとに命中判定）、888 ツインビーム＝2回 */
+const mvObj=id=>{const a=MV[id],e=(typeof MVE!=='undefined'&&MVE[id])||{},hh={860:[1,10],888:[2,2]}[id];let drain=a[9];if(e.dr)drain=e.dr;if(e.rc)drain=-e.rc;return{id,n:a[0],t:a[1],pow:a[2],acc:a[3],cls:a[4],pri:a[5],tg:a[6],minH:hh?hh[0]:a[7],maxH:hh?hh[1]:a[8],drain,e}};
 const PROT={id:0,n:'まもる',t:null,prot:true,pri:4,pow:0,acc:0,cls:2,tg:0,minH:1,maxH:1,drain:0};
-const ABSORB={'levitate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
+/* eelevate（うなぎのぼり・メガシビルドン）は当サイトの特性の説明（ABDS）に合わせてじめん無効。ゲームでの確認はまだ（2026/11/13） */
+const ABSORB={'levitate':['じめん',0],'eelevate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
 const PINCH={blaze:'ほのお',torrent:'みず',overgrow:'くさ',swarm:'むし'};
 const SKIN={pixilate:['フェアリー'],refrigerate:['こおり'],aerilate:['ひこう'],dragonize:['ドラゴン'],galvanize:['でんき']};
 const WSET={drought:'sun',drizzle:'rain','sand-stream':'sand','snow-warning':'snow'};
@@ -314,7 +316,7 @@ function refill(S,log){
     if(j>=0){S.act[k]=j;log(`<span class="ko">${bn(S.mons[j])}が 出てきた！</span>`);enter(S.mons[j],log)}
   }
 }
-function hitType(a,mv){if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
+function hitType(a,mv){if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
 /* ---- 条件で威力が変わる技 ---- */
 const WT={"3":100,"6":90.5,"9":85.5,"15":29.5,"18":39.5,"24":65,"25":6,"26":30,"10100":21,"36":40,"38":19.9,"10104":19.9,"40":12,"45":18.6,"53":32,"10108":33,"863":28,"59":155,"10230":168,"186":33.9,"65":48,"68":130,"71":15.5,"80":78.5,"10165":70.5,"199":79.5,"10172":79.5,"83":15,"865":117,"94":40.5,"208":400,"464":282.8,"115":80,"121":80,"122":54.5,"866":58.2,"212":118,"900":89,"127":55,"128":88.4,"10250":115,"10251":85,"10252":110,"130":235,"132":4,"134":29,"135":24.5,"136":25,"196":26.5,"197":27,"470":25.5,"471":25.9,"700":23.5,"142":59,"143":460,"149":210,"154":100.5,"157":79.5,"10233":69.8,"160":88.8,"168":33.5,"181":61.5,"184":28.5,"981":160,"205":125.8,"472":42.5,"211":3.9,"904":60.5,"214":54,"461":34,"903":43,"473":291,"227":50.5,"229":35,"899":95.1,"248":202,"254":52.2,"257":52,"260":81.9,"279":28,"282":48.4,"475":52,"302":11,"303":11.5,"306":360,"308":31.5,"310":40.2,"407":14.5,"317":80,"319":88.8,"323":220,"324":80.4,"334":20.6,"350":162,"351":0.8,"354":12.5,"358":1,"359":47,"362":256.5,"478":26.6,"373":102.6,"376":550,"389":310,"392":55,"395":84.5,"398":24.9,"405":42,"409":102.5,"411":149.5,"428":33.3,"442":108,"445":95,"448":54,"450":300,"454":44.4,"460":135.5,"479":0.3,"10008":0.3,"10009":0.3,"10010":0.3,"10011":0.3,"10012":0.3,"497":63,"500":150,"503":94.6,"10236":58.2,"505":27,"510":37.5,"512":30.5,"514":28,"516":29,"518":60.5,"530":40.4,"531":31,"534":87,"545":200.5,"547":6.6,"902":110,"10248":110,"553":96.3,"560":30,"563":76.5,"867":66.6,"569":107.3,"571":81.1,"10239":73,"579":20.1,"584":57.5,"587":5,"604":80.5,"609":34.3,"614":260,"618":11,"10180":20.5,"623":330,"635":160,"637":46,"652":90,"655":39,"658":40,"660":42.4,"663":24.5,"666":17,"668":81.5,"10061":0.9,"671":10,"673":91,"675":136,"676":28,"678":8.5,"681":53,"683":15.5,"685":5,"687":47,"689":96,"691":81.5,"693":35.3,"695":21,"697":270,"699":225,"701":21.5,"702":2.2,"706":150.5,"10242":334.1,"707":3,"709":71,"711":12.5,"10030":9.5,"10031":14,"10032":39,"713":505,"10243":262.4,"715":85,"724":36.6,"10244":37,"727":83,"730":44,"733":26,"740":180,"745":25,"10126":25,"10152":25,"748":14.5,"750":920,"752":82,"758":22.2,"763":21.4,"765":76,"766":82.8,"768":108,"778":0.7,"780":185,"784":78.2,"812":90,"815":33,"818":45.2,"823":75,"828":19.9,"841":1,"842":13,"844":65.5,"849":40,"10184":40,"853":39,"855":0.4,"858":5.1,"861":61,"869":0.5,"870":62,"871":1,"876":28,"10186":28,"877":3,"887":50,"908":31.2,"911":326.5,"914":61.9,"972":15,"956":90,"964":60.2,"930":48.2,"952":15,"939":113,"968":310,"925":2.3,"998":210,"923":41,"931":2.4,"10260":2.4,"10261":2.4,"10262":2.4,"934":240,"970":45,"943":61,"1000":30,"959":112.8,"936":85,"937":62,"983":120,"979":56,"1013":2.2,"1018":60,"1019":93,"10025":8.5,"10033":155.5,"10034":110.5,"10035":100.5,"10036":101.1,"10037":48,"10038":40.5,"10039":100,"10040":59,"10041":305,"10042":79,"10045":61.5,"10046":125,"10047":62.5,"10048":49.5,"10049":255,"10050":52,"10051":48.4,"10052":23.5,"10053":395,"10054":31.5,"10055":44,"10056":13,"10057":49,"10058":95,"10059":57.5,"10060":185,"10064":102,"10065":55.2,"10066":161,"10067":20.6,"10068":56.4,"10069":32,"10070":130.3,"10071":120,"10072":740,"10073":50.5,"10074":350.2,"10076":942.9,"10087":320.5,"10088":28.3,"10089":112.6,"10090":40.5,"10278":42.3,"10279":125.5,"10280":80,"10281":290,"10282":201,"10283":108.8,"10284":40.4,"10285":29.6,"10286":180.3,"10287":60,"10288":230.5,"10289":31,"10290":180,"10291":69.6,"10292":90,"10293":39,"10294":40,"10295":93.3,"10296":100.8,"10297":69.8,"10298":100,"10299":100.3,"10300":25,"10302":240.5,"10303":99,"10304":38,"10305":26,"10306":8,"10307":49,"10308":50,"10309":99,"10310":49.4,"10313":330,"10314":10.1,"10315":252.8,"10316":148,"10320":22,"10321":77,"10325":315,"10326":10.1};
 /* 技の英語ID｜性質（c接触 pパンチ bかみつき l波動 s切る o音 w風 x弾 dおどり） */
@@ -385,6 +387,8 @@ function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
   if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
+  /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
+  if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
   if(d.disg&&!ig)return{dmg:0,eff:1,disg:true};
   const mk=mkey(mv);
   let eff=mult(t,d.p.t);
@@ -433,6 +437,8 @@ function bcalc(a,mv,d,o){
   const ast=a.stAtk||a.st;
   let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?ast[1]:ast[3]),as),am=4096;
   if(phys&&(a.ab==='huge-power'||a.ab==='pure-power'))am=chM(am,8192);
+  /* こんじょう：状態異常のとき攻撃1.5倍（やけどの半減もしない＝下の burn の行） */
+  if(phys&&a.ab==='guts'&&a.status)am=chM(am,6144);
   if(PINCH[a.ab]===t&&a.hp*3<=a.max)am=chM(am,6144);
   if(a.ab==='water-bubble'&&t==='みず')am=chM(am,8192);
   if(!phys&&a.ab==='solar-power'&&w==='sun')am=chM(am,6144);
@@ -462,12 +468,15 @@ function bcalc(a,mv,d,o){
   if(crit)x=Math.floor(x*1.5);
   /* 乱数（85〜100%の16段階）。o.r で段階を指定、o.roll でランダム、どちらもなければ中央付近 */
   x=Math.floor(x*(o.r?o.r:o.roll?85+rnd(16):92)/100);
-  if(a.p.t.includes(t))x=apM(x,a.ab==='adaptability'?8192:6144);
+  /* へんげんじざい・リベロ：o.protean（この技で発動する＝場に出て最初の技）のときは技と同じタイプになり、タイプ一致になる。
+     発動するかは場面しだいなので、呼ぶ側が指定する（指定なしは発動しない＝もとのタイプ） */
+  if(a.p.t.includes(t)||(o.protean&&(a.ab==='protean'||a.ab==='libero')))x=apM(x,a.ab==='adaptability'?8192:6144);
   x=Math.floor(x*eff);
   if(phys&&a.status==='brn'&&a.ab!=='guts'&&!facade)x=Math.floor(x/2);
   /* 最後の補正 */
   let fm=4096;
-  if(o.screen&&!crit)fm=chM(fm,o.spread?2732:2048);
+  /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
+  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,o.spread?2732:2048);
   if(dab==='multiscale'&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
   if((dab==='solid-rock'||dab==='filter')&&eff>=2)fm=chM(fm,3072);
   if(a.ab==='tinted-lens'&&eff<1)fm=chM(fm,8192);
@@ -476,6 +485,44 @@ function bcalc(a,mv,d,o){
   if(d.item&&RES_BERRY[d.item]===t&&(eff>=2||d.item==='chilanberry'))fm=chM(fm,2048);
   x=apM(x,fm);
   return{dmg:Math.max(1,x),eff};
+}
+/* ---- 連続技を1発ずつ順番に計算する（2026/11/13 ダメージ計算の点検） ----
+   1発ごとに、その時点の相手のHP（マルチスケイルは満タンのときだけ）・乱数（o.rolls[i]、なければ o.r）・急所（o.crits[i]、なければ o.crit）で bcalc を呼ぶ。
+   半減きのみは最初に効いた当たりで使われ、次の当たりからは効かない。トリプルアクセルは 20→40→60、おやこあいは2発目が1/4。
+   当たる回数：o.hits があればそれ。なければ 決まった回数の技はその回数、スキルリンクは最大、ネズミざんは10回、2〜5回の技は3回。
+   相手が途中で倒れても、合計は全部の当たりを足す（ほかの計算機と同じ見せ方。倒せるかは koInfo で見る） */
+function mhCount(a,mv,o){
+  if(!(mv.maxH>1))return 1;
+  /* 回数が決まった技とスキルリンク（いつも最大）は、選んだ回数より優先する */
+  if(mv.minH===mv.maxH||a.ab==='skill-link')return mv.maxH;
+  if(o&&o.hits>0)return Math.max(mv.minH||1,Math.min(o.hits,mv.maxH));
+  return mkey(mv)==='populationbomb'?10:3;
+}
+function bhits(a,mv,d,o){
+  o=o||{};const k=mkey(mv),n=mhCount(a,mv,o);
+  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&fixedDmg(a,mv,d)==null;
+  const hp0=d.hp,it0=d.item,out=[];let hp=hp0,eff=null;
+  try{
+    for(let i=0;i<(pb?2:n);i++){
+      d.hp=Math.max(0,hp);
+      const r=Array.isArray(o.rolls)?o.rolls[i]:o.r,cr=Array.isArray(o.crits)?!!o.crits[i]:!!o.crit;
+      const m=k==='tripleaxel'?{...mv,pow:[20,40,60][i]||60}:mv;
+      const x=bcalc(a,m,d,{...o,r,crit:cr,pb:pb&&i===1});
+      if(eff==null)eff=x.eff;
+      out.push({dmg:x.dmg,crit:cr,r:r||null,hp:d.hp});
+      if(!x.eff)break;
+      if(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,m)&&(x.eff>=2||d.item==='chilanberry'))d.item=null;
+      hp-=x.dmg;
+    }
+  }finally{d.hp=hp0;d.item=it0}
+  return{hits:out,total:out.reduce((s,h)=>s+h.dmg,0),eff,n:pb?2:n};
+}
+/* 1回の使用の合計ダメージの分布（当たりごとに乱数は別々）。[[合計,確率],…]。1発ごとの値は乱数によらず状態が同じ（2発目からは満タンでない等）なので、乱数ごとの値を畳み込む */
+function hitDist(a,mv,d,o){
+  const per=[];for(let r=85;r<=100;r++)per.push(bhits(a,mv,d,{...o,r}).hits.map(h=>h.dmg));
+  const n=per[0].length;let dist=new Map([[0,1]]);
+  for(let i=0;i<n;i++){const nd=new Map();for(const[s,c]of dist)for(let r=0;r<16;r++){const v=s+per[r][i];nd.set(v,(nd.get(v)||0)+c/16)}dist=nd}
+  return [...dist.entries()].sort((x,y)=>x[0]-y[0]);
 }
 const accOf=(a,mv,d)=>{if(!mv.acc||a.ab==='no-guard'||d.ab==='no-guard')return 100;let v=mv.acc;if(a.ab==='compound-eyes')v*=1.3;if(a.ab==='hustle'&&!mv.cls)v*=.8;return v};
 function aiChoose(b,foes,ally){
