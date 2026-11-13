@@ -637,7 +637,8 @@ const U7c=await pg.evaluate(()=>{const h=dguChgHTML({x:3,w:5,st:2},{x:1,w:5,st:4
   return [r.length===2,r[0].classList.contains('up')&&/3→1/.test(r[0].textContent),r[1].classList.contains('up')&&/2→4/.test(r[1].textContent),/変わらない：△以下の相手 5匹/.test(d.textContent)]});
 ok(U7c.every(Boolean),'変更前→変更後の部品 '+U7c);
 await pg.evaluate(()=>{location.hash='#/pair'});await pg.waitForTimeout(5000);
-const U7d=await pg.evaluate(()=>{const c=[...document.querySelectorAll('#pr-list .pr-c')];return c.length===0||c.every(x=>!!x.querySelector('.pr-calc .imp-m'))});
+/* 2026/11/13 から 6匹そろった入れかえ案は 76-mvp.js（入れかえ前後を同じデータで計算し直す）。カードごとに、メガの場合ごとの「大きな弱点 N → M件」が出ること */
+const U7d=await pg.evaluate(()=>{const L=document.getElementById('pr-list'),c=[...document.querySelectorAll('#pr-list .mvp-c')];return !!L&&!/計算中/.test(L.textContent)&&c.every(x=>[...x.querySelectorAll('.mvp-pair .mvp-pl')].length>0&&[...x.querySelectorAll('.mvp-pair .mvp-pl')].every(e=>/大きな弱点 \d+ → \d+件/.test(e.textContent)))});
 ok(U7d,'相性のいい仲間の入れかえ案に変更前→変更後の数がない');
 await pg.evaluate(()=>{sessionStorage.setItem('pcttab','check');TTAB='check';location.hash='#/team'});await pg.waitForTimeout(1500);
 /* UI改善 第2段階：弱点のカード（根拠は全部残す・起きる相手の数・理由と改善の出し方・開いても数字が変わらない） */

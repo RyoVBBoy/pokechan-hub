@@ -45,7 +45,9 @@ function loseReasons(entries){
     top.forEach(m=>{try{const c=monCounters(m.q);[...c.ohko,...c.strong,...c.wall].forEach(r=>{const q=r.q.base&&byNo[r.q.base]?byNo[r.q.base]:r.q;pool.set(q.no,q)})}catch(e){}});
     metaOpps(40).forEach(q=>{const b=q.base&&byNo[q.base]?byNo[q.base]:q;pool.set(b.no,b)});
     const cands=[...pool.values()].filter(q=>!ms.some(o=>fam(o.p)===fam(q))).map(q=>{
-      let a;try{a=mkMon(q,'me',detSet(q))}catch(e){return null}
+      /* 2026/11/13 入れかえ案 MVP：入れる匹は M-C で使えると確認でき、同じ形式の集計から型が組める匹だけ（自動の型で埋めない）。持ち物は残りの匹と重ならないもの */
+      const S0=typeof mvpSwapSet==='function'?mvpSwapSet(q,entries):null;if(!S0)return null;
+      let a;try{a=mkMon(q,'me',savedToCalc(q.no,S0.sv))}catch(e){return null}
       const cov=miss.map(m=>{try{return dgMatch(a,m.o).r>=3}catch(e){return false}});return{q,a,cov,n:cov.filter(Boolean).length,topN:cov.slice(0,top.length).filter(Boolean).length}})
       .filter(c=>c&&c.n).sort((x,y)=>y.topN-x.topN||y.n-x.n).slice(0,4);
     /* 変更後の6匹でもう一度計算して比べる */
@@ -55,8 +57,8 @@ function loseReasons(entries){
       const x1=T1.rows.filter(r=>r.lvl===1).length;return{worse,fixed,x1}};
     const plans=[];
     cands.forEach(c=>{
-      if(ms.length<6){try{plans.push({c,out:null,...cmp(dgTeam0([...entries,{no:c.q.no}],20))})}catch(e){}}
-      else ms.forEach((o,i)=>{if(o.x.axis)return;try{plans.push({c,out:o,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no}:x),20))})}catch(e){}})});
+      if(ms.length<6){const S=mvpSwapSet(c.q,entries);if(S)try{plans.push({c,S,out:null,...cmp(dgTeam0([...entries,{no:c.q.no,set:S.sv}],20))})}catch(e){}}
+      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{plans.push({c,S,out:o,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x),20))})}catch(e){}})});
     const good=plans.filter(p=>p.fixed.length&&!p.worse.length&&p.x1<miss.length).sort((a,b)=>a.x1-b.x1||b.fixed.length-a.fixed.length);
     const seen=new Set(),best=good.filter(p=>!seen.has(p.c.q.no)&&seen.add(p.c.q.no)).slice(0,3);
     const planTxt=p=>`${p.out?`${p.out.p.n}を外して`:''}${p.c.q.n}を入れる（×の相手 ${miss.length}匹→${p.x1}匹。${p.fixed.join('・')}。◎○から△以下へ落ちる相手はなし）`;

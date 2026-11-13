@@ -95,7 +95,8 @@ function prThreatCheck(o,mem){
 }
 function prRank(mem){
   const have=new Set(mem.map(m=>m.base||m.no));
-  const pool=P.filter(c=>!have.has(c.no)&&!have.has(c.base));
+  /* 2026/11/13：M-C で使えると公式の一覧で確認できた匹だけ（76-mvp.js の mvpOk） */
+  const pool=P.filter(c=>!have.has(c.no)&&!have.has(c.base)&&(typeof mvpOk!=='function'||mvpOk(c.no)));
   let out=pool.map(c=>prScore(c,mem));
   const sum=o=>o.R.reduce((t,r)=>t+r.pts,0)+(o.c.bst-500)/60;
   out.sort((a,b)=>sum(b)-sum(a));
@@ -175,13 +176,15 @@ function prDraw(){
     ${full?`<p class="note" style="padding:8px 16px 0">${outN.length?`<b>${esc(outN.join('・'))}</b>を入れかえる前提で、残りの${6-outN.length}匹と相性のいいポケモンを探します。もう一度押すと元に戻ります。`:'6匹そろっています。入れかえたいポケモンを上で押すと、その枠に入る候補を探せます。押さなければ、パーティ全体がいちばん良くなる入れかえ案を出します。'}</p>`:''}
     ${holes.length?`<div class="pr-hole"><b>いまのパーティで受けにくいタイプ</b><div class="chips">${holes.map(chip).join('')}</div><small>2匹以上が弱点で、半減以下で受けられる仲間がいません。下の候補で埋められます。</small></div>`:''}
     ${prModeHTML()}
-    ${PR_MODE==='kd'?'<div id="kd-root"></div>':`<div class="sec"><h2>${full?(outN.length?`${esc(outN.join('・'))}の代わりに入れるとよいポケモン`:'入れかえ案'):'次に入れるとよいポケモン'}</h2><span style="font-size:12px;color:var(--dim)">${full&&!outN.length?'良くなる順':'理由の多い順'}</span></div>
+    ${PR_MODE==='kd'?'<div id="kd-root"></div>':full?'<div id="pr-list"><p class="empty">計算中…</p></div>':`<div class="sec"><h2>次に入れるとよいポケモン</h2><span style="font-size:12px;color:var(--dim)">相性の点の高い順</span></div>
     <div id="pr-list"><p class="empty">計算中…</p></div>`}`;
   V.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();if(typeof KD!=='undefined')KD.res=null;prDraw()});
   V.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>{const n=+b.dataset.out;if(PR_OUT.has(n))PR_OUT.delete(n);else{if(PR_OUT.size>=5){toast('1匹は残してください');return}PR_OUT.add(n)}if(typeof KD!=='undefined')KD.res=null;const y=scrY();prDraw();scrTo(0,y)});
   prModeBind();
   if(PR_MODE==='kd'){kdPanel(document.getElementById('kd-root'));return}
-  if(full&&!PR_OUT.size){setTimeout(()=>prSwapDraw(),30);return}
+  /* 6匹そろっているとき（2026/11/13 入れかえ案 MVP）：相性の点ではなく、変更前と変更後の6匹を同じデータ・同じ形式で計算し直して比べる（76-mvp.js）。
+     入れかえたい匹に印があれば、その枠だけで探す */
+  if(full){mvpSwapDraw(document.getElementById('pr-list'),{slots:PR_OUT.size?team.map((x,i)=>PR_OUT.has(x.no)?i:-1).filter(i=>i>=0):null});return}
   setTimeout(()=>{
     const list=prRank(mem).slice(0,PR_N),el=document.getElementById('pr-list');if(!el)return;
     /* 操作の回数（2026/11/12）：おすすめを出したとき。同じパーティは1回 */
@@ -191,23 +194,12 @@ function prDraw(){
         <ul class="pr-why">${rs.map(r=>`<li><span class="pr-tag pr-${r.k}">${PR_TAG[r.k]}</span>${esc(r.txt)}</li>`).join('')}${bad.map(r=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(r.txt)}</li>`).join('')}${!rs.length?'<li>能力の高さで選んだ候補です</li>':''}</ul>
         <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-add="${c.no}">${SVG(I.plus,16)}${full?`${esc(outN[0]||'')}と入れかえる`:'パーティに入れる'}</button></div></div>`}).join('')
       +`<div class="btns"><button class="btn btn-s" id="pr-more">もっと見る</button></div>
-      <p class="note" style="color:var(--mute)">点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、使用率の高い型どうしのダメージ計算です。</p>`;
+      <p class="note" style="color:var(--mute)">ここは「相性のいい仲間」（パーティを埋めるための候補）で、6匹全体が良くなるかの計算ではありません（6匹そろうと、入れかえ前後を計算し直した入れかえ案が出ます）。点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、使用率の高い型どうしのダメージ計算です。</p>`;
     el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const no=+b.dataset.add;
       if(full){const i=team.findIndex(x=>PR_OUT.has(x.no));if(i<0)return;const old=byNo[team[i].no].n;prReplace(i,no);toast(`${old}を外して${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).catch(()=>{});return}
       if(team.length<6&&!team.some(x=>x.no===no)){team.push({no,sel:team.filter(x=>x.sel).length<PICK()});saveTeam();toast(`${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).then(()=>{if(keyOf(cur)==='pair')prDraw()}).catch(()=>{})}});
     document.getElementById('pr-more').onclick=()=>{PR_N+=8;prDraw()};
   },30);
 }
-/* 入れかえ案（6匹そろっていて、入れかえたい匹を選んでいないとき） */
-function prSwapDraw(){
-  const el=document.getElementById('pr-list');if(!el)return;
-  const sw=prSwaps();
-  if(!sw.length){el.innerHTML='<p class="note">いまの6匹より良くなる入れかえは見つかりませんでした（相性の点と、入れかえ後の対面の計算の両方で確かめています）。気になるポケモンを上で押すと、その枠に入る候補を探せます。</p>';return}
-  el.innerHTML=sw.map((r,k)=>{const c=r.o.c,old=byNo[r.x.no],rs=r.o.R.filter(z=>z.k!=='bad'&&z.txt).sort((a,b)=>b.pts-a.pts).slice(0,3),bad=r.o.R.filter(z=>z.k==='bad');
-    return `<div class="pr-c"><div class="row pr-sw"><span class="av">${stamp(old)}</span><span class="pr-arrow">→</span><a class="av" href="#/p/${c.no}">${stamp(c)}</a><div class="row-m"><div class="row-t">${k<3?`<span class="pr-rank">${k+1}</span>`:''}${esc(formInfo(old).base)} → ${nm(c)}</div><div class="chips">${c.t.map(chip).join('')}<span class="rt">${c.roles.join('・')}</span></div></div></div>
-      <ul class="pr-why">${r.calc?`<li class="pr-calc"><span class="pr-tag pr-answer">計算</span>入れかえ後の6匹で対面の計算をし直しました（使用率の上位の相手。◎○から△以下へ落ちる相手はなし）${typeof dguChgHTML==='function'?(r.calc.D?dguChgHTML(r.calc.D.b,r.calc.D.a,{title:'変更前 → 変更後（計算し直した数）',note:r.calc.D.note}):dguChgHTML(r.calc.b,r.calc.a,{title:'変更前 → 変更後'})):`：×（答えなし）${r.calc.b.x}→${r.calc.a.x}匹・△以下 ${r.calc.b.w}→${r.calc.a.w}匹`}</li>`:''}${rs.map(z=>`<li><span class="pr-tag pr-${z.k}">${PR_TAG[z.k]}</span>${esc(z.txt)}</li>`).join('')}${bad.map(z=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(z.txt)}</li>`).join('')}</ul>
-      <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-sw="${r.i}:${c.no}">入れかえる</button><button class="btn btn-s" data-swo="${r.x.no}">ほかの候補を見る</button></div></div>`}).join('')
-    +'<p class="note" style="color:var(--mute)">1匹ずつ外してみて、残りの5匹と相性のいいポケモンの点が、外した匹より高くなる入れかえを、良くなる順に出しています。そのうえで入れかえ後の6匹を対面の計算でもう一度確かめ、答えのない相手が増える・対応できていた相手が不安定になる案は外しています。軸にしたポケモンは外しません。</p>';
-  el.querySelectorAll('[data-sw]').forEach(b=>b.onclick=()=>{const [i,no]=b.dataset.sw.split(':').map(Number);const old=byNo[team[i].no].n;prReplace(i,no);toast(`${old}を外して${byNo[no].n}を入れました`);prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).catch(()=>{})});
-  el.querySelectorAll('[data-swo]').forEach(b=>b.onclick=()=>{PR_OUT.add(+b.dataset.swo);prDraw();scrTo(0,0)});
-}
+/* 6匹そろったときの入れかえ案の画面は 2026/11/13 から 76-mvp.js の mvpSwapDraw（入れかえ前後を同じデータで計算し直す）。
+   上の prSwaps（相性の点で選んで dgTeam で確かめる前の方法）は、テストと比べるために残している（画面では使わない） */

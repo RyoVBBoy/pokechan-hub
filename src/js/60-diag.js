@@ -454,6 +454,9 @@ function dgMetric(T,keep){const n=T.ms.length,half=Math.max(2,Math.ceil(n/2)),R=
 /* 入れる匹の育成（2026/11/10 依頼主の確認③：外す匹の持ち物・技を引きつがない）。
    集計があれば使用率の高い型、なければ型の例（archSet）。持ち物は残る5匹と重ならないもの（ゲームにある持ち物だけ） */
 function dgSwapSet(c,rest){
+  /* 2026/11/13 入れかえ案 MVP（docs/party-building-mvp-spec.md）：M-C で使えると確認でき、同じ形式の PokéKit の集計から組める型だけ。
+     組めなければ null（下の自動の型・型の例では埋めない）。下の古い組み方は MVP のデータが無いときだけ */
+  if(typeof mvpSwapSet==='function')return mvpSwapSet(c,rest);
   const used=new Set(rest.map(x=>{const s=(x.set&&x.set.it&&x.set.it.k)||((mySetFor(x.no)||{}).item);return s}).filter(Boolean));
   let s=null,src='型の例';
   if(LIVE.csv[c.no]){try{s=detSet(c);src='使用率の高い型'}catch(e){s=null}}

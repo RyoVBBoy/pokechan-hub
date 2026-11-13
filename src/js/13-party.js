@@ -305,7 +305,7 @@ function partyCheck(entries){
   const rows=T.map(t=>({t,w:ms.filter(o=>m(o,t)>=2),r:ms.filter(o=>m(o,t)<1)}));
   const need=Math.max(2,Math.ceil(ms.length/2));
   const danger=rows.filter(r=>r.w.length>=need&&!r.r.length);
-  const cands=types=>P.filter(p=>!inTeam.has(formInfo(p).base)&&types.every(t=>monDef(p).find(z=>z.t===t).m<1)).sort((a,b)=>b.bst-a.bst).slice(0,4);
+  const cands=types=>P.filter(p=>!inTeam.has(formInfo(p).base)&&types.every(t=>monDef(p).find(z=>z.t===t).m<1)&&(typeof mvpSet!=='function'||mvpSet(FMT,p.no,{}).st==='ok')).sort((a,b)=>b.bst-a.bst).slice(0,4);
   /* 入れかえ案（だれ→だれ）：外す1匹は、問題に関わる匹のうちメガストーンを持たない・合計種族値の低い方。
      選出（★）で見ているときは、まずパーティの中の★なしの匹との入れかえ、その次に新しいポケモン */
   const stoneOf=o=>{const k=o.x.set&&o.x.set.it&&o.x.set.it.k;return !!k&&isStone(k)};

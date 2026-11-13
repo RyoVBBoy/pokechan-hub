@@ -2539,3 +2539,22 @@ body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
   .adh-split{grid-template-columns:1fr}
   .adh-sr{grid-template-columns:7em 1fr 2.6em 3.2em}
 }
+/* 入れかえ案 MVP（2026/11/13、76-mvp.js） */
+.mvp-weak{margin:12px 16px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--glass)}
+.mvp-weak h3{margin:0 0 6px;font-size:15px}
+.mvp-sc{margin:8px 0 0}
+.mvp-sc ul,.mvp-pair ul{margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.55}
+.mvp-tag{display:inline-block;margin:2px 4px 0 0;padding:1px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--dim)}
+.mvp-ok{border-color:var(--acc);color:var(--acc)}
+.mvp-unv{border-style:dashed}
+.mvp-body{padding:0 16px 6px}
+.mvp-pair{margin:6px 0}
+.mvp-pl{font-size:13px;font-weight:700}
+.mvp-up li::marker{content:'＋ '}
+.mvp-dn li::marker{content:'－ '}
+.mvp-dn{color:#f4212e}
+.mvp-warn{margin:6px 0;padding:6px 10px;border-radius:10px;background:var(--acc-t);font-size:13px}
+.mvp-lim,.mvp-trade,.mvp-ex{margin:10px 16px;font-size:13px}
+.mvp-lim ul,.mvp-ex ul{padding-left:18px;line-height:1.6}
+.mvp-lim summary,.mvp-trade summary,.mvp-ex summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+.mvp-h{margin-top:4px;font-size:12px;color:var(--dim)}
