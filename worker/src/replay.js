@@ -19,7 +19,10 @@ const REPLAY_PROMPT=`これは「ポケモンチャンピオンズ」の対戦�
 /* AI の答え（12枚ずつの1つの束）を確かめる（2026/11/13）。JSON でない・形が違うときは null＝その束は読めなかった扱い。
    名前は文字の列だけ残す（数や入れ子は捨てる）。ここではまだ図鑑の番号にしない */
 function rpParse(text){
-  let x;try{x=JSON.parse((String(text||'').match(/\{[\s\S]*\}/)||[''])[0])}catch(e){return null}
+  const t=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  let x;try{x=JSON.parse(t)}catch(e){try{x=JSON.parse((t.match(/\{[\s\S]*\}/)||[''])[0])}catch(e2){return null}}
+  /* 答えが [ {...} ] の形で来たら、中の最初のものを使う（2026/11/13） */
+  if(Array.isArray(x))x=x.find(v=>v&&typeof v==='object'&&!Array.isArray(v));
   if(!x||typeof x!=='object'||Array.isArray(x))return null;
   const str=v=>typeof v==='string'?v.trim().slice(0,40):v&&typeof v==='object'&&typeof v.name==='string'?v.name.trim().slice(0,40):'';
   const arr=v=>(Array.isArray(v)?v:[]).map(str).filter(Boolean).slice(0,12);
@@ -29,6 +32,39 @@ function rpParse(text){
     opponent_moves:map(x.opponent_moves,arr),opponent_items:map(x.opponent_items,v=>str(v)||null)};
 }
 const rpEmpty=x=>!x.format&&!x.result&&!x.opponent_team.length&&!x.my_team.length&&!x.opponent_used.length&&!x.my_used.length&&!Object.keys(x.opponent_moves).length&&!Object.keys(x.opponent_items).length;
+/* 振り返り専用の AI 呼び出し（2026/11/13、依頼主の iPhone で8か所中7か所が読めなかった件）：
+   ・1回ごとに時間を決めて打ち切る（fetch を止める）
+   ・考える時間（thinking）を止める：2.5 は thinkingBudget 0、3 以降は thinkingLevel 'minimal'。受け付けないモデルなら設定なしでもう一度
+   ・混雑（429/503）なら次のモデル、時間切れはすぐあきらめる
+   ・失敗の理由を why（busy・timeout・invalid・error）で返し、画面に出せるようにする */
+const rpE=(why,m)=>Object.assign(new Error(m||why),{why});
+async function rpGem(env,parts,ms){
+  let cands=env.GEMINI_MODEL?[env.GEMINI_MODEL]:[];
+  try{cands=[...new Set([...cands,...await listGemini(env)])]}catch(e){if(!cands.length)throw rpE('error','AIのモデル一覧を読めませんでした')}
+  let last=rpE('error');
+  for(const m of cands.slice(0,3)){
+    for(const think of [true,false]){
+      const gc={temperature:0,responseMimeType:'application/json'};
+      if(think){if(/gemini-2\.5-flash/.test(m))gc.thinkingConfig={thinkingBudget:0};else if(/gemini-([3-9]|\d\d)/.test(m))gc.thinkingConfig={thinkingLevel:'minimal'}}
+      const ctl=new AbortController();let tm;
+      const stop=new Promise((_,rej)=>{tm=setTimeout(()=>{try{ctl.abort()}catch(e){}rej(rpE('timeout','時間切れ'))},ms)});
+      try{
+        const r=await Promise.race([fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',signal:ctl.signal,headers:{'x-goog-api-key':env.GEMINI_API_KEY,'content-type':'application/json'},body:JSON.stringify({contents:[{parts}],generationConfig:gc})}),stop]);
+        await aiTick(env,r.status);
+        if(r.ok){const j=await Promise.race([r.json(),stop]);const c=(j.candidates||[])[0]||{};return(c.content&&c.content.parts||[]).map(p=>p.text||'').join('')}
+        const t=await Promise.race([r.text(),stop]);
+        if(r.status===400&&gc.thinkingConfig&&/thinking/i.test(t))continue;
+        last=rpE([429,503].includes(r.status)?'busy':'error',`AI ${r.status}`);break;
+      }catch(e){if(e.why==='timeout'||ctl.signal.aborted)throw rpE('timeout','時間切れ');last=rpE('error',String(e.message||e).slice(0,60));break}
+      finally{clearTimeout(tm)}
+    }
+  }
+  throw last;
+}
+/* 決めた数ずつ同時に動かす（8か所を一度に送ると AI に断られやすい） */
+async function rpPool(items,n,fn){const out=new Array(items.length);let i=0;
+  await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(i<items.length){const k=i++;try{out[k]={ok:true,v:await fn(items[k],k)}}catch(e){out[k]={ok:false,e}}}}));return out}
+const RP_WHY={busy:'AIが混み合っていた・回数の上限',timeout:'時間切れ',invalid:'AIの答えの形がおかしかった',error:'AIとの通信の失敗'};
 let RP_MV=null;
 const rpMvMap=()=>{if(RP_MV)return RP_MV;RP_MV={};for(const id in MVN)RP_MV[kkey(MVN[id])]=+id;for(const id in MV)if(!RP_MV[kkey(MV[id][0])])RP_MV[kkey(MV[id][0])]=+id;return RP_MV};
 const rpSec=t=>`${Math.round(t)}秒`;
@@ -66,6 +102,7 @@ function rpMerge(bs){
   for(const no in info){const o=info[no];if(o.mv&&o.mv.length>4)warn.push(`${nm(no)}の技が${o.mv.length}つ読めました（4つまで）。最初に読めた4つだけ入れています。`);if(o.mv)o.mv=o.mv.slice(0,4);if(o.mv&&!o.mv.length)delete o.mv;if(!Object.keys(o).length)delete info[no]}
   const failed=bs.filter(b=>!b.x);
   if(failed.length)warn.unshift(`動画の一部（${failed.map(b=>`${rpSec(b.t0)}〜${rpSec(b.t1)}`).join('・')}の場面）を読み取れませんでした。その場面の情報は入っていないので、確かめて直してください。`);
+  if(failed.length){const w={};failed.forEach(b=>{const k=b.why||'error';w[k]=(w[k]||0)+1});warn.splice(1,0,`読み取れなかった理由：${Object.entries(w).map(([k,n])=>`${RP_WHY[k]||k}（${n}か所）`).join('、')}`)}
   const nothing=!opp.length&&!my.length&&!result&&!fmt;
   return{fmt,result,opp,my,opp_sel,my_sel,info,warn,unknown:unk,nothing,
     batches:{total:bs.length,ok:ok.length,failed:failed.length,empty:ok.filter(b=>rpEmpty(b.x)).length},failed_at:failed.map(b=>[b.t0,b.t1])};
@@ -98,26 +135,28 @@ async function replayApi(req,env,db,path,now){
     fr.sort((x,y)=>x.t-y.t);
     /* 1回で全部送ると時間切れ（524）になりやすいので、12枚ずつに分けて同時に読み、あとで時間の順に合わせる */
     const chunks=[];for(let i=0;i<fr.length;i+=12)chunks.push(fr.slice(i,i+12));
-    const t0=Date.now();
-    const rs=await Promise.allSettled(chunks.map(async ch=>{
+    const t0=Date.now(),ms=+env.RP_BATCH_MS||75000;
+    const read1=async ch=>{
       const parts=[];ch.forEach(f=>{parts.push({text:rpSec(f.t)});parts.push({inline_data:{mime_type:'image/jpeg',data:f.d}})});parts.push({text:REPLAY_PROMPT});
-      /* 1つの束が遅くても全体を待たせない（2026/11/13 依頼主の iPhone で、読み取りが150秒を超えてサイトが待つのをやめた）。
-         決めた時間（はじめ100秒）を過ぎた束は「読めなかった」にして、読めた束だけで返す */
-      let tm;const {text}=await Promise.race([gemText(env,{contents:[{parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}},true),
-        new Promise((_,rej)=>{tm=setTimeout(()=>rej(new Error('時間切れ')),+env.RP_BATCH_MS||100000)})]).finally(()=>clearTimeout(tm));
-      const x=rpParse(text);if(!x)throw new Error('AIの答えの形が正しくありませんでした');return x;
-    }));
-    const bs=rs.map((r,i)=>({t0:chunks[i][0].t,t1:chunks[i][chunks[i].length-1].t,x:r.status==='fulfilled'?r.value:null}));
+      const x=rpParse(await rpGem(env,parts,ms));if(!x)throw rpE('invalid','AIの答えの形が正しくありませんでした');return x};
+    /* 4つずつ読む。読めなかった束は、時間が残っていれば1回だけ読み直す（混雑なら少し待ってから） */
+    const res=await rpPool(chunks,4,read1);
+    const again=res.map((r,i)=>r.ok?-1:i).filter(i=>i>=0);
+    if(again.length&&Date.now()-t0<120000){
+      if(again.some(i=>res[i].e.why==='busy'))await new Promise(r=>setTimeout(r,+env.RP_RETRY_WAIT||3000));
+      const r2=await rpPool(again,4,i=>read1(chunks[i]));r2.forEach((r,k)=>{if(r.ok)res[again[k]]=r;else res[again[k]]=r});
+    }
+    const bs=res.map((r,i)=>({t0:chunks[i][0].t,t1:chunks[i][chunks[i].length-1].t,x:r.ok?r.v:null,why:r.ok?null:(r.e&&r.e.why)||'error'}));
+    const whyN={};bs.forEach(b=>{if(b.why)whyN[b.why]=(whyN[b.why]||0)+1});
     if(!bs.some(x=>x.x)){
-      /* 全部の束が読めなかった：AI の混雑・無料枠なら busy（サイトは手で記録する欄を開く）。回数には数えない */
-      const why=rs.map(r=>String(r.reason&&r.reason.message||r.reason||''));
-      if(why.every(w=>/時間切れ/.test(w)))return J({error:'AIの読み取りに時間がかかりすぎました。少し時間をおいてもう一度試すか、手で記録してください。'},504);
-      if(why.some(w=>/混雑|無料枠|Gemini (429|5\d\d)/.test(w)))return J({error:'AIが混み合っていて、いまは読み取れません。',busy:true},503);
-      return J({error:'AIの読み取りがうまくいきませんでした。少し時間をおいてもう一度試すか、手で記録してください。',detail:why[0].slice(0,80)},502);
+      /* 全部の束が読めなかった：回数には数えない。理由ごとに返す */
+      if(whyN.busy)return J({error:'AIが混み合っているか、AIの1日の回数の上限に達していて、いまは読み取れません。',busy:true,why:whyN},503);
+      if(whyN.timeout===bs.length)return J({error:'AIの読み取りに時間がかかりすぎました。少し時間をおいてもう一度試すか、手で記録してください。',why:whyN},504);
+      return J({error:'AIの読み取りがうまくいきませんでした。少し時間をおいてもう一度試すか、手で記録してください。',why:whyN},502);
     }
     await db.prepare(`INSERT INTO replay_reads(uid,created_at) VALUES(?,?)`).bind(me.uid,now).run();
     const o=rpMerge(bs);
-    return J({...o,frames:fr.length,sec:Math.round((Date.now()-t0)/100)/10});
+    return J({...o,why:whyN,frames:fr.length,sec:Math.round((Date.now()-t0)/100)/10});
   }
   if(path==='/api/battles'&&req.method==='POST'){
     let b;try{b=JSON.parse(await req.text())}catch(e){return J({error:'送信内容を読めませんでした。'},400)}

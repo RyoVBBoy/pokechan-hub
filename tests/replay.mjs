@@ -23,10 +23,13 @@ globalThis.fetch=async(u,o)=>{u=String(u);
   if(u.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[jwk]}));
   if(u.includes('generativelanguage')&&u.includes('/models?'))return new Response(JSON.stringify({models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']}]}));
   if(u.includes('generativelanguage')&&u.includes(':generateContent')){CALLS++;const b=JSON.parse(o.body),t0=parseInt(b.contents[0].parts[0].text);
-    const a=SCRIPT[t0]??SCRIPT.def;if(a&&a.__slow){await new Promise(r=>setTimeout(r,a.__slow));return gemReply(JSON.stringify(a.x||{}))}if(typeof a==='number')return new Response(JSON.stringify({error:{message:'x'}}),{status:a});return gemReply(typeof a==='string'?a:JSON.stringify(a||{}))}
+    INF++;MAXINF=Math.max(MAXINF,INF);try{return await gemAns(b,t0)}finally{INF--}}
   return new Response('',{status:404})};
+let INF=0,MAXINF=0,LASTGC=null;
+async function gemAns(b,t0){LASTGC=b.generationConfig;await new Promise(r=>setTimeout(r,5));
+    let a=SCRIPT[t0]??SCRIPT.def;if(a&&a.__seq){a=a.__seq.length>1?a.__seq.shift():a.__seq[0]}if(a&&a.__slow){await new Promise(r=>setTimeout(r,a.__slow));return gemReply(JSON.stringify(a.x||{}))}if(typeof a==='number')return new Response(JSON.stringify({error:{message:'x'}}),{status:a});return gemReply(typeof a==='string'?a:JSON.stringify(a||{}))}
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
-const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key'};
+const env={DB:makeD1(),FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key',RP_RETRY_WAIT:'10'};
 let ipN=0;
 const call=async(p,{method='GET',tok,body}={})=>{const h={'content-type':'application/json','cf-connecting-ip':'10.1.0.'+(++ipN%250)};if(tok)h.authorization='Bearer '+tok;
   const r=await w.fetch(new Request('https://x.dev'+p,{method,headers:h,body:body?JSON.stringify(body):undefined}),env,{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
@@ -81,7 +84,14 @@ delete env.RP_BATCH_MS;
 /* 全部失敗：回数に数えない・理由を返す */
 const cnt=async()=>(await env.DB.prepare('SELECT COUNT(*) AS c FROM replay_reads WHERE uid=?').bind('rpB').first()).c;
 const c0=await cnt();
-r=await read({def:429},B);expect('AIの回数切れ・混雑：503 と busy',r[0]===503&&r[1].busy===true,r);
+r=await read({def:429},B);expect('AIの回数切れ・混雑：503 と busy（理由の数つき）',r[0]===503&&r[1].busy===true&&r[1].why.busy===3,r);
+/* 2026/11/13 2回目：同時に送るのは4つまで・一度断られた束は読み直す・理由を知らせる・考える時間を止める・[ {...} ] の形も読む */
+{await new Promise(r=>setTimeout(r,2500));const opp=Array.from({length:96},(_,i)=>({t:i*3,d:'QUJD'+'A'.repeat(100)}));SCRIPT={def:S2};MAXINF=0;
+r=await call('/api/replay-read',{method:'POST',tok:A,body:{frames:opp}});expect('同時に送るのは4つまで（8つの束）',r[0]===200&&r[1].batches.total===8&&MAXINF<=4&&MAXINF>=2,[MAXINF,r[1].batches]);
+expect('2.5 では考える時間を止める',LASTGC&&LASTGC.thinkingConfig&&LASTGC.thinkingConfig.thinkingBudget===0,LASTGC);}
+r=await read({0:S1,12:{__seq:[429,S2]},24:S3});expect('一度断られた束は読み直して読める',r[0]===200&&r[1].batches.failed===0&&r[1].opp_sel.includes(149),r[1].batches);
+r=await read({0:S1,12:500,24:'[{"result":"win"}]'});expect('[ {...} ] の形の答えも読む・読めなかった理由を知らせる',r[1].result==='win'&&r[1].batches.failed===1&&r[1].why.error===1&&r[1].warn.some(x=>/読み取れなかった理由：AIとの通信の失敗（1か所）/.test(x)),r[1]);
+r=await read({0:S1,12:429,24:S3});expect('混雑で読めなかった理由も出す',r[1].warn.some(x=>/AIが混み合っていた・回数の上限（1か所）/.test(x)),r[1].warn);
 r=await read({def:'{{{'},B);expect('全部おかしな答え：502（日本語の理由）',r[0]===502&&/AIの読み取り/.test(r[1].error),r);
 expect('全部失敗は回数に数えない',await cnt()===c0,await cnt());
 r=await read({def:S1},B,2);expect('静止画が少なすぎると400',r[0]===400,r);

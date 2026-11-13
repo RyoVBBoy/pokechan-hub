@@ -56,7 +56,7 @@ async function rpFrames(file,onp){
 function rpErrText(err){
   const s=err&&err.status;
   if(s===429)return'今日のAI読み取りの回数（1日20本）を使い切りました（明日また使えます）。';
-  if(s===503)return/設定/.test(err.message||'')?err.message:'AIが混み合っていて、いまは読み取れません。少し時間をおいてもう一度試してください。';
+  if(s===503)return/設定/.test(err.message||'')?err.message:'AIが混み合っているか、AIの1日の回数の上限に達していて、いまは読み取れません。少し時間をおいてもう一度試してください。';
   if(s===401)return'ログインの期限が切れました。もう一度ログインしてください。';
   if(s===504)return'AIの読み取りに時間がかかりすぎました。少し時間をおいてもう一度試すか、手で記録してください。';
   if(s===400||s===404)return err.message||'送った内容を読めませんでした。';
