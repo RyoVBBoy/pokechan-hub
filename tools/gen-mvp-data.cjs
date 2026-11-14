@@ -5,6 +5,7 @@
      --single <file>    PokéKit https://poke.itlibra.com/opendata/usage-championssingles.json
      --double <file>    PokéKit https://poke.itlibra.com/opendata/usage-champions.json
      --fetched YYYY-MM-DD  取得した日
+     --legal-from <file>  公式の一覧のページの代わりに、前に作った 75-mvp-data.js の公式の一覧（legal）をそのまま使う（2026/11/14：PokéKit だけ取り直すとき）
    出力：src/js/75-mvp-data.js（const MVP_DATA）。形が違えば何も書かずに止まる（中途半端な版を出さない）。
    ここでは出典の値を確かめて小さくするだけ。サイトの番号との対応・覚える技・持ち物の確かめは、サイトの中（76-mvp.js）で行う。 */
 const fs=require('fs'),path=require('path');
@@ -13,9 +14,12 @@ const need=k=>{const v=arg(k);if(!v){console.error('missing --'+k);process.exit(
 const fail=m=>{console.error('NG: '+m);process.exit(1)};
 const fetched=need('fetched');if(!/^\d{4}-\d{2}-\d{2}$/.test(fetched))fail('--fetched は YYYY-MM-DD');
 /* 公式の一覧 */
-const html=fs.readFileSync(need('official'),'utf8');
-const m=html.match(/const pokemons = (\[[\s\S]*?\]);/);if(!m)fail('公式ページに pokemons の配列がない');
-const off=JSON.parse(m[1]);
+let off,legalPrev=null;
+if(arg('legal-from')){const t=fs.readFileSync(arg('legal-from'),'utf8');legalPrev=JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1)).legal;
+  if(!legalPrev||!Array.isArray(legalPrev.ids))fail('--legal-from に公式の一覧がない');off=legalPrev.ids.map(id=>[id,0,'']);}
+else{const html=fs.readFileSync(need('official'),'utf8');
+  const m=html.match(/const pokemons = (\[[\s\S]*?\]);/);if(!m)fail('公式ページに pokemons の配列がない');
+  off=JSON.parse(m[1]);}
 if(!Array.isArray(off)||off.length<100)fail('公式の一覧の件数がおかしい '+off.length);
 off.forEach(x=>{if(!Array.isArray(x)||!/^\d{4}-\d{3}$/.test(x[0])||typeof x[2]!=='string')fail('公式の一覧の形がおかしい '+JSON.stringify(x))});
 /* PokéKit */
@@ -36,15 +40,17 @@ const pk=(file,fmt,game)=>{
       nat:Object.entries((p.spreads||[]).reduce((o,s)=>{if(s&&s.nature)o[s.nature]=Math.round(((o[s.nature]||0)+(s.pct||0))*10)/10;return o},{})).sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1)),
       /* 振り方の数字（evs）は能力ポイントとして未確認なので持たない（件数だけ残す） */
       evsN:(p.spreads||[]).length,
-      teraEmpty:!(p.tera&&p.tera.length)}});
+      teraEmpty:!(p.tera&&p.tera.length),
+      /* 一緒に使われる仲間（2026/11/14）：そのポケモンを使った人のうち、その仲間も入れていた人の割合（上位だけ。PokéKit が先頭だけに絞っている）。6匹のパーティそのものではない */
+      tm:pc(p.teammates).slice(0,12)}});
   return{meta:{source:'PokéKit（Smogon / Pokémon Showdown の集計をまとめたもの）',sourceUrl:d.sourceUrl||'',docUrl:'https://poke.itlibra.com/en/opendata',
     fileUrl:`https://poke.itlibra.com/opendata/usage-${fmt}.json`,format:fmt,label:d.label,gameType:game,month:d.month,battles:d.battles,cutoff:d.cutoff,fetched,
-    note:'ゲーム内の公式の集計ではない（Pokémon Showdown のランク対戦）。上位150匹だけ。割合は項目ごと（組み合わせの割合は無い）。tera は使わない。evs は能力ポイントとして未確認のため使わない'},rows};
+    note:'ゲーム内の公式の集計ではない（Pokémon Showdown のランク対戦）。上位150匹だけ。割合は項目ごと（組み合わせの割合は無い）。tera は使わない。evs は能力ポイントとして未確認のため使わない。仲間（tm）はそのポケモンを使った人のうちの割合で、6匹のパーティそのものではない',license:'PokéKit のオープンデータ（出典の表示で再利用可：https://poke.itlibra.com/en/opendata）'},rows};
 };
 const single=pk(need('single'),'championssingles','singles'),double=pk(need('double'),'champions','doubles');
 const out={
   version:`M-C/${fetched}/pokekit-${single.meta.month}`,
-  legal:{reg:'M-C',period:'2026-09-09 〜 2026-12-02 10:59',announce:'https://news.pokemon-home.com/ja/page/816.html',
+  legal:legalPrev||{reg:'M-C',period:'2026-09-09 〜 2026-12-02 10:59',announce:'https://news.pokemon-home.com/ja/page/816.html',
     listUrl:'https://web-view.app.pokemonchampions.jp/battle/pages/events/rs178713870219xeaaio/ja/pokemon.html',fetched,
     ids:off.map(x=>x[0]),
     /* 公式の姿の番号とサイトの番号の対応が確かめられない図鑑番号（2026/11/13 の照合、spec 1-2）。ふつうの順位から外す */
