@@ -2558,3 +2558,6 @@ body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
 .mvp-lim ul,.mvp-ex ul{padding-left:18px;line-height:1.6}
 .mvp-lim summary,.mvp-trade summary,.mvp-ex summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
 .mvp-h{margin-top:4px;font-size:12px;color:var(--dim)}
+.mvp-slot{margin:2px 0 0;font-size:12px;color:var(--dim);line-height:1.5;overflow-wrap:anywhere}
+.mvp-dbl{margin:12px 16px 0;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;font-size:13px;line-height:1.55}
+.mvp-body ul.mvp-up,.mvp-body ul.mvp-dn{margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.55}

@@ -91,8 +91,9 @@ function dgImprove(entries){
   const out=[],dropped=[],nm=i=>formInfo(T0.ms[i].p).base;
   const used=i=>new Set(entries.filter((_,k)=>k!==i).map(x=>{const s=impBase(x);return s.it&&s.it.k}).filter(Boolean));
   const problem=T0.rows.filter(r=>r.lvl<=2||!r.res.some(z=>z.swIn==='win'));
-  const tryEntry=(kind,i,nx,title,why)=>{const es=entries.map((x,k)=>k===i?nx:x);let T1;try{T1=impRecalc(T0,es,i)}catch(e){return}
+  const tryEntry=(kind,i,nx,title,why,badMv)=>{const es=entries.map((x,k)=>k===i?nx:x);let T1;try{T1=impRecalc(T0,es,i)}catch(e){return}
     const J=impJudge(T0,T1);if(!J.ok)return;const loss=impRoleLoss(T0,T1,i);if(loss){dropped.push({title,loss});return}
+    if(badMv&&badMv.length){dropped.push({title,loss:`1対1で正しく計算できない技（${badMv.map(m=>m.n).join('・')}）を含む型なので、数を信用できない`});return}
     out.push({kind,i,title,why,entries:es,J,T1,base:impBase(entries[i])})};
   entries.forEach((x,i)=>{
     const p=byNo[x.no];if(!p)return;const base=impBase(x),M=T0.M[i];if(!M)return;
@@ -132,18 +133,25 @@ function dgImprove(entries){
       ['attacker','bulky','support','setup'].filter(k=>g.keys.includes(k)||k==='bulky').forEach(k=>{const s=g.make(k);if(!s)return;
         if(stone)s.item=base.it.k;else if(s.item&&(u.has(s.item)||!(CH_ITEMS.has(s.item))))return;
         const sv=impSaved(x.no,s);
-        tryEntry('role',i,{...x,set:{...sv,src:'manual'}},`${nm(i)}を${{attacker:'攻撃',bulky:'耐久',support:'サポート',setup:'積み'}[k]}の型に`,`特性 ${sv.ab?sv.ab.n:'―'}・持ち物 ${sv.it?sv.it.n:'なし'}・${natName(sv.up,sv.dn)||'補正なし'}・${SN.map((n,q)=>sv.sp[q]?`${n}${sv.sp[q]}`:'').filter(Boolean).join('・')}・技 ${sv.mv.map(m=>m.n).join('・')}`)})}catch(e){}
+        /* 2026/11/14：技の案と同じく、覚えない技・1対1で正しく扱えない技（IMP_NOMV）を含む型は出さない（計算したうえで、理由つきで「出さなかった案」へ） */
+        const ls=(LSD[x.no]||[0,[]])[1],badMv=sv.mv.filter(m=>!(m.id===182||ls.includes(m.id))||IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
+        tryEntry('role',i,{...x,set:{...sv,src:'manual'}},`${nm(i)}を${{attacker:'攻撃',bulky:'耐久',support:'サポート',setup:'積み'}[k]}の型に`,`特性 ${sv.ab?sv.ab.n:'―'}・持ち物 ${sv.it?sv.it.n:'なし'}・${natName(sv.up,sv.dn)||'補正なし'}・${SN.map((n,q)=>sv.sp[q]?`${n}${sv.sp[q]}`:'').filter(Boolean).join('・')}・技 ${sv.mv.map(m=>m.n).join('・')}`,badMv)})}catch(e){}
   });
   /* ---- 入れかえ：問題の相手に強い候補を先に1対1でしぼり、役目の少ない2匹と入れかえて全部を計算し直す ---- */
   try{const fam=q=>q.base||q.no,inT=new Set(entries.map(x=>fam(byNo[x.no]||{no:x.no}))),seen=new Set(),pool=[];
     [...metaOpps(40),...(typeof gmOpps==='function'?gmOpps():[])].forEach(q=>{if(!q||q.base||inT.has(q.no)||seen.has(q.no))return;seen.add(q.no);pool.push(q)});
     const contrib=T0.ms.map((_,i)=>T0.rows.filter(r=>{const z=r.res.find(q=>q.i===i);return z&&(z.r>=4||z.swIn==='win')}).length);
     const outs=entries.map((x,i)=>i).filter(i=>!entries[i].axis).sort((a,b)=>contrib[a]-contrib[b]).slice(0,2);
+    let GE0=null;
     outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
       const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
         const v=problem.reduce((t,r)=>{try{const z=dgMatch(a,r.o);return t+(z.r>=4?1:0)+(z.swIn==='win'?.6:0)}catch(e){return t}},0);return{c,S,v}}).filter(z=>z&&z.v>=1.5).sort((a,b)=>b.v-a.v).slice(0,4);
       sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impWith(es,()=>dgTeam0(es,20))}catch(e){return}
-        const J=impJudge(T0,T1);if(J.ok)out.push({kind:'swap',base:null,i,title:`${nm(i)} → ${c.n}`,why:`${S.txt}（${nm(i)}の持ち物・技は引きつがない）`,entries:es,J,T1})})});
+        const J=impJudge(T0,T1);if(!J.ok)return;
+        /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は理由つきで「出さなかった案」へ */
+        const G=typeof mvpGate==='function'?mvpGate(entries,i,es[i],GE0):{ok:true};GE0=G.E0||GE0;
+        if(!G.ok){dropped.push({title:`${nm(i)} → ${c.n}`,loss:mvpGateWhy(G.C)});return}
+        out.push({kind:'swap',base:null,i,title:`${nm(i)} → ${c.n}`,why:`${S.txt}（${nm(i)}の持ち物・技は引きつがない）`,entries:es,J,T1})})});
   }catch(e){}
   /* 種類ごとに良い順に2つまで、全体で8つまで。同じ匹・同じ種類の案は良い方だけ */
   out.sort((a,b)=>b.J.gain-a.J.gain);
@@ -196,7 +204,7 @@ function impRender(box,R){
         <p class="note" style="padding-top:0">${R.note?esc(R.note):R.list.length?`${R.tried}案のうち、良くなって前に答えられていた相手を失わない案を、良くなる順に出しています（種類ごとに2つまで）。どの数も変更後のパーティで計算し直した結果です。`:'計算した範囲では、ほかを悪くせずに良くなる変更は見つかりませんでした。'}</p>
         ${R.list.slice(0,3).map(impCard).join('')}
         ${R.list.length>3?`<details class="pc-ref imp-more"><summary>ほかの改善案を見る（${R.list.length-3}件）</summary>${R.list.slice(3).map((x,k)=>impCard(x,k+3)).join('')}</details>`:''}
-        ${R.dropped&&R.dropped.length?`<details class="pc-ref"><summary>数は良くなるが、変える匹の大事な役目を失うので出さなかった案（${R.dropped.length}件）</summary><ul class="sel-why">${R.dropped.slice(0,10).map(d=>`<li>${esc(d.title)}：${esc(d.loss)}</li>`).join('')}</ul></details>`:''}
+        ${R.dropped&&R.dropped.length?`<details class="pc-ref"><summary>数は良くなるが、出さなかった案（${R.dropped.length}件：変える匹の大事な役目を失う・入れかえ案の計算で悪くなる・計算できない技を含む）</summary><ul class="sel-why">${R.dropped.slice(0,10).map(d=>`<li>${esc(d.title)}：${esc(d.loss)}</li>`).join('')}</ul></details>`:''}
         <details class="pc-ref"><summary>改善案の決め方と、計算していないこと</summary><p class="note">良さの点＝×が減る×3・△以下が減る×1.5・後出しできない相手が減る×1・一撃で半分以上倒される相手が減る×1・だれも先に動けない相手が減る×0.7・◎が増える×0.3。変更前に◎○だった相手が△以下になる案、×が増える案、変える匹自身が上から倒せる相手・有利に戦える相手・後出しして勝てる相手を大きく減らす案（3匹以上かつ半分以上、有利は3割以上）は出しません。比べるのは変更前と変更後の両方にいる相手だけです（入れかえると、入れた種類が相手の候補から外れるため）。技は覚える攻撃技、持ち物はゲームにあってほかの匹と重ならないもの、メガストーンは変えません。計算していないこと：${esc(DG_NOTE)}。ダブルの範囲技・同時攻撃・味方のサポート。相手の型は使用率の高い型（集計がなければ自動の型）です。</p></details>`;
   box.querySelectorAll('[data-imp]').forEach(b=>b.onclick=async()=>{const o=IMP_LAST&&IMP_LAST.list[+b.dataset.imp];if(!o)return;
     if(o.kind==='sel'){team.forEach((x,k)=>x.sel=o.selFix.includes(k));saveTeam();toast('選出を変えました');teamRender();return}

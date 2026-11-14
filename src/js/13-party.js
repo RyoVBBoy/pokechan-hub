@@ -381,7 +381,8 @@ function partyCheck(entries){
       const msOf=i=>allMs.find(o=>o.x===use[i]);
       S.forEach(r=>{PC_SWSET[r.c.no]=r.S.sv});
       tg.sw=S.map(r=>({out:msOf(r.i),inP:r.c,set:r.S.txt,calc:`入れかえた6匹で計算し直すと（${r.D.note}）：◎ ${r.b.st}→${r.a.st}匹・△以下 ${r.b.w}→${r.a.w}匹・後出しして勝てる匹がいない相手 ${r.b.nosw}→${r.a.nosw}匹・だれも先に動けない相手 ${r.b.slow}→${r.a.slow}匹・半分以上を一撃で倒す相手 ${r.b.ohko}→${r.a.ohko}匹`,cb:{...r.b},ca:{...r.a},cnote:r.D.note,up:r.D.up,dn:r.D.dn})).filter(w=>w.out);
-      if(!S.length)tg.how+='（入れかえ候補を計算し直しましたが、後出しできない相手を減らせて、ほかが悪くならない1匹の入れかえは見つかりませんでした。技・持ち物・能力ポイントを耐久に回すことを考えてください）'}}
+      if(!S.length)tg.how+='（入れかえ候補を計算し直しましたが、後出しできない相手を減らせて、ほかが悪くならない1匹の入れかえは見つかりませんでした。技・持ち物・能力ポイントを耐久に回すことを考えてください）';
+      if(S.mvpDrop)tg.how+=`（ほかに${S.mvpDrop}案は、「相性のいい仲間を探す」の入れかえ案の計算〔メガシンカは1匹ずつ〕で新しい大きな弱点ができるか、素早さの操作・天気を失うので出していません）`}}
   if(DA){fix.unshift(...DA.bad.map(x=>({...x,k:'calc'})));good.unshift(...DA.good.map(x=>({...x,k:'calc'})));ref.push(...DA.ref)}
   return{scope,good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
 }

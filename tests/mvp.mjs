@@ -64,7 +64,7 @@ const R=await pg.evaluate(()=>{
   /* 減らしたとする弱点は、変更後の同じ場合に本当に無い */
   r.fixedReal=S.better.every(x=>x.C.pairs.every(p=>p.fixed.every(w=>!p.b.weak.some(v=>v.key===w.key))));
   /* 良くなるが悪くなるところもある案は、おすすめに入れず、悪くなるところを出す */
-  r.tradeOk=S.trade.every(x=>x.C.cf>0&&(x.C.cm>0||x.C.pairs.some(p=>p.n1>p.n0))&&x.C.pairs.some(p=>p.made.length));
+  r.tradeOk=S.trade.every(x=>x.C.cf>0&&((x.C.cm>0||x.C.pairs.some(p=>p.n1>p.n0))&&x.C.pairs.some(p=>p.made.length)||x.C.roleLoss));
   /* 1対1で強い候補でも、6匹で良くならなければおすすめにしない */
   const recNos=new Set(S.better.map(x=>x.c.r.no));r.notByMatch=S.trade.some(x=>!recNos.has(x.c.r.no))||S.trade.length===0;
   /* 未確認・データ不足の匹は候補に出さず、理由つきで分ける */
@@ -86,7 +86,7 @@ const R=await pg.evaluate(()=>{
   try{r.noData=mvpSwaps(team6,'double').st}finally{MVP_DATA.sets.double=keepD}
   r.notFull=mvpSwaps(team6.slice(0,5),'single').st;
   /* ダブルの評価で見ていないことを書く */
-  r.dblLim=/ねこだまし/.test(mvpLimitsHTML('double'))&&/完成していません/.test(mvpLimitsHTML('double'))&&!/ねこだまし/.test(mvpLimitsHTML('single'));
+  r.dblLim=/ねこだまし/.test(mvpLimitsHTML('double'))&&/完成していません/.test(mvpLimitsHTML('double'))&&!/ダブルで見ていないこと/.test(mvpLimitsHTML('single'));
   window.__T6=team6;return r;
 });
 ok(R.legalOk,'確認できた匹は候補になる');

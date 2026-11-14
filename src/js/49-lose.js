@@ -58,15 +58,20 @@ function loseReasons(entries){
     const plans=[];
     cands.forEach(c=>{
       if(ms.length<6){const S=mvpSwapSet(c.q,entries);if(S)try{plans.push({c,S,out:null,...cmp(dgTeam0([...entries,{no:c.q.no,set:S.sv}],20))})}catch(e){}}
-      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{plans.push({c,S,out:o,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x),20))})}catch(e){}})});
+      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{plans.push({c,S,out:o,i,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x),20))})}catch(e){}})});
     const good=plans.filter(p=>p.fixed.length&&!p.worse.length&&p.x1<miss.length).sort((a,b)=>a.x1-b.x1||b.fixed.length-a.fixed.length);
-    const seen=new Set(),best=good.filter(p=>!seen.has(p.c.q.no)&&seen.add(p.c.q.no)).slice(0,3);
+    /* 2026/11/14 第3段階 P3-02：入れかえる案は、入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は出さない */
+    let GE0=null,gDrop=0;const seen=new Set(),best=[];
+    for(const p of good){if(best.length>=3)break;if(seen.has(p.c.q.no))continue;
+      if(p.out&&typeof mvpGate==='function'){const G=mvpGate(entries,p.i,{no:p.c.q.no,sel:!!entries[p.i].sel,set:p.S.sv},GE0);GE0=G.E0||GE0;if(!G.ok){gDrop++;continue}}
+      seen.add(p.c.q.no);best.push(p)}
     const planTxt=p=>`${p.out?`${p.out.p.n}を外して`:''}${p.c.q.n}を入れる（×の相手 ${miss.length}匹→${p.x1}匹。${p.fixed.join('・')}。◎○から△以下へ落ちる相手はなし）`;
     const rejected=plans.length&&!good.length;
-    out.push({ph:'構築',w:2.4+.3*top.length-DT.rows.indexOf(top[0])*.02,t:`よく使われる${names}に、だれも答えられない`,
+    out.push({ph:'構築',plans:best,gDrop,w:2.4+.3*top.length-DT.rows.indexOf(top[0])*.02,t:`よく使われる${names}に、だれも答えられない`,
       d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}には、パーティのだれも「上から倒す」「耐えて倒す」「後出しして勝つ」「受けて有利に戦う」ができず、乱数や同速しだいで勝てる匹もいません（相手ごとの対応力の×）。`,
-      how:best.length?`変更後の6匹で計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
-        `${rejected?'入れかえの候補を変更後の6匹で計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`,
+      how:(best.length?`変更後の6匹で計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
+        `${rejected?'入れかえの候補を変更後の6匹で計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`)
+        +(gDrop?`（${gDrop}案は、入れかえ案の計算〔メガシンカは1匹ずつ〕で新しい大きな弱点ができるか、素早さの操作・天気を失うので出していません）`:''),
       act:[[`#/p/${q0.no}/break`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
   }
   /* ③ 設置技 */

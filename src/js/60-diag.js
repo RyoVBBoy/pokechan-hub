@@ -505,7 +505,12 @@ function dgDefSwaps(entries,T){
       const D=dgDiff(T,T1),b=D.b,a=D.a;
       if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,won:won.map(r=>r.q.n),b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
   res.sort((x,y)=>y.gain-x.gain);
-  const used=new Set(),out=res.filter(r=>{if(used.has(r.c.no))return false;used.add(r.c.no);return true}).slice(0,3);
+  /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（76-mvp.js、メガは1匹ずつ）でも確かめ、新しい大きな弱点ができる・素早さの操作か天気を失う案は出さない（数は mvpDrop） */
+  const used=new Set(),out=[];let drop=0,E0=null;
+  for(const r of res){if(out.length>=3)break;if(used.has(r.c.no))continue;
+    const G=typeof mvpGate==='function'?mvpGate(entries,r.i,{no:r.c.no,sel:!!entries[r.i].sel,set:r.S.sv},E0):{ok:true};E0=G.E0||E0;
+    if(!G.ok){drop++;continue}used.add(r.c.no);r.mvp=G.C;out.push(r)}
+  out.mvpDrop=drop;
   DG_FIX.set(key,out);return out;
 }
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
