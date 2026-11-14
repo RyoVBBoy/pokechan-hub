@@ -2615,3 +2615,26 @@ body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
 .tbd-bar-m small{font-size:12px;color:var(--dim);margin-left:4px;white-space:nowrap}
 @media (min-width:700px){.tbd-bar{bottom:16px}}
 @media (max-width:389px){.tbd-tabs{grid-template-columns:1fr}.tbd-slots{grid-template-columns:repeat(2,1fr)}}
+/* 1匹から組む・続き（2026/11/14、docs/pokemon-team-building-followup-audit.md） */
+.tbd-none{margin:8px 16px;padding:14px 16px;border:1px dashed var(--line);border-radius:14px;font-size:13px;color:var(--dim)}
+.tbd-none b{display:block;color:var(--fg);font-size:14px;margin-bottom:4px}
+.tbd-none p{margin:4px 0 0}
+.tbd-scope{font-size:12px}
+.tbd-tt small{font-size:12px;color:var(--dim)}
+.tbd-mi{list-style:none;margin:0;padding:0 16px}
+.tbd-mi li{padding:8px 0;border-bottom:1px solid var(--line-in);font-size:13px;display:flex;flex-direction:column;gap:3px}
+.tbd-mi li small{font-size:12px;color:var(--dim)}
+.tbd-mic{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px}
+.tbd-mic b{font-size:14px}
+.tbd-bad,.tbd-mi li small.tbd-bad,.tbd-mem small.tbd-bad{color:#e0245e}
+.tbd-tyg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;padding:4px 16px}
+.tbd-tyr{display:flex;align-items:center;gap:6px;font-size:12px;min-width:0}
+.tbd-tyr .chip{flex:none}
+.tbd-tyr span{white-space:nowrap}
+.tbd-tyr.tbd-bad{color:#e0245e;font-weight:600}
+.tbd-ty p{padding:0 16px}
+.tbd-reqh{font-size:12px;font-weight:700;color:var(--dim);padding:6px 16px 0}
+.tbd-sty{gap:6px}
+.tbd-sty .pill{font-size:12px}
+@media (max-width:359px){.tbd-tyg{grid-template-columns:1fr}}
+#tb-an>details>summary,.tbd-prop>details>summary,.tbd-c>details>summary{padding:0 16px;font-weight:700}

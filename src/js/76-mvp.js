@@ -146,12 +146,13 @@ function mvpTeamSets(entries,fmt){
   return out;
 }
 /* 6匹の評価。メガシンカする匹ごとの場合（なければ「メガシンカなし」1つ） */
-function mvpEvalTeam(entries,fmt){
+/* opt.none＝メガストーンを持つ匹がいても「メガシンカしない」場合も足す（1匹から組む。入れかえ案の画面は今までどおり足さない） */
+function mvpEvalTeam(entries,fmt,opt){
   const O=mvpOpps(fmt);if(!O||!O.list.length)return{st:'nodata',why:'この形式の相手のデータが無い'};
   const TS=mvpTeamSets(entries,fmt);
   const mem=entries.map((x,i)=>{const p=byNo[x.no];const S=TS[i];const st=S.calc.item&&isStone(S.calc.item)&&megaOf(x.no,S.calc.item)?S.calc.item:null;return{x,p,S,stone:st}});
   const users=mem.map((m,i)=>m.stone?i:-1).filter(i=>i>=0);
-  const scen=(users.length?users:[-1]).map(u=>({u,key:u<0?'none':'mega:'+mem[u].x.no,label:u<0?'メガシンカなし':`${byNo[megaOf(mem[u].x.no,mem[u].stone).no].n}（${formInfo(mem[u].p).base}がメガシンカ）`,
+  const scen=(users.length?(opt&&opt.none?[-1,...users]:users):[-1]).map(u=>({u,key:u<0?'none':'mega:'+mem[u].x.no,label:u<0?'メガシンカなし':`${byNo[megaOf(mem[u].x.no,mem[u].stone).no].n}（${formInfo(mem[u].p).base}がメガシンカ）`,
     stoneSt:u<0?null:mvpStoneSt(mem[u].stone,mem[u].x.no)}));
   return mvpCtx(entries,()=>{
     let wx='';try{const w=teamWx();wx=w?w.k+':'+w.by:''}catch(e){}
