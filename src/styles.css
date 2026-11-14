@@ -2628,9 +2628,10 @@ body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
 .tbd-mic b{font-size:14px}
 .tbd-bad,.tbd-mi li small.tbd-bad,.tbd-mem small.tbd-bad{color:#e0245e}
 .tbd-tyg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;padding:4px 16px}
-.tbd-tyr{display:flex;align-items:center;gap:6px;font-size:12px;min-width:0}
+.tbd-tyr{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:12px;min-width:0;max-width:100%;overflow:hidden}
 .tbd-tyr .chip{flex:none}
 .tbd-tyr span{white-space:nowrap}
+.tbd-mi li,.tbd-mem li,.tbd-none,.tbd-scope{overflow-wrap:anywhere;min-width:0}
 .tbd-tyr.tbd-bad{color:#e0245e;font-weight:600}
 .tbd-ty p{padding:0 16px}
 .tbd-reqh{font-size:12px;font-weight:700;color:var(--dim);padding:6px 16px 0}
