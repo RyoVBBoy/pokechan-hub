@@ -42,7 +42,7 @@ ok(TBS_BAD!=='ok','確かめ方：前の崩れを再現すると見つけられ�
 const TBS0=await tbInBar();ok(TBS0==='ok','はじめの画面で下のメニューのボタンが枠の中 '+TBS0);
 /* ---- 1 最初の1匹・下書き ---- */
 await pg.evaluate(()=>{location.hash='#/tb/'+N('ガブリアス')});await wait(2500);
-const A=await pg.evaluate(()=>({mem:TB.mem.map(x=>x.no),start:TB.start,fmt:TB.fmt,team:team.length,tab:TB.tab,an:!!document.querySelector('#tb-an .mvp-weak'),sug:document.querySelectorAll('#tb-sug .tbd-c').length,
+const A=await pg.evaluate(()=>({mem:TB.mem.map(x=>x.no),start:TB.start,fmt:TB.fmt,team:team.length,tab:TB.tab,an:!!document.querySelector('#tb-sum .tbd-sum')&&!!document.querySelector('#tb-more .mvp-weak'),sug:document.querySelectorAll('#tb-sug .tbd-c').length,
   over:document.body.scrollWidth>innerWidth+1}));
 ok(A.mem.length===1&&A.mem[0]===A.start&&A.fmt==='single','最初の1匹が1枠目に入る');
 ok(A.team===0,'保存したパーティは変えない');
@@ -313,6 +313,55 @@ ok(ST.old&&ST.fresh,'集計が古いとき（45日より前）は知らせる');
 /* データが無い形式 */
 const ND=await pg.evaluate(()=>{const k=MVP_DATA.sets.single;MVP_DATA.sets.single=null;let r;try{r=tbAnalyze([{no:N('ガブリアス')}]).st}finally{MVP_DATA.sets.single=k}return r});
 ok(ND==='nodata','集計が無い形式では分析しないで理由を出す');
+
+/* ---- 11 見やすく（2026/11/14 依頼主「Manual Team Builder UI Redesign」）：表示だけ。数は計算のまま ---- */
+await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s).no;TB=tbNew(N('セグレイブ'));for(const n of ['ドドゲザン','アシレーヌ']){const S=mvpSet(FMT,N(n),{used:new Set(TB.mem.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean))});TB.mem.push({no:N(n),set:S.sv,src:'pokekit'})}TB.tab='manual';TB_HIST=[];tbSave();if(location.hash==='#/tb')tbDraw();else location.hash='#/tb'});
+await pg.waitForFunction(()=>document.querySelector('#tb-sug .tbc')&&document.getElementById('tb-next')&&!/計算中/.test(document.getElementById('tb-next').textContent),null,{timeout:60000});
+const UI=await pg.evaluate(()=>{const r={};
+  const tabs=[...document.querySelectorAll('.tbd-tab')];r.tabs=tabs.length===3&&tabs.every(b=>!b.querySelector('small'))&&!/上位パーティと|2つの考え方で|そのたびに/.test(document.querySelector('.tbd-tabs').textContent);
+  const hs=tabs.map(b=>Math.round(b.getBoundingClientRect().height));r.tabH=Math.max(...hs)-Math.min(...hs)<=1&&Math.max(...hs)<=64&&Math.min(...hs)>=40;r.hs=hs;
+  r.sel=tabs.filter(b=>b.getAttribute('aria-selected')==='true').length===1&&getComputedStyle(tabs[2]).backgroundColor!==getComputedStyle(tabs[0]).backgroundColor&&!tabs.some(b=>b.scrollWidth>b.clientWidth+1);
+  /* まとめが最初の画面に入る（パーティの一覧より上） */
+  const sum=document.querySelector('#tb-sum .tbd-sum').getBoundingClientRect(),rows=document.querySelector('.tbd-rows').getBoundingClientRect();r.first=sum.top<rows.top&&sum.top<innerHeight*.5;
+  /* まとめの数＝計算の数 */
+  const A=tbAnalyze(TB.mem),sc=A.E.scen.find(s=>s.key==='none'),n=sc.weak.filter(w=>w.crit).length;r.num=+document.querySelector('.tbd-big').textContent===n&&new RegExp('大きな弱点 '+n+'件').test(document.querySelector('.tbd-sumh').textContent);
+  const R=tbCands(TB.mem),c=R.res[0],z=c.C.pairs.find(p=>p.b.key==='none')||c.C.pairs[0];r.next=document.getElementById('tb-next').textContent.includes(formInfo(byNo[c.r.mega||c.r.no]).base)&&document.getElementById('tb-next').textContent.includes(`${z.a.weak.filter(w=>w.crit).length} → ${z.c1}件`);
+  r.cardNum=document.querySelector('#tb-sug .tbc .tbc-n').textContent.includes(`${z.a.weak.filter(w=>w.crit).length} → ${z.c1}件`);
+  /* くわしい中身は閉じている（なくしていない） */
+  r.closed=[...document.querySelectorAll('.tbd-mid,.tbd-ty,.tbc-d,.tbd-more')].every(d=>!d.open)&&document.querySelectorAll('.tbd-tyr').length===18&&!!document.querySelector('#tb-more .mvp-weak');
+  r.cardShort=[...document.querySelectorAll('#tb-sug .tbc')].every(el=>{const d=el.querySelector('.tbc-d');const h=el.getBoundingClientRect().height-(d.open?d.getBoundingClientRect().height:0);return h<260});
+  r.three=['1対1で有利','安全に受けられる','後出しして勝てる'].every(t=>document.querySelector('.tbd-mid .tbd-mi3').textContent.includes(t));
+  return r});
+ok(UI.tabs,'道の切りかえは番号と名前だけ（説明の文なし）');
+const UIB=await pg.evaluate(()=>{const ib=[...document.querySelectorAll('.tbd-rows .tbd-ib')];return{n:ib.length,lab:ib.every(b=>b.getAttribute('aria-label')),big:ib.every(b=>b.getBoundingClientRect().width>=40&&b.getBoundingClientRect().height>=40),
+  noPill:!document.querySelector('.tbd-rows .btn,#tb-sug .tbc .btn')}});
+ok(UIB.n>=3&&UIB.lab&&UIB.big,'入れかえ・外すは名前つき（読み上げ）の絵のボタンで、押せる大きさ（40px以上）');
+ok(UIB.noPill,'パーティの行・候補のカードに枠線の丸いボタンを使わない');
+ok(UI.tabH,'3つの切りかえの高さがそろって小さい '+UI.hs);
+ok(UI.sel,'選んでいる道が分かる');
+ok(UI.first,'まとめがパーティの一覧より上・最初の画面の上半分');
+ok(UI.num,'まとめの大きな弱点の数＝計算の数');
+ok(UI.next&&UI.cardNum,'次の一手と候補の数＝候補の計算の数');
+ok(UI.closed,'くわしい中身（18タイプの表・1匹ずつの数・候補のくわしく・大きな弱点の全部）は閉じていて、なくしていない');
+ok(UI.cardShort,'候補のカードは短い');
+ok(UI.three,'1匹ずつの3つ（1対1で有利・安全に受けられる・後出しして勝てる）を分けて出す');
+/* 開く・比べる・追加する */
+const UI2=await pg.evaluate(async()=>{const r={};const w=ms=>new Promise(z=>setTimeout(z,ms));
+  const d=document.querySelector('.tbd-mid');d.querySelector('summary').click();await w(50);r.open=d.open;
+  document.querySelector('[data-tbvs="0"]').click();await w(50);document.querySelector('[data-tbvi="1"]').click();await w(600);
+  const t=document.querySelector('#tb-cmp0').textContent;r.cmp=/良くなる/.test(t)&&/悪くなる/.test(t)&&/変わらない/.test(t)&&!!document.querySelector('#tb-cmp0 [data-tbsw]')&&!!document.querySelector('#tb-cmp0 details .mvp-c');
+  const n=TB.mem.length;document.querySelector('[data-tbin="0"]').click();await w(100);r.add=TB.mem.length===n+1;return r});
+ok(UI2.open,'1匹ずつを押すと開く');
+ok(UI2.cmp,'いまの匹と比べる：良くなる・悪くなる・変わらない・入れかえるボタン・くわしい比べ方');
+ok(UI2.add,'候補を追加できる');
+/* 下の帯とメニュー：一番下までスクロールしても、最後の中身は帯・メニューに隠れない。帯はメニューと重ならない */
+await pg.waitForFunction(()=>document.querySelector('#tb-sug .tbc,#tb-sug .mvp-c')||/入れかえ案/.test((document.getElementById('tb-sug')||{}).textContent||''),null,{timeout:60000});
+const BAR=await pg.evaluate(async()=>{scrTo(0,1e7);await new Promise(z=>setTimeout(z,400));const bar=document.querySelector('.tbd-bar').getBoundingClientRect(),tab=document.querySelector('.tabbar').getBoundingClientRect();
+  const more=document.querySelector('.tbd-more').getBoundingClientRect();scrTo(0,0);
+  return{h:bar.height<=60,gap:bar.bottom<=tab.top,last:more.bottom<=bar.top+1,over:document.body.scrollWidth<=innerWidth+1}});
+ok(BAR.h&&BAR.gap,'パーティの帯は低く、下のメニューと重ならない '+JSON.stringify(BAR));
+ok(BAR.last,'一番下まで見ると、最後の中身が帯に隠れない');
+ok(BAR.over,'390px ではみ出さない（見やすくしたあと）');
 ok(!errs.length,'ページのエラーなし '+errs.join(' / '));
 await b.close();
 console.log(`teambuild: ${bad?'NG':'OK'}（${n}項目${bad?`・${bad}件NG`:''}）`);

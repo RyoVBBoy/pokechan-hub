@@ -18,6 +18,8 @@ const TB_CONDDEF={must:[],ng:[],mega:'auto',type:'auto',want:[],style:[]};
 /* 集計が古いとき（取得から45日より前）に知らせる */
 function tbStale(fmt,now){const m=mvpMeta(fmt);if(!m||!m.fetched)return null;const d=Math.floor(((now||Date.now())-Date.parse(m.fetched+'T00:00:00+09:00'))/864e5);return d>45?d:null}
 const tbFam=no=>mvpFam(byNo[no]);
+/* 枠に出す短い名前（くわしくは TB_SRC） */
+const TB_SRCS={pokekit:'集計の型',theory:'理論上の型',team:'上位パーティの育成',teamnoset:'育成の登録なし',user:'登録した育成',none:'育成なし'};
 const tbBase=no=>{const p=byNo[no];return p&&p.base&&byNo[p.base]?p.base:no};
 function tbLoad(){try{const o=JSON.parse(localStorage.getItem(TB_KEY)||'null');
   if(o&&o.v===1&&byNo[o.start]&&Array.isArray(o.mem)&&o.mem.length&&o.mem[0].no===o.start)return{...o,mem:o.mem.filter(x=>byNo[x.no]).slice(0,6),cond:{...TB_CONDDEF,...(o.cond||{})}}}catch(e){}return null}
@@ -66,14 +68,15 @@ function tbDraw(){
   const st=byNo[TB.start],tab=['find','cond','manual'].includes(TB.tab)?TB.tab:'manual';
   const fmtWarn=TB.fmt!==FMT?`<div class="mvp-warn tbd-fmtw">このパーティは<b>${tbFmtN(TB.fmt)}</b>で作り始めました。いまの形式は<b>${tbFmtN(FMT)}</b>です。集計・計算は形式ごとに別なので、どちらで続けるか選んでください。
     <div class="btns"><button class="btn btn-s" data-tbfmt="${TB.fmt}">${tbFmtN(TB.fmt)}に戻す</button><button class="btn btn-s" data-tbfmt="keep">${tbFmtN(FMT)}で続ける</button></div></div>`:'';
-  const tabs=[['find','① 環境のパーティを見る',`${esc(formInfo(st).base)}が入った上位パーティと、集計の型`],['cond','② こだわり条件で組む','条件を決めて、2つの考え方で案を作る'],['manual','③ 自分で組む','1匹ずつ選び、そのたびに分析と候補']];
+  /* 道の切りかえ（2026/11/14 依頼主「UI Redesign」：説明の文は出さず、番号と名前だけ） */
+  const tabs=[['find','1','環境のパーティ','① 環境のパーティを見る'],['cond','2','こだわり条件','② こだわり条件で組む'],['manual','3','自分で組む','③ 自分で組む']];
   V.innerHTML=`<div class="tbd">
     <div class="tbd-head"><a class="av" href="#/p/${st.no}">${stamp(st)}</a><div class="row-m"><div class="row-t">${nm(st)}<span class="mvp-tag">最初の1匹</span></div>
-      <div class="tbd-ctx">${tbFmtN(FMT)}・レギュレーション ${esc(MVP_DATA.legal.reg)}（公式の一覧 ${esc(MVP_DATA.legal.fetched)}）</div></div></div>
+      <div class="tbd-ctx" title="公式の一覧 ${esc(MVP_DATA.legal.fetched)}">${tbFmtN(FMT)}・レギュレーション ${esc(MVP_DATA.legal.reg)}</div></div></div>
     ${fmtWarn}${(d=>d?`<div class="mvp-warn tbd-fmtw">集計（PokéKit・${esc(mvpMeta(FMT).month)}）の取得から${d}日たっています。いまの環境と違う可能性があります。</div>`:'')(tbStale(FMT))}
-    <div class="tbd-tabs" role="tablist">${tabs.map(([k,t,d])=>`<button role="tab" class="tbd-tab" data-tbtab="${k}" aria-selected="${tab===k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+    <div class="tbd-tabs tbd-seg" role="tablist">${tabs.map(([k,n,t,full])=>`<button role="tab" class="tbd-tab" data-tbtab="${k}" aria-selected="${tab===k}" aria-label="${full}"><span class="tbd-tn">${n}</span><b>${t}</b></button>`).join('')}</div>
     <div id="tb-body"></div>
-    <div class="tbd-bar"><div class="tbd-bar-m">${TB.mem.map(x=>`<span class="av">${stamp(byNo[x.no])}</span>`).join('')}<small>${TB.mem.length}/6匹</small></div>
+    <div class="tbd-bar"><div class="tbd-bar-m">${TB.mem.map(x=>`<span class="av" title="${esc(byNo[x.no].n)}">${stamp(byNo[x.no])}</span>`).join('')}<small>${TB.mem.length}/6匹</small></div>
       <button class="btn btn-p" id="tb-go">パーティに入れる</button></div></div>`;
   V.querySelectorAll('[data-tbtab]').forEach(b=>b.onclick=()=>{TB.tab=b.dataset.tbtab;tbSave();tbDraw()});
   V.querySelectorAll('[data-tbfmt]').forEach(b=>b.onclick=()=>{const v=b.dataset.tbfmt;if(v==='keep'){TB.fmt=FMT;TB_PROP=null;TB_FIND=null}else setFmt(v);tbSave();tbDraw()});
@@ -97,13 +100,16 @@ const tbDblNote=()=>FMT==='double'?`<p class="mvp-dbl"><b>ダブルの評価は�
 /* ===================== ③ 自分で組む ===================== */
 function tbManual(el){
   const tok=++TB_TOK;
-  el.innerHTML=`${tbDblNote()}<div class="sec"><h2>あなたのパーティ（下書き）</h2>${TB_HIST.length?'<button class="btn btn-s tbd-undo" id="tb-undo">1つ前に戻す</button>':''}</div>
-    <div class="tbd-slots">${Array.from({length:6},(_,i)=>{const x=TB.mem[i];if(!x)return `<button class="tbd-slot tbd-empty" data-tbadd="1">${SVG(I.plus,18)}<span>追加する</span></button>`;
-      const p=byNo[x.no];return `<div class="tbd-slot"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><b>${esc(formInfo(p).base)}</b><small>${i===0?'最初の1匹':esc(TB_SRC[x.src]||'')}</small>
-        <div class="tbd-sbtn"><button class="btn btn-s" data-tbrep="${i}">入れかえ</button>${i?`<button class="btn btn-s" data-tbrm="${i}">外す</button>`:''}</div>
-        <details class="tbd-set"><summary>育成</summary><p class="note">${tbSetTxt(x.set)}${x.set?`<br><small>${esc(TB_SRC[x.src]||'')}${x.srcTxt?'：'+esc(x.srcTxt):''}</small>`:''}</p></details></div>`}).join('')}</div>
-    <div id="tb-an"><p class="empty">分析中…（いまの${TB.mem.length}匹を、入れかえ案と同じ計算で見ています）</p></div>
-    <div id="tb-sug"></div>`;
+  /* 2026/11/14 UI：枠は1行ずつ（名前・型の出どころの短い名前・入れかえ・外す）。育成と出典は「育成」を開いたときだけ */
+  el.innerHTML=`${tbDblNote()}<div id="tb-sum"><p class="empty">分析中…（いまの${TB.mem.length}匹を、入れかえ案と同じ計算で見ています）</p></div>
+    <div class="sec"><h2>あなたのパーティ（${TB.mem.length}/6）</h2>${TB_HIST.length?'<button class="btn btn-s tbd-undo" id="tb-undo">1つ前に戻す</button>':''}</div>
+    <ul class="tbd-rows">${TB.mem.map((x,i)=>{const p=byNo[x.no];return `<li class="tbd-r"><a class="av" href="#/p/${p.no}">${stamp(p)}</a>
+      <details class="tbd-rd"><summary><b>${esc(formInfo(p).base)}</b><small>${i===0?'最初の1匹・':''}${esc(TB_SRCS[x.src]||'')}<span class="tbd-more-l">育成 ›</span></small></summary><p class="note">${tbSetTxt(x.set)}${x.set?`<br><small>${esc(TB_SRC[x.src]||'')}${x.srcTxt?'：'+esc(x.srcTxt):''}</small>`:''}</p></details>
+      <span class="tbd-rb"><button class="tbd-ib" data-tbrep="${i}" aria-label="${esc(p.n)}を入れかえる" title="入れかえる">${SVG(I.cycle,18)}</button>${i?`<button class="tbd-ib" data-tbrm="${i}" aria-label="${esc(p.n)}を外す" title="外す">${SVG(I.x,18)}</button>`:''}</span></li>`}).join('')}</ul>
+    ${TB.mem.length<6?`<button class="tbd-add" data-tbadd="1"><span class="tbd-addi">${SVG(I.plus,16)}</span><span>ポケモンを追加</span><small>あと${6-TB.mem.length}匹</small></button>`:''}
+    <div id="tb-an"></div>
+    <div id="tb-sug"></div>
+    <div id="tb-more"></div>`;
   const un=document.getElementById('tb-undo');if(un)un.onclick=()=>{const s=TB_HIST.pop();if(s){TB.mem=JSON.parse(s);tbSave();tbDraw()}};
   el.querySelectorAll('[data-tbadd]').forEach(b=>b.onclick=()=>tbPickAdd(-1));
   el.querySelectorAll('[data-tbrep]').forEach(b=>b.onclick=()=>tbPickAdd(+b.dataset.tbrep));
@@ -111,7 +117,8 @@ function tbManual(el){
   setTimeout(()=>{if(tok!==TB_TOK||!el.isConnected)return;
     let A;try{A=tbAnalyze(TB.mem)}catch(e){A={st:'error',why:String(e&&e.message||e)}}
     if(tok!==TB_TOK||!el.isConnected)return;
-    document.getElementById('tb-an').innerHTML=tbAnalyzeHTML(A);
+    const H=tbAnalyzeHTML(A,{next:true,split:true});document.getElementById('tb-sum').innerHTML=H.sum;document.getElementById('tb-an').innerHTML=H.rest;
+    const mo=document.getElementById('tb-more');if(mo)mo.innerHTML=tbMoreHTML(A);
     setTimeout(()=>{if(tok!==TB_TOK||!el.isConnected)return;tbSugDraw(document.getElementById('tb-sug'),tok)},20)},30);
 }
 /* 追加（i<0）か入れかえ（i）。同じ種類（メガ・姿も同じ種類）は入れない。最初の1匹の入れかえは「最初の1匹から組み直す」 */
@@ -144,12 +151,20 @@ function tbMemInfo(E,mem){
     return{i,sc:sc.label,n:sc.rows.length,adv:adv.map(nm),recv:recv.map(nm),sw:sw.map(nm),only:only.map(nm),threat:threat.map(nm),wt,roles:(E.roles[i]||[]).map(r=>r.n)}});
 }
 const tbList=(a,n)=>a.length?a.slice(0,n||4).map(esc).join('・')+(a.length>(n||4)?` ほか${a.length-(n||4)}匹`:''):'';
-function tbMemInfoHTML(f,mem){return `<ul class="tbd-mi">${f.map(z=>{const p=byNo[mem[z.i].no];return `<li><b>${esc(formInfo(p).base)}</b>${z.roles.length?`<small>役わり：${z.roles.map(esc).join('・')}</small>`:''}
-  <div class="tbd-mic"><span title="1対1で撃ち合って有利（相手が先に倒れる）">1対1で有利 <b>${z.adv.length}</b></span><span title="相手のいちばん痛い技でもHPの半分未満しか受けない＝交代で受けに出せる">安全に受けられる <b>${z.recv.length}</b></span><span title="交代で1発受けてから、そのあとの撃ち合いでも先に倒せる">後出しして勝てる <b>${z.sw.length}</b></span><small>（相手${z.n}匹・${esc(z.sc)}）</small></div>
-  ${z.only.length?`<small>この匹だけが有利か後出しで答えられる相手：${tbList(z.only)}</small>`:''}
-  ${z.threat.length?`<small class="tbd-bad">上位の相手から一撃で倒される：${tbList(z.threat)}</small>`:''}
-  ${z.wt.length?`<small class="tbd-bad">ほかの匹と重なる弱点（受けられる匹なし）：${z.wt.map(esc).join('・')}</small>`:''}</li>`}).join('')}</ul>
-  <p class="note" style="color:var(--mute)">「1対1で有利」「安全に受けられる」「後出しして勝てる」は別のことです。1対1で有利でも、交代で受けに出せるとは限りません。</p>`}
+/* 1匹ずつ（2026/11/14 UI）：1行に 名前・おもな役わり・いちばんの働き・気をつけること。3つの数と相手の名前は開いたときだけ */
+const TB_3=[['adv','1対1で有利','1対1で撃ち合って有利（相手が先に倒れる）'],['recv','安全に受けられる','相手のいちばん痛い技でもHPの半分未満しか受けない＝交代で受けに出せる'],['sw','後出しして勝てる','交代で1発受けてから、そのあとの撃ち合いでも先に倒せる']];
+function tbMemInfoHTML(f,mem){return `<ul class="tbd-mi">${f.map(z=>{const p=byNo[mem[z.i].no];
+  const main=z.only.length?`${z.only.length}匹の相手に、この匹だけが答えられる`:z.adv.length?`${z.adv.length}匹の相手に1対1で有利`:z.recv.length?`${z.recv.length}匹の相手の攻撃を安全に受けられる`:'上位の相手に有利な対面が少ない';
+  const warn=[z.threat.length?`上位の${z.threat.length}匹から一撃`:'',z.wt.length?`${z.wt.join('・')}の弱点が重なる`:''].filter(Boolean);
+  return `<li><details class="tbd-mid"><summary><span class="av">${stamp(p)}</span><span class="tbd-mim"><b>${esc(formInfo(p).base)}</b><small>${z.roles.length?esc(z.roles[0])+(z.roles.length>1?` ほか${z.roles.length-1}`:''):'補助の役わりなし'}</small></span>
+    <span class="tbd-mis"><span>${esc(main)}</span>${warn.length?`<small class="tbd-bad">${esc(warn.join('・'))}</small>`:''}</span></summary>
+    <div class="tbd-mib"><small>上位${z.n}匹の相手に対して（${esc(z.sc)}）</small>
+    <dl class="tbd-dl tbd-mi3">${TB_3.map(([k,t,d])=>`<dt title="${esc(d)}">${t} <b>${z[k].length}</b></dt><dd>${z[k].length?tbList(z[k],6):'なし'}<small>${esc(d)}</small></dd>`).join('')}</dl>
+    ${z.roles.length?`<small>役わり（型の技と特性から）：${z.roles.map(esc).join('・')}</small>`:''}
+    ${z.only.length?`<small>この匹だけが有利か後出しで答えられる相手：${tbList(z.only,6)}</small>`:''}
+    ${z.threat.length?`<small class="tbd-bad">上位の相手から一撃で倒される：${tbList(z.threat,6)}</small>`:''}
+    ${z.wt.length?`<small class="tbd-bad">ほかの匹と重なる弱点（受けられる匹なし）：${z.wt.map(esc).join('・')}</small>`:''}</div></details></li>`}).join('')}</ul>
+  <p class="note tbd-fine">「1対1で有利」「安全に受けられる」「後出しして勝てる」は別のことです。1対1で有利でも、交代で受けに出せるとは限りません。押すと数と相手が出ます。</p>`}
 /* タイプの表（C1）：タイプごとに弱点の匹数・半減以下の匹数（特性込み）と、攻撃の範囲（技の登録・型があればその攻撃技、無ければタイプ一致） */
 function tbTypes(mem){
   const ms=mem.map(x=>prMon({no:x.no,set:x.set})),def=T.map(t=>({t,w:ms.filter(m=>prDef(m)[t]>=2).length,r:ms.filter(m=>prDef(m)[t]<=.5).length}));
@@ -158,10 +173,15 @@ function tbTypes(mem){
   const noSE=T.filter(t=>![...at].some(a=>mult(a,[t])>=2));
   return{def,at:[...at],noSE,est};
 }
-function tbTypesHTML(Y){return `<details class="tbd-set tbd-ty" open><summary>タイプの相性（弱点と受け）</summary>
-  <div class="tbd-tyg">${Y.def.map(d=>`<div class="tbd-tyr${d.w>=2&&!d.r?' tbd-bad':''}">${chip(d.t)}<span>弱点 <b>${d.w}</b></span><span>半減以下 <b>${d.r}</b></span></div>`).join('')}</div>
-  <p class="note">赤い行：2匹以上が弱点で、半減以下で受けられる匹がいないタイプ。特性（ふゆう・ちょすい等）も入れています。タイプの数だけでパーティの良し悪しは決まりません（上の計算の弱点と合わせて見てください）。</p>
-  <p><b>攻撃の範囲</b>${Y.est?'（技が分からない匹はタイプ一致の技で数えています）':''}：抜群を取れないタイプ ${Y.noSE.length?Y.noSE.map(chip).join(''):'なし'}</p></details>`}
+/* タイプ（2026/11/14 UI）：受けられる匹がいない弱点だけを重い順に。18タイプの表は開いたときだけ（計算・定義は前と同じ） */
+const tbTyBad=Y=>Y.def.filter(d=>d.w>=1&&!d.r).sort((a,b)=>b.w-a.w||T.indexOf(a.t)-T.indexOf(b.t));
+function tbTypesHTML(Y){const bad=tbTyBad(Y),full=[...Y.def].sort((a,b)=>(b.w>=2&&!b.r)-(a.w>=2&&!a.r)||(b.w-b.r)-(a.w-a.r)||T.indexOf(a.t)-T.indexOf(b.t));
+  return `<div class="tbd-blk"><h3>タイプの相性</h3>
+  ${bad.length?`<ul class="tbd-tyl">${bad.map(d=>`<li class="${d.w>=2?'tbd-bad':''}">${chip(d.t)}<span>弱点 ${d.w}匹・半減以下で受けられる匹なし</span></li>`).join('')}</ul>`:'<p class="tbd-ok">どのタイプにも、半減以下で受けられる匹がいます。</p>'}
+  <p class="tbd-sub">攻撃で抜群を取れないタイプ：${Y.noSE.length?Y.noSE.map(chip).join(''):'なし'}${Y.est?'<small>（技が分からない匹はタイプ一致の技で数えています）</small>':''}</p>
+  <details class="tbd-set tbd-ty"><summary>18タイプの表を見る</summary>
+  <div class="tbd-tyg">${full.map(d=>`<div class="tbd-tyr${d.w>=2&&!d.r?' tbd-bad':''}">${chip(d.t)}<span>弱点 <b>${d.w}</b></span><span>半減以下 <b>${d.r}</b></span></div>`).join('')}</div>
+  <p class="note">赤い行：2匹以上が弱点で、半減以下で受けられる匹がいないタイプ。特性（ふゆう・ちょすい等）も入れています。半減以下で受けられても、交代で安全に受けられるとは限りません（1匹ずつの「安全に受けられる」を見てください）。タイプの数だけでパーティの良し悪しは決まりません。</p></details></div>`}
 /* いまの下書きの分析：入れかえ案と同じ評価（mvpEvalTeam）＋タイプの受け・役わり・素早さ */
 function tbAnalyze(mem){
   if(!MVP_DATA.sets[FMT])return{st:'nodata',why:`${tbFmtN(FMT)}のデータが無い`};
@@ -174,21 +194,44 @@ function tbAnalyze(mem){
   const spd=mem.map((x,i)=>({i,p:ms[i]})).filter(z=>z.p).sort((a,b)=>b.p.s[5]-a.p.s[5]);
   return{st:'ok',E,holes,roles,over,miss,spd,mem,info:tbMemInfo(E,mem),types:tbTypes(mem)};
 }
-function tbAnalyzeHTML(A){
-  if(A.st!=='ok')return `<p class="note"><b>分析できませんでした</b>：${esc(A.why||A.st)}</p>`;
+/* 画面の分析（2026/11/14 依頼主「UI Redesign」）：①まとめ（状態・重い弱点・いちばんの問題・次の一手）②1匹ずつ・タイプ ③くわしい数字は下の tbMoreHTML（開いたときだけ）。
+   数はすべて tbAnalyze の結果のまま（新しい判定はしない） */
+const TB_WKS={none:'1対1で有利に戦える匹がいない',nosw:'交代で受けられる匹がいない',ohko:'半分以上の匹が一撃で倒される',nohit:'半分以上削れる匹がいない'};
+const tbScen0=E=>E.scen.find(s=>s.key==='none')||E.scen[0];
+function tbSumHTML(A,opt){
+  const sc=tbScen0(A.E),crit=sc.weak.filter(w=>w.crit),by={};crit.forEach(w=>(by[w.k]=by[w.k]||[]).push(w.op.n));
+  const top=Object.entries(by).sort((a,b)=>b[1].length-a[1].length||Object.keys(TB_WKS).indexOf(a[0])-Object.keys(TB_WKS).indexOf(b[0]));
+  const bad=tbTyBad(A.types),heavy=bad.filter(d=>d.w>=2),other=bad.filter(d=>d.w<2);
+  const meg=A.E.scen.filter(s=>s.key!==sc.key).map(s=>`${esc(s.label)}：${s.weak.filter(w=>w.crit).length}件`);
+  return `<section class="tbd-sum" aria-label="いまのパーティの状態">
+    <div class="tbd-sumh"><span class="tbd-big ${crit.length?'tbd-bad':'tbd-okc'}">${crit.length}</span><div><b>大きな弱点 ${crit.length}件</b><small>${esc(sc.label)}・上位${A.E.scen[0].rows.length}匹の相手に対して${meg.length?`（${meg.join('・')}）`:''}</small></div></div>
+    <dl class="tbd-sumd">
+      ${top.length?`<dt>いちばんの問題</dt><dd><b>${esc(TB_WKS[top[0][0]])}</b>相手 ${top[0][1].length}匹（${tbList(top[0][1],3)}）${top.length>1?`<small>ほか：${top.slice(1).map(([k,v])=>`${esc(TB_WKS[k])} ${v.length}匹`).join('・')}</small>`:''}</dd>`:''}
+      ${heavy.length?`<dt>重い弱点タイプ</dt><dd>${heavy.map(d=>chip(d.t)).join('')}<small>2匹以上が弱点で、半減以下で受けられる匹がいない</small></dd>`:''}
+      ${other.length?`<dt>ほかの弱点タイプ</dt><dd>${other.map(d=>chip(d.t)).join('')}<small>受けられる匹がいない</small></dd>`:''}
+      ${A.miss.length?`<dt>まだいない役わり</dt><dd>${A.miss.map(esc).join('・')}<small>必ず要るわけではありません</small></dd>`:''}
+    </dl>
+    ${opt&&opt.next?'<div id="tb-next" class="tbd-next"><small>次の一手を計算中…</small></div>':''}</section>`}
+function tbAnalyzeHTML(A,opt){
+  if(A.st!=='ok'){const e=`<p class="note"><b>分析できませんでした</b>：${esc(A.why||A.st)}</p>`;return opt&&opt.split?{sum:e,rest:''}:e}
+  const sum=tbSumHTML(A,opt),rest=`${A.info&&A.info.length?`<div class="tbd-blk"><h3>1匹ずつの働き</h3>${tbMemInfoHTML(A.info,A.mem)}</div>`:''}
+    ${A.types?tbTypesHTML(A.types):''}`;
+  return opt&&opt.split?{sum,rest}:sum+rest;
+}
+/* くわしい分析（開いたときだけ）：場合ごとの大きな弱点の全部・役わり・素早さ・出典（前の画面の中身をそのまま） */
+function tbMoreHTML(A){
+  if(!A||A.st!=='ok')return '';
   const nmI=i=>esc(formInfo(byNo[A.mem[i].no]).base);
   const rl=Object.entries(A.roles).map(([k,v])=>`${esc(MVP_ROLES[k][0])}（${v.map(nmI).join('・')}）`).join('、');
-  return `${mvpWeakHTML(A.E)}
+  return `<details class="tbd-set tbd-more"><summary>くわしい分析（大きな弱点の全部・役わり・素早さ・出典）</summary>
+    ${mvpWeakHTML(A.E)}
     <div class="tbd-an2">
       <p><b>受けにくいタイプ</b>：${A.holes.length?A.holes.map(chip).join(''):'なし（2匹以上が弱点で、半減以下で受けられる匹がいないタイプはありません）'}</p>
       <p><b>役わり</b>（型の技と特性から）：${rl||'まだ見つかりません'}</p>
-      ${A.miss.length?`<p class="note">まだいない役わり：${A.miss.map(esc).join('・')}（必ず要るわけではありません）</p>`:''}
       ${A.over.length?`<p class="note">3匹以上が同じ役わり：${A.over.map(o=>`${esc(o.n)}（${o.who.map(nmI).join('・')}）`).join('、')}</p>`:''}
       <p><b>素早さ</b>（種族値の速い順）：${A.spd.map(z=>`${nmI(z.i)} ${z.p.s[5]}`).join('・')}</p>
     </div>
-    ${A.types?tbTypesHTML(A.types):''}
-    ${A.info&&A.info.length?`<details class="tbd-set" open><summary>1匹ずつの働き（計算）</summary>${tbMemInfoHTML(A.info,A.mem)}</details>`:''}
-    <p class="note" style="color:var(--mute)">相手は ${esc(mvpSrcTxt(FMT))} の使用率の上位${MVP_OPPN}匹。ゲーム内の公式の集計ではありません。メガシンカは1匹ずつの場合に分けて計算しています。</p>`;
+    <p class="note" style="color:var(--mute)">相手は ${esc(mvpSrcTxt(FMT))} の使用率の上位${MVP_OPPN}匹。ゲーム内の公式の集計ではありません。メガシンカは「なし」と1匹ずつの場合に分けて計算しています。</p></details>`;
 }
 /* ---- 候補（6匹未満）：PokéKit の型が組める・使えると確認できた匹を、入れたあとの6匹（いまの匹数＋1）で計算し直す ---- */
 const TB_PRE=8;
@@ -237,33 +280,63 @@ function tbSugDraw(el,tok){
   el.innerHTML='<p class="empty">候補を計算中…</p>';
   let R;try{R=tbCands(TB.mem)}catch(e){R={st:'error',why:String(e&&e.message||e)}}
   if(tok!==TB_TOK||!el.isConnected)return;
-  if(R.st!=='ok'){el.innerHTML=`<p class="note"><b>候補を計算できませんでした</b>：${esc(R.why||R.st)}</p>`;return}
+  const nx=document.getElementById('tb-next');
+  if(R.st!=='ok'){el.innerHTML=`<p class="note"><b>候補を計算できませんでした</b>：${esc(R.why||R.st)}</p>`;if(nx)nx.innerHTML='';return}
   const nmI=i=>esc(formInfo(byNo[TB.mem[i].no]).base);
-  el.innerHTML=`<div class="sec"><h2>次に入れる候補</h2><span style="font-size:12px;color:var(--dim)">新しい大きな弱点を作らない→減る大きな弱点が多い順</span></div>
-    ${R.res.map((c,k)=>{const p=byNo[c.r.mega||c.r.no],C=c.C;const fx=C.pairs.flatMap(z=>z.fixed.filter(w=>w.crit)),mk=C.pairs.flatMap(z=>z.made);
-      return `<div class="pr-c tbd-c"><div class="row"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><div class="row-m"><div class="row-t">${nm(p)}</div>
-        <div class="chips"><span class="mvp-tag mvp-ok">M-C で使える（公式の一覧で確認）</span>${C.cm?'<span class="mvp-tag mvp-unv">新しい大きな弱点あり</span>':''}</div></div></div>
-        <div class="mvp-body">${C.pairs.map(z=>`<div class="mvp-pl">${esc(z.b.label)}：大きな弱点 ${z.a.weak.filter(w=>w.crit).length} → ${z.c1}件</div>`).join('')}
-          ${C.added.map(z=>`<div class="mvp-pl">${esc(z.label)}：大きな弱点 ${z.weak.filter(w=>w.crit).length}件<small>（新しくできる場合。比べる前が無いので並べ方には入れていません）</small></div>`).join('')}
-          ${fx.length?`<div class="mvp-h">なくなる大きな弱点（この候補が解決する問題）</div><ul class="mvp-up">${fx.slice(0,5).map(w=>`<li>${mvpWkTxt(w)}</li>`).join('')}${fx.length>5?`<li>ほか${fx.length-5}件</li>`:''}</ul>`:''}
-          ${mk.length?`<div class="mvp-h">新しくできる弱点</div><ul class="mvp-dn">${mk.slice(0,4).map(w=>`<li>${mvpWkTxt(w)}${w.crit?'（大きな弱点）':''}</li>`).join('')}${mk.length>4?`<li>ほか${mk.length-4}件</li>`:''}</ul>`:''}
-          ${c.addR.length?`<p class="note">加わる役わり：${c.addR.map(r=>esc(r.n)).join('・')}</p>`:''}
-          ${c.ovR.length||c.ovT.length?`<p class="note">重なり：${[...c.ovR.map(z=>`${esc(z.r.n)}（${z.who.map(nmI).join('・')}と同じ）`),...c.ovT.map(z=>`${z.t.join('・')}が弱点（${nmI(z.i)}と同じ）`)].join('、')}</p>`:''}
-          ${c.co?`<p class="note">一緒に使われる割合：${nmI(TB.mem.findIndex(x=>x.no===c.co.with))}の使用者の${c.co.pc}%（Showdown の集計。強さの証拠ではありません）</p>`:''}
-          <details class="tbd-set"><summary>入れる型（データの出典）</summary><p class="note">${esc(c.S.txt)}${c.S.notes.length?'。'+esc(c.S.notes.join('。')):''}<br>能力ポイントは仮定。出典：${esc(mvpSrcTxt(FMT))}</p></details>
-          <div class="tbd-cmp" id="tb-cmp${k}"></div></div>
-        <div class="btns" style="padding:0 16px 12px"><button class="btn btn-p btn-s" data-tbin="${k}">追加する</button>${TB.mem.length>1?`<button class="btn btn-s" data-tbvs="${k}">いまの匹と比べる</button>`:''}</div></div>`}).join('')||'<p class="note">候補が見つかりませんでした。</p>'}
-    <p class="note" style="color:var(--mute)">くわしく比べた候補 ${R.res.length}匹（集計の${R.rows}匹から、M-C で使える・型が組める・持ち物が重ならない匹を、いまの大きな弱点の相手に有利か後出しできる数で並べた上位）。勝率ではありません。</p>`;
+  if(nx){const c=R.res[0];nx.innerHTML=c?`<span>次の一手：<b>${esc(formInfo(byNo[c.r.mega||c.r.no]).base)}</b>を入れる（${tbCandHead(c)}）</span><a href="#tb-sug" class="tbd-lk" data-tbgo="sug">候補を見る${SVG(I.chev,14)}</a>`:'<span>候補が見つかりませんでした。</span>';
+    const g=nx.querySelector('[data-tbgo]');if(g)g.onclick=e=>{e.preventDefault();el.scrollIntoView({behavior:'smooth',block:'start'})}}
+  el.innerHTML=`<div class="tbd-blk"><h3>次に入れる候補</h3><p class="tbd-sub">新しい大きな弱点を作らない → 減る大きな弱点が多い順</p>
+    ${R.res.map((c,k)=>tbCandCard(c,k,nmI)).join('')||'<p class="note">候補が見つかりませんでした。</p>'}
+    <p class="note tbd-fine">くわしく比べた候補 ${R.res.length}匹（集計の${R.rows}匹から、M-C で使える・型が組める・持ち物が重ならない匹を、いまの大きな弱点の相手に有利か後出しできる数で並べた上位）。勝率ではありません。</p></div>`;
   el.querySelectorAll('[data-tbin]').forEach(b=>b.onclick=()=>{const c=R.res[+b.dataset.tbin];if(TB.mem.length>=6)return;
     tbPush();TB.mem.push({no:c.r.no,set:c.S.sv,src:'pokekit',srcTxt:`${mvpSrcTxt(FMT)}（能力ポイントは仮定）`});tbSave();tbDraw()});
   el.querySelectorAll('[data-tbvs]').forEach(b=>b.onclick=()=>{const k=+b.dataset.tbvs,c=R.res[k],box=document.getElementById('tb-cmp'+k);
-    box.innerHTML=`<p class="note">どの匹と比べますか？</p><div class="btns">${TB.mem.map((x,i)=>i?`<button class="btn btn-s" data-tbvi="${i}">${nmI(i)}</button>`:'').join('')}</div><div class="tbd-cmpr"></div>`;
+    box.innerHTML=`<p class="tbd-sub">どの匹と入れかえたときを見ますか？</p><div class="tbd-pick" role="group">${TB.mem.map((x,i)=>i?`<button class="tbd-chipb" data-tbvi="${i}" aria-pressed="false">${nmI(i)}</button>`:'').join('')}</div><div class="tbd-cmpr"></div>`;
     box.querySelectorAll('[data-tbvi]').forEach(q=>q.onclick=()=>{const i=+q.dataset.tbvi,out=box.querySelector('.tbd-cmpr');
+      box.querySelectorAll('[data-tbvi]').forEach(z=>z.setAttribute('aria-pressed',z===q));
       const E1=tbEval(TB.mem.map((x,j)=>j===i?{no:c.r.no,set:c.S.sv}:x)),C=mvpCompare(R.E0,E1,TB.mem[i].no,c.r.no,i);
-      out.innerHTML=mvpCardHTML({i,outNo:TB.mem[i].no,c,S:c.S,C,E1},9).replace(/<div class="btns"[\s\S]*$/,'</div></div>')+`<div class="btns"><button class="btn btn-s" data-tbsw="${i}">${nmI(i)}と入れかえる</button></div>`;
+      out.innerHTML=tbCmpHTML(C,i,c,nmI)+`<details class="tbd-set"><summary>くわしい比べ方</summary>${mvpCardHTML({i,outNo:TB.mem[i].no,c,S:c.S,C,E1},9).replace(/<div class="btns"[\s\S]*$/,'</div></div>')}</details>`+`<button class="tbc-sw" data-tbsw="${i}">${SVG(I.cycle,16)}${nmI(i)}と入れかえる</button>`;
       out.querySelector('[data-tbsw]').onclick=()=>{tbPush();TB.mem[i]={no:c.r.no,set:c.S.sv,src:'pokekit',srcTxt:`${mvpSrcTxt(FMT)}（能力ポイントは仮定）`};tbSave();tbDraw()}})});
 }
-
+/* 候補のカード（2026/11/14 UI）：名前・大きな弱点の増減・いちばんの理由・気をつけること。くわしい中身は開いたときだけ（中身は前と同じ） */
+const tbPair0=C=>C.pairs.find(z=>z.b.key==='none')||C.pairs[0];
+const tbCandHead=c=>{const z=tbPair0(c.C);return z?`大きな弱点 ${z.a.weak.filter(w=>w.crit).length} → ${z.c1}件`:'比べられる場合なし'};
+const tbCandNum=c=>{const z=tbPair0(c.C);if(!z)return '比べられる場合なし';const a=z.a.weak.filter(w=>w.crit).length,b=z.c1;
+  return `<span class="tbd-num">大きな弱点 <s>${a}</s><span aria-hidden="true">→</span><b class="${b<a?'tbd-up':b>a?'tbd-dn':''}">${b}</b>件</span><span class="tbd-sr">${tbCandHead(c)}</span>`};
+function tbCandCard(c,k,nmI){
+  const p=byNo[c.r.mega||c.r.no],C=c.C,fx=C.pairs.flatMap(z=>z.fixed.filter(w=>w.crit)),mk=C.pairs.flatMap(z=>z.made);
+  const fx0=(tbPair0(C)||{fixed:[]}).fixed.filter(w=>w.crit);
+  const why=fx0.length?`解決：${esc(fx0[0].op.n)}（${esc(TB_WKS[fx0[0].k])}）${fx0.length>1?` ほか${fx0.length-1}件`:''}`:c.addR.length?`加わる役わり：${c.addR.map(r=>esc(r.n)).join('・')}`:'大きな弱点は減らない';
+  const trade=C.cm?`新しく大きな弱点 ${C.cm}件（${esc(mk.filter(w=>w.crit)[0].op.n)}など）`:c.ovT.length?`${esc(c.ovT[0].t.join('・'))}の弱点が${nmI(c.ovT[0].i)}と重なる`:mk.length?`小さな弱点が${mk.length}件できる`:'';
+  return `<div class="pr-c tbd-c tbc"><div class="tbc-h"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><div class="row-m"><div class="row-t">${nm(p)}</div><div class="tbc-n">${tbCandNum(c)}</div></div>
+    <button class="tbc-a" data-tbin="${k}" aria-label="${esc(p.n)}を追加">${SVG(I.plus,16)}<span>追加</span></button></div>
+    <ul class="tbc-l"><li class="tbc-up">${why}</li>${trade?`<li class="tbc-dn">${trade}</li>`:''}</ul>
+    <div class="tbc-f">${TB.mem.length>1?`<button class="tbd-lk" data-tbvs="${k}">いまの匹と比べる${SVG(I.chev,14)}</button>`:''}
+    <details class="tbd-set tbc-d"><summary>くわしく</summary><div class="mvp-body">
+      <div class="chips"><span class="mvp-tag mvp-ok">M-C で使える（公式の一覧で確認）</span>${C.cm?'<span class="mvp-tag mvp-unv">新しい大きな弱点あり</span>':''}</div>
+      ${C.pairs.map(z=>`<div class="mvp-pl">${esc(z.b.label)}：大きな弱点 ${z.a.weak.filter(w=>w.crit).length} → ${z.c1}件</div>`).join('')}
+      ${C.added.map(z=>`<div class="mvp-pl">${esc(z.label)}：大きな弱点 ${z.weak.filter(w=>w.crit).length}件<small>（新しくできる場合。比べる前が無いので並べ方には入れていません）</small></div>`).join('')}
+      ${fx.length?`<div class="mvp-h">なくなる大きな弱点（この候補が解決する問題）</div><ul class="mvp-up">${fx.map(w=>`<li>${mvpWkTxt(w)}</li>`).join('')}</ul>`:''}
+      ${mk.length?`<div class="mvp-h">新しくできる弱点</div><ul class="mvp-dn">${mk.map(w=>`<li>${mvpWkTxt(w)}${w.crit?'（大きな弱点）':''}</li>`).join('')}</ul>`:''}
+      ${c.addR.length?`<p class="note">加わる役わり：${c.addR.map(r=>esc(r.n)).join('・')}</p>`:''}
+      ${c.ovR.length||c.ovT.length?`<p class="note">重なり：${[...c.ovR.map(z=>`${esc(z.r.n)}（${z.who.map(nmI).join('・')}と同じ）`),...c.ovT.map(z=>`${z.t.join('・')}が弱点（${nmI(z.i)}と同じ）`)].join('、')}</p>`:''}
+      ${c.co?`<p class="note">一緒に使われる割合：${nmI(TB.mem.findIndex(x=>x.no===c.co.with))}の使用者の${c.co.pc}%（Showdown の集計。強さの証拠ではありません）</p>`:''}
+      <p class="note">入れる型：${esc(c.S.txt)}${c.S.notes.length?'。'+esc(c.S.notes.join('。')):''}<br>能力ポイントは仮定。出典：${esc(mvpSrcTxt(FMT))}</p></div></details></div>
+    <div class="tbd-cmp" id="tb-cmp${k}"></div></div>`;
+}
+/* 弱点の短い書き方（3件まで。全部は「くわしい比べ方」） */
+const tbWkShort=a=>a.length?a.slice(0,3).map(w=>`${esc(w.op.n)}<small class="tbd-wk">${esc(TB_WKS[w.k])}</small>`).join('')+(a.length>3?`<small>ほか${a.length-3}件</small>`:''):'なし';
+/* 入れかえたときの比べ（良くなる・悪くなる・変わらない）。数は mvpCompare のまま */
+function tbCmpHTML(C,i,c,nmI){const z=tbPair0(C);if(!z)return '<p class="note">比べられる場合がありません。</p>';
+  const a0=z.a.weak.filter(w=>w.crit).length,up=z.fixed.filter(w=>w.crit),dn=z.made.filter(w=>w.crit),dn2=z.made.filter(w=>!w.crit),same=a0-up.length;
+  const sl=z.slot&&z.slot.a&&z.slot.b?TB_3.map(([k,t])=>[t,z.slot.a[k],z.slot.b[k]]):[];
+  return `<div class="tbd-cmpv"><div class="tbc-n">${nmI(i)} → ${esc(formInfo(byNo[c.r.mega||c.r.no]).base)}：大きな弱点 ${a0} → ${z.c1}件<small>（${esc(z.b.label)}）</small></div>
+    <dl class="tbd-dl">
+      <dt class="tbc-up">良くなる</dt><dd>${tbWkShort(up)}</dd>
+      <dt class="tbc-dn">悪くなる</dt><dd>${dn.length?`<small>大きな弱点 ${dn.length}件</small>`+tbWkShort(dn):''}${dn2.length?`<small>小さな弱点 ${dn2.length}件</small>`:''}${!dn.length&&!dn2.length?'なし':''}${C.lastMegaLost?'<small>メガシンカできる匹がいなくなります</small>':''}</dd>
+      <dt>変わらない</dt><dd>大きな弱点 ${same}件はそのまま</dd>
+      ${sl.length?`<dt>その枠の働き</dt><dd>${sl.map(([t,a,b])=>`${t} ${a}→${b}匹`).join('・')}</dd>`:''}
+    </dl></div>`}
 /* ===================== ① 環境のパーティを見る ===================== */
 /* 上位パーティ（サーバーの seasons）：出典の種類を分ける。勝率・順位は作らない */
 const TB_CAT={chk:['確認済み','ランクバトルの最終順位の登録で、運営者が証拠を確認したもの'],self:['本人の申告','ランクバトルの最終順位の登録（運営者の確認はまだ）'],auto:['記事から集めた','公開された記事から、2つ以上の出典で一致した事実（6匹・順位など）だけを集めたもの']};
@@ -314,7 +387,7 @@ function tbFind(el){
     box.querySelectorAll('[data-tbuse]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbuse];tbTransfer(t.team.map(x=>({no:x.no,set:tbRegSet(x.set).s,src:'team'})),`${t.season}・${t.rank?t.rank+'位':''}`)});
     box.querySelectorAll('[data-tbcalc]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbcalc],o=document.getElementById('tb-tc'+b.dataset.tbcalc);
       let A;try{A=tbAnalyze(t.team.map(x=>({no:x.no,set:tbRegSet(x.set).s})))}catch(e){A={st:'error',why:String(e)}}
-      o.innerHTML=`<p class="note"><b>当サイトの分析</b>（登録した人の考えではありません）</p>`+tbAnalyzeHTML(A);b.remove()});
+      o.innerHTML=`<p class="note"><b>当サイトの分析</b>（登録した人の考えではありません）</p>`+tbAnalyzeHTML(A)+tbMoreHTML(A);b.remove()});
   };
   if(TB_FIND&&TB_FIND.fmt===fmt&&(TB_FIND.teams||TB_FIND.err)){draw();return}
   tbFindLoad(fmt).then(D=>{TB_FIND=D;draw()}).catch(e=>{TB_FIND={fmt,err:String(e&&e.message||e)};draw()});

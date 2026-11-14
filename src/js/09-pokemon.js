@@ -69,7 +69,7 @@ function detail(no){
   <div data-sw data-panel="5" hidden id="mvpanel"></div>
   </div>
   ${battleFormHTML(p)}
-  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/tb/${byNo[p.base]?p.base:p.no}">${SVG(I.plus,16)}このポケモンから組む（環境のパーティ・条件・自分で）</a><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a><a class="btn btn-s" style="flex-basis:100%" href="#/contact" data-report>このページの間違いを報告</a></div>
+  <div class="btns dp-acts" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/tb/${byNo[p.base]?p.base:p.no}">${SVG(I.plus,16)}このポケモンから組む</a><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a><a class="btn btn-s" style="flex-basis:100%" href="#/contact" data-report>このページの間違いを報告</a></div>
   ${adSlot('記事下')}`;
   /* 姿の切りかえでグラフを滑らかに動かす・ギルガルドのバトルスイッチ（52-statmorph.js） */
   statFx(p);
