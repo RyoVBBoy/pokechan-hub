@@ -33,6 +33,7 @@ function dguSumFill(entries,C){
       <p class="dgu-note">${S.list.length}通りの選出を比べた1番です。この選出で ◎${b.cnt[4]}・○${b.cnt[3]}・△${b.cnt[2]}・×${b.cnt[1]}（上位${S.N}匹）。${b.pairs?'先発2匹は簡易比較です。':''}</p>
       <button class="dgu-link" data-dgu-tab="plan">選出の理由・先発の比較を見る（構築 › 選出アシスト）</button></div>`})():'';
   box.innerHTML=`<div class="dgu-head"><h2>診断のまとめ</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
+    ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
     <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','弱点のカード'],['lose-box','敗因の診断'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
     <div class="dgu-sec"><h3>総合評価</h3>
       <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${dguSevTag(areaSev(a))}</div>`).join('')}</div>
@@ -45,6 +46,7 @@ function dguSumFill(entries,C){
       ${W.length&&W[0].how?`<p class="dgu-how"><b>${esc(W[0].t.replace(/<[^>]+>/g,''))}</b>：${W[0].how}</p>`:''}
       <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>
     ${sel}`;
+  if(typeof dgMegaBind==='function')dgMegaBind(box);
   box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
   /* 選出の理由へ：構築と選出タブの「選出の比較」まで送る（タブの切りかえは ttJump） */
   box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>ttJump(b.dataset.dguTab,'sel-box'));

@@ -255,8 +255,18 @@ function dgDataSig(){
   const rk=typeof META!=='undefined'&&META.rank?META.rank.map(x=>x.no).join('.'):'';
   const have=Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).sort((a,b)=>a-b).join('.');
   const tp=typeof TOPT!=='undefined'&&typeof topReady==='function'&&topReady()?TOPT.at+':'+TOPT.n:'0';
-  return [FMT,rk,have,tp].join('|');
+  return [FMT,rk,have,tp,'m'+dgMegaSel()].join('|');
 }
+/* ---- メガシンカは1回の対戦で1匹だけ（2026/11/14 依頼主の判断：診断は「選んだメガだけを見せる」） ----
+   メガストーンを持つ匹が2匹以上いれば、1匹だけをメガの姿で計算し、ほかは持ち物なしで計算する（同時に2匹をメガの姿で数えない）。
+   どの匹にするかは利用者が選べる（DGM.sel、パーティの枠ごと・localStorage pcdgmega）。選んでいなければ自動＝メガの匹ごとに計算して、
+   答えがない相手（×）→△以下→後出しできない相手→半分以上を一撃→◎の多さ→並び順 でいちばん良いもの */
+const DGM={sel:(()=>{try{return JSON.parse(localStorage.getItem('pcdgmega')||'{}')||{}}catch(e){return{}}})()};
+const dgMegaSlot=()=>typeof TEAMS!=='undefined'&&TEAMS&&TEAMS.cur!=null?String(TEAMS.cur):'0';
+function dgMegaSel(){const v=DGM.sel[dgMegaSlot()];return v?+v:0}
+function dgMegaSet(no){if(no)DGM.sel[dgMegaSlot()]=+no;else delete DGM.sel[dgMegaSlot()];try{localStorage.setItem('pcdgmega',JSON.stringify(DGM.sel))}catch(e){}}
+const dgCalcSet=o=>(o.x.set&&!team.includes(o.x)&&savedToCalc(o.x.no,o.x.set))||mySetFor(o.x.no);
+const dgStoneOf=(no,cs)=>cs&&cs.item&&isStone(cs.item)&&megaOf(no,cs.item)?cs.item:null;
 /* パーティ（entries）× 相手（metaOpps）の表。相手の型は使用率の高い型（detSet）。集計の有無も返す */
 /* 同じパーティ・形式・集計の読み込み状況なら、計算を使い回す（パーティのチェックと「相手ごとの対応力」で同じ結果を使う） */
 const DG_CACHE={};
@@ -266,10 +276,27 @@ function dgTeam(entries,n){
   if(DG_CACHE.k===key)return DG_CACHE.v;
   const v=dgTeam0(entries,n);DG_CACHE.k=key;DG_CACHE.v=v;return v;
 }
-function dgTeam0(entries,n){
+/* opt.megaNo＝メガシンカさせる匹の番号（変更前と同じメガのまま比べるとき）。無ければ利用者の選び→自動 */
+function dgTeam0(entries,n,opt){
+  opt=opt||{};
   const ms=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
   /* 入れかえ案の匹は、その匹のために組んだ育成（x.set）で計算する（パーティにいない匹は teamSet で引けないため） */
-  const M=ms.map(o=>{try{return mkMon(o.p,'me',(o.x.set&&!team.includes(o.x)&&savedToCalc(o.x.no,o.x.set))||mySetFor(o.x.no))}catch(e){return null}});
+  const CS=ms.map(o=>{try{return dgCalcSet(o)}catch(e){return null}});
+  const H=ms.map((o,i)=>dgStoneOf(o.x.no,CS[i])?i:-1).filter(i=>i>=0);
+  if(H.length<2)return dgTeam1(n,ms,CS,H.length?H[0]:-1,H,'one');
+  const pick=no=>no?H.find(i=>ms[i].x.no===+no):undefined;
+  let wi=pick(opt.megaNo),mode='fixed';
+  if(wi==null){wi=pick(dgMegaSel());mode='user'}
+  if(wi!=null)return dgTeam1(n,ms,CS,wi,H,mode);
+  const all=H.map(i=>dgTeam1(n,ms,CS,i,H,'auto'));
+  const key=T=>{const m=dgMetric(T);return [m.x,m.w,m.nosw,m.ohko,-T.rows.filter(r=>r.lvl===4).length]};
+  const cmp=(a,b)=>{const x=key(a),y=key(b);for(let k=0;k<x.length;k++)if(x[k]!==y[k])return x[k]-y[k];return 0};
+  const best=[...all].sort(cmp)[0];
+  best.mega.alts=all.map(T=>{const m=dgMetric(T);return{i:T.mega.i,no:T.mega.no,x:m.x,w:m.w,nosw:m.nosw,ohko:m.ohko,st:T.rows.filter(r=>r.lvl===4).length}});
+  return best;
+}
+function dgTeam1(n,ms,CS,mi,H,mode){
+  const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{return mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs)}catch(e){return null}});
   const fam=q=>q.base||q.no;
   const opps=metaOpps(n).filter(q=>!ms.some(o=>fam(o.p)===fam(q)));
   const rows=opps.map(q=>{
@@ -306,7 +333,8 @@ function dgTeam0(entries,n){
   /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
   const unk=new Map();const addU=(m,who)=>{if(m&&m.ab&&ABN[m.ab]&&(DG_SIMONLY.has(m.ab)||(typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab))))unk.set(who+m.p.n,`${m.p.n}の${ABN[m.ab]}`)};
   M.forEach(m=>addU(m,'me'));rows.forEach(r=>addU(r.o,'op'));
-  return{ms,M,rows,live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr};
+  return{ms,M,rows,live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,
+    mega:{i:mi,no:mi>=0?ms[mi].x.no:null,mode,holders:H.map(i=>({i,no:ms[i].x.no,stone:dgStoneOf(ms[i].x.no,CS[i])})),alts:null}};
 }
 const DG_LV={4:['◎','2匹以上で安定して対応できる','ok'],3:['○','1匹だけで対応（その匹に頼っている）','mid'],2:['△','対応が不安定（乱数・同速・条件しだい）','warn'],1:['×','パーティ全体で対応が難しい','bad']};
 function dgHTML(){return `<div id="dg-box"><div class="sec"><h2>相手ごとの対応力（計算）</h2></div><p class="empty" style="padding:14px">計算中…</p></div>`}
@@ -501,7 +529,7 @@ function dgDefSwaps(entries,T){
   outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
     const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
       const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>=2).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
-    sc.forEach(({c,S,won})=>{let T1;try{T1=dgTeam0(entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x),20)}catch(e){return}
+    sc.forEach(({c,S,won})=>{let T1;try{T1=dgTeam0(entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x),20,{megaNo:T.mega&&T.mega.no})}catch(e){return}
       const D=dgDiff(T,T1),b=D.b,a=D.a;
       if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,won:won.map(r=>r.q.n),b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
   res.sort((x,y)=>y.gain-x.gain);
@@ -513,9 +541,20 @@ function dgDefSwaps(entries,T){
   out.mvpDrop=drop;
   DG_FIX.set(key,out);return out;
 }
+/* どのメガで計算したかと、切りかえ（2026/11/14 依頼主の判断：選んだメガだけを見せる）。メガストーンを持つ匹が2匹以上のときだけ出す */
+const dgMegaNm=h=>{const m=megaOf(h.no,h.stone);return m&&byNo[m.no]?byNo[m.no].n:formInfo(byNo[h.no]).base};
+function dgMegaTxt(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';const h=M.holders.find(z=>z.i===M.i);
+  return `メガシンカは${dgMegaNm(h)}だけで計算（${M.mode==='auto'?'自動：パーティ全体でいちばん結果が良いメガ':'あなたが選んだメガ'}）。1回の対戦でメガシンカできるのは1匹だけなので、ほかのメガストーンを持つ匹（${M.holders.filter(z=>z.i!==M.i).map(z=>formInfo(byNo[z.no]).base).join('・')}）はメガシンカしない姿・持ち物なしで計算しています。`}
+function dgMegaBarHTML(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';
+  const on=no=>M.mode!=='auto'&&M.no===no;
+  const alt=M.alts?`<details class="dgm-alt"><summary>自動で選んだ理由（メガごとの結果）</summary><ul>${M.alts.map(a=>{const h=M.holders.find(z=>z.i===a.i);return `<li${a.i===M.i?' class="dgm-best"':''}><b>${esc(dgMegaNm(h))}</b>：答えがない相手 ${a.x}匹・△以下 ${a.w}匹・後出しできない相手 ${a.nosw}匹・半分以上を一撃で倒される相手 ${a.ohko}匹・◎ ${a.st}匹${a.i===M.i?'（選んだもの）':''}</li>`}).join('')}</ul><p class="note">答えがない相手の少なさ→△以下の少なさ→後出しできない相手の少なさ→一撃で倒される相手の少なさ→◎の多さ、の順で比べています。強さや勝率の保証ではありません。</p></details>`:'';
+  return `<div class="dgm-bar"><p class="dgm-t"><b>メガシンカ：${esc(dgMegaNm(M.holders.find(z=>z.i===M.i)))}で計算</b><span class="dgm-mode">${M.mode==='auto'?'自動':'選んだメガ'}</span></p>
+    <p class="dgm-n">1回の対戦でメガシンカできるのは1匹だけです。ほかのメガストーンを持つ匹は、メガシンカしない姿で計算しています。下の診断・選出・改善案はすべてこのメガで計算します。</p>
+    <div class="dgm-btns" role="group" aria-label="メガシンカさせる匹を選ぶ"><button class="dgm-b" data-dgm="0" aria-pressed="${M.mode==='auto'}">自動</button>${M.holders.map(h=>`<button class="dgm-b" data-dgm="${h.no}" aria-pressed="${on(h.no)}">${esc(dgMegaNm(h))}</button>`).join('')}</div>${alt}</div>`}
+function dgMegaBind(root){if(!root)return;root.querySelectorAll('[data-dgm]').forEach(b=>b.onclick=()=>{const no=+b.dataset.dgm;if(no===dgMegaSel())return;dgMegaSet(no);const y=scrY();teamRender();scrTo(0,y)})}
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
 function dgPremise(T){
-  return `相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、ほかは自動で決めた型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
+  return `${dgMegaTxt(T)}相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、ほかは自動で決めた型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
     `${T.rows.some(r=>r.abAssume)?`集計がない相手で特性によって結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない特性：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }

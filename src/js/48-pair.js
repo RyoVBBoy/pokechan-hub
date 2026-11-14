@@ -130,7 +130,7 @@ function prSwaps(){
   if(!T0)return cand.slice(0,4);
   const cnt=T=>({x:T.rows.filter(r=>r.lvl===1).length,w:T.rows.filter(r=>r.lvl<=2).length});
   const c0=cnt(T0),by=new Map(T0.rows.map(r=>[r.q.no,r]));
-  return cand.map(r=>{let T1;try{T1=dgTeam0(team.map((x,k)=>k===r.i?{no:r.o.c.no,sel:x.sel}:x),20)}catch(e){return null}
+  return cand.map(r=>{let T1;try{T1=dgTeam0(team.map((x,k)=>k===r.i?{no:r.o.c.no,sel:x.sel}:x),20,{megaNo:T0.mega&&T0.mega.no})}catch(e){return null}
     const c1=cnt(T1),worse=T1.rows.filter(z=>{const b=by.get(z.q.no);return b&&b.lvl>=3&&z.lvl<=2}).map(z=>z.q.n);
     let D=null;try{D=dgDiff(T0,T1)}catch(e){}
     return{...r,calc:{b:c0,a:c1,worse,D}}}).filter(r=>r&&r.calc.a.x<=r.calc.b.x&&!r.calc.worse.length&&r.calc.a.w<=r.calc.b.w).slice(0,4);

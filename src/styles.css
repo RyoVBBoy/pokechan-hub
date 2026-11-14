@@ -2561,3 +2561,16 @@ body.kb-open .fabwrap{opacity:0;visibility:hidden;pointer-events:none}
 .mvp-slot{margin:2px 0 0;font-size:12px;color:var(--dim);line-height:1.5;overflow-wrap:anywhere}
 .mvp-dbl{margin:12px 16px 0;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;font-size:13px;line-height:1.55}
 .mvp-body ul.mvp-up,.mvp-body ul.mvp-dn{margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.55}
+
+/* 診断のメガシンカの選び方（2026/11/14） */
+.dgm-bar{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--acc-t)}
+.dgm-t{margin:0;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dgm-mode{font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--acc);color:var(--acc)}
+.dgm-n{margin:4px 0 8px;font-size:12px;color:var(--dim);line-height:1.5}
+.dgm-btns{display:flex;flex-wrap:wrap;gap:6px}
+.dgm-b{min-height:44px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:13px;cursor:pointer}
+.dgm-b[aria-pressed=true]{background:var(--accf);border-color:var(--accf);color:var(--onacc);font-weight:700}
+.dgm-alt{margin-top:6px;font-size:12px}
+.dgm-alt summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.dgm-alt ul{margin:4px 0;padding-left:18px;line-height:1.6}
+.dgm-best{font-weight:700}

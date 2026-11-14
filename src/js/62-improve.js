@@ -32,11 +32,13 @@ const impLv=rs=>{const st=rs.filter(r=>r.r>=4).length,ok=rs.filter(r=>r.r>=3).le
 function impRecalc(T0,entries,i){
   return impWith(entries,()=>{
     let wx0=null,wx1=null;
-    const full=()=>dgTeam0(entries,20);
+    /* 変更前と同じ匹をメガシンカさせて比べる（メガストーンを持つ匹が2匹以上なら、部分的な計算し直しはせず全部） */
+    const full=()=>dgTeam0(entries,20,{megaNo:T0.mega&&T0.mega.no});
+    if(T0.mega&&T0.mega.holders.length>=2)return full();
     try{wx1=teamWx()}catch(e){}
     wx0=T0.wxKey;
     if(JSON.stringify(wx1&&[wx1.k,wx1.by])!==JSON.stringify(wx0||null))return full();
-    const x=entries[i],p=byNo[x.no];let a;try{a=mkMon(p,'me',mySetFor(x.no))}catch(e){return full()}
+    const x=entries[i],p=byNo[x.no];let a;try{const cs=mySetFor(x.no);if(dgStoneOf(x.no,cs)&&T0.mega&&T0.mega.holders.some(h=>h.i!==i))return full();a=mkMon(p,'me',cs)}catch(e){return full()}
     const col=T0.rows.map(r=>{try{return{i,...dgMatch(a,r.o)}}catch(e){return null}});
     const rows=T0.rows.map((r,j)=>{const res=r.res.map(z=>z.i===i?col[j]:z).filter(Boolean);
       const stable=res.filter(z=>z.r>=4),ok=res.filter(z=>z.r>=3),weak=res.filter(z=>z.r===2);return{...r,res,stable,ok,weak,lvl:impLv(res),resTR:null,lvlTR:null}});
@@ -146,7 +148,7 @@ function dgImprove(entries){
     outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
       const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
         const v=problem.reduce((t,r)=>{try{const z=dgMatch(a,r.o);return t+(z.r>=4?1:0)+(z.swIn==='win'?.6:0)}catch(e){return t}},0);return{c,S,v}}).filter(z=>z&&z.v>=1.5).sort((a,b)=>b.v-a.v).slice(0,4);
-      sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impWith(es,()=>dgTeam0(es,20))}catch(e){return}
+      sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impWith(es,()=>dgTeam0(es,20,{megaNo:T0.mega&&T0.mega.no}))}catch(e){return}
         const J=impJudge(T0,T1);if(!J.ok)return;
         /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は理由つきで「出さなかった案」へ */
         const G=typeof mvpGate==='function'?mvpGate(entries,i,es[i],GE0):{ok:true};GE0=G.E0||GE0;

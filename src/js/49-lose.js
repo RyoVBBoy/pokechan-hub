@@ -57,8 +57,8 @@ function loseReasons(entries){
       const x1=T1.rows.filter(r=>r.lvl===1).length;return{worse,fixed,x1}};
     const plans=[];
     cands.forEach(c=>{
-      if(ms.length<6){const S=mvpSwapSet(c.q,entries);if(S)try{plans.push({c,S,out:null,...cmp(dgTeam0([...entries,{no:c.q.no,set:S.sv}],20))})}catch(e){}}
-      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{plans.push({c,S,out:o,i,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x),20))})}catch(e){}})});
+      if(ms.length<6){const S=mvpSwapSet(c.q,entries);if(S)try{plans.push({c,S,out:null,...cmp(dgTeam0([...entries,{no:c.q.no,set:S.sv}],20,{megaNo:DT.mega&&DT.mega.no}))})}catch(e){}}
+      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{plans.push({c,S,out:o,i,...cmp(dgTeam0(entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x),20,{megaNo:DT.mega&&DT.mega.no}))})}catch(e){}})});
     const good=plans.filter(p=>p.fixed.length&&!p.worse.length&&p.x1<miss.length).sort((a,b)=>a.x1-b.x1||b.fixed.length-a.fixed.length);
     /* 2026/11/14 第3段階 P3-02：入れかえる案は、入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は出さない */
     let GE0=null,gDrop=0;const seen=new Set(),best=[];
