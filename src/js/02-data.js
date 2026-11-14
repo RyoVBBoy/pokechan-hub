@@ -1191,7 +1191,8 @@ function ensureMon(no){
   byNo[no]=p;return p;
 }
 /* 画像の差し込み口：公式の許諾を得たら 'img/{no}.png' のように設定すると、個別ページ上部の枠に表示されます */
-const ART_URL=null;
+/* 2026/11/14：let（テストで差しかえるため）。設定する前に docs/pokemon-image-display-audit-report.md を読むこと */
+let ART_URL=null;
 const RDESC=[['高速','先手を取りたい','素早さ種族値が100以上'],['物理','物理技で攻めたい','攻撃が高く、特攻を大きく上回る'],['特殊','特殊技で攻めたい','特攻が高く、攻撃を大きく上回る'],['両刀','幅広く攻めたい','攻撃・特攻がどちらも高い'],['耐久','受けて粘りたい','HP・防御・特防の合計が高い']];
 function roles(p){
   const [h,a,b,c,d,s]=p.s,out=[];

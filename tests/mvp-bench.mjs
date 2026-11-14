@@ -75,7 +75,7 @@ const OUT=await pg.evaluate(()=>{
   run('B06','single','メガシンカできるのはボーマンダだけ',S_MEGA,'ボーマンダを外す案には「メガシンカできる匹がいなくなる」を必ず出す',R=>{
     const out=[...R.better,...R.trade].filter(x=>x.i===0&&!x.c.r.stone);
     return [[R.st==='ok'&&R.E0.scen.length===1&&R.E0.scen[0].key==='mega:'+S_MEGA[0].no,'メガの場合が1つ'],[out.length>0,`ボーマンダを外す案がある（${out.length}件）`],
-      [out.every(x=>x.C.lastMegaLost&&/メガシンカできる匹がいなくなります/.test(mvpCardHTML(x,9))),'メガが無くなる案に警告']]});
+      [out.every(x=>x.C.lastMegaLost&&/メガシンカできるポケモンがいなくなります/.test(mvpCardHTML(x,9))),'メガが無くなる案に警告']]});
   /* B07 大事な役わりを外す：トリックルームの使い手が1匹だけ */
   const S_TR1=mk('single',['ブリムオン','カバルドン','ドドゲザン','ガオガエン','ラグラージ','アシレーヌ']);
   run('B07','single','トリックルームの使い手が1匹だけ',S_TR1,'ブリムオンを外す案はおすすめにせず、失われる役わり「トリックルーム」を出す',R=>{

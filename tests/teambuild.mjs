@@ -235,7 +235,7 @@ ok(MG.swap,'入れかえ案（mvpEvalTeam の既定）は前と同じ');
 /* ③：最後のメガシンカできる匹を外すときは確かめる。断れば変えない */
 const LM=await pg.evaluate(async()=>{TB=tbNew(N('ガブリアス'));TB.mem.push({no:N('ルカリオ'),set:{it:{k:'lucarionitez'},mv:[{id:89}]},src:'user'},{no:N('ドドゲザン'),set:null,src:'none'});tbSave();TB.tab='manual';tbDraw();
   __conf.length=0;__confSeq=[false];document.querySelector('[data-tbrm="1"]').click();await new Promise(r=>setTimeout(r,200));
-  const kept=TB.mem.length===3,asked=__conf.includes('メガシンカできる匹がいなくなります');
+  const kept=TB.mem.length===3,asked=__conf.includes('メガシンカできるポケモンがいなくなります');
   __conf.length=0;__confSeq=null;document.querySelector('[data-tbrm="2"]').click();await new Promise(r=>setTimeout(r,200));
   return{kept,asked,noAsk:!__conf.length&&TB.mem.length===2}});
 ok(LM.asked&&LM.kept,'最後のメガシンカできる匹を外すときは確かめ、断れば外さない');
@@ -274,7 +274,7 @@ const F2=await findTxt();ok(F2.cards===1&&/一部のシーズン（読めないS
 await pg.evaluate(()=>{authFetch=window.__af;TB_FIND=null});
 /* ②：できれば守る条件・矛盾・決まった結果 */
 const C2=await pg.evaluate(()=>{const r={};TB=tbNew(N('ガブリアス'));
-  r.wantNg=tbCondCheck({must:[],ng:[N('カイリュー')],want:[N('カイリュー')],mega:'auto',type:'auto',style:[]}).some(e=>/できれば入れたい匹」と「入れたくない匹/.test(e));
+  r.wantNg=tbCondCheck({must:[],ng:[N('カイリュー')],want:[N('カイリュー')],mega:'auto',type:'auto',style:[]}).some(e=>/できれば入れたいポケモン」と「入れたくないポケモン/.test(e));
   r.wantMust=tbCondCheck({must:[N('カイリュー')],ng:[],want:[N('カイリュー')],mega:'auto',type:'auto',style:[]}).some(e=>/両方/.test(e));
   r.excl=tbCondCheck({must:[],ng:[],want:[],mega:'auto',type:'auto',style:['phys','spec']}).some(e=>/同時に選べません/.test(e));
   r.trw=tbCondWarn({type:'tr',style:['fast']}).length===1;
@@ -334,8 +334,10 @@ const UI=await pg.evaluate(()=>{const r={};
   return r});
 ok(UI.tabs,'道の切りかえは番号と名前だけ（説明の文なし）');
 const UIB=await pg.evaluate(()=>{const ib=[...document.querySelectorAll('.tbd-rows .tbd-ib')];return{n:ib.length,lab:ib.every(b=>b.getAttribute('aria-label')),big:ib.every(b=>b.getBoundingClientRect().width>=40&&b.getBoundingClientRect().height>=40),
-  noPill:!document.querySelector('.tbd-rows .btn,#tb-sug .tbc .btn')}});
+  noPill:!document.querySelector('.tbd-rows .btn,#tb-sug .tbc .btn'),noHex:!document.querySelector('.tbd-rows .av')&&document.querySelectorAll('.tbd-rows .tbd-re svg.temb').length===TB.mem.length&&![...document.querySelectorAll('.tbd svg[aria-label]')].some(v=>/種族値の形/.test(v.getAttribute('aria-label'))),
+  tyFull:[...document.querySelectorAll('.tbd-rows .tbd-tys .chip')].every(i=>T.includes(i.textContent.trim()))}});
 ok(UIB.n>=3&&UIB.lab&&UIB.big,'入れかえ・外すは名前つき（読み上げ）の絵のボタンで、押せる大きさ（40px以上）');
+ok(UIB.noHex&&UIB.tyFull,'③：画像が無いときは六角形（種族値の形）を出さず、タイプのエンブレムと略さないタイプ名');
 ok(UIB.noPill,'パーティの行・候補のカードに枠線の丸いボタンを使わない');
 ok(UI.tabH,'3つの切りかえの高さがそろって小さい '+UI.hs);
 ok(UI.sel,'選んでいる道が分かる');
@@ -362,6 +364,103 @@ const BAR=await pg.evaluate(async()=>{scrTo(0,1e7);await new Promise(z=>setTimeo
 ok(BAR.h&&BAR.gap,'パーティの帯は低く、下のメニューと重ならない '+JSON.stringify(BAR));
 ok(BAR.last,'一番下まで見ると、最後の中身が帯に隠れない');
 ok(BAR.over,'390px ではみ出さない（見やすくしたあと）');
+
+/* ---- 12 ポケモンの絵（2026/11/14 依頼主「Pokémon Image Display」）：いまは公式の許諾待ちで ART_URL=null＝形。差し込み口を使うと絵、読めなければ同じ匹の形 ---- */
+const ART=await pg.evaluate(async()=>{const r={};const w=ms=>new Promise(z=>setTimeout(z,ms));const N=s=>P.find(x=>x.n===s).no;
+  r.off=ART_URL===null&&!document.querySelector('.tbd img.mon-art');
+  /* 6匹の並び（②の案）に名前 */
+  TB=tbNew(N('ガブリアス'));TB.tab='cond';TB.cond={must:[],ng:[],want:[],mega:'auto',type:'auto',style:[]};TB_PROP=null;tbSave();tbDraw();document.getElementById('tb-run').click();
+  for(let i=0;i<300&&!document.querySelector('.tbd-plan .tbd-six1');i++)await w(200);
+  const six=[...document.querySelectorAll('.tbd-plan[data-plan=A] .tbd-six1')];r.names=six.length===6&&six.every((a,i)=>a.querySelector('.tbd-six-n').textContent===formInfo(byNo[TB_PROP.A.mem[i].no]).base);
+  r.big=six.every(a=>parseFloat(getComputedStyle(a.querySelector('.tbd-six-n')).fontSize)>=14&&!a.querySelector('svg:not(.ti):not(.temb)')&&!!a.querySelector('.tbd-six-em svg.temb'));
+  /* タイプは略さない（全部の名前）・色はタイプの色 */
+  r.tyFull=six.every(a=>[...a.querySelectorAll('.tbd-tys .chip')].every(i=>T.includes(i.textContent.trim())&&i.querySelector('svg.ti')));
+  r.tyMatch=six.every((a,i)=>[...a.querySelectorAll('.tbd-tys .chip')].map(x=>x.textContent.trim()).join()===byNo[TB_PROP.A.mem[i].no].t.join());
+  /* メガストーンを持つポケモンは、パーティの姿のタイプ＋「メガシンカ：メガ〇〇」 */
+  const mi=TB_PROP.A.mem.findIndex(x=>x.set&&x.set.it&&isStone(x.set.it.k)&&megaOf(x.no,x.set.it.k));
+  r.mega=mi<0||six[mi].querySelector('.tbd-six-m').textContent.includes(megaOf(TB_PROP.A.mem[mi].no,TB_PROP.A.mem[mi].set.it.k).n);
+  /* 差し込み口に絵（テスト用の SVG。番号を文字で入れる）を入れると、同じ番号の絵 */
+  ART_URL='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Ctext%3E{no}%3C/text%3E%3C/svg%3E';
+  TB.tab='manual';tbDraw();for(let i=0;i<300&&!document.querySelector('#tb-sug .tbc');i++)await w(200);
+  const ims=[...document.querySelectorAll('.tbd img.mon-art')];r.rowImg2=!!document.querySelector('.tbd-rows .av img.mon-art');r.img=ims.length>0&&ims.every(im=>im.src.includes('%3E'+im.dataset.no+'%3C')&&im.alt===byNo[+im.dataset.no].n);
+  r.rowImg=!!document.querySelector('.tbd-rows img.mon-art[data-no="'+TB.start+'"]');
+  /* 読めない絵：同じ匹の形に置きかわる（ほかの匹の絵にしない） */
+  ART_URL='nope-missing/{no}.png';tbDraw();await w(1500);
+  const xs=[...document.querySelectorAll('.tbd .mon-art-x')];r.fb=xs.length>0&&[...document.querySelectorAll('.tbd img.mon-art')].every(im=>!im.complete||!im.naturalWidth)&&xs.every(x=>x.querySelector('svg')&&x.querySelector('svg.temb').getAttribute('aria-label')===byNo[+x.dataset.no].n+'のタイプ：'+byNo[+x.dataset.no].t.join('・'));
+  r.fbSame=xs.some(x=>x.querySelector('svg.temb').getAttribute('aria-label').startsWith(byNo[TB.start].n+'のタイプ'));
+  ART_URL=null;tbDraw();return r});
+ok(ART.off,'いまは絵の差し込み口が空（公式の許諾待ち）で、絵を読みに行かない');
+ok(ART.names&&ART.big,'6匹の並び：画像が無いときは六角形の絵を出さず、名前を大きく（14px以上）');
+ok(ART.tyFull&&ART.tyMatch,'タイプは略さず全部の名前（ドラゴン・こおり等）で、そのポケモンのタイプ');
+ok(ART.mega,'メガストーンを持つポケモンは「メガシンカ：メガ〇〇」の札');
+ok(ART.img&&ART.rowImg&&ART.rowImg2,'差し込み口を使うと、図鑑と同じ番号の絵（代わりの文字＝名前）');
+ok(ART.fb&&ART.fbSame,'絵が読めないときは、同じ匹の種族値の形に置きかえる');
+
+/* ---- 13 全体の見直し（2026/11/14 依頼主「Team Building UI/UX Overhaul」）：②の比べ方・①の分け方・下の帯 ---- */
+const OV=await pg.evaluate(async()=>{const r={};const w=ms=>new Promise(z=>setTimeout(z,ms));const N=s=>P.find(x=>x.n===s).no;
+  r.labels=[...document.querySelectorAll('.tbd-tab b')].map(b=>b.textContent).join('|')==='環境のパーティ|条件から組む|自分で組む';
+  TB=tbNew(N('ガブリアス'));TB.tab='cond';TB.cond={must:[],ng:[],want:[N('カビゴン')],mega:'auto',type:'auto',style:['resist']};TB_PROP=null;tbSave();tbDraw();document.getElementById('tb-run').click();
+  for(let i=0;i<300&&!document.querySelector('.tbd-plan');i++)await w(200);
+  const P2=TB_PROP,box=document.getElementById('tb-prop');
+  /* 条件は1回だけ（表）。案のカードの中には条件の一覧を出さない */
+  const rows=[...box.querySelectorAll('.tbd-ct tbody tr:not(.tbd-ctg)')];r.once=rows.length===P2.A.req.length+P2.A.pref.length&&!box.querySelector('.tbd-plan .tbd-req');
+  r.marks=rows.every((tr,i)=>{const a=i<P2.A.req.length?P2.A.req[i]:P2.A.pref[i-P2.A.req.length],b=i<P2.B.req.length?P2.B.req[i]:P2.B.pref[i-P2.B.req.length];
+    const t=tr.querySelectorAll('td');return tr.querySelector('th').textContent===a.t&&(t[0].textContent==='✓')===!!a.ok&&(t[1].textContent==='✓')===!!b.ok});
+  /* 比べる数＝計算の数 */
+  const n=[...box.querySelectorAll('.tbd-cmpn b')].map(b=>+b.textContent);r.cmp=n[0]===P2.A.critN&&n[1]===P2.B.critN&&/勝率が高いという意味ではありません/.test(box.querySelector('.tbd-cmpbox').textContent);
+  /* 2枚は同じ形 */
+  const pl=[...box.querySelectorAll('.tbd-plan')];r.same=pl.length===2&&pl.every(c=>c.querySelectorAll('.tbd-six1').length===6&&c.querySelectorAll('.tbd-six1 .tbd-tys .chip').length>=6&&c.querySelectorAll('.tbd-pm > div').length===3&&c.querySelector('[data-tbpo]')&&c.querySelector('[data-tbpu]'));
+  r.closed=[...box.querySelectorAll('.tbd-plan details')].every(d=>!d.open);
+  r.bar2=!document.getElementById('tb-go')&&/自分で組むへ/.test(document.querySelector('.tbd-bar').textContent);
+  /* ①：実際のパーティと集計（参考）を札で分ける */
+  TB.tab='find';tbDraw();for(let i=0;i<100&&/読み込み中/.test(document.getElementById('tb-teams').textContent);i++)await w(100);
+  r.kinds=!!document.querySelector('#tb-teams .tbd-kind-real')&&[...document.querySelectorAll('#tb-sets .tbd-kind')].every(k=>/集計/.test(k.textContent))&&!document.querySelector('#tb-sets .tbd-kind-real');
+  /* 下の帯：③では「パーティに入れる」、ほかでは自分で組むへ */
+  document.getElementById('tb-go3').click();await w(300);r.bar3=TB.tab==='manual'&&!!document.getElementById('tb-go');
+  r.over=document.body.scrollWidth<=innerWidth+1;
+  TB.cond={must:[],ng:[],want:[],mega:'auto',type:'auto',style:[]};return r});
+ok(OV.labels,'3つの道の名前（環境のパーティ・条件から組む・自分で組む）');
+ok(OV.once&&OV.marks,'②：条件は上の表に1回だけで、案ごとの ✓／△ は計算のまま');
+ok(OV.cmp,'②：比べる数（大きな弱点）は計算のままで、意味と「勝率ではない」を書く');
+ok(OV.same,'②：2つの案は同じ形（6匹・名前・タイプ・3つの数・編集・パーティに入れる）');
+ok(OV.closed,'②：くわしい中身は閉じている');
+ok(OV.bar2&&OV.bar3,'下の帯：①②では「自分で組むへ」、③では「パーティに入れる」（同じ操作を重ねない）');
+ok(OV.kinds,'①：実際のパーティと集計（参考）を札で分ける（読めないときも同じ見出し）');
+ok(OV.over,'はみ出さない');
+
+/* ---- 14 6匹のカード：名前・番号・タイプ・役わり・公式のずかんへのリンク（2026/11/14 依頼主「Original, Readable, and Rights-Conscious」） ---- */
+const IDC=await pg.evaluate(()=>{const r={};const N=s=>P.find(x=>x.n===s).no;
+  const box=document.createElement('div');box.className='tbd';document.body.appendChild(box);
+  const pal=P.find(x=>x.no===10250)||P.find(x=>formInfo(x).tag&&!x.base),mg=MEGAP.find(m=>m.base===N('ガブリアス'));
+  const cases=[N('ガブリアス'),pal.no];box.innerHTML='<div class="tbd-six">'+cases.map(no=>tbSixOne(no)).join('')+tbSixOne(N('ガブリアス'),{it:{k:mg.stone}})+'</div>';
+  const cs=[...box.querySelectorAll('.tbd-six1')];
+  r.link=cs.every((c,i)=>c.querySelector('.tbd-six-a').getAttribute('href')==='#/p/'+(i<2?cases[i]:N('ガブリアス')));
+  r.zk=cs.every((c,i)=>{const p=byNo[i<2?cases[i]:N('ガブリアス')],a=c.querySelector('.tbd-zk');return a&&a.getAttribute('href')===zukanUrl(p)&&a.target==='_blank'&&/noopener/.test(a.rel)&&/noreferrer/.test(a.rel)});
+  r.form=formInfo(pal).tag&&cs[1].querySelector('.tbd-six-f').textContent===formInfo(pal).tag&&cs[1].querySelector('.tbd-zk').getAttribute('href')===zukanUrl(pal)&&zukanUrl(pal)!==zukanUrl(byNo[pal.dno]||{});
+  r.no=cs.every((c,i)=>{const p=byNo[i<2?cases[i]:N('ガブリアス')];return c.querySelector('.tbd-six-no').textContent.startsWith('No.'+String(p.dno||p.no).padStart(4,'0'))});
+  r.roles=cs.every((c,i)=>{const p=byNo[i<2?cases[i]:N('ガブリアス')];return [...c.querySelectorAll('.tbd-six-r b')].map(b=>b.textContent).join()===(p.roles||[]).slice(0,2).join()});
+  r.mega=cs[2].querySelector('.tbd-six-r em').textContent.includes(mg.n)&&[...cs[2].querySelectorAll('.tbd-tys .chip')].map(x=>x.textContent.trim()).join()===byNo[N('ガブリアス')].t.join();
+  r.noImg=!box.querySelector('img');box.remove();return r});
+ok(IDC.link,'カードは当サイトの図鑑のページへ（そのポケモンの番号）');
+ok(IDC.zk,'「ずかん↗」は公式のポケモンずかん（図鑑のページと同じアドレス・別のタブ・noopener noreferrer）');
+ok(IDC.form,'地方の姿は姿の札と、その姿の公式ずかんのアドレス');
+ok(IDC.no,'全国図鑑の番号を出す');
+ok(IDC.roles,'役わりは種族値からの札（p.roles）のまま');
+ok(IDC.mega,'メガストーンを持つときは元の姿のタイプと「メガシンカ：メガ〇〇」');
+ok(IDC.noImg,'画像を読まない（公式の画像を使わない）');
+
+/* ---- 15 タイプのエンブレム（2つのタイプは半分ずつ） ---- */
+const EM=await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s).no;const box=document.createElement('div');document.body.appendChild(box);
+  const g=byNo[N('ガブリアス')],k=P.find(x=>x.t.length===1);box.innerHTML=typeEmblem(g)+typeEmblem(k)+typeEmblem(g);
+  const [a,b,c]=box.querySelectorAll('svg.temb');const r={};
+  r.dual=a.classList.contains('temb2')&&a.querySelectorAll('clipPath').length===2&&[...a.querySelectorAll('g[fill]')].map(x=>x.getAttribute('fill')).join()===[COL[g.t[0]],COL[g.t[1]]].join();
+  r.single=!b.classList.contains('temb2')&&b.querySelectorAll('g[fill]').length===1&&b.querySelector('g[fill]').getAttribute('fill')===COL[k.t[0]];
+  r.label=a.getAttribute('aria-label')===g.n+'のタイプ：'+g.t.join('・');
+  const ids=[...box.querySelectorAll('[id]')].map(x=>x.id);r.uniq=new Set(ids).size===ids.length;
+  const bb=a.getBoundingClientRect();r.drawn=bb.width>0;box.remove();return r});
+ok(EM.dual,'2つのタイプは、1つ目の左半分と2つ目の右半分を、それぞれのタイプの色で');
+ok(EM.single&&EM.label,'1つのタイプはそのまま。読み上げはポケモンの名前とタイプ');
+ok(EM.uniq,'同じ画面に何個あっても、切り抜き・光の番号がぶつからない');
 ok(!errs.length,'ページのエラーなし '+errs.join(' / '));
 await b.close();
 console.log(`teambuild: ${bad?'NG':'OK'}（${n}項目${bad?`・${bad}件NG`:''}）`);

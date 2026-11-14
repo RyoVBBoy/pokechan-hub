@@ -21,6 +21,32 @@ function artHTML(p){
   if(ART_URL)return `<img src="${ART_URL.replace('{no}',p.no)}" alt="${p.n}" onerror="this.style.display='none'">`;
   return stamp(p);
 }
+/* ポケモンの絵（2026/11/14 依頼主「Pokémon Image Display」、docs/pokemon-image-display-audit-report.md）：
+   画像の差し込み口 ART_URL（02-data.js）があれば、図鑑と同じ番号（byNo の鍵＝姿・地方の姿・メガも別の番号）でその画像。
+   無ければ（いまは null＝公式の許諾待ち）種族値の形 stamp。読めなかった画像は、別のポケモンにせず、その匹の形に置きかえる */
+/* タイプのエンブレム（2026/11/14 依頼主の見本：2つのタイプを持つなら、それぞれの絵を半分に切ってななめにくっつける）。
+   当サイトのタイプの絵 TICON（公式アイコンの模写ではない）とタイプの色だけで描く。ふちに同じ色のうすい光 */
+let _te=0;
+function typeEmblem(p){
+  if(!p||!p.t||!p.t.length)return '';
+  const id='te'+(++_te),t=p.t,c1=COL[t[0]],c2=COL[t[1]||t[0]];
+  const glow=(k,c)=>`<filter id="${id}${k}" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="${c}" flood-opacity=".85"/></filter>`;
+  const lab=esc(p.n)+'のタイプ：'+t.join('・');
+  if(t.length<2)return `<svg class="temb" viewBox="-2 -2 28 28" role="img" aria-label="${lab}"><defs>${glow('a',c1)}</defs><g fill="${c1}" color="${c1}" filter="url(#${id}a)">${TICON[t[0]]}</g></svg>`;
+  /* 左＝1つ目のタイプの左半分、右＝2つ目のタイプの右半分。切り口は少しななめ（16,0）→（12,24） */
+  return `<svg class="temb temb2" viewBox="0 -2 28 28" role="img" aria-label="${lab}"><defs>${glow('a',c1)}${glow('b',c2)}
+    <clipPath id="${id}l"><polygon points="0,-2 15.6,-2 11.6,26 0,26"/></clipPath><clipPath id="${id}r"><polygon points="16.6,-2 28,-2 28,26 12.6,26"/></clipPath></defs>
+    <g clip-path="url(#${id}l)"><g transform="translate(-2 0)" fill="${c1}" color="${c1}" filter="url(#${id}a)">${TICON[t[0]]}</g></g>
+    <g clip-path="url(#${id}r)"><g transform="translate(6 0)" fill="${c2}" color="${c2}" filter="url(#${id}b)">${TICON[t[1]]}</g></g></svg>`;
+}
+function monArt(p){
+  if(!p)return '';
+  if(ART_URL)return `<img class="mon-art" src="${esc(ART_URL.replace('{no}',p.no))}" alt="${esc(p.n)}" loading="lazy" decoding="async" data-no="${p.no}">`;
+  return typeEmblem(p);
+}
+/* インラインの onerror は CSP で止まるので、document で受ける（error は伝わらないので capture） */
+document.addEventListener('error',e=>{const im=e.target;if(!im||im.tagName!=='IMG'||!im.classList.contains('mon-art'))return;
+  const p=byNo[+im.dataset.no];const w=document.createElement('span');w.className='mon-art-x';w.dataset.no=im.dataset.no;w.innerHTML=p?typeEmblem(p):'';w.title=p?p.n+'（画像を読めませんでした）':'';im.replaceWith(w)},true);
 const chip=t=>`<span class="chip" style="background:${COL[t]}26;color:${TXT[t]};box-shadow:inset 0 0 0 1px ${COL[t]}55">${ticon(t,12,'ci')}${t}</span>`;
 const tkb=(cols,opts={})=>`<div class="tkb tkb--${cols}" role="group">${T.map(t=>
   `<button class="tk" data-t="${t}" ${opts.pressed?`aria-pressed="${opts.pressed(t)}"`:''} aria-label="${t}" style="background:${COL[t]};color:${ONC[t]}">${ticon(t,cols===9?19:22)}<small>${t}</small></button>`).join('')}</div>`;

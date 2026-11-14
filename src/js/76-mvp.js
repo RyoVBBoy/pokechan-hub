@@ -2,14 +2,14 @@
    ・データ：75-mvp-data.js（MVP_DATA）だけを使う。公式の M-C の一覧と PokéKit（Smogon / Pokémon Showdown の集計）の形式ごとの行。
      利用者のブラウザから外へ読みに行かない。通信を待たないので、同じ入力なら同じ結果。
    ・使えるか（mvpLegal）：公式の「図鑑番号-姿の番号」で決める。対応が確かめられない姿は unverified（ふつうの順位に出さない）。
-   ・型（mvpSet）：同じ形式・同じ月の PokéKit のその匹の行だけから組む（各項目で割合がいちばん高い、使えるもの）。
+   ・型（mvpSet）：同じ形式・同じ月の PokéKit のそのポケモンの行だけから組む（各項目で割合がいちばん高い、使えるもの）。
      組めなければ insufficient（自動の型で埋めない）。持ち物は残りの5匹と重ならないもの（同じ行の一覧にあるものだけ）。
      PokéKit の evs は能力ポイントとして未確認なので使わず、全員同じ仮定の振り方（MVP_SP）で計算する。
    ・1対1は 60-diag.js の dgMatch をそのまま使う。3つを分けて数える：
        有利（adv）＝dgMatch の r>=4（先に倒せる・耐えて倒せる・後出しできる）
        後出し（sw）＝交代で1発受けてから勝てる（swIn==='win'）
        受け（recv）＝相手のいちばん痛い技を最大の乱数でも50%未満（2回は耐えられる）
-   ・メガシンカ：メガストーンを持つ匹ごとに「その1匹だけがメガシンカ」の場合を別々に計算。同時に2匹をメガの姿にしない。
+   ・メガシンカ：メガストーンを持つポケモンごとに「その1匹だけがメガシンカ」の場合を別々に計算。同時に2匹をメガの姿にしない。
    ・大きな弱点（MVP_WK）は場合ごとに、相手ごとに決まった条件で数える（足し算の点にしない）。
    ・選出（3匹・4匹）の組み合わせは数えない（選出アシストの役目）。ダブルの補助・範囲技・味方との関わりは評価しない（画面に書く）。 */
 const MVP_SP={phys:[2,32,0,0,0,32],spec:[2,0,0,32,0,32]};
@@ -17,8 +17,8 @@ const MVP_OPPN=20,MVP_TOPN=10,MVP_PRE=8;
 const MVP_NAT={Hardy:[-1,-1],Docile:[-1,-1],Serious:[-1,-1],Bashful:[-1,-1],Quirky:[-1,-1],Lonely:[1,2],Adamant:[1,3],Naughty:[1,4],Brave:[1,5],
   Bold:[2,1],Impish:[2,3],Lax:[2,4],Relaxed:[2,5],Modest:[3,1],Mild:[3,2],Rash:[3,4],Quiet:[3,5],Calm:[4,1],Gentle:[4,2],Careful:[4,3],Sassy:[4,5],
   Timid:[5,1],Hasty:[5,2],Jolly:[5,3],Naive:[5,4]};
-const MVP_WK={none:'1対1で有利に戦える匹がいない',nosw:'交代で受けられる匹がいない（後出しして勝てる匹も、2回耐えられる匹もいない）',ohko:'半分以上の匹が一撃で倒される',nohit:'いちばん高い乱数でも半分以上削れる匹がいない'};
-/* 型（技・特性）から分かる役わり（2026/11/14 第3段階 P3-04）。sc＝素早さの操作・天気：パーティでその匹だけが持つのに外す案はおすすめにしない */
+const MVP_WK={none:'1対1で有利に戦えるポケモンがいない',nosw:'交代で受けられるポケモンがいない（後出しして勝てるポケモンも、2回耐えられるポケモンもいない）',ohko:'半分以上のポケモンが一撃で倒される',nohit:'いちばん高い乱数でも半分以上削れるポケモンがいない'};
+/* 型（技・特性）から分かる役わり（2026/11/14 第3段階 P3-04）。sc＝素早さの操作・天気：パーティでそのポケモンだけが持つのに外す案はおすすめにしない */
 const MVP_ROLE_MV={trickroom:'trickroom',tailwind:'tailwind',fakeout:'fakeout',followme:'redirect',ragepowder:'redirect',
   rapidspin:'hazclear',defog:'hazclear',mortalspin:'hazclear',stealthrock:'hazard',spikes:'hazard',toxicspikes:'hazard',stickyweb:'hazard',
   reflect:'screen',lightscreen:'screen',auroraveil:'screen',uturn:'pivot',voltswitch:'pivot',flipturn:'pivot',partingshot:'pivot'};
@@ -69,7 +69,7 @@ function mvpRows(fmt){
 const mvpRowOf=(fmt,no,stone)=>{const R=mvpRows(fmt);return R&&R.rows.find(r=>r.no===no&&(r.stone||null)===(stone||null))||null};
 const mvpMeta=fmt=>{const S=MVP_DATA.sets[fmt];return S?S.meta:null};
 const mvpSrcTxt=fmt=>{const m=mvpMeta(fmt);return m?`PokéKit（Smogon / Pokémon Showdown の集計）・${fmt==='double'?'ダブル':'シングル'}・${m.month}・${m.battles.toLocaleString()}戦・レート${m.cutoff}以上`:''};
-/* 型を組む。opt.used＝残りの匹の持ち物、opt.stone＝メガの行。戻り値 st：ok／illegal／unverified／nodata（上位150匹に無い）／insufficient／item_conflict */
+/* 型を組む。opt.used＝残りのポケモンの持ち物、opt.stone＝メガの行。戻り値 st：ok／illegal／unverified／nodata（上位150匹に無い）／insufficient／item_conflict */
 function mvpSet(fmt,no,opt){
   opt=opt||{};const p=byNo[no];
   const lg=mvpLegal(no);if(lg.st!=='ok'&&!opt.anyLegal)return{st:lg.st,why:lg.why,no};
@@ -80,20 +80,20 @@ function mvpSet(fmt,no,opt){
   const can=mg?[mg.ab]:(ABD[no]||[]).map(a=>a[0]);
   const abR=r.ab.find(([k])=>can.includes(ABK[nrm(k)]));
   if(!abR)return{st:'insufficient',no,why:'持てる特性が集計に無い'};
-  /* 持ち物：ゲームにある持ち物かその匹のメガストーン。割合の高い順に、残りの匹と重ならない最初のもの */
+  /* 持ち物：ゲームにある持ち物かそのポケモンのメガストーン。割合の高い順に、残りのポケモンと重ならない最初のもの */
   const used=opt.used||new Set();let itR=null,first=null,idx=-1;
   r.it.forEach(([k,pc],i)=>{if(itR)return;const kk=k==='leek'?'stick':k==='nothing'?'':k;
     const ok=kk===''?true:r.mega?kk===r.stone:(CH_ITEMS.has(kk)&&!isStone(kk));if(!ok)return;
     if(!first)first=[kk,pc];if(kk&&used.has(kk))return;itR=[kk,pc];idx=i});
   if(!first)return{st:'insufficient',no,why:'使える持ち物が集計に無い'};
-  if(!itR)return{st:'item_conflict',no,why:`持ち物（${ITEMN[first[0]]||first[0]}）がパーティのほかの匹と重なり、集計にほかの持ち物も無い`};
-  if(itR!==first&&itR[0]!==first[0])notes.push(`持ち物：いちばん多い${ITEMN[first[0]]||first[0]}（${first[1]}%）はパーティのほかの匹と重なるので、同じ集計の${ITEMN[itR[0]]||'持ち物なし'}（${itR[1]}%）`);
+  if(!itR)return{st:'item_conflict',no,why:`持ち物（${ITEMN[first[0]]||first[0]}）がパーティのほかのポケモンと重なり、集計にほかの持ち物も無い`};
+  if(itR!==first&&itR[0]!==first[0])notes.push(`持ち物：いちばん多い${ITEMN[first[0]]||first[0]}（${first[1]}%）はパーティのほかのポケモンと重なるので、同じ集計の${ITEMN[itR[0]]||'持ち物なし'}（${itR[1]}%）`);
   /* 技：覚える技だけ、割合の高い順に4つ。攻撃技が1つも無ければ組めない */
   const ls=(LSD[no]||[0,[]])[1];const mv=[];
   for(const [k] of r.mv){if(mv.length>=4)break;const id=MVKA[nrm(k)];if(!id||!(ls.includes(id)||id===182))continue;mv.push({id,n:mName(id)})}
   if(!mv.some(m=>MV[m.id]&&MV[m.id][2]>0))return{st:'insufficient',no,why:'覚える攻撃技が集計に無い'};
   /* 1対1の計算で正しく扱えない技（自分の能力が下がる・ためる・反動で動けない等、62-improve.js の IMP_NOMV）を含む型は、候補として比べない（型は変えない）。
-     パーティの匹・相手の型（opt.anyMv）はそのまま使う */
+     パーティのポケモン・相手の型（opt.anyMv）はそのまま使う */
   const nomv=typeof IMP_NOMV!=='undefined'?mv.filter(m=>IMP_NOMV.has(MD[m.id]&&MD[m.id][3])):[];
   if(nomv.length&&!opt.anyMv)return{st:'insufficient',no,why:`計算で正しく扱えない技（${nomv.map(m=>m.n).join('・')}）を含むため比べられない`};
   const nat=r.nat[0]&&MVP_NAT[r.nat[0][0]];
@@ -131,22 +131,22 @@ function mvpOpps(fmt){
 }
 /* 相手の型は使えるかを問わない（実際に使われている相手のため）。持ち物の重なりも見ない */
 const mvpSetRaw=(fmt,r)=>{const m=mvpSet(fmt,r.no,{stone:r.stone,anyLegal:true,anyMv:true});return m.st==='ok'?m.sv:null};
-/* 1対1の結果を覚える（同じ匹・同じ型・同じメガの状態・同じ天気・同じ相手なら同じ） */
+/* 1対1の結果を覚える（同じポケモン・同じ型・同じメガの状態・同じ天気・同じ相手なら同じ） */
 const MVP_MC=new Map();
 function mvpMatch(a,aSig,op,wx){
   const k=aSig+'|'+op.sig+'|'+wx;if(MVP_MC.has(k))return MVP_MC.get(k);
   let z=null;try{const m=dgMatch(a,op.o);z={r:m.r,k:m.k,sw:m.swIn==='win',recv:!m.op||m.op.fmax<50,oh:!!(m.op&&m.op.nMax===1),hit:!!(m.me&&m.me.max>=50),fast:m.spd===1,t:m.t}}catch(e){z=null}
   MVP_MC.set(k,z);return z;
 }
-/* 6匹の型をまとめて決める：登録した育成を先に、そのあと登録の無い匹を並び順に、持ち物が重ならないように */
+/* 6匹の型をまとめて決める：登録した育成を先に、そのあと登録の無いポケモンを並び順に、持ち物が重ならないように */
 function mvpTeamSets(entries,fmt){
   const out=new Array(entries.length),used=new Set();
   entries.forEach((x,i)=>{const s=x.set;if(s&&((s.mv&&s.mv.length)||(s.it&&s.it.k)||(s.ab&&s.ab.k))){out[i]=mvpMemberSet(x,fmt);if(out[i].item)used.add(out[i].item)}});
   entries.forEach((x,i)=>{if(out[i])return;out[i]=mvpMemberSet(x,fmt,used);if(out[i].item)used.add(out[i].item)});
   return out;
 }
-/* 6匹の評価。メガシンカする匹ごとの場合（なければ「メガシンカなし」1つ） */
-/* opt.none＝メガストーンを持つ匹がいても「メガシンカしない」場合も足す（1匹から組む。入れかえ案の画面は今までどおり足さない） */
+/* 6匹の評価。メガシンカするポケモンごとの場合（なければ「メガシンカなし」1つ） */
+/* opt.none＝メガストーンを持つポケモンがいても「メガシンカしない」場合も足す（1匹から組む。入れかえ案の画面は今までどおり足さない） */
 function mvpEvalTeam(entries,fmt,opt){
   const O=mvpOpps(fmt);if(!O||!O.list.length)return{st:'nodata',why:'この形式の相手のデータが無い'};
   const TS=mvpTeamSets(entries,fmt);
@@ -160,7 +160,7 @@ function mvpEvalTeam(entries,fmt,opt){
         const mons=mem.map((m,i)=>{const mega=i===sc.u;const set=m.stone&&!mega?{...m.S.calc,item:null}:m.S.calc;
           const sig=m.x.no+':'+JSON.stringify([set.ab,set.item,(set.moves||[]).map(v=>v.id+(v.prot?'p':'')),set.sp,set.up,set.dn]);
           return{a:mkMon(m.p,'me',set),sig}});
-        /* 確かめ用：この場合でメガの姿で計算した匹（いつも0匹か1匹） */
+        /* 確かめ用：この場合でメガの姿で計算したポケモン（いつも0匹か1匹） */
         sc.megaIdx=mons.map((m,i)=>m.a.p.base?i:-1).filter(i=>i>=0);
         sc.rows=O.list.map(op=>{const z=mons.map(m=>mvpMatch(m.a,m.sig,op,wx));
           const ok=z.filter(Boolean);const n=mons.length,adv=ok.filter(v=>v.r>=4).length,sw=ok.filter(v=>v.sw).length,recv=ok.filter(v=>v.recv).length,oh=ok.filter(v=>v.oh).length,hit=ok.filter(v=>v.hit).length,any3=ok.filter(v=>v.r>=3).length;
@@ -177,27 +177,27 @@ function mvpEvalTeam(entries,fmt,opt){
 /* 6匹の持ち物の重なり（M-C：参加させるポケモンのうち2匹以上に同じ持ち物は不可） */
 const mvpDupItems=items=>{const c={};items.filter(Boolean).forEach(k=>c[k]=(c[k]||0)+1);return Object.keys(c).filter(k=>c[k]>1).sort()};
 /* 変更前と変更後を、同じメガの場合どうしで比べる */
-/* i＝入れかえる枠（その枠の匹の数と、役わりの増減に使う。無ければ outNo/inNo の位置） */
+/* i＝入れかえる枠（その枠のポケモンの数と、役わりの増減に使う。無ければ outNo/inNo の位置） */
 function mvpCompare(E0,E1,outNo,inNo,i){
   const pairs=[],lost=[],added=[];
   const by1=new Map(E1.scen.map(s=>[s.key,s]));
   const used1=new Set();const pair=(a,b)=>{pairs.push([a,b]);used1.add(b)};
   E0.scen.forEach(s=>{
     if(by1.has(s.key)){pair(s,by1.get(s.key));return}
-    /* 外す匹のメガの場合：入れる匹のメガの場合と比べる（P3-03）。入れる匹がメガでなければメガなしと比べる */
+    /* 外すポケモンのメガの場合：入れるポケモンのメガの場合と比べる（P3-03）。入れるポケモンがメガでなければメガなしと比べる */
     if(s.key==='mega:'+outNo){lost.push(s);const t=by1.get('mega:'+inNo)||by1.get('none');if(t&&!used1.has(t))pair(s,t);return}
     if(s.key==='none'){const s1=by1.get('mega:'+inNo);if(s1)pair(s,s1)}});
   E1.scen.forEach(s=>{if(!E0.scen.some(z=>z.key===s.key)&&!used1.has(s))added.push(s)});
   if(E0.scen.length&&!pairs.length&&added.length)E0.scen.forEach(s=>added.forEach(a=>pairs.push([s,a])));
   const ix0=i!=null?i:E0.mem.findIndex(m=>m.no===outNo),ix1=i!=null?i:E1.mem.findIndex(m=>m.no===inNo);
-  /* その枠の匹がしていたこと（P3-07）：1対1で有利・後出しして勝てる・2回耐えられる、を分けて数える */
+  /* その枠のポケモンがしていたこと（P3-07）：1対1で有利・後出しして勝てる・2回耐えられる、を分けて数える */
   const slotCnt=(s,k)=>k<0?null:{adv:s.rows.filter(r=>r.z[k]&&r.z[k].r>=4).length,sw:s.rows.filter(r=>r.z[k]&&r.z[k].sw).length,recv:s.rows.filter(r=>r.z[k]&&r.z[k].recv).length,n:s.rows.length};
   const P=pairs.map(([a,b])=>{const ka=new Set(a.weak.map(w=>w.key)),kb=new Set(b.weak.map(w=>w.key));
     const fixed=a.weak.filter(w=>!kb.has(w.key)),made=b.weak.filter(w=>!ka.has(w.key));
     return{a,b,fixed,made,cf:fixed.filter(w=>w.crit).length,cm:made.filter(w=>w.crit).length,n0:a.weak.length,n1:b.weak.length,c1:b.weak.filter(w=>w.crit).length,
       slot:{a:slotCnt(a,ix0),b:slotCnt(b,ix1)}}});
   const megaB=E0.scen.some(s=>s.u>=0),megaA=E1.scen.some(s=>s.u>=0);
-  /* 役わり（P3-04）：外す匹だけが持っていた役わりと、入れる匹が新しく加える役わり */
+  /* 役わり（P3-04）：外すポケモンだけが持っていた役わりと、入れるポケモンが新しく加える役わり */
   let roles=null;
   if(E0.roles&&E1.roles&&ix0>=0&&ix1>=0){
     const has=(R,skip,k)=>R.some((rs,j)=>j!==skip&&rs.some(r=>r.k===k));
@@ -271,7 +271,7 @@ function mvpGate(entries,i,inEntry,E0){
   const C=mvpCompare(E0,E1,entries[i].no,inEntry.no,i);return{ok:C.cm===0&&!C.roleLoss,C,E0};
 }
 const mvpGateWhy=C=>[C.cm?`入れかえ案の計算（相手：${mvpSrcTxt(FMT)}の上位${MVP_OPPN}匹・メガシンカは1匹ずつ）では新しい大きな弱点が${C.cm}件できる`:'',
-  C.roleLoss?`パーティでその匹だけの${C.roles.lost.filter(r=>r.sc).map(r=>r.n).join('・')}を失う`:''].filter(Boolean).join('。');
+  C.roleLoss?`パーティでそのポケモンだけの${C.roles.lost.filter(r=>r.sc).map(r=>r.n).join('・')}を失う`:''].filter(Boolean).join('。');
 /* ---- 画面（相性のいい仲間を探す：6匹そろったときの入れかえ案） ---- */
 let MVP_TOK=0;
 const mvpWkTxt=w=>`${esc(w.op.n)}：${MVP_WK[w.k]}`;
@@ -280,10 +280,10 @@ function mvpLimitsHTML(fmt){
   return `<details class="mvp-lim"><summary>この入れかえ案で見ていること・見ていないこと</summary><ul>
   <li><b>相手</b>：${esc(mvpSrcTxt(fmt))} の使用率の上位${MVP_OPPN}匹（集計の取得 ${esc(m?m.fetched:'')}）。ゲーム内の公式の集計ではありません。使われている数は強さの証拠ではありません。</li>
   <li><b>使えるか</b>：公式の「レギュレーションM-C」の参加できるポケモン（${esc(MVP_DATA.legal.fetched)} 取得）で確認できたポケモンだけを候補にします。メガストーンは公式ページで新しく使えると書かれた6つ以外は「未確認」として候補にしません。持ち物はゲームにある持ち物ですが、M-C で使えるかの一覧は確認していません。</li>
-  <li><b>型</b>：同じ集計の、その匹の行で割合のいちばん高い特性・持ち物・技・性格（組み合わせとしての割合は集計にありません）。<b>能力ポイントは仮定</b>（攻撃側の能力32・素早さ32・HP2）。集計の振り方の数字は、チャンピオンズの能力ポイントと確かめていないので使っていません。</li>
+  <li><b>型</b>：同じ集計の、そのポケモンの行で割合のいちばん高い特性・持ち物・技・性格（組み合わせとしての割合は集計にありません）。<b>能力ポイントは仮定</b>（攻撃側の能力32・素早さ32・HP2）。集計の振り方の数字は、チャンピオンズの能力ポイントと確かめていないので使っていません。</li>
   <li><b>3つを分けています</b>：「1対1で有利」（先に倒せる・耐えて倒せる）、「後出し」（交代で1発受けてから勝てる）、「受け」（いちばん痛い技でも半分未満）。1対1で勝てても、交代で安全に出せるとは限りません。</li>
-  <li><b>役わり</b>：型の技と特性から、トリックルーム・おいかぜ・天気を変える特性・ねこだまし・このゆびとまれ等・設置技・設置技を消す技・壁・交代技・いかくを数えます。パーティでその匹だけが持つ役わりを失うときは案に書き、素早さの操作（トリックルーム・おいかぜ）と、天気で得をする特性（すいすい等）の仲間がいるときの天気を失う案はおすすめにしません（天気の効果そのものは1対1の計算に入っています）。役わりの効果そのもの（何ターン速くなるか等）や、役わりの重なりの良し悪しは計算していません。</li>
-  <li><b>メガシンカ</b>：1回の対戦で1匹だけ。メガストーンを持つ匹ごとに、その1匹だけがメガシンカした場合を別々に計算しています。</li>
+  <li><b>役わり</b>：型の技と特性から、トリックルーム・おいかぜ・天気を変える特性・ねこだまし・このゆびとまれ等・設置技・設置技を消す技・壁・交代技・いかくを数えます。パーティでそのポケモンだけが持つ役わりを失うときは案に書き、素早さの操作（トリックルーム・おいかぜ）と、天気で得をする特性（すいすい等）の仲間がいるときの天気を失う案はおすすめにしません（天気の効果そのものは1対1の計算に入っています）。役わりの効果そのもの（何ターン速くなるか等）や、役わりの重なりの良し悪しは計算していません。</li>
+  <li><b>メガシンカ</b>：1回の対戦で1匹だけ。メガストーンを持つポケモンごとに、その1匹だけがメガシンカした場合を別々に計算しています。</li>
   <li><b>持ち物</b>：6匹で同じ持ち物は持てません。候補の持ち物が重なるときは、同じ集計にあるほかの持ち物だけを使い、無ければ出しません。</li>
   <li><b>選出</b>：どの3匹${fmt==='double'?'（4匹）':''}を出すかは計算していません（選出アシストで決めてください）。</li>
   ${fmt==='double'?'<li><b>ダブルで見ていないこと</b>：ねこだまし・おいかぜ・トリックルーム・範囲技の当たり方・このゆびとまれ等・まもるの読み合い・味方との組み合わせ。ダブルの評価は1対1の計算だけで、完成していません。</li>':''}
@@ -293,25 +293,25 @@ function mvpWeakHTML(E){
   const rows=E.scen.map(s=>{const c=s.weak.filter(w=>w.crit);
     return `<div class="mvp-sc"><b>${esc(s.label)}</b>${s.stoneSt==='unverified'?'<span class="mvp-tag mvp-unv">メガストーンは M-C で未確認</span>':''}${c.length?`<ul>${c.slice(0,6).map(w=>`<li>${mvpWkTxt(w)}</li>`).join('')}${c.length>6?`<li>ほか${c.length-6}件</li>`:''}</ul>`:'<p class="note">大きな弱点は見つかりませんでした（上位の相手に対して）。</p>'}</div>`}).join('');
   const dup=E.dup.length?`<p class="mvp-warn">持ち物が重なっています：${E.dup.map(k=>esc(ITEMN[k]||k)).join('・')}（M-C では2匹以上に同じ持ち物は持たせられません）</p>`:'';
-  /* パーティの匹が M-C で使えるか（P3-06）。計算はするが、使えない・未確認であることを先に出す */
+  /* パーティのポケモンが M-C で使えるか（P3-06）。計算はするが、使えない・未確認であることを先に出す */
   const lgBad=E.mem.filter(m=>m.lg&&m.lg.st!=='ok');
-  const lgw=lgBad.length?`<p class="mvp-warn">${lgBad.map(m=>`${esc(formInfo(byNo[m.no]).base)}は${m.lg.st==='unverified'?'M-C で使えるか未確認です':'公式の M-C の一覧にありません'}（${esc(m.lg.why||'')}）`).join('。')}。この匹を入れたままの計算は参考にとどめてください。</p>`:'';
+  const lgw=lgBad.length?`<p class="mvp-warn">${lgBad.map(m=>`${esc(formInfo(byNo[m.no]).base)}は${m.lg.st==='unverified'?'M-C で使えるか未確認です':'公式の M-C の一覧にありません'}（${esc(m.lg.why||'')}）`).join('。')}。このポケモンを入れたままの計算は参考にとどめてください。</p>`:'';
   const est=E.mem.filter(m=>m.src==='auto').map(m=>esc(formInfo(byNo[m.no]).base)),noIt=E.mem.filter(m=>m.noItem).map(m=>esc(formInfo(byNo[m.no]).base)),pk=E.mem.filter(m=>m.src==='pokekit').map(m=>esc(formInfo(byNo[m.no]).base));
-  return `<div class="mvp-weak"><h3>いまのパーティの大きな弱点</h3>${lgw}${rows}${dup}${pk.length?`<p class="note">${pk.join('・')}は育成が未登録なので、集計の型（推定。持ち物は6匹で重ならないように選んだもの）で計算しています。${noIt.length?`${noIt.join('・')}は集計の持ち物がほかの匹と重なるため、持ち物なしで計算しています。`:''}</p>`:''}${est.length?`<p class="note">${est.join('・')}は育成が未登録で集計の型も無いため、自動の型（推定）で計算しています。</p>`:''}</div>`;
+  return `<div class="mvp-weak"><h3>いまのパーティの大きな弱点</h3>${lgw}${rows}${dup}${pk.length?`<p class="note">${pk.join('・')}は育成が未登録なので、集計の型（推定。持ち物は6匹で重ならないように選んだもの）で計算しています。${noIt.length?`${noIt.join('・')}は集計の持ち物がほかのポケモンと重なるため、持ち物なしで計算しています。`:''}</p>`:''}${est.length?`<p class="note">${est.join('・')}は育成が未登録で集計の型も無いため、自動の型（推定）で計算しています。</p>`:''}</div>`;
 }
 function mvpCardHTML(x,k){
   const old=byNo[x.outNo!=null?x.outNo:team[x.i].no],c=byNo[x.c.r.no],C=x.C,S=x.S,meg=x.c.r.mega?byNo[x.c.r.mega]:null;
   const lst=(a,cls)=>a.length?`<ul class="${cls}">${a.slice(0,6).map(p=>`<li>${mvpWkTxt(p)}</li>`).join('')}${a.length>6?`<li>ほか${a.length-6}件</li>`:''}</ul>`:'';
-  /* その枠の匹がしていたこと（P3-07）：3つを分けて、外す匹 → 入れる匹 */
+  /* その枠のポケモンがしていたこと（P3-07）：3つを分けて、外すポケモン → 入れるポケモン */
   const slotTxt=p=>{const a=p.slot&&p.slot.a,b=p.slot&&p.slot.b;if(!a||!b)return '';
     return `<div class="mvp-slot">${esc(formInfo(old).base)} → ${esc(formInfo(meg||c).base)}（相手${a.n}匹のうち）：1対1で有利 ${a.adv}→${b.adv}匹・後出しして勝てる ${a.sw}→${b.sw}匹・2回耐えられる ${a.recv}→${b.recv}匹</div>`};
   const pr=C.pairs.map(p=>{const fx=p.fixed.filter(w=>w.crit);return `<div class="mvp-pair"><div class="mvp-pl">${esc(p.a.label)}${p.a.key!==p.b.key?` → ${esc(p.b.label)}`:''}：大きな弱点 ${p.a.weak.filter(w=>w.crit).length} → ${p.c1}件</div>${slotTxt(p)}${fx.length?`<div class="mvp-h">なくなる大きな弱点</div>${lst(fx,'mvp-up')}`:''}${p.made.length?`<div class="mvp-h">新しくできる弱点${p.made.some(w=>w.crit)?'（大きな弱点を含む）':'（大きな弱点ではない）'}</div>${lst(p.made,'mvp-dn')}`:''}</div>`}).join('');
   /* 役わりの増減（P3-04）。素早さの操作・天気を失うときはおすすめにしていない */
-  const rl=C.roles&&C.roles.lost.length?`<div class="mvp-h">失われる役わり（パーティでこの匹だけが持っていたもの）</div><ul class="mvp-dn">${C.roles.lost.map(r=>`<li>${esc(r.n)}${r.sc?r.k==='weather'?'（この天気で得をする仲間がいるので、この案はおすすめに入れていません）':'（素早さの操作を失うので、この案はおすすめに入れていません）':''}</li>`).join('')}</ul>`:'';
+  const rl=C.roles&&C.roles.lost.length?`<div class="mvp-h">失われる役わり（パーティでこのポケモンだけが持っていたもの）</div><ul class="mvp-dn">${C.roles.lost.map(r=>`<li>${esc(r.n)}${r.sc?r.k==='weather'?'（この天気で得をする仲間がいるので、この案はおすすめに入れていません）':'（素早さの操作を失うので、この案はおすすめに入れていません）':''}</li>`).join('')}</ul>`:'';
   const ra=C.roles&&C.roles.added.length?`<div class="mvp-h">加わる役わり</div><ul class="mvp-up">${C.roles.added.map(r=>`<li>${esc(r.n)}</li>`).join('')}</ul>`:'';
   /* 比べる前の場合が無いメガの場合は、判定に入れていないことと、その場合の大きな弱点の数を出す */
   const addN=C.added.map(s=>`「${esc(s.label)}」の場合が増えます（この場合の大きな弱点${s.weak.filter(w=>w.crit).length}件。比べる前の場合が無いので、判定には入れていません）`);
-  const warn=[C.lastMegaLost?'メガシンカできる匹がいなくなります':'',C.lost.length?`「${C.lost.map(s=>esc(s.label)).join('・')}」の場合がなくなります`:'',...addN,C.megaAdded?'メガシンカできる匹ができます':''].filter(Boolean);
+  const warn=[C.lastMegaLost?'メガシンカできるポケモンがいなくなります':'',C.lost.length?`「${C.lost.map(s=>esc(s.label)).join('・')}」の場合がなくなります`:'',...addN,C.megaAdded?'メガシンカできるポケモンができます':''].filter(Boolean);
   return `<div class="pr-c mvp-c"><div class="row pr-sw"><span class="av">${stamp(old)}</span><span class="pr-arrow">→</span><a class="av" href="#/p/${c.no}">${stamp(meg||c)}</a><div class="row-m"><div class="row-t">${k<3?`<span class="pr-rank">${k+1}</span>`:''}${esc(formInfo(old).base)} → ${nm(meg||c)}</div>
     <div class="chips"><span class="mvp-tag mvp-ok">M-C で使える（公式の一覧で確認）</span>${meg?'<span class="mvp-tag mvp-ok">メガストーンも公式で確認</span>':''}${x.S.row.itAlt?'<span class="mvp-tag">持ち物を2番目以降に</span>':''}</div></div></div>
     <div class="mvp-body">${pr}${rl}${ra}${warn.length?`<p class="mvp-warn">${warn.join('。')}</p>`:''}
@@ -335,7 +335,7 @@ function mvpResultHTML(R){
   const exN=R.excluded.length+R.conflict.length;
   const ex=exN?`<details class="mvp-ex"><summary>比べなかった候補（${exN}件：M-C で未確認・データ不足・持ち物の重なり）</summary><ul>${[...R.excluded,...R.conflict.map(x=>({n:byNo[x.c.r.no].n,st:x.S.st,why:x.S.why}))].slice(0,40).map(x=>`<li>${esc(x.n)}：${esc({unverified:'未確認',illegal:'M-C の一覧に無い',nodata:'データ不足',insufficient:'データ不足',item_conflict:'持ち物が重なる'}[x.st]||x.st)}（${esc(x.why||'')}）</li>`).join('')}</ul></details>`:'';
   /* ダブルで見ていないこと（P3-08）：たたまずに出す */
-  const dbl=fmt==='double'?`<p class="mvp-dbl"><b>ダブルの評価はまだ完成していません。</b>1匹ずつの1対1だけで比べていて、ねこだまし・おいかぜ・トリックルームの効果・範囲技の当たり方・このゆびとまれ・まもる・味方との組み合わせは計算に入っていません（おいかぜ・トリックルームを使える匹がいなくなることだけは知らせます）。</p>`:'';
+  const dbl=fmt==='double'?`<p class="mvp-dbl"><b>ダブルの評価はまだ完成していません。</b>1匹ずつの1対1だけで比べていて、ねこだまし・おいかぜ・トリックルームの効果・範囲技の当たり方・このゆびとまれ・まもる・味方との組み合わせは計算に入っていません（おいかぜ・トリックルームを使えるポケモンがいなくなることだけは知らせます）。</p>`:'';
   /* 評価していない相手（P3-09）：型が組めない相手は弱くないとみなさず、数と名前を出す */
   const sk=R.E0.oppSkip||[];
   const skip=sk.length?`<p class="note">集計の上位のうち、型が組めないため評価していない相手：${sk.length}匹（${esc(sk.slice(0,6).join('・'))}${sk.length>6?' ほか':''}）。この相手への強さ・弱さは分かりません。</p>`:'';
@@ -343,7 +343,7 @@ function mvpResultHTML(R){
     <div class="sec"><h2>入れかえ案</h2><span style="font-size:12px;color:var(--dim)">${R.better.length?'大きな弱点を減らし、ほかが悪くならない順':''}</span></div>
     ${cards||'<p class="note">大きな弱点を減らして、ほかの大きな弱点を増やさない1匹の入れかえは見つかりませんでした。気になるポケモンを上で押すと、その枠だけで探します。</p>'}
     ${trade}${ex}${mvpLimitsHTML(fmt)}
-    <p class="note" style="color:var(--mute)">データの版：${esc(R.ver)}。くわしく調べた候補 ${R.pool.checked}匹（集計の${R.pool.rows}匹から、M-C で使える・型が組める・いまの弱点の相手に有利か後出しできる匹にしぼった上位）。${R.pool.unmapped.length?`集計のうちサイトのポケモンに対応しない行 ${R.pool.unmapped.length}件（${esc(R.pool.unmapped.join('・'))}）は使っていません。`:''}</p>`;
+    <p class="note" style="color:var(--mute)">データの版：${esc(R.ver)}。くわしく調べた候補 ${R.pool.checked}匹（集計の${R.pool.rows}匹から、M-C で使える・型が組める・いまの弱点の相手に有利か後出しできるポケモンにしぼった上位）。${R.pool.unmapped.length?`集計のうちサイトのポケモンに対応しない行 ${R.pool.unmapped.length}件（${esc(R.pool.unmapped.join('・'))}）は使っていません。`:''}</p>`;
 }
 function mvpBind(el,opt){
   el.querySelectorAll('[data-mvsw]').forEach(b=>b.onclick=async()=>{const [i,no,st]=b.dataset.mvsw.split(':');const ix=+i,n=+no;
