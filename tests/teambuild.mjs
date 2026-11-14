@@ -31,12 +31,22 @@ await pg.evaluate(()=>{
   localStorage.removeItem('pctb');team.length=0;
 });
 
+/* 下のメニューのボタン（.tb）の形：この画面の見た目の名前と重ならない（2026/11/14 依頼主の iPhone で、.tb の余白が下のメニューに付いて崩れた） */
+const tbInBar=()=>pg.evaluate(()=>{const bar=document.querySelector('.tabbar');const bs=[...document.querySelectorAll('.tabbar .tb')];if(!bar||!bs.length)return 'メニューが無い';const R=bar.getBoundingClientRect();
+  const bad=bs.filter(b=>{const r=b.getBoundingClientRect(),ic=b.querySelector('svg'),ir=ic&&ic.getBoundingClientRect();return r.top<R.top-1||r.bottom>R.bottom+1||!ir||ir.height<8||ir.top<R.top-1||ir.bottom>R.bottom+1});
+  return bad.length?`はみ出したボタン${bad.length}個`:'ok'});
+/* 確かめ方そのものの確かめ：前の崩れ（.tb の下の余白84px）を一時的に再現すると見つけられる */
+const TBX=await pg.evaluate(()=>{const st=document.createElement('style');st.id='tbx-test';st.textContent='.tb{padding-bottom:84px}';document.head.appendChild(st);return 1});
+const TBS_BAD=await tbInBar();await pg.evaluate(()=>document.getElementById('tbx-test').remove());
+ok(TBS_BAD!=='ok','確かめ方：前の崩れを再現すると見つけられる '+TBS_BAD);
+const TBS0=await tbInBar();ok(TBS0==='ok','はじめの画面で下のメニューのボタンが枠の中 '+TBS0);
 /* ---- 1 最初の1匹・下書き ---- */
 await pg.evaluate(()=>{location.hash='#/tb/'+N('ガブリアス')});await wait(2500);
-const A=await pg.evaluate(()=>({mem:TB.mem.map(x=>x.no),start:TB.start,fmt:TB.fmt,team:team.length,tab:TB.tab,an:!!document.querySelector('#tb-an .mvp-weak'),sug:document.querySelectorAll('#tb-sug .tb-c').length,
+const A=await pg.evaluate(()=>({mem:TB.mem.map(x=>x.no),start:TB.start,fmt:TB.fmt,team:team.length,tab:TB.tab,an:!!document.querySelector('#tb-an .mvp-weak'),sug:document.querySelectorAll('#tb-sug .tbd-c').length,
   over:document.body.scrollWidth>innerWidth+1}));
 ok(A.mem.length===1&&A.mem[0]===A.start&&A.fmt==='single','最初の1匹が1枠目に入る');
 ok(A.team===0,'保存したパーティは変えない');
+const TBS1=await tbInBar();ok(TBS1==='ok','1匹から組むを開いても下のメニューのボタンが枠の中 '+TBS1);
 ok(A.an&&A.sug>0,'分析と候補が出る '+A.sug);
 ok(!A.over,'390px ではみ出さない');
 /* メガの姿から始めても元の姿 */
@@ -75,15 +85,15 @@ ok(C.words,'候補の説明（解決する問題・新しい弱点・出典）')
 /* 比べる */
 await pg.evaluate(()=>{const b=document.querySelector('[data-tbvs="0"]');b&&b.click()});await wait(100);
 await pg.evaluate(()=>{const b=document.querySelector('[data-tbvi="1"]');b&&b.click()});await wait(400);
-const CM=await pg.evaluate(()=>{const o=document.querySelector('#tb-cmp0 .tb-cmpr');return !!o&&/大きな弱点/.test(o.textContent)&&!!o.querySelector('[data-tbsw]')});
+const CM=await pg.evaluate(()=>{const o=document.querySelector('#tb-cmp0 .tbd-cmpr');return !!o&&/大きな弱点/.test(o.textContent)&&!!o.querySelector('[data-tbsw]')});
 ok(CM,'いまの匹と比べる（入れかえたときの変化）');
 
 /* ---- 4 ① 環境のパーティ：種類を分ける・形式を分ける・作らない ---- */
 await pg.evaluate(()=>{document.querySelector('[data-tbtab="find"]').click()});await wait(1500);
-const D=await pg.evaluate(()=>{const box=document.getElementById('tb-teams'),t=box.textContent,cards=[...box.querySelectorAll('.tb-c')];
+const D=await pg.evaluate(()=>{const box=document.getElementById('tb-teams'),t=box.textContent,cards=[...box.querySelectorAll('.tbd-c')];
   return{n:cards.length,fmt:__fetch.filter(u=>/teams/.test(u)).every(u=>/fmt=single/.test(u)),
     cats:/確認済み/.test(t)&&/記事から集めた/.test(t)&&/本人の申告/.test(t),self:/レート1900（申告）/.test(t),
-    noFake:!/勝率/.test(t),order:cards.map(c=>c.querySelector('.tb-tt').textContent).join('|'),
+    noFake:!/勝率/.test(t),order:cards.map(c=>c.querySelector('.tbd-tt').textContent).join('|'),
     nostart:!t.includes('最終1位'),bad:!box.innerHTML.includes('999999'),
     src:box.innerHTML.includes('example.org')&&/rel="noopener nofollow"/.test(box.innerHTML),
     noSet:/育成の登録なし/.test(t),sets:/Showdown/.test(document.getElementById('tb-sets').textContent)&&/6匹のパーティではありません/.test(document.getElementById('tb-sets').textContent)}});
@@ -99,7 +109,7 @@ ok(D.sets,'集計の型は Showdown の集計と明記・仲間は6匹のパー�
 ok(/^確認済み/.test(D.order.split('|')[0])||/テストシーズン2/.test(D.order.split('|')[0]),'並びは新しいシーズン→順位 '+D.order);
 /* 絞り込み */
 await pg.evaluate(()=>document.querySelector('[data-tbcat="auto"]').click());await wait(200);
-const DF=await pg.evaluate(()=>document.querySelectorAll('#tb-teams .tb-c').length);ok(DF===1,'出典の種類で絞り込む '+DF);
+const DF=await pg.evaluate(()=>document.querySelectorAll('#tb-teams .tbd-c').length);ok(DF===1,'出典の種類で絞り込む '+DF);
 await pg.evaluate(()=>document.querySelector('[data-tbcat="all"]').click());await wait(200);
 /* ③で開く・パーティに入れる */
 await pg.evaluate(async()=>{__confAns=true;document.querySelector('[data-tbopen="0"]').click()});await wait(800);
@@ -112,7 +122,7 @@ ok(DE,'読めないときは理由ともう一度読むボタン、集計の型�
 await pg.evaluate(()=>{__fail=false;TB_FIND=null});
 
 /* ---- 5 ダブルを分ける ---- */
-const DB=await pg.evaluate(async()=>{setFmt('double');tbDraw();const w=!!document.querySelector('.tb-fmtw');
+const DB=await pg.evaluate(async()=>{setFmt('double');tbDraw();const w=!!document.querySelector('.tbd-fmtw');
   const hs=tbSetsHTML('double'),ss=tbSetsHTML('single');
   const dRow=mvpRows('double').rows.find(r=>r.no===TB.start&&!r.stone),sRow=mvpRows('single').rows.find(r=>r.no===TB.start&&!r.stone);
   document.querySelector('[data-tbfmt="keep"]').click();await new Promise(r=>setTimeout(r,1200));
@@ -197,7 +207,7 @@ ok(V.sp,'能力ポイントの決まり（合計66・1つ32まで）を超えた
 
 /* ---- 9 画面の切りかえで下書きが残る・古い計算で上書きしない ---- */
 /* 直前の「パーティに入れる」でパーティの画面に移っているので、この画面に戻してから */
-await pg.evaluate(()=>{location.hash='#/tb'});await pg.waitForFunction(()=>!!document.querySelector('.tb-tabs'),null,{timeout:15000});
+await pg.evaluate(()=>{location.hash='#/tb'});await pg.waitForFunction(()=>!!document.querySelector('.tbd-tabs'),null,{timeout:15000});
 const S=await pg.evaluate(async()=>{const m=JSON.stringify(TB.mem);for(const t of ['find','cond','manual','find','manual']){TB.tab=t;tbDraw()}
   const t0=Date.now();while(Date.now()-t0<30000&&/分析中/.test((document.getElementById('tb-an')||{}).textContent||''))await new Promise(r=>setTimeout(r,200));
   return{kept:JSON.stringify(TB.mem)===m,one:document.querySelectorAll('#tb-an').length===1&&!/分析中/.test(document.getElementById('tb-an').textContent)&&TB.tab==='manual'}});

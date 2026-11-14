@@ -50,19 +50,19 @@ async function tbView(arg){
   tbDraw();
 }
 function tbDraw(){
-  if(!TB){V.innerHTML=`<div class="tb"><p class="note" style="padding:16px">まだ始めていません。最初の1匹を選ぶと、その1匹からパーティを組めます。</p><div class="btns" style="padding:0 16px"><button class="btn btn-p" id="tb-pick">${SVG(I.plus,16)}最初の1匹を選ぶ</button></div></div>`;
+  if(!TB){V.innerHTML=`<div class="tbd"><p class="note" style="padding:16px">まだ始めていません。最初の1匹を選ぶと、その1匹からパーティを組めます。</p><div class="btns" style="padding:0 16px"><button class="btn btn-p" id="tb-pick">${SVG(I.plus,16)}最初の1匹を選ぶ</button></div></div>`;
     document.getElementById('tb-pick').onclick=async()=>{const no=await pickMon(0);if(no)nav('#/tb/'+tbBase(no))};return}
   const st=byNo[TB.start],tab=['find','cond','manual'].includes(TB.tab)?TB.tab:'manual';
-  const fmtWarn=TB.fmt!==FMT?`<div class="mvp-warn tb-fmtw">このパーティは<b>${tbFmtN(TB.fmt)}</b>で作り始めました。いまの形式は<b>${tbFmtN(FMT)}</b>です。集計・計算は形式ごとに別なので、どちらで続けるか選んでください。
+  const fmtWarn=TB.fmt!==FMT?`<div class="mvp-warn tbd-fmtw">このパーティは<b>${tbFmtN(TB.fmt)}</b>で作り始めました。いまの形式は<b>${tbFmtN(FMT)}</b>です。集計・計算は形式ごとに別なので、どちらで続けるか選んでください。
     <div class="btns"><button class="btn btn-s" data-tbfmt="${TB.fmt}">${tbFmtN(TB.fmt)}に戻す</button><button class="btn btn-s" data-tbfmt="keep">${tbFmtN(FMT)}で続ける</button></div></div>`:'';
   const tabs=[['find','① 環境のパーティを見る',`${esc(formInfo(st).base)}が入った上位パーティと、集計の型`],['cond','② こだわり条件で組む','条件を決めて、2つの考え方で案を作る'],['manual','③ 自分で組む','1匹ずつ選び、そのたびに分析と候補']];
-  V.innerHTML=`<div class="tb">
-    <div class="tb-head"><a class="av" href="#/p/${st.no}">${stamp(st)}</a><div class="row-m"><div class="row-t">${nm(st)}<span class="mvp-tag">最初の1匹</span></div>
-      <div class="tb-ctx">${tbFmtN(FMT)}・レギュレーション ${esc(MVP_DATA.legal.reg)}（公式の一覧 ${esc(MVP_DATA.legal.fetched)}）</div></div></div>
+  V.innerHTML=`<div class="tbd">
+    <div class="tbd-head"><a class="av" href="#/p/${st.no}">${stamp(st)}</a><div class="row-m"><div class="row-t">${nm(st)}<span class="mvp-tag">最初の1匹</span></div>
+      <div class="tbd-ctx">${tbFmtN(FMT)}・レギュレーション ${esc(MVP_DATA.legal.reg)}（公式の一覧 ${esc(MVP_DATA.legal.fetched)}）</div></div></div>
     ${fmtWarn}
-    <div class="tb-tabs" role="tablist">${tabs.map(([k,t,d])=>`<button role="tab" class="tb-tab" data-tbtab="${k}" aria-selected="${tab===k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+    <div class="tbd-tabs" role="tablist">${tabs.map(([k,t,d])=>`<button role="tab" class="tbd-tab" data-tbtab="${k}" aria-selected="${tab===k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
     <div id="tb-body"></div>
-    <div class="tb-bar"><div class="tb-bar-m">${TB.mem.map(x=>`<span class="av">${stamp(byNo[x.no])}</span>`).join('')}<small>${TB.mem.length}/6匹</small></div>
+    <div class="tbd-bar"><div class="tbd-bar-m">${TB.mem.map(x=>`<span class="av">${stamp(byNo[x.no])}</span>`).join('')}<small>${TB.mem.length}/6匹</small></div>
       <button class="btn btn-p" id="tb-go">パーティに入れる</button></div></div>`;
   V.querySelectorAll('[data-tbtab]').forEach(b=>b.onclick=()=>{TB.tab=b.dataset.tbtab;tbSave();tbDraw()});
   V.querySelectorAll('[data-tbfmt]').forEach(b=>b.onclick=()=>{const v=b.dataset.tbfmt;if(v==='keep'){TB.fmt=FMT;TB_PROP=null;TB_FIND=null}else setFmt(v);tbSave();tbDraw()});
@@ -82,11 +82,11 @@ const tbDblNote=()=>FMT==='double'?`<p class="mvp-dbl"><b>ダブルの評価は�
 /* ===================== ③ 自分で組む ===================== */
 function tbManual(el){
   const tok=++TB_TOK;
-  el.innerHTML=`${tbDblNote()}<div class="sec"><h2>あなたのパーティ（下書き）</h2>${TB_HIST.length?'<button class="btn btn-s tb-undo" id="tb-undo">1つ前に戻す</button>':''}</div>
-    <div class="tb-slots">${Array.from({length:6},(_,i)=>{const x=TB.mem[i];if(!x)return `<button class="tb-slot tb-empty" data-tbadd="1">${SVG(I.plus,18)}<span>追加する</span></button>`;
-      const p=byNo[x.no];return `<div class="tb-slot"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><b>${esc(formInfo(p).base)}</b><small>${i===0?'最初の1匹':esc(TB_SRC[x.src]||'')}</small>
-        <div class="tb-sbtn"><button class="btn btn-s" data-tbrep="${i}">入れかえ</button>${i?`<button class="btn btn-s" data-tbrm="${i}">外す</button>`:''}</div>
-        <details class="tb-set"><summary>育成</summary><p class="note">${tbSetTxt(x.set)}${x.set?`<br><small>${esc(TB_SRC[x.src]||'')}${x.srcTxt?'：'+esc(x.srcTxt):''}</small>`:''}</p></details></div>`}).join('')}</div>
+  el.innerHTML=`${tbDblNote()}<div class="sec"><h2>あなたのパーティ（下書き）</h2>${TB_HIST.length?'<button class="btn btn-s tbd-undo" id="tb-undo">1つ前に戻す</button>':''}</div>
+    <div class="tbd-slots">${Array.from({length:6},(_,i)=>{const x=TB.mem[i];if(!x)return `<button class="tbd-slot tbd-empty" data-tbadd="1">${SVG(I.plus,18)}<span>追加する</span></button>`;
+      const p=byNo[x.no];return `<div class="tbd-slot"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><b>${esc(formInfo(p).base)}</b><small>${i===0?'最初の1匹':esc(TB_SRC[x.src]||'')}</small>
+        <div class="tbd-sbtn"><button class="btn btn-s" data-tbrep="${i}">入れかえ</button>${i?`<button class="btn btn-s" data-tbrm="${i}">外す</button>`:''}</div>
+        <details class="tbd-set"><summary>育成</summary><p class="note">${tbSetTxt(x.set)}${x.set?`<br><small>${esc(TB_SRC[x.src]||'')}${x.srcTxt?'：'+esc(x.srcTxt):''}</small>`:''}</p></details></div>`}).join('')}</div>
     <div id="tb-an"><p class="empty">分析中…（いまの${TB.mem.length}匹を、入れかえ案と同じ計算で見ています）</p></div>
     <div id="tb-sug"></div>`;
   const un=document.getElementById('tb-undo');if(un)un.onclick=()=>{const s=TB_HIST.pop();if(s){TB.mem=JSON.parse(s);tbSave();tbDraw()}};
@@ -127,7 +127,7 @@ function tbAnalyzeHTML(A){
   const nmI=i=>esc(formInfo(byNo[A.mem[i].no]).base);
   const rl=Object.entries(A.roles).map(([k,v])=>`${esc(MVP_ROLES[k][0])}（${v.map(nmI).join('・')}）`).join('、');
   return `${mvpWeakHTML(A.E)}
-    <div class="tb-an2">
+    <div class="tbd-an2">
       <p><b>受けにくいタイプ</b>：${A.holes.length?A.holes.map(chip).join(''):'なし（2匹以上が弱点で、半減以下で受けられる匹がいないタイプはありません）'}</p>
       <p><b>役わり</b>（型の技と特性から）：${rl||'まだ見つかりません'}</p>
       ${A.miss.length?`<p class="note">まだいない役わり：${A.miss.map(esc).join('・')}（必ず要るわけではありません）</p>`:''}
@@ -185,7 +185,7 @@ function tbSugDraw(el,tok){
   const nmI=i=>esc(formInfo(byNo[TB.mem[i].no]).base);
   el.innerHTML=`<div class="sec"><h2>次に入れる候補</h2><span style="font-size:12px;color:var(--dim)">新しい大きな弱点を作らない→減る大きな弱点が多い順</span></div>
     ${R.res.map((c,k)=>{const p=byNo[c.r.mega||c.r.no],C=c.C;const fx=C.pairs.flatMap(z=>z.fixed.filter(w=>w.crit)),mk=C.pairs.flatMap(z=>z.made);
-      return `<div class="pr-c tb-c"><div class="row"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><div class="row-m"><div class="row-t">${nm(p)}</div>
+      return `<div class="pr-c tbd-c"><div class="row"><a class="av" href="#/p/${p.no}">${stamp(p)}</a><div class="row-m"><div class="row-t">${nm(p)}</div>
         <div class="chips"><span class="mvp-tag mvp-ok">M-C で使える（公式の一覧で確認）</span>${C.cm?'<span class="mvp-tag mvp-unv">新しい大きな弱点あり</span>':''}</div></div></div>
         <div class="mvp-body">${C.pairs.map(z=>`<div class="mvp-pl">${esc(z.b.label)}：大きな弱点 ${z.a.weak.filter(w=>w.crit).length} → ${z.c1}件</div>`).join('')}
           ${fx.length?`<div class="mvp-h">なくなる大きな弱点（この候補が解決する問題）</div><ul class="mvp-up">${fx.slice(0,5).map(w=>`<li>${mvpWkTxt(w)}</li>`).join('')}${fx.length>5?`<li>ほか${fx.length-5}件</li>`:''}</ul>`:''}
@@ -193,15 +193,15 @@ function tbSugDraw(el,tok){
           ${c.addR.length?`<p class="note">加わる役わり：${c.addR.map(r=>esc(r.n)).join('・')}</p>`:''}
           ${c.ovR.length||c.ovT.length?`<p class="note">重なり：${[...c.ovR.map(z=>`${esc(z.r.n)}（${z.who.map(nmI).join('・')}と同じ）`),...c.ovT.map(z=>`${z.t.join('・')}が弱点（${nmI(z.i)}と同じ）`)].join('、')}</p>`:''}
           ${c.co?`<p class="note">一緒に使われる割合：${nmI(TB.mem.findIndex(x=>x.no===c.co.with))}の使用者の${c.co.pc}%（Showdown の集計。強さの証拠ではありません）</p>`:''}
-          <details class="tb-set"><summary>入れる型（データの出典）</summary><p class="note">${esc(c.S.txt)}${c.S.notes.length?'。'+esc(c.S.notes.join('。')):''}<br>能力ポイントは仮定。出典：${esc(mvpSrcTxt(FMT))}</p></details>
-          <div class="tb-cmp" id="tb-cmp${k}"></div></div>
+          <details class="tbd-set"><summary>入れる型（データの出典）</summary><p class="note">${esc(c.S.txt)}${c.S.notes.length?'。'+esc(c.S.notes.join('。')):''}<br>能力ポイントは仮定。出典：${esc(mvpSrcTxt(FMT))}</p></details>
+          <div class="tbd-cmp" id="tb-cmp${k}"></div></div>
         <div class="btns" style="padding:0 16px 12px"><button class="btn btn-p btn-s" data-tbin="${k}">追加する</button>${TB.mem.length>1?`<button class="btn btn-s" data-tbvs="${k}">いまの匹と比べる</button>`:''}</div></div>`}).join('')||'<p class="note">候補が見つかりませんでした。</p>'}
     <p class="note" style="color:var(--mute)">くわしく比べた候補 ${R.res.length}匹（集計の${R.rows}匹から、M-C で使える・型が組める・持ち物が重ならない匹を、いまの大きな弱点の相手に有利か後出しできる数で並べた上位）。勝率ではありません。</p>`;
   el.querySelectorAll('[data-tbin]').forEach(b=>b.onclick=()=>{const c=R.res[+b.dataset.tbin];if(TB.mem.length>=6)return;
     tbPush();TB.mem.push({no:c.r.no,set:c.S.sv,src:'pokekit',srcTxt:`${mvpSrcTxt(FMT)}（能力ポイントは仮定）`});tbSave();tbDraw()});
   el.querySelectorAll('[data-tbvs]').forEach(b=>b.onclick=()=>{const k=+b.dataset.tbvs,c=R.res[k],box=document.getElementById('tb-cmp'+k);
-    box.innerHTML=`<p class="note">どの匹と比べますか？</p><div class="btns">${TB.mem.map((x,i)=>i?`<button class="btn btn-s" data-tbvi="${i}">${nmI(i)}</button>`:'').join('')}</div><div class="tb-cmpr"></div>`;
-    box.querySelectorAll('[data-tbvi]').forEach(q=>q.onclick=()=>{const i=+q.dataset.tbvi,out=box.querySelector('.tb-cmpr');
+    box.innerHTML=`<p class="note">どの匹と比べますか？</p><div class="btns">${TB.mem.map((x,i)=>i?`<button class="btn btn-s" data-tbvi="${i}">${nmI(i)}</button>`:'').join('')}</div><div class="tbd-cmpr"></div>`;
+    box.querySelectorAll('[data-tbvi]').forEach(q=>q.onclick=()=>{const i=+q.dataset.tbvi,out=box.querySelector('.tbd-cmpr');
       const nx=tbEntries().map((x,j)=>j===i?{no:c.r.no,sel:false,set:c.S.sv}:x),E1=mvpEvalTeam(nx,FMT),C=mvpCompare(R.E0,E1,TB.mem[i].no,c.r.no,i);
       out.innerHTML=mvpCardHTML({i,outNo:TB.mem[i].no,c,S:c.S,C,E1},9).replace(/<div class="btns"[\s\S]*$/,'</div></div>')+`<div class="btns"><button class="btn btn-s" data-tbsw="${i}">${nmI(i)}と入れかえる</button></div>`;
       out.querySelector('[data-tbsw]').onclick=()=>{tbPush();TB.mem[i]={no:c.r.no,set:c.S.sv,src:'pokekit',srcTxt:`${mvpSrcTxt(FMT)}（能力ポイントは仮定）`};tbSave();tbDraw()}})});
@@ -234,8 +234,8 @@ function tbFind(el){
     TB_FIND.list=list;
     box.innerHTML=`<div class="sec"><h2>${esc(formInfo(st).base)}が入った上位パーティ</h2><span style="font-size:12px;color:var(--dim)">${tbFmtN(fmt)}・${all.length}件</span></div>
       <p class="note">当サイトの「上位パーティ」に登録されたパーティです。並びは、新しいシーズン→順位→レート（強さの点数はつけていません）。大会の結果は区別して持っていません。</p>
-      <div class="pills tb-flt">${[['all','すべて'],...Object.entries(TB_CAT).map(([k,v])=>[k,v[0]])].map(([k,t])=>`<button class="pill" data-tbcat="${k}" aria-pressed="${flt.cat===k}">${t}</button>`).join('')}</div>
-      ${D.seasons.length>1?`<div class="pills tb-flt">${[['all','全シーズン'],...D.seasons.map(s=>[String(s.id),s.name])].map(([k,t])=>`<button class="pill" data-tbsid="${esc(k)}" aria-pressed="${String(flt.sid)===k}">${esc(t)}</button>`).join('')}</div>`:''}
+      <div class="pills tbd-flt">${[['all','すべて'],...Object.entries(TB_CAT).map(([k,v])=>[k,v[0]])].map(([k,t])=>`<button class="pill" data-tbcat="${k}" aria-pressed="${flt.cat===k}">${t}</button>`).join('')}</div>
+      ${D.seasons.length>1?`<div class="pills tbd-flt">${[['all','全シーズン'],...D.seasons.map(s=>[String(s.id),s.name])].map(([k,t])=>`<button class="pill" data-tbsid="${esc(k)}" aria-pressed="${String(flt.sid)===k}">${esc(t)}</button>`).join('')}</div>`:''}
       ${list.length?list.slice(0,30).map((t,k)=>tbTeamCard(t,k)).join(''):`<p class="note" style="padding:8px 16px">${all.length?'この絞り込みに合うパーティはありません。':`${esc(formInfo(st).base)}が入った${tbFmtN(fmt)}の上位パーティは、まだ登録されていません。下の集計の型と仲間の割合を参考にするか、②・③で組んでください。`}</p>`}`;
     box.querySelectorAll('[data-tbcat]').forEach(b=>b.onclick=()=>{TB.fflt={...flt,cat:b.dataset.tbcat};tbSave();draw()});
     box.querySelectorAll('[data-tbsid]').forEach(b=>b.onclick=()=>{TB.fflt={...flt,sid:b.dataset.tbsid};tbSave();draw()});
@@ -251,11 +251,11 @@ function tbFind(el){
 function tbTeamCard(t,k){
   const c=tbCatOf(t),me=t.team.find(x=>tbFam(x.no)===tbFam(TB.start));const ms=cleanSet(me&&me.set);
   const res=[t.rank?`最終${t.rank}位`:'',t.rate?`レート${t.rate}`:''].filter(Boolean).join('・');
-  return `<div class="pr-c tb-c"><div class="tb-tt"><span class="mvp-tag ${c==='chk'?'mvp-ok':''}" title="${esc(TB_CAT[c][1])}">${TB_CAT[c][0]}</span><b>${esc(t.season)}</b>${res?`<span>${esc(res)}${c==='self'?'（申告）':''}</span>`:''}</div>
-    <div class="tb-six">${t.team.map(x=>`<a class="av" href="#/p/${x.no}" title="${esc(byNo[x.no].n)}">${stamp(byNo[x.no])}</a>`).join('')}</div>
-    <details class="tb-set"><summary>くわしく（6匹の育成・出典）</summary>
+  return `<div class="pr-c tbd-c"><div class="tbd-tt"><span class="mvp-tag ${c==='chk'?'mvp-ok':''}" title="${esc(TB_CAT[c][1])}">${TB_CAT[c][0]}</span><b>${esc(t.season)}</b>${res?`<span>${esc(res)}${c==='self'?'（申告）':''}</span>`:''}</div>
+    <div class="tbd-six">${t.team.map(x=>`<a class="av" href="#/p/${x.no}" title="${esc(byNo[x.no].n)}">${stamp(byNo[x.no])}</a>`).join('')}</div>
+    <details class="tbd-set"><summary>くわしく（6匹の育成・出典）</summary>
       <p class="note">${esc(TB_CAT[c][1])}。${c==='auto'&&t.sources&&t.sources.length?`出典：${t.sources.map(u=>`<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener nofollow">${esc(u.replace(/^https?:\/\//,'').slice(0,40))}</a>`).join('／')}`:''}</p>
-      <ul class="tb-mem">${t.team.map(x=>{const s=cleanSet(x.set),known=s&&(s.mv.length||s.it||s.ab);return `<li><b>${esc(byNo[x.no].n)}</b>：${known?tbSetTxt(s):'育成の登録なし'}</li>`}).join('')}</ul>
+      <ul class="tbd-mem">${t.team.map(x=>{const s=cleanSet(x.set),known=s&&(s.mv.length||s.it||s.ab);return `<li><b>${esc(byNo[x.no].n)}</b>：${known?tbSetTxt(s):'育成の登録なし'}</li>`}).join('')}</ul>
       ${t.comment?`<p class="note"><b>登録した人のひとこと</b>：<span data-notr>${esc(t.comment)}</span></p>`:''}
       <p class="note">${esc(formInfo(byNo[TB.start]).base)}の育成：${ms&&(ms.mv.length||ms.it)?tbSetTxt(ms):'登録なし'}${ms&&ms.mv.length?`。型から分かる役わり：${mvpRoles(me.no,ms.mv.map(m=>m.id),ms.ab&&ms.ab.k,ms.it&&ms.it.k).map(r=>esc(r.n)).join('・')||'特になし'}（当サイトの読み取り）`:''}</p>
       <div id="tb-tc${k}"><button class="btn btn-s" data-tbcalc="${k}">このパーティを当サイトの計算で見る</button></div></details>
@@ -267,7 +267,7 @@ function tbSetsHTML(fmt){
   const rows=R.rows.filter(r=>r.no===TB.start);
   const sets=rows.map(r=>{const S=mvpSet(fmt,r.no,{stone:r.stone,anyLegal:true,anyMv:true});const p=byNo[r.mega||r.no];
     const unv=r.stone&&mvpStoneSt(r.stone,r.no)!=='ok';
-    return `<div class="pr-c tb-c"><div class="row"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips"><span class="mvp-tag">使用率 ${r.usage}%・${r.rank}位（Showdown）</span>${unv?'<span class="mvp-tag mvp-unv">メガストーンは M-C で未確認</span>':''}</div></div></div>
+    return `<div class="pr-c tbd-c"><div class="row"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips"><span class="mvp-tag">使用率 ${r.usage}%・${r.rank}位（Showdown）</span>${unv?'<span class="mvp-tag mvp-unv">メガストーンは M-C で未確認</span>':''}</div></div></div>
       <p class="note" style="padding:0 16px 10px">${S.st==='ok'?esc(S.txt)+'。能力ポイントは集計に無い（仮定で計算）':'この行からは型を組めません（'+esc(S.why||S.st)+'）'}</p></div>`}).join('');
   const base=rows.find(r=>!r.stone)||rows[0];
   const tm=(base&&base.tm||[]).map(([id,pc])=>{const z=R.rows.find(r=>r.id===id);return z?{z,pc}:null}).filter(Boolean).slice(0,10);
@@ -275,7 +275,7 @@ function tbSetsHTML(fmt){
     <p class="note">出典：${esc(mvpSrcTxt(fmt))}（取得 ${esc(m.fetched)}）。<b>Pokémon Showdown の集計で、ゲーム内の公式の集計ではありません。</b>型は、項目ごとにいちばん多いものを組み合わせたもので、この組み合わせのまま使われているとは限りません。</p>
     ${sets||`<p class="note">${esc(formInfo(st).base)}は${tbFmtN(fmt)}の集計の上位150匹に入っていません。</p>`}
     ${tm.length?`<div class="sec"><h2>一緒に使われる仲間</h2></div><p class="note">${esc(formInfo(st).base)}を使った人のうち、その仲間も入れていた人の割合です（Showdown の集計）。<b>6匹のパーティではありません</b>。よく使われることは強さの証拠ではありません。</p>
-      <ul class="tb-tm">${tm.map(({z,pc})=>{const p=byNo[z.mega||z.no],lg=mvpLegal(z.no).st;return `<li><span class="av">${stamp(p)}</span><span>${esc(p.n)}</span><b>${pc}%</b>${lg==='ok'&&!TB.mem.some(x=>tbFam(x.no)===tbFam(z.no))&&TB.mem.length<6?`<button class="btn btn-s" data-tbtm="${z.no}" data-tbst="${z.stone||''}">③に追加</button>`:lg!=='ok'?'<small>M-C で未確認</small>':''}</li>`}).join('')}</ul>`:''}`;
+      <ul class="tbd-tm">${tm.map(({z,pc})=>{const p=byNo[z.mega||z.no],lg=mvpLegal(z.no).st;return `<li><span class="av">${stamp(p)}</span><span>${esc(p.n)}</span><b>${pc}%</b>${lg==='ok'&&!TB.mem.some(x=>tbFam(x.no)===tbFam(z.no))&&TB.mem.length<6?`<button class="btn btn-s" data-tbtm="${z.no}" data-tbst="${z.stone||''}">③に追加</button>`:lg!=='ok'?'<small>M-C で未確認</small>':''}</li>`}).join('')}</ul>`:''}`;
 }
 function tbSetsBind(el){el.querySelectorAll('[data-tbtm]').forEach(b=>b.onclick=()=>{const no=+b.dataset.tbtm,st=b.dataset.tbst||null;
   if(st&&mvpStoneSt(st,no)!=='ok'){toast('このメガストーンは M-C で使えるか未確認です');return}
@@ -307,13 +307,13 @@ function tbCond(el){
   const c=TB.cond,nmN=no=>esc(byNo[no].n);
   const megaOpt=[['auto','おまかせ（確認できたメガストーンだけ）'],['none','メガシンカなし'],...[TB.start,...c.must].filter(no=>Object.keys(MEGA).some(k=>MEGA[k][no])).map(no=>['must:'+no,`${byNo[no].n}をメガシンカさせる`])];
   const types=KD_TYPES.map(t=>[t[0],t[1]]);
-  el.innerHTML=`${tbDblNote()}<div class="tb-cond">
+  el.innerHTML=`${tbDblNote()}<div class="tbd-cond">
     <div class="sec"><h2>必ず守る条件</h2></div>
-    <div class="tb-cr"><b>入れたい匹</b><div class="tb-cl"><span class="mvp-tag">${nmN(TB.start)}（最初の1匹）</span>${c.must.map(no=>`<span class="mvp-tag">${nmN(no)}<button class="tb-x" data-tbmust-rm="${no}" aria-label="${nmN(no)}を外す">×</button></span>`).join('')}${c.must.length<2?'<button class="btn btn-s" id="tb-must">追加</button>':''}</div></div>
-    <div class="tb-cr"><b>入れたくない匹</b><div class="tb-cl">${c.ng.map(no=>`<span class="mvp-tag">${nmN(no)}<button class="tb-x" data-tbng-rm="${no}" aria-label="${nmN(no)}を外す">×</button></span>`).join('')||'<small>なし</small>'}${c.ng.length<10?'<button class="btn btn-s" id="tb-ng">追加</button>':''}</div></div>
-    <div class="tb-cr"><b>メガシンカ</b><select id="tb-mega">${megaOpt.map(([k,t])=>`<option value="${k}"${c.mega===k?' selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div class="tbd-cr"><b>入れたい匹</b><div class="tbd-cl"><span class="mvp-tag">${nmN(TB.start)}（最初の1匹）</span>${c.must.map(no=>`<span class="mvp-tag">${nmN(no)}<button class="tbd-x" data-tbmust-rm="${no}" aria-label="${nmN(no)}を外す">×</button></span>`).join('')}${c.must.length<2?'<button class="btn btn-s" id="tb-must">追加</button>':''}</div></div>
+    <div class="tbd-cr"><b>入れたくない匹</b><div class="tbd-cl">${c.ng.map(no=>`<span class="mvp-tag">${nmN(no)}<button class="tbd-x" data-tbng-rm="${no}" aria-label="${nmN(no)}を外す">×</button></span>`).join('')||'<small>なし</small>'}${c.ng.length<10?'<button class="btn btn-s" id="tb-ng">追加</button>':''}</div></div>
+    <div class="tbd-cr"><b>メガシンカ</b><select id="tb-mega">${megaOpt.map(([k,t])=>`<option value="${k}"${c.mega===k?' selected':''}>${esc(t)}</option>`).join('')}</select></div>
     <div class="sec"><h2>できれば守る条件</h2></div>
-    <div class="tb-cr"><b>構築のタイプ</b><select id="tb-type">${types.map(([k,t])=>`<option value="${k}"${c.type===k?' selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div class="tbd-cr"><b>構築のタイプ</b><select id="tb-type">${types.map(([k,t])=>`<option value="${k}"${c.type===k?' selected':''}>${esc(t)}</option>`).join('')}</select></div>
     <p class="note">「必ず守る条件」は外しません。守れないときは理由を出して止めます。「できれば守る条件」は、守れなかったときに案の中で知らせます。</p>
     <div class="btns" style="padding:0 16px"><button class="btn btn-p" id="tb-run">この条件で2つの案を作る</button></div>
     <div id="tb-prop">${TB_PROP&&TB_PROP.sig===tbCondSig()?tbPropHTML(TB_PROP):''}</div></div>`;
@@ -385,12 +385,12 @@ function tbPropHTML(P){
   if(P.err)return `<p class="note"><b>案を作れませんでした</b>：${esc(P.err)}</p>`;
   const one=(X,k)=>{const head=X.kind==='pref'?['案A こだわり優先','あなたの条件と構築のタイプを優先して組んだ案。型は当サイトが組んだ理論上のもの（実際に使われた型ではありません）。']:['案B 勝ちやすさ寄り','必ず守る条件はそのままに、入れかえ案と同じ計算で、大きな弱点がいちばん少なくなる匹を1匹ずつ足した案。型は Showdown の集計（PokéKit）。勝率が高いという意味ではありません（理論上の計算）。'];
     const E=X.E;const crit=E.st==='ok'?E.scen.map(s=>`${esc(s.label)}：大きな弱点${s.weak.filter(w=>w.crit).length}件`).join('・'):'計算できませんでした';
-    return `<div class="pr-c tb-c tb-prop"><div class="tb-tt"><b>${head[0]}</b></div><p class="note">${head[1]}</p>
-      <div class="tb-six">${X.mem.map(x=>`<a class="av" href="#/p/${x.no}" title="${esc(byNo[x.no].n)}">${stamp(byNo[x.no])}</a>`).join('')}</div>
-      <ul class="tb-req">${X.req.map(r=>`<li>${r.ok?'✓':'×'} ${esc(r.t)}</li>`).join('')}${(X.pref||[]).map(r=>`<li>${r.ok===true?'✓':r.ok===false?'△':'―'} ${esc(r.t)}${r.note?`（${esc(r.note)}）`:r.ok===false?'（守れませんでした）':''}</li>`).join('')}</ul>
+    return `<div class="pr-c tbd-c tbd-prop"><div class="tbd-tt"><b>${head[0]}</b></div><p class="note">${head[1]}</p>
+      <div class="tbd-six">${X.mem.map(x=>`<a class="av" href="#/p/${x.no}" title="${esc(byNo[x.no].n)}">${stamp(byNo[x.no])}</a>`).join('')}</div>
+      <ul class="tbd-req">${X.req.map(r=>`<li>${r.ok?'✓':'×'} ${esc(r.t)}</li>`).join('')}${(X.pref||[]).map(r=>`<li>${r.ok===true?'✓':r.ok===false?'△':'―'} ${esc(r.t)}${r.note?`（${esc(r.note)}）`:r.ok===false?'（守れませんでした）':''}</li>`).join('')}</ul>
       <p class="note"><b>計算の結果</b>：${crit}${X.typeName?`。構築のタイプ：${esc(X.typeName)}`:''}</p>
       ${X.notes.length?`<div class="mvp-warn">直したところ：${X.notes.map(esc).join('。')}</div>`:''}
-      <details class="tb-set"><summary>1匹ずつの理由と育成</summary><ul class="tb-mem">${X.mem.map((x,i)=>`<li><b>${esc(byNo[x.no].n)}</b>：${(x.why||[]).map(esc).join('／')||'―'}${X.roles&&X.roles[i]&&X.roles[i].length?`<br><small>役わり（型から）：${X.roles[i].map(r=>esc(r.n)).join('・')}</small>`:''}<br><small>${tbSetTxt(x.set)}（${esc(TB_SRC[x.src]||'')}）</small></li>`).join('')}</ul>
+      <details class="tbd-set"><summary>1匹ずつの理由と育成</summary><ul class="tbd-mem">${X.mem.map((x,i)=>`<li><b>${esc(byNo[x.no].n)}</b>：${(x.why||[]).map(esc).join('／')||'―'}${X.roles&&X.roles[i]&&X.roles[i].length?`<br><small>役わり（型から）：${X.roles[i].map(r=>esc(r.n)).join('・')}</small>`:''}<br><small>${tbSetTxt(x.set)}（${esc(TB_SRC[x.src]||'')}）</small></li>`).join('')}</ul>
         ${E.st==='ok'?mvpWeakHTML(E):''}</details>
       <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-tbpo="${k}">③ 自分で組むで開く</button><button class="btn btn-s" data-tbpu="${k}">パーティに入れる</button></div></div>`};
   return `<div class="sec"><h2>2つの案</h2></div>${one(P.A,'A')}${one(P.B,'B')}`;
