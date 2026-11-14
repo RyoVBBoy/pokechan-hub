@@ -196,6 +196,8 @@ ok(V.mv,'覚えない技を外す');
 ok(V.sp,'能力ポイントの決まり（合計66・1つ32まで）を超えたら外す');
 
 /* ---- 9 画面の切りかえで下書きが残る・古い計算で上書きしない ---- */
+/* 直前の「パーティに入れる」でパーティの画面に移っているので、この画面に戻してから */
+await pg.evaluate(()=>{location.hash='#/tb'});await pg.waitForFunction(()=>!!document.querySelector('.tb-tabs'),null,{timeout:15000});
 const S=await pg.evaluate(async()=>{const m=JSON.stringify(TB.mem);for(const t of ['find','cond','manual','find','manual']){TB.tab=t;tbDraw()}
   const t0=Date.now();while(Date.now()-t0<30000&&/分析中/.test((document.getElementById('tb-an')||{}).textContent||''))await new Promise(r=>setTimeout(r,200));
   return{kept:JSON.stringify(TB.mem)===m,one:document.querySelectorAll('#tb-an').length===1&&!/分析中/.test(document.getElementById('tb-an').textContent)&&TB.tab==='manual'}});
