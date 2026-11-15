@@ -177,6 +177,25 @@ const SL2=await pg.evaluate(()=>({hash:location.hash,sel:team.slice(0,2).every(x
 ok(SL2.hash==='#/team'&&SL2.sel&&SL2.lit,'選出するボタンの文字・絵を押しても育成の画面へ移らず、選出になります '+JSON.stringify(SL2));
 await pg.evaluate(()=>{team.forEach(x=>x.sel=false);saveTeam();teamRender()});
 
+/* パーティの評価のことば（2026/11/15 依頼主 P0）：責める言い方をしない・強みを先に。数・判定は変えていない */
+await pg.setViewportSize({width:390,height:844});
+const P0=await pg.evaluate(async()=>{const w=ms=>new Promise(z=>setTimeout(z,ms));const N=s=>P.find(x=>x.n===s).no;
+  team.length=0;[['リザードン','charizarditey'],['フシギバナ'],['カメックス'],['ピカチュウ'],['カビゴン'],['ゲンガー']].forEach(([n,k])=>team.push({no:N(n),sel:false,...(k?{set:{it:{k,n:ITEMN[k]},mv:[],sp:null,up:-1,dn:-1,ab:null}}:{})}));saveTeam();
+  location.hash='#/team';await w(600);TTAB='check';teamRender();
+  for(let i=0;i<60&&(!document.querySelector('#dgu-sum .dgu-head')||/診断中/.test((document.getElementById('lose-box')||{}).textContent||''));i++)await w(200);
+  const t=document.getElementById('tout').textContent;const pos=s=>t.indexOf(s);
+  return{bad:['敗因','負ける原因','最も深刻','最優先','総合評価','構築の失敗','だれも答えられない','深刻','足を引っ張'].filter(x=>t.includes(x)),
+    strengthsFirst:(()=>{const hs=[...document.querySelectorAll('#dgu-sum h3')].map(h=>h.textContent),i=k=>hs.findIndex(h=>h.startsWith(k));return i('パーティの強み')===0&&i('パーティの強み')<i('パーティの状態')&&i('パーティの状態')<i('優先ポイント')})(),
+    goodFirst:(()=>{const hs=[...document.querySelectorAll('#tout h3.pc-h')].map(h=>h.textContent);const g=hs.findIndex(h=>h==='よいところ'),f=hs.findIndex(h=>/対面のポイント|組み合わせのポイント/.test(h));return g<0||f<0||g<f})(),
+    lose:/気をつけたい場面/.test(t)&&/戦術メモに残す|特に気をつけたい場面はありません|ヒント/.test(t),
+    sev:[...document.querySelectorAll('#tout .dgu-sev:not(.svref)')].every(e=>['優先度 高','優先度 中','優先度 低','問題なし','よい'].some(k=>e.textContent.includes(k))),
+    sevs:[...new Set([...document.querySelectorAll('#tout .dgu-sev:not(.svref)')].map(e=>e.className+':'+e.textContent))],
+    over:document.body.scrollWidth<=innerWidth+1&&[...document.querySelectorAll('.dgu-area')].every(a=>a.getBoundingClientRect().right<=innerWidth+1)}});
+ok(!P0.bad.length,'評価のことば：責める言い方が残っています '+P0.bad.join('・'));
+ok(P0.strengthsFirst&&P0.goodFirst,'評価：強み（よいところ）を見直す点より先に出します '+JSON.stringify(P0));
+ok(P0.lose&&P0.sev,'評価：「気をつけたい場面」と、重さのことば（優先度 高・中・低） '+JSON.stringify(P0.sevs));
+ok(P0.over,'評価：390pxで4つの分野がはみ出しません');
+
 ok(!errs.length,'ページのエラー: '+errs.join(' / '));
 await b.close();
 console.log(ng?`ux1: NG （${n}項目）`:`ux1: OK（${n}項目）`);

@@ -67,7 +67,7 @@ function loseReasons(entries){
       seen.add(p.c.q.no);best.push(p)}
     const planTxt=p=>`${p.out?`${p.out.p.n}を外して`:''}${p.c.q.n}を入れる（×の相手 ${miss.length}匹→${p.x1}匹。${p.fixed.join('・')}。◎○から△以下へ落ちる相手はなし）`;
     const rejected=plans.length&&!good.length;
-    out.push({ph:'構築',plans:best,gDrop,w:2.4+.3*top.length-DT.rows.indexOf(top[0])*.02,t:`よく使われる${names}に、だれも答えられない`,
+    out.push({ph:'構築',plans:best,gDrop,w:2.4+.3*top.length-DT.rows.indexOf(top[0])*.02,t:`${names}への対応がまだない`,
       d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}には、パーティのだれも「上から倒す」「耐えて倒す」「後出しして勝つ」「受けて有利に戦う」ができず、乱数や同速しだいで勝てる匹もいません（相手ごとの対応力の×）。`,
       how:(best.length?`変更後の6匹で計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
         `${rejected?'入れかえの候補を変更後の6匹で計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`)
@@ -115,7 +115,8 @@ const LOSE_CHECK=[
 /* ---- 表示：敗因の診断（2026/11/06 依頼主「負けやすい理由」→「負ける原因を把握して次につなげる診断」） ----
    上に4つの段階（構築・選出・プレイング・情報戦）の診断の状態、下に見つかった原因を重い順に3つ。
    1つずつ「なぜ起きるか」「次の一手」とボタン、「戦術メモの負け筋に書く」（55-memo.js のパーティの戦術メモ⑥）。 */
-const LS_HEAD='<div class="sec"><h2>敗因の診断</h2></div><p class="note" style="padding-top:0">負ける原因を先に見つけて、次の一手につなげます。</p>';
+/* 2026/11/15 依頼主（P0）：「敗因」「負ける原因」は使わない（実際の対戦の記録が無いのに負けの原因と言い切らない・パーティを責めない） */
+const LS_HEAD='<div class="sec"><h2>気をつけたい場面</h2></div><p class="note" style="padding-top:0">苦手な相手・場面と、次の一手です。</p>';
 function loseHTML(){
   return `<div id="lose-box">${LS_HEAD}<p class="empty" style="padding:14px">診断中…</p></div>`;
 }
@@ -129,25 +130,25 @@ async function loseFill(entries){
   const draw=(all,rec)=>{const top=all.sort((a,b)=>b.w-a.w).slice(0,3);if(!document.body.contains(el))return;
     const n=ph=>all.filter(r=>r.ph===ph).length;
     const cbN=CB.length,cbS=CB.filter(x=>x.sev>=3).length;
-    const st=[['構築',n('構築')?`原因${n('構築')}件`:cbN?`弱点${cbN}件`:'問題なし',n('構築')||cbS?'bad':cbN?'warn':'ok'],
+    const st=[['構築',n('構築')?`ヒント${n('構築')}件`:cbN?`ポイント${cbN}件`:'問題なし',n('構築')||cbS?'bad':cbN?'warn':'ok'],
       ['選出',rec?(n('選出')?`${n('選出')}件`:'問題なし'):'記録が必要',rec?(n('選出')?'bad':'ok'):'wait'],
       ['プレイング','振り返りで','wait'],['情報戦','振り返りで','wait']];
     el.innerHTML=`${LS_HEAD}
       <div class="ls-st">${st.map(([p,v,c])=>`<div class="ls-s ${c}"><span>${p}</span><b>${v}</b></div>`).join('')}</div>
-      <details class="ls-more"><summary>「構築」の数え方と、下の弱点との違いを見る</summary>
-      <p class="note" style="padding:6px 16px 0;font-size:13px">「構築」の数＝負ける原因になりやすい3つ（積み技を止める手段・だれも答えられない相手・ステルスロック）のうち見つかった数。下のパーティのチェックの「対面の計算で見つかった弱点」とは数え方が別です。</p>
-      ${cbN?`<p class="note ls-cb">構築：負ける原因になりやすい3つ（積み技を止める手段・だれも答えられない相手・ステルスロック）${n('構築')?'のうち上に出したもの':'は見つかりませんでした'}。ほかに、下の「対面の計算で見つかった弱点」に深刻${cbS}件・注意${cbN-cbS}件があります（${CB.slice(0,3).map(x=>esc(x.t)).join('／')}${cbN>3?' ほか':''}）。</p>`:''}</details>
+      <details class="ls-more"><summary>「構築」の数え方</summary>
+      <p class="note" style="padding:6px 16px 0;font-size:13px">「構築」の数＝気をつけたい3つの場面（積み技を止める手段・対応がまだない相手・ステルスロック）のうち見つかった数。下の「対面のポイント」とは数え方が別です。</p>
+      ${cbN?`<p class="note ls-cb">構築：気をつけたい3つの場面（積み技を止める手段・対応がまだない相手・ステルスロック）${n('構築')?'のうち上に出したもの':'は見つかりませんでした'}。ほかに、下の「対面のポイント」に${DG_SEV[3]}${cbS}件・${DG_SEV[2]}${cbN-cbS}件があります（${CB.slice(0,3).map(x=>esc(x.t)).join('／')}${cbN>3?' ほか':''}）。</p>`:''}</details>
       ${top.length?top.map((r,i)=>`<div class="ls-i"><div class="ls-h"><span class="ls-n">${i+1}</span><span class="ls-ph">${r.ph}</span><b>${esc(r.t)}</b></div>
         <p class="ls-k">なぜ起きるか</p><p>${esc(r.d)}</p><p class="ls-k ls-k2">次の一手</p><p>${esc(r.how)}</p>
-        <div class="ls-a">${(r.act||[]).map(([h,l])=>`<a class="btn btn-s" href="${h}">${esc(l)}</a>`).join('')}<button class="btn btn-s" data-ls-memo="${i}">戦術メモの負け筋に書く</button></div></div>`).join('')
-        :cbN?'':'<p class="note">パーティの形から分かる大きな原因は見つかりませんでした。負けが続くときは、下の振り返りの確認リストで、選出・プレイング・情報戦を見直しましょう。</p>'}
-      ${rec?'':`<div class="ls-rec"><p>${logged?'対戦の振り返りで5試合以上を記録すると、「どの先発・どの相手で負けているか」の選出の診断ができます。':'ログインして対戦の振り返りで試合を記録すると、「どの先発・どの相手で負けているか」の選出の診断ができます。'}</p><a class="btn btn-s" href="#/replay">対戦を記録する</a></div>`}
-      <details class="ls-chk"><summary>負けた試合の振り返り（選出・プレイング・情報戦）</summary><ul>${LOSE_CHECK.map(([p,t])=>`<li><span class="ls-ph">${p}</span>${t}</li>`).join('')}</ul></details>`;
+        <div class="ls-a">${(r.act||[]).map(([h,l])=>`<a class="btn btn-s" href="${h}">${esc(l)}</a>`).join('')}<button class="btn btn-s" data-ls-memo="${i}">戦術メモに残す</button></div></div>`).join('')
+        :cbN?'':'<p class="note">パーティの形からは、特に気をつけたい場面はありません。</p>'}
+      ${rec?'':`<div class="ls-rec"><p>${logged?'対戦の振り返りで5試合以上を記録すると、「どの先発・どの相手で勝ちにくいか」の選出のヒントが出ます。':'ログインして対戦の振り返りで試合を記録すると、「どの先発・どの相手で勝ちにくいか」の選出のヒントが出ます。'}</p><a class="btn btn-s" href="#/replay">対戦を記録する</a></div>`}
+      <details class="ls-chk"><summary>試合の振り返り（選出・プレイング・情報戦）</summary><ul>${LOSE_CHECK.map(([p,t])=>`<li><span class="ls-ph">${p}</span>${t}</li>`).join('')}</ul></details>`;
     el.querySelectorAll('[data-ls-memo]').forEach(b=>b.onclick=()=>{const r=top[+b.dataset.lsMemo];if(!r||typeof MEMO==='undefined')return;
       const k=mpKey(),e=MEMO.party[k]||{s:{}},cur0=(e.s&&e.s.lose)||'';
       if(cur0.split('\n').includes(r.t)){toast('もう書いてあります');return}
       MEMO.party[k]={...e,s:{...(e.s||{}),lose:(cur0?cur0+'\n':'')+r.t},at:Date.now(),sig:mpSig()};memoSave();
-      toast('戦術メモの「負け筋」に書きました');b.textContent='書きました';b.disabled=true})};
+      toast('戦術メモに残しました');b.textContent='書きました';b.disabled=true})};
   draw(R.slice(),false);
   try{const more=await loseFromRecords();if(more&&more.rec)draw([...R,...more],true)}catch(e){}
 }

@@ -2923,3 +2923,11 @@ svg.temb{display:block;width:100%;height:100%;overflow:visible}
 .tw-dt{margin:12px 0 0;padding:0 0 12px;border-bottom:1px solid var(--line-in);font-size:14px;color:var(--dim)}
 .tw-dt time{white-space:nowrap}
 .tw--big .tw-dt+.tw-a{margin-top:6px}
+/* 診断のまとめ：パーティの強み（2026/11/15 依頼主 P0：見直すところより先に） */
+.dgu-good .dgu-gl{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.dgu-good .dgu-gl li{position:relative;padding-left:22px;font-size:14px;line-height:1.5}
+.dgu-good .dgu-gl li::before{content:"✓";position:absolute;left:2px;top:0;color:#17bf63;font-weight:700}
+/* 4つの分野：ことばが長くなったので、スマホは2列（2026/11/15 P0） */
+@media (max-width:480px){.dgu-areas{grid-template-columns:1fr 1fr}}
+.dgu-area{min-width:0}
+.pc-sevn{padding-top:0;font-size:12px;color:var(--dim)}

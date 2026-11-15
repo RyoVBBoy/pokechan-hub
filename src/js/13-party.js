@@ -201,11 +201,11 @@ function teamRender(){
   out.innerHTML=`${dgModeNote(TEAM_DGMODE)}${typeof dguSumHTML==='function'&&team.length>=2?dguSumHTML():''}${teamStepsHTML()}${loseHTML()}${dgHTML()}${typeof impHTML==='function'&&team.length>=3?impHTML():''}
   <div class="sec"><h2>パーティのチェック</h2></div>
   <p class="note" style="padding-top:0">${C.scope}を、使用率の上位の相手との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
+  ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   ${(()=>{const fc=C.fix.filter(x=>x.k==='calc'),fo=C.fix.filter(x=>x.k!=='calc'),sv=v=>fc.filter(x=>x.sev===v).length;
     /* 2026/11/10 依頼主：件数の意味を分ける。上＝相手との1対1の計算で見つかった弱点、下＝組み合わせ・タイプ・持ち物の点検 */
-    return (fc.length?`<h3 class="pc-h">対面の計算で見つかった弱点（${fc.length}件：深刻${sv(3)}・注意${sv(2)}・軽い${sv(1)}）</h3><p class="note" style="padding-top:0">使用率の上位の相手と1匹ずつダメージ・素早さを計算した結果です。</p>${fc.map(x=>item(x,true)).join('')}`:'')+
-      (fo.length?`<h3 class="pc-h">組み合わせ・タイプ・持ち物の気になる点（${fo.length}件）</h3><p class="note" style="padding-top:0">パーティの形（タイプの重なり・持ち物・技の組み合わせ）の点検です。</p>${fo.map(x=>item(x,true)).join('')}`:'')})()}${C.fix.length?'':'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
-  ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
+    return (fc.length?`<h3 class="pc-h">対面のポイント（${fc.length}件）</h3><p class="note pc-sevn">優先度 高${sv(3)}・中${sv(2)}・低${sv(1)}</p><p class="note" style="padding-top:0">使用率の上位の相手と1匹ずつダメージ・素早さを計算した結果です。</p>${fc.map(x=>item(x,true)).join('')}`:'')+
+      (fo.length?`<h3 class="pc-h">組み合わせのポイント（${fo.length}件）</h3><p class="note" style="padding-top:0">パーティの形（タイプの重なり・持ち物・技の組み合わせ）の点検です。</p>${fo.map(x=>item(x,true)).join('')}`:'')})()}${C.fix.length?'':'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.ref&&C.ref.length?`<details class="pc-ref"><summary>参考（タイプ相性の上で・役割の重なり）${C.ref.length}件</summary>${C.ref.map(x=>item(x,'ref')).join('')}</details>`:''}
   ${C.premise?`<details class="pc-ref"><summary>計算の前提</summary><p class="note">${esc(C.premise)}</p></details>`:''}
   ${adSlot('診断結果下')}`;teamStepsBind(out);dgWaitBind(out,teamRender);

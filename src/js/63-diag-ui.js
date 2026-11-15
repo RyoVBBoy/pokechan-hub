@@ -6,7 +6,7 @@
    ・おすすめの選出＝選出の比較（dgSelect）の1番と先発
    ・改善案＝dgImprove の1番（画面を出したあと後ろで計算。同じパーティ・同じ条件なら使い回す） */
 /* 記号は「問題なし」の✓だけ（2026/11/10 依頼主：深刻・注意は記号なしで、文字と色で分ける） */
-const DGU_SEV={3:['深刻','','sv3'],2:['注意','','sv2'],1:['軽い','','sv1'],0:['問題なし','✓','sv0']};
+const DGU_SEV={3:['優先度 高','','sv3'],2:['優先度 中','','sv2'],1:['優先度 低','','sv1'],0:['問題なし','✓','sv0']};
 const DGU_AREAS=['攻撃','防御','素早さ','役割'];
 const DGU_LV=[[4,'◎','安定して対応（2匹以上）'],[3,'○','対応できるが1匹に頼る'],[2,'△','条件つき・不安定'],[1,'×','対応できない']];
 /* ◎○△× の横棒：実際の匹数と割合 */
@@ -15,6 +15,11 @@ function dguBars(cnt,N){
     return `<div class="dgu-bar dgu-l${l}" role="listitem"><span class="dgu-bm">${m}</span><span class="dgu-bl">${lab}</span><span class="dgu-bt"><i style="width:${p}%"></i></span><span class="dgu-bn"><b>${n}匹</b>（${p}%）</span></div>`}).join('')}</div>`;
 }
 const dguSevTag=s=>{const v=DGU_SEV[s]||DGU_SEV[0];return `<span class="dgu-sev ${v[2]}">${v[1]?`<i aria-hidden="true">${v[1]}</i>`:''}${v[0]}</span>`};
+/* パーティの強み（2026/11/15 依頼主 P0：見直すところより先に、できていることを出す）。中身は partyCheck の「よいところ」と、◎の数（どちらも計算のまま） */
+function dguGoodHTML(C,cnt,N){
+  const g=(C&&C.good||[]).slice(0,3),st=cnt[4]||0,ok3=cnt[3]||0;
+  if(!g.length&&!st&&!ok3)return '';
+  return `<div class="dgu-sec dgu-good"><h3>パーティの強み</h3><ul class="dgu-gl">${st?`<li>上位${N}匹中 <b>${st}匹</b>に安定して対応</li>`:ok3?`<li>上位${N}匹中 <b>${ok3}匹</b>に対応</li>`:''}${g.map(x=>`<li>${String(x.t).replace(/<[^>]+>/g,'')}</li>`).join('')}</ul></div>`}
 function dguSumHTML(){return `<div id="dgu-sum" class="dgu-card"><p class="dgu-loading">診断をまとめています…</p></div>`}
 function dguSumFill(entries,C){
   const box=document.getElementById('dgu-sum');if(!box)return;
@@ -34,15 +39,16 @@ function dguSumFill(entries,C){
       <button class="dgu-link" data-dgu-tab="plan">選出の理由・先発の比較を見る（構築 › 選出アシスト）</button></div>`})():'';
   box.innerHTML=`<div class="dgu-head"><h2>診断のまとめ</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
     ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
-    <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','弱点のカード'],['lose-box','敗因の診断'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
-    <div class="dgu-sec"><h3>総合評価</h3>
+    <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','優先ポイント'],['lose-box','気をつけたい場面'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
+    ${dguGoodHTML(C,cnt,N)}
+    <div class="dgu-sec"><h3>パーティの状態</h3>
       <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${dguSevTag(areaSev(a))}</div>`).join('')}</div>
       ${dguBars(cnt,N)}
       ${T.tr&&T.tr.on?`<p class="dgu-note">トリックルーム中：${DGU_LV.map(([l,m])=>`${m}${T.rows.filter(r=>r.lvlTR===l).length}匹`).join('・')}（上の数はトリックルームなし）</p>`:''}
-      <p class="dgu-note">点数はつけていません。4つの分野は、下の「対面の計算で見つかった弱点」の重要度のいちばん重いものです。</p></div>
-    <div class="dgu-sec"><h3>最も深刻な弱点${nBad>3?`（${nBad}件のうち重い順に3件）`:''}</h3>
-      ${W.length?`<ol class="dgu-weak">${W.map((x,k)=>`<li><a href="#" data-dgu-go="pcw${k}">${dguSevTag(x.sev||1)}<span class="dgu-wa">${esc(x.area||'')}</span><span class="dgu-wt">${x.t}</span></a></li>`).join('')}</ol>`:'<p class="dgu-ok">✓ 対面の計算で見つかった深刻・注意の弱点はありません。</p>'}</div>
-    <div class="dgu-sec"><h3>最優先で改善すること</h3>
+      <p class="dgu-note">点数はつけていません。分野ごとの見直しの優先度です。</p></div>
+    <div class="dgu-sec"><h3>優先ポイント${nBad>3?`（${nBad}件中3件）`:''}</h3>
+      ${W.length?`<ol class="dgu-weak">${W.map((x,k)=>`<li><a href="#" data-dgu-go="pcw${k}">${dguSevTag(x.sev||1)}<span class="dgu-wa">${esc(x.area||'')}</span><span class="dgu-wt">${x.t}</span></a></li>`).join('')}</ol>`:'<p class="dgu-ok">✓ 優先して見直すポイントはありません。</p>'}</div>
+    <div class="dgu-sec"><h3>まず試したい改善</h3>
       ${W.length&&W[0].how?`<p class="dgu-how"><b>${esc(W[0].t.replace(/<[^>]+>/g,''))}</b>：${W[0].how}</p>`:''}
       <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>
     ${sel}`;

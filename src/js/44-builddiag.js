@@ -80,7 +80,7 @@ function buildDiagHTML(entries,P0){
   <div class="pc-i pc-plan"><p>${setters.length?`<b>撒く側</b>：${setters.map(o=>`${N(o)}（${o.haz.map(k=>esc(mName(+Object.keys(MD).find(i=>MD[i][3]===k)))).join('・')}）`).join('、')}。先発で確実に撒けるよう、きあいのタスキや交代技があると動きやすくなります。`:'<b>撒く側</b>：登録した技に設置技はありません。'}</p>
     <p>${anti.length?`<b>対策する側</b>：${names(anti)}。`:fastN>=3?'<b>対策する側</b>：先に動ける匹が多く、撒かれる前に攻め切る形です。':'<b>対策する側</b>：設置技を消す技・はね返す特性がありません。'}${rock4.length?`<br><b style="color:var(--w2)">${names(rock4)}はいわ4倍</b>なので、ステルスロックに特に注意します。`:''}</p></div>
   ${megaRoute?`<div class="sec"><h2>メガシンカの切りかえ</h2></div><div class="pc-i pc-plan">${megaRoute.map(r=>`<p><b>${N(r.o)}</b>をメガシンカ：${r.opps.length?`相手に ${r.opps.slice(0,5).map(q=>esc(formInfo(q).base)).join('・')} がいるとき`:'<span style="color:var(--w2)">こちらを選ぶべき相手が見つかりません</span>'}</p>`).join('')}</div>`:''}
-  <div class="sec"><h2>構築の失敗パターン</h2><span style="font-size:12px;color:var(--dim)">10項目中 ${10-ng} 項目クリア</span></div>
+  <div class="sec"><h2>見直しポイント</h2><span style="font-size:12px;color:var(--dim)">10項目中 ${10-ng} 項目クリア</span></div>
   ${withSet<ms.length?`<p class="note" style="padding-top:0">育成（技・持ち物・能力ポイント）を登録していない匹は、種族値と覚える技で見ています。登録すると正確になります。</p>`:''}
   <div class="bd-list">${[...chk.filter(c=>!c.ok),...chk.filter(c=>c.ok)].map(row).join('')}</div>`;
 }

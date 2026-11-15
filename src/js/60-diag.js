@@ -363,7 +363,8 @@ function dgFill(entries){
 /* ===================== 第4段階：パーティ全体の分析（2026/11/10） =====================
    dgTeam の1対1の結果（同じ計算）だけから、攻撃・防御・素早さ・役割の問題を拾う。タイプ相性だけでは判定しない。
    返すもの：bad（気になる点）・good（よいところ）・ref（参考）。どれも {area,sev,t,d,how,ev:[根拠の数字]} */
-const DG_SEV={3:'深刻',2:'注意',1:'軽い'};
+/* 2026/11/15 依頼主（P0）：責める言い方にしない。重さは「どのくらい先に見直すとよいか」で言う（判定・数は同じ） */
+const DG_SEV={3:'優先度 高',2:'優先度 中',1:'優先度 低'};
 function dgAnalyze(T){
   const bad=[],good=[],ref=[],R=T.rows,n=T.ms.length,N=R.length;
   if(!n||!N)return{bad,good,ref};
