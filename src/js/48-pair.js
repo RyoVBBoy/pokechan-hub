@@ -71,7 +71,11 @@ function prScore(c,mem){
       if(cAb.includes(s)&&(mAb.some(a=>us.includes(a))||(ty&&m.t.includes(ty))))add('wx',2,`${w}を起こして、${formInfo(m).base}を強くできる`);
       if(s==='drought'&&mAb.includes(s)&&cd['みず']>=2)add('wx',1,`晴れのあいだは、弱点のみず技のダメージが半分になる`)})});
   /* ランクバトルの集計（よく一緒に使われているポケモン・使われているか） */
-  mem.forEach(m=>{const d=typeof LIVE!=='undefined'&&LIVE.csv[m.base||m.no];if(!d||!d.tm)return;
+  mem.forEach(m=>{const d=typeof LIVE!=='undefined'&&LIVE.csv[m.base||m.no];
+    if(!d||!d.tm){
+      /* 2026/11/15：ランクバトルの集計が読めないとき（読めない匹）も、同梱の PokéKit の「一緒に使われる割合」を使う（メガシンカ後の行も見る。80-kdcheck.js の kdCo） */
+      const z=typeof kdCo==='function'&&kdCo(FMT,m.no,c.no);
+      if(z&&z.pc>=10)add('live',z.pc>=30?8:z.pc>=20?5:3,`${formInfo(m).base}と一緒に使われる割合 ${z.pc}%（${kdMetaTxt(FMT)}）`);return}
     const i=d.tm.findIndex(n=>((SP2NO[nrm(n)]||[])[0])===c.no);
     if(i>=0&&i<12)add('live',i<3?8:i<6?5:3,`ランクバトルで${formInfo(m).base}とよく一緒に使われている（${i+1}番目）`)});
   /* 上位構築でいっしょに入っていることが多い（57-topteams.js） */

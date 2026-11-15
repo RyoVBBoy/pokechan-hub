@@ -18,7 +18,9 @@ async function topLoad(force){
     const ss=((await authFetch('/api/seasons')).seasons||[]).filter(s=>s.n>0).slice(0,2);
     const teams=[];
     for(let i=0;i<ss.length;i++){let j;try{j=await authFetch(`/api/seasons/${ss[i].id}/teams?fmt=${fmt}`)}catch(e){continue}
-      (j.teams||[]).forEach(t=>teams.push({r:t.rank||null,old:i,v:t.verified||t.auto?1:0,team:(t.team||[]).map(x=>({no:x.no,set:x.set||null})).filter(x=>byNo[x.no])}))}
+      (j.teams||[]).forEach(t=>teams.push({r:t.rank||null,old:i,v:t.verified||t.auto?1:0,
+        /* 2026/11/15：こだわり条件で組むの土台にするため、どのシーズン・どの確認の状態かも残す（80-kdcheck.js の kdTemplates） */
+        id:t.id||null,s:ss[i].name||null,rate:t.rate||null,ver:!!t.verified,auto:!!t.auto,team:(t.team||[]).map(x=>({no:x.no,set:x.set||null})).filter(x=>byNo[x.no])}))}
     const at=Date.now(),season=ss[0]?ss[0].name:null;
     try{localStorage.setItem('pctopt',JSON.stringify({fmt,at,teams,season}))}catch(e){}
     topBuild(teams,fmt,at,season);
@@ -26,6 +28,7 @@ async function topLoad(force){
   return TOPT;
 }
 function topBuild(teams,fmt,at,season){
+  TOPT.teams=teams;
   const freq={},pair={},sets={},tri={},kinds={};let W=0;
   teams.filter(t=>t.team.length>=4).forEach(t=>{
     const w=(t.old?.6:1)*(t.r&&t.r<=100?1.5:t.r&&t.r<=1000?1.2:1)*(t.v?1.1:1);W+=w;

@@ -149,6 +149,70 @@ ok(T6.same,'6 6匹と型が決まってから、もう一度確かめても同�
 ok(T6.checks,'6 画面の ✓/△ は最後の確かめの結果そのもの');
 ok(T6.ng&&T6.warn,'6 満たしていない条件は ✓ で出さず、満たしていないと書く');
 
+/* テスト7：上位構築・実戦データを土台にする（2026/11/15 依頼主「上位構築・実戦データ・コア組み合わせ」） */
+const T7=await pg.evaluate(()=>{const r={};const keepFmt=FMT;FMT='single';
+  const raw=(fmt,id)=>MVP_DATA.sets[fmt].rows.find(x=>x.id===id);
+  /* データ：振り方は能力ポイントの決まりに入る・1つだけ・ほかの値は前と同じ形 */
+  const rows=[...MVP_DATA.sets.single.rows,...MVP_DATA.sets.double.rows];
+  r.sp=rows.every(x=>Array.isArray(x.sp)&&x.sp.length<=1&&x.sp.every(([n,e,pc])=>MVP_NAT[n]&&e.length===6&&e.every(v=>v>=0&&v<=32)&&e.reduce((a,b)=>a+b,0)<=66&&pc>0))&&rows.filter(x=>x.sp.length).length>=290;
+  /* アブソル：メガシンカしない姿は上位150匹に無く、メガアブソルZの行だけ → その行を参考にする */
+  const ab=N('アブソル'),A=raw('single','absolmegaz');
+  r.absRows=!mvpRowOf('single',ab,null)&&!!A;
+  const R0=kdRowFor(ab,null,new Set());r.viaMega=!!R0&&R0.via==='mega'&&R0.row.id==='absolmegaz';
+  /* 仲間：メガアブソルZの行の仲間を、割合そのままで使う（作った数ではない） */
+  const pt=kdPartners('single',ab);r.partners=pt.length>0&&pt[0].no===N('ラグラージ')&&pt[0].pc===A.tm[0][1]&&pt.every(z=>A.tm.some(([id,pc])=>pc===z.pc));
+  /* 上位パーティが無いとき（この確かめではサーバーにつながない）：上位パーティを土台にしない */
+  const keepT={st:TOPT.st,fmt:TOPT.fmt,teams:TOPT.teams};TOPT.st='idle';TOPT.teams=[];
+  KD_CASE();const G=[0,1,2,3].map(s=>{KD.seed=s;return kdBuild()});
+  r.noFake=G.every(R=>R.basis.kind!=='template')&&G.some(R=>R.basis.kind==='theory'&&/上位構築データなし/.test(R.basis.txt));
+  /* 実際に一緒に使われる仲間を土台にした案がある。理由の割合はデータの数そのもの */
+  const C=G.filter(R=>R.basis.kind==='core');r.core=C.length>=1&&C.every(R=>R.basis.lock.every(no=>R.mons.some(m=>m.no===no)));
+  r.coreTxt=C.every(R=>R.basis.lock.length&&R.basis.lock.every((no,k)=>(R.why[no]||[]).some(w=>/一緒に使われる ([\d.]+)%/.test(w)&&rows.some(x=>(x.tm||[]).some(([,pc])=>String(pc)===w.match(/一緒に使われる ([\d.]+)%/)[1])))));
+  r.estNote=C.filter(R=>R.basis.lock.length===2).every(R=>/推定/.test(R.basis.note));
+  /* 速攻・先制技・弱点の受け合いは、土台があっても同じ確かめ（kdValidate）を通る */
+  r.corePass=C.some(R=>R.pass);
+  /* 実際の型を崩していない：使用データの型で、その匹の行に無い技は、直した理由（fixes）の数まで */
+  r.keepSets=G.every(R=>R.mons.every((p,i)=>{const s=R.ss[i];if(s.src!=='data'||!s.row)return true;const out=s.moves.filter(id=>id!==182&&!s.row.mv.some(([k])=>MVKA[nrm(k)]===id)).length;return out<=s.fixes.filter(f=>/→|入れた/.test(f)).length}));
+  r.spUsed=G.every(R=>R.ss.every(s=>s.src!=='data'||!s.row||!s.row.sp.length||JSON.stringify(s.sp)===JSON.stringify(s.row.sp[0][1])));
+  /* メガシンカなしの条件：アブソルはメガアブソルZの行の技を参考にし、特性はメガシンカしない姿のもの・メガストーンは持たない */
+  KD.mega=0;KD.seed=0;const Z=kdBuild();const i0=Z.mons.findIndex(m=>m.no===ab),s0=Z.ss[i0];
+  r.noMega=Z.ss.every(s=>!s.item||!isStone(s.item))&&s0.src==='data'&&(ABD[ab]||[]).some(a=>a[0]===s0.ab)&&/メガシンカしない姿の行が無い/.test(s0.srcTxt)&&/メガアブソルZ/.test(s0.srcTxt);
+  /* 上位パーティ（テスト用に作った2件。実在のパーティではない）：アブソル入りのものだけを土台にし、登録した型を使う。入れたくない匹は外す */
+  const sw=N('ラグラージ'),cv=N('アーマーガア'),mk=N('マスカーニャ'),gg=N('ゲンガー'),pr=N('アシレーヌ'),gb=N('ガブリアス');
+  const regSet={ab:{k:'pressure'},it:{k:'focussash'},mv:['じごくづき','ふいうち','つるぎのまい','インファイト'].map(x=>({id:MID(x)})),sp:[2,32,0,0,0,32],up:5,dn:3};
+  TOPT.st='ok';TOPT.fmt='single';
+  TOPT.teams=[{id:901,s:'テスト用シーズン',r:5,rate:2100,ver:true,auto:false,old:0,v:1,team:[ab,sw,cv,mk,gg,pr].map(no=>({no,set:no===ab?regSet:null}))},
+    {id:902,s:'テスト用シーズン',r:1,rate:2300,ver:true,auto:false,old:0,v:1,team:[gb,sw,cv,mk,gg,pr].map(no=>({no,set:null}))}];
+  KD_CASE();KD.ng=[gg];KD.seed=0;const T=kdBuild();
+  r.tpl=T.basis.kind==='template'&&/テスト用シーズン・5位/.test(T.basis.txt)&&/ゲンガー（入れたくないポケモン）/.test(T.basis.note);
+  r.tplMem=[sw,cv,mk,pr].every(no=>T.basis.kept.includes(no)===T.mons.some(m=>m.no===no)&&(T.basis.kept.includes(no)||T.basis.note.includes(formInfo(byNo[no]).base)))&&!T.mons.some(m=>m.no===gg);
+  const ia=T.mons.findIndex(m=>m.no===ab),sa=T.ss[ia];
+  r.tplSet=sa.src==='top'&&['じごくづき','ふいうち','インファイト'].every(x=>sa.moves.includes(MID(x)))&&/上位パーティ/.test(sa.srcTxt);
+  r.tplOnlyAxis=kdTemplates([ab]).every(t=>t.id===901);
+  Object.assign(TOPT,keepT);
+  /* ほかの軸のポケモン（特定のポケモンだけに合わせていない） */
+  const other=[['single','ガブリアス','taimen','taimen'],['single','アシレーヌ','auto','auto'],['double','ドドゲザン','auto','auto'],['double','ブリジュラス','weather','rain']].map(([f,n,big,type])=>{FMT=f;
+    team.length=0;team.push({no:N(n),sel:true});Object.assign(KD,{big,type,ng:[],mega:2,opt:{resist:true},seed:1});const R=kdBuild();
+    const legal=R.mons.every((p,i)=>kdIssues(p,R.ss[i],{}).filter(x=>['learn','ab','item','dup'].includes(x.k)).length===0)&&mvpDupItems(R.ss.map(s=>s.item)).length===0;
+    return{n,fmt:f,six:R.mons.length===6,legal,basis:R.basis.kind,dataSets:R.ss.filter(s=>s.src!=='theory').length}});
+  r.other=other;r.otherOk=other.every(o=>o.six&&o.legal&&o.basis!=='template'&&o.dataSets>=3);
+  /* 相性のいい順：ランクバトルの集計が読めなくても、PokéKit の一緒に使われる割合を理由に出す */
+  FMT='single';const keepCsv=LIVE.csv;LIVE.csv={};const ps=prScore(byNo[sw],[byNo[ab]]);LIVE.csv=keepCsv;
+  r.pr=ps.R.some(x=>x.k==='live'&&/39\.3%/.test(x.txt));
+  FMT=keepFmt;team.length=0;return r});
+ok(T7.sp,'7 データ：能力ポイントの配分は決まり（1つ32以下・合計66以下）に入り、いちばん多い1つだけ');
+ok(T7.absRows&&T7.viaMega,'7 アブソル：メガシンカしない姿の集計は無く、メガアブソルZの行を参考にする');
+ok(T7.partners,'7 一緒に使われる仲間はメガアブソルZの行の割合そのまま（ラグラージ 39.3%）');
+ok(T7.noFake,'7 上位パーティが無いときは上位パーティを土台にせず、「上位構築データなし」と書く');
+ok(T7.core&&T7.coreTxt,'7 実際に一緒に使われる仲間を土台にし、理由の割合はデータの数そのもの');
+ok(T7.estNote,'7 2匹ずつの割合をつないだ3匹の組は「推定」と書く');
+ok(T7.corePass,'7 土台を使った案も、速攻・先制技・弱点の受け合いの確かめを満たせる');
+ok(T7.keepSets,'7 使用データの型を、理由なく崩さない');ok(T7.spUsed,'7 使用データの型は、いちばん多い能力ポイントの配分を使う');
+ok(T7.noMega,'7 メガシンカなし：メガアブソルZの行の技を参考に、メガシンカしない姿の特性・メガストーンなし');
+ok(T7.tpl&&T7.tplMem&&T7.tplSet&&T7.tplOnlyAxis,JSON.stringify([T7.tpl,T7.tplMem,T7.tplSet,T7.tplOnlyAxis])+'7 上位パーティ（テスト用）：アブソル入りだけを土台に、登録の型を使い、入れたくない匹は外し、入れかえた匹は書く');
+ok(T7.otherOk,'7 ほかの軸（ガブリアス・アシレーヌ・ダブルのドドゲザン・ブリジュラス）でも組める '+JSON.stringify(T7.other));
+ok(T7.pr,'7 相性のいい順：集計が読めなくても PokéKit の一緒に使われる割合（39.3%）を理由に出す');
+
 /* 画面：#/pair/kd で組んで、案を開く（390px） */
 await pg.evaluate(()=>{KD_CASE();try{sessionStorage.setItem('pcprmode','kd')}catch(e){}location.hash='#/pair/kd'});
 await pg.waitForTimeout(900);

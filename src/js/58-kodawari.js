@@ -113,7 +113,39 @@ function kdBuild(){
     if(KD.opt.fast&&KD.type!=='tr'&&!mons.some(kdPrioUse)&&kdPrioUse(c)){v+=3;r.push('先制技を覚える')}
     if(KD.opt.balance){const ph=mons.filter(prPhys).length,sp=mons.length-ph;if(ph!==sp&&prPhys(c)===(ph<sp)){v+=1.5;r.push(prPhys(c)?'物理で半々に':'特殊で半々に')}}
     const st=mons.filter(m=>kdStones(m).length).length;if(KD.mega&&st<KD.mega&&kdStones(c).length){v+=2;r.push('メガシンカできる')}
+    /* 実際に一緒に使われているか（PokéKit。メガシンカ後の行も見る）：割合10%ごとに1点、4点まで */
+    if(typeof kdCo==='function'&&mons.length){let best=null;mons.forEach(m=>{const z=kdCo(FMT,m.no,c.no);if(z&&(!best||z.pc>best.pc))best={...z,m}});
+      if(best){v+=Math.min(4,best.pc/10);if(best.pc>=15)r.push(`${formInfo(best.m).base}と一緒に使われる ${best.pc}%`)}}
     return{v,r}};
+  /* 構築の土台（2026/11/15 依頼主「上位構築・実戦データ・コア組み合わせ」、80-kdcheck.js）：
+     ①上位パーティのうち、決めたポケモンが全部入っているもの（6匹と登録された型をそのまま土台にし、入れたくない・使えると確認できない匹は外す）
+     ②PokéKit で決めたポケモン（メガシンカ後の行も）と一緒に使われる割合が高い仲間1〜2匹（2匹がお互いにも一緒に使われていれば3匹の組＝推定）
+     ③どちらも無ければ今までどおり（理論の補完）。案ごと（seed）に違う土台を順に試す。
+     構築のタイプ・こだわり条件で減点になる仲間は土台に入れない（実績のある組でも、条件に合わないものは押しつけない） */
+  const given={},legalOk=no=>typeof mvpLegal!=='function'||mvpLegal(no).st==='ok';
+  let basis={kind:'theory',txt:'上位構築データなし（理論補完による提案）',lock:[],note:''};
+  const bases=[];
+  if(typeof kdTemplates==='function')kdTemplates(mons.map(m=>m.no)).slice(0,4).forEach(t=>bases.push({kind:'template',t}));
+  if(mons.length&&typeof kdPartners==='function'){const ax=mons[0],seen=new Set();
+    const pt=kdPartners(FMT,ax.no).map(z=>({...z,c:byNo[z.no]})).filter(z=>z.c&&!z.c.base&&!ng.has(z.no)&&!mons.some(m=>m.no===z.no)&&legalOk(z.no)&&fit(z.c).v>=0).slice(0,4);
+    pt.forEach(x=>{const y=pt.find(y=>y!==x&&kdCo(FMT,x.no,y.no));const add=y?[x,y]:[x],sig=add.map(z=>z.no).sort((a,b)=>a-b).join();if(seen.has(sig))return;seen.add(sig);
+      bases.push({kind:'core',ax,add,pair:y?kdCo(FMT,x.no,y.no):null})})}
+  bases.push({kind:'theory'});
+  const BS=bases[(KD.seed||0)%bases.length],stoneOk=()=>Object.keys(wantStone).length<KD.mega;
+  if(BS.kind==='template'){const t=BS.t,kept=[],dropped=[];
+    t.team.forEach(x=>{const c=byNo[kdFam(x.no)];if(!c)return;if(mons.some(m=>m.no===c.no)){if(x.set&&!given[c.no])given[c.no]={set:x.set,txt:`${kdTplTxt(t)}に登録された型`};return}
+      const why0=ng.has(c.no)?'入れたくないポケモン':!legalOk(c.no)?'M-C で使えると確認できない':mons.length>=6?'枠がない':'';
+      if(why0){dropped.push(`${formInfo(c).base}（${why0}）`);return}
+      mons.push(c);kept.push(c.no);why[c.no]=[`${kdTplTxt(t)}のメンバー`];
+      if(x.set&&x.set.mv&&x.set.mv.length)given[c.no]={set:x.set,txt:`${kdTplTxt(t)}に登録された型`};
+      const it=x.set&&x.set.it&&x.set.it.k;const mk=(byNo[x.no]&&byNo[x.no].base?Object.keys(MEGA).find(k=>MEGA[k][c.no]===x.no):null)||(it&&megaOf(c.no,it)?it:null);if(mk&&stoneOk())wantStone[c.no]=mk});
+    basis={kind:'template',txt:`土台：${kdTplTxt(t)}`,lock:[],note:dropped.length?`条件に合わせて外した匹：${dropped.join('・')}`:'',kept}}
+  else if(BS.kind==='core'){const axN=formInfo(BS.ax).base,lk=[];
+    BS.add.forEach((z,k)=>{mons.push(z.c);lk.push(z.no);
+      why[z.no]=[k===0||!BS.pair?`${axN}と一緒に使われる ${z.pc}%（${kdMetaTxt(FMT)}${z.viaN&&!z.viaN.startsWith(axN)?`、${z.viaN}の集計`:''}）`:`${formInfo(BS.add[0].c).base}とも一緒に使われる ${BS.pair.pc}%`];
+      if(z.mega&&stoneOk()){const r=(mvpRows(FMT)||{rows:[]}).rows.find(r=>r.id===z.id);if(r&&r.stone)wantStone[z.no]=r.stone}});
+    basis={kind:'core',txt:`土台：${axN}と実際に一緒に使われる仲間（${kdMetaTxt(FMT)}）`,lock:lk,
+      note:BS.pair?'3匹の組は、2匹ずつの「一緒に使われる割合」をつないだ推定です（3匹がそろって使われる割合は集計にありません）':'割合は「その匹を使った人のうち、仲間も入れていた人の割合」です（6匹のパーティそのものではありません）'}}
   while(mons.length<6){
     let rank=[];try{rank=mons.length?prRank(mons):P.filter(c=>!c.base).map(c=>({c,score:(c.bst-500)/60,R:[]}))}catch(e){rank=P.map(c=>({c,score:0,R:[]}))}
     const have=new Set(mons.map(m=>m.no));
@@ -134,10 +166,14 @@ function kdBuild(){
      ②1匹ずつ、同じ形式の使用データの型（なければ当サイトが計算で組む理論上の型）を作り、型のまとまりを確かめて直す
      ③構築のタイプ・こだわり条件に要る持ち物・技（速攻のスカーフとタスキ、先制技、回復技…）を、実際の型に入れる
      ④6匹と型が決まってから、条件を決まった数で確かめ直す（kdValidate）。満たさない条件は ✓ にしない */
-  const aa=a||[KD.type==='defcycle'?'cycle':KD.type];
+  const aa=a||[KD.type==='defcycle'?'cycle':KD.type],mustF=new Set(kdMust().map(n=>kdBase(byNo[n]).no));
   const finish=()=>{mons.part={};
   mons.forEach(m=>{const pt=parts.find(pt=>pt[4]&&ok(pt,m));if(pt)mons.part[m.no]=pt});
   const stone=mons.map(m=>wantStone[m.no]||null);
+  /* 最初に決めたポケモンの使用データがメガシンカ後の姿だけ（アブソル→メガアブソルZ）なら、そのメガストーンをメガシンカの候補に */
+  if(KD.mega>0&&typeof mvpRowOf==='function')mons.forEach((m,i)=>{if(stone[i]||stone.filter(Boolean).length>=KD.mega||!mustF.has(m.no)||mvpRowOf(FMT,m.no,null))return;
+    const ks=kdStones(m).map(k=>({k,r:mvpRowOf(FMT,m.no,k)})).filter(x=>x.r).sort((a,b)=>a.r.rank-b.r.rank);
+    if(ks.length){stone[i]=ks[0].k;const w='使用データはメガシンカ後の姿だけなので、メガシンカの候補にした';if(!(why[m.no]||[]).includes(w))why[m.no]=[...(why[m.no]||[]),w]}});
   /* 役わりに要る特性がメガシンカ後にしかない匹（メガゲンガーの かげふみ など）は、そのメガストーンを持たせる */
   if(KD.mega>0)mons.forEach((m,i)=>{if(stone[i]||stone.filter(Boolean).length>=KD.mega)return;const pt=parts.find(pt=>pt[3]&&ok(pt,m)&&!(ABD[m.no]||[]).some(a=>pt[3].includes(a[0])));const k=pt&&kdMegaAb(m,pt[3]);if(k)stone[i]=k});
   const nSt=stone.filter(Boolean).length;
@@ -147,14 +183,14 @@ function kdBuild(){
     const k2=kdStones(mons[i]).find(x=>x!==k&&mvpRowOf(FMT,mons[i].no,x)&&!stone.includes(x));if(k2)stone[i]=k2});
   const off=KD.big==='taimen'||KD.type==='ofcycle';
   const used=new Set(),ss=new Array(mons.length).fill(null);
-  [...mons.keys()].sort((x,y)=>(stone[y]?1:0)-(stone[x]?1:0)).forEach(i=>{try{ss[i]=kdMakeSet(mons[i],stone[i],mons.part[mons[i].no],aa,used,{off:off&&!mons.part[mons[i].no]})}catch(e){ss[i]=null}});
+  [...mons.keys()].sort((x,y)=>(stone[y]?1:0)-(stone[x]?1:0)).forEach(i=>{try{ss[i]=kdMakeSet(mons[i],stone[i],mons.part[mons[i].no],aa,used,{off:off&&!mons.part[mons[i].no],given:given[mons[i].no]&&given[mons[i].no].set,givenTxt:given[mons[i].no]&&given[mons[i].no].txt})}catch(e){ss[i]=null}});
   const rep=i=>{if(i==null||!ss[i])return;kdRepair(mons[i],ss[i],{off:off&&!mons.part[mons[i].no],keep:ss[i].keep},used)};
   /* 持ち物を1匹に持たせる（メガストーンの匹は変えない）。前に持っていた匹は、ほかの持ち物にする */
   const give=(item,score)=>{if(ss.some(s=>s&&s.item===item&&score(mons[ss.indexOf(s)],s)>-1e9))return;
-    const c=mons.map((p,i)=>({i,v:ss[i]&&!isStone(ss[i].item)&&!(item==='choicescarf'&&(ss[i].keep||[]).some(id=>!kdAtk(id)))?score(p,ss[i]):-1e9})).filter(x=>x.v>-1e9).sort((x,y)=>y.v-x.v)[0];if(!c)return;
+    const c=mons.map((p,i)=>({i,v:ss[i]&&!isStone(ss[i].item)&&!(item==='choicescarf'&&(ss[i].keep||[]).some(id=>!kdAtk(id)))?score(p,ss[i])+kdItemAdj(ss[i],item):-1e9})).filter(x=>x.v>-1e9).sort((x,y)=>y.v-x.v)[0];if(!c)return;
     const j=ss.findIndex(s=>s&&s.item===item);const s=ss[c.i];if(s.item)used.delete(s.item);
     if(j>=0){ss[j].item=null;ss[j].fixes.push(`${ITEMN[item]}は${formInfo(mons[c.i]).base}に持たせたので、持ち物を選び直した`)}
-    s.fixes.push(`持ち物を${ITEMN[item]}にした（${tp[1]}${item==='focussash'?'：1回耐えて倒す':item==='choicescarf'?'：上から攻める':''}）`);s.item=item;used.add(item);rep(c.i);if(j>=0)rep(j)};
+    {const rp=s.row&&(s.row.it||[]).find(([k])=>k===item);s.fixes.push(`持ち物を${ITEMN[item]}にした（${tp[1]}${item==='focussash'?'：1回耐えて倒す':item==='choicescarf'?'：上から攻める':''}${rp?`。使用データでも${rp[1]}%が持つ`:''}）`)};s.item=item;used.add(item);rep(c.i);if(j>=0)rep(j)};
   if(KD.type==='rush'){
     give('choicescarf',(p,s)=>{const f=kdForm(p,s);if(!kdIsAttacker(p,s)||f.s[5]<60)return -1e9;return prAtk(f)+(f.s[5]>=75&&f.s[5]<=110?40:0)-(s.moves.some(id=>KD_SETUP_CLS[kdMvK(id)]!=null)?30:0)});
     give('focussash',(p,s)=>{const f=kdForm(p,s);if(!kdIsAttacker(p,s)||s.item==='choicescarf'||f.s[5]<85)return -1e9;return f.s[5]-Math.sqrt(prBulk(f))});
@@ -169,7 +205,7 @@ function kdBuild(){
   let F=finish();
   /* 条件を満たさなければ、最初に決めた匹以外を1匹ずつ入れかえて、満たさない条件が減るかを確かめる（2回まで）。
      候補は残りの5匹と相性のいい順（prRank）の上位と、満たさない条件に合う匹。入れかえたら育成と確かめをやり直す */
-  const lock=new Set(kdMust().map(n=>kdBase(byNo[n]).no));
+  const lock=new Set([...kdMust().map(n=>kdBase(byNo[n]).no),...basis.lock]);
   const nFail=V=>V.req.filter(r=>r.hard&&!r.ok).length;
   for(let round=0;round<2&&!F.V.pass;round++){
     const f0=nFail(F.V),failIds=new Set(F.V.req.filter(r=>r.hard&&!r.ok).map(r=>r.id));
@@ -186,9 +222,14 @@ function kdBuild(){
   }
   const {ss,V}=F;
   const fin=kdWhyFinal(mons,ss,V);
-  mons.forEach(m=>{why[m.no]=[...new Set([...(why[m.no]||[]).filter(t=>t==='最初に決めたポケモン'),...(fin[m.no]||[]),...(why[m.no]||[]).filter(t=>t!=='最初に決めたポケモン')])].slice(0,4)});
+  /* 理由の並び：最初に決めた・土台（上位パーティ・一緒に使われる・入れかえ）→ できあがった6匹で確かめた役わり → 選んだときの点の理由 */
+  const isBase=t=>t==='最初に決めたポケモン'||/上位パーティ|一緒に使われる|入れかえ|メガシンカ後の姿だけ/.test(t);
+  mons.forEach(m=>{const w=why[m.no]||[];why[m.no]=[...new Set([...w.filter(isBase),...(fin[m.no]||[]),...w.filter(t=>!isBase(t))])].slice(0,5)});
   const checks=V.req.map(r=>[r.label,r.ok]);
-  return{mons,ss,why,checks,type:tp,V,pass:V.pass};
+  /* 上位パーティのメンバーのうち、条件を満たすために入れかえた匹は書く（上位パーティの形を黙って変えない） */
+  if(basis.kind==='template'){const k0=basis.kept;basis.kept=k0.filter(no=>mons.some(m=>m.no===no));const gone=k0.filter(no=>!basis.kept.includes(no));
+    if(gone.length)basis.note=[basis.note,`条件を満たすために入れかえた匹：${gone.map(no=>formInfo(byNo[no]).base).join('・')}`].filter(Boolean).join('／')}
+  return{mons,ss,why,checks,type:tp,V,pass:V.pass,basis};
 }
 /* 2026/11/08 依頼主：「こだわり条件で組む」はツールではなく「相性のいい仲間を探す」（48-pair.js、#/pair・#/pair/kd）の中に入れる。
    最初に決めたポケモン＝いまのパーティの匹（前の「絶対入れたいポケモン」の代わり）。 */
@@ -284,20 +325,22 @@ function kdResHTML(){
   const warn=bad.length?`<p class="kdv-warn">ゆずれない条件をすべて満たす案が${items.length-bad.length?`${items.length-bad.length}案しか`:''}見つかりませんでした。△の案は、満たしていない条件を書いています。${lab?`いちばん多く満たせなかったのは「${esc(lab)}」です。${esc(KD_REQ_HINT[top[0]]||'条件を1つ外す')}と組みやすくなります。`:''}</p>`:'';
   return `<div class="sec"><h2>組んだパーティの案</h2><span style="font-size:12px;color:var(--dim)">押すと詳しく</span></div>
   ${warn}<div class="kd-opts">${items.map((x,j)=>{const k=R.page*KD_PER+j,open=R.open===k;
-    return `<div class="kd-opt${open?' open':''}${x.pass===false?' kd-ng':''}"><button class="kd-oh" data-kd-open="${k}" aria-expanded="${open}"><span class="kd-on">案${k+1}${x.pass===false?'<small>△ 条件不足</small>':''}</span>
+    return `<div class="kd-opt${open?' open':''}${x.pass===false?' kd-ng':''}"><button class="kd-oh" data-kd-open="${k}" aria-expanded="${open}"><span class="kd-on">案${k+1}${x.basis?`<small class="kd-bk ${x.basis.kind}">${x.basis.kind==='template'?'上位パーティ':x.basis.kind==='core'?'実データの仲間':'理論補完'}</small>`:''}${x.pass===false?'<small>△ 条件不足</small>':''}</span>
       <span class="kd-o6">${x.mons.map(m=>`<span class="kd-o1"><span class="av">${stamp(m)}</span><small>${esc(formInfo(m).base)}</small></span>`).join('')}</span></button>
       ${open?kdDetailHTML(x):''}</div>`}).join('')}</div>
   <nav class="kd-pg" aria-label="案のページ">${Array.from({length:KD_PAGES},(_,i)=>`<button data-kd-pg="${i}"${i===R.page?' aria-current="page"':''}>${i+1}</button>`).join('')}</nav>
-  <p class="note">型は、${FMTN()}の使用データ（PokéKit の集計）にあるポケモンはその割合の高い技・持ち物・特性から、ないポケモンは当サイトが種族値と覚える技から計算で組んだ理論上の型です（ポケモンごとに書いています）。どちらも、技と持ち物のまとまりを確かめて直しています。条件は6匹と型が決まってから確かめています。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
+  <p class="note">土台は、いまの形式の上位パーティ（最初に決めたポケモンが入っているもの）→ PokéKit の集計で一緒に使われる割合が高い仲間 → どちらも無ければ当サイトの計算、の順に選び、案ごとに違う土台を試します（案の左の札）。条件に合わない仲間は土台に入れません。型は、上位パーティに登録された型があればそれを、${FMTN()}の使用データ（PokéKit の集計）にあるポケモンはその割合の高い技・持ち物・特性・能力ポイント（集計でいちばん多い配分。能力ポイントの形には合うが未確認）から、ないポケモンは当サイトが種族値と覚える技から計算で組んだ理論上の型です（ポケモンごとに書いています）。どちらも、技と持ち物のまとまりを確かめて直しています。条件は6匹と型が決まってから確かめています。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
 }
 function kdDetailHTML(R){
+  const B=R.basis;
   return `<div class="kd-det">
+  ${B?`<div class="kdv-basis ${B.kind}"><b>${esc(B.txt)}</b>${B.note?`<small>${esc(B.note)}</small>`:''}${B.kind==='theory'?'<small>いまの形式の上位パーティにも、一緒に使われる仲間の集計にも、条件に合う土台が無かったので、当サイトの計算で組みました。</small>':''}</div>`:''}
   <div class="kd-checks">${R.checks.map(([t,ok])=>`<span class="kd-ck ${ok?'ok':'ng'}">${ok?'✓':'△'} ${esc(t)}</span>`).join('')}</div>
   ${typeof kdCheckHTML==='function'?kdCheckHTML(R):''}
   <div class="kd-team">${R.mons.map((m,i)=>{const s=R.ss[i];return `<a class="kd-mon" href="#/p/${m.no}"><span class="av">${stamp(m)}</span>
     <div class="kd-mi"><b>${esc(formInfo(m).base)}</b><div class="kd-ty">${m.t.map(chip).join('')}</div>
     ${s?`<div class="kd-set">${esc([s.item&&ITEMN[s.item],s.ab&&(ABN[(kdForm(m,s).ab)||s.ab]||ABN[s.ab]),s.moves.slice(0,4).map(id=>mName(id)).join('・')].filter(Boolean).join(' ／ '))}</div>
-      <div class="kd-src"><span class="kd-st ${s.src==='data'?'data':'theory'}">${s.src==='data'?'使用データの型':'理論上の型'}</span>${esc(s.srcTxt||'')}${s.fixes&&s.fixes.length?`<br>当サイトが直したところ：${esc(s.fixes.join('・'))}`:''}</div>`:''}
+      <div class="kd-src"><span class="kd-st ${s.src==='theory'?'theory':'data'}">${s.src==='top'?'上位パーティの型':s.src==='data'?'使用データの型':'理論上の型'}</span>${esc(s.srcTxt||'')}${s.fixes&&s.fixes.length?`<br>当サイトが直したところ：${esc(s.fixes.join('・'))}`:''}</div>`:''}
     ${(R.why[m.no]||[]).length?`<div class="kd-why">${R.why[m.no].map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}</div></a>`}).join('')}</div>
   <div class="btns" style="padding:10px 16px 12px"><button class="btn btn-p" id="kd-use">この6匹でパーティにする</button></div></div>`;
 }

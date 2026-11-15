@@ -103,7 +103,7 @@ function tbDraw(){
 /* パーティに入れる：既存の useTeam（空いている枠へ。空きがなければ確かめてから入れかえ）。育成は確かめてから */
 /* 集計の型（PokéKit）の能力ポイントは計算のための仮定（MVP_SP）なので、パーティには入れない（D2。パーティの画面で決める） */
 function tbForParty(mem){const notes=[];
-  const out=mem.map(x=>{if(x.src==='pokekit'&&x.set&&x.set.sp){notes.push(byNo[x.no].n);return{...x,set:{...x.set,sp:null}}}return x});
+  const out=mem.map(x=>{if(x.src==='pokekit'&&!x.spReal&&x.set&&x.set.sp){notes.push(byNo[x.no].n);return{...x,set:{...x.set,sp:null}}}return x});
   return{mem:out,notes:notes.length?[`${notes.join('・')}：集計の型には能力ポイントが無い（計算では仮に決めていた）ので、能力ポイントは入れません。パーティの画面で決めてください`]:[]}}
 async function tbTransfer(mem,name){
   if(!mem.length)return;
@@ -564,9 +564,10 @@ function tbPropPref(){
     r=impWith(ent,()=>kdBuild())}
   finally{Object.assign(KD,keep);PR_OUT.clear();keepOut.forEach(x=>PR_OUT.add(x))}
   const lab=no=>no===TB.start?['最初の1匹（必ず守る条件）']:c.must.includes(no)?['入れたいポケモン（必ず守る条件）']:want.includes(no)?['できれば入れたいポケモン（案Aは好みを優先して入れる）']:null;
-  let mem=r.mons.map((p,i)=>({no:p.no,set:toSaved(r.ss[i])||null,src:r.ss[i]&&r.ss[i].src==='data'?'pokekit':'theory',srcTxt:r.ss[i]&&r.ss[i].src==='data'?`${mvpSrcTxt(FMT)}（能力ポイントは仮定。80-kdcheck.js でまとまりを確かめた）`:'当サイトが組んだ理論上の型（実際に使われた型ではありません）',why:lab(p.no)||(r.why[p.no]||[]).slice(0,3).map(w=>w==='最初に決めたポケモン'?'入れたいポケモン':w)}));
+  let mem=r.mons.map((p,i)=>({no:p.no,set:toSaved(r.ss[i])||null,src:r.ss[i]&&r.ss[i].src==='data'?'pokekit':r.ss[i]&&r.ss[i].src==='top'?'team':'theory',spReal:!!(r.ss[i]&&r.ss[i].src==='data'&&r.ss[i].row&&r.ss[i].row.sp&&r.ss[i].row.sp.length),srcTxt:r.ss[i]&&r.ss[i].srcTxt||'当サイトが組んだ理論上の型（実際に使われた型ではありません）',why:lab(p.no)||(r.why[p.no]||[]).slice(0,3).map(w=>w==='最初に決めたポケモン'?'入れたいポケモン':w)}));
   mem=tbMegaFix(mem);const V2=tbValidate(mem);
-  return tbPropEval('pref',V2.mem,V2.notes,null);
+  /* 2026/11/15：どの土台（上位パーティ／実際に一緒に使われる仲間／理論の補完）で組んだかを書く */
+  return tbPropEval('pref',V2.mem,[...(r.basis?[r.basis.txt+(r.basis.note?'（'+r.basis.note+'）':'')]:[]),...V2.notes],null);
 }
 /* メガシンカの条件をそろえる：なし→メガストーンを外す／このポケモン→そのポケモンだけ（確認できたメガストーン） */
 function tbMegaFix(mem){const c=TB.cond;

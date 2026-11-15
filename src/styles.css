@@ -3124,3 +3124,8 @@ section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 .kd-st{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;margin-right:6px}
 .kd-st.data{background:rgba(29,155,240,.14);color:var(--acc)}.kd-st.theory{background:rgba(127,127,127,.16);color:var(--dim)}
 .kd-on small{display:block;font-size:12px;color:#d98a00;font-weight:700}
+/* こだわり条件で組むの土台（2026/11/15） */
+.kdv-basis{margin:8px 16px 4px;padding:10px 12px;border-radius:12px;background:var(--acc-t,rgba(29,155,240,.1));font-size:13px;line-height:1.55}
+.kdv-basis.theory{background:rgba(127,127,127,.12)}
+.kdv-basis b{display:block}.kdv-basis small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+.kd-on small.kd-bk{color:var(--acc);font-weight:700}.kd-on small.kd-bk.theory{color:var(--mute)}

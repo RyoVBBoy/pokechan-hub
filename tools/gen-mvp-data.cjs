@@ -38,14 +38,18 @@ const pk=(file,fmt,game)=>{
       ab:pc(p.abilities),it:pc(p.items),mv:pc(p.moves),
       /* 性格：振り方の行の nature と割合（同じ性格は足す） */
       nat:Object.entries((p.spreads||[]).reduce((o,s)=>{if(s&&s.nature)o[s.nature]=Math.round(((o[s.nature]||0)+(s.pct||0))*10)/10;return o},{})).sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1)),
-      /* 振り方の数字（evs）は能力ポイントとして未確認なので持たない（件数だけ残す） */
       evsN:(p.spreads||[]).length,
+      /* 振り方（2026/11/15）：シングル・ダブルの1200件すべてが 6つ・0以上・1つ32以下・合計66以下（チャンピオンズの能力ポイントの形）に入る。
+         PokéKit の説明には能力ポイントとは書いていないので「形は合うが未確認」のまま、いちばん多い1つを [性格,振り方,割合] で持つ
+         （こだわり条件で組むの型だけが使い、画面に未確認と書く。入れかえ案の計算は今までどおり仮定の振り方）。全部を確かめてから1つに絞る。
+         決まりに入らない振り方が1つでもあれば作らずに止まる */
+      sp:(p.spreads||[]).map(x=>{const e=x&&x.evs;if(!Array.isArray(e)||e.length!==6||e.some(v=>!Number.isInteger(v)||v<0||v>32)||e.reduce((a,b)=>a+b,0)>66)fail(`${file}: ${p.id} の振り方が能力ポイントの決まりに入らない ${JSON.stringify(e)}`);return[x.nature,e,x.pct]}).slice(0,1),
       teraEmpty:!(p.tera&&p.tera.length),
       /* 一緒に使われる仲間（2026/11/14）：そのポケモンを使った人のうち、その仲間も入れていた人の割合（上位だけ。PokéKit が先頭だけに絞っている）。6匹のパーティそのものではない */
       tm:pc(p.teammates).slice(0,12)}});
   return{meta:{source:'PokéKit（Smogon / Pokémon Showdown の集計をまとめたもの）',sourceUrl:d.sourceUrl||'',docUrl:'https://poke.itlibra.com/en/opendata',
     fileUrl:`https://poke.itlibra.com/opendata/usage-${fmt}.json`,format:fmt,label:d.label,gameType:game,month:d.month,battles:d.battles,cutoff:d.cutoff,fetched,
-    note:'ゲーム内の公式の集計ではない（Pokémon Showdown のランク対戦）。上位150匹だけ。割合は項目ごと（組み合わせの割合は無い）。tera は使わない。evs は能力ポイントとして未確認のため使わない。仲間（tm）はそのポケモンを使った人のうちの割合で、6匹のパーティそのものではない',license:'PokéKit のオープンデータ（出典の表示で再利用可：https://poke.itlibra.com/en/opendata）'},rows};
+    note:'ゲーム内の公式の集計ではない（Pokémon Showdown のランク対戦）。上位150匹だけ。割合は項目ごと（組み合わせの割合は無い）。tera は使わない。振り方（sp）はいちばん多い1つ。能力ポイントの形（1つ32以下・合計66以下）に入るが、能力ポイントそのものかは未確認。仲間（tm）はそのポケモンを使った人のうちの割合で、6匹のパーティそのものではない',license:'PokéKit のオープンデータ（出典の表示で再利用可：https://poke.itlibra.com/en/opendata）'},rows};
 };
 const single=pk(need('single'),'championssingles','singles'),double=pk(need('double'),'champions','doubles');
 const out={

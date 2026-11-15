@@ -82,14 +82,16 @@ function kdIssues(p,s,ctx){
   if(s.src==='theory')s.moves.filter(id=>KD_ATK_BAD.has(kdMvK(id))&&!(ctx.keep||[]).includes(id)).forEach(id=>out.push({k:'bad',id,txt:`${mName(id)}は、ためる・反動で動けない・自分が倒れる等で型の技として使いにくい`}));
   if(s.item==='choicescarf'){const bad=s.moves.filter(id=>!kdAtk(id)&&!LF_CHOICE_OK.includes(kdMvK(id)));if(bad.length)out.push({k:'choice',ids:bad,txt:`こだわりスカーフでは同じ技しか出せないので、${bad.map(mName).join('・')}は使いにくい`})}
   const phys=kdPhys(p,s),at=s.moves.filter(kdAtk);
-  s.moves.forEach(id=>{const c=KD_SETUP_CLS[kdMvK(id)];if(c==null||c===2)return;if(!at.some(a=>MV[a][4]===c&&!KD_CLS_FREE.has(kdMvK(a))))out.push({k:'setup',id,txt:`${mName(id)}で上がる${c?'特攻':'攻撃'}を使う技が無い`})});
+  /* 使用データで実際に使われている技（その匹の行にある技）は、積み技・攻撃の種類の食い違いとして直さない（アシレーヌのアクアジェット等）。のろいはゴーストタイプなら積み技ではない */
+  const real=id=>s.src==='top'||(s.src==='data'&&kdRowPc(s,'mv',id)!=null);
+  s.moves.forEach(id=>{if(real(id))return;const c=kdMvK(id)==='curse'&&f.t.includes('ゴースト')?null:KD_SETUP_CLS[kdMvK(id)];if(c==null||c===2)return;if(!at.some(a=>MV[a][4]===c&&!KD_CLS_FREE.has(kdMvK(a))))out.push({k:'setup',id,txt:`${mName(id)}で上がる${c?'特攻':'攻撃'}を使う技が無い`})});
   /* 性格で下げた能力の技（例：おくびょう＝攻撃↓ に物理技） */
   const lowCls=s.dn===1?0:s.dn===3?1:null;
-  at.forEach(id=>{const c=MV[id][4];if(KD_CLS_FREE.has(kdMvK(id)))return;
+  at.forEach(id=>{const c=MV[id][4];if(KD_CLS_FREE.has(kdMvK(id))||real(id))return;
     if((lowCls!=null&&c===lowCls)||(s.sp&&((c===0&&s.sp[1]===0&&s.sp[3]>0)||(c===1&&s.sp[3]===0&&s.sp[1]>0))&&(c===0?f.s[1]<f.s[3]*.9:f.s[3]<f.s[1]*.9)))
       out.push({k:'cls',id,txt:`${mName(id)}は${c?'特殊':'物理'}技だが、${lowCls===c?'性格で'+(c?'特攻':'攻撃')+'を下げている':(c?'特攻':'攻撃')+'に能力ポイントを振っていない'}`})});
   if(s.item&&!isStone(s.item)&&!kdItemWorks(p,s,s.item))out.push({k:'itemreq',txt:`${ITEMN[s.item]||s.item}が働く技・特性が無い`});
-  if(ctx.off){const st=s.moves.filter(id=>!kdAtk(id)&&!KD_UTIL_OK.has(kdMvK(id))&&!(KD_SETUP_CLS[kdMvK(id)]!=null)&&!(ctx.keep||[]).includes(id));
+  if(ctx.off&&s.src==='theory'){const st=s.moves.filter(id=>!kdAtk(id)&&!KD_UTIL_OK.has(kdMvK(id))&&!(KD_SETUP_CLS[kdMvK(id)]!=null)&&!(ctx.keep||[]).includes(id));
     if(st.length>=2||(st.length&&s.moves.filter(id=>!kdAtk(id)).length>=3))out.push({k:'off',ids:st.slice(st.length>=2?1:0),txt:`攻める構築なのに変化技（${st.map(mName).join('・')}）が多い`})}
   return out;
 }
@@ -126,23 +128,37 @@ function kdRepair(p,s,ctx,used){
     const k=kdAltItems(p,s,role).find(k=>k&&CH_ITEMS.has(k)&&!used.has(k)&&kdItemWorks(p,s,k));if(k){s.item=k;used.add(k);s.fixes.push(`持ち物を${ITEMN[k]}にした`)}}
   return s;
 }
-/* 1匹の型を作る。stone＝持たせるメガストーン、pt＝構築の役わり（入れる技 pt[4]）、aa＝ARCHS の型。戻り値の src：data（使用データ）／theory（当サイトが計算で組んだ） */
+/* 1匹の型を作る。stone＝持たせるメガストーン、pt＝構築の役わり（入れる技 pt[4]）、aa＝ARCHS の型、ctx.given＝上位パーティに登録された型。
+   型の出どころ src（2026/11/15 依頼主「上位構築・実戦データ」）：
+     top＝上位パーティに登録された型（技・持ち物・特性・能力ポイントをまとめて使う。決まりに合わないところだけ直す）
+     data＝同じ形式の PokéKit の集計（割合の高い特性・持ち物・技・性格と、いちばん多い能力ポイントの配分）。
+          メガシンカしない姿の行が無く、メガシンカ後の行だけがある匹（アブソル→メガアブソルZ 等）は、メガシンカ後の行の技・能力ポイントを参考にする
+     theory＝どちらも無い匹は、当サイトが計算で組んだ理論上の型 */
 function kdMakeSet(p,stone,pt,aa,used,ctx){
-  let s=null;
-  if(typeof mvpSet==='function'){
-    let m=mvpSet(FMT,p.no,{stone,used,anyMv:true});
-    if(m.st==='item_conflict')m={...mvpSet(FMT,p.no,{stone,anyMv:true}),conflict:true};
-    let viaBase=false;if(m.st!=='ok'&&stone){const b=mvpSet(FMT,p.no,{used,anyMv:true});if(b.st==='ok'){m=b;viaBase=true}}
-    if(m.st==='ok'){const sv=m.sv;
-      s={ab:sv.ab.k,item:stone||(m.conflict?null:sv.it&&sv.it.k)||null,up:sv.up,dn:sv.dn,sp:[...sv.sp],moves:sv.mv.map(v=>v.id).slice(0,4),src:'data',
-        srcTxt:`${mvpSrcTxt(FMT)}で割合の高い特性・持ち物・技・性格${viaBase?'（メガシンカの行が無いので元の姿の行）':''}。組み合わせそのものは集計に無いので、当サイトがまとまりを確かめた。能力ポイントは仮定`,notes:[...(m.notes||[])],fixes:[]};
-      if(m.conflict)s.fixes.push('いちばん多い持ち物がほかの匹と重なるので、持ち物を選び直した');
-      if(viaBase&&stone){const mg=megaOf(p.no,stone);if(mg)s.ab=mg.ab}}
+  ctx=ctx||{};let s=null;
+  const g=ctx.given;
+  if(g&&Array.isArray(g.mv)&&g.mv.filter(x=>x&&x.id).length>=2){
+    const it=g.it&&g.it.k||null;
+    s={ab:g.ab&&g.ab.k||((ABD[p.no]||[])[0]||[])[0]||null,item:stone||(it&&!isStone(it)?it:null),up:g.up??-1,dn:g.dn??-1,sp:Array.isArray(g.sp)?[...g.sp]:null,
+      moves:g.mv.map(x=>x&&x.id).filter(Boolean).slice(0,4),src:'top',srcTxt:ctx.givenTxt||'上位パーティに登録された型',notes:[],fixes:[]};
+    if(it&&isStone(it)&&it!==stone)s.fixes.push(`登録の${ITEMN[it]||it}はメガシンカの数に合わせて持たせていない`);
+    if(!s.sp){const r=kdRowFor(p.no,stone);if(r&&r.row.sp&&r.row.sp.length){kdApplySp(s,r.row);s.fixes.push('登録に能力ポイントが無いので、使用データでいちばん多い配分にした')}
+      else{const ph=kdPhys(p,s);s.sp=[...(ph?MVP_SP.phys:MVP_SP.spec)];s.fixes.push('登録に能力ポイントが無いので、仮の振り方にした')}}
+  }
+  if(!s&&typeof mvpSet==='function'){
+    const R=kdRowFor(p.no,stone,used);
+    if(R){const m=R.m,sv=m.sv;
+      s={ab:sv.ab.k,item:stone||(R.conflict||R.via==='mega'?null:sv.it&&sv.it.k)||null,up:sv.up,dn:sv.dn,sp:[...sv.sp],moves:sv.mv.map(v=>v.id).slice(0,4),src:'data',row:R.row,
+        srcTxt:`${kdMetaTxt(FMT)}で割合の高い特性・持ち物・技・性格${R.via==='base'?'（メガシンカの行が無いので元の姿の行）':R.via==='mega'?`（メガシンカしない姿の行が無いので、${(byNo[R.row.mega]||{}).n||'メガシンカ後'}の行の技・能力ポイントを参考）`:''}`,notes:[...(m.notes||[])],fixes:[]};
+      if(R.conflict)s.fixes.push('いちばん多い持ち物がほかの匹と重なるので、持ち物を選び直した');
+      if(R.via==='base'&&stone){const mg=megaOf(p.no,stone);if(mg)s.ab=mg.ab}
+      if(R.via==='mega'){const a0=((ABD[p.no]||[]).find(a=>!a[1])||(ABD[p.no]||[])[0]||[])[0];s.ab=a0||null;s.fixes.push(`特性はメガシンカしない姿の${ABN[s.ab]||'特性'}（メガシンカ後の特性は使えない）`)}
+      if(kdApplySp(s,R.row))s.srcTxt+=`・能力ポイントは集計でいちばん多い配分（${R.row.sp[0][2]}%。決まりに合う形だが、能力ポイントそのものかは未確認）`;else s.srcTxt+='・能力ポイントは仮定'}
   }
   if(!s){let a=null;try{a=archSet(aa,p,pt,new Set(used))}catch(e){a=null}
     if(!a){const c=chooseSet(p,true),phys=p.s[1]>=p.s[3];a={ab:c.ab,item:null,moves:c.moves.map(m=>m.id).filter(id=>id>0),up:phys?1:3,dn:phys?3:1,sp:phys?[...MVP_SP.phys]:[...MVP_SP.spec]}}
     s={ab:a.ab,item:stone||(a.item&&!isStone(a.item)?a.item:null),up:a.up,dn:a.dn,sp:[...(a.sp||[])],moves:[...a.moves],src:'theory',
-      srcTxt:`${FMTN()}の使用データにこのポケモン${stone?'（メガシンカ）':''}の型が無いので、当サイトが種族値・覚える技から計算で組んだ理論上の型（実際に使われた型ではありません）`,notes:[],fixes:[]}}
+      srcTxt:`${FMTN()}の使用データ・上位パーティにこのポケモン${stone?'（メガシンカ）':''}の型が無いので、当サイトが種族値・覚える技から計算で組んだ理論上の型（実際に使われた型ではありません）`,notes:[],fixes:[]}}
   if(stone){s.item=stone}
   if(s.item&&used&&used.has(s.item)&&!isStone(s.item))s.item=null;
   /* 構築の役わりの技（トリックルーム・あまごい等）が無ければ入れる */
@@ -167,14 +183,20 @@ function kdPutMove(mons,ss,pick,why){
   const stabOnly=id=>kdAtk(id)&&p.t.includes(MV[id][1])&&s.moves.filter(x=>kdAtk(x)&&MV[x][1]===MV[id][1]).length===1;
   const val=id=>!kdAtk(id)?(KD_UTIL_OK.has(kdMvK(id))||KD_SETUP_CLS[kdMvK(id)]!=null?50:20):Math.min(MV[id][2]*kdHits(id),160)*(p.t.includes(MV[id][1])?1.5:1);
   const cands=s.moves.map((id,k)=>({id,k})).filter(x=>!keep.includes(x.id)&&!stabOnly(x.id)).sort((a,b)=>val(a.id)-val(b.id));
-  if(s.moves.length<4)s.moves.push(best.id);else if(cands.length){s.fixes.push(`${mName(cands[0].id)}→${mName(best.id)}（${why}）`);s.moves[cands[0].k]=best.id}else return null;
+  if(s.moves.length<4)s.moves.push(best.id);else if(cands.length){s.fixes.push(`${mName(cands[0].id)}→${mName(best.id)}（${best.why||why}）`);s.moves[cands[0].k]=best.id}else return null;
   s.keep=[...keep,best.id];return best.i;
 }
 /* 先制技を入れる：その型の攻撃の種類に合う、タイプ一致・威力の高い先制技。遅い匹ほど価値が高い */
+/* 使用データ（その匹の行）での技・持ち物の割合。無ければ null */
+const kdRowPc=(s,kind,key)=>{const r=s&&s.row;if(!r)return null;const l=kind==='it'?r.it:r.mv;const z=(l||[]).find(([k])=>kind==='it'?k===key:MVKA[nrm(k)]===key);return z?z[1]:null};
+/* 持ち物を持たせる匹の選び方の補正：使用データでもその持ち物を持つ匹を先に、実際の型（上位パーティ・使用データ）を崩す匹は後に */
+const kdItemAdj=(s,item)=>{const pc=kdRowPc(s,'it',item);return pc!=null?60+pc/2:s&&s.src!=='theory'?-40:0};
 function kdPrioPut(mons,ss){
   return kdPutMove(mons,ss,(p,s)=>{const ph=kdPhys(p,s);let b=null;
     kdLs(p).forEach(id=>{if(!kdPrioMv(id)||s.moves.includes(id))return;const m=MV[id];if(m[4]!==(ph?0:1))return;
-      const v=m[2]*kdHits(id)*(p.t.includes(m[1])?1.5:1)*(1+Math.max(0,110-kdForm(p,s).s[5])/100);if(!b||v>b.v)b={id,v}});return b},'先に動く手段（先制技）');
+      /* 実際の型の匹は、使用データでもその先制技を使っていれば先に（割合を理由に書く）、使っていなければ後に（型を崩さないため） */
+      const pc=kdRowPc(s,'mv',id),adj=pc!=null?1.3+pc/100:s.src!=='theory'?.4:1;
+      const v=m[2]*kdHits(id)*(p.t.includes(m[1])?1.5:1)*(1+Math.max(0,110-kdForm(p,s).s[5])/100)*adj;if(!b||v>b.v)b={id,v,why:pc!=null?`先に動く手段（先制技）。使用データでも${pc}%が採用`:null}});return b},'先に動く手段（先制技）');
 }
 /* 回復技・設置技を消す技を入れる */
 const kdKeyPut=(mons,ss,keys,why)=>kdPutMove(mons,ss,(p,s)=>{const ids=keys.map(kdKey2Id).filter(id=>id&&kdLs(p).includes(id)&&!s.moves.includes(id));
@@ -360,3 +382,62 @@ function kdCheckHTML(R){
     ${cov?`<details class="kdv-d"><summary>弱点の受け合い（タイプ相性と、実際のダメージ）</summary>${cov}<p class="kdv-n">ダメージは${esc(typeof mvpSrcTxt==='function'?mvpSrcTxt(FMT):'')}の上位の相手が型に入れているそのタイプの技で、いちばん痛いもの（いちばん高い乱数）。50%未満なら2回耐えられます。半減でも大きく削られる匹は、安定して受け出せるとは限りません。</p></details>`:''}
     ${roles?`<details class="kdv-d"><summary>受け出せる匹と、上から倒して返す匹</summary>${roles}<p class="kdv-n">「受け出せる」＝交代で1発受けてから勝てるか、いちばん痛い技を2回耐えられる。「上から倒して返せる」＝倒されたあとに出して先に倒せるが、交代で受けることはできない。</p></details>`:''}</div>`;
 }
+/* ---------- 実戦データの窓口（2026/11/15 依頼主「上位構築・実戦データ・コア組み合わせ」） ----------
+   新しいデータの置き場所は作らない。読むのは2つだけ：
+   ・上位パーティ（57-topteams.js の TOPT.teams＝サーバーの「上位パーティ」。本人・運営者の登録と、記事の複数の出典で一致した自動集計。いまの形式・新しい2シーズン）
+   ・PokéKit（75-mvp-data.js の MVP_DATA。同じ形式・同じ月の Showdown の集計。上位150匹の型・能力ポイントの配分・一緒に使われる仲間の割合）
+   どちらにも無いものは作らない（架空の割合・架空の構築は出さない）。3匹がそろって使われる割合は PokéKit に無いので、
+   2匹ずつの割合をつないだ3匹は「推定」と書く。 */
+/* その匹の行（元の姿の行と、メガシンカ後の行）。メガシンカ後の行だけがあれば、それを参考にする（アブソル→メガアブソルZ） */
+function kdRowFor(no,stone,used){
+  if(typeof mvpSet!=='function')return null;
+  const tryS=(st,via)=>{let m=mvpSet(FMT,no,{stone:st,used,anyMv:true}),conflict=false;
+    if(m.st==='item_conflict'){m=mvpSet(FMT,no,{stone:st,anyMv:true});conflict=true}
+    return m.st==='ok'?{m,via,conflict,row:mvpRowOf(FMT,no,st||null)}:null};
+  let R=tryS(stone||null,'same');
+  if(!R&&stone)R=tryS(null,'base');
+  if(!R&&!stone){const p=byNo[no];const ks=(p?kdStones(p):[]).map(k=>({k,r:mvpRowOf(FMT,no,k)})).filter(x=>x.r).sort((a,b)=>a.r.rank-b.r.rank);
+    for(const x of ks){R=tryS(x.k,'mega');if(R)break}}
+  return R;
+}
+/* いちばん多い振り方と、その振り方の性格（同じ行の値をそのまま使う。能力ポイントの決まりに入る形かは gen-mvp-data.cjs で確かめた。能力ポイントそのものかは未確認） */
+function kdApplySp(s,row){
+  if(!row||!Array.isArray(row.sp)||!row.sp.length)return false;
+  const [nat,ev]=row.sp[0],n=MVP_NAT[nat];s.sp=[...ev];if(n){s.up=n[0];s.dn=n[1]}return true;
+}
+const kdFam=no=>{const p=byNo[no];return p&&p.base&&byNo[p.base]?p.base:no};
+/* PokéKit の名前（id）→ サイトの番号（元の姿）。メガの id は元の姿にまとめる */
+const KD_IDNO={};
+function kdIdNo(fmt,id){
+  const k=fmt+'|'+id;if(k in KD_IDNO)return KD_IDNO[k];
+  const R=typeof mvpRows==='function'?mvpRows(fmt):null;let no=null;
+  const r=R&&R.rows.find(r=>r.id===id);
+  if(r)no=r.no;else{const b=String(id).replace(/mega[xyz]?$/,'');const c=Object.entries(ENSP).filter(([n,v])=>v===b&&byNo[+n]&&!byNo[+n].base);if(c.length===1)no=+c[0][0]}
+  return KD_IDNO[k]=no;
+}
+/* 一緒に使われる仲間：その匹のすべての姿の行（メガシンカ後の行も）の仲間を合わせる。同じ仲間（姿ちがいも1匹）は割合の高い方。
+   割合は「その匹を使った人のうち、その仲間も入れていた人の割合」（6匹のパーティそのものではない） */
+const KD_PTN={};
+function kdPartners(fmt,no){
+  const k=fmt+'|'+no;if(KD_PTN[k])return KD_PTN[k];
+  const R=typeof mvpRows==='function'?mvpRows(fmt):null,out=new Map();
+  if(R)R.rows.filter(r=>r.no===no).forEach(r=>(r.tm||[]).forEach(([id,pc])=>{const n=kdIdNo(fmt,id);if(!n||n===no)return;const o=out.get(n);
+    if(!o||pc>o.pc)out.set(n,{no:n,pc,via:r.id,viaN:(byNo[r.mega||r.no]||{}).n||r.name,id,mega:/mega[xyz]?$/.test(id)})}));
+  return KD_PTN[k]=[...out.values()].sort((a,b)=>b.pc-a.pc||a.no-b.no);
+}
+/* 2匹が一緒に使われる割合（どちらの行から見ても。高い方） */
+function kdCo(fmt,a,b){
+  a=kdFam(a);b=kdFam(b);if(a===b)return null;
+  const x=kdPartners(fmt,a).find(z=>z.no===b),y=kdPartners(fmt,b).find(z=>z.no===a);
+  if(!x&&!y)return null;const z=!y||(x&&x.pc>=y.pc)?x:y;return{pc:z.pc,from:z===x?a:b,via:z.viaN,x,y};
+}
+const kdMetaTxt=fmt=>{const m=typeof mvpMeta==='function'&&mvpMeta(fmt);return m?`PokéKit・${fmt==='double'?'ダブル':'シングル'}・${m.month}・${m.battles.toLocaleString()}戦`:'PokéKit'};
+/* 上位パーティのうち、決めたポケモン（姿ちがいは同じ）が全部入っているもの。新しいシーズン→確認済み→順位→レートの順 */
+function kdTemplates(must){
+  if(typeof TOPT==='undefined'||TOPT.st!=='ok'||TOPT.fmt!==FMT||!Array.isArray(TOPT.teams))return[];
+  const fam=(must||[]).map(kdFam);
+  return TOPT.teams.filter(t=>t.team&&t.team.length>=4&&fam.every(f=>t.team.some(x=>kdFam(x.no)===f)))
+    .slice().sort((a,b)=>((a.old||0)-(b.old||0))||((b.ver?1:0)-(a.ver?1:0))||((a.r||1e9)-(b.r||1e9))||((b.rate||0)-(a.rate||0)));
+}
+const kdTplConf=t=>t.ver?'運営者が確認した登録':t.auto?'記事から自動で集めた（2つ以上の出典で一致）':'本人の申告（未確認）';
+const kdTplTxt=t=>`上位パーティ（${[t.s,t.r?t.r+'位':'',t.rate?'レート'+t.rate:''].filter(Boolean).join('・')}、${kdTplConf(t)}）`;
