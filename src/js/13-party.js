@@ -100,7 +100,7 @@ function teamView(arg){
     V.querySelectorAll('[data-tp]').forEach(x=>{x.hidden=x.dataset.tp!==k;x.style.transform='';x.style.transition=''});
     /* 2026/11/15 依頼主「チェックの反応が悪い」：チェック・構築は計算に時間がかかるので、先にタブを切りかえて「計算しています」の動きを出し、
        その絵が出てから（次の描画のあと）計算する。計算の中身は同じ */
-    const heavy=(k==='check'||k==='plan')&&team.length,box=heavy&&document.getElementById(k==='check'?'tout':'tplan');
+    const heavy=(k==='check'||k==='plan')&&team.length&&!['loading','error'].includes(dgState(team)),box=heavy&&document.getElementById(k==='check'?'tout':'tplan');
     if(box)box.innerHTML=ttLoadHTML(k);
     segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1));
     if(box)requestAnimationFrame(()=>setTimeout(()=>{if(TTAB===k&&document.getElementById('tout'))teamRender()},40));else teamRender()};
@@ -193,7 +193,8 @@ function teamRender(){
   if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと構築・選出の考え方が出ます。</p>';return}
   /* 診断に使うデータがそろうまで計算しない（2026/11/12、60-diag.js の dgState）。そろったら描き直す。古い読み込みの結果では描き直さない（dgPrepare の番号） */
   /* 画面を開いたときも、チェック・構築なら先に「計算しています」を出してから計算する */
-  if(TT_DEFER&&(TTAB==='plan'||TTAB==='check')){TT_DEFER=false;(TTAB==='check'?out:pl).innerHTML=ttLoadHTML(TTAB);(TTAB==='check'?pl:out).innerHTML='';
+  /* データを読み込み中・読めないときは前と同じ「読み込んでいます」を出す（計算中の表示は、データがそろって計算だけが残っているときだけ） */
+  if(TT_DEFER&&(TTAB==='plan'||TTAB==='check')&&!['loading','error'].includes(dgState(team))){TT_DEFER=false;(TTAB==='check'?out:pl).innerHTML=ttLoadHTML(TTAB);(TTAB==='check'?pl:out).innerHTML='';
     requestAnimationFrame(()=>setTimeout(()=>{if(document.getElementById('tout'))teamRender()},40));return}
   TT_DEFER=false;
   if(TTAB==='plan'||TTAB==='check'){const st=dgState(team),tgt=TTAB==='plan'?pl:out;
