@@ -141,7 +141,8 @@ for(const W of [390,1280]){
   await closePick(pg);
   await openPick(pg,'party');ok((await listNos(pg)).join()==='6,445',W+'：パーティのカテゴリ');await closePick(pg);
   /* ⑤ ログアウト中は端末に残る */
-  await pg.reload();await pg.waitForTimeout(500);
+  /* 読み直したあと、サイトのプログラムを読み終えるまで待つ（GitHub の公開の機械は遅く、0.5秒では足りないことがあった） */
+  await pg.reload();await pg.waitForFunction(()=>typeof favOn==='function'&&typeof FAV!=='undefined',null,{timeout:20000});await pg.waitForTimeout(300);
   ok(await pg.evaluate(()=>favOn(25)&&!favOn(6)),W+'：読み直しても端末に残る');
   ok(pg.errs.length===0,W+'：エラーなし '+pg.errs.join('|'));
   await pg.ctx.close();
