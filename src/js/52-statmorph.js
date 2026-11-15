@@ -38,7 +38,8 @@ const FORM_SWITCH={
 const fsLabel=(f,on)=>`${f.ab}（${on?f.a+'にもどす':f.b+'にする'}）`;
 const aegisSwitchHTML=p=>{const f=FORM_SWITCH[p.no];return f?`<div class="bsw"><span class="bsw-l" data-side="0">${f.a}</span>
   <button class="bsw-t" id="bsw" role="switch" aria-checked="false" aria-label="${fsLabel(f,false)}"><i></i></button>
-  <span class="bsw-l" data-side="1">${f.b}</span></div><p class="note bsw-n" id="bsw-n">${f.note}</p>`:''};
+  <span class="bsw-l" data-side="1">${f.b}</span></div>
+  <p class="bsw-d">${f.b}になると：${SN.map((n,i)=>p.s[i]!==f.s[i]?`${n} ${p.s[i]}→<b>${f.s[i]}</b>`:'').filter(Boolean).join('・')}</p><p class="note bsw-n" id="bsw-n">${f.note}</p>`:''};
 function statFx(p){
   const root=document.querySelector('#dp-pages [data-panel="1"]');if(!root)return;
   const fam=p.base||p.no;

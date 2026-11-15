@@ -160,7 +160,7 @@ function monGuide(p,o={}){
   const abImm=md.filter(x=>x.by&&x.m===0).map(x=>({t:x.t,k:x.by}));
   const pros=[],cons=[];
   if(weak.length<=1)pros.push([weak.length?`弱点が${weak[0][0]}だけ`:'弱点がない',
-    `${list(p.t)}タイプ${abImm.length?`に加えて、特性${esc(ABN[abImm[0].k]||abImm[0].k)}で${list(abImm.map(x=>x.t))}技が効かない`:''}ため、${weak.length?`弱点は${weak[0][0]}の1つだけ`:'弱点がない'}。半減以下で受けられるタイプも${res.length}つあるので、相手の攻撃を受けながら、交代で出しやすい。`,3,'def']);
+    `${list(p.t)}タイプ${abImm.length?`に加えて、特性${esc(ABN[abImm[0].k]||abImm[0].k)}で${list(abImm.map(x=>x.t))}技が効かない`:'の'}ため、${weak.length?`弱点は${weak[0][0]}の1つだけ`:'弱点がない'}。半減以下で受けられるタイプも${res.length}つあるので、相手の攻撃を受けながら、交代で出しやすい。`,3,'def']);
   else if(res.length>=8)pros.push(['受けられるタイプが多い',`半減以下で受けられるタイプが${res.length}つ${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}ある。相手の技を読めば、交代で出してダメージを抑えやすい。`,2,'def']);
   if(spdS>=.75)pros.push(['素早さが高い',`素早さ${S}（最速で${maxSpe(p)}）は、収録${sr.n}匹のうち上から${topPct(spdS)}%ほど。多くの相手より先に攻撃できるので、削れた相手を先に倒しやすい。`,2.5,'off']);
   if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${p.s[ai]}はメガシンカも入れた${RANKP.length}匹で${rk(ai)}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
@@ -175,7 +175,7 @@ function monGuide(p,o={}){
   if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}つが弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
   if(spdS<.25)cons.push(['素早さが低い',`最速にしても${maxSpe(p)}で、多くの相手に先に攻撃される。トリックルームを使うか、先に攻撃を受けても耐えられる相手に合わせて出す。`,2,'素早さが低く、先に攻撃されやすい']);
   if(offS<.3)cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
-  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。先に動ける場面や、きあいのタスキで確実に1回動く使い方が向く。`,2,'打たれ弱い']);
+  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、きあいのタスキで確実に1回動く使い方が向く。'}`,2,'打たれ弱い']);
   if(!cons.length&&weak.length)cons.push([`${weak[0][0]}技に弱い`,`${list(weak.map(x=>x[0]))}が弱点。${weak[0][0]}技を持つ相手が出てきたら、受けられる味方に交代する。`,1,`${weak[0][0]}技に弱い`]);
   pros.sort((a,b)=>b[2]-a[2]);cons.sort((a,b)=>b[2]-a[2]);
   /* ひとこと：いちばんの強みと、それに合う役割（守りの強みなら受け・交代・補助、攻めの強みならアタッカー・積み） */
@@ -340,10 +340,16 @@ function monGuide(p,o={}){
     const repl=[];SETS.forEach(st=>{const a=altOf(st);if(!a.rep)return;const others=new Set(st.moves.filter(x=>x!==a.rep).flatMap(covOne)),lost=covOne(a.rep).filter(d=>!others.has(d));
       a.out.forEach(([id,w])=>{if(id!==a.rep&&!st.moves.includes(id))repl.push({set:st.title,fmt:st.fmt||'single',live:!!(st.live||st.usage),from:a.rep,to:id,why:w,lost})})});
     /* 概要のひとこと：積む役は「積み技を入れた型だけ」の話なので、ひとことの中心にはしない（2026/11/15 依頼主：積み技のない型まで積む役と書かない） */
-    const wxr=roles.find(r=>r.k==='wset')||(offS>=.45?roles.find(r=>r.k==='wspd'):null);
-    const role2=wxr||roles.find(r=>want.includes(r.k)&&r.k!=='setup')||roles.find(r=>r.k!=='setup')||role;
+    /* いたずらごころで補助技を先に出せるポケモンは、補助の役を中心のまま（オーロンゲ・エルフーン等） */
+    const prankSup=abK.includes('prankster')&&roles.find(r=>r.k==='support');
+    const wxr=roles.find(r=>r.k==='wset')||(offS>=.45&&!prankSup?roles.find(r=>r.k==='wspd'):null);
+    /* 攻撃・特攻が上位なら（上位4割）、守りの強みが先に並んでいてもアタッカーをひとことの中心にする（2026/11/15 依頼主：メガアブソルZ が「起点作り」になっていた） */
+    const atkR=offS>=.6&&!prankSup?roles.find(r=>r.k==='attacker'):null;
+    const role2=wxr||prankSup||atkR||roles.find(r=>want.includes(r.k)&&r.k!=='setup')||roles.find(r=>r.k!=='setup')||role;
+    const offPro=pros.find(x=>x[3]==='off');
+    const strong2=prankSup&&role2===prankSup?'いたずらごころで補助技を先に出せること':atkR&&role2===atkR?(offPro?offPro[0].replace(/が高い$/,'の高さ'):''):strong;
     const opt=roles.filter(r=>r!==role2&&['setup','support','bulky','tr','pivot'].includes(r.k)).slice(0,2).map(r=>esc(r.name).replace(/（.*$/,''));
-    const lead2=`${esc(p.n)}は、${strong&&!wxr?strong+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'いろいろな役をこなせるポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+    const lead2=`${esc(p.n)}は、${strong2&&!wxr?strong2+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'いろいろな役をこなせるポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
     /* 役割の並びも、ひとことの役を先頭に。積む役には「積み技を入れた型のとき」と添える */
     const roles2=[role2,...topRoles.filter(r=>r!==role2)].filter(Boolean).slice(0,4).map(r=>r.k==='setup'?{...r,name:r.name+'（積み技を入れた型のとき）'}:r);
     return{lead:lead2,pros:pros.slice(0,3),cons:cons.slice(0,3),num:numHTML,roles:roles2,megaCh,megas:megas.map(m=>({m,stone:Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no)})),

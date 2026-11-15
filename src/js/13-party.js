@@ -98,15 +98,19 @@ function teamView(arg){
   const ttGo=(k,dir)=>{if(k===TTAB)return;const from=ttIdx();TTAB=k;try{sessionStorage.setItem('pcttab',TTAB)}catch(e){}
     V.querySelectorAll('[data-tt]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tt===k));ind.style.transition='';ind.style.transform=`translateX(${ttIdx()*100}%)`;
     V.querySelectorAll('[data-tp]').forEach(x=>{x.hidden=x.dataset.tp!==k;x.style.transform='';x.style.transition=''});
-    teamRender();
-    segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1))};
+    /* 2026/11/15 依頼主「チェックの反応が悪い」：チェック・構築は計算に時間がかかるので、先にタブを切りかえて「計算しています」の動きを出し、
+       その絵が出てから（次の描画のあと）計算する。計算の中身は同じ */
+    const heavy=(k==='check'||k==='plan')&&team.length,box=heavy&&document.getElementById(k==='check'?'tout':'tplan');
+    if(box)box.innerHTML=ttLoadHTML(k);
+    segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1));
+    if(box)requestAnimationFrame(()=>setTimeout(()=>{if(TTAB===k&&document.getElementById('tout'))teamRender()},40));else teamRender()};
   V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>ttGo(b.dataset.tt));
   segSwipe(V.querySelector('#tt-pages'),{n:TTABS.length,idx:ttIdx,ind,go:(j,d)=>ttGo(TTABS[j][0],d)});
   document.getElementById('shr').onclick=shareTeam;document.getElementById('shr-img').onclick=shareTeamImage;
   document.getElementById('clr').onclick=async()=>{if(team.length&&!await askConfirm({title:'パーティをクリアしますか？',text:`「${teamName(TEAMS.cur)}」のポケモンと育成をすべて外します。この操作は取り消せません。`,ok:'クリア'}))return;team=[];saveTeam();teamRender()};
   document.getElementById('tren').onclick=()=>{const v=prompt('パーティの名前（20文字まで）',TEAMS.list[TEAMS.cur].name||teamName(TEAMS.cur));if(v==null)return;TEAMS.list[TEAMS.cur].name=v.trim().slice(0,20);saveTeam();teamRender()};
   document.getElementById('tslots').onclick=e=>{const b=e.target.closest('[data-tslot]');if(!b)return;switchTeam(+b.dataset.tslot);toast(`「${teamName(TEAMS.cur)}」に切り替えました`);teamRender()};
-  teamRender();syncBadge();if(PCF)teamSync();
+  TT_DEFER=true;teamRender();syncBadge();if(PCF)teamSync();
 }
 function tpRender(){
   const q=tq.trim(),l=P.filter(p=>!q||nmHit(p,q)).slice(0,30);
@@ -143,6 +147,11 @@ function selBtnPaint(b,on){b.classList.toggle('lit',on);b.setAttribute('aria-pre
   const tl=b.closest('.tile');if(tl)tl.classList.toggle('on',on)}
 /* 描き直しを少しあとに1回だけ（続けて押したときもまとめて1回）。そのあいだ下の中身は「更新中」でうすく */
 let TEAM_RT=0;
+/* 計算中の表示：動く線と、出てくる中身の形（灰色の帯）。すぐ中身に置きかわる */
+let TT_DEFER=false;
+function ttLoadHTML(k){return `<div class="tt-load" role="status" aria-live="polite"><div class="tt-load-bar"><i></i></div>
+  <p class="tt-load-t">${k==='check'?'パーティを使用率の上位の相手と計算しています…':'選出と構築を計算しています…'}</p>
+  <div class="tt-sk tt-sk-h"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div></div>`}
 function teamRenderSoon(){clearTimeout(TEAM_RT);['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('t-busy')});
   TEAM_RT=setTimeout(()=>requestAnimationFrame(()=>{TEAM_RT=0;if(document.getElementById('tout'))teamRender()}),160)}
 function teamRender(){
@@ -183,6 +192,10 @@ function teamRender(){
   const out=document.getElementById('tout'),pl=document.getElementById('tplan');
   if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと構築・選出の考え方が出ます。</p>';return}
   /* 診断に使うデータがそろうまで計算しない（2026/11/12、60-diag.js の dgState）。そろったら描き直す。古い読み込みの結果では描き直さない（dgPrepare の番号） */
+  /* 画面を開いたときも、チェック・構築なら先に「計算しています」を出してから計算する */
+  if(TT_DEFER&&(TTAB==='plan'||TTAB==='check')){TT_DEFER=false;(TTAB==='check'?out:pl).innerHTML=ttLoadHTML(TTAB);(TTAB==='check'?pl:out).innerHTML='';
+    requestAnimationFrame(()=>setTimeout(()=>{if(document.getElementById('tout'))teamRender()},40));return}
+  TT_DEFER=false;
   if(TTAB==='plan'||TTAB==='check'){const st=dgState(team),tgt=TTAB==='plan'?pl:out;
     if(st==='error'&&typeof evCount==='function')evCount('diag_ng',JSON.stringify([team.map(x=>x.no),dgFails()]));
     if(st==='loading'||st==='error'){tgt.innerHTML=dgWaitHTML(st);(TTAB==='plan'?out:pl).innerHTML='';dgWaitBind(tgt,teamRender);
@@ -229,9 +242,10 @@ function teamRender(){
 function dgAdvOpen(id){const t=id&&document.getElementById(id),d=t&&t.closest('details.dg-adv');if(d&&!d.open){d.open=true;try{sessionStorage.setItem('pcdgadv','1')}catch(e){}}}
 function ttJump(k,id){const b=document.querySelector(`#tt-seg [data-tt="${k}"]`);if(b&&TTAB!==k)b.click();else if(!b){TTAB=k;try{sessionStorage.setItem('pcttab',k)}catch(e){}teamRender()}
   if(!id){scrTo(0,0);return}
-  dgAdvOpen(id);
-  {const t=document.getElementById(id),pp=t&&t.closest('[data-psub-p]');if(pp&&pp.hidden)psubGo(document.getElementById('tplan'),pp.dataset.psubP)}
-  let n=0;const go=()=>{const t=document.getElementById(id);if(t&&t.offsetParent){t.scrollIntoView({block:'start'});/* 上の中身があとから描かれて位置がずれたら、もう一度合わせる */setTimeout(()=>{const y=t.getBoundingClientRect().top;if(Math.abs(y-72)>40)t.scrollIntoView({block:'start'})},700);t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}else if(n++<20)setTimeout(go,100)};setTimeout(go,80)}
+  /* チェック・構築は「計算しています」のあとに中身が出るので、中身ができてから開く・送る（毎回ためす） */
+  const prep=()=>{dgAdvOpen(id);const t=document.getElementById(id),pp=t&&t.closest('[data-psub-p]');if(pp&&pp.hidden)psubGo(document.getElementById('tplan'),pp.dataset.psubP)};
+  prep();
+  let n=0;const go=()=>{prep();const t=document.getElementById(id);if(t&&t.offsetParent){t.scrollIntoView({block:'start'});/* 上の中身があとから描かれて位置がずれたら、もう一度合わせる */setTimeout(()=>{const y=t.getBoundingClientRect().top;if(Math.abs(y-72)>40)t.scrollIntoView({block:'start'})},700);t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}else if(n++<40)setTimeout(go,100)};setTimeout(go,80)}
 function planBind(pl){
   pl.querySelectorAll('[data-psub]').forEach(b=>b.onclick=()=>psubGo(pl,b.dataset.psub));
   const fb=pl.querySelector('[data-bdfill]');if(fb)fb.onclick=()=>bdFill();

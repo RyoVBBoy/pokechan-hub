@@ -63,6 +63,23 @@ ok(await pg.evaluate(()=>document.querySelector('#seg [aria-selected="true"]').d
 /* 320px でもタブの文字が切れない */
 await pg.setViewportSize({width:320,height:700});await open(445);
 ok(await pg.evaluate(()=>![...document.querySelectorAll('#seg button')].some(b=>b.scrollWidth>b.clientWidth+1)&&document.body.scrollWidth<=innerWidth+1),'320px でタブの文字が切れない');
+/* 2026/11/15 依頼主の指摘：メガの姿の文に持ち物（きあいのタスキ等）を勧めない・「〇〇タイプため」の文の誤り・強いメガはアタッカーが中心 */
+const MG=await pg.evaluate(()=>{const names=Object.entries(ITEMN).filter(([k])=>!MEGA[k]).map(([,n])=>n).filter(Boolean),bad=[],gram=[];
+  [...P,...MEGAP].forEach(p=>{const g=monGuide(p,{parts:true}),t=[g.lead,...g.pros.map(x=>x[0]+x[1]),...g.cons.map(x=>x[0]+x[1]),...g.roles.map(r=>r.name+r.text)].join('｜').replace(/<[^>]+>/g,'');
+    if(p.base&&names.some(n=>t.includes(n)))bad.push(p.n);if(/タイプため/.test(t))gram.push(p.n)});
+  const az=MEGAP.find(m=>m.n==='メガアブソルZ');return{bad,gram,az:az?monGuide(az,{parts:true}).lead:''}});
+ok(!MG.bad.length,'メガの姿の文に持ち物の名前を出さない '+MG.bad.join(','));
+ok(!MG.gram.length,'「タイプため」の文の誤りがない '+MG.gram.slice(0,3).join(','));
+ok(/物理アタッカー/.test(MG.az)&&!/起点作りとして使いやすい/.test(MG.az),'メガアブソルZ のひとことはアタッカー '+MG.az);
+/* 姿が変わるポケモンの切りかえは、メガの切りかえと同じ上の場所に */
+await pg.setViewportSize({width:390,height:844});await open(681);
+const FS=await pg.evaluate(()=>{const sw=document.getElementById('bsw');return{top:!!sw&&!!sw.closest('.dp-fsw')&&!sw.closest('[data-panel]'),d:document.querySelector('.dp-fsw .bsw-d')?.textContent||''}});
+ok(FS.top&&/ブレードフォルムになると/.test(FS.d)&&/攻撃 50→140/.test(FS.d),'ギルガルドの切りかえは上の場所・変わる能力を書く '+FS.d);
+/* パーティのチェック：押したらすぐ「計算しています」を出してから計算する */
+await pg.evaluate(()=>{team.length=0;[445,6,130,279,902,681].forEach(no=>team.push({no,sel:false}));saveTeam();TTAB='sets';try{sessionStorage.setItem('pcttab','sets')}catch(e){}location.hash='#/team'});await pg.waitForTimeout(900);
+const LD=await pg.evaluate(async()=>{document.querySelector('[data-tt="check"]').click();const now=!!document.querySelector('#tout .tt-load');
+  for(let i=0;i<200&&!document.querySelector('#tout #st-box');i++)await new Promise(r=>setTimeout(r,50));return{now,done:!!document.querySelector('#tout #st-box'),gone:!document.querySelector('#tout .tt-load')}});
+ok(LD.now&&LD.done&&LD.gone,'チェックを押すとすぐ「計算しています」→中身に置きかわる '+JSON.stringify(LD));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);

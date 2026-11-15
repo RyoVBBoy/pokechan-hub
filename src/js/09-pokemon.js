@@ -24,6 +24,7 @@ function detail(no){
     <div class="slot" id="artslot">${artHTML(p)}</div>
   </section>
   ${fam.length?`<div class="pills fam-pills">${fam.map(q=>`<a class="pill" href="#/p/${q.no}" aria-pressed="${q.no===p.no}">${q.base?esc(formInfo(q).tag||'メガ'):'元の姿'}</a>`).join('')}</div>`:''}
+  ${FORM_SWITCH[p.no]?`<div class="dp-fsw">${aegisSwitchHTML(p)}</div>`:''}
   <div class="prof dp-prof">
     <div><b>${p.bst}</b><span>合計種族値</span></div>
     <div><b>${maxSpe(p)}</b><span>最速の素早さ</span></div>
@@ -43,7 +44,7 @@ function detail(no){
     <div class="who"><div class="rtags">${p.roles.map(r=>`<span class="rtag">${r}</span>`).join('')}</div>
       <p>${describe(p)}</p></div>
     <p class="note" style="padding-top:4px;color:var(--mute)">種族値から機械的に判定した目安です。実際の役割は技・特性・持ち物で変わります。</p>
-    ${aegisSwitchHTML(p)}<div class="radarbox">${stamp(p,true)}</div>
+    <div class="radarbox">${stamp(p,true)}</div>
     <p class="note" style="text-align:center">六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。</p>
     <div style="height:6px"></div>
     ${p.s.map((v,i)=>`<div class="stat"><em>${SN[i]}</em><b>${v}</b><div class="bar${i===p.mi?' top':''}"><i style="width:${Math.min(100,Math.round(v/200*100))}%"></i></div><small>${p.rank[i]}位</small></div>`).join('')}

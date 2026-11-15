@@ -3091,3 +3091,17 @@ svg.temb{display:block;width:100%;height:100%;overflow:visible}
 section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 /* 下のボタン：右の端の⚡のつまみ（幅22px）に重ならない。下のメニューの分の余白はページ全体（.app）にある */
 @media (max-width:699px){.dp-acts{padding-right:34px!important}}
+/* 姿が変わるポケモンの切りかえ（ギルガルド・イルカマン）を、メガの切りかえと同じ場所に（2026/11/15 依頼主） */
+.dp-fsw{padding:6px 16px 2px}.dp-fsw .bsw{margin:0;justify-content:flex-start}
+.dp-fsw .bsw-d{margin:8px 0 0;font-size:13px;line-height:1.6;color:var(--dim)}.dp-fsw .bsw-d b{color:var(--fg)}
+.dp-fsw .bsw-n{padding:4px 0 0!important;margin:0;font-size:12.5px}
+/* パーティのチェック・構築の計算中（2026/11/15 依頼主：反応が悪く感じる） */
+.tt-load{padding:18px 16px 8px}
+.tt-load-bar{height:3px;border-radius:3px;background:var(--line);overflow:hidden;position:relative}
+.tt-load-bar i{position:absolute;top:0;left:0;width:40%;height:100%;border-radius:3px;background:var(--acc);transform:translateX(-100%);will-change:transform;animation:ttbar 1s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes ttbar{to{transform:translateX(250%)}}
+.tt-load-t{margin:10px 0 14px;font-size:13.5px;color:var(--dim)}
+.tt-sk{height:46px;margin:0 0 10px;border-radius:12px;background:var(--line);will-change:opacity;animation:ttsk 1.1s ease-in-out infinite alternate}
+.tt-sk-h{height:84px}.tt-sk-s{height:30px;width:70%}
+@keyframes ttsk{from{opacity:.45}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.tt-load-bar i,.tt-sk{animation:none}}
