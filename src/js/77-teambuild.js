@@ -564,7 +564,7 @@ function tbPropPref(){
     r=impWith(ent,()=>kdBuild())}
   finally{Object.assign(KD,keep);PR_OUT.clear();keepOut.forEach(x=>PR_OUT.add(x))}
   const lab=no=>no===TB.start?['最初の1匹（必ず守る条件）']:c.must.includes(no)?['入れたいポケモン（必ず守る条件）']:want.includes(no)?['できれば入れたいポケモン（案Aは好みを優先して入れる）']:null;
-  let mem=r.mons.map((p,i)=>({no:p.no,set:toSaved(r.ss[i])||null,src:'theory',srcTxt:'当サイトが組んだ理論上の型（実際に使われた型ではありません）',why:lab(p.no)||(r.why[p.no]||[]).slice(0,3).map(w=>w==='最初に決めたポケモン'?'入れたいポケモン':w)}));
+  let mem=r.mons.map((p,i)=>({no:p.no,set:toSaved(r.ss[i])||null,src:r.ss[i]&&r.ss[i].src==='data'?'pokekit':'theory',srcTxt:r.ss[i]&&r.ss[i].src==='data'?`${mvpSrcTxt(FMT)}（能力ポイントは仮定。80-kdcheck.js でまとまりを確かめた）`:'当サイトが組んだ理論上の型（実際に使われた型ではありません）',why:lab(p.no)||(r.why[p.no]||[]).slice(0,3).map(w=>w==='最初に決めたポケモン'?'入れたいポケモン':w)}));
   mem=tbMegaFix(mem);const V2=tbValidate(mem);
   return tbPropEval('pref',V2.mem,V2.notes,null);
 }

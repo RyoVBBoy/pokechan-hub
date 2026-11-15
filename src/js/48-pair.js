@@ -30,17 +30,19 @@ const prThreats=p=>PR_CT[p.no]||(PR_CT[p.no]=(()=>{try{const c=monCounters(p);re
 function prScore(c,mem){
   const R=[],add=(k,pts,txt)=>R.push({k,pts,txt});
   const cd=prDef(c),cn=formInfo(c).base;
+  /* 2026/11/15：タイプ相性だけで「受けられる」と言い切らない。打たれ弱い匹（prFrailAce と同じ 80×80 未満）の半減は点を半分にし、但し書きを付ける */
+  const frail=q=>prBulk(q)<80*80,fq=q=>frail(q)?.5:1,fTxt=q=>frail(q)?`（タイプ相性上。${formInfo(q).base}は打たれ弱いので、安定して受け出せるとは限らない）`:'';
   /* ① 縦の相性補完 */
   mem.forEach(m=>{const md=prDef(m),w=T.filter(t=>md[t]>=2);
     const imm=w.filter(t=>cd[t]===0),res=w.filter(t=>cd[t]>0&&cd[t]<=.5);
-    if(imm.length||res.length){add('cover',imm.length*3+res.length*2,`${formInfo(m).base}の弱点（${[...imm,...res].join('・')}）を${imm.length?(res.length?'受けられる（'+imm.join('・')+'は無効）':'無効にできる'):'半減で受けられる'}`)}
+    if(imm.length||res.length){add('cover',imm.length*3+res.length*2*fq(c),`${formInfo(m).base}の弱点（${[...imm,...res].join('・')}）を${imm.length?(res.length?'受けられる（'+imm.join('・')+'は無効）':'無効にできる'):'半減で受けられる'}${res.length?fTxt(c):''}`)}
     /* 逆向き：候補の弱点を、この仲間が受けられるか（資料：お互いに受け合う関係がいちばん強い） */
     const bImm=T.filter(t=>cd[t]>=2&&md[t]===0),bRes=T.filter(t=>cd[t]>=2&&md[t]>0&&md[t]<=.5);
-    if(bImm.length||bRes.length)add('cover',bImm.length*3+bRes.length*2+((imm.length||res.length)?2:0),
-      `${cn}の弱点（${[...bImm,...bRes].join('・')}）は${formInfo(m).base}が${bImm.length?'受けられる（'+bImm.join('・')+'は無効）':'半減で受けられる'}${(imm.length||res.length)?'＝お互いに受け合える':''}`)});
+    if(bImm.length||bRes.length)add('cover',bImm.length*3+bRes.length*2*fq(m)+((imm.length||res.length)?2:0),
+      `${cn}の弱点（${[...bImm,...bRes].join('・')}）は${formInfo(m).base}が${bImm.length?'受けられる（'+bImm.join('・')+'は無効）':'半減で受けられる'}${(imm.length||res.length)?'＝タイプ相性ではお互いに受け合える':''}${bRes.length?fTxt(m):''}`)});
   /* いまのパーティで受けにくいタイプを、新しく受けられるか */
   const holes=prHoles(mem).filter(t=>cd[t]<=.5);
-  if(holes.length)add('cover',2*holes.length,`いまのパーティで受けにくい${holes.join('・')}を${holes.some(t=>cd[t]===0)?'受けられる（'+holes.filter(t=>cd[t]===0).join('・')+'は無効）':'半減で受けられる'}`);
+  if(holes.length)add('cover',2*holes.length*(holes.some(t=>cd[t]===0)?1:fq(c)),`いまのパーティで受けにくい${holes.join('・')}を${holes.some(t=>cd[t]===0)?'受けられる（'+holes.filter(t=>cd[t]===0).join('・')+'は無効）':'半減で受けられる'}${holes.some(t=>cd[t]>0)?fTxt(c):''}`);
   const shared=T.filter(t=>cd[t]>=2&&mem.some(m=>prDef(m)[t]>=2)&&!mem.some(m=>prDef(m)[t]<=.5));
   if(shared.length)add('bad',-2*shared.length,`${shared.join('・')}が弱点の仲間がすでにいて、受けられる仲間がいない`);
   PR_LOOPS.forEach(L=>{const have=L.filter(t=>mem.some(m=>m.t.includes(t)));if(have.length===2){const miss=L.find(t=>!have.includes(t));if(c.t.includes(miss))add('cover',4,`${L.join('・')}の3つで、お互いの弱点を受け合う形がそろう`)}});

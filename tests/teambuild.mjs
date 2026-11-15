@@ -152,7 +152,7 @@ const E=await pg.evaluate(()=>{const r={};const c=TB.cond;
     return{req:X.req.every(q=>q.ok),ng:!X.mem.some(x=>[N('ミミッキュ'),N('メタグロス')].includes(tbFam(x.no))),mega:st.length===1&&st[0].no===N('ルカリオ')&&mvpStoneSt(st[0].set.it.k,st[0].no)==='ok',
       legal:X.mem.every(x=>mvpLegal(x.no).st==='ok'),clean:!V2.notes.length,items:new Set(its).size===its.length,
       sp:X.mem.every(x=>!x.set||!x.set.sp||(x.set.sp.reduce((a,b)=>a+b,0)<=66&&x.set.sp.every(v=>v<=32))),scen:X.E.scen.length===2&&X.E.scen.some(s=>s.key==='none'&&!s.megaIdx.length)&&X.E.scen.every(s=>s.megaIdx.length<=1),six:X.mem.length===6}};
-  r.A=chk(A);r.B=chk(B);r.kinds=A.kind!==B.kind&&A.mem.every(x=>x.src==='theory')&&B.mem.slice(2).every(x=>x.src==='pokekit');
+  r.A=chk(A);r.B=chk(B);r.kinds=A.kind!==B.kind&&A.mem.every(x=>x.src==='theory'||x.src==='pokekit')&&B.mem.slice(2).every(x=>x.src==='pokekit');
   r.pref=A.pref.length===1&&B.pref.length===1&&A.pref[0].k==='type'&&B.pref[0].k==='type'&&[A,B].every(X=>X.pref[0].ok||!!X.pref[0].why)&&!A.pref.some(q=>/メガシンカ|最初に決めた/.test(q.t));
   r.prefSep=A.req.length===B.req.length;
   /* メガなし */

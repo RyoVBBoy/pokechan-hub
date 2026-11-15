@@ -62,6 +62,10 @@ const kdSave=()=>{try{localStorage.setItem('pckd',JSON.stringify({type:KD.type,b
 const kdBase=p=>p&&p.base&&byNo[p.base]?byNo[p.base]:p;
 const kdStones=p=>Object.keys(MEGA).filter(k=>MEGA[k][p.no]&&byNo[MEGA[k][p.no]]);
 const kdPrio=p=>{const l=LSD[p.no];return !!l&&l[1].some(id=>MV[id]&&MV[id][5]>0&&MV[id][2]>0)};
+/* 型に入れられる先制技（ねこだまし等を除く・その匹の攻撃の種類に合う）を覚えるか */
+const kdPrioUse=p=>{const l=LSD[p.no];return !!l&&l[1].some(id=>kdPrioMv(id)&&MV[id][4]===(prPhys(p)?0:1))};
+/* 速いアタッカー（選ぶときのめやす）：攻撃か特攻100以上で、素早さ種族値95以上か、メガシンカで100以上になる */
+const kdFastAtk=p=>prAtk(p)>=100&&(p.s[5]>=95||kdStones(p).some(k=>{const m=byNo[MEGA[k][p.no]];return m&&m.s[5]>=100&&prAtk(m)>=100}));
 const kdHeal=p=>prKnows(p,['recover','roost','slackoff','milkdrink','morningsun','synthesis','moonlight','softboiled','shoreup','strengthsap']).length>0;
 const kdRand=s=>{let x=s||1;return()=>{x=(x*16807)%2147483647;return x/2147483647}};
 /* 人気のめやす（使用率の順位、なければ合計種族値の順）：0〜1 */
@@ -82,7 +86,11 @@ function kdBuild(){
     if(KD.type==='defcycle'){if(prBulk(c)>=95*95){v+=3;r.push('硬く受けられる')}if(kdHeal(c)||(ABD[c.no]||[]).some(x=>x[0]==='regenerator')){v+=2.5;r.push('回復できる')}if(prAtk(c)>=125&&prBulk(c)<80*80)v-=1.5}
     if(KD.type==='taimen'||KD.type==='rush'||KD.type==='bulkyface'){if(prAtk(c)>=110){v+=2;r.push('攻撃が高い')}if(c.s[5]>=100)v+=KD.type==='rush'?2:1}
     if(KD.type==='bulkyface'){if(prBulk(c)>=90*90){v+=2.5;r.push('硬い')}else if(prBulk(c)<80*80)v-=3}
-    if(KD.type==='rush'){if(c.s[5]>=100){v+=1.5;r.push('素早い')}else if(c.s[5]<80)v-=2.5}
+    /* 速攻：速いアタッカーを3匹以上（KD_REQ.rush）。スカーフで速くなる中速のアタッカーも1匹は候補に */
+    if(KD.type==='rush'){const fa=kdFastAtk,n=mons.filter(fa).length;
+      if(fa(c)){if(n<4){v+=4;r.push('速いアタッカー')}else v+=1}
+      else if(prAtk(c)>=110&&c.s[5]>=70&&!mons.some(m=>!fa(m)&&prAtk(m)>=110&&m.s[5]>=70)){v+=1;r.push('こだわりスカーフで速くなる')}
+      else if(c.s[5]<80)v-=3}
     if(KD.type==='pivot'&&prKnows(c,PR_PIV).length){v+=2;r.push('交代技で回せる')}
     if(KD.type==='tod'&&kdHeal(c)&&prBulk(c)>=90*90){v+=2;r.push('回復しながら受けられる')}
     if(KD.big==='stall'){if(prBulk(c)>=90*90)v+=2;if(prAtk(c)>=120&&prBulk(c)<80*80)v-=2}
@@ -96,11 +104,13 @@ function kdBuild(){
     if(KD.type==='setup'&&prKnows(c,PR_SETUP).length&&prAtk(c)>=100){v+=2;r.push('積み技のエース')}
     /* 弱点の重なり：仲間の2匹以上が弱いタイプに、さらに弱い匹は大きく減点。受けられる匹は加点 */
     const cd=monDef(c);let wk=0,rs=0;T.forEach(t=>{const n=mons.filter(m=>monDef(m).find(z=>z.t===t).m>=2).length,m=cd.find(z=>z.t===t).m;if(n>=2&&m>=2)wk++;if(n>=2&&m<=.5)rs++});
-    if(KD.opt.resist!==false){v+=-3*wk+1.2*rs;if(rs)r.push('仲間の弱点を受けられる')}
+    /* タイプ相性だけで「受けられる」とはしない：打たれ弱い匹の半減は点を小さくする（実際に受けられるかは kdValidate がダメージで確かめる） */
+    if(KD.opt.resist!==false)v+=-3*wk+1.2*rs*(prBulk(c)>=85*85?1:prBulk(c)>=75*75?.6:.25);
     if(KD.type==='tr'){if(c.s[5]<=60){v+=2.5;r.push('遅いのでトリックルームで先に動ける')}else if(c.s[5]>=95)v-=4}
     if(KD.type==='tailwind'&&c.s[5]>=60&&c.s[5]<=100)v+=1;
     const p=pop(c.no);if(KD.opt.popular){v+=3*p}if(KD.opt.rare){v+=p>.5?-2.5*p:1}
-    if(KD.opt.fast&&KD.type!=='tr'&&!mons.some(m=>m.s[5]>=110||kdPrio(m))&&(c.s[5]>=110||kdPrio(c))){v+=2;r.push(c.s[5]>=110?'素早い':'先制技を覚える')}
+    /* 先に動く手段＝先制技（その匹の攻撃の種類に合う先制技を覚えるか。型に入れるのは kdPrioPut） */
+    if(KD.opt.fast&&KD.type!=='tr'&&!mons.some(kdPrioUse)&&kdPrioUse(c)){v+=3;r.push('先制技を覚える')}
     if(KD.opt.balance){const ph=mons.filter(prPhys).length,sp=mons.length-ph;if(ph!==sp&&prPhys(c)===(ph<sp)){v+=1.5;r.push(prPhys(c)?'物理で半々に':'特殊で半々に')}}
     const st=mons.filter(m=>kdStones(m).length).length;if(KD.mega&&st<KD.mega&&kdStones(c).length){v+=2;r.push('メガシンカできる')}
     return{v,r}};
@@ -119,42 +129,66 @@ function kdBuild(){
     const best=cand[0];if(!best)break;
     mons.push(best.o.c);why[best.o.c.no]=[...best.f.r.slice(0,2),...(best.o.R||[]).filter(r=>r.pts>0).sort((x,y)=>y.pts-x.pts).slice(0,1).map(r=>r.txt)];
   }
-  /* 育成：構築のタイプの役わり（天気・トリル・おいかぜの技）を入れる */
-  const aa=a||[KD.type==='defcycle'?'cycle':KD.type];mons.part={};
+  /* 育成（2026/11/15 依頼主「Fix Team Generation…」で作り直し、80-kdcheck.js）：
+     ①メガストーンを先に決める（1試合にメガシンカできるのは1匹だけ。2匹なら相手を見て使い分ける）
+     ②1匹ずつ、同じ形式の使用データの型（なければ当サイトが計算で組む理論上の型）を作り、型のまとまりを確かめて直す
+     ③構築のタイプ・こだわり条件に要る持ち物・技（速攻のスカーフとタスキ、先制技、回復技…）を、実際の型に入れる
+     ④6匹と型が決まってから、条件を決まった数で確かめ直す（kdValidate）。満たさない条件は ✓ にしない */
+  const aa=a||[KD.type==='defcycle'?'cycle':KD.type];
+  const finish=()=>{mons.part={};
   mons.forEach(m=>{const pt=parts.find(pt=>pt[4]&&ok(pt,m));if(pt)mons.part[m.no]=pt});
-  let ss=[];try{ss=archSets(aa,mons)}catch(e){ss=mons.map(()=>null)}
-  /* メガシンカの数を、こだわりに合わせる（絶対入れたいメガの姿は必ずそのメガストーン） */
-  const alt=used=>['lifeorb','expertbelt','sitrusberry','leftovers','focussash','lumberry','rockyhelmet','choicescarf'].find(k=>!used.has(k));
-  const used=new Set(ss.map(s=>s&&s.item).filter(Boolean));
-  const forced=mons.map((m,i)=>wantStone[m.no]?i:-1).filter(i=>i>=0);
-  forced.forEach(i=>{if(ss[i]){used.delete(ss[i].item);ss[i]={...ss[i],item:wantStone[mons[i].no]};used.add(ss[i].item)}});
+  const stone=mons.map(m=>wantStone[m.no]||null);
   /* 役わりに要る特性がメガシンカ後にしかない匹（メガゲンガーの かげふみ など）は、そのメガストーンを持たせる */
-  if(KD.mega>0)mons.forEach((m,i)=>{if(wantStone[m.no]||!ss[i])return;const pt=parts.find(pt=>pt[3]&&ok(pt,m)&&!(ABD[m.no]||[]).some(a=>pt[3].includes(a[0])));const k=pt&&kdMegaAb(m,pt[3]);
-    if(k&&!forced.includes(i)){used.delete(ss[i].item);ss[i]={...ss[i],item:k};used.add(k);forced.push(i)}});
-  const keep=new Set(forced);
-  const pick=megaPick(mons,mons.map((_,i)=>keep.has(i)),Math.max(0,KD.mega-forced.length));
-  pick.forEach(({i})=>keep.add(i));
-  ss.forEach((s,i)=>{if(!s)return;if(keep.has(i)&&!isStone(s.item)){const k=(pick.find(x=>x.i===i)||{}).k;if(k){used.delete(s.item);ss[i]={...s,item:k};used.add(k)}}
-    else if(!keep.has(i)&&isStone(s.item)){used.delete(s.item);const k=alt(used);ss[i]={...s,item:k||null};if(k)used.add(k)}});
-  if(KD.opt.scarf&&!ss.some(s=>s&&s.item==='choicescarf')){const i=mons.map((m,i)=>({m,i})).filter(x=>ss[x.i]&&!isStone(ss[x.i].item)&&prAtk(x.m)>=100).sort((x,y)=>y.m.s[5]-x.m.s[5])[0];
-    if(i){const o=ss.findIndex(s=>s&&s.item==='choicescarf');ss[i.i]={...ss[i.i],item:'choicescarf'}}}
-  /* 条件の確かめ */
-  const st=ss.filter(s=>s&&isStone(s.item)).length;
-  /* 3匹以上が同じ弱点で、そのタイプを半減以下で受けられる仲間がいないときだけ△ */
-  const weak=T.map(t=>mons.some(m=>monDef(m).find(z=>z.t===t).m<=.5)?0:mons.filter(m=>monDef(m).find(z=>z.t===t).m>=2).length),maxW=Math.max(...weak),wt=T[weak.indexOf(maxW)];
-  const checks=[
-    [tp[1]+(tp[0]==='auto'?'':'構築'),parts.filter(pt=>pt[2]).every(pt=>fill(pt)>=1)],
-    /* メガシンカは「△」を出さない（2026/11/08 依頼主）。そろっているときだけ✓で出す */
-    ...(st===KD.mega?[[`メガシンカ ${KD.mega?KD.mega+'匹':'なし'}`,true]]:[]),
-    ...(kdMust().length?[['最初に決めたポケモン',kdMust().every(n=>mons.some(m=>m.no===kdBase(byNo[n]).no))]]:[]),
-    ...(KD.opt.fast&&KD.type!=='tr'?[['先に動く手段',mons.some(m=>m.s[5]>=110||kdPrio(m))]]:[]),
-    ...(KD.opt.balance?[['物理と特殊が半々',Math.abs(mons.filter(prPhys).length*2-mons.length)<=2]]:[]),
-    ...(KD.opt.heal?[['回復できる匹',mons.some(kdHeal)]]:[]),
-    ...(KD.opt.clear?[['設置技を消せる匹',mons.some(m=>kdK(m,LS_CLEAR))]]:[]),
-    ...(KD.opt.scarf?[['こだわりスカーフ持ち',ss.some(s=>s&&s.item==='choicescarf')]]:[]),
-    ...(KD.opt.mid?[['中速',mons.some(m=>m.s[5]>=100&&m.s[5]<=130)]]:[]),
-    ...(KD.opt.resist!==false?[[maxW>=3?`${wt}が弱点の匹が${maxW}匹（受けられる仲間なし）`:'弱点を受け合える',maxW<3]]:[])];
-  return{mons,ss,why,checks,type:tp};
+  if(KD.mega>0)mons.forEach((m,i)=>{if(stone[i]||stone.filter(Boolean).length>=KD.mega)return;const pt=parts.find(pt=>pt[3]&&ok(pt,m)&&!(ABD[m.no]||[]).some(a=>pt[3].includes(a[0])));const k=pt&&kdMegaAb(m,pt[3]);if(k)stone[i]=k});
+  const nSt=stone.filter(Boolean).length;
+  if(KD.mega>nSt)megaPick(mons,stone.map(Boolean),KD.mega-nSt).forEach(({i,k})=>{stone[i]=k});
+  /* メガストーンが2つある匹（アブソルナイト／アブソルナイトZ 等）は、同じ形式の使用データに型がある方を選ぶ（なければそのまま＝理論上の型） */
+  if(typeof mvpRowOf==='function')stone.forEach((k,i)=>{if(!k||wantStone[mons[i].no]||mvpRowOf(FMT,mons[i].no,k))return;
+    const k2=kdStones(mons[i]).find(x=>x!==k&&mvpRowOf(FMT,mons[i].no,x)&&!stone.includes(x));if(k2)stone[i]=k2});
+  const off=KD.big==='taimen'||KD.type==='ofcycle';
+  const used=new Set(),ss=new Array(mons.length).fill(null);
+  [...mons.keys()].sort((x,y)=>(stone[y]?1:0)-(stone[x]?1:0)).forEach(i=>{try{ss[i]=kdMakeSet(mons[i],stone[i],mons.part[mons[i].no],aa,used,{off:off&&!mons.part[mons[i].no]})}catch(e){ss[i]=null}});
+  const rep=i=>{if(i==null||!ss[i])return;kdRepair(mons[i],ss[i],{off:off&&!mons.part[mons[i].no],keep:ss[i].keep},used)};
+  /* 持ち物を1匹に持たせる（メガストーンの匹は変えない）。前に持っていた匹は、ほかの持ち物にする */
+  const give=(item,score)=>{if(ss.some(s=>s&&s.item===item&&score(mons[ss.indexOf(s)],s)>-1e9))return;
+    const c=mons.map((p,i)=>({i,v:ss[i]&&!isStone(ss[i].item)&&!(item==='choicescarf'&&(ss[i].keep||[]).some(id=>!kdAtk(id)))?score(p,ss[i]):-1e9})).filter(x=>x.v>-1e9).sort((x,y)=>y.v-x.v)[0];if(!c)return;
+    const j=ss.findIndex(s=>s&&s.item===item);const s=ss[c.i];if(s.item)used.delete(s.item);
+    if(j>=0){ss[j].item=null;ss[j].fixes.push(`${ITEMN[item]}は${formInfo(mons[c.i]).base}に持たせたので、持ち物を選び直した`)}
+    s.fixes.push(`持ち物を${ITEMN[item]}にした（${tp[1]}${item==='focussash'?'：1回耐えて倒す':item==='choicescarf'?'：上から攻める':''}）`);s.item=item;used.add(item);rep(c.i);if(j>=0)rep(j)};
+  if(KD.type==='rush'){
+    give('choicescarf',(p,s)=>{const f=kdForm(p,s);if(!kdIsAttacker(p,s)||f.s[5]<60)return -1e9;return prAtk(f)+(f.s[5]>=75&&f.s[5]<=110?40:0)-(s.moves.some(id=>KD_SETUP_CLS[kdMvK(id)]!=null)?30:0)});
+    give('focussash',(p,s)=>{const f=kdForm(p,s);if(!kdIsAttacker(p,s)||s.item==='choicescarf'||f.s[5]<85)return -1e9;return f.s[5]-Math.sqrt(prBulk(f))});
+  }
+  if(KD.opt.scarf)give('choicescarf',(p,s)=>{const f=kdForm(p,s);return kdIsAttacker(p,s)?prAtk(f)+(f.s[5]>=75&&f.s[5]<=110?40:0):-1e9});
+  if(KD.opt.fast&&KD.type!=='tr'&&!ss.some(s=>s&&s.moves.some(kdPrioMv)))rep(kdPrioPut(mons,ss));
+  if(KD.opt.heal&&!ss.some(s=>s&&(s.moves.some(id=>KD_HEAL.includes(kdMvK(id)))||s.ab==='regenerator')))rep(kdKeyPut(mons,ss,KD_HEAL,'回復できる匹'));
+  if(KD.opt.clear&&!ss.some(s=>s&&s.moves.some(id=>LS_CLEAR.includes(kdMvK(id)))))rep(kdKeyPut(mons,ss,LS_CLEAR,'設置技を消せる匹'));
+  /* 条件の確かめ（6匹と型が決まってから） */
+  const V=kdValidate(mons,ss,parts,tp,kdMust());
+  return{ss,V}};
+  let F=finish();
+  /* 条件を満たさなければ、最初に決めた匹以外を1匹ずつ入れかえて、満たさない条件が減るかを確かめる（2回まで）。
+     候補は残りの5匹と相性のいい順（prRank）の上位と、満たさない条件に合う匹。入れかえたら育成と確かめをやり直す */
+  const lock=new Set(kdMust().map(n=>kdBase(byNo[n]).no));
+  const nFail=V=>V.req.filter(r=>r.hard&&!r.ok).length;
+  for(let round=0;round<2&&!F.V.pass;round++){
+    const f0=nFail(F.V),failIds=new Set(F.V.req.filter(r=>r.hard&&!r.ok).map(r=>r.id));
+    if(![...failIds].some(id=>KD_REVISE.has(id)))break;
+    let best=null;
+    mons.forEach((m,j)=>{if(lock.has(m.no))return;
+      const rest=mons.filter((_,k)=>k!==j),have=new Set(mons.map(x=>x.no));let rk=[];try{rk=prRank(rest)}catch(e){}
+      rk=rk.filter(o=>o.c&&!o.c.base&&!have.has(o.c.no)&&!ng.has(o.c.no));
+      const want=rk.filter(o=>kdReviseFit(o.c,failIds,F.V)).slice(0,5),top=rk.slice(0,3);
+      [...new Set([...want,...top])].forEach(o=>{mons[j]=o.c;let G=null;try{G=finish()}catch(e){G=null}mons[j]=m;
+        if(!G)return;const f=nFail(G.V),sc=o.score||0;if(f<f0&&(!best||f<best.f||(f===best.f&&sc>best.sc)))best={j,c:o.c,G,f,sc,out:m}})});
+    if(!best)break;
+    mons[best.j]=best.c;why[best.c.no]=[`条件に合わせて${formInfo(best.out).base}と入れかえ`];F=best.G;
+  }
+  const {ss,V}=F;
+  const fin=kdWhyFinal(mons,ss,V);
+  mons.forEach(m=>{why[m.no]=[...new Set([...(why[m.no]||[]).filter(t=>t==='最初に決めたポケモン'),...(fin[m.no]||[]),...(why[m.no]||[]).filter(t=>t!=='最初に決めたポケモン')])].slice(0,4)});
+  const checks=V.req.map(r=>[r.label,r.ok]);
+  return{mons,ss,why,checks,type:tp,V,pass:V.pass};
 }
 /* 2026/11/08 依頼主：「こだわり条件で組む」はツールではなく「相性のいい仲間を探す」（48-pair.js、#/pair・#/pair/kd）の中に入れる。
    最初に決めたポケモン＝いまのパーティの匹（前の「絶対入れたいポケモン」の代わり）。 */
@@ -224,16 +258,19 @@ function kdPanel(root){
 /* 結果は5案ずつ（2026/11/08 依頼主）：1・2…のページボタンで次の案へ。一覧は6匹の名前と種族値の形だけ、押すと詳しく（条件の✓・育成・理由・パーティにするボタン）。
    案1は揺らさずにいちばん点の高い組み方（seed 0）、2案目からは seed を変えて少しずつ違う組み方。同じ6匹の案は出さない。ページは見たときに組む（1案0.2秒ほど）。 */
 const KD_PER=5,KD_PAGES=4;
-function kdRun(){KD.res={list:[],sigs:new Set(),seed:0,page:0,open:-1};kdEnsure(0);if(typeof evCount==='function')evCount('kd_done')}
+function kdRun(){KD.res={list:[],fail:[],failN:{},sigs:new Set(),seed:0,page:0,open:-1};kdEnsure(0);if(typeof evCount==='function')evCount('kd_done')}
 function kdEnsure(page){
   const R=KD.res;if(!R)return;R.page=page;R.open=-1;
   const need=(page+1)*KD_PER,box=document.getElementById('kd-res');
   const draw=()=>{const b=document.getElementById('kd-res');if(!b)return;b.innerHTML=kdResHTML();kdResBind()};
   const step=()=>{
     if(KD.res!==R)return;
-    if(R.list.length>=need||R.seed>need*4){draw();return}
+    /* 条件をすべて満たす案を先に集める。試す回数を使い切っても足りなければ、満たさない案を「満たしていない」と書いて後ろに足す */
+    if(R.list.length>=need){draw();return}
+    if(R.seed>need*3){while(R.list.length<need&&R.fail.length)R.list.push(R.fail.shift());draw();return}
     const b=document.getElementById('kd-res');if(b)b.innerHTML=`<p class="empty">組んでいます…（${Math.min(KD_PER,R.list.length-page*KD_PER+1)}/${KD_PER}）</p>`;
-    setTimeout(()=>{KD.seed=R.seed++;try{const x=kdBuild(),sig=x.mons.map(m=>m.no).sort((a,b)=>a-b).join();if(!R.sigs.has(sig)){R.sigs.add(sig);R.list.push(x)}}catch(e){}step()},20)};
+    setTimeout(()=>{KD.seed=R.seed++;try{const x=kdBuild(),sig=x.mons.map(m=>m.no).sort((a,b)=>a-b).join();if(!R.sigs.has(sig)){R.sigs.add(sig);
+      if(x.pass)R.list.push(x);else{R.fail.push(x);x.V.req.filter(r=>r.hard&&!r.ok).forEach(r=>{R.failN[r.id]=(R.failN[r.id]||0)+1})}}}catch(e){}step()},20)};
   if(box&&page===0&&!R.list.length)box.scrollIntoView({behavior:'smooth',block:'start'});
   step();
 }
@@ -241,20 +278,26 @@ function kdResHTML(){
   const R=KD.res;if(!R)return '';
   const items=R.list.slice(R.page*KD_PER,(R.page+1)*KD_PER);
   if(!items.length)return '<p class="empty">条件に合う案が見つかりませんでした。条件を少しゆるめてください。</p>';
+  /* 満たせなかった条件と、いちばん小さな変え方（勝手に条件をゆるめない） */
+  const bad=items.filter(x=>!x.pass),top=Object.entries(R.failN||{}).sort((a,b)=>b[1]-a[1])[0];
+  const lab=top&&((bad[0]&&bad[0].V.req.find(r=>r.id===top[0]))||{}).label;
+  const warn=bad.length?`<p class="kdv-warn">ゆずれない条件をすべて満たす案が${items.length-bad.length?`${items.length-bad.length}案しか`:''}見つかりませんでした。△の案は、満たしていない条件を書いています。${lab?`いちばん多く満たせなかったのは「${esc(lab)}」です。${esc(KD_REQ_HINT[top[0]]||'条件を1つ外す')}と組みやすくなります。`:''}</p>`:'';
   return `<div class="sec"><h2>組んだパーティの案</h2><span style="font-size:12px;color:var(--dim)">押すと詳しく</span></div>
-  <div class="kd-opts">${items.map((x,j)=>{const k=R.page*KD_PER+j,open=R.open===k;
-    return `<div class="kd-opt${open?' open':''}"><button class="kd-oh" data-kd-open="${k}" aria-expanded="${open}"><span class="kd-on">案${k+1}</span>
+  ${warn}<div class="kd-opts">${items.map((x,j)=>{const k=R.page*KD_PER+j,open=R.open===k;
+    return `<div class="kd-opt${open?' open':''}${x.pass===false?' kd-ng':''}"><button class="kd-oh" data-kd-open="${k}" aria-expanded="${open}"><span class="kd-on">案${k+1}${x.pass===false?'<small>△ 条件不足</small>':''}</span>
       <span class="kd-o6">${x.mons.map(m=>`<span class="kd-o1"><span class="av">${stamp(m)}</span><small>${esc(formInfo(m).base)}</small></span>`).join('')}</span></button>
       ${open?kdDetailHTML(x):''}</div>`}).join('')}</div>
   <nav class="kd-pg" aria-label="案のページ">${Array.from({length:KD_PAGES},(_,i)=>`<button data-kd-pg="${i}"${i===R.page?' aria-current="page"':''}>${i+1}</button>`).join('')}</nav>
-  <p class="note">育成は計算で組んだ型の例です（実際によく使われる型とは違うことがあります）。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
+  <p class="note">型は、${FMTN()}の使用データ（PokéKit の集計）にあるポケモンはその割合の高い技・持ち物・特性から、ないポケモンは当サイトが種族値と覚える技から計算で組んだ理論上の型です（ポケモンごとに書いています）。どちらも、技と持ち物のまとまりを確かめて直しています。条件は6匹と型が決まってから確かめています。「この6匹でパーティにする」で、いまのパーティに足します（もともといた匹の育成はそのまま）。あとから自由に変えられます。</p>`;
 }
 function kdDetailHTML(R){
   return `<div class="kd-det">
   <div class="kd-checks">${R.checks.map(([t,ok])=>`<span class="kd-ck ${ok?'ok':'ng'}">${ok?'✓':'△'} ${esc(t)}</span>`).join('')}</div>
+  ${typeof kdCheckHTML==='function'?kdCheckHTML(R):''}
   <div class="kd-team">${R.mons.map((m,i)=>{const s=R.ss[i];return `<a class="kd-mon" href="#/p/${m.no}"><span class="av">${stamp(m)}</span>
     <div class="kd-mi"><b>${esc(formInfo(m).base)}</b><div class="kd-ty">${m.t.map(chip).join('')}</div>
-    ${s?`<div class="kd-set">${esc([s.item&&ITEMN[s.item],s.moves.slice(0,4).map(id=>mName(id)).join('・')].filter(Boolean).join(' ／ '))}</div>`:''}
+    ${s?`<div class="kd-set">${esc([s.item&&ITEMN[s.item],s.ab&&(ABN[(kdForm(m,s).ab)||s.ab]||ABN[s.ab]),s.moves.slice(0,4).map(id=>mName(id)).join('・')].filter(Boolean).join(' ／ '))}</div>
+      <div class="kd-src"><span class="kd-st ${s.src==='data'?'data':'theory'}">${s.src==='data'?'使用データの型':'理論上の型'}</span>${esc(s.srcTxt||'')}${s.fixes&&s.fixes.length?`<br>当サイトが直したところ：${esc(s.fixes.join('・'))}`:''}</div>`:''}
     ${(R.why[m.no]||[]).length?`<div class="kd-why">${R.why[m.no].map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}</div></a>`}).join('')}</div>
   <div class="btns" style="padding:10px 16px 12px"><button class="btn btn-p" id="kd-use">この6匹でパーティにする</button></div></div>`;
 }
