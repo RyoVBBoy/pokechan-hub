@@ -2919,3 +2919,7 @@ svg.temb{display:block;width:100%;height:100%;overflow:visible}
 @media (max-width:379px){.tbd-six-em{width:60px;height:60px;right:-8px;top:-8px}.tbd-six1 .tbd-six-a{padding-right:0}}
 @media (max-width:359px){.tbd .tbd-six{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .t-busy{opacity:.55;transition:opacity .12s;pointer-events:none}
+/* 投稿を開いた画面の日時（2026/11/15 依頼主、X と同じ位置：本文の下・ボタンの上） */
+.tw-dt{margin:12px 0 0;padding:0 0 12px;border-bottom:1px solid var(--line-in);font-size:14px;color:var(--dim)}
+.tw-dt time{white-space:nowrap}
+.tw--big .tw-dt+.tw-a{margin-top:6px}

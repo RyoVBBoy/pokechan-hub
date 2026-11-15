@@ -152,13 +152,19 @@ async function twUpload(x){
 /* 自分のサイトの静的ページ（ランキング）へのリンクは、サイトの中の画面を同じタブで開く（2026/11/10 依頼主：開いたあと戻れない） */
 const TW_INAPP={'/ranking/':'#/tier'};
 function twInApp(u){try{const x=new URL(u);if(!(/(^|\.)pokechan-hub\.pages\.dev$|(^|\.)game-kids\.app$/.test(x.hostname)||x.host===location.host))return null;return TW_INAPP[x.pathname]||null}catch(e){return null}}
+/* 投稿した日時（2026/11/15 依頼主「何年何月何日という時間も見たい。X のように投稿を開くとそこに」）：端末の時計の地域の時刻で「午前9:41 · 2026年11月15日」 */
+function twDate(ms){const d=new Date(+ms);if(isNaN(d))return '';
+  if(LANG==='en')return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' · '+d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  const h=d.getHours();return `${h<12?'午前':'午後'}${h%12===0&&h>=12?12:h%12}:${String(d.getMinutes()).padStart(2,'0')} · ${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}
+const twIso=ms=>{const d=new Date(+ms);return isNaN(d)?'':d.toISOString()};
 function twHtml(n,big){
   return `<article class="tw${big?' tw--big':''}" data-id="${n.id}" data-h="${esc(n.user.handle)}" data-mine="${n.mine?1:0}">
     ${twAv(n.user)}
-    <div class="tw-m">${n.rp?`<div class="tw-rp">${SVG(I.repost,14)}<a href="#/u/${esc(n.rp.handle)}" data-notr>${esc(n.rp.name)}</a><span>さんがリポスト</span></div>`:''}<div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a><span class="tw-t">· ${ago(n.created_at)}</span>
+    <div class="tw-m">${n.rp?`<div class="tw-rp">${SVG(I.repost,14)}<a href="#/u/${esc(n.rp.handle)}" data-notr>${esc(n.rp.name)}</a><span>さんがリポスト</span></div>`:''}<div class="tw-h"><a href="#/u/${esc(n.user.handle)}" class="tw-who" data-notr><b>${esc(n.user.name)}</b><span>@${esc(n.user.handle)}</span></a>${big?'':`<time class="tw-t" datetime="${twIso(n.created_at)}" title="${esc(twDate(n.created_at))}">· ${ago(n.created_at)}</time>`}
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
       ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
       <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}${n.link&&/^https:\/\//.test(n.link)?`<a class="tw-link" href="${esc(twInApp(n.link)||n.link)}"${twInApp(n.link)?'':' target="_blank" rel="noopener nofollow"'}><b>${/(^|\.)pokechan-hub\.pages\.dev$/.test((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())||(()=>{try{return new URL(n.link).host===location.host}catch(e){return false}})()?'くわしく見る':'公式サイトで読む'}</b><small>${esc((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())}</small></a>`:''}
+      ${big?`<div class="tw-dt"><time datetime="${twIso(n.created_at)}">${esc(twDate(n.created_at))}</time></div>`:''}
       <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(TW_IC.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(TW_IC.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(TW_IC.heart,18)}<span>${n.likes||''}</span></button><button class="tw-like tw-bm" data-bm aria-pressed="${!!n.saved}" aria-label="${n.saved?'ブックマークから外す':'ブックマーク'}">${SVG(TW_IC.bookmark,18)}</button><button class="tw-like tw-sh" data-share aria-label="共有">${SVG(TW_IC.share,18)}</button></div>
     </div></article>`;
 }

@@ -69,6 +69,15 @@ for(const W of [390,1280]){
   /* 2026/11/12：一覧の投稿はどれも同じ大きさ（前は2件目から詳しい画面の大きさになっていた） */
   const sizes=await pg.$$eval('#view .tw',a=>a.map(t=>[t.classList.contains('tw--big'),Math.round(t.querySelector('.tw-a svg').getBoundingClientRect().width*10)/10]));
   ok(sizes.length>=2&&sizes.every(x=>!x[0]&&x[1]===28.5),W+'：一覧の投稿の絵はどれも同じ大きさ '+JSON.stringify(sizes));
+  /* 2026/11/15：一覧は「〇時間前」のまま（指を乗せると日時）、投稿を開くと本文の下に「午前9:41 · 2026年11月15日」 */
+  const lt=await pg.$eval('#view .tw .tw-t',t=>({tag:t.tagName,iso:t.getAttribute('datetime'),title:t.getAttribute('title'),txt:t.textContent,want:twDate(Date.parse(t.getAttribute('datetime')))}));
+  ok(lt.tag==='TIME'&&lt.iso&&lt.title===lt.want&&/前|たった今/.test(lt.txt)&&/^午[前後]\d{1,2}:\d{2} · \d{4}年\d{1,2}月\d{1,2}日$/.test(lt.want),W+'：一覧の時間 '+JSON.stringify(lt));
+  const nid=await pg.$eval('#view .tw[data-id]',t=>t.dataset.id);
+  await pg.goto(URL0+'#/n/'+nid);await pg.waitForSelector('#tw-one .tw-dt',{timeout:15000});
+  const dt=await pg.$eval('#tw-one',o=>{const t=o.querySelector('.tw-dt time');return{txt:t.textContent,want:twDate(Date.parse(t.getAttribute('datetime'))),ago:!!o.querySelector('.tw-h .tw-t'),
+    under:o.querySelector('.tw-dt').getBoundingClientRect().top>=o.querySelector('.tw-b').getBoundingClientRect().bottom&&o.querySelector('.tw-dt').getBoundingClientRect().bottom<=o.querySelector('.tw-a').getBoundingClientRect().top}});
+  ok(dt.txt===dt.want&&!dt.ago&&dt.under,W+'：投稿を開くと本文の下・ボタンの上に日時（上の「〇時間前」は出さない） '+JSON.stringify(dt));
+  await pg.goto(URL0+'#/tl');await pg.waitForSelector('.tw[data-id]',{timeout:15000});await pg.waitForTimeout(300);
   /* ① 並び */
   const order=await pg.$eval('.tw .tw-a',a=>[...a.children].map(b=>b.getAttribute('aria-label')).join('>'));
   ok(order==='返信>リポスト>いいね>ブックマーク>共有',W+'：並び '+order);
