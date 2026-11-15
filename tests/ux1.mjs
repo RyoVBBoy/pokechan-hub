@@ -152,6 +152,31 @@ await pg.keyboard.press('ArrowDown');await pg.keyboard.press('ArrowDown');
 ok(await pg.evaluate(()=>!!document.querySelector('.ssheet .ss-r.act')),'矢印キーで選べません');
 await pg.keyboard.press('Escape');await W(300);
 
+/* 選出するボタン（2026/11/15 依頼主「押すとラグがある」）：押したらすぐ見た目が変わり、重い描き直しは後で1回。保存・3匹まで・チェックの中身は今までどおり */
+await pg.setViewportSize({width:390,height:844});
+const SL=await pg.evaluate(async()=>{const r={};const w=ms=>new Promise(z=>setTimeout(z,ms));const N=s=>P.find(x=>x.n===s).no;
+  team.length=0;['ガブリアス','ドドゲザン','アシレーヌ','カイリュー','サーフゴー','ガオガエン'].forEach(n=>team.push({no:N(n),sel:false}));saveTeam();
+  location.hash='#/team';await w(800);TTAB='check';teamRender();await w(3000);
+  let n=0;const o=teamRender;window.teamRender=function(){n++;return o.apply(this,arguments)};
+  const ms=[],now=[];for(let k=0;k<3;k++){const b=document.querySelector('[data-sel="'+k+'"]');const t0=performance.now();b.click();ms.push(performance.now()-t0);now.push(b.classList.contains('lit')&&b.getAttribute('aria-pressed')==='true')}
+  r.fast=Math.max(...ms)<30;r.now=now.every(Boolean);r.busy=document.querySelectorAll('.t-busy').length>0;
+  await w(900);window.teamRender=o;r.once=n===1;r.busyOff=!document.querySelector('.t-busy');
+  r.saved=JSON.parse(localStorage.getItem('pcteams')).list[TEAMS.cur].team.filter(x=>x.sel).length===3;
+  r.scope=/選出/.test(document.getElementById('tout').textContent);
+  document.querySelector('[data-sel="3"]').click();await w(400);r.max=team.filter(x=>x.sel).length===3&&!document.querySelector('[data-sel="3"]').classList.contains('lit');
+  document.querySelector('[data-sel="0"]').click();await w(600);r.off=!team[0].sel&&!document.querySelector('[data-sel="0"]').classList.contains('lit');
+  team.forEach(x=>x.sel=false);saveTeam();teamRender();return r});
+ok(SL.fast&&SL.now,'選出するボタン：押したらすぐ（30ms未満で）見た目が変わります '+JSON.stringify(SL));
+ok(SL.busy&&SL.busyOff&&SL.once,'選出するボタン：続けて押しても描き直しは1回で、そのあいだだけ下の中身がうすくなります');
+ok(SL.saved&&SL.scope,'選出するボタン：3匹の選出が保存され、チェックに反映されます');
+ok(SL.max&&SL.off,'選出するボタン：選出できる数を超えては選べず、もう一度押すと外れます');
+/* 指で押すのと同じく、ボタンの中の文字・絵を押しても、育成の画面へ移らない（見た目を変えたときに枠が押されたことにならない） */
+await pg.evaluate(()=>{location.hash='#/team'});await W(500);
+await pg.click('[data-sel="0"] span');await W(100);await pg.click('[data-sel="1"] svg');await W(600);
+const SL2=await pg.evaluate(()=>({hash:location.hash,sel:team.slice(0,2).every(x=>x.sel),lit:document.querySelectorAll('.t-sel.lit').length===2}));
+ok(SL2.hash==='#/team'&&SL2.sel&&SL2.lit,'選出するボタンの文字・絵を押しても育成の画面へ移らず、選出になります '+JSON.stringify(SL2));
+await pg.evaluate(()=>{team.forEach(x=>x.sel=false);saveTeam();teamRender()});
+
 ok(!errs.length,'ページのエラー: '+errs.join(' / '));
 await b.close();
 console.log(ng?`ux1: NG （${n}項目）`:`ux1: OK（${n}項目）`);

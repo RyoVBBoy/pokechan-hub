@@ -137,7 +137,16 @@ function teamOnbHTML(){
     <a class="btn btn-s" href="#/import">${SVG(I.image||I.share,18)}画像から取り込む</a></div>
     <button class="tonb-l" id="tonb-pick">${SVG(I.plus,16)}ポケモンを1匹ずつ選ぶ</button></section>`;
 }
+/* 選出のボタンの見た目だけを変える（描き直しを待たない） */
+function selBtnPaint(b,on){b.classList.toggle('lit',on);b.setAttribute('aria-pressed',on);
+  b.innerHTML=`${on?SVG(I.check,16):SVG('<circle cx="12" cy="12" r="7.5"/>',16)}<span>${on?L('選出','Picked'):L('選出する','Pick')}</span>`;
+  const tl=b.closest('.tile');if(tl)tl.classList.toggle('on',on)}
+/* 描き直しを少しあとに1回だけ（続けて押したときもまとめて1回）。そのあいだ下の中身は「更新中」でうすく */
+let TEAM_RT=0;
+function teamRenderSoon(){clearTimeout(TEAM_RT);['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('t-busy')});
+  TEAM_RT=setTimeout(()=>requestAnimationFrame(()=>{TEAM_RT=0;if(document.getElementById('tout'))teamRender()}),160)}
 function teamRender(){
+  ['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('t-busy')});
   const ts=document.getElementById('tslots');
   if(ts)ts.innerHTML=TEAMS.list.map((s,i)=>`<button class="pill" data-tslot="${i}" aria-pressed="${i===TEAMS.cur}"><span data-notr>${esc(teamName(i))}</span><small>${(i===TEAMS.cur?team:s.team).length}${L('匹','')}</small></button>`).join('');
   {const ta=document.getElementById('tarch');if(ta)ta.innerHTML=teamArchHTML(team)}
@@ -161,10 +170,13 @@ function teamRender(){
     sl.hidden=em;
   }
   document.querySelectorAll('#slots .tile[data-ti]').forEach(t=>t.onclick=e=>{if(e.target.closest('button'))return;nav('#/edit/'+t.dataset.ti)});
-  document.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>{
+  /* 選出する（2026/11/15 依頼主「押すとラグがある」）：押したらすぐボタンの見た目を変え、重い描き直し（診断の計算）は画面が変わったあとに1回だけ */
+  document.querySelectorAll('[data-sel]').forEach(b=>b.onclick=e=>{
+    /* 枠（.tile）の「押すと育成の画面へ」に届かないように。見た目を変えると押した所の要素が入れかわり、枠の側でボタンと分からなくなるため */
+    e.stopPropagation();
     const x=team[+b.dataset.sel];
     if(!x.sel&&team.filter(y=>y.sel).length>=PICK()){toast(`${FMTN()}で選出できるのは${PICK()}匹までです`);return}
-    x.sel=!x.sel;saveTeam();teamRender()});
+    x.sel=!x.sel;selBtnPaint(b,x.sel);saveTeam();teamRenderSoon()});
   document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{team.splice(+b.dataset.rm,1);saveTeam();teamRender()});
 
   {const st=document.getElementById('tsteps');if(st){st.innerHTML=teamStepsHTML();teamStepsBind(st)}}
