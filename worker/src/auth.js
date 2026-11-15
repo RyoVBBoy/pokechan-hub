@@ -90,10 +90,11 @@ async function userApi(req,env,db,path,body,now){
         if(k==='mon'&&!/^\d{1,5}$/.test(id))continue;if(k==='type'&&String(id).length>8)continue;
         if(!e||typeof e!=='object')continue;out[k][id]={t:clean(String(e.t||''),400),at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+e.at||0)))}}
       /* パーティの戦術メモ（7つの項目）：パーティの枠 0〜2 ごと */
-      const SECS=['kind','lead','pivot','mega','win','lose','flow'];
+      /* 2026/11/15：パーティの画面の「自分の言葉で書く」（arch 型・style 戦い方・str 強み・plan 流れ）も同じ枠に */
+      const SECS=['kind','lead','pivot','mega','win','lose','flow','tp','arch','style','str','plan'];
       for(const [id,e] of Object.entries((m.party&&typeof m.party==='object')?m.party:{}).slice(0,3)){
         if(!/^[0-2]$/.test(id)||!e||typeof e!=='object')continue;const s={};
-        SECS.forEach(k=>{const v=e.s&&typeof e.s==='object'?e.s[k]:'';if(v)s[k]=clean(String(v),600)});
+        SECS.forEach(k=>{const v=e.s&&typeof e.s==='object'?e.s[k]:'';if(v)s[k]=k==='tp'?String(v).replace(/[^a-z,]/g,'').slice(0,120):clean(String(v),k==='arch'?40:600)});
         out.party[id]={s,at:Math.min(Date.now()+864e5,Math.max(0,Math.floor(+e.at||0))),sig:String(e.sig||'').replace(/[^\d-]/g,'').slice(0,40)}}
       const txt=JSON.stringify(out);if(txt.length>200000)return J({error:'メモが多すぎます。'},400);
       await db.prepare(`INSERT INTO user_data(uid,memo,updated_at) VALUES(?,?,0) ON CONFLICT(uid) DO UPDATE SET memo=excluded.memo`).bind(me.uid,txt).run();

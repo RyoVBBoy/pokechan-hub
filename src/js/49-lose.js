@@ -116,7 +116,7 @@ const LOSE_CHECK=[
    上に4つの段階（構築・選出・プレイング・情報戦）の診断の状態、下に見つかった原因を重い順に3つ。
    1つずつ「なぜ起きるか」「次の一手」とボタン、「戦術メモの負け筋に書く」（55-memo.js のパーティの戦術メモ⑥）。 */
 /* 2026/11/15 依頼主（P0）：「敗因」「負ける原因」は使わない（実際の対戦の記録が無いのに負けの原因と言い切らない・パーティを責めない） */
-const LS_HEAD='<div class="sec"><h2>気をつけたい場面</h2></div><p class="note" style="padding-top:0">苦手な相手・場面と、次の一手です。</p>';
+const LS_HEAD='<div class="sec"><h2>苦手になりやすい場面</h2></div><p class="note" style="padding-top:0">構築・選出・プレイングのどこでつまずきやすいかと、次の一手です。</p>';
 function loseHTML(){
   return `<div id="lose-box">${LS_HEAD}<p class="empty" style="padding:14px">診断中…</p></div>`;
 }

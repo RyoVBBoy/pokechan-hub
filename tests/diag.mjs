@@ -590,11 +590,12 @@ const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum')
   r.weak=[...box.querySelectorAll('.dgu-weak .dgu-wt')].map(x=>x.textContent).join('|')===calc.slice(0,3).map(x=>x.t.replace(/<[^>]+>/g,'')).join('|');
   r.order=calc.every((x,k)=>!k||calc[k-1].sev>=x.sev);
   r.jump=[...box.querySelectorAll('[data-dgu-go]')].every(a=>!!document.getElementById(a.dataset.dguGo));
-  r.sel=[...box.querySelectorAll('.dgu-mon')].map(x=>x.firstChild.textContent).join('・')===S.best.c.map(S.nm).join('・')&&box.querySelector('.dgu-lead').firstChild.textContent===S.nm(S.best.lead1[0].i);
+  {const st=document.getElementById('st-box'),nmT=i=>byNo[team[i].no].n,got=[...st.querySelectorAll('.stg-sel li>b')].map(x=>x.textContent);
+    r.sel=got.length===S.best.c.length&&S.best.c.every(i=>got.includes(nmT(i)))&&st.querySelector('.stg-lead>b').textContent===nmT(S.best.lead1[0].i)}
   const R=impCached(team);r.imp=!!R&&!!R.list.length&&document.querySelector('#dgu-imp .dgu-it b').textContent===R.list[0].title&&document.querySelectorAll('#imp-box .imp-c').length===R.list.length;
   r.reuse=impGet(team)===R;
   r.over=document.body.scrollWidth<=innerWidth;
-  r.top=box.getBoundingClientRect().top<document.getElementById('dg-box').getBoundingClientRect().top;
+  r.top=!!(box.compareDocumentPosition(document.getElementById('dg-box'))&Node.DOCUMENT_POSITION_FOLLOWING)&&!!(document.getElementById('st-box').compareDocumentPosition(box)&Node.DOCUMENT_POSITION_FOLLOWING);
   return r});
 ok(U0[0]&&U0[1],'診断のまとめ・改善案の「計算中」 '+U0);
 ok(U.bars,'まとめの◎○△×の匹数・割合が計算と違う');
@@ -611,7 +612,7 @@ const U5=await pg.evaluate(()=>{const R=impCached(team),box=document.getElementB
   r.vis=box.querySelectorAll(':scope > .imp-c').length===Math.min(3,R.list.length)&&(R.list.length<=3||!!box.querySelector('.imp-more .imp-c'));
   r.met=R.list.every((o,k)=>{const rows=[...cards[k].querySelectorAll('.imp-mr')];const want=IMP_MET.filter(([key])=>o.J.b[key]!=null&&o.J.a[key]!=null&&o.J.b[key]!==o.J.a[key]);
     return rows.length===want.length&&want.every(([key,,low],j)=>{const t=rows[j].querySelector('.imp-mv').textContent;return t.startsWith(o.J.b[key]+'→'+o.J.a[key])&&rows[j].classList.contains((low?o.J.a[key]<o.J.b[key]:o.J.a[key]>o.J.b[key])?'up':'dn')})});
-  r.dn=cards.every(c=>{const d=c.querySelector('.imp-d');return d&&!d.closest('details:not(.imp-more)')});
+  r.dn=cards.every(c=>{const d=c.querySelector('.imp-d');return d&&!d.closest('details:not(.imp-more):not(.dg-adv)')});
   r.btn=cards.every((c,k)=>c.querySelector('[data-imp]').dataset.imp===String(k));
   r.over=document.body.scrollWidth<=innerWidth;return r});
 ok(U5.none||Object.values(U5).every(Boolean),'改善案のカード '+JSON.stringify(U5));
@@ -627,7 +628,7 @@ for(const W of [320,390]){await pg.setViewportSize({width:W,height:844});await p
   ok(!U6.small.length&&!U6.tiny.length&&!U6.out.length&&U6.jump,'スマホ幅'+W+'の診断の画面 '+JSON.stringify(U6).slice(0,400))}
 await pg.setViewportSize({width:390,height:844});
 /* UI改善 第7段階：関連画面（タブをまたぐ移動で中身が見える・変更前→変更後の部品をほかの画面でも使う） */
-await pg.evaluate(()=>document.querySelector('#dgu-sum [data-dgu-tab]').click());await pg.waitForTimeout(1500);
+await pg.evaluate(()=>document.querySelector('#st-box [data-dgu-tab]').click());await pg.waitForTimeout(1500);
 const U7a=await pg.evaluate(()=>{const d=document.getElementById('sel-box');return [TTAB==='plan',!!d&&!!d.offsetParent,!!d&&Math.abs(d.getBoundingClientRect().top-72)<41,document.querySelector('[data-tp="check"]').hidden]});
 ok(U7a.every(Boolean),'まとめから選出の比較へ移れない '+U7a);
 await pg.evaluate(()=>document.querySelector('[data-go-check]').click());await pg.waitForTimeout(2500);

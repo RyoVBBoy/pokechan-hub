@@ -311,7 +311,7 @@ function memoPartyEdit(){
   V.querySelectorAll('.mp-s textarea').forEach(ta=>{grow(ta);ta.addEventListener('input',()=>grow(ta))});
   V.querySelectorAll('[data-mp-team]').forEach(b=>b.onclick=()=>{switchTeam(+b.dataset.mpTeam);memoPartyEdit()});
   V.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const ta=V.querySelector(`.mp-s[data-k="${b.dataset.r}"] textarea`);ta.value=auto[b.dataset.r]||'';grow(ta)});
-  document.getElementById('mp-save').onclick=()=>{const s={};
+  document.getElementById('mp-save').onclick=()=>{const s={};['tp','arch','style','str','plan'].forEach(k=>{if(own[k])s[k]=own[k]});
     V.querySelectorAll('.mp-s').forEach(d=>{const k=d.dataset.k,v=d.querySelector('textarea').value.trim().slice(0,MP_MAX);
       /* 下書きのまま変えていない項目は保存しない（パーティを変えたら下書きも新しくなるように） */
       if(v&&!(v===(auto[k]||'').trim()&&!own[k]))s[k]=v});

@@ -359,6 +359,8 @@ r=await call('/api/me/memo',{method:'POST',tok:A,body:{memo:{mon:{445:{t:'上か
 r=await call('/api/me/memo',{tok:A});expect('メモを読み出せる（変な番号は捨てる）',r[0]===200&&r[1].memo.mon[445].t==='上から殴る'&&!r[1].memo.mon.bad&&r[1].memo.type['はがね'].t==='ほのおを残す',r[1]);
 r=await call('/api/me/memo',{method:'POST',tok:A,body:{memo:{mon:{},type:{},party:{'0':{s:{win:'プランA：積んで全抜き',zzz:'x'},at:7},'9':{s:{win:'x'},at:1}}}}});
 r=await call('/api/me/memo',{tok:A});expect('パーティの戦術メモを読み出せる（知らない項目・枠は捨てる）',r[0]===200&&r[1].memo.party['0'].s.win==='プランA：積んで全抜き'&&!r[1].memo.party['0'].s.zzz&&!r[1].memo.party['9'],r[1]);
+r=await call('/api/me/memo',{method:'POST',tok:A,body:{memo:{mon:{},type:{},party:{'1':{s:{arch:'雨パ・スタンダード'+'x'.repeat(80),style:'雨で押し切る',str:'イダイトウが速い',plan:'序盤：雨',win:'w'},at:9}}}}});
+r=await call('/api/me/memo',{tok:A});{const s=r[1].memo&&r[1].memo.party['1']&&r[1].memo.party['1'].s||{};expect('書いた戦い方（型・戦い方・強み・流れ）も残る・型は40字まで',r[0]===200&&s.style==='雨で押し切る'&&s.str&&s.plan&&s.win==='w'&&[...s.arch].length<=40&&s.arch.startsWith('雨パ'),s)}
 r=await call('/api/me/memo',{tok:B});expect('ほかの人のメモは見えない',r[0]===200&&!(r[1].memo&&r[1].memo.mon&&r[1].memo.mon[445]),r[1]);
 /* 使用量（2026/11/05）：AI を呼んだ回数・断られた回数が数えられ、管理者だけが見られる */
 r=await call('/api/admin/quota');expect('使用量は管理者だけ',r[0]===401,r);

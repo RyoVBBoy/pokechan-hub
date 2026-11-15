@@ -269,6 +269,9 @@ function twComposer(prof,onDone){
       fi.onchange=async()=>{const fs=[...fi.files].slice(0,4-imgs.length);fi.value='';if(!fs.length){toast('画像は4枚までです');return}
         for(const f of fs){try{const x=await twShrink(f);x.url=URL.createObjectURL(x.blob);imgs.push(x)}catch(err){toast(err.message)}}drawPv();upd()};
       t.oninput=upd;
+      /* ほかの画面から文と画像を入れて開く（78-strategy.js の「この戦い方を投稿する」） */
+      if(typeof TWC_PRE!=='undefined'&&TWC_PRE){const pre=TWC_PRE;TWC_PRE=null;t.value=pre.text||'';upd();
+        (async()=>{for(const bl of pre.blobs||[]){try{const x=await twShrink(new File([bl],'card.png',{type:bl.type||'image/png'}));x.url=URL.createObjectURL(x.blob);imgs.push(x)}catch(err){}}drawPv();upd()})()}
       b.onclick=async()=>{b.disabled=true;
         try{const media=[];for(let i=0;i<imgs.length;i++){b.textContent=`画像を送信中 ${i+1}/${imgs.length}`;media.push(await twUpload(imgs[i]))}
           b.textContent='投稿する';await authFetch('/api/notes',{body:t.value,media});

@@ -57,14 +57,14 @@ ok(R.prem,'計算の前提にどのメガで計算したかを書く');
 /* ---- 画面：チェックのタブにメガの切りかえ ---- */
 await pg.evaluate(()=>{dgMegaSet(0);saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';location.hash='#/team'});
 await pg.waitForTimeout(2500);
-const U=await pg.evaluate(()=>{const bar=document.querySelector('#dgu-sum .dgm-bar');if(!bar)return{bar:false};
+const U=await pg.evaluate(()=>{const bar=document.querySelector('#st-box .dgm-bar');if(!bar)return{bar:false};
   const bs=[...bar.querySelectorAll('[data-dgm]')];
   return{bar:true,n:bs.length,auto:bs[0].getAttribute('aria-pressed')==='true',h44:bs.every(x=>x.getBoundingClientRect().height>=44),
     over:document.body.scrollWidth>window.innerWidth+1,txt:/1回の対戦でメガシンカできるのは1匹だけ/.test(bar.textContent)}});
 ok(U.bar&&U.n===3&&U.auto&&U.txt,'チェックのタブに、どのメガで計算したかと切りかえ（自動＋2匹） '+JSON.stringify(U));
 ok(U.h44&&!U.over,'ボタンは高さ44px以上・390pxではみ出さない');
-await pg.evaluate(()=>document.querySelectorAll('#dgu-sum [data-dgm]')[2].click());await pg.waitForTimeout(2500);
-const U2=await pg.evaluate(()=>{const bs=[...document.querySelectorAll('#dgu-sum [data-dgm]')];const T=dgTeam(team,20);
+await pg.evaluate(()=>document.querySelectorAll('#st-box [data-dgm]')[2].click());await pg.waitForTimeout(2500);
+const U2=await pg.evaluate(()=>{const bs=[...document.querySelectorAll('#st-box [data-dgm]')];const T=dgTeam(team,20);
   return{pressed:bs.length===3&&bs[2].getAttribute('aria-pressed')==='true'&&bs[0].getAttribute('aria-pressed')==='false',sel:dgMegaSel()===+bs[2].dataset.dgm,mode:T.mega.mode,same:T.ms[T.mega.i].x.no===dgMegaSel()}});
 ok(U2.pressed&&U2.sel&&U2.mode==='user'&&U2.same,'押すとそのメガで計算し直して描き直す '+JSON.stringify(U2));
 await pg.evaluate(()=>dgMegaSet(0));

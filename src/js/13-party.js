@@ -198,7 +198,11 @@ function teamRender(){
   const swOf=x=>`${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>選出を付けかえ</small>':''}${w.set?`<small class="pc-swc"><b>計算に使った${esc(w.inP.n)}の育成</b>（${esc(byNo[w.out.x.no].n)}の持ち物・技は引きつがない）：${esc(w.set)}</small>`:''}${w.cb&&typeof dguChgHTML==='function'?dguChgHTML(w.cb,w.ca,{title:'入れかえた6匹で計算し直した数',note:w.cnote}):w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}${w.up?`<small class="pc-swc pc-up"><b>良くなる：</b>${w.up.length?w.up.map(esc).join('／'):'なし'}</small><small class="pc-swc pc-dn"><b>悪くなる：</b>${w.dn.length?w.dn.map(esc).join('／'):'なし'}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}`,chOf=x=>`${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}`;
   const item=(x,bad)=>typeof dguCard==='function'?dguCard(x,bad,swOf(x),chOf(x)):`<div class="pc-i ${bad?'pc-fix':'pc-ok'}${x.sev&&bad?' pc-s'+x.sev:''}"${x.id?` id="${x.id}"`:''}><b>${bad?'！':'✓'} ${x.area?`<span class="pc-area">${esc(x.area)}</span>`:''}${x.sev&&bad?`<span class="pc-sev pc-sev${x.sev}">${DG_SEV[x.sev]}</span>`:''}${x.t}</b>${x.d?`<p>${x.d}</p>`:''}${x.ev&&x.ev.length?`<ul class="pc-ev">${x.ev.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}${x.how?`<p class="pc-how"><b>こうすると良くなる：</b>${x.how}</p>`:''}${x.sw&&x.sw.length?`<div class="pc-sws">${x.sw.map(w=>`<div class="pc-sw"><span><b>${esc(w.out.p.n)}</b> → <a href="#/p/${w.inP.no}">${esc(w.inP.n)}</a>${w.inX?'<small>選出を付けかえ</small>':''}${w.set?`<small class="pc-swc"><b>計算に使った${esc(w.inP.n)}の育成</b>（${esc(byNo[w.out.x.no].n)}の持ち物・技は引きつがない）：${esc(w.set)}</small>`:''}${w.cb&&typeof dguChgHTML==='function'?dguChgHTML(w.cb,w.ca,{title:'入れかえた6匹で計算し直した数',note:w.cnote}):w.calc?`<small class="pc-swc">${esc(w.calc)}</small>`:''}${w.up?`<small class="pc-swc pc-up"><b>良くなる：</b>${w.up.length?w.up.map(esc).join('／'):'なし'}</small><small class="pc-swc pc-dn"><b>悪くなる：</b>${w.dn.length?w.dn.map(esc).join('／'):'なし'}</small>`:''}</span><button class="bback" data-psw="${team.indexOf(w.out.x)}:${w.inX?'x'+team.indexOf(w.inX):w.inP.no}">入れかえる</button></div>`).join('')}</div>`:''}${x.c&&x.c.length?`<div class="pills gchips" style="padding:6px 0 0">${x.c.map(p=>`<a class="pill gchip" href="#/p/${p.no}">${esc(formInfo(p).base)}${formInfo(p).tag?'（'+esc(formInfo(p).tag)+'）':''}</a>`).join('')}</div>`:''}</div>`;
   C.fix.filter(x=>x.k==='calc').forEach((x,k)=>x.id='pcw'+k);
-  out.innerHTML=`${dgModeNote(TEAM_DGMODE)}${typeof dguSumHTML==='function'&&team.length>=2?dguSumHTML():''}${teamStepsHTML()}${loseHTML()}${dgHTML()}${typeof impHTML==='function'&&team.length>=3?impHTML():''}
+  /* 2026/11/15 依頼主「Party Evaluation Redesign」：最初に戦い方・強み・選出・流れ（78-strategy.js）→ 気をつけたい相手・場面 → くわしい分析（たたむ。中身は前のまま） */
+  let advOpen=false;try{advOpen=sessionStorage.getItem('pcdgadv')==='1'}catch(e){}
+  out.innerHTML=`${dgModeNote(TEAM_DGMODE)}${typeof stHTML==='function'&&team.length>=2?stHTML():''}${teamStepsHTML()}${typeof dguSumHTML==='function'&&team.length>=2?dguSumHTML():''}${loseHTML()}
+  <details id="dg-adv" class="dg-adv"${advOpen?' open':''}><summary><b>くわしい分析</b><small>相手ごとの対応力・改善案・パーティのチェックの全項目</small></summary>
+  ${dgHTML()}${typeof impHTML==='function'&&team.length>=3?impHTML():''}
   <div class="sec"><h2>パーティのチェック</h2></div>
   <p class="note" style="padding-top:0">${C.scope}を、使用率の上位の相手との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
@@ -208,7 +212,10 @@ function teamRender(){
       (fo.length?`<h3 class="pc-h">組み合わせのポイント（${fo.length}件）</h3><p class="note" style="padding-top:0">パーティの形（タイプの重なり・持ち物・技の組み合わせ）の点検です。</p>${fo.map(x=>item(x,true)).join('')}`:'')})()}${C.fix.length?'':'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.ref&&C.ref.length?`<details class="pc-ref"><summary>参考（タイプ相性の上で・役割の重なり）${C.ref.length}件</summary>${C.ref.map(x=>item(x,'ref')).join('')}</details>`:''}
   ${C.premise?`<details class="pc-ref"><summary>計算の前提</summary><p class="note">${esc(C.premise)}</p></details>`:''}
+  </details>
   ${adSlot('診断結果下')}`;teamStepsBind(out);dgWaitBind(out,teamRender);
+  {const ad=out.querySelector('#dg-adv');if(ad)ad.addEventListener('toggle',()=>{try{sessionStorage.setItem('pcdgadv',ad.open?'1':'0')}catch(e){}})}
+  if(typeof stFill==='function')setTimeout(()=>stFill(team),0);
   if(typeof dguSumFill==='function')setTimeout(()=>dguSumFill(team,C),0);setTimeout(()=>loseFill(team),20);setTimeout(()=>dgFill(team),40);if(typeof impFill==='function')impFill(team);
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
   out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=async()=>{
@@ -218,8 +225,11 @@ function teamRender(){
     const st=PC_SWSET[q.no];team[+i]={no:q.no,sel:o.sel,...(st?{set:JSON.parse(JSON.stringify(st))}:{})};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
 }
 /* パーティの画面のタブを切りかえて、中の場所（id）まで送る（2026/11/10 UI改善 第7段階：TTAB を変えて描き直すだけでは中身が隠れたままだったので、タブのボタンと同じ切りかえを使う） */
+/* くわしい分析（たたんだ枠）の中へ移動するときは開く */
+function dgAdvOpen(id){const t=id&&document.getElementById(id),d=t&&t.closest('details.dg-adv');if(d&&!d.open){d.open=true;try{sessionStorage.setItem('pcdgadv','1')}catch(e){}}}
 function ttJump(k,id){const b=document.querySelector(`#tt-seg [data-tt="${k}"]`);if(b&&TTAB!==k)b.click();else if(!b){TTAB=k;try{sessionStorage.setItem('pcttab',k)}catch(e){}teamRender()}
   if(!id){scrTo(0,0);return}
+  dgAdvOpen(id);
   {const t=document.getElementById(id),pp=t&&t.closest('[data-psub-p]');if(pp&&pp.hidden)psubGo(document.getElementById('tplan'),pp.dataset.psubP)}
   let n=0;const go=()=>{const t=document.getElementById(id);if(t&&t.offsetParent){t.scrollIntoView({block:'start'});/* 上の中身があとから描かれて位置がずれたら、もう一度合わせる */setTimeout(()=>{const y=t.getBoundingClientRect().top;if(Math.abs(y-72)>40)t.scrollIntoView({block:'start'})},700);t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}else if(n++<20)setTimeout(go,100)};setTimeout(go,80)}
 function planBind(pl){

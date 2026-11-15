@@ -31,16 +31,8 @@ function dguSumFill(entries,C){
   /* 最も深刻な弱点：パーティのチェックの計算の弱点と同じ並び（partyCheck の fix のうち計算のもの＝重い順）の先頭3つ */
   const W=(C&&C.fix?C.fix.filter(x=>x.k==='calc'):A.bad).slice(0,3);
   const nBad=(C&&C.fix?C.fix.filter(x=>x.k==='calc'):A.bad).length;
-  let S=null;try{S=dgSelect(entries)}catch(e){}
-  const nm=i=>esc(formInfo(T.ms[i].p).base);
-  const sel=S&&S.best?(()=>{const b=S.best,ld=b.pairs?b.pairs[0].pr:[b.lead1[0].i];
-    return `<div class="dgu-sec"><h3>おすすめの選出</h3><p class="dgu-sel">${b.c.map(i=>`<span class="dgu-mon${ld.includes(i)?' dgu-lead':''}">${nm(i)}${ld.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
-      <p class="dgu-note">${S.list.length}通りの選出を比べた1番です。この選出で ◎${b.cnt[4]}・○${b.cnt[3]}・△${b.cnt[2]}・×${b.cnt[1]}（上位${S.N}匹）。${b.pairs?'先発2匹は簡易比較です。':''}</p>
-      <button class="dgu-link" data-dgu-tab="plan">選出の理由・先発の比較を見る（構築 › 選出アシスト）</button></div>`})():'';
-  box.innerHTML=`<div class="dgu-head"><h2>診断のまとめ</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
-    ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
-    <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','優先ポイント'],['lose-box','気をつけたい場面'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
-    ${dguGoodHTML(C,cnt,N)}
+  box.innerHTML=`<div class="dgu-head"><h2>気をつけたい相手・場面</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
+    <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','優先ポイント'],['lose-box','苦手になりやすい場面'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
     <div class="dgu-sec"><h3>パーティの状態</h3>
       <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${dguSevTag(areaSev(a))}</div>`).join('')}</div>
       ${dguBars(cnt,N)}
@@ -50,10 +42,8 @@ function dguSumFill(entries,C){
       ${W.length?`<ol class="dgu-weak">${W.map((x,k)=>`<li><a href="#" data-dgu-go="pcw${k}">${dguSevTag(x.sev||1)}<span class="dgu-wa">${esc(x.area||'')}</span><span class="dgu-wt">${x.t}</span></a></li>`).join('')}</ol>`:'<p class="dgu-ok">✓ 優先して見直すポイントはありません。</p>'}</div>
     <div class="dgu-sec"><h3>まず試したい改善</h3>
       ${W.length&&W[0].how?`<p class="dgu-how"><b>${esc(W[0].t.replace(/<[^>]+>/g,''))}</b>：${W[0].how}</p>`:''}
-      <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>
-    ${sel}`;
-  if(typeof dgMegaBind==='function')dgMegaBind(box);
-  box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
+      <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>`;
+  box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();dgAdvOpen(a.dataset.dguGo);const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
   /* 選出の理由へ：構築と選出タブの「選出の比較」まで送る（タブの切りかえは ttJump） */
   box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>ttJump(b.dataset.dguTab,'sel-box'));
   /* 改善案：画面を出したあと後ろで計算（すでにあれば使い回す） */
@@ -71,7 +61,7 @@ function dguImpHTML(R){
 function dguImp(entries){
   const el=document.getElementById('dgu-imp');if(!el)return;
   const show=R=>{const e=document.getElementById('dgu-imp');if(!e)return;e.innerHTML=dguImpHTML(R);
-    e.querySelectorAll('[data-dgu-go2]').forEach(b=>b.onclick=()=>{const t=document.getElementById(b.dataset.dguGo2);if(t)t.scrollIntoView({behavior:'smooth',block:'start'})});
+    e.querySelectorAll('[data-dgu-go2]').forEach(b=>b.onclick=()=>{dgAdvOpen(b.dataset.dguGo2);const t=document.getElementById(b.dataset.dguGo2);if(t)t.scrollIntoView({behavior:'smooth',block:'start'})});
     const box=document.getElementById('imp-box');if(box&&typeof impRender==='function')impRender(box,R)};
   const c=typeof impCached==='function'&&impCached(entries);if(c){show(c);return}
   const sig=impKey(entries);
