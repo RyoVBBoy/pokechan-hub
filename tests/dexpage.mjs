@@ -1,0 +1,68 @@
+/* 図鑑のページの6つのタブ（2026/11/15 79-dexpage.js）：前の7つ（種族値・解説・実数値・弱点・対策・技・特性）の中身がどこかに残る・姿ごとのデータ・
+   型の出典の札・シングル/ダブル・パーティに入れるときは置きかえを確かめる・390/320px ではみ出さない */
+import {chromium} from 'playwright';
+import {fileURLToPath} from 'url';import path from 'path';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
+let fail=0,n=0;const ok=(c,m)=>{n++;if(!c){fail++;console.log('  NG',m)}};
+const ctx=await b.newContext({locale:'ja-JP',viewport:{width:390,height:844},colorScheme:'dark'});const pg=await ctx.newPage();
+const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/^https?:/,r=>r.abort());await pg.goto('file://'+root+'/dist/index.html');await pg.waitForTimeout(600);
+const open=async no=>{await pg.evaluate(n=>{location.hash='#/p/'+n},String(no));await pg.waitForTimeout(500)};
+const tab=async i=>{await pg.click(`#seg [data-i="${i}"]`);await pg.waitForTimeout(i===4||i===0?900:350)};
+/* 1枚の姿・メガのある姿・タイプが変わるメガ・特性が変わるメガ（リザードン）・戦闘中に姿が変わる（ギルガルド）・天気（ペリッパー・イダイトウ） */
+const SAMPLE=[445,10058,10309,6,681,279,902,130];
+for(const no of SAMPLE){
+  await open(no);
+  const labels=await pg.$$eval('#seg button',x=>x.map(e=>e.textContent).join(','));
+  ok(labels==='概要,能力,相性,技・特性,型・育成,対策',no+' タブは6つ '+labels);
+  for(let i=0;i<6;i++){await tab(i);
+    const r=await pg.evaluate(i=>{const el=document.querySelector(`[data-panel="${i}"]`);const t=el.innerText;return{len:t.length,bad:/undefined|NaN|\[object/.test(t),over:document.body.scrollWidth>innerWidth+1,clip:[...document.querySelectorAll('#seg button')].some(b=>b.scrollWidth>b.clientWidth+1)}},i);
+    ok(r.len>80&&!r.bad&&!r.over&&!r.clip,`${no} タブ${i}：中身がある・undefined なし・はみ出さない ${JSON.stringify(r)}`)}
+}
+/* 前の7つの中身がどこにあるか */
+await open(445);
+await tab(1);const S=await pg.evaluate(()=>({stat:[...document.querySelectorAll('[data-panel="1"] .stat b')].map(b=>+b.textContent).join(),p:byNo[445].s.join(),radar:!!document.querySelector('[data-panel="1"] .radarbox'),sp:!!document.getElementById('sp0'),cond:/レベル50/.test(document.querySelector('.dp-cond').textContent),spd:document.getElementById('spd-note').textContent,rk:/メガシンカの姿は入れていない/.test(document.querySelector('[data-panel="1"]').textContent)}));
+ok(S.stat===S.p&&S.radar&&S.sp&&S.cond&&/位/.test(S.spd)&&S.rk,'能力＝種族値と実数値（条件と素早さの順位の比べ方つき） '+JSON.stringify(S));
+await tab(2);const M=await pg.evaluate(()=>({t:document.querySelector('[data-panel="2"]').innerText}));
+ok(/大弱点/.test(M.t)&&/こおり/.test(M.t)&&/攻めるとき/.test(M.t)&&/タイプ相性だけの目安/.test(M.t),'相性＝受けるとき（4倍の弱点）と攻めるとき・タイプ相性だけと書く');
+await tab(3);ok(await pg.$$eval('#mvpanel .mvr',x=>x.length)>=40&&/技の入れかえ候補/.test(await pg.evaluate(()=>document.querySelector('[data-panel="3"]').innerText)),'技・特性＝覚える技の一覧・入れかえ候補');
+const RP=await pg.evaluate(()=>[...document.querySelectorAll('.dp-rp')].map(e=>e.innerText).slice(0,2));
+ok(RP.length&&RP.every(t=>/良くなること/.test(t)&&/失うこと/.test(t)),'入れかえ候補に良くなること・失うこと');
+await tab(5);ok(await pg.$$eval('#brpanel .row',x=>x.length)>=3&&/上から一撃/.test(await pg.evaluate(()=>document.querySelector('[data-panel="5"]').innerText)),'対策＝崩し方と場面ごとの相手（理由つき）');
+await tab(0);const O=await pg.evaluate(()=>document.querySelector('[data-panel="0"]').innerText);
+ok(/物理アタッカーとして使いやすい/.test(O)&&!/積んで勝負を決める役として使いやすい/.test(O)&&/型によっては/.test(O),'概要：積み技のない型まで積む役とは書かない '+O.split('\n')[2]);
+ok(/ほかの姿/.test(O)&&/メガ Z/.test(O),'概要：ほかの姿の違い');
+/* 姿ごとのデータ：メガガブリアスZはドラゴンだけ（こおり4倍ではない）・タイプ一致はドラゴン */
+await open(10309);await tab(2);const Z=await pg.evaluate(()=>document.querySelector('[data-panel="2"]').innerText);
+ok(!/大弱点/.test(Z)&&/タイプ一致技（\s*ドラゴン）/.test(Z.replace(/\n/g,'')),'メガガブリアスZの相性はその姿のタイプで');
+await tab(1);const ZS=await pg.evaluate(()=>[...document.querySelectorAll('[data-panel="1"] .stat b')].map(b=>+b.textContent).join()===byNo[10309].s.join());
+ok(ZS,'メガガブリアスZの種族値はその姿の値');
+await tab(0);ok(/メガシンカで変わるところ/.test(await pg.evaluate(()=>document.querySelector('[data-panel="0"]').innerText)),'メガの姿の概要にメガシンカで変わるところ');
+/* 型・育成：出典の札・シングルとダブルを分ける */
+await open(445);await tab(4);
+const B1=await pg.evaluate(()=>({n:document.querySelectorAll('#bdpanel .gset').length,meta:[...document.querySelectorAll('#bdpanel .gset')].every(g=>g.querySelector('.gset-meta .gsm-v')),f:[...document.querySelectorAll('#bdpanel .gsm-f')].map(e=>e.textContent),sec:[...document.querySelectorAll('#bdpanel .dp-bsec>h3')].map(h=>h.textContent)}));
+ok(B1.n>=1&&B1.meta&&B1.f.every(x=>x==='シングル')&&/実際の使用データ/.test(B1.sec[0])&&/計算で組んだ提案/.test(B1.sec[1])&&/自分で組む/.test(B1.sec[2]),'型：3つに分け、出典の札、シングルだけ '+JSON.stringify(B1));
+await pg.click('[data-dpf="double"]');await pg.waitForTimeout(300);
+const B2=await pg.evaluate(()=>[...document.querySelectorAll('#bdpanel .gsm-f')].map(e=>e.textContent));
+ok(B2.length&&B2.every(x=>x==='ダブル'),'ダブルに切りかえるとダブルの型だけ '+B2.join());
+await pg.click('[data-dpf="single"]');await pg.waitForTimeout(300);
+/* パーティに入れる：同じポケモンの育成があれば確かめる（キャンセルで変わらない）・6匹なら入れない */
+await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s).no;team.length=0;team.push({no:445,sel:true,set:{it:{k:'focussash',n:'x'},mv:[],ab:null,sp:null,up:-1,dn:-1}});saveTeam()});
+await pg.click('#bdpanel [data-useset]');await pg.waitForSelector('.xc.on .xc-no');await pg.click('.xc-no');await pg.waitForTimeout(250);
+ok(await pg.evaluate(()=>team[0].set.it.k==='focussash'),'置きかえはキャンセルできる');
+await pg.click('#bdpanel [data-useset]');await pg.waitForSelector('.xc.on .xc-ok');await pg.click('.xc-ok');await pg.waitForTimeout(250);
+const U=await pg.evaluate(()=>({it:team[0].set.it.k,mv:team[0].set.mv.length,src:team[0].set.src,len:team.length}));
+ok(U.it!=='focussash'&&U.mv>=2&&U.src==='copy'&&U.len===1,'確かめてから型に置きかえる '+JSON.stringify(U));
+await pg.evaluate(()=>{team.length=0;[3,6,9,25,130,149].forEach(no=>team.push({no,sel:false}));saveTeam()});
+await pg.click('#bdpanel [data-useset]');await pg.waitForTimeout(300);
+ok(await pg.evaluate(()=>team.length===6&&!team.some(x=>x.no===445)),'6匹そろっていれば入れない（黙って入れかえない）');
+/* 対策を見る（#/p/番号/break）は対策タブで開く */
+await pg.evaluate(()=>{location.hash='#/p/445/break'});await pg.waitForTimeout(700);
+ok(await pg.evaluate(()=>document.querySelector('#seg [aria-selected="true"]').dataset.i)==='5','#/p/番号/break は対策タブ');
+/* 320px でもタブの文字が切れない */
+await pg.setViewportSize({width:320,height:700});await open(445);
+ok(await pg.evaluate(()=>![...document.querySelectorAll('#seg button')].some(b=>b.scrollWidth>b.clientWidth+1)&&document.body.scrollWidth<=innerWidth+1),'320px でタブの文字が切れない');
+ok(!errs.length,'エラーなし '+errs.join(' / '));
+await b.close();
+if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);

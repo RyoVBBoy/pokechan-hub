@@ -40,7 +40,7 @@ const aegisSwitchHTML=p=>{const f=FORM_SWITCH[p.no];return f?`<div class="bsw"><
   <button class="bsw-t" id="bsw" role="switch" aria-checked="false" aria-label="${fsLabel(f,false)}"><i></i></button>
   <span class="bsw-l" data-side="1">${f.b}</span></div><p class="note bsw-n" id="bsw-n">${f.note}</p>`:''};
 function statFx(p){
-  const root=document.querySelector('#dp-pages [data-panel="0"]');if(!root)return;
+  const root=document.querySelector('#dp-pages [data-panel="1"]');if(!root)return;
   const fam=p.base||p.no;
   /* 同じポケモンの別の姿から来たら、前の姿のグラフから動かす */
   if(DP_LAST&&DP_LAST.fam===fam&&DP_LAST.no!==p.no){statPaint(root,DP_LAST.s,null,null,null);statMorph(root,DP_LAST.s,p.s)}

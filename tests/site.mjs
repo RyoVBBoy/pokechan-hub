@@ -19,7 +19,7 @@ for(const r of routes){
 }
 // 図鑑の「技・特性」タブ
 await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(300);
-await pg.click('#seg [data-i="5"]');await pg.waitForTimeout(200);
+await pg.click('#seg [data-i="3"]');await pg.waitForTimeout(200);
 const mvn=await pg.$$eval('.mvr',x=>x.length);if(mvn<40)fail('覚える技の表示が少なすぎます: '+mvn);
 // 画像つき投稿：送る前に縮める（長い辺1600px・WebPかJPEG）
 const sh=await pg.evaluate(async()=>{const c=document.createElement('canvas');c.width=3000;c.height=1000;c.getContext('2d').fillRect(0,0,10,10);
@@ -63,8 +63,8 @@ if(pcx.some(v=>!v))fail('パーティのチェック: '+pcx.join(','));
 // 構築の型：例のパーティを6匹組める
 const ab=await pg.evaluate(()=>ARCHS.filter(a=>{const ex=archBuild(a),ss=archSets(a,ex);return ex.length!==6||ss.some(x=>!x||x.moves.length!==4||x.sp.reduce((p,q)=>p+q,0)>66||!ITEMN[x.item])||new Set(ss.map(x=>x.item)).size!==6}).map(a=>a[0]));if(ab.length)fail('構築の型の例（6匹・技4つ・持ち物が重ならない）が組めません: '+ab.join(','));
 // 図鑑の「解説」タブ（データから組み立てる。全ポケモンでエラーにならない）
-await pg.click('#seg [data-i="1"]');await pg.waitForTimeout(200);
-if(!(await pg.$('#gmpanel .gset')))fail('解説タブに型の例が出ません');
+await pg.click('#seg [data-i="4"]');await pg.waitForTimeout(600);
+if(!(await pg.$('#bdpanel .gset')))fail('型・育成タブに型の例が出ません');
 const gbad=await pg.evaluate(()=>P.filter(p=>{try{return /undefined|NaN/.test(monGuide(p).replace(/<[^>]+>/g,''))}catch(e){return true}}).map(p=>p.n));
 if(gbad.length)fail('解説が作れないポケモン: '+gbad.slice(0,5).join('・'));
 // ダメージ計算が数字を出す
@@ -203,11 +203,11 @@ if(abc!=='false,うなぎのぼり,ほのおのたてがみ,はどうのぼう�
 // ギルガルドのバトルスイッチ（52-statmorph.js）：スイッチでブレードフォルムの種族値に変わる
 await pg.evaluate(()=>{location.hash='#/p/681'});await pg.waitForTimeout(500);
 await pg.evaluate(()=>document.getElementById('bsw').click());await pg.waitForTimeout(900);
-const bsw=await pg.evaluate(()=>[document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="0"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
+const bsw=await pg.evaluate(()=>[document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="1"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
 if(bsw.join()!=='true,60-140-50-140-50-60')fail('バトルスイッチ: '+bsw.join());
 await pg.evaluate(()=>{location.hash='#/p/964'});await pg.waitForTimeout(500);
 await pg.evaluate(()=>document.getElementById('bsw').click());await pg.waitForTimeout(900);
-const bsw2=await pg.evaluate(()=>[document.querySelector('.bsw .bsw-l[data-side="1"]').textContent,document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="0"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
+const bsw2=await pg.evaluate(()=>[document.querySelector('.bsw .bsw-l[data-side="1"]').textContent,document.getElementById('bsw').getAttribute('aria-checked'),[...document.querySelectorAll('#dp-pages [data-panel="1"] .stat b')].slice(0,6).map(b=>b.textContent).join('-')]);
 if(bsw2.join()!=='マイティフォルム,true,100-160-97-106-87-100')fail('マイティチェンジ: '+bsw2.join());
 // 図鑑の「元の姿・メガ」の切りかえはその場で（ページを移さない・スクロールとタブはそのまま・戻る履歴を増やさない）
 await pg.evaluate(()=>{location.hash='#/p/6'});await pg.waitForTimeout(500);

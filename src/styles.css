@@ -3014,3 +3014,23 @@ svg.temb{display:block;width:100%;height:100%;overflow:visible}
 #st-box input,#st-box .stg-acts{scroll-margin-bottom:140px}
 .tarch-own small{margin:0 4px 0 0}
 @media (max-width:699px){#st-box .stg-acts:last-of-type{margin-bottom:24px}}
+/* 図鑑のページの6つのタブ（2026/11/15 79-dexpage.js） */
+.dp-seg button{font-size:13.5px;padding-left:2px;padding-right:2px;white-space:nowrap}
+.dp-h{padding:16px 16px 6px}.dp-h h2{margin:0;font-size:17px;font-weight:800}.dp-h p{margin:4px 0 0;font-size:13px;line-height:1.55;color:var(--dim)}
+.dp-cond{margin:8px 0 0!important;padding:8px 10px;border-radius:10px;background:var(--acc-t);color:var(--fg)!important;font-size:12.5px!important}
+.dp-go{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.dp-go .btn{flex:1 1 30%;min-height:44px}
+.dp-tyl{margin:8px 0}.dp-tyl>b{display:block;font-size:13px;margin-bottom:4px}.dp-tyl .chips{display:flex;flex-wrap:wrap;gap:4px}
+.dp-3l{margin:14px 0 4px;padding:10px 12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-size:12.5px;line-height:1.6}.dp-3l p{margin:4px 0 0;color:var(--dim)}.dp-3l p b{color:var(--fg)}
+.dp-rpl{display:flex;flex-direction:column;gap:8px;padding:0 16px 8px}
+.dp-rp{padding:10px 12px;border-radius:12px;background:var(--glass,rgba(255,255,255,.04));box-shadow:inset 0 0 0 1px var(--line)}
+.dp-rp-f{font-size:12px;color:var(--dim)}
+.dp-rp-m{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0;font-size:15px;font-weight:800}
+.dp-rp-out{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--dim)}.dp-rp-in{color:var(--acc)}
+.dp-rp p{margin:3px 0 0;font-size:13px;line-height:1.55}
+.dp-fmt{padding:4px 16px 4px}
+.dp-bsec{padding:6px 0 4px}.dp-bsec>h3{margin:14px 16px 6px;font-size:15px;font-weight:800}.dp-bsec>.note,.dp-bsec>.btns{margin-left:16px;margin-right:16px}
+.gset-meta{display:flex;flex-wrap:wrap;gap:4px 6px;margin-bottom:6px}
+.gset-meta span{font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line);color:var(--dim)}
+.gset-meta .gsm-f{background:var(--acc-t);color:var(--acc);box-shadow:none}
+.gsm-ext{color:#17bf63!important;box-shadow:inset 0 0 0 1px rgba(23,191,99,.45)!important}.gsm-site{color:#1d9bf0!important}.gsm-calc{color:#e8a317!important;box-shadow:inset 0 0 0 1px rgba(232,163,23,.45)!important}
+.gset-alt{margin-top:10px}.gset-alt>summary{cursor:pointer;font-weight:800;font-size:14px;min-height:40px;display:flex;align-items:center;color:var(--acc)}

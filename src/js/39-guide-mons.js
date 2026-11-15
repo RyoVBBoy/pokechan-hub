@@ -187,16 +187,17 @@ function monGuide(p,o={}){
   const lead=`${esc(p.n)}は、${strong?strong+'を活かして、':''}${role?esc(role.name).replace(/（.*$/,'')+'として活躍しやすいポケモン':'いろいろな役をこなせるポケモン'}。${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
   const item=([t,d])=>`<div class="gpt"><b>${esc(t)}</b><p>${d}</p></div>`;
   const dn=defNotes(p);
-  const sum=`<p class="glead">${lead}</p>
-    ${pros.length?`<h3>強いところ</h3>${pros.slice(0,3).map(item).join('')}`:''}
-    ${cons.length?`<h3>弱いところ</h3>${cons.slice(0,3).map(item).join('')}`:''}
-    <h3>数字で見ると</h3><dl class="gnum">
+  const numHTML=`<dl class="gnum">
       <dt>タイプ</dt><dd>${list(p.t)}</dd>
       <dt>種族値</dt><dd>${SN.map((n,i)=>`${n}${p.s[i]}`).join('・')}（合計${p.bst}）</dd>
       <dt>素早さ</dt><dd>最速で${maxSpe(p)}（収録${sr.n}匹の中で${sr.rank}位・${spdTxt}）</dd>
       <dt>弱点</dt><dd>${weak.length?list(weak.map(x=>x[0]+(x[1]>=4?'（4倍）':''))):'なし'}</dd>
       <dt>受けられる</dt><dd>半減以下${res.length}タイプ${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}</dd>
       ${dn.length?`<dt>特性</dt><dd>${esc(dn.join('。'))}</dd>`:''}</dl>`;
+  const sum=`<p class="glead">${lead}</p>
+    ${pros.length?`<h3>強いところ</h3>${pros.slice(0,3).map(item).join('')}`:''}
+    ${cons.length?`<h3>弱いところ</h3>${cons.slice(0,3).map(item).join('')}`:''}
+    <h3>数字で見ると</h3>${numHTML}`;
   const megaTxt=megas.map(m=>{const st=Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no);return `${itA(st)}を持たせるとメガシンカできる（合計種族値${m.bst}${m.t.join('')!==p.t.join('')?'・タイプが'+list(m.t)+'に変わる':''}・特性${esc(ABN[m.ab]||m.ab)}）。`}).join('');
   /* ---- 技の選び方 ---- */
   const stabTypes=[...new Set(stab.map(m=>m.t))];
@@ -268,18 +269,23 @@ function monGuide(p,o={}){
       :'この型の技では大きなダメージを与えにくく、相手からはしっかりダメージを受ける。対面したら無理に戦わず、有利な味方に交代する。';
     return{head,why,bad}}catch(e){return null}};
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
-    return `<div class="gset" id="gset-${p.no}-${i}"><b>${esc(s.title)}${s.rec?'<span class="atag">おすすめ</span>':''}</b><p>${esc(s.why)}</p><dl>
+    /* 2026/11/15 図鑑のページの「型・育成」タブ（o.parts）：形式・姿・出典の札と「この型をパーティに入れる」 */
+    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'当サイトの利用者の育成の集計':'当サイトが計算で組んだ提案'}</span></div>`:'';
+    return `<div class="gset" id="gset-${p.no}-${i}">${meta}<b>${esc(s.title)}${s.rec?'<span class="atag">おすすめ</span>':''}</b><p>${esc(s.why)}</p><dl>
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
       <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div>
       <table class="gstat"><tr>${SN.map(n=>`<th>${n}</th>`).join('')}</tr><tr>${st.map(v=>`<td>${v}</td>`).join('')}</tr><tr class="gsp">${s.sp.map(v=>`<td>${v||'-'}</td>`).join('')}</tr></table>
       <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
       <h4>この型の役割</h4><p>${roleOf(s)}</p>
-      ${alt.out.length?`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`:''}
-      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>`:''}
+      ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
+        :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
+      ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
+      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は合計種族値の高いポケモンとメガシンカの姿を、使用率の高い型で計算（当サイトのダメージ計算・乱数の真ん中あたり）。</p>':''}`:''}
+      ${o.parts?`<div class="btns" style="padding:10px 0 0"><button class="btn btn-s" data-useset="${i}">この型をパーティに入れる</button></div>`:''}
       </div>`};
   /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */
-  let megaHead='';
+  let megaHead='',megaCh=null;
   if(base){
     const stone=stoneK;
     const wl=a=>a.length?list(a.map(x=>x[0]+(x[1]>=4?'（4倍）':''))):'なし';
@@ -293,6 +299,7 @@ function monGuide(p,o={}){
     const bs=maxSpe(base),ms=maxSpe(p);
     if(ms!==bs)ch.push(`素早さは最速で${bs}から${ms}に${ms>bs?'上がる':'下がる'}。メガシンカしたターンから速さが変わるので、先に動ける相手も変わる。`);
     ch.push('メガストーンを持たせると、ほかの持ち物は持てない。持ち物の効果とメガシンカのどちらが強いかで選ぶ。');
+    megaCh=ch;
     megaHead=`<div class="gmeg-band" id="gm-${p.no}"><span class="atag">メガシンカすると</span><h2>${esc(p.n)}</h2><div class="chips" style="margin-top:6px">${p.t.map(chip).join('')}</div></div>
       <div class="gdoc" style="padding-top:4px">${sum}<h3>メガシンカで変わるところ</h3><ul class="gtips">${ch.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
   }
@@ -327,6 +334,21 @@ function monGuide(p,o={}){
     ${partners.map(({q,why})=>`<a class="row" href="${mon(q.no)}"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${nm(q)}</div><div class="row-s">${why.slice(0,2).join('。')}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}`:''}
   ${good.length?`<div class="sec"><h2>有利に戦いやすい相手</h2></div><p class="note" style="padding-top:0">こちらのタイプ一致技で弱点を突けて、相手のタイプ一致技では弱点を突かれない相手です（合計種族値の高い順）。</p><div class="pills gchips">${good.map(mA).join('')}</div>`:''}
   ${axisHTML}`;
+  /* 2026/11/15 図鑑のページの6つのタブ（09-pokemon.js）：部品ごとに返す。検索向けの静的ページ（gen-pages）は今までどおり1本の文 */
+  if(o.parts){
+    const covOne=id=>{const m=MV[id]&&mvObj(id);return m&&m.pow>0&&m.cls<2?T.filter(d=>mult(m.t,[d])>=2):[]};
+    const repl=[];SETS.forEach(st=>{const a=altOf(st);if(!a.rep)return;const others=new Set(st.moves.filter(x=>x!==a.rep).flatMap(covOne)),lost=covOne(a.rep).filter(d=>!others.has(d));
+      a.out.forEach(([id,w])=>{if(id!==a.rep&&!st.moves.includes(id))repl.push({set:st.title,fmt:st.fmt||'single',live:!!(st.live||st.usage),from:a.rep,to:id,why:w,lost})})});
+    /* 概要のひとこと：積む役は「積み技を入れた型だけ」の話なので、ひとことの中心にはしない（2026/11/15 依頼主：積み技のない型まで積む役と書かない） */
+    const wxr=roles.find(r=>r.k==='wset')||(offS>=.45?roles.find(r=>r.k==='wspd'):null);
+    const role2=wxr||roles.find(r=>want.includes(r.k)&&r.k!=='setup')||roles.find(r=>r.k!=='setup')||role;
+    const opt=roles.filter(r=>r!==role2&&['setup','support','bulky','tr','pivot'].includes(r.k)).slice(0,2).map(r=>esc(r.name).replace(/（.*$/,''));
+    const lead2=`${esc(p.n)}は、${strong&&!wxr?strong+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'いろいろな役をこなせるポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+    /* 役割の並びも、ひとことの役を先頭に。積む役には「積み技を入れた型のとき」と添える */
+    const roles2=[role2,...topRoles.filter(r=>r!==role2)].filter(Boolean).slice(0,4).map(r=>r.k==='setup'?{...r,name:r.name+'（積み技を入れた型のとき）'}:r);
+    return{lead:lead2,pros:pros.slice(0,3),cons:cons.slice(0,3),num:numHTML,roles:roles2,megaCh,megas:megas.map(m=>({m,stone:Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no)})),
+      sets:SETS,setHTML,live:liveF?gmLiveHTML(p,lk):'',liveF,usage:base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk),
+      mvParts,abl,partners,good,axis:axisHTML,repl,stab:stabTypes,item}}
   if(base)return megaHead+sections;
   const megaHTML=megas.map(m=>monGuide(m,o)).join('');
   return `<div class="gdoc"><span class="atag">ポケモンの解説</span><h2>${esc(p.n)}の特徴</h2>${sum}${megas.length?`<p class="note" style="padding:8px 0 0">下に、${megas.map(m=>esc(m.n)).join('・')}の解説もあります。</p>`:''}</div>

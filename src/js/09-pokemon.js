@@ -2,7 +2,7 @@
 let st={sp:[0,0,0,0,0,0],up:-1,dn:-1},curNo=null;
 function detail(no){
   /* 「〇〇の対策を見る」（2026/11/10 依頼主：サイトの外の対策ページから戻れない）：#/p/番号/break なら図鑑の「対策」タブで開く。左上の←で前の画面に戻れる */
-  if(/^#\/p\/\d+\/break/.test(location.hash)&&typeof DP_KEEP_TAB!=='undefined')DP_KEEP_TAB=4;
+  if(/^#\/p\/\d+\/break/.test(location.hash)&&typeof DP_KEEP_TAB!=='undefined')DP_KEEP_TAB=5;
   const p=byNo[no];
   if(!p){setHeader('ポケモン');V.innerHTML='<p class="empty">ポケモンが見つかりません。<br><a href="#/dex" style="color:var(--fg);text-decoration:underline">図鑑へ戻る</a></p>';return}
   setHeader(p.n,p.base?'#/p/'+p.base:'#/dex');
@@ -29,13 +29,16 @@ function detail(no){
     <div><b>${maxSpe(p)}</b><span>最速 素早さ</span></div>
     <div><b>${weakCount(p)}</b><span>弱点タイプ</span></div>
   </div>
-  <div class="seg" id="seg">
-    ${['種族値','解説','実数値','弱点','対策','技・特性'].map((l,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}">${l}</button>`).join('')}
+  <div class="seg dp-seg" id="seg">
+    ${DP_TABS.map((l,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}">${l}</button>`).join('')}
     <span class="seg-i" style="width:16.666%"></span>
   </div>
 
   <div class="tt-pages" id="dp-pages">
-  <div data-sw data-panel="0">
+  <div data-sw data-panel="0" id="ovpanel"><p class="dgu-loading" style="padding:16px">${esc(p.n)}の概要をまとめています…</p></div>
+
+  <div data-sw data-panel="1" hidden>
+    <div class="dp-h"><h2>種族値</h2><p>このポケモンがもともと持っている能力の高さです（${esc(p.n)}の値）。</p></div>
     ${srcLine(['stats',p.no],'calc')}
     <div class="who"><div class="rtags">${p.roles.map(r=>`<span class="rtag">${r}</span>`).join('')}</div>
       <p>${describe(p)}</p></div>
@@ -44,29 +47,39 @@ function detail(no){
     <p class="note" style="text-align:center">六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。</p>
     <div style="height:6px"></div>
     ${p.s.map((v,i)=>`<div class="stat"><em>${SN[i]}</em><b>${v}</b><div class="bar${i===p.mi?' top':''}"><i style="width:${Math.min(100,Math.round(v/200*100))}%"></i></div><small>${p.rank[i]}位</small></div>`).join('')}
+    <p class="note">右端は、メガシンカの姿も入れた${RANKP.length}匹の中での順位です（種族値が同じ姿は1匹と数え、同じ値は同じ順位）。青い棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
     ${megasOf(p.no).map(m=>`<a class="mega" href="#/p/${m.no}"><div class="mega-h">${nm(m,{no:false})}${m.t.map(chip).join('')}</div>
       <div class="mega-s">${m.s.map((v,i)=>`<span><em>${SN[i]}</em><b>${v}</b>${v!==p.s[i]?`<small class="${v>p.s[i]?'up':'dn'}">${v>p.s[i]?'+':''}${v-p.s[i]}</small>`:''}</span>`).join('')}</div>
-      <div class="mega-f">特性 ${ABN[m.ab]||m.ab}${ABIMPL.has(m.ab)?'':'（計算では効果なし）'}　持ち物 ${ITEMN[m.stone]}　合計 ${m.bst}</div><div class="mega-go">種族値・解説・技などを見る ›</div></a>`).join('')}
+      <div class="mega-f">特性 ${ABN[m.ab]||m.ab}${ABIMPL.has(m.ab)?'':'（計算では効果なし）'}　持ち物 ${ITEMN[m.stone]}　合計 ${m.bst}</div><div class="mega-go">この姿のページを見る ›</div></a>`).join('')}
     ${p.base?`<p class="note">${esc(byNo[p.base].n)}が${esc(ITEMN[p.stone]||'')}を持つと、バトル中にこの姿にメガシンカします。順位は、メガシンカの姿も入れた${RANKP.length}匹と比べたものです。</p>`:''}
-    <p class="note">右端は、メガシンカの姿も入れた${RANKP.length}匹の中での順位です（種族値が同じ姿は1匹と数え、同じ値は同じ順位）。青い棒は<b>${SN[p.mi]}</b>（このポケモンの最も高い能力）。</p>
-  </div>
-
-  <div data-sw data-panel="1" hidden id="gmpanel"></div>
-
-  <div data-sw data-panel="2" hidden>${srcLine('formula')}<div class="calc">
+    <div class="dp-h" id="dp-real"><h2>実数値（レベル50）</h2><p>実際の対戦での能力の値です。下で性格と能力ポイントを変えると、その場で計算し直します。</p>
+      <p class="dp-cond">条件：<b>${esc(p.n)}</b>・レベル50・個体値31・性格と能力ポイントは下で選んだもの・持ち物と特性の効果は入れていない</p></div>
+    ${srcLine('formula')}<div class="calc">
     <div class="spbar"><div><div style="font-size:12px;color:var(--dim)">能力ポイント 残り</div><span class="big" id="sp-left">66</span><span style="color:var(--mute);font-size:12px"> / 66</span></div>
       <button class="btn btn-s" style="flex:none;height:34px;padding:0 15px;font-size:12px" id="sp-reset">リセット</button></div>
     ${SN.map((n,i)=>`<div class="sprow"><em>${n}</em><input type="range" min="0" max="${SP_CAP}" value="0" id="sp${i}" aria-label="${n}に振る能力ポイント"><span class="v" id="spv${i}">0</span><span class="o" id="sto${i}">0</span></div>`).join('')}
     <div id="dp-nat" style="padding:4px 12px 8px">${natGrid(-1,-1,j=>`data-nat="${j}"`)}</div>
     <p class="note" id="spd-note"></p>
-    <p class="note" style="color:var(--mute)">HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正。個体値31・Lv50で計算しています。</p>
+    <p class="note" style="color:var(--mute)">HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正。個体値31・Lv50で計算しています。能力ポイントは全部で66・1つの能力に32までです（本編の努力値とは別のしくみ）。</p>
+    <p class="note" style="color:var(--mute)">素早さの順位は、収録している${P.length}匹（メガシンカの姿は入れていない）のそれぞれの最速（素早さを上げる性格・ポイント32）の実数値と比べたものです。種族値・タイプは${esc(SRC.stats.date)}時点のデータです。</p>
   </div></div>
 
-  <div data-sw data-panel="3" hidden>${srcLine('typechart')}${mxBlocks(p.t)}
-    <p class="note">相手のタイプ一致技を受けたときの倍率です（タイプだけで計算）。</p>${defNotes(p).length?`<div class="bnote" style="margin:0 16px 12px">特性による違い：${esc(defNotes(p).join('。'))}。</div>`:''}</div>
+  <div data-sw data-panel="2" hidden>
+    <div class="dp-h"><h2>受けるとき（防御の相性）</h2><p>${esc(p.n)}（${p.t.join('・')}）が相手の技を受けたときの倍率です。タイプだけで計算しています。</p></div>
+    ${srcLine('typechart')}${mxBlocks(p.t)}
+    ${defNotes(p).length?`<div class="bnote" style="margin:0 16px 12px">特性による違い：${esc(defNotes(p).join('。'))}。</div>`:''}
+    <div id="dp-off"><p class="dgu-loading" style="padding:12px 16px">攻めるときの相性をまとめています…</p></div>
+  </div>
 
-  <div data-sw data-panel="4" hidden id="brpanel"></div>
-  <div data-sw data-panel="5" hidden id="mvpanel"></div>
+  <div data-sw data-panel="3" hidden>
+    <div id="dp-mvrec"></div>
+    <div id="mvpanel"></div>
+  </div>
+  <div data-sw data-panel="4" hidden id="bdpanel"><p class="dgu-loading" style="padding:16px">型をまとめています…</p></div>
+  <div data-sw data-panel="5" hidden>
+    <div class="dp-h"><h2>${esc(p.n)}が相手にいるとき</h2><p>場面ごとに分けています：<b>上から一撃</b>＝先に動いて倒せる（味方が倒されたあとに出して倒す役にも）／<b>強く出られる</b>＝1対1で有利／<b>受けてから返せる</b>＝交代で受けられる／<b>出すと危ない</b>＝出さない方がよい相手。味方の補助（壁・まひ・いかく等）での対処は計算に入っていません。</p></div>
+    <div id="brpanel"></div>
+  </div>
   </div>
   ${battleFormHTML(p)}
   <div class="btns dp-acts" style="flex-wrap:wrap"><button class="btn btn-p" id="addbtn">パーティに追加</button><button class="btn btn-s" id="oppbtn">${SVG(I.zap,16)}相手として調べる</button><a class="btn btn-s" style="flex-basis:100%" href="#/tb/${byNo[p.base]?p.base:p.no}">${SVG(I.plus,16)}このポケモンから組む</a><a class="btn btn-s" style="flex-basis:100%" href="#/cmp/${p.no}">${SVG(I.cmp,16)}他のポケモンと比較</a><a class="btn btn-s" style="flex-basis:100%" href="#/contact" data-report>このページの間違いを報告</a></div>
@@ -74,11 +87,22 @@ function detail(no){
   /* 姿の切りかえでグラフを滑らかに動かす・ギルガルドのバトルスイッチ（52-statmorph.js） */
   statFx(p);
 
-  /* タブ */
+  /* タブ（2026/11/15 依頼主：概要・能力・相性・技・特性・型・育成・対策の6つ） */
   const seg=document.getElementById('seg'),ind=seg.querySelector('.seg-i');
   /* 姿の切りかえ（52-statmorph.js の famSwap）では、開いていたタブのまま動かさずに出す */
   let dpI=DP_KEEP_TAB||0;
   const dpGo=(i,dir)=>seg.querySelector(`[data-i="${i}"]`).onclick(null,dir);
+  /* 解説の部品（39-guide-mons.js の monGuide(p,{parts:true})）は、概要・相性・技・型のタブで共有する。集計が届いたら作り直す */
+  let G=null;const getG=()=>{if(!G)try{G=monGuide(p,{parts:true})}catch(e){G=null}return G};
+  const filled=new Set();
+  const fillTab=i=>{if(filled.has(i))return;
+    const g=getG();
+    if(i===0){const el=document.getElementById('ovpanel');if(el){el.innerHTML=g?dpOverviewHTML(p,g):'<p class="empty">まとめられませんでした。</p>';el.querySelectorAll('[data-dpgo]').forEach(b=>b.onclick=()=>{dpGo(+b.dataset.dpgo);seg.scrollIntoView({block:'start'})})}}
+    if(i===2){const el=document.getElementById('dp-off');if(el)el.innerHTML=g?dpOffenseHTML(p,g):''}
+    if(i===3){const el=document.getElementById('dp-mvrec');if(el)el.innerHTML=g?dpMovesHTML(p,g):'';movesPanel(p)}
+    if(i===4){const el=document.getElementById('bdpanel');if(el){el.innerHTML=g?dpBuildsHTML(p,g):'<p class="empty">型を作れませんでした。</p>';dpBuildsBind(el,p,g)}}
+    if(i===5){const el=document.getElementById('brpanel');if(el&&!el.innerHTML)el.innerHTML=breakHTML(p)}
+    filled.add(i)};
   seg.querySelectorAll('button').forEach(b=>b.onclick=(e,dir)=>{
     const i=+b.dataset.i,from=dpI;dpI=i;
     seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
@@ -86,16 +110,14 @@ function detail(no){
     ind.style.transition='';
     V.querySelectorAll('[data-panel]').forEach(pn=>pn.hidden=+pn.dataset.panel!==i);
     if(i!==from)segSlideIn(V.querySelector(`[data-panel="${i}"]`),dir||(i>from?1:-1));
-    if(i===5)movesPanel(p);
-    if(i===4){const g=document.getElementById('brpanel');if(g&&!g.innerHTML)g.innerHTML=breakHTML(p)}
-    if(i===1){const g=document.getElementById('gmpanel');
-      const fill=()=>{g.innerHTML=monGuide(p);g.querySelectorAll('[data-axis]').forEach(b=>b.onclick=()=>{const d=AXIS_DATA[b.dataset.axis];if(d)useTeam(d.name,d.list)})};
-      if(g&&!g.innerHTML){fill();
-        /* ランクバトルの集計をまだ読んでいなければ読み、届いたら解説を作り直す（メガシンカの姿は元の姿の解説の中で扱う） */
-        if(!p.base&&LIVE.csv[p.no]===undefined)liveInit().then(ok=>ok&&liveMon(p.no)).then(d=>{if(d&&g.isConnected)fill()}).catch(()=>{})}}
+    fillTab(i);
   });
+  /* ランクバトルの集計をまだ読んでいなければ読み、届いたら部品を作り直す（メガシンカの姿は元の姿の集計） */
+  if(!p.base&&LIVE.csv[p.no]===undefined&&typeof liveInit==='function')liveInit().then(ok=>ok&&liveMon(p.no)).then(d=>{if(!d||!document.getElementById('ovpanel')||curNo!==p.no)return;
+    G=null;[...filled].forEach(i=>{filled.delete(i);if(i===3){const el=document.getElementById('dp-mvrec');if(el)el.innerHTML=''}fillTab(i)})}).catch(()=>{});
   if(dpI){ind.style.transition='none';ind.style.transform=`translateX(${dpI*100}%)`;seg.querySelector(`[data-i="${dpI}"]`).onclick();DP_KEEP_TAB=0}
-  else if(MVS.tab4===p.no){seg.querySelector('[data-i="5"]').click()}
+  else if(MVS.tab4===p.no){seg.querySelector('[data-i="3"]').click()}
+  else setTimeout(()=>{if(curNo===p.no)fillTab(0)},0);
   segSwipe(document.getElementById('dp-pages'),{n:6,idx:()=>dpI,ind,go:dpGo});
   /* 計算 */
   SN.forEach((_,i)=>document.getElementById('sp'+i).oninput=e=>setSP(i,+e.target.value));

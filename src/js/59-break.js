@@ -58,7 +58,7 @@ const brNeedBase=(s,sc=1)=>{for(let b=1;b<=255;b++)if(Math.floor(Math.floor((b+S
 
 function breakSteps(p,c){
   c=c||monCounters(p);
-  const s=c.set||detSet(p),M=mkMon(p,'op',s),st=M.st,nm0=formInfo(p).base,steps=[];
+  const s=c.set||detSet(p),M=mkMon(p,'op',s),st=M.st,nm0=p.base?p.n:formInfo(p).base,steps=[];
   const def=monDef(p),weak=def.filter(x=>x.m>=2).sort((a,b)=>b.m-a.m),res=def.filter(x=>x.m>0&&x.m<1).sort((a,b)=>a.m-b.m),imm=def.filter(x=>x.m===0);
   const fr=m=>m>=4?'4倍':m<=.25?'1/4':'';
   /* ①弱点・物理か特殊か */
@@ -119,7 +119,7 @@ function breakHTML(p){
   const setTxt=[s.item&&ITEMN[s.item]?'持ち物 '+ITEMN[s.item]:'',s.ab&&ABN[s.ab]?'特性 '+ABN[s.ab]:'',(s.moves||[]).map(m=>m&&m.n).filter(Boolean).join('・')].filter(Boolean).join('／');
   const rows=(a,f)=>a.length?a.slice(0,5).map(r=>`<a class="row" href="${href(r.q)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s" style="white-space:normal">${f(r)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join(''):'<p class="note" style="padding-top:0">当てはまるポケモンは見つかりませんでした。</p>';
   const sec=(h,sub,a,f)=>`<div class="sec"><h2>${h}</h2></div><p class="note" style="padding-top:0">${sub}</p>${rows(a,f)}`;
-  const n=formInfo(p).base,cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
+  const n=p.base?p.n:formInfo(p).base,cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
   return `<div class="gdoc"><h2>${esc(n)}の崩し方</h2><p>${B.lead}</p>
     ${brStepsHTML(B)}
     <p class="note" style="padding:8px 0 0">計算の前提：${esc(n)}は使用率の高い型（${esc(setTxt)||'—'}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれの使用率の高い型で計算しています。乱数・急所・育成の違いで結果は変わります。</p></div>
