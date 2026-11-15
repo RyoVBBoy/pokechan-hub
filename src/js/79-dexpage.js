@@ -8,27 +8,32 @@ const dpList=a=>a.join('・');
 const dpTyA=a=>a.map(t=>chip(t)).join('');
 /* ---- 1. 概要：どんなポケモンか・強いところ・弱いところ・向いている役割・姿の違い ---- */
 function dpOverviewHTML(p,g){
+  /* 2026/11/15 依頼主「Premium UI」：枠の中に枠を重ねない。見出し・余白・区切り線で分け、1行ずつ押すと説明が開く（› が回る）。説明の中身は前と同じ */
   const base=p.base?byNo[p.base]:null;
+  const li=(t,d,o={})=>`<details class="dp-li${o.cls||''}"><summary><span class="dp-li-t">${t}</span>${o.tag?`<span class="dp-li-tag${o.tagc?' '+o.tagc:''}">${o.tag}</span>`:''}<span class="dp-li-c" aria-hidden="true">›</span></summary><p>${d}</p></details>`;
+  /* 役割：はじめ（ひとことの役）を「メイン」、積み技など条件のある役は「条件つき」と分ける。役の判定は前と同じ */
+  const roles=g.roles.map((r,i)=>{const cond=/（(.+)のとき）$/.exec(r.name);return li(esc(cond?r.name.replace(/（.+のとき）$/,''):r.name),String(r.text).replace(/[<>]/g,''),
+    {tag:i===0?'メイン':cond?esc(cond[1]):'',tagc:i===0?'is-main':cond?'is-cond':''})}).join('');
   let forms='';
-  if(base&&g.megaCh)forms=`<h3>メガシンカで変わるところ</h3><ul class="gtips">${g.megaCh.map(x=>`<li>${x}</li>`).join('')}</ul><p class="note" style="padding:4px 0 0"><a href="#/p/${base.no}" style="color:var(--acc)">元の姿（${esc(base.n)}）のページ ›</a></p>`;
-  else if(g.megas.length)forms=`<h3>ほかの姿</h3>${g.megas.map(({m,stone})=>{const tc=m.t.join()!==p.t.join();
-    return `<a class="row" href="#/p/${m.no}"><span class="av">${stamp(m)}</span><div class="row-m"><div class="row-t">${nm(m)}</div><div class="row-s" style="white-space:normal">${esc(ITEMN[stone]||'メガストーン')}を持たせてメガシンカ。合計種族値 ${p.bst}→${m.bst}${tc?`・タイプが${esc(dpList(m.t))}に変わる`:''}・特性は${esc(ABN[m.ab]||m.ab)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join('')}
-    <p class="note" style="padding:4px 0 0">1回の対戦でメガシンカできるのは1匹だけです。姿ごとに種族値・タイプ・特性が違うので、それぞれのページで確かめてください。</p>`;
-  /* 解説の文は日本語だけ（攻略ガイドと同じ、英語は未翻訳）。英語のときはそう書いて、訳さない印を付ける */
+  if(base&&g.megaCh)forms=`<section class="dp-sec"><h3 class="dp-st">メガシンカで変わるところ</h3><ul class="dp-ul">${g.megaCh.map(x=>`<li>${x}</li>`).join('')}</ul>
+    <a class="dp-link" href="#/p/${base.no}"><span>元の姿（${esc(base.n)}）</span><span aria-hidden="true">›</span></a></section>`;
+  else if(g.megas.length)forms=`<section class="dp-sec"><h3 class="dp-st">ほかの姿</h3>${g.megas.map(({m,stone})=>{const tc=m.t.join()!==p.t.join();
+    return `<a class="dp-form" href="#/p/${m.no}"><span class="av">${stamp(m)}</span><span class="dp-form-m"><span class="dp-form-n">${nm(m)}</span><span class="dp-form-s">${esc(ITEMN[stone]||'メガストーン')}でメガシンカ・合計 ${p.bst}→${m.bst}${tc?`・${esc(dpList(m.t))}タイプに`:''}・特性 ${esc(ABN[m.ab]||m.ab)}</span></span><span class="dp-li-c" aria-hidden="true">›</span></a>`}).join('')}
+    <p class="dp-fn">1回の対戦でメガシンカできるのは1匹だけです。</p></section>`;
+  /* 英語のときは文が日本語だけと知らせる（攻略ガイドと同じ、英語は未翻訳） */
   const en=typeof LANG!=='undefined'&&LANG==='en';
-  return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="gdoc" data-notr><h2>${esc(p.n)}はどんなポケモン？</h2>
-    <p class="glead">${g.lead}</p>
-    ${g.pros.length?`<h3>強いところ</h3>${g.pros.map(g.item).join('')}`:''}
-    ${g.cons.length?`<h3>弱いところ</h3>${g.cons.map(g.item).join('')}`:''}
-    ${g.roles.length?`<h3>向いている役割</h3>${g.roles.map(r=>`<div class="adv adv-tip" style="margin:8px 0"><b>${esc(r.name)}</b><p>${String(r.text).replace(/[<>]/g,'')}</p></div>`).join('')}
-      <p class="note" style="padding:2px 0 0">種族値と覚える技から見た目安です。どの役で使うかは、型（技・持ち物）で決まります。たとえば積み技を入れていない型は、積んで戦う役にはなりません。</p>`:''}
+  return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
+    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${g.lead}</p></section>
+    ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
+      <p class="dp-fn">種族値と覚える技から見た目安です。どの役で使うかは型（技・持ち物）で決まり、条件のある役はその技を入れた型のときだけです。</p></section>`:''}
     ${forms}
-    <div class="dp-go">
-      <button class="btn btn-s" data-dpgo="4">型・育成を見る</button>
-      <button class="btn btn-s" data-dpgo="2">相性を見る</button>
-      <button class="btn btn-s" data-dpgo="5">対策を見る</button>
-    </div>
-    <p class="note" style="color:var(--mute);padding:8px 0 0">この概要は、当サイトのデータ（種族値・タイプ相性・覚える技・特性）から当サイトが組み立てたものです。</p></div>`;
+    <section class="dp-sec"><h3 class="dp-st">くわしく見る</h3><nav class="dp-nav" aria-label="ほかのタブへ">
+      <button type="button" class="dp-link" data-dpgo="4"><span>型・育成<small>使われている型と、計算で組んだ型</small></span><span aria-hidden="true">›</span></button>
+      <button type="button" class="dp-link" data-dpgo="2"><span>相性<small>受けるとき・攻めるときのタイプ相性</small></span><span aria-hidden="true">›</span></button>
+      <button type="button" class="dp-link" data-dpgo="5"><span>対策<small>相手にいるときの崩し方</small></span><span aria-hidden="true">›</span></button></nav></section>
+    <p class="dp-fn dp-fn-end">この概要は、当サイトのデータ（種族値・タイプ相性・覚える技・特性）から当サイトが組み立てたものです。</p></div>`;
 }
 /* ---- 3. 相性（攻めるとき）：タイプ一致技で弱点を突けるタイプ・半減以下のタイプ・いまの型の技の範囲 ---- */
 function dpOffenseHTML(p,g){

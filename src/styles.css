@@ -3034,3 +3034,60 @@ svg.temb{display:block;width:100%;height:100%;overflow:visible}
 .gset-meta .gsm-f{background:var(--acc-t);color:var(--acc);box-shadow:none}
 .gsm-ext{color:#17bf63!important;box-shadow:inset 0 0 0 1px rgba(23,191,99,.45)!important}.gsm-site{color:#1d9bf0!important}.gsm-calc{color:#e8a317!important;box-shadow:inset 0 0 0 1px rgba(232,163,23,.45)!important}
 .gset-alt{margin-top:10px}.gset-alt>summary{cursor:pointer;font-weight:800;font-size:14px;min-height:40px;display:flex;align-items:center;color:var(--acc)}
+/* ===== 図鑑のページの見た目（2026/11/15 依頼主「Premium UI」）=====
+   枠の中に枠を重ねない：上の見出し・数字・概要は枠を外し、見出し・余白・区切り線で分ける。色はテーマの色（操作）とタイプの色（タイプ）だけ */
+#view .phead.dp-head{margin:0;padding:18px 16px 10px;border:0;border-radius:0;background:none;box-shadow:none;align-items:flex-start}
+.dp-head .wash{opacity:.55;-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent);mask-image:linear-gradient(180deg,#000 30%,transparent)}
+.dp-head .no{font:600 12px Inter,sans-serif;letter-spacing:.06em;color:var(--dim);margin-bottom:4px}
+.dp-head h2{font-size:28px;line-height:1.2}
+.dp-head .chips{margin-top:10px!important;gap:6px}
+.dp-head .zk-l{margin-top:12px;padding:0;background:none;border-radius:0;font-size:13px;font-weight:600;color:var(--dim);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;min-height:32px}
+.dp-head .zk-l:hover,.dp-head .zk-l:focus-visible{color:var(--fg)}
+.dp-head .slot{width:96px;height:96px;margin-top:6px}
+#view .fam-pills{padding:4px 16px 0}
+#view .prof.dp-prof{margin:12px 16px 4px;padding:0;border:0!important;border-radius:0;background:none;box-shadow:none;gap:0}
+.dp-prof>div{padding:10px 4px 12px;text-align:left}
+#view .dp-prof>div+div{border-left:0!important;padding-left:14px;box-shadow:inset 1px 0 0 var(--line)}
+.dp-prof b{font-size:22px;line-height:1.15}
+.dp-prof span{display:block;margin-top:3px;font-size:12px;line-height:1.35;color:var(--dim)}
+/* タブ：選んでいないタブも読める濃さ、押せる高さ44px以上 */
+.dp-seg button{min-height:46px;font-size:14px;color:var(--fg);opacity:.62}
+.dp-seg button[aria-selected=true]{opacity:1}
+@media (max-width:359px){.dp-seg button{font-size:12.5px}}
+/* 概要：枠なし。見出し→1行ずつの一覧（区切り線）。行を押すと説明が開く */
+.dp-ov{padding:6px 16px 8px}
+.dp-intro{padding:14px 0 6px}
+.dp-ov-h{margin:0 0 8px;font-size:20px;font-weight:800;line-height:1.35}
+.dp-lead{margin:0;font-size:15px;line-height:1.75;color:var(--fg)}
+.dp-sec{padding-top:22px}
+.dp-st{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--dim)}
+.dp-dot{width:8px;height:8px;border-radius:50%;flex:none}.dp-dot.is-good{background:#17bf63}.dp-dot.is-bad{background:#f4212e}
+.dp-list{border-top:1px solid var(--line)}
+.dp-li{border-bottom:1px solid var(--line)}
+.dp-li>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dp-li>summary::-webkit-details-marker{display:none}
+.dp-li>summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:8px}
+.dp-li-t{flex:1;min-width:0;font-size:15.5px;font-weight:700;line-height:1.45}
+.dp-li-tag{flex:none;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;color:var(--dim);box-shadow:inset 0 0 0 1px var(--line)}
+.dp-li-tag.is-main{color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.dp-li-tag.is-cond{color:var(--dim)}
+.dp-li-c{flex:none;width:20px;text-align:center;font-size:20px;line-height:1;color:var(--dim);transition:transform .18s}
+.dp-li[open] .dp-li-c{transform:rotate(90deg);color:var(--fg)}
+.dp-li>p{margin:0;padding:0 2px 14px;font-size:14px;line-height:1.75;color:var(--dim)}
+.dp-li>p a{color:var(--acc)}
+.dp-ul{margin:8px 0 0;padding-left:18px;font-size:14px;line-height:1.7}.dp-ul li{margin:4px 0}
+.dp-fn{margin:10px 0 0;font-size:12.5px;line-height:1.6;color:var(--dim)}
+.dp-fn-end{margin-top:22px;padding-bottom:6px}
+.dp-form{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 2px;border-bottom:1px solid var(--line);color:var(--fg);text-decoration:none}
+.dp-form:first-of-type{border-top:1px solid var(--line)}
+.dp-form .av{width:40px;height:40px;flex:none}
+.dp-form-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.dp-form-s{font-size:12.5px;line-height:1.5;color:var(--dim)}
+.dp-nav{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.dp-link{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:56px;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--fg);font:inherit;font-size:15.5px;font-weight:700;text-align:left;text-decoration:none;cursor:pointer}
+.dp-link>span:first-child{display:flex;flex-direction:column;gap:2px}
+.dp-link small{font-size:12.5px;font-weight:400;color:var(--dim)}
+.dp-link>span:last-child{font-size:20px;color:var(--acc)}
+.dp-link:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:8px}
+section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
+/* 下のボタン：右の端の⚡のつまみ（幅22px）に重ならない。下のメニューの分の余白はページ全体（.app）にある */
+@media (max-width:699px){.dp-acts{padding-right:34px!important}}

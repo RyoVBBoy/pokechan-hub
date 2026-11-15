@@ -14,9 +14,9 @@ function detail(no){
     ?`linear-gradient(140deg,${COL[p.t[0]]}2e,${COL[p.t[1]]}24 60%,transparent)`
     :`linear-gradient(140deg,${COL[p.t[0]]}2e,transparent 70%)`;
   V.innerHTML=`
-  <section class="phead"><span class="wash" style="background:${wash}"></span>
+  <section class="phead dp-head"><span class="wash" style="background:${wash}"></span>
     <div style="position:relative;min-width:0">
-      <span class="no">#${String(p.dno).padStart(4,'0')}</span>
+      <span class="no">No.${String(p.dno).padStart(4,'0')}</span>
       <div class="ph-nm"><h2>${nm(p,{no:false,big:true})}</h2>${typeof favBtn==='function'?favBtn(p.no,{cls:'fav-big',size:24}):''}</div>
       <div class="chips" style="margin-top:9px">${p.t.map(chip).join('')}</div>
       ${zukanLink(p)}
@@ -24,10 +24,10 @@ function detail(no){
     <div class="slot" id="artslot">${artHTML(p)}</div>
   </section>
   ${fam.length?`<div class="pills fam-pills">${fam.map(q=>`<a class="pill" href="#/p/${q.no}" aria-pressed="${q.no===p.no}">${q.base?esc(formInfo(q).tag||'メガ'):'元の姿'}</a>`).join('')}</div>`:''}
-  <div class="prof">
+  <div class="prof dp-prof">
     <div><b>${p.bst}</b><span>合計種族値</span></div>
-    <div><b>${maxSpe(p)}</b><span>最速 素早さ</span></div>
-    <div><b>${weakCount(p)}</b><span>弱点タイプ</span></div>
+    <div><b>${maxSpe(p)}</b><span>最速の素早さ</span></div>
+    <div><b>${weakCount(p)}</b><span>弱点のタイプ数</span></div>
   </div>
   <div class="seg dp-seg" id="seg">
     ${DP_TABS.map((l,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}">${l}</button>`).join('')}
