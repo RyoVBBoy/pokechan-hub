@@ -103,6 +103,9 @@ function dgImprove(entries){
     const main=(()=>{const c=(M.moves||[]).filter(m=>m&&m.pow>0);const ph=c.filter(m=>m.cls===0).length,sp=c.filter(m=>m.cls===1).length;return ph>sp||(ph===sp&&p.s[1]>=p.s[3])?1:3})();
     const sub=main===1?3:1;
     const set=o=>({...x,set:{...base,...o,src:'manual'}});
+    /* 2026/11/16 依頼主の報告：攻撃役（解説の型に受けの型がない匹）には、攻撃のポイント・性格を削って耐久に回す案を出さない */
+    let gk=[];try{gk=monGuide(p,{raw:true}).keys}catch(e){}
+    const atkRole=!gk.includes('bulky')&&(gk.includes('attacker')||gk.includes('setup')||!gk.length);
     /* ---- 技：いちばん使われていない攻撃技を、覚える攻撃技と入れかえる（積み技・場を作る技・まもるは残す） ---- */
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));
@@ -118,12 +121,12 @@ function dgImprove(entries){
     }
     /* ---- 能力ポイント（合計66：32＋32＋2） ---- */
     const SPS=[[[main,5],'攻撃と素早さ'],[[0,main],'HPと攻撃'],[[0,2],'HPと防御'],[[0,4],'HPと特防'],[[0,5],'HPと素早さ']];
-    SPS.forEach(([[a,b],lab])=>{const sp=[0,0,0,0,0,0];sp[a]=32;sp[b]=32;const rest=[0,2,4,main].find(k=>!sp[k]);sp[rest]=2;
+    SPS.forEach(([[a,b],lab])=>{if(atkRole&&a!==main&&b!==main)return;const sp=[0,0,0,0,0,0];sp[a]=32;sp[b]=32;const rest=[0,2,4,main].find(k=>!sp[k]);sp[rest]=2;
       if(sp.join()===base.sp.join())return;
       const lb=lab.replace('攻撃',main===1?'攻撃':'特攻');
       tryEntry('sp',i,set({sp}),`${nm(i)}の能力ポイント：${lb}に32ずつ`,`いま：${SN.map((n,k)=>base.sp[k]?`${n}${base.sp[k]}`:'').filter(Boolean).join('・')}`)});
     /* ---- 性格（上がる能力を変える。下がるのは使わない方の攻撃） ---- */
-    [main,5,2,4].forEach(up=>{if(up===base.up&&sub===base.dn)return;
+    [main,5,2,4].forEach(up=>{if(up===base.up&&sub===base.dn)return;if(atkRole&&(up===2||up===4))return;
       tryEntry('nat',i,set({up,dn:sub}),`${nm(i)}の性格：${natName(base.up,base.dn)||'補正なし'} → ${natName(up,sub)}`,'')});
     /* ---- 持ち物（メガストーンは変えない・ほかの匹と重ならない） ---- */
     if(!stone){const u=used(i),cur=base.it&&base.it.k;
@@ -132,7 +135,7 @@ function dgImprove(entries){
         tryEntry('item',i,set({it:{k,n:ITEMN[k]}}),`${nm(i)}の持ち物：${cur?ITEMN[cur]:'なし'} → ${ITEMN[k]}`,k==='choicescarf'&&hasStatus?'こだわりスカーフは同じ技しか出せないので、登録している変化技が使いにくくなる':'')});}
     /* ---- 型（役割）：攻撃型・耐久型・サポート型・積み型を組みなおす（解説タブの型の例と同じ組み方） ---- */
     try{const g=monGuide(p,{raw:true}),u=used(i);
-      ['attacker','bulky','support','setup'].filter(k=>g.keys.includes(k)||k==='bulky').forEach(k=>{const s=g.make(k);if(!s)return;
+      ['attacker','bulky','support','setup'].filter(k=>g.keys.includes(k)||(k==='bulky'&&!atkRole)).forEach(k=>{const s=g.make(k);if(!s)return;
         if(stone)s.item=base.it.k;else if(s.item&&(u.has(s.item)||!(CH_ITEMS.has(s.item))))return;
         const sv=impSaved(x.no,s);
         /* 2026/11/14：技の案と同じく、覚えない技・1対1で正しく扱えない技（IMP_NOMV）を含む型は出さない（計算したうえで、理由つきで「出さなかった案」へ） */

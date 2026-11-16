@@ -500,7 +500,11 @@ const V12=await pg.evaluate(()=>{
   r.recalc=L.every(o=>{const T1=impWith(o.entries,()=>dgTeam0(o.entries,20)),D=dgDiff(R.T0,T1),m=impMetric(T1,D.keep);return ['x','w','nosw','ohko','slow','st'].every(k=>m[k]===o.J.a[k])});
   /* 大事な役目を失わない：◎○→△以下なし・×が増えない・変える匹の役目も大きく減らない */
   r.keep=L.every(o=>!o.J.lost.length&&o.J.a.x<=o.J.b.x&&o.J.gain>.5&&(o.kind==='swap'||!impRoleLoss(R.T0,o.T1,o.i)));
-  r.dropped=R.dropped.some(d=>/ガブリアスを耐久の型に/.test(d.title)&&/上から倒せる相手が\d+→0匹/.test(d.loss));
+  /* 攻撃役のガブリアスには耐久の型を出さない（2026/11/16）。役目を大きく失う変更を見分ける決まり（impRoleLoss）は、その型を手で作って確かめる */
+  const gi=team.findIndex(x=>x.no===N('ガブリアス').no),gb=impSaved(team[gi].no,monGuide(N('ガブリアス'),{raw:true,}).make('bulky')||monGuide(N('カバルドン'),{raw:true}).make('bulky'));
+  gb.it=team[gi].set.it;const es=team.map((x,k)=>k===gi?{...x,set:{...gb,sp:[32,0,32,0,2,0],up:2,dn:3,src:'manual'}}:x);
+  const loss=impRoleLoss(R.T0,impRecalc(R.T0,es,gi),gi);window.__drop=[String(loss)];
+  r.dropped=![...R.list,...R.dropped].some(o=>/ガブリアスを耐久の型に/.test(o.title))&&/上から倒せる相手が\d+→0匹/.test(loss||'');
   /* ゲームにある持ち物・覚える技だけ・持ち物が重ならない・メガストーンは変えない */
   r.valid=L.every(o=>{const it=o.entries.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean);
     const okIt=it.every(k=>CH_ITEMS.has(k)||isStone(k))&&new Set(it).size===it.length;
@@ -528,7 +532,7 @@ const V12=await pg.evaluate(()=>{
 ok(V12.n.every(Boolean),'改善案が出ない／計算のあとパーティが変わった '+V12.n);
 ok(V12.recalc,'改善案の数が、パーティ全体を計算し直した結果と合わない');
 ok(V12.keep,'改善案が大事な役目を失わせている');
-ok(V12.dropped,'役目を大きく失う案（ガブリアスを耐久の型に）を外していない');
+ok(V12.dropped,'役目を大きく失う案を外していない／攻撃役のガブリアスに耐久の型を出している '+JSON.stringify(await pg.evaluate(()=>window.__drop)));
 ok(V12.valid,'改善案に、ゲームにない持ち物・覚えない技・重なる持ち物・メガストーンの変更がある');
 ok(V12.keepMv,'技の案で先制技・交代技を外している');
 ok(V12.card,'改善案に良くなる・悪くなる・変える匹の変化が出ない');
@@ -701,6 +705,19 @@ const RT0=await pg.evaluate(()=>!!document.getElementById('dgu-retry'));
 await pg.evaluate(()=>{impGet=window.__impG;document.getElementById('dgu-retry').click()});await pg.waitForTimeout(3000);
 const RT1=await pg.evaluate(()=>!!document.querySelector('#dgu-imp .dgu-it'));
 ok(RT0&&RT1,'改善案の計算に失敗したときの再試行 '+[RT0,RT1]);
+/* 2026/11/16 依頼主の報告：イダイトウ（攻撃役）に「攻撃を削って防御」の型・改善案を出さない */
+const BAS=await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s),r={};
+  r.keys=[N('イダイトウ'),N('イダイトウ（メス）')].map(p=>monGuide(p,{raw:true}).keys.includes('bulky'));
+  r.cyc=['cycle','axis'].map(a=>{const s=archSet([a],N('イダイトウ'),null,new Set());return s.sp[1]===32&&s.sp[2]===0});
+  const nos=['イダイトウ','ブリジュラス','アシレーヌ','カバルドン','ガブリアス','アーマーガア'].map(N).map(p=>({no:p.no}));
+  const R=dgImprove(nos),all=[...R.list.map(o=>o.title),...(R.dropped||[]).map(d=>d.title)];
+  r.imp=all.filter(t=>/^イダイトウ(の能力ポイント：HPと(防御|特防|素早さ)|の性格：.*→ (わんぱく|ずぶとい|のんき|しんちょう|おだやか|なまいき)|を耐久の型に)/.test(t));
+  r.keep=['カバルドン','クレベース','エンペルト'].map(n=>monGuide(N(n),{raw:true}).keys.includes('bulky'));
+  return r});
+ok(BAS.keys.every(v=>!v),'イダイトウを受けの型にしない '+JSON.stringify(BAS.keys));
+ok(BAS.cyc.every(Boolean),'サイクル・軸の型でイダイトウは攻撃に振る '+JSON.stringify(BAS.cyc));
+ok(!BAS.imp.length,'イダイトウに耐久に回す改善案を出さない '+JSON.stringify(BAS.imp));
+ok(BAS.keep.every(Boolean),'もともと受けの型のポケモンは変えない '+JSON.stringify(BAS.keep));
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
 console.log(`diag: OK（${n}項目）`);
