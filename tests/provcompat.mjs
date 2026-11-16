@@ -124,14 +124,9 @@ const L0=JSON.parse(LEG).list;
 ok(JSON.stringify(C.load.list.map(s=>s.team))===JSON.stringify(L0.map(s=>s.team)),'B：前の形のパーティを、3枠とも中身そのままで読める（姿・技・持ち物・特性・性格・能力ポイント・取り込みの実数値・軸・選出）',C.load.list[0].team[0]);
 ok(C.load.ls===LEG,'B：読んだだけでは保存の中身を書きかえない（移しかえをしない）');
 ok(!C.load.ls.includes('"prov"')&&!C.visit.ls.includes('"prov"'),'B：読む・育成の画面を開く・枠を切りかえるだけでは出どころを付けない');
-/* 前からある動き（前の版でも同じ。出どころとは関係なし）：能力ポイントの無い型（sp:null）を育成の画面で開くと、保存している技の並びに
-   空き（null）が足されて保存され、その枠の変更時刻（at・updated）が進む（10-editor.js の editView が型の技の並びをそのまま使って空きを足すため）。
-   ここでは「違いがちょうどそれだけ」であることを確かめる（ほかの違いが出たら落ちる）。直したら、この確かめを「1文字も変わらない」に戻す */
-const KNOWN=d=>(/^\.list\.0\.team\.4\.set\.mv\.[23]$/.test(d[0])&&d[1]===undefined&&d[2]==='null')||d[0]==='.list.0.at'||d[0]==='.updated';
-{const dv=diff(JSON.parse(LEG),JSON.parse(C.visit.ls));
-  ok(dv.every(KNOWN),'B：育成の画面を6匹とも開いて閉じ、枠を切りかえても、保存の中身は変わらない（前からある sp:null の技の空きと変更時刻だけ）',dv);
-  ok(dv.length===4,'B：（記録）前からある動き：sp:null の型を開くと技の並びに空き2つが足され、変更時刻が進む＝前の版と同じ',dv);
-  ok(JSON.parse(C.visit.ls).list[0].team[4].set.mv.filter(Boolean).length===JSON.parse(LEG).list[0].team[4].set.mv.length,'B：足されるのは空きだけで、技は減らない')}
+/* 2026/11/16 に直した：前は能力ポイントの無い型（sp:null）を育成の画面で開くと、技の並びに空き（null）が足されて保存され、
+   変更時刻（at・updated）も進んでいた（10-editor.js の editView が保存の配列をそのまま使っていたため）。いまは1文字も変わらない */
+ok(C.visit.ls===LEG,'B：育成の画面を6匹とも開いて閉じ、枠を切りかえても、保存の中身は1文字も変わらない',diff(JSON.parse(LEG),JSON.parse(C.visit.ls)));
 /* B-2 出どころは不明（推し量らない） */
 {const pg=await (await b.newContext({locale:'ja-JP'})).newPage();await pg.goto(URL0+'#/tools');await pg.waitForTimeout(600);
   const pv=await pg.evaluate(L=>JSON.parse(L).list[0].team.map(x=>x.set?provOf(x.set):'noset'),LEG);

@@ -59,7 +59,10 @@ function editView(a){
   if(!p){nav('#/team');return}
   setHeader(p.n+'の育成','#/team');
   const fresh=!(x.set&&x.set.sp);
-  const base=x.set&&x.set.sp?JSON.parse(JSON.stringify(x.set)):{...setToSaved(p,mySetFor(p.no)),...(x.set?{ab:x.set.ab||setToSaved(p,mySetFor(p.no)).ab,it:x.set.it||null,mv:x.set.mv&&x.set.mv.length?x.set.mv:setToSaved(p,mySetFor(p.no)).mv}:{})};
+  /* 編集用の写し。保存している型（x.set）の配列・中身をそのまま使うと、下の空き（null）を足す処理で保存の中身が書きかわる
+     （2026/11/16：能力ポイントの無い型を開くだけで技の並びに null が足され、変更時刻も進んでいた）。必ず写してから使う */
+  const xs=x.set?JSON.parse(JSON.stringify(x.set)):null;
+  const base=xs&&xs.sp?xs:{...setToSaved(p,mySetFor(p.no)),...(xs?{ab:xs.ab||setToSaved(p,mySetFor(p.no)).ab,it:xs.it||null,mv:xs.mv&&xs.mv.length?xs.mv:setToSaved(p,mySetFor(p.no)).mv}:{})};
   while(base.mv.length<4)base.mv.push(null);
   ED={idx,no:p.no,s:base,dirty:false};
   if(EDS.idx!==idx||EDS.no!==p.no){clearTimeout(EDS.t);EDS.st='';EDS.idx=idx;EDS.no=p.no}
