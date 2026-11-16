@@ -106,6 +106,8 @@ function detail(no){
     filled.add(i)};
   seg.querySelectorAll('button').forEach(b=>b.onclick=(e,dir)=>{
     const i=+b.dataset.i,from=dpI;dpI=i;
+    /* 2026/11/16 依頼主の報告（ガブリアス：姿を切りかえると概要から急に技・特性へ移る）：技・特性のタブを覚えておくのは、技のページから戻ったときのためだけ。ほかのタブを選んだら忘れる */
+    if(i!==3)MVS.tab4=null;
     seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
     ind.style.transform=`translateX(${i*100}%)`;
     ind.style.transition='';

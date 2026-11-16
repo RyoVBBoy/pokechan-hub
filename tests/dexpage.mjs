@@ -91,6 +91,13 @@ const FL=await pg.evaluate(()=>{const L=[445,10058,10309].map(n=>monGuide(byNo[n
     dup:Object.entries(fam).filter(([k,a])=>a.length>1&&new Set(a).size<a.length).map(([k])=>byNo[k].n),bad:all.filter(p=>/上がり。/.test(monGuide(p,{parts:true}).lead)).map(p=>p.n)}});
 ok(FL.diff&&FL.mz&&FL.m,'ガブリアス・メガ・メガZ の「どんなポケモン？」が姿ごとに違う '+JSON.stringify(FL));
 ok(!FL.dup.length&&!FL.bad.length,'姿の違うページで同じ説明・文の終わりの誤り '+JSON.stringify(FL));
+/* 姿の切りかえ：技・特性を見たあと概要に戻し、メガ→元の姿と切りかえても概要のまま */
+await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(900);
+const FSW=await pg.evaluate(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)),tab=()=>document.querySelector('#seg [aria-selected="true"]').dataset.i,out=[];
+  document.querySelector('#seg [data-i="3"]').click();await w(300);document.querySelector('#seg [data-i="0"]').click();await w(300);
+  for(const no of [10058,10309,445,10058,445]){const a=document.querySelector(`.fam-pills a[href="#/p/${no}"]`);if(!a){out.push('no'+no);continue}a.click();await w(500);out.push(tab())}
+  document.querySelector('#seg [data-i="3"]').click();await w(300);const a=document.querySelector('.fam-pills a[href="#/p/10058"]');a.click();await w(500);out.push(tab());return out});
+ok(FSW.slice(0,5).every(t=>t==="0")&&FSW[5]==="3","姿を切りかえても開いていたタブのまま "+FSW.join(','));
 ok(!BF.tsu.length,'10以上を「Nつ」と数えない '+BF.tsu.join('・'));
 ok(BF.ag.every(Boolean),'ギルガルドはブレードフォルムの攻撃で判定 '+JSON.stringify(BF.ag));
 ok(BF.pf.every(Boolean),'イルカマンはマイティフォルムで判定 '+JSON.stringify(BF.pf));
