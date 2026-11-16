@@ -1,5 +1,46 @@
 /* ===================== ポケモン詳細 ===================== */
 let st={sp:[0,0,0,0,0,0],up:-1,dn:-1},curNo=null;
+/* メガシンカの姿のページの「パーティに追加」（2026/11/16 依頼主 段階1：持ち物を黙って置きかえない）。
+   パーティにはメガシンカの姿の番号を入れず、元の姿＋メガストーン（持ち物）で表す。入れる先は、いま選んでいるパーティの枠（TEAMS.cur）。
+   ・元の姿がいない：元の姿を入れてメガストーンを持たせる（前と同じ形 {it} だけ。ほかの育成・出どころの記録は作らない）。6匹いれば入れない
+   ・元の姿がいて、もう同じメガストーンを持っている：何も書きかえない（確かめも出さない）
+   ・元の姿がいて、ほかの持ち物を持っている：どのパーティの何番目の匹か・いまの持ち物・変えるメガストーンを出して確かめる。
+     キャンセルなら何も変えない。変えるなら持ち物だけを変える（技・特性・性格・能力ポイントはそのまま）
+   ・元の姿がいて、持ち物を持っていない：置きかえる物が無いので確かめずにメガストーンを持たせる
+   育成のある匹の持ち物を変えたときの出どころ（prov）は、育成の画面で変えたのと同じ決まり（「あなたの育成」、最初の出どころを from に）。
+   src はそのまま残す（2026/11/16 依頼主）：持ち物だけを変えた写した型（src:'copy'）を、技・特性・能力ポイントまで利用者の型としてサイトの集計に
+   数えないため（worker/src/usage.js は src が copy の型を数えない）。育成の画面の src の決まり（変えたら manual）は変えていない */
+let DP_ADDING=false;
+async function dpAddMega(p){
+  if(DP_ADDING)return;
+  const base=byNo[p.base],k=p.stone;
+  if(!base||!k||!ITEMN[k]||!megaOf(base.no,k)){toast('このメガシンカの姿は、パーティに入れられません');return}
+  const stoneN=ITEMN[k],slot=TEAMS.cur,pn=`「${teamName(slot)}」`;
+  const i=team.findIndex(x=>x.no===base.no);
+  if(i<0){
+    if(team.length>=6){toast(`${pn}は6匹そろっています。入れかえる匹を外してから入れてください`);return}
+    team.push({no:base.no,sel:team.filter(x=>x.sel).length<PICK(),set:{it:{n:stoneN,k}}});saveTeam();
+    toast(`${base.n}に${stoneN}を持たせて${pn}に入れました`);nav('#/team');return}
+  const x=team[i],cur=x.set&&x.set.it&&x.set.it.k||null;
+  if(cur===k){toast(`${pn}の${base.n}は、もう${stoneN}を持っています`);nav('#/team');return}
+  if(cur){
+    DP_ADDING=true;let ok=false;
+    try{ok=await askConfirm({title:`${base.n}の持ち物を変えますか？`,
+      text:`${pn}の${i+1}番目の${base.n}は、いま「${ITEMN[cur]||cur}」を持っています。${p.n}にするには、持ち物を「${stoneN}」に変えます。技・特性・性格・能力ポイントは変わりません。キャンセルすると、いまのままです。`,
+      ok:'持ち物を変える',danger:true})}finally{DP_ADDING=false}
+    if(!ok){toast('持ち物は変えていません');return}
+    /* 確かめている間にパーティが変わっていたら（ほかのタブ・枠の切りかえ）、何も変えない */
+    if(TEAMS.cur!==slot||team[i]!==x||((x.set&&x.set.it&&x.set.it.k)||null)!==cur){toast('パーティが変わったため、持ち物は変えていません');return}
+  }
+  /* 持ち物だけを変えた新しい型を作ってから入れかえる（元の型は書きかえない） */
+  let set;
+  if(x.set){const prev=typeof provOf==='function'?provOf(x.set):null;
+    const pv=typeof mkProv==='function'?provForSave(prev&&prev.s==='user'?prev:mkProv({s:'user',from:prev})):null;
+    set={...x.set,it:{n:stoneN,k}};if(pv)set.prov=pv;else delete set.prov}
+  else set={it:{n:stoneN,k}};
+  team[i]={...x,set};saveTeam();
+  toast(`${pn}の${base.n}に${stoneN}を持たせました`);nav('#/team');
+}
 function detail(no){
   /* 「〇〇の対策を見る」（2026/11/10 依頼主：サイトの外の対策ページから戻れない）：#/p/番号/break なら図鑑の「対策」タブで開く。左上の←で前の画面に戻れる */
   if(/^#\/p\/\d+\/break/.test(location.hash)&&typeof DP_KEEP_TAB!=='undefined')DP_KEEP_TAB=5;
@@ -127,9 +168,8 @@ function detail(no){
     SN.forEach((_,i)=>{const el=document.getElementById('sp'+i);el.value=0;el.style.setProperty('--p','0%')});
     natGridSync(document.getElementById('dp-nat'),-1,-1);updCalc()};
   document.querySelectorAll('#dp-nat [data-nat]').forEach(b=>b.onclick=()=>{const n=NATS[+b.dataset.nat];st.up=n[1];st.dn=n[2];natGridSync(document.getElementById('dp-nat'),n[1],n[2]);updCalc()});
-  /* メガシンカの姿は、元の姿にメガストーンを持たせてパーティに入れる */
-  document.getElementById('addbtn').onclick=()=>{if(!p.base){addTeam(p.no);return}
-    addTeam(p.base);const x=team.find(t=>t.no===p.base);if(x&&p.stone){x.set={...(x.set||{}),it:{n:ITEMN[p.stone],k:p.stone}};saveTeam()}};
+  /* メガシンカの姿は、元の姿にメガストーンを持たせてパーティに入れる（dpAddMega） */
+  document.getElementById('addbtn').onclick=()=>{if(!p.base){addTeam(p.no);return}dpAddMega(p)};
   document.getElementById('oppbtn').onclick=()=>openSheet({no:p.no});
   updCalc();
 }
