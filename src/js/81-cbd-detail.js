@@ -34,7 +34,8 @@ function cbddParse(j){
 /* 読む：同じ匹・同じ形式の読み込みが重なったら1回にまとめる。読めたものは、その匹のページを開いている間だけ持つ */
 function cbddLoad(p,fmt){
   const id=ENSP[p.no],key=p.no+':'+fmt;
-  if(!CBD_DETAIL||!id)return Promise.resolve({st:'none'});
+  if(!CBD_DETAIL)return Promise.resolve({st:'none'});
+  if(!id)return Promise.resolve({st:'noid'});
   if(CBDD.key===key&&CBDD.p)return CBDD.p;
   cbddDrop();CBDD.key=key;CBDD.st='loading';
   const pr=(async()=>{
@@ -43,7 +44,11 @@ function cbddLoad(p,fmt){
       const r=await fetch(`${CBD}/api/battle/${fmt==='double'?'Doubles':'Singles'}/${encodeURIComponent(id)}`,{cache:'no-store',credentials:'omit',signal:ctl.signal});clearTimeout(tm);
       if(r.status===404)return{st:'none'};
       if(!r.ok)return{st:'err'};
-      const d=cbddParse(await r.json());
+      const j=await r.json();
+      /* 答えの形式が頼んだ形式と違えば、見出しを取りちがえないように使わない（読めなかった扱い） */
+      const want=fmt==='double'?'doubles':'singles';
+      if(j&&j.format!=null&&String(j.format).toLowerCase()!==want)return{st:'err'};
+      const d=cbddParse(j);
       if(!d.mv.length&&!d.it.length&&!d.ab.length)return{st:'none'};
       return{st:'ok',d,at:new Date()};
     }catch(e){return{st:'err'}}
@@ -51,30 +56,41 @@ function cbddLoad(p,fmt){
   CBDD.p=pr;return pr;
 }
 const CBDD_STAT={'attack':1,'defense':2,'sp. atk':3,'sp. def':4,'speed':5};
-const cbddPc=v=>v==null?'<i class="cbdd-u">割合は不明</i>':`<i>${v}%</i>`;
+const cbddPad=n=>String(n).padStart(2,'0');
+/* 表示の形（2026/11/16 依頼主「データを見つけやすく」）：
+   いつも見える＝見出し（形式）・1行のまとめ（提供元の並び順・取得した時刻）・技／持ち物／特性／性格／能力ポイント・出典の文とリンク。
+   たたむ（<details>、はじめは閉じる）＝出典の名前・取得した日時・集計期間／レギュレーション／対戦数（不明）・並び順と割合と能力ポイントの注意書き */
 function cbddHTML(p,fmt,res){
   const fN=fmt==='double'?'ダブル':'シングル';
-  const head=`<div class="cbdd-h"><b>ランクバトルの集計（項目ごと・${fN}）</b><span class="cbdd-tag">実戦データ</span></div>`;
-  if(res.st==='loading')return `<div class="cbdd" data-cbdd="loading" role="status">${head}<p class="cbdd-n">集計を読み込んでいます…</p></div>`;
-  if(res.st==='err')return `<div class="cbdd" data-cbdd="err" role="alert">${head}<p class="cbdd-n"><b>集計を読めませんでした。</b>提供元につながらないか、答えを読み取れませんでした。前に読めたデータは表示しません。</p><div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-cbdd-retry>もう一度読み込む</button></div>${cbdAttrHTML()}</div>`;
-  if(res.st==='none')return `<div class="cbdd" data-cbdd="none">${head}<p class="cbdd-n">${esc(p.n)}の${fN}の集計は、提供元にありませんでした。</p>${cbdAttrHTML()}</div>`;
+  const head=`<h3 class="cbdd-h">ランクバトルの集計（${fN}）</h3>`;
+  if(res.st==='loading')return `<div class="cbdd" data-cbdd="loading" role="status" aria-live="polite">${head}<p class="cbdd-st"><span class="cbdd-sp" aria-hidden="true"></span>読み込んでいます…</p></div>`;
+  if(res.st==='err')return `<div class="cbdd" data-cbdd="err" role="alert">${head}<p class="cbdd-st">集計を読み込めませんでした（前に読めたデータは表示しません）。<button class="cbdd-retry" data-cbdd-retry>もう一度読み込む</button></p>${cbdAttrHTML()}</div>`;
+  if(res.st==='noid')return `<div class="cbdd" data-cbdd="noid">${head}<p class="cbdd-st">このポケモンは、提供元の名前との対応がないため、集計を表示できません。</p></div>`;
+  if(res.st==='none')return `<div class="cbdd" data-cbdd="none">${head}<p class="cbdd-st">${esc(p.n)}の${fN}の集計は、提供元にありませんでした。</p>${cbdAttrHTML()}</div>`;
   const d=res.d,at=res.at;
-  const row=(t,a,f)=>a.length?`<div class="gus"><b>${t}</b><div>${a.map(x=>`<span>${f(x)} ${cbddPc(x[x.length-1])}</span>`).join('')}</div></div>`:'';
-  const mv=x=>{const id=MVKA[nrm(x[0])];return id?`<a href="#/move/${id}" style="color:var(--acc)">${esc(mName(id))}</a>`:esc(x[0])};
+  const pc=v=>v==null?'<i class="cbdd-pu">割合不明</i>':`<i>${v}%</i>`;
+  const row=(t,a,f)=>a.length?`<div class="cbdd-r" data-cbdd-row="${t}"><b>${t}</b><ul>${a.map(x=>`<li><span>${f(x)}</span>${pc(x[x.length-1])}</li>`).join('')}</ul></div>`:'';
+  const mv=x=>{const id=MVKA[nrm(x[0])];return id?`<a href="#/move/${id}">${esc(mName(id))}</a>`:esc(x[0])};
   const it=x=>{const k=nrm(x[0])==='leek'?'stick':nrm(x[0]);return ITEMN[k]?esc(ITEMN[k]):esc(x[0])};
   const ab=x=>{const k=ABK[nrm(x[0])];return esc(k&&ABN[k]?ABN[k]:x[0])};
   const nat=x=>{const u=CBDD_STAT[x[1].toLowerCase()],dn=CBDD_STAT[x[2].toLowerCase()];return u&&dn&&u!==dn?esc(natName(u,dn)):`${esc(x[0])}${!x[1]&&!x[2]?'（補正なし）':''}`};
   const sp=x=>x[0].map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')||'振りなし';
-  const tm=`${at.getFullYear()}/${at.getMonth()+1}/${at.getDate()} ${at.getHours()}:${String(at.getMinutes()).padStart(2,'0')}`;
+  const hm=`${cbddPad(at.getHours())}:${cbddPad(at.getMinutes())}`;
+  const sum=[d.pos?`並び順 ${d.pos}位`:'',`${at.getMonth()+1}/${at.getDate()} ${hm}取得`].filter(Boolean).join(' · ');
   return `<div class="cbdd" data-cbdd="ok">${head}
-    <dl class="cbdd-meta"><div><dt>出典</dt><dd>Pokémon Champions Battle Data（非公式の集計）</dd></div>
-      <div><dt>取得した時刻</dt><dd data-cbdd-at="${at.getTime()}">${tm}</dd></div>
-      <div><dt>集計期間</dt><dd>不明</dd></div><div><dt>レギュレーション</dt><dd>不明</dd></div><div><dt>対戦数</dt><dd>不明</dd></div>
-      ${d.pos?`<div><dt>提供元での並び順</dt><dd>${d.pos}番目<small>（提供元の並び順です。使用率ではありません）</small></dd></div>`:''}</dl>
-    <p class="cbdd-n">下の割合は<b>項目ごと</b>のものです。技・持ち物・特性などを組み合わせた「1つの型」が使われた割合ではありません。</p>
-    ${row('技',d.mv.slice(0,10),mv)}${row('持ち物',d.it.slice(0,10),it)}${row('特性',d.ab.slice(0,4),ab)}${row('性格',d.nat.slice(0,5),nat)}${row('能力ポイント',d.sp.slice(0,5),sp)}
-    ${d.sp.length?'<p class="cbdd-n cbdd-prov">能力ポイントの振り方は、提供元のデータの欄の名前から読み取ったものです。欄の正確な意味と集計の方法は、まだ確かめられていません。</p>':''}
-    ${cbdAttrHTML()}</div>`;
+    <p class="cbdd-sum" data-cbdd-at="${at.getTime()}">${sum}</p>
+    <div class="cbdd-rows">${row('技',d.mv.slice(0,10),mv)}${row('持ち物',d.it.slice(0,10),it)}${row('特性',d.ab.slice(0,4),ab)}${row('性格',d.nat.slice(0,5),nat)}${row('能力ポイント',d.sp.slice(0,5),sp)}</div>
+    ${cbdAttrHTML()}
+    <details class="cbdd-more"><summary>データの見方・注意書き <span aria-hidden="true">▼</span></summary>
+      <dl class="cbdd-meta"><div><dt>出典</dt><dd>Pokémon Champions Battle Data（非公式の集計。公式のデータではありません）</dd></div>
+        <div><dt>取得した日時</dt><dd>${at.getFullYear()}/${at.getMonth()+1}/${at.getDate()} ${hm}</dd></div>
+        <div><dt>集計期間</dt><dd>不明</dd></div><div><dt>レギュレーション</dt><dd>不明</dd></div><div><dt>対戦数</dt><dd>不明</dd></div></dl>
+      <ul class="cbdd-notes">
+        ${d.pos?'<li>表示している順位は提供元の並び順です。ポケモンの使用率を示すものではありません。</li>':''}
+        <li>技・持ち物・特性などの割合は、それぞれの項目ごとの集計です。これらを組み合わせた「1つの型」の使用率ではありません。</li>
+        ${d.sp.length?'<li>能力ポイントの表示は提供元のデータ項目をもとにしています。項目の正確な意味や集計方法は確認できていないため、参考情報としてご覧ください。</li>':''}
+        <li>集計期間・レギュレーション・対戦数は提供元のデータに書かれていないため「不明」としています。取得した日時から推し量っていません。</li>
+      </ul></details></div>`;
 }
 /* 「型・育成」タブの中の置き場所（#cbdd-box）に出す。メガシンカの姿のページでは読まない（元の姿のページで見る） */
 function cbddMount(root,p,fmt){
