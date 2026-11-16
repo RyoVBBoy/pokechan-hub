@@ -238,6 +238,14 @@ expect('問い合わせ：1時間に5件まで',r[0]===429,r);
 /* ランキングbot（rankbot.js） */
 TIERJ.at=Date.now();
 r=await call('/api/admin/rankbot',{method:'POST',body:{}});expect('ランキングbot：管理者だけ',r[0]===401,r);
+/* 2026/11/16：ランキングbot は休止中（rankbot.js の RANK_PAUSED。集計の提供元の利用条件を確認中）。休止の間は、今日の tier.json があっても・force でも投稿しないことを確かめる。
+   RANK_PAUSED を false に戻したら、下の RANK_OFF も false にして、もとの確かめを動かす */
+const RANK_OFF=true;
+if(RANK_OFF){
+r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{}});expect('ランキングbot（休止中）：今日の tier.json があっても投稿しない',r[0]===200&&r[1].posted===false&&r[1].paused===true,r);
+r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{force:true}});expect('ランキングbot（休止中）：force でも投稿しない',r[1].posted===false&&r[1].paused===true,r[1]);
+r=await call('/api/tl');expect('ランキングbot（休止中）：タイムラインに投稿がない',!r[1].notes.some(x=>x.user.handle==='ranking_bot'),r[1].notes.length);
+}else{
 r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{}});expect('ランキングbot：投稿する',r[0]===200&&r[1].posted&&/Sランク：ガブリアス/.test(r[1].body)&&/#強いポケモンランキング/.test(r[1].body),r[1]);
 r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{}});expect('ランキングbot：同じ日は1回だけ',r[1].posted===false,r[1]);
 TIERJ={...TIERJ,rows:[{no:445,name:'ガブリアス',tier:'A',u:1},{no:149,name:'カイリュー',tier:'S',u:2},{no:887,name:'ドラパルト',tier:'B',u:3}]};
@@ -245,6 +253,7 @@ r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{
 r=await call('/api/tl');{const n=r[1].notes.find(x=>x.user.handle==='ranking_bot');expect('ランキングbot：タイムラインに出てランキングへのリンク',n&&/\/ranking\/$/.test(n.link),n)}
 r=await call('/api/search?q='+encodeURIComponent('#強いポケモンランキング'));expect('ランキングbot：タグで探せる',r[1].notes.some(x=>x.user.handle==='ranking_bot'),r[1]);
 TIERJ={...TIERJ,live:false};r=await call('/api/admin/rankbot',{method:'POST',admin:'admin-secret-123',body:{force:true}});expect('ランキングbot：集計がない日は投稿しない',r[1].posted===false,r[1]);
+}
 /* シーズンごとの上位パーティ */
 const ADM='admin-secret-123',TM6=[445,149,887,1000,727,812].map(no=>({no,set:{it:{k:'choicescarf'}}}));
 r=await call('/api/admin/seasons',{method:'POST',body:{name:'シーズン1'}});expect('シーズン：登録は管理者だけ',r[0]===401,r);

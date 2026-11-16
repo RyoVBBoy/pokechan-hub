@@ -149,7 +149,7 @@ function editView(a){
     /* 技は集計の上位4つをそのまま入れる（変化技も含む） */
     const top4=d?d.mv.map(([n])=>MVKA[nrm(n)]).filter(id=>id&&LSD[p.no]&&LSD[p.no][1].includes(id)).slice(0,4).map(id=>({n:mName(id),id})):null;
     ED.s={...sv,mv:top4&&top4.length?top4:[...sv.mv]};while(ED.s.mv.length<4)ED.s.mv.push(null);save();
-    toast(d?'使用率の集計（championsbattledata）で最も多い型を入れました':'集計データが取れないため、自動で決めた型を入れました');editView(String(idx))};
+    toast(d?'使用率の集計（championsbattledata）で最も多い型を入れました':LIVE.off?'集計は休止中のため、自動で決めた型を入れました':'集計データが取れないため、自動で決めた型を入れました');editView(String(idx))};
   document.getElementById('ed-clear').onclick=()=>{const cur=team[ED.idx];if(cur){delete cur.set;saveTeam()}toast('未設定に戻しました');nav('#/team')};
   upd();pipBuildBind(idx);edSaveShow();
   if(typeof ssEnhance==='function')ssEnhance(document.getElementById('ed-root'),'#ed-ab,#ed-it,[data-mv]');

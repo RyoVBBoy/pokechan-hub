@@ -87,7 +87,7 @@ function dpBuildsHTML(p,g){
   return `<div class="dp-h"><h2>型・育成</h2><p>型は3種類に分けています：<b>実際の使用データ</b>・<b>当サイトが計算で組んだ提案</b>・<b>自分で組む</b>。</p></div>
     <div class="pills dp-fmt" role="tablist" aria-label="対戦の形式">${[['single','シングル'],['double','ダブル']].map(([k,l])=>`<button class="pill" role="tab" data-dpf="${k}" aria-selected="${k===f}" aria-pressed="${k===f}">${l}</button>`).join('')}</div>
     <div class="dp-bsec"><h3>実際の使用データから（${f==='double'?'ダブル':'シングル'}）</h3>
-      ${live.length?live.map(s=>g.setHTML(s,idx(s))).join(''):`<p class="note" style="padding:0">${p.base?'メガシンカの姿は、元の姿のページで集計を見られます。':'この形式の使用データはまだありません（集計の上位にいない・まだ読み込めていない）。'}</p>`}
+      ${live.length?live.map(s=>g.setHTML(s,idx(s))).join(''):`<p class="note" style="padding:0">${p.base?'メガシンカの姿は、元の姿のページで集計を見られます。':(LIVE.off?'ランクバトルの集計は、提供元の利用条件を確認しているため休止しています。':'この形式の使用データはまだありません（集計の上位にいない・まだ読み込めていない）。')}</p>`}
       ${g.liveF===f?g.live:''}${usage}</div>
     <div class="dp-bsec"><h3>当サイトが計算で組んだ提案（${f==='double'?'ダブル':'シングル'}）</h3>
       ${calc.length?calc.map(s=>g.setHTML(s,idx(s))).join(''):'<p class="note" style="padding:0">この形式の提案はありません。</p>'}</div>

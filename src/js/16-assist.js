@@ -121,6 +121,7 @@ function oppSetHTML(no){
 function asDataLine(nos){
   const n=nos.filter(x=>LIVE.csv[x]).length;
   if(LIVE.st==='ready')return `型の想定：ラダー集計の最も多い型（${n}/${nos.length}匹分取得）。足りない分は自動で決めた型です。`;
+  if(LIVE.off)return '型の想定：ランクバトルの集計は休止中（提供元の利用条件を確認中）のため、自動で決めた型で計算しています。';
   if(LIVE.st==='fail')return '型の想定：ラダー集計を取得できなかったため、自動で決めた型で計算しています。';
   return '型の想定：ラダー集計を取得しています…';
 }

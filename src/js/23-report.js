@@ -44,7 +44,7 @@ function reportView(){
     <div class="rteam">${R.mons.map(p=>`<span class="av" title="${p.n}">${stamp(p)}</span>`).join('')}</div>
     ${box('強み','good',strong)}
     ${box('弱み','bad',weak)}
-    ${R.threats?box('警戒すべき流行のポケモン','warn',warn):`<div class="bnote" style="margin:10px 16px">${META.st==='fail'?'集計データを取得できないため、警戒すべき相手は表示できません。':'流行のポケモンを読み込んでいます…（警戒すべき相手を計算します）'}</div>`}
+    ${R.threats?box('警戒すべき流行のポケモン','warn',warn):`<div class="bnote" style="margin:10px 16px">${LIVE.off?'ランクバトルの集計は休止中（提供元の利用条件を確認中）のため、警戒すべき相手は表示できません。':META.st==='fail'?'集計データを取得できないため、警戒すべき相手は表示できません。':'流行のポケモンを読み込んでいます…（警戒すべき相手を計算します）'}</div>`}
     <div class="sec"><h2>受けるタイプ別</h2><span style="font-size:12px;color:var(--dim)">弱点の数 ／ 半減以下の数</span></div>
     <div class="rgrid">${R.def.map(x=>`<div class="rcell ${x.w.length>=3&&x.r.length<=1?'hot':x.w.length>=2?'mid':''}"><span style="background:${COL[x.t]};color:${ONC[x.t]}">${ticon(x.t,14)}</span><b>${x.w.length}</b><small>${x.r.length}</small></div>`).join('')}</div>
     ${R.faster?`<div class="sec"><h2>素早さ</h2><span style="font-size:12px;color:var(--dim)">流行のポケモンとの比較</span></div>

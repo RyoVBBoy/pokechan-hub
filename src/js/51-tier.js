@@ -47,22 +47,25 @@ function tierHTML(T,link){
 }
 async function tierView(){
   setHeader('強いポケモンランキング','#/tools');
+  /* 休止中（2026/11/16、15-battle.js の CBD_ON）：ランキングはランクバトルの集計から作るので出さない。集計を読まず、計算もせず、端末に残した前の結果（pctier）も使わない */
+  if(LIVE.off){V.innerHTML=cbdPauseHTML('ランキングは、いま休止しています','このランキングは、ランクバトルの集計をもとに計算していました。集計の提供元の利用条件を確認しているため、確認が終わるまでランキングの表示を止めています。前に計算したランキングも表示しません。')
+    +`<div class="btns"><a class="btn btn-s" href="#/season">上位パーティを見る</a><a class="btn btn-s" href="#/pair">相性のいい仲間を探す</a></div>`;return}
   V.innerHTML='<p class="empty">ランクバトルの集計を読み込み中…</p>';
   /* 集計の提供元が遅いときは20秒で見切る（2026/11/12） */
   try{await Promise.race([metaLoad(),new Promise(r=>setTimeout(r,20000))])}catch(e){}
   if(keyOf(cur)!=='tier')return;
   const ck='pctier'+(typeof FMT!=='undefined'?FMT:'')+new Date().toISOString().slice(0,10);
-  let T=null;try{const c=JSON.parse(localStorage.getItem(ck)||'null');if(c&&c.live===(typeof META!=='undefined'&&META.rank.length>=20)){
+  let T=null;if(CBD_PERSIST)try{const c=JSON.parse(localStorage.getItem(ck)||'null');if(c&&c.live===(typeof META!=='undefined'&&META.rank.length>=20)){
     c.rows.forEach(r=>{r.p=byNo[r.p];r.good=r.good.map(n=>byNo[n]).filter(Boolean);r.bad=r.bad.map(n=>byNo[n]).filter(Boolean);r.mega=r.mega?byNo[r.mega]:null});if(c.rows.every(r=>r.p))T=c}}catch(e){}
   /* 集計が読めないとき（2026/11/12）：前の日までに集計ありで計算した結果が端末にあれば、それを出す（7日まで） */
-  if(!T&&!(META.rank.length>=20)){try{const pre='pctier'+(typeof FMT!=='undefined'?FMT:'');let best=null;
+  if(CBD_PERSIST&&!T&&!(META.rank.length>=20)){try{const pre='pctier'+(typeof FMT!=='undefined'?FMT:'');let best=null;
     for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith(pre)||k===ck)continue;const d=k.slice(pre.length);if(!/^\d{4}-\d\d-\d\d$/.test(d))continue;
       if(Date.now()-Date.parse(d)>7*864e5)continue;if(!best||d>best)best=d}
     if(best){const c=JSON.parse(localStorage.getItem(pre+best)||'null');if(c&&c.live){c.rows.forEach(r=>{r.p=byNo[r.p];r.good=r.good.map(n=>byNo[n]).filter(Boolean);r.bad=r.bad.map(n=>byNo[n]).filter(Boolean);r.mega=r.mega?byNo[r.mega]:null});
       if(c.rows.every(r=>r.p)){T=c;T.stale=best}}}}catch(e){}}
   if(!T){V.innerHTML='<p class="empty">強さを計算中…（数秒かかります）</p>';await new Promise(r=>setTimeout(r,30));if(keyOf(cur)!=='tier')return;
     T=tierCompute();
-    try{localStorage.setItem(ck,JSON.stringify({...T,rows:T.rows.map(r=>({...r,p:r.p.no,good:r.good.map(q=>q.no),bad:r.bad.map(q=>q.no),mega:r.mega?r.mega.no:null}))}))}catch(e){}}
+    if(CBD_PERSIST)try{localStorage.setItem(ck,JSON.stringify({...T,rows:T.rows.map(r=>({...r,p:r.p.no,good:r.good.map(q=>q.no),bad:r.bad.map(q=>q.no),mega:r.mega?r.mega.no:null}))}))}catch(e){}}
   /* 操作の回数（2026/11/12）：集計ありで出せたか／代わりの表示か。このタブで1日1回 */
   if(typeof evCount==='function')evCount(T.live&&!T.stale?'tier_ok':'tier_nolive',new Date().toISOString().slice(0,10)+FMT);
   const fb=T.stale?`集計の提供元に今つながらないため、${+T.stale.slice(5,7)}/${+T.stale.slice(8)}に集計ありで計算したランキングを表示しています。`

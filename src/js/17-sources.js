@@ -14,7 +14,7 @@ const SRC={
  regulation:{name:'レギュレーションの期間',lv:'unverified',date:'2026/10/18',src:[['第三者のまとめ記事',null]],
   note:'M-A（4月8日〜）、M-B（6月17日〜）、M-C（9月9日〜）。公式の発表では確認していません。'},
  ladder:{name:'ラダー集計（よく使われる型・一緒に使われるポケモン）',lv:'single',date:'',src:[['Pokémon Champions Battle Data（非公式）','https://championsbattledata.com/']],
-  note:'非公式の集計サイトのデータを、表示のたびに取得しています。集計の方法は公開されていません。現行レギュレーション（M-C）のデータです。'},
+  note:'非公式の集計サイトのデータです。集計の方法・集計期間・レギュレーション・対戦数は、提供元のデータに書かれていないため「不明」としています（取得した日から推し量りません）。2026/11/16 から、提供元の利用条件を確認しているため、このデータの取得と表示を休止しています。'},
  calc:{name:'このサイトの計算（役割・診断・選出）',lv:'unverified',date:'',src:[['このサイト独自の計算式',null]],
   note:'役割タグのしきい値、パーティ診断の点数、選出アシストの評価は、このサイトで決めた式による目安です。'}
 };
@@ -43,7 +43,8 @@ function srcInfoHTML(id,no){
   <div class="sinfo">
     <div><span>確認状況</span><b>${bad?'ゲーム内の値と違うという確認結果があります。修正前の値を表示しています。':LV[lv][0]+'：'+LV[lv][2]}</b></div>
     <div><span>出典</span><b>${d.src.map(([n,u])=>u?`<a href="${u}" target="_blank" rel="noopener">${n}</a>`:n).join('<br>')}</b></div>
-    <div><span>取得日</span><b>${id==='ladder'?(LIVE.at?LIVE.at.toLocaleString('ja-JP'):'まだ取得していません'):id==='calc'?'—':d.date}</b></div>
+    <div><span>取得日</span><b>${id==='ladder'?(LIVE.off?'休止中（取得していません）':LIVE.at?LIVE.at.toLocaleString('ja-JP'):LIVE.st==='ready'?'不明':'まだ取得していません'):id==='calc'?'—':d.date}</b></div>
+    ${id==='ladder'?'<div><span>集計期間</span><b>不明</b></div><div><span>レギュレーション</span><b>不明</b></div><div><span>対戦数</span><b>不明</b></div>':''}
     <div><span>注意点</span><b style="font-weight:400;color:var(--dim)">${d.note}</b></div>
   </div>
   <p class="note">誤りに気づいたら、X（準備中）で教えてください。</p>

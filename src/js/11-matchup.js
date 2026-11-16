@@ -248,6 +248,7 @@ function pickMon(cur,opt={}){
       else if(cat==='top'){const ready=typeof META!=='undefined'&&META.rank&&META.rank.length;
         if(ready){const l=uniq(META.rank.slice(0,MP_TOP_N).map(r=>base(byNo[+r.no]))).filter(p=>!hide(p));
           list.innerHTML=l.length?sec(`ランクバトルの使用率 上位${MP_TOP_N}匹`)+l.map(row).join(''):empty('trophy','表示できるポケモンがいません','環境上位のポケモンは、すべてパーティに入っています。')}
+        else if(LIVE.off)list.innerHTML=empty('trophy','環境上位は、いま休止しています','ランクバトルの使用率の集計は、提供元の利用条件を確認しているため休止しています。「すべて」から名前で探せます。');
         else if(typeof META!=='undefined'&&META.st==='fail')list.innerHTML=empty('trophy','ランキングを読み込めませんでした','ランクバトルの使用率の集計を読み込めませんでした。通信できる場所で、もう一度お試しください。','<button class="btn btn-s" id="mp-retry">もう一度読み込む</button>');
         else{list.innerHTML=empty('trophy','ランキングを読み込んでいます','ランクバトルの使用率の集計を読み込んでいます。少しお待ちください。');
           if(typeof metaLoad==='function')metaLoad().catch(()=>{}).then(()=>{if(o.isConnected&&cat==='top'&&!q.value.trim())draw()})}

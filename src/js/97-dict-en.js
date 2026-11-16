@@ -148,7 +148,17 @@ const EN={
 'よく使う機能':'Frequently used','ツールをすべて見る':'See all tools','トレーナーの投稿を見る・投稿する':'Read and post with trainers','いっしょに遊ぶ相手を探す':'Find someone to battle','雑談・構築相談・質問':'Chat, team advice, questions',
 'タイプ相性一覧':'Type chart',
 /* 言語 */
-'言語 / Language':'Language / 言語'
+'言語 / Language':'Language / 言語',
+ /* 2026/11/16 ランクバトルの集計の休止 */
+ 'ランクバトルの使用率と流行パーティは、いま休止しています':'Ranked usage and trending teams are temporarily unavailable',
+ '集計の提供元の利用条件を確認しているため、確認が終わるまで表示を止めています。前に読めた集計も表示しません。下の「当サイトの集計」と、上位パーティは今までどおり見られます。':'We are reviewing the usage conditions of the underlying data source. Display is paused until that review is complete, and previously loaded data is not shown. This site\'s own statistics below and the top teams remain available.',
+ '上位パーティを見る':'See top teams',
+ 'ランキングは、いま休止しています':'Rankings are temporarily unavailable',
+ 'このランキングは、ランクバトルの集計をもとに計算していました。集計の提供元の利用条件を確認しているため、確認が終わるまでランキングの表示を止めています。前に計算したランキングも表示しません。':'We are reviewing the usage conditions of the underlying data source. Ranking publication is paused until that review is complete. Previously calculated rankings are not shown.',
+ '当サイトの集計を見る':'See this site\'s statistics',
+ '環境上位は、いま休止しています':'Top usage is temporarily unavailable',
+ 'ランクバトルの使用率の集計は、提供元の利用条件を確認しているため休止しています。「すべて」から名前で探せます。':'Ranked usage data is paused while we review the source\'s usage conditions. You can search by name under "All".',
+ 'ランクバトルの集計は、提供元の利用条件を確認しているため休止しています。':'Ranked battle data is paused while we review the source\'s usage conditions.'
 };
 /* 数字や名前が入る文 */
 const enT=s=>EN[s]!=null?EN[s]:s;

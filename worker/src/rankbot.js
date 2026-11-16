@@ -23,7 +23,11 @@ function rankBody(T,prev){
   if(!prev)s+='\n（使用率と当サイトの計算から、毎日お知らせします）';
   return (s.length+tail.length>140?s.slice(0,140-tail.length-1)+'…':s)+tail;
 }
+/* 休止のスイッチ（2026/11/16 依頼主の指示）：ランキングはランクバトルの集計から作るので、提供元の利用条件を確かめ終わるまで投稿しない。
+   true の間は tier.json を読みにもいかない（古い tier.json が残っていても、管理画面の force でも投稿しない）。戻すときは false */
+const RANK_PAUSED=true;
 async function rankBotRun(env,db,now,force){
+  if(RANK_PAUSED)return{posted:false,paused:true,why:'休止中（集計の提供元の利用条件を確認中）'};
   await socialInit(db);await rankInit(db);
   let T;try{const r=await fetch(RANK_SITE(env)+'/assets/tier.json',{cf:{cacheTtl:0}});if(!r.ok)return{posted:false,why:'tier.json '+r.status};T=await r.json()}catch(e){return{posted:false,why:'読めない'}}
   if(!T||!T.live||!Array.isArray(T.rows)||!T.rows.length)return{posted:false,why:'集計なし'};

@@ -36,8 +36,16 @@ const ITEMT={softsand:'じめん',charcoal:'ほのお',mysticwater:'みず',magn
    ブラウザから直接取得し、短時間だけ端末内に保存します（データの再配布・ミラーはしません）。
    提供元：https://championsbattledata.com （非公式。Pokémon関連企業とは無関係） */
 const CBD='https://championsbattledata.com';
+/* 休止のスイッチ（2026/11/16 依頼主の指示：提供元の利用条件を確かめ終わるまで）。
+   CBD_ON＝集計を読みにいくか。false の間は liveInit・liveMon が通信せず、どの画面も「集計なし」として動く（LIVE.off＝休止中）。
+   CBD_PERSIST＝読んだ集計を端末に残すか（pcidx・pccsv3・pcmetalast・pctier）。false の間は読みも書きもしない（前に残した値は消さず、使わないだけ）。
+   戻すときは true にする。サーバーは worker/src/worker_src.js の CBD_ON、公開のページは tools/gen-pages.cjs の CBD_ON も合わせる */
+const CBD_ON=false,CBD_PERSIST=false;
+/* 休止中の表示（どの画面でも同じ形）。取得した日・集計期間・レギュレーション・対戦数は、分からないものを分からないと書く */
+const cbdPauseHTML=(title,text)=>`<div class="bnote cbd-off" role="status" style="margin:12px 16px"><b style="display:block;margin-bottom:4px">${title}</b>${text}</div>`;
+const CBD_OFF_TXT='ランクバトルの集計は、提供元の利用条件を確認しているため、いま休止しています。';
 const nrm=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-const LIVE={st:'idle',files:null,csv:{},at:null,err:{}};
+const LIVE={st:CBD_ON?'idle':'fail',files:null,csv:{},at:null,err:{},off:!CBD_ON};
 /* 対戦形式：シングル（3匹選出・先発1）を基本に、ダブル（4匹選出・先発2）にも切り替えられる */
 let FMT=(()=>{try{return localStorage.getItem('pcfmt')||'single'}catch(e){return'single'}})();
 const PICK=()=>FMT==='single'?3:4;
@@ -57,9 +65,12 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify({t:Date.now(),v}))
 const SP2NO={};Object.entries(ENSP).forEach(([no,n])=>{(SP2NO[n]=SP2NO[n]||[]).push(+no)});
 async function liveInit(){
   if(LIVE.st==='ready')return true;
+  if(!CBD_ON){LIVE.st='fail';return false}
   if(LIVE.st==='fail')return false;
   try{
-    let files=lsGet('pcidx',864e5);
+    /* LIVE.at＝提供元から実際に読んだ時刻。端末に残した一覧を使ったときは、残したときの時刻（分からなければ null＝不明）。画面を開いた時刻を入れない */
+    let files=CBD_PERSIST?lsGet('pcidx',864e5):null,at=null;
+    if(files){try{const t=+JSON.parse(localStorage.getItem('pcidx')).t;at=t>0?new Date(t):null}catch(e){}}
     if(!files){
       const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),15000);
       const r=await fetch(CBD+'/data/pokemon-index.json',{signal:ctl.signal});clearTimeout(tm);
@@ -67,9 +78,9 @@ async function liveInit(){
       const txt=await r.text();files={};
       for(const m of txt.matchAll(/battle_data\/Doubles\/([^"\\\/]+?)\.csv/g)){const fn=decodeURIComponent(m[1]);files[nrm(fn)]=fn}
       if(!Object.keys(files).length)throw new Error('no files');
-      lsSet('pcidx',files);
+      if(CBD_PERSIST)lsSet('pcidx',files);at=new Date();
     }
-    LIVE.files=files;LIVE.at=new Date();LIVE.st='ready';return true;
+    LIVE.files=files;LIVE.at=at;LIVE.st='ready';return true;
   }catch(e){LIVE.st='fail';LIVE.err=String(e&&e.message||e);return false}
 }
 function digest(txt){
@@ -87,15 +98,16 @@ function digest(txt){
   return d;
 }
 async function liveMon(no){
+  if(!CBD_ON)return null;
   const key=ENSP[no];if(!key||!LIVE.files)return null;
   if(LIVE.csv[no]!==undefined)return LIVE.csv[no];
-  const ca=lsGet('pccsv3'+FMT+no,216e5);if(ca){LIVE.csv[no]=ca;return ca}
+  const ca=CBD_PERSIST?lsGet('pccsv3'+FMT+no,216e5):null;if(ca){LIVE.csv[no]=ca;return ca}
   const fn=LIVE.files[key];if(!fn){LIVE.csv[no]=null;return null}
   try{
     const r=await fetch(CBD+'/pokemon_champions_assets/battle_data/'+FMTDIR()+'/'+encodeURIComponent(fn)+'.csv');
     if(!r.ok)throw 0;
     const d=digest(await r.text());if(!d.mv.length)throw 0;
-    LIVE.csv[no]=d;lsSet('pccsv3'+FMT+no,d);return d;
+    LIVE.csv[no]=d;if(CBD_PERSIST)lsSet('pccsv3'+FMT+no,d);return d;
   }catch(e){LIVE.csv[no]=null;LIVE.err[no]=1;return null}
 }
 const wpick=(arr,w)=>{let t=arr.reduce((a,x)=>a+Math.max(w(x),.001),0),r=Math.random()*t;for(const x of arr){r-=Math.max(w(x),.001);if(r<=0)return x}return arr[arr.length-1]};

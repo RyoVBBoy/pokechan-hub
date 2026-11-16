@@ -134,8 +134,12 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
   return out;
  },TSLUG);
  /* 強いポケモンランキング（51-tier.js）：ランクバトルの集計を読めればそれを使う（読めなければ計算だけ） */
- await pg.unroute(/championsbattledata|googleapis|gstatic/);await pg.route(/googleapis|gstatic/,r=>r.abort());
- const TIER=await pg.evaluate(async()=>{try{await Promise.race([metaLoad(),new Promise(r=>setTimeout(r,90000))])}catch(e){}
+ /* 休止（2026/11/16 依頼主の指示）：ランキングはランクバトルの集計から作るので、提供元の利用条件を確かめ終わるまで
+    集計を読まない・ランキングを計算しない・tier.json を出さない。ranking/ には「休止中」の短いページを置く。
+    ほかの検索向けページ（図鑑・対策・タイプ・構築の型・sitemap）は今までどおり作る。戻すときは CBD_ON を true（src/js/15-battle.js・worker も合わせる） */
+ const CBD_ON=false;
+ if(CBD_ON){await pg.unroute(/championsbattledata|googleapis|gstatic/);await pg.route(/googleapis|gstatic/,r=>r.abort())}
+ const TIER=!CBD_ON?{paused:true}:await pg.evaluate(async()=>{try{await Promise.race([metaLoad(),new Promise(r=>setTimeout(r,90000))])}catch(e){}
    const T=tierCompute(),R='__ROOT__';
    const json={at:T.at,live:T.live,fmt:T.fmt,rows:T.rows.map(r=>({no:r.p.no,name:formInfo(r.p).base+(formInfo(r.p).tag?'（'+formInfo(r.p).tag+'）':''),tier:r.tier,u:r.u}))};
    return{json,live:T.live,n:T.n,html:tierHTML(T,q=>byNo[q.no]&&!q.base&&P.includes(q)?R+'counter/'+q.no+'/':R+'#/p/'+q.no),top:T.rows.filter(r=>r.tier==='S').map(r=>formInfo(r.p).base)}}).catch(e=>({err:String(e)}));
@@ -167,6 +171,13 @@ ${mvIds.length?`<div class="sec"><h2>よく使う技</h2></div><div class="pills
  if(TIER&&TIER.json)fs.writeFileSync(OUT+'/assets/tier.json',JSON.stringify(TIER.json));
  if(TIER&&TIER.html){const rel='ranking/';urls.push(rel);write(rel,page({rel,title:`強いポケモンランキング（最新）｜ポケモンチャンピオンズ｜${SITE}`,desc:`ポケモンチャンピオンズの強いポケモンをS〜Cに分けたランキング。${TIER.top.length?'いまの環境の中心は'+TIER.top.slice(0,5).join('・')+'。':''}使用率と、上位のポケモンとの1対1のダメージ計算から、理由つきで毎日更新。`,
    body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › 強いポケモンランキング</nav><div class="sh1"><h1>強いポケモンランキング</h1></div>`+TIER.html+`<div class="cta"><a class="btn btn-p" href="__ROOT__#/tier">サイトで最新の結果を見る</a></div>`,crumbs:[['ホーム',''],['強いポケモンランキング',rel]]}))}
+ else if(TIER&&TIER.paused){
+   /* 休止中のページ：順位・使用率などの数字は1つも出さない。sitemap にも入れない */
+   write('ranking/',page({rel:'ranking/',title:`強いポケモンランキング（休止中）｜ポケモンチャンピオンズ｜${SITE}`,desc:'強いポケモンランキングは、もとになるデータの利用条件を確認しているため、いま休止しています。',
+    body:`<nav class="crumb"><a href="__ROOT__">ホーム</a> › 強いポケモンランキング</nav><div class="sh1"><h1>強いポケモンランキング</h1></div>
+<div class="gdoc"><p><b>ランキングは、いま休止しています。</b></p><p>このランキングのもとになるデータについて、提供元の利用条件を確認しています。確認が終わるまで、ランキングの公開を止めています。</p></div>
+<div class="cta"><a class="btn btn-p" href="__ROOT__">ホームへ</a></div>`,crumbs:[['ホーム',''],['強いポケモンランキング','ranking/']]}).replace('<meta name="theme-color"','<meta name="robots" content="noindex"><meta name="theme-color"'));
+   console.log('ranking: paused (maintenance page)')}
  else console.log('ranking: skip',TIER&&TIER.err);
  D.types.forEach(t=>{const rel=`type/${t.slug}/`;urls.push(rel);write(rel,page({rel,title:`${t.t}タイプの弱点・耐性・相性｜ポケモンチャンピオンズ｜${SITE}`,desc:t.desc,body:t.html,crumbs:[['ホーム',''],['タイプ一覧','type/'],[t.t,rel]]}))});
  D.builds.forEach(x=>{const rel=`build/${x.id}/`;urls.push(rel);write(rel,page({rel,title:`${x.n}の組み方と例｜ポケモンチャンピオンズ｜${SITE}`,desc:x.desc,body:x.html,crumbs:[['ホーム',''],['構築の型','build/'],[x.n,rel]]}))});

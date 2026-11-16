@@ -40,12 +40,22 @@ function findMons(text){
 const maxSpe=p=>Math.floor((p.s[5]+32+20)*1.1);
 const short=n=>n.length>4?n.slice(0,3):n;
 /* ラダー集計（Pokémon Champions Battle Data・非公式）から、こだわりスカーフの採用率を取得（任意・失敗しても続行） */
+/* 休止のスイッチ（2026/11/16 依頼主の指示：提供元の利用条件を確かめ終わるまで）。false の間、サーバーは集計を読まない・残さない
+   （scarfRate は 0、ladder は null を返す＝集計なしの計算になる。POST・GET のどの受け口から来ても同じ）。サイト側は src/js/15-battle.js の CBD_ON */
+const CBD_ON=false,CBD_CACHE=false;
+/* 集計を読む：CBD_CACHE が false の間は Cloudflare のキャッシュを読まない・書かない・cacheTtl も付けない */
+async function cbdGet(url,ctx){
+  if(!CBD_ON)return null;
+  if(!CBD_CACHE)return fetch(url,{cf:{cacheTtl:0},headers:{'Cache-Control':'no-store'}});
+  const cache=caches.default;let r=await cache.match(url);
+  if(!r){r=await fetch(url,{cf:{cacheTtl:21600}});if(!r.ok)return r;const c=new Response(r.clone().body,r);c.headers.set('Cache-Control','max-age=21600');ctx&&ctx.waitUntil(cache.put(url,c))}
+  return r;
+}
 async function scarfRate(m,ctx){
-  if(!m.en)return 0;
+  if(!CBD_ON||!m.en)return 0;
   const url='https://championsbattledata.com/pokemon_champions_assets/battle_data/Doubles/'+encodeURIComponent(m.en)+'.csv';
   try{
-    const cache=caches.default;let r=await cache.match(url);
-    if(!r){r=await fetch(url,{cf:{cacheTtl:21600}});if(!r.ok)return 0;const c=new Response(r.clone().body,r);c.headers.set('Cache-Control','max-age=21600');ctx&&ctx.waitUntil(cache.put(url,c))}
+    const r=await cbdGet(url,ctx);if(!r||!r.ok)return 0;
     const t=await r.text();const line=t.split('\n').find(l=>/,held_item,\d+,Choice Scarf,/.test(l));
     return line?parseFloat(line.split(',')[5])||0:0;
   }catch(e){return 0}
@@ -219,10 +229,11 @@ function parseTeam(code){
 /* ラダー集計（championsbattledata）を取得して型の材料にする */
 const LADDER={};
 async function ladder(m,ctx){
+  if(!CBD_ON)return null;
   const key=FMT+m.no;if(!m.en)return null;if(LADDER[key]!==undefined){LADDER[m.no]=LADDER[key];return LADDER[key]}
   const url='https://championsbattledata.com/pokemon_champions_assets/battle_data/'+FMTDIR()+'/'+encodeURIComponent(m.en)+'.csv';
-  try{const cache=caches.default;let r=await cache.match(url);
-    if(!r){r=await fetch(url,{cf:{cacheTtl:21600}});if(!r.ok){LADDER[m.no]=LADDER[key]=null;return null}const c=new Response(r.clone().body,r);c.headers.set('Cache-Control','max-age=21600');ctx&&ctx.waitUntil(cache.put(url,c))}
+  try{const r=await cbdGet(url,ctx);
+    if(!r||!r.ok){LADDER[m.no]=LADDER[key]=null;return null}
     const d=digest(await r.text());LADDER[m.no]=LADDER[key]=d.mv.length?d:null;return LADDER[m.no];
   }catch(e){LADDER[m.no]=LADDER[key]=null;return null}
 }

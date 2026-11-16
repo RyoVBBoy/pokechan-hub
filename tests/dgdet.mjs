@@ -77,6 +77,35 @@ ok(FN.length>=30&&FN.includes(445),'にせの集計が作れません '+FN.lengt
 const TEAM=[{no:445,sel:true,set:{ab:{n:'さめはだ',k:'rough-skin'},it:{n:'こだわりスカーフ',k:'choicescarf'},mv:[{n:'じしん',id:89},{n:'げきりん',id:200}],sp:[2,32,0,0,0,32],up:1,dn:3,src:'manual'}},
   {no:FN[2],sel:true},{no:FN[5],sel:true},{no:FN[8]},{no:FN[10],set:{ab:null,it:{n:'たべのこし',k:'leftovers'},mv:[],sp:[32,0,32,0,2,0],up:2,dn:5,src:'manual'}},{no:FN[11]}];
 
+/* ---------- 集計が休止中（2026/11/16、15-battle.js の CBD_ON=false）のとき ----------
+   集計を読まないので、下の「届く順番・読めないとき」の確かめは前提が成り立たない。代わりに、休止中の診断が
+   ①集計を読みにいかない ②「集計なし」で計算したと書く（読み直しのボタンは出さない）③10回・開き直し・タブの切りかえで同じ結果 を確かめて終わる。
+   CBD_ON を true に戻すと、この枝は通らず、下のもとの確かめが動く */
+{const pg0=await open({order:'mix',keepLS:false});
+  if(await pg0.evaluate(()=>LIVE.off===true)){
+    let hit=0;await pg0.route(/championsbattledata\.com/,r=>{hit++;r.abort()});
+    await pg0.evaluate(()=>{location.hash='#/team'});
+    let st='';for(let i=0;i<80;i++){st=await pg0.evaluate(()=>dgState(team));if(st==='off')break;await pg0.waitForTimeout(150)}
+    ok(st==='off','休止中：診断の状態が「集計なし」になりません '+st);await pg0.waitForTimeout(2500);
+    const base0=await snap(pg0),dom0=await domTxt(pg0);
+    ok(/攻撃|防御/.test(dom0)&&!/読み込んでいます|読み込めませんでした/.test(dom0),'休止中：診断が出ません '+dom0.slice(0,120));
+    ok(/集計は休止中/.test(dom0)&&/集計なし/.test(dom0),'休止中：「集計なしで計算した」と書いていません');
+    ok(await pg0.evaluate(()=>!document.querySelector('#tout .dgw-note [data-dg-retry]')),'休止中：読み直しのボタンを出しています');
+    const ten0=await pg0.evaluate(()=>{const r=[];for(let i=0;i<10;i++){DG_CACHE.k=null;DG_SELC.clear();IMP_CACHE.clear();
+      const T=dgTeam(team,20),A=dgAnalyze(T),S=dgSelect(team);r.push(JSON.stringify([T.rows.map(x=>[x.q.no,x.lvl,x.res.map(y=>y.k+y.r).join()]),A.bad.map(x=>[x.area,x.sev,x.t]),S&&S.list.map(x=>x.c.join()+':'+x.sc)]))}return r});
+    ok(new Set(ten0).size===1,'休止中：10回の計算で結果が変わります');
+    for(const t of ['plan','sets','check']){await pg0.click(`#tt-seg [data-tt="${t}"]`);await pg0.waitForTimeout(300)}
+    await pg0.waitForTimeout(2200);
+    ok((await snap(pg0))===base0,'休止中：タブを切りかえると結果が変わります');
+    await pg0.reload();await pg0.waitForTimeout(600);await pg0.evaluate(()=>{location.hash='#/team'});await pg0.waitForTimeout(3000);
+    ok((await snap(pg0))===base0,'休止中：開き直すと結果が変わります');
+    ok(hit===0&&await pg0.evaluate(()=>!Object.keys(localStorage).some(k=>/^(pcidx|pccsv3)/.test(k))),'休止中：集計を読みにいく・端末に残す '+hit);
+    ok(!errs.length,'エラー '+errs.join(' / '));
+    await b.close();
+    console.log(ng?`dgdet: NG （${n}項目・集計は休止中）`:`dgdet: OK（${n}項目・集計は休止中のため、届く順番と読めないときの確かめは行っていません）`);
+    process.exit(ng?1:0)}
+  await pg0.context().close()}
+
 /* ---------- ①ページの準備：データがそろうまで評価を出さない ---------- */
 let pg=await open({order:'mix',keepLS:false});
 await pg.evaluate(()=>{location.hash='#/team'});await pg.waitForTimeout(80);

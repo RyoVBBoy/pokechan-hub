@@ -116,7 +116,8 @@ for(const W of [390,1280]){
   /* 環境上位：集計の上位（読めないときは案内） */
   await pg.evaluate(()=>{META.rank=[];META.st='fail';META.p=Promise.resolve(false)});
   await pg.click('.mp-cat[data-cat=top]');await pg.waitForTimeout(150);
-  ok(await pg.$eval('#mp-list',e=>e.textContent.includes('ランキングを読み込めませんでした')),W+'：集計が読めないときの案内');
+  /* 2026/11/16：集計が休止中（LIVE.off）の間は、読み直しのボタンを出さず「休止しています」と出す */
+  ok(await pg.$eval('#mp-list',e=>LIVE.off?e.textContent.includes('環境上位は、いま休止しています')&&!e.querySelector('#mp-retry'):e.textContent.includes('ランキングを読み込めませんでした')),W+'：集計が読めない・休止中のときの案内');
   await pg.evaluate(()=>{META.rank=[445,6,10034,149,445].map((no,i)=>({no,rank:i+1,d:{}}));META.st='ready';META.p=Promise.resolve(true)});
   await pg.click('.mp-cat[data-cat=all]');await pg.click('.mp-cat[data-cat=top]');await pg.waitForTimeout(150);
   ok((await listNos(pg)).join()==='445,6,149',W+'：環境上位＝集計の順（メガは元の姿・重ならない） '+(await listNos(pg)));

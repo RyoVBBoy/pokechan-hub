@@ -61,9 +61,12 @@ function metaView(){
   const draw=()=>{
     /* 読めないとき（2026/11/12）：前に読めた集計（端末に覚えた pcmetalast＋形式）か、なければ合計種族値の高いポケモンを代わりに出す。空の画面にしない */
     const sk='pcmetalast'+FMT;let R=META.rank,TM=META.teams,fb='',gm=false;
-    if(META.st==='ready'){try{localStorage.setItem(sk,JSON.stringify({at:Date.now(),r:R.slice(0,30).map(x=>[x.no,x.rank]),t:TM}))}catch(e){}}
+    /* 休止中（2026/11/16、15-battle.js の CBD_ON）：集計の順位・流行パーティは出さない（端末に残した前の集計 pcmetalast も読まない・書かない）。当サイトの利用者の集計（usageMetaHTML）は別のデータなのでそのまま出す */
+    if(LIVE.off){V.innerHTML=`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>`+cbdPauseHTML('ランクバトルの使用率と流行パーティは、いま休止しています','集計の提供元の利用条件を確認しているため、確認が終わるまで表示を止めています。前に読めた集計も表示しません。下の「当サイトの集計」と、上位パーティは今までどおり見られます。')
+      +usageMetaHTML()+`<div class="btns"><a class="btn btn-s" href="#/season">上位パーティを見る</a></div>`;bindFmt(V,()=>metaView());return}
+    if(META.st==='ready'){if(CBD_PERSIST)try{localStorage.setItem(sk,JSON.stringify({at:Date.now(),r:R.slice(0,30).map(x=>[x.no,x.rank]),t:TM}))}catch(e){}}
     else if(META.st==='fail'){
-      const c=lsJ(sk,null);
+      const c=CBD_PERSIST?lsJ(sk,null):null;
       if(c&&Array.isArray(c.r)&&c.r.length){R=c.r.filter(([n])=>byNo[n]).map(([no,rank])=>({no,rank}));TM=(c.t||[]).filter(t=>t.every(n=>byNo[n]));
         const d=new Date(c.at);fb=`集計の提供元に今つながらないため、${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}に読めた集計を表示しています。`}
       else{gm=true;R=gmOpps().filter(q=>!q.mega).slice(0,30).map((q,i)=>({no:q.no,rank:i+1}));TM=[];
@@ -78,7 +81,7 @@ function metaView(){
       <div class="mteam-m">${t.map(n=>`<a href="#/p/${n}" class="mmon"><span class="av">${stamp(byNo[n])}</span><b>${byNo[n].n}</b><small>${metaSetLine(n)}</small></a>`).join('')}</div>
       <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-opp="${k}">選出アシストで対策</button></div>
     </div>`).join('')}`:''}
-    <div class="sec"><h2>${gm?'合計種族値の高いポケモン':'使用率ランキング（上位）'}</h2><span style="font-size:13px;color:var(--dim)">${gm?'代わりの表示':FMTN()+'・現在のシーズン'}</span></div>
+    <div class="sec"><h2>${gm?'合計種族値の高いポケモン':'使用率ランキング（上位）'}</h2><span style="font-size:13px;color:var(--dim)">${gm?'代わりの表示':FMTN()+'・集計期間は不明'}</span></div>
     ${R.slice(0,30).map(x=>`<a class="row" href="#/p/${x.no}"><span class="rk">${x.rank}</span><span class="av">${stamp(byNo[x.no])}</span><div class="row-m"><div class="row-t">${byNo[x.no].n}</div><div class="row-s">${metaSetLine(x.no)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join('')}
     ${gm?'':`<p class="note" style="color:var(--mute)">順位は、データ提供元の集計で「一緒によく使われるポケモン」をたどって見つかった範囲のものです。すべてのポケモンを調べているわけではないため、30位より下は抜けている場合があります。</p>`}
     ${srcLine('ladder')}`;
@@ -93,7 +96,7 @@ function metaView(){
       nav('#/battle')});
   };
   draw();
-  if(META.st!=='ready')metaLoad(n=>{const e=document.getElementById('meta-n');if(e)e.textContent=`（${n}匹分）`}).then(()=>{if(keyOf(cur)==='meta')draw()});
+  if(META.st!=='ready'&&!LIVE.off)metaLoad(n=>{const e=document.getElementById('meta-n');if(e)e.textContent=`（${n}匹分）`}).then(()=>{if(keyOf(cur)==='meta')draw()});
 }
 
 /* 起動の少しあとに、使用率の上位とパーティの匹のランクバトルの集計を読んでおく（2026/11/09 依頼主：「使用率の高い型」をどの画面でも集計どおりに）。

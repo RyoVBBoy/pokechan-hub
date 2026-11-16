@@ -192,6 +192,8 @@ function dgReqNos(entries){
 /* いま診断できるか（同期）：'ready'（そろっている）・'off'（集計なしで計算すると利用者が選んだ）・'partial'（読めたものだけで計算すると選んだ）・'loading'・'error' */
 function dgState(entries){
   if(!dgStrict())return 'ready';
+  /* 集計が休止中（15-battle.js の CBD_ON）：読み直しを勧めず、上位パーティのデータがそろったら「集計なし」で計算する（結果の上にその旨を出す） */
+  if(LIVE.off){if(dgTopNeed()&&!(TOPT.fmt===FMT&&(TOPT.st==='ok'||TOPT.st==='err')))return DGD.st==='error'?'error':'loading';return 'off'}
   if(DGD.allow==='off'&&LIVE.st==='fail')return 'off';
   if(LIVE.st==='fail'||(typeof META!=='undefined'&&META.st==='fail'))return DGD.allow==='off'?'off':'error';
   if(LIVE.st!=='ready'||typeof META==='undefined'||META.st!=='ready')return DGD.st==='error'?'error':'loading';
@@ -204,7 +206,8 @@ function dgState(entries){
 }
 /* 読めなかったもの（表示用） */
 function dgFails(){const f=[];
-  if(LIVE.st==='fail')f.push('ランクバトルの使用率の集計（つながりませんでした）');
+  if(LIVE.off);
+  else if(LIVE.st==='fail')f.push('ランクバトルの使用率の集計（つながりませんでした）');
   else if(typeof META!=='undefined'&&META.st==='fail')f.push('使用率の上位のポケモン');
   const e=Object.keys(LIVE.err).map(Number).filter(n=>byNo[n]);if(e.length)f.push(`ポケモンごとの集計（${e.slice(0,4).map(n=>byNo[n].n).join('・')}${e.length>4?` ほか${e.length-4}匹`:''}）`);
   if(dgTopNeed()&&TOPT.st==='err')f.push('上位パーティのデータ');return f}
@@ -215,16 +218,17 @@ async function dgPrepare(entries,done){
   DGD.run=true;const tok=++DGD.tok;DGD.st='loading';
   const fin=st=>{DGD.run=false;if(tok!==DGD.tok)return;DGD.st=st;const cb=DGD.cb;DGD.cb=null;if(cb)cb(st)};
   try{
+    if(!LIVE.off){
     if(!(await liveInit()))return fin('error');
-    if(!(await metaLoad()))return fin('error');
+    if(!(await metaLoad()))return fin('error');}
     if(dgTopNeed()&&!(TOPT.fmt===FMT&&(TOPT.st==='ok'||TOPT.st==='err'))){
       const t0=Date.now();try{await topLoad()}catch(e){}
       while(TOPT.st==='busy'&&Date.now()-t0<20e3)await new Promise(r=>setTimeout(r,200));
       if(TOPT.st==='busy')TOPT.st='err';}
-    const nos=dgReqNos(entries).filter(n=>LIVE.csv[n]===undefined);
+    const nos=LIVE.off?[]:dgReqNos(entries).filter(n=>LIVE.csv[n]===undefined);
     for(let i=0;i<nos.length;i+=8)await Promise.all(nos.slice(i,i+8).map(liveMon));
     /* 読み終わっても足りない（読む途中で相手の候補が変わった等）なら、もう一度だけ読みにいく。3回続いたら読めなかったことにする（読み続けない） */
-    const s2=dgState(entries);if(s2==='ready'){DGD.loops=0;fin('ready')}else if(s2==='loading'&&(DGD.loops=(DGD.loops||0)+1)<=3)fin('loading');else{DGD.loops=0;fin('error')}
+    const s2=dgState(entries);if(s2==='ready'||(LIVE.off&&s2==='off')){DGD.loops=0;fin('ready')}else if(s2==='loading'&&(DGD.loops=(DGD.loops||0)+1)<=3)fin('loading');else{DGD.loops=0;fin('error')}
   }catch(e){fin('error')}
 }
 /* もう一度読み込む：読めなかった匹だけ読み直す（読めた分はそのまま） */
@@ -244,7 +248,8 @@ function dgWaitHTML(st){
     <p class="dgw-n">${offOnly?'集計なし＝相手は合計種族値の上位、型は自動で決めた型で計算します。':'読めなかった匹は、自動で決めた型で計算します。'}結果の上にその旨を表示します。</p></div>`;
 }
 /* 結果の上に出す注意（読めたデータだけ・集計なしで計算したとき） */
-function dgModeNote(st){return st==='off'?'<p class="dgw-note">ランクバトルの集計を読み込めなかったため、<b>集計なし</b>（相手は合計種族値の上位・自動で決めた型）で計算した結果です。<button class="dgu-link" data-dg-retry>もう一度読み込む</button></p>'
+function dgModeNote(st){return st==='off'&&LIVE.off?'<p class="dgw-note">ランクバトルの集計は休止中（提供元の利用条件を確認中）のため、<b>集計なし</b>（相手は合計種族値の上位と上位パーティ・自動で決めた型）で計算した結果です。</p>'
+  :st==='off'?'<p class="dgw-note">ランクバトルの集計を読み込めなかったため、<b>集計なし</b>（相手は合計種族値の上位・自動で決めた型）で計算した結果です。<button class="dgu-link" data-dg-retry>もう一度読み込む</button></p>'
   :st==='partial'?`<p class="dgw-note">一部のデータ（${dgFails().map(esc).join('、')}）を読めなかったため、<b>読めたデータだけ</b>で計算した結果です。<button class="dgu-link" data-dg-retry>もう一度読み込む</button></p>`:''}
 /* ボタン：もう一度読み込む・読めたデータだけで計算する。押したら描き直す */
 function dgWaitBind(root,redraw){if(!root)return;
