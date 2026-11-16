@@ -2441,6 +2441,7 @@ body:has(#ac-root.ac2) .foot{display:none}
 .cv-raw span{margin:0 4px}
 .cv-disg{margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:var(--acc-t);font-size:12.5px;line-height:1.55;color:var(--fg)}
 /* ばけのかわ：2行の結果＋たたんだ計算仕様（2026/11/16） */
+.cres-big .cv-aft{display:block;font-size:13px;font-weight:700;color:var(--dim);margin-bottom:2px}
 .cv-disg .cv-dl{font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums}
 .cv-disg .cv-dl small{display:block;font-size:12px;color:var(--dim)}
 .cv-dspec{margin-top:4px}

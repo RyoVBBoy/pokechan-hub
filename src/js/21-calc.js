@@ -114,7 +114,9 @@ function calcOverview(R){
   try{
     const ms=[...CS.a.moves];if(!ms.some(m=>m.id===R.mv.id))ms.push(R.mv);
     const rows=ms.slice(0,6).map(m=>{const r=dmgRolls(R.a,m,R.d,{...calcOpt(),hits:m.id===R.mv.id?CS.hits||0:0});
-      return{m,lo:Math.min(...r)/R.d.max*100,hi:Math.max(...r)/R.d.max*100,ls:r.loss||0,ko:koInfo(r,R.d.hp),eff:bcalc(R.a,m,R.d,{protean:CS.protean!==false}).eff}});
+      /* 2026/11/16 依頼主：ばけのかわが残っているときは、はがれたあと（r.next）の％を出す。倒せる回数は今までどおり1発目から数える */
+      const sh=r.loss&&!r.disgFaint&&r.next&&r.next.length?r.next:r;
+      return{m,lo:Math.min(...sh)/R.d.max*100,hi:Math.max(...sh)/R.d.max*100,ls:r.loss||0,after:sh!==r,ko:koInfo(r,R.d.hp),eff:bcalc(R.a,m,R.d,{protean:CS.protean!==false}).eff}});
     let back=null;try{const h=estHit(R.d,R.a);if(h&&h.mv)back={mv:h.mv,pct:h.pct}}catch(e){}
     return{rows,back};
   }finally{B.weather=sw}
@@ -181,21 +183,24 @@ function calcView(){
     /* 受けたあとの残りHP（多く残る〜少なく残る） */
     /* 2026/11/13：いまのHP（残りHPの条件）から引く。ばけのかわの減少（R.r.loss）も引く（技のダメージとは別） */
     const ls=R&&R.r.loss||0,cur0=R?R.d.hp/R.d.max*100:100;
+    const dAfter=!!(ls&&!R.r.disgFaint&&R.r.next&&R.r.next.length);
     const remHi=R?Math.max(0,(R.d.hp-Math.min(...R.r)-ls)/R.d.max*100):0,remLo=R?Math.max(0,(R.d.hp-Math.max(...R.r)-ls)/R.d.max*100):0;
     /* ばけのかわ（2026/11/16 依頼主「結果をすぐ読めるように」）：いつも見えるのは2行だけ。
        1行目＝1発目（技のダメージ0%・はがれて減るHP）、2行目＝2発目以降（はがれたあとのダメージと、倒せる回数の札と同じ数）。
        1/8・端数・急所・％に入れない理由などの決まりは「ばけのかわの計算仕様」にたたむ。計算（R.r.loss・R.r.next・R.ko）は変えない */
-    const disgHTML=()=>{if(!ls)return'';const nx=R.r.next,rest=(R.n||1)-1,k=R.ko;
-      const kt=k&&k.n&&k.n<=8?(k.p>=.9999?L(`確定${k.n}発`,`guaranteed ${k.n}HKO`):L(`乱数${k.n}発・${pctTxt(k.p)}`,`${k.n}HKO chance ${pctTxt(k.p)}`)):'';
-      const l1=`<div class="cv-dl"><b>${L('ばけのかわ','Disguise')}</b>：0%（${L(`皮がはがれて HP −${ls}`,`breaks, HP −${ls}`)}${R.r.disgFaint?L(' → 倒れます',' → faints'):''}）${!R.r.disgFaint&&rest>0?`<small>${L(`残り${rest}回の合計は上の％`,`the other ${rest} hit(s): % above`)}</small>`:''}</div>`;
-      const l2=!R.r.disgFaint&&nx&&nx.length?`<div class="cv-dl"><b>${L('2発目以降','From the 2nd use')}</b>：${pct(Math.min(...nx))}% 〜 ${pct(Math.max(...nx))}%${kt?`（${kt}）`:''}</div>`:'';
+    /* 2026/11/16 依頼主「1発目が0%なのはわかる。知りたいのは はがれたあと」：大きな数は はがれたあと（R.r.next）、1発目はこの1行だけ。
+       はがれた時点で倒れるときは、大きな数は今までどおり技のダメージ。計算（R.r・R.r.loss・R.r.next・R.ko）は変えない */
+    const disgHTML=()=>{if(!ls)return'';const rest=(R.n||1)-1;
+      const l1=`<div class="cv-dl"><b>${L('1発目','1st hit')}</b>：${R.r.disgFaint?L(`ばけのかわで 0%（皮がはがれて HP −${ls} → 倒れます）`,`0% from Disguise (breaks, HP −${ls} → faints)`)
+        :rest>0?L(`ばけのかわが1発を防ぎ、残り${rest}回で ${pct(lo)}% 〜 ${pct(hi)}%（皮がはがれて HP −${ls}）`,`Disguise blocks one hit; the other ${rest}: ${pct(lo)}–${pct(hi)}% (breaks, HP −${ls})`)
+        :L(`ばけのかわで 0%（皮がはがれて HP −${ls}）`,`0% from Disguise (breaks, HP −${ls})`)}</div>`;
       const spec=[L(`はがれるときに減るHPは最大HP ${R.d.max} の1/8＝${ls}（端数切り捨て）。技のダメージではありません`,`The HP lost when it breaks is 1/8 of max HP ${R.d.max} = ${ls} (rounded down). It is not move damage`),
         L('上の技のダメージの％には入れず、残りHPと倒せる回数に入れています','It is not included in the move-damage % above, but it is included in the HP left and the hits to KO'),
         L('急所に当たっても1発目は0です','Even a critical hit deals 0 on the first hit'),
         R.r.disgFaint?L(`いまのHP（${R.d.hp}）はこの減少以下なので、ここで倒れます${rest>0?'。この技の残りの当たりはありません':''}`,`Current HP (${R.d.hp}) is at most this loss, so it faints here${rest>0?'; the remaining hits do not happen':''}`)
           :rest>0?L(`この技は${rest+1}回当たります。1発目をばけのかわが防ぎ、残りの${rest}回はふつうにダメージを受けます（上の％はその合計）`,`This move hits ${rest+1} times. Disguise blocks the first; the other ${rest} deal normal damage (the % above is their total)`):'',
-        L('「2発目以降」は、はがれたあとにもう一度この技を受けたときのダメージです。倒せる回数は1発目（ばけのかわ）から数えています','"From the 2nd use" is the damage when this move hits again after it breaks. Hits to KO are counted from the first (Disguise) hit')].filter(Boolean);
-      return `<div class="cv-disg" data-notr>${l1}${l2}<details class="cv-dspec"><summary>${L('ばけのかわの計算仕様','How Disguise is calculated')}</summary><ul>${spec.map(t=>`<li>${t}</li>`).join('')}</ul></details></div>`};
+        L('「はがれたあと」は、はがれたあとにこの技を受けたときのダメージです。倒せる回数と残りHPは1発目（ばけのかわ）から数えています','"After Disguise" is the damage this move deals once it has broken. Hits to KO and HP left are counted from the first (Disguise) hit')].filter(Boolean);
+      return `<div class="cv-disg" data-notr>${l1}<details class="cv-dspec"><summary>${L('ばけのかわの計算仕様','How Disguise is calculated')}</summary><ul>${spec.map(t=>`<li>${t}</li>`).join('')}</ul></details></div>`};
     const hpCol=v=>v>50?'#00ba7c':v>20?'#ffb020':'#f4212e';
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
     <div class="cv-vs">
@@ -206,18 +211,18 @@ function calcView(){
     ${R?`<div class="cres cv-res">
       <div class="cres-h" data-notr>${L(`${nmA}の<b>${esc(mvNm(R.mv))}</b> → ${nmD}`,`${nmA}'s <b>${esc(mvNm(R.mv))}</b> → ${nmD}`)} ${effTag(R.eff)}${R.acc<100?`<span class="cv-e">命中${Math.round(R.acc)}</span>`:''}</div>
       ${R.eff===0?`<div class="cres-big">0%</div><div class="cv-ko">${L('こうかがありません（タイプか特性で防がれます）','No effect (blocked by type or ability)')}</div>`:`
-      <div class="cv-main"><div class="cres-big">${ls?`<small>${L('技のダメージ','Move damage')} </small>`:''}${pct(lo)}<small>%</small> 〜 ${pct(hi)}<small>%</small></div>${koBadge(R.ko)}</div>
+      <div class="cv-main"><div class="cres-big">${dAfter?`<small class="cv-aft">${L('はがれたあと','After Disguise')}</small>${pct(Math.min(...R.r.next))}<small>%</small> 〜 ${pct(Math.max(...R.r.next))}<small>%</small>`:`${ls?`<small>${L('技のダメージ','Move damage')} </small>`:''}${pct(lo)}<small>%</small> 〜 ${pct(hi)}<small>%</small>`}</div>${koBadge(R.ko)}</div>
       ${disgHTML()}
       ${ls&&R.ko&&R.ko.n&&R.ko.n<=8&&R.ko.p>=.9999?'':`<div class="cv-ko" data-notr>${koPlain(R.ko)}</div>`}
       <div class="cv-hp" aria-label="受けたあとの残りHP"><i class="cv-hp-rem" style="width:${remLo}%;background:${hpCol(remLo)}"></i><i class="cv-hp-rng" style="left:${remLo}%;width:${Math.max(.6,remHi-remLo)}%"></i><i class="cv-hp-lost" style="left:${remHi}%;width:${Math.max(0,cur0-remHi)}%"></i></div>
-      <div class="cres-s" data-notr>${L('残りHP','HP left')}: ${remHi<=0?L('0%（倒れます）','0% (KO)'):Math.round(remLo)===Math.round(remHi)?Math.round(remHi)+'%':`${Math.round(remLo)}〜${Math.round(remHi)}%`}</div>
+      <div class="cres-s" data-notr>${ls?L('1発目のあとの残りHP','HP left after the 1st hit'):L('残りHP','HP left')}: ${remHi<=0?L('0%（倒れます）','0% (KO)'):Math.round(remLo)===Math.round(remHi)?Math.round(remHi)+'%':`${Math.round(remLo)}〜${Math.round(remHi)}%`}</div>
       <div class="cv-raw num" data-notr>${ls?L('技のダメージ','Move damage'):L('ダメージ','Damage')} ${lo}–${hi}${ls?`<span aria-hidden="true">／</span>${L('ばけのかわ','Disguise')} −${ls}`:''}<span aria-hidden="true">／</span>HP ${R.d.max}${R.d.hp<R.d.max?`<span aria-hidden="true">／</span>${L('いまのHP','current HP')} ${R.d.hp}`:''}</div>`}
       ${(()=>{const t=[mvNote(R),...calcNotes(R)].filter(Boolean).join('。');return t?`<div class="cres-n">${esc(t)}</div>`:''})()}
     </div>
     ${O&&O.rows.length?`<div class="sec"><h2>技ごとのダメージ</h2><span style="font-size:12px;color:var(--dim)">押すと上に出ます</span></div>
     <div class="cv-mvs">${O.rows.map(x=>`<button class="cv-mv${x.m.id===R.mv.id?' on':''}" data-mvpick="${x.m.id}"><span class="cv-mn" data-notr>${esc(mvNm(x.m))}<small>${x.m.t}・${['物理','特殊','変化'][x.m.cls]}</small></span>
       <span class="cv-mb"><i style="width:${Math.min(100,x.hi)}%;background:${x.eff===0?'var(--line)':x.hi>=100?'#f4212e':x.hi>=50?'#ffb020':'var(--acc)'}"></i></span>
-      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%${x.ls?`<small>＋${L('ばけのかわ','Disguise')}</small>`:''}`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':x.ko.p>=.9999?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
+      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%${x.ls?`<small>${x.after?L('はがれたあと','after Disguise'):'＋'+L('ばけのかわ','Disguise')}</small>`:''}`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':x.ko.p>=.9999?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
     <div class="natr" style="padding-top:8px"><span style="width:62px;font-size:13px;color:var(--dim)">ほかの技</span><select class="sel" data-c="mv" data-notr>${R.list.map(m=>`<option value="${m.id}"${m.id===R.mv.id?' selected':''}>${mvNm(m)}（${m.t}・${['物理','特殊','変化'][m.cls]}・${['seismictoss','nightshade','superfang','endeavor','finalgambit'].includes(mkey(m))?'固定ダメージ':'威力'+(m.pow||'変動')}${m.maxH>1?(m.minH===m.maxH?'×'+m.maxH:`×${m.minH}〜${m.maxH}`):''}）</option>`).join('')}</select></div>`:''}
     ${O&&O.back?`<div class="cv-back" data-notr>${L(`反撃されると：${nmD}の<b>${esc(mvNm(O.back.mv))}</b>で、${nmA}は約<b>${Math.round(O.back.pct)}%</b>受けます${O.back.pct>=100?'（一撃で倒されます）':''}`,`If ${nmD} hits back with <b>${esc(mvNm(O.back.mv))}</b>, ${nmA} takes about <b>${Math.round(O.back.pct)}%</b>${O.back.pct>=100?' (OHKO)':''}`)}</div>`:''}`:'<p class="empty">この組み合わせでは計算できる技がありません。</p>'}
     <div class="sec"><h2>条件</h2></div>
