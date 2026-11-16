@@ -121,7 +121,10 @@ function editView(a){
   <p class="note" style="color:var(--mute)">入力した内容は自動で保存されます（ログイン中は、ほかの端末とも同じになります）。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
   </div>`;
   const save=()=>{const cur=team[ED.idx];if(!cur||cur.no!==ED.no)return;
-    const o=ED.s;cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual'};edSaved(saveTeam()!==false)};
+    const o=ED.s,prev=typeof provOf==='function'?provOf(cur.set):null;
+    /* 利用者が変えた型は「あなたの育成」。from には最初の出どころを1つだけ残す（すでに「あなたの育成」ならそのまま＝最初の出どころを保つ。82-prov.js の provOrigin） */
+    const pv=typeof mkProv==='function'?provForSave(prev&&prev.s==='user'?prev:mkProv({s:'user',from:prev})):null;
+    cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual',...(pv?{prov:pv}:{})};edSaved(saveTeam()!==false)};
   const upd=()=>{const o=ED.s,r=calcStats(p,o.sp,o.up,o.dn);
     r.forEach((v,i)=>{document.getElementById('ed-o'+i).textContent=v;document.getElementById('ed-v'+i).textContent=o.sp[i];
       const el=document.getElementById('ed-sp'+i);el.value=o.sp[i];el.style.setProperty('--p',(o.sp[i]/SP_CAP*100)+'%');

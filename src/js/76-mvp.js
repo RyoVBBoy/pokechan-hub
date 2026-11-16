@@ -100,8 +100,12 @@ function mvpSet(fmt,no,opt){
   const phys=(()=>{const c=mv.map(m=>MV[m.id]).filter(x=>x&&x[2]>0);const ph=c.filter(x=>x[4]===0).length,sp=c.filter(x=>x[4]===1).length;return ph>sp||(ph===sp&&p.s[1]>=p.s[3])})();
   const sv={ab:{k:ABK[nrm(abR[0])],n:ABN[ABK[nrm(abR[0])]]||abR[0]},it:itR[0]?{k:itR[0],n:ITEMN[itR[0]]||itR[0]}:null,mv,sp:[...(phys?MVP_SP.phys:MVP_SP.spec)],
     up:nat?nat[0]:(phys?1:3),dn:nat?nat[1]:(phys?3:1),src:'copy'};
+  /* 型の出どころ（82-prov.js）：PokéKit の項目ごとの割合を組み合わせた型（外部の参考）。sv はそのままパーティに入る形なので、保存する形（割合なし）だけを持たせる。
+     項目ごとの割合（提供元の値）は返り値の pct に別に持つ（画面用） */
+  const pct={ab:abR[1],it:itR[1],nat:r.nat[0]?r.nat[0][r.nat[0].length-1]:null,mv:mv.map(m=>{const x=r.mv.find(([k])=>MVKA[nrm(k)]===m.id);return x?x[1]:null})};
+  if(typeof provPokekit==='function')sv.prov=provForSave(provPokekit(fmt));
   const stSt=r.stone?mvpStoneSt(r.stone,no):null;
-  return{st:'ok',no,sv,stone:r.stone||null,stoneSt:stSt,notes,row:{rank:r.rank,usage:r.usage,ab:abR[1],it:itR[1],nat:r.nat[0]||null,itAlt:idx>0},
+  return{st:'ok',no,sv,pct,stone:r.stone||null,stoneSt:stSt,notes,row:{rank:r.rank,usage:r.usage,ab:abR[1],it:itR[1],nat:r.nat[0]||null,itAlt:idx>0},
     txt:`特性 ${sv.ab.n}（${abR[1]}%）／持ち物 ${sv.it?sv.it.n:'なし'}（${itR[1]}%）／性格 ${natName(sv.up,sv.dn)||'補正なし'}${r.nat[0]?`（${r.nat[0][1]}%）`:''}／技 ${mv.map(m=>m.n).join('・')}`};
 }
 /* パーティの1匹の型：登録した育成 → 同じ形式の PokéKit の型 → 自動の型（推定。候補ではないので使ってよい）。

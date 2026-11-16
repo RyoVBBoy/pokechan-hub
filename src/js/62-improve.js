@@ -102,7 +102,9 @@ function dgImprove(entries){
     const stone=base.it&&isStone(base.it.k);
     const main=(()=>{const c=(M.moves||[]).filter(m=>m&&m.pow>0);const ph=c.filter(m=>m.cls===0).length,sp=c.filter(m=>m.cls===1).length;return ph>sp||(ph===sp&&p.s[1]>=p.s[3])?1:3})();
     const sub=main===1?3:1;
-    const set=o=>({...x,set:{...base,...o,src:'manual'}});
+    /* 型の出どころ（82-prov.js）：改善案で変えた型は「当サイトの計算」。from には最初の出どころを残す（mkProv が決める。直前の版ではない） */
+    const impProv=()=>typeof mkProv==='function'?provForSave(mkProv({s:'calc',f:FMT,from:typeof provOf==='function'?provOf(x.set):null})):null;
+    const set=o=>{const pv=impProv();return{...x,set:{...base,...o,src:'manual',...(pv?{prov:pv}:{})}}};
     /* ---- 技：いちばん使われていない攻撃技を、覚える攻撃技と入れかえる（積み技・場を作る技・まもるは残す） ---- */
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));
@@ -137,7 +139,7 @@ function dgImprove(entries){
         const sv=impSaved(x.no,s);
         /* 2026/11/14：技の案と同じく、覚えない技・1対1で正しく扱えない技（IMP_NOMV）を含む型は出さない（計算したうえで、理由つきで「出さなかった案」へ） */
         const ls=(LSD[x.no]||[0,[]])[1],badMv=sv.mv.filter(m=>!(m.id===182||ls.includes(m.id))||IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
-        tryEntry('role',i,{...x,set:{...sv,src:'manual'}},`${nm(i)}を${{attacker:'攻撃',bulky:'耐久',support:'サポート',setup:'積み'}[k]}の型に`,`特性 ${sv.ab?sv.ab.n:'―'}・持ち物 ${sv.it?sv.it.n:'なし'}・${natName(sv.up,sv.dn)||'補正なし'}・${SN.map((n,q)=>sv.sp[q]?`${n}${sv.sp[q]}`:'').filter(Boolean).join('・')}・技 ${sv.mv.map(m=>m.n).join('・')}`,badMv)})}catch(e){}
+        tryEntry('role',i,{...x,set:{...sv,src:'manual',...(impProv()?{prov:impProv()}:{})}},`${nm(i)}を${{attacker:'攻撃',bulky:'耐久',support:'サポート',setup:'積み'}[k]}の型に`,`特性 ${sv.ab?sv.ab.n:'―'}・持ち物 ${sv.it?sv.it.n:'なし'}・${natName(sv.up,sv.dn)||'補正なし'}・${SN.map((n,q)=>sv.sp[q]?`${n}${sv.sp[q]}`:'').filter(Boolean).join('・')}・技 ${sv.mv.map(m=>m.n).join('・')}`,badMv)})}catch(e){}
   });
   /* ---- 入れかえ：問題の相手に強い候補を先に1対1でしぼり、役目の少ない2匹と入れかえて全部を計算し直す ---- */
   try{const fam=q=>q.base||q.no,inT=new Set(entries.map(x=>fam(byNo[x.no]||{no:x.no}))),seen=new Set(),pool=[];

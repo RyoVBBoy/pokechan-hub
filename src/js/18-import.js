@@ -222,7 +222,7 @@ function imSave(){
   /* 戻り先があるときは、空いているパーティの枠に入れる（いまのパーティを消さない） */
   if(back){const e=TEAMS.list.findIndex((x,i)=>i!==TEAMS.cur&&!x.team.length);if(team.length&&e>=0)switchTeam(e)}
   team=IM.slots.filter(s=>s.no).slice(0,6).map((s,i)=>{
-    const set={src:'import'};
+    const set={src:'import'};if(typeof mkProv==='function')set.prov=provForSave(mkProv({s:'import',at:Date.now()}));
     if(s.ab)set.ab={n:s.ab.n,k:s.ab.k};if(s.it)set.it={n:s.it.n,k:s.it.k};
     if(s.mv)set.mv=s.mv.filter(m=>m&&m.id).map(m=>({n:m.n,id:m.id}));
     if(set.it&&!set.it.k)delete set.it;

@@ -159,6 +159,8 @@ function kdMakeSet(p,stone,pt,aa,used,ctx){
     if(!a){const c=chooseSet(p,true),phys=p.s[1]>=p.s[3];a={ab:c.ab,item:null,moves:c.moves.map(m=>m.id).filter(id=>id>0),up:phys?1:3,dn:phys?3:1,sp:phys?[...MVP_SP.phys]:[...MVP_SP.spec]}}
     s={ab:a.ab,item:stone||(a.item&&!isStone(a.item)?a.item:null),up:a.up,dn:a.dn,sp:[...(a.sp||[])],moves:[...a.moves],src:'theory',
       srcTxt:`${FMTN()}の使用データ・上位パーティにこのポケモン${stone?'（メガシンカ）':''}の型が無いので、当サイトが種族値・覚える技から計算で組んだ理論上の型（実際に使われた型ではありません）`,notes:[],fixes:[]}}
+  /* 型の出どころ（82-prov.js）：上位パーティに登録された型（確認の状態つき）／PokéKit の集計の型（外部の参考）／当サイトの計算 */
+  if(typeof mkProv==='function'&&!s.prov)s.prov=s.src==='top'?(ctx.givenProv||mkProv({s:'season',f:FMT})):s.src==='data'?provPokekit(FMT):mkProv({s:'calc',f:FMT});
   if(stone){s.item=stone}
   if(s.item&&used&&used.has(s.item)&&!isStone(s.item))s.item=null;
   /* 構築の役わりの技（トリックルーム・あまごい等）が無ければ入れる */

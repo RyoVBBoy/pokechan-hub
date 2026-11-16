@@ -20,7 +20,7 @@ function usageSet(p,b){
   const nat=b.nat[0]?b.nat[0][0].split('-').map(Number):[-1,-1];
   const sp=b.sp[0]?b.sp[0][0].split('-').map(Number):null;
   if(mv.length<2||!sp)return null;
-  return{title:'当サイトでよく使われている型',why:`当サイトの利用者の育成${b.n}件で、それぞれいちばん多い持ち物・特性・技・性格・能力ポイントを組み合わせたものです。`,ab,item:it,up:nat[0],dn:nat[1],sp,moves:mv,k:/^choice|lifeorb|focussash|expertbelt/.test(it||'')?'attacker':it==='leftovers'?'bulky':'attacker',usage:true};
+  return{title:'当サイトでよく使われている型',why:`当サイトの利用者の育成${b.n}件で、それぞれいちばん多い持ち物・特性・技・性格・能力ポイントを組み合わせたものです。`,ab,item:it,up:nat[0],dn:nat[1],sp,moves:mv,k:/^choice|lifeorb|focussash|expertbelt/.test(it||'')?'attacker':it==='leftovers'?'bulky':'attacker',usage:true,usageN:Number.isInteger(b.n)?b.n:null};
 }
 function usageGuideHTML(p,fmt,lk){
   const b=usageBuildOf(p.no,fmt);if(!b)return '';

@@ -17,7 +17,9 @@ async function useTeam(name,list){
   if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
     if(e>=0)i=e;else if(!await askConfirm({title:'パーティを入れかえますか？',text:`パーティの枠がいっぱいです。「${teamName(TEAMS.cur)}」を、このパーティに入れかえます。`,ok:'入れかえる',danger:false}))return}
   if(i!==TEAMS.cur)switchTeam(i);
-  team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const o={no:x.no,sel:k<PICK()},s=cleanSet(x.set);if(s&&(s.sp||s.mv.length))o.set={...s,src:'copy'};return o});
+  /* 型の出どころ（82-prov.js）：渡された prov（無ければ型の中の prov）を形を確かめて引きつぐ。src:'copy'（サイトの集計に数えない）はそのまま */
+  team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const o={no:x.no,sel:k<PICK()},s=cleanSet(x.set);if(s&&(s.sp||s.mv.length)){o.set={...s,src:'copy'};
+    const pv=typeof provForSave==='function'?provForSave(x.prov||(x.set&&x.set.prov)):null;if(pv)o.set.prov=pv}return o});
   if(!TEAMS.list[i].name)TEAMS.list[i].name=String(name||'').slice(0,20);
   saveTeam();toast(`「${teamName(i)}」に入れました`);nav('#/team');
 }
@@ -110,7 +112,7 @@ async function seasonView(a){
     body.querySelectorAll('[data-vs]').forEach(b=>b.onclick=()=>{const t=j.teams.find(x=>x.id===+b.dataset.vs),el=document.getElementById('sz-vs-'+b.dataset.vs);if(!t||!el)return;
       if(el.innerHTML){el.innerHTML='';b.textContent='自分のパーティと比べる';return}
       el.innerHTML=szVs(t);b.textContent='比べるのをやめる';const g=el.querySelector('[data-goassist]');if(g)g.onclick=()=>{opp6=t.team.map(x=>x.no).filter(n=>byNo[n]).slice(0,6);saveOpp6();nav('#/assist')}});
-    body.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{const t=j.teams.find(x=>x.id===+b.dataset.use);if(t)useTeam(`${s.name} ${t.rank?t.rank+'位':''}`.trim(),t.team)});
+    body.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{const t=j.teams.find(x=>x.id===+b.dataset.use);if(t)useTeam(`${s.name} ${t.rank?t.rank+'位':''}`.trim(),t.team.map(x=>({no:x.no,set:x.set,prov:typeof mkProv==='function'?mkProv({s:'season',f:t.fmt||FMT,vs:provSeasonVs(t),id:t.id?'season-team:'+t.id:null,lb:s.name||null}):null})))});
     body.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!await askConfirm({title:'登録を削除しますか？',text:'このシーズンのあなたの登録を消します。',ok:'削除'}))return;
       try{await authFetch(`/api/seasons/teams/${+b.dataset.del}/delete`,{});SEAS.list=null;toast('消しました');seasonView(String(s.id))}catch(e){toast(e.message)}});
     /* スクショから読み取って戻ってきたとき：登録欄をそのパーティで開く */

@@ -121,7 +121,7 @@ function archSet(a,p,pt,used){
     item=(def?['leftovers','sitrusberry','rockyhelmet','lumberry','expertbelt','lifeorb']:['lifeorb','expertbelt',g.ai===1?'muscleband':'wiseglasses','choicescarf','sitrusberry','focussash']).find(okIt)
       ||[TYPE_ITEM[p.t[0]],TYPE_ITEM[p.t[1]],g.ai===1?'muscleband':'wiseglasses','focussash','choicescarf','lumberry','rockyhelmet','expertbelt','leftovers'].find(k=>k&&okIt(k))||item}
   used.add(item);
-  return{ab:s.ab,item,up,dn,sp,moves:mv,title:s.title};
+  return{ab:s.ab,item,up,dn,sp,moves:mv,title:s.title,prov:typeof mkProv==='function'?mkProv({s:'calc',f:s.fmt||null}):undefined};
 }
 const archSets=(a,mons)=>{const used=new Set();const ss=mons.map(p=>archSet(a,p,mons.part&&mons.part[p.no],used));
   /* メガシンカの枠（2026/11/08 依頼主：まとめて育成を入れるとメガストーンが0になる）。
@@ -138,7 +138,8 @@ function megaPick(mons,skip,need){
   for(const x of c){if(out.length>=need)break;if(!out.some(o=>o.k===x.k))out.push(x)}
   return out;
 }
-const toSaved=s=>s?{ab:s.ab?{n:ABN[s.ab]||s.ab,k:s.ab}:null,it:s.item?{n:ITEMN[s.item]||s.item,k:s.item}:null,mv:s.moves.map(id=>({n:mName(id),id})),sp:[...s.sp],up:s.up,dn:s.dn}:undefined;
+/* 型の出どころ（82-prov.js）があれば、保存する形にして引きつぐ（項目ごとの割合は落とす） */
+const toSaved=s=>s?{ab:s.ab?{n:ABN[s.ab]||s.ab,k:s.ab}:null,it:s.item?{n:ITEMN[s.item]||s.item,k:s.item}:null,mv:s.moves.map(id=>({n:mName(id),id})),sp:[...s.sp],up:s.up,dn:s.dn,...(s.prov&&typeof provForSave==='function'&&provForSave(s.prov)?{prov:provForSave(s.prov)}:{})}:undefined;
 async function archUse(a,nos,sets){
   let i=TEAMS.cur;
   if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);

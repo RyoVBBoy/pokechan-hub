@@ -498,7 +498,7 @@ function dgSwapSet(c,rest){
   if(!s){try{s=archSet(['axis'],c,null,new Set(used));src='型の例'}catch(e){s=null}}
   if(!s)return null;
   const mv=(s.moves||[]).map(m=>typeof m==='number'?{id:m,n:mName(m)}:m&&m.prot?{id:182,n:'まもる'}:m&&m.id>0?{id:m.id,n:mName(m.id)}:null).filter(Boolean);
-  const sv={ab:s.ab?{k:s.ab,n:ABN[s.ab]||s.ab}:null,it:s.item?{k:s.item,n:ITEMN[s.item]||s.item}:null,mv,sp:s.sp?[...s.sp]:[2,32,0,0,0,32],up:s.up??1,dn:s.dn??3,src:'copy'};
+  const sv={ab:s.ab?{k:s.ab,n:ABN[s.ab]||s.ab}:null,it:s.item?{k:s.item,n:ITEMN[s.item]||s.item}:null,mv,sp:s.sp?[...s.sp]:[2,32,0,0,0,32],up:s.up??1,dn:s.dn??3,src:'copy',...(typeof mkProv==='function'?{prov:provForSave(src==='使用率の高い型'?mkProv({s:'cbd',f:FMT}):mkProv({s:'calc',f:FMT}))}:{})};
   return{sv,src,txt:`${src}：特性 ${sv.ab?sv.ab.n:'―'}／持ち物 ${sv.it?sv.it.n:'なし'}／性格 ${natName(sv.up,sv.dn)||'補正なし'}／能力ポイント ${SN.map((n,i)=>sv.sp[i]?`${n}${sv.sp[i]}`:'').filter(Boolean).join('・')}／技 ${mv.map(m=>m.n).join('・')}`};
 }
 /* 変更前→変更後の比べ方：対面（◎〜×）・後出し・素早さ・一撃で半分以上 を、良くなった相手と悪くなった相手の名前つきで */

@@ -109,7 +109,7 @@ async function tbTransfer(mem,name){
   if(!mem.length)return;
   const V2=tbValidate(mem),F=tbForParty(V2.mem),notes=[...V2.notes,...F.notes];
   if(notes.length&&!await askConfirm({title:'入れる前に確かめてください',text:notes.join('\n'),ok:'このまま入れる',danger:false}))return;
-  await useTeam(name,F.mem.map(x=>({no:x.no,set:x.set})));
+  await useTeam(name,F.mem.map(x=>({no:x.no,set:x.set,prov:x.set&&x.set.prov||null})));
 }
 const tbDblNote=()=>FMT==='double'?`<p class="mvp-dbl"><b>ダブルの評価はまだ完成していません。</b>1匹ずつの1対1だけで比べていて、ねこだまし・おいかぜ・トリックルームの効果・範囲技・このゆびとまれ・まもる・味方との組み合わせは計算に入っていません。</p>`:'';
 
@@ -400,8 +400,8 @@ function tbFind(el){
     const fr2=document.getElementById('tb-fr2');if(fr2)fr2.onclick=()=>{TB_FIND=null;tbFind(el)};
     box.querySelectorAll('[data-tbcat]').forEach(b=>b.onclick=()=>{TB.fflt={...flt,cat:b.dataset.tbcat};tbSave();draw()});
     box.querySelectorAll('[data-tbsid]').forEach(b=>b.onclick=()=>{TB.fflt={...flt,sid:b.dataset.tbsid};tbSave();draw()});
-    box.querySelectorAll('[data-tbopen]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbopen];tbLoadTeam(t.team.map(x=>{const R=tbRegSet(x.set);return{no:x.no,set:R.s,src:R.s?'team':'teamnoset',srcTxt:`${t.season}・${TB_CAT[tbCatOf(t)][0]}`}}),`${t.season}の上位パーティ`)});
-    box.querySelectorAll('[data-tbuse]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbuse];tbTransfer(t.team.map(x=>({no:x.no,set:tbRegSet(x.set).s,src:'team'})),`${t.season}・${t.rank?t.rank+'位':''}`)});
+    box.querySelectorAll('[data-tbopen]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbopen];tbLoadTeam(t.team.map(x=>{const R=tbRegSet(x.set);if(R.s&&typeof mkProv==='function')R.s.prov=provForSave(mkProv({s:'season',f:FMT,vs:provSeasonVs(t),id:t.id?'season-team:'+t.id:null,lb:t.season||null}));return{no:x.no,set:R.s,src:R.s?'team':'teamnoset',srcTxt:`${t.season}・${TB_CAT[tbCatOf(t)][0]}`}}),`${t.season}の上位パーティ`)});
+    box.querySelectorAll('[data-tbuse]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbuse];tbTransfer(t.team.map(x=>{const s=tbRegSet(x.set).s;if(s&&typeof mkProv==='function')s.prov=provForSave(mkProv({s:'season',f:FMT,vs:provSeasonVs(t),id:t.id?'season-team:'+t.id:null,lb:t.season||null}));return{no:x.no,set:s,src:'team'}}),`${t.season}・${t.rank?t.rank+'位':''}`)});
     box.querySelectorAll('[data-tbcalc]').forEach(b=>b.onclick=()=>{const t=list[+b.dataset.tbcalc],o=document.getElementById('tb-tc'+b.dataset.tbcalc);
       let A;try{A=tbAnalyze(t.team.map(x=>({no:x.no,set:tbRegSet(x.set).s})))}catch(e){A={st:'error',why:String(e)}}
       o.innerHTML=`<p class="note"><b>当サイトの分析</b>（登録した人の考えではありません）</p>`+tbAnalyzeHTML(A)+tbMoreHTML(A);b.remove()});

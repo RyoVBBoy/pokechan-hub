@@ -148,6 +148,9 @@ function monGuide(p,o={}){
       ab:b.ab,item:b.item,up:b.up,dn:b.dn,sp:b.sp,moves:mv.slice(0,4),fmt:liveF,k:/^choice|lifeorb|focussash|expertbelt/.test(it)?'attacker':it==='leftovers'?'bulky':'attacker',live:true})}}catch(e){}
   if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].filter(f=>f!==liveF).forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
   SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
+  /* 型の出どころ（82-prov.js）：ランクバトルの集計を組み合わせた型／当サイトの利用者の育成の集計／当サイトの計算 */
+  if(typeof mkProv==='function')SETS.forEach(x=>{if(x.prov)return;
+    x.prov=x.live?mkProv({s:'cbd',f:x.fmt,at:typeof LIVE!=='undefined'&&LIVE.at?LIVE.at.getTime():null}):x.usage?mkProv({s:'site_usage',f:x.fmt,per:'直近30日',n:Number.isInteger(x.usageN)?x.usageN:null}):mkProv({s:'calc',f:x.fmt})});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;st.why=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。')+(st.why?'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */

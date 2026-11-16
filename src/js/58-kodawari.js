@@ -133,11 +133,11 @@ function kdBuild(){
   bases.push({kind:'theory'});
   const BS=bases[(KD.seed||0)%bases.length],stoneOk=()=>Object.keys(wantStone).length<KD.mega;
   if(BS.kind==='template'){const t=BS.t,kept=[],dropped=[];
-    t.team.forEach(x=>{const c=byNo[kdFam(x.no)];if(!c)return;if(mons.some(m=>m.no===c.no)){if(x.set&&!given[c.no])given[c.no]={set:x.set,txt:`${kdTplTxt(t)}に登録された型`};return}
+    t.team.forEach(x=>{const c=byNo[kdFam(x.no)];if(!c)return;if(mons.some(m=>m.no===c.no)){if(x.set&&!given[c.no])given[c.no]={set:x.set,txt:`${kdTplTxt(t)}に登録された型`,prov:typeof mkProv==='function'?mkProv({s:'season',f:FMT,vs:provSeasonVs(t),id:t.id?'season-team:'+t.id:null,lb:t.s||null}):null};return}
       const why0=ng.has(c.no)?'入れたくないポケモン':!legalOk(c.no)?'M-C で使えると確認できない':mons.length>=6?'枠がない':'';
       if(why0){dropped.push(`${formInfo(c).base}（${why0}）`);return}
       mons.push(c);kept.push(c.no);why[c.no]=[`${kdTplTxt(t)}のメンバー`];
-      if(x.set&&x.set.mv&&x.set.mv.length)given[c.no]={set:x.set,txt:`${kdTplTxt(t)}に登録された型`};
+      if(x.set&&x.set.mv&&x.set.mv.length)given[c.no]={set:x.set,txt:`${kdTplTxt(t)}に登録された型`,prov:typeof mkProv==='function'?mkProv({s:'season',f:FMT,vs:provSeasonVs(t),id:t.id?'season-team:'+t.id:null,lb:t.s||null}):null};
       const it=x.set&&x.set.it&&x.set.it.k;const mk=(byNo[x.no]&&byNo[x.no].base?Object.keys(MEGA).find(k=>MEGA[k][c.no]===x.no):null)||(it&&megaOf(c.no,it)?it:null);if(mk&&stoneOk())wantStone[c.no]=mk});
     basis={kind:'template',txt:`土台：${kdTplTxt(t)}`,lock:[],note:dropped.length?`条件に合わせて外した匹：${dropped.join('・')}`:'',kept}}
   else if(BS.kind==='core'){const axN=formInfo(BS.ax).base,lk=[];
@@ -183,7 +183,7 @@ function kdBuild(){
     const k2=kdStones(mons[i]).find(x=>x!==k&&mvpRowOf(FMT,mons[i].no,x)&&!stone.includes(x));if(k2)stone[i]=k2});
   const off=KD.big==='taimen'||KD.type==='ofcycle';
   const used=new Set(),ss=new Array(mons.length).fill(null);
-  [...mons.keys()].sort((x,y)=>(stone[y]?1:0)-(stone[x]?1:0)).forEach(i=>{try{ss[i]=kdMakeSet(mons[i],stone[i],mons.part[mons[i].no],aa,used,{off:off&&!mons.part[mons[i].no],given:given[mons[i].no]&&given[mons[i].no].set,givenTxt:given[mons[i].no]&&given[mons[i].no].txt})}catch(e){ss[i]=null}});
+  [...mons.keys()].sort((x,y)=>(stone[y]?1:0)-(stone[x]?1:0)).forEach(i=>{try{ss[i]=kdMakeSet(mons[i],stone[i],mons.part[mons[i].no],aa,used,{off:off&&!mons.part[mons[i].no],given:given[mons[i].no]&&given[mons[i].no].set,givenTxt:given[mons[i].no]&&given[mons[i].no].txt,givenProv:given[mons[i].no]&&given[mons[i].no].prov})}catch(e){ss[i]=null}});
   const rep=i=>{if(i==null||!ss[i])return;kdRepair(mons[i],ss[i],{off:off&&!mons.part[mons[i].no],keep:ss[i].keep},used)};
   /* 持ち物を1匹に持たせる（メガストーンの匹は変えない）。前に持っていた匹は、ほかの持ち物にする */
   const give=(item,score)=>{if(ss.some(s=>s&&s.item===item&&score(mons[ss.indexOf(s)],s)>-1e9))return;
