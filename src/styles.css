@@ -3129,3 +3129,16 @@ section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 .kdv-basis.theory{background:rgba(127,127,127,.12)}
 .kdv-basis b{display:block}.kdv-basis small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
 .kd-on small.kd-bk{color:var(--acc);font-weight:700}.kd-on small.kd-bk.theory{color:var(--mute)}
+
+/* 図鑑のページの実戦データ（81-cbd-detail.js、2026/11/16） */
+.cbdd{margin:8px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--glass)}
+.cbdd-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14.5px}
+.cbdd-tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--acc-t);color:var(--acc)}
+.cbdd-meta{margin:10px 0 4px;display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12.5px}
+.cbdd-meta>div{display:flex;gap:6px;min-width:0}.cbdd-meta dt{color:var(--dim);white-space:nowrap}.cbdd-meta dd{margin:0;font-weight:700;min-width:0}
+.cbdd-meta dd small{display:block;font-weight:400;color:var(--dim);font-size:12px}
+.cbdd-n{margin:8px 0 4px;font-size:12.5px;line-height:1.6;color:var(--dim)}.cbdd-prov{color:var(--mute)}
+.cbdd .gus{margin-left:0!important;margin-right:0!important;background:none!important;border-radius:0!important}
+.cbdd .gus i.cbdd-u{font-style:normal;color:var(--mute);font-size:12px}
+.cbdd-attr{margin:10px 0 0;font-size:12.5px}.cbdd-attr a{color:var(--acc);text-decoration:underline}
+@media(max-width:420px){.cbdd-meta{grid-template-columns:1fr}}
