@@ -117,18 +117,41 @@ const ui=await pg.evaluate(()=>({big:document.querySelector('.cres-big').textCon
   rem:document.querySelector('.cres-s').textContent,ko:document.querySelector('.cv-ko').textContent,pill:!!document.querySelector('[data-t="disgOff"]'),note:(document.querySelector('.cres-n')||{}).textContent||''}));
 ok(/技のダメージ/.test(ui.big)&&/0\.0/.test(ui.big),'画面：大きな数は「技のダメージ」0% '+ui.big);
 ok(/ばけのかわ/.test(ui.disg)&&/1\/8/.test(ui.disg)&&/技のダメージではありません/.test(ui.disg),'画面：1/8 の減少を技のダメージと分けて出す '+ui.disg);
+/* 2026/11/16 依頼主：いつも見えるのは2行だけ（1発目・2発目以降）、決まりの説明は「ばけのかわの計算仕様」にたたむ。重ねて「N回当てれば必ず倒せます」を出さない */
+const DV=await pg.evaluate(()=>{const R=calcResult(),box=document.querySelector('.cv-disg'),ls=[...box.querySelectorAll(':scope > .cv-dl')].map(x=>x.textContent),d=box.querySelector(':scope > details.cv-dspec');
+  const nx=R.r.next,p=v=>(v/R.d.max*100).toFixed(1),kb=document.querySelector('.cv-kb');
+  const vis=[...box.childNodes].filter(n=>n!==d).map(n=>n.textContent).join('');
+  return{ls,loss:R.r.loss,exp2:`${p(Math.min(...nx))}% 〜 ${p(Math.max(...nx))}%`,kb:kb&&kb.textContent,sure:R.ko.p>=.9999,
+    d:!!d,open:d&&d.open,sum:d&&d.querySelector('summary').textContent,spec:d&&d.querySelector('ul').textContent,max:R.d.max,vis,
+    ko:!!document.querySelector('.cv-ko'),koTxt:(document.querySelector('.cv-ko')||{}).textContent||'',h:box.getBoundingClientRect().height,ho:(()=>{d.open=true;const v=box.getBoundingClientRect().height;d.open=false;return v})(),
+    note:(document.querySelector('.cres-n')||{}).textContent||''}});
+ok(DV.ls.length===2,'画面：ばけのかわの見える行は2行 '+JSON.stringify(DV.ls));
+ok(DV.ls[0]===`ばけのかわ：0%（皮がはがれて HP −${DV.loss}）`,'画面：1行目＝ばけのかわ：0%（皮がはがれて HP −N） '+DV.ls[0]);
+ok(DV.ls[1]===`2発目以降：${DV.exp2}（${DV.sure?DV.kb:DV.kb.replace(/(\d発)/,'$1・')}）`,'画面：2行目＝2発目以降の％と倒せる回数（札と同じ） '+DV.ls[1]+' / '+DV.kb);
+ok(DV.d&&!DV.open&&DV.sum==='ばけのかわの計算仕様','画面：計算仕様はたたんで出す '+JSON.stringify([DV.d,DV.open,DV.sum]));
+ok(DV.spec.includes(`最大HP ${DV.max} の1/8＝${DV.loss}（端数切り捨て）`)&&/上の技のダメージの％には入れず/.test(DV.spec)&&/急所に当たっても1発目は0です/.test(DV.spec),'画面：計算仕様の中身 '+DV.spec);
+ok(!/1\/8|端数|急所/.test(DV.vis),'画面：いつも見える行に決まりの説明を出さない '+DV.vis);
+ok(DV.sure?!DV.ko:DV.ko,'画面：確定の札があるときは「N回当てれば必ず倒せます」を重ねない '+JSON.stringify([DV.sure,DV.koTxt]));
+ok(!/1\/8|急所/.test(DV.note),'画面：下の注意に同じ説明をくり返さない '+DV.note);
+ok(DV.h<=100&&DV.ho>DV.h+40,'画面：ばけのかわの枠はたたんで低く、開くと仕様が出る '+[DV.h,DV.ho]);
 ok(/ばけのかわ −\d+/.test(ui.raw),'画面：数の行に「ばけのかわ −N」 '+ui.raw);
 ok(/^残りHP: \d+%$/.test(ui.rem.trim())&&!/100%/.test(ui.rem),'画面：残りHPに1/8の減少が入る '+ui.rem);
 ok(/回/.test(ui.ko)&&!/ダメージを与えられません/.test(ui.ko),'画面：倒せる回数が出る（前は「ダメージを与えられません」） '+ui.ko);
-ok(ui.pill&&/1\/8/.test(ui.note),'画面：「ばけのかわがはがれている」の条件と説明 '+ui.note);
+ok(ui.pill,'画面：「ばけのかわがはがれている」の条件');
 /* はがれている条件：ばけのかわの行が消え、ふつうのダメージ */
 await pg.click('[data-t="disgOff"]');await pg.waitForTimeout(100);
 const ui2=await pg.evaluate(()=>({disg:!!document.querySelector('.cv-disg'),big:document.querySelector('.cres-big').textContent,note:(document.querySelector('.cres-n')||{}).textContent||''}));
 ok(!ui2.disg&&!/技のダメージ/.test(ui2.big)&&!/^0\.0/.test(ui2.big.trim())&&/はがれたあと/.test(ui2.note),'画面：はがれている条件ではふつうのダメージ '+JSON.stringify(ui2));
 /* HPが少ないとき：1/8 の減少で倒れる */
 await pg.evaluate(()=>{CS.disgOff=false;CS.dHP=5;route()});await pg.waitForSelector('.cv-disg');
-const ui3=await pg.evaluate(()=>({disg:document.querySelector('.cv-disg').textContent,rem:document.querySelector('.cres-s').textContent,ko:document.querySelector('.cv-ko').textContent}));
-ok(/倒れます/.test(ui3.disg)&&/倒れます/.test(ui3.rem)&&/1回当てれば必ず倒せます/.test(ui3.ko),'画面：HPが少なければ1/8で倒れる '+JSON.stringify(ui3));
+const ui3=await pg.evaluate(()=>({disg:document.querySelector('.cv-disg').textContent,ls:[...document.querySelectorAll('.cv-disg > .cv-dl')].map(x=>x.textContent),rem:document.querySelector('.cres-s').textContent,kb:(document.querySelector('.cv-kb')||{}).textContent||'',ko:!!document.querySelector('.cv-ko')}));
+ok(/倒れます/.test(ui3.disg)&&/倒れます/.test(ui3.rem)&&ui3.kb==='確定1発'&&!ui3.ko,'画面：HPが少なければ1/8で倒れる '+JSON.stringify(ui3));
+ok(ui3.ls.length===1&&/^ばけのかわ：0%（皮がはがれて HP −\d+ → 倒れます）$/.test(ui3.ls[0]),'画面：倒れるときは1行だけ '+JSON.stringify(ui3.ls));
+/* 連続技：1発目を防ぎ、残りの当たりの合計が上の％ */
+await pg.evaluate(()=>{CS.dHP=100;CS.a=calcX(981);CS.d=calcX(778,'common');CS.d.ab='disguise';CS.d.item=null;CS.mv=+Object.keys(MV).find(i=>mkey({id:+i})==='twinbeam');CS.hits=0;route()});
+await pg.waitForSelector('.cv-disg');
+const ui4=await pg.evaluate(()=>({n:calcResult().n,ls:[...document.querySelectorAll('.cv-disg > .cv-dl')].map(x=>x.textContent),spec:document.querySelector('.cv-dspec ul').textContent}));
+ok(ui4.n===2&&ui4.ls.length===2&&/残り1回の合計は上の％/.test(ui4.ls[0])&&/2回当たります/.test(ui4.spec),'画面：連続技のばけのかわ '+JSON.stringify(ui4));
 ok(!errs.length,'ページのエラーなし '+errs.join(' / '));
 await b.close();
 console.log(`disguise: ${bad?'NG':'OK'}（${n}項目${bad?`・${bad}件NG`:''}）`);
