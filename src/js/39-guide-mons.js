@@ -47,13 +47,18 @@ function monGuide(p,o={}){
   /* メガシンカの姿は、元のポケモンの覚える技と、メガシンカ後の特性1つで考える */
   const base=p.base?byNo[p.base]:null;
   const ls=LSD[p.no]?LSD[p.no][1]:base&&LSD[base.no]?LSD[base.no][1]:[];
-  const rk=i=>p.rank?p.rank[i]:1+P.filter(q=>q.s[i]>p.s[i]).length;
+  /* 2026/11/16 依頼主に届いた報告（ギルガルドが「攻撃50・特攻50と火力が低い」）：戦闘中に姿が変わる匹は、計算と同じ姿の能力で考える
+     （ギルガルド＝攻撃するときはブレードフォルムの攻撃・特攻、イルカマン＝いつもマイティフォルム。15-battle.js の BATTLE_FORM） */
+  const bfm=typeof BATTLE_FORM!=='undefined'?Object.values(BATTLE_FORM).find(b=>b.no===p.no):null;
+  const ps=bfm?(bfm.always?[...bfm.s]:p.s.map((v,i)=>i===1||i===3?bfm.s[i]:v)):p.s;
+  const bfl=i=>bfm&&(bfm.always||i===1||i===3)?`（${bfm.name}）`:'';
+  const rk=i=>bfm?1+RANKP.filter(q=>q.s[i]>ps[i]).length:p.rank?p.rank[i]:1+P.filter(q=>q.s[i]>p.s[i]).length;
   const stoneK=base?Object.keys(MEGA).find(k=>MEGA[k][base.no]===p.no):null;
   const key=id=>MD[id]&&MD[id][3];
   const have=keys=>ls.filter(id=>keys.includes(key(id))).sort((a,b)=>keys.indexOf(key(a))-keys.indexOf(key(b)));
-  const share=f=>{const v=f(p);return P.filter(q=>q.no!==p.no&&f(q)<v).length/Math.max(1,P.length-1)};
+  const share=f=>{const v=f({...p,s:ps});return P.filter(q=>q.no!==p.no&&f(q)<v).length/Math.max(1,P.length-1)};
   const lvl=x=>x>=.8?'とても高い':x>=.6?'高め':x>=.4?'ふつう':x>=.2?'低め':'とても低い';
-  const [h,A,B,C,D,S]=p.s;
+  const [h,A,B,C,D,S]=ps;
   const side=A>=C+10?0:C>=A+10?1:2,ai=side===1?3:side===0?1:(A>=C?1:3);
   const offS=share(q=>Math.max(q.s[1],q.s[3])),spdS=share(q=>q.s[5]);
   const pbS=share(q=>(q.s[0]+75)*(q.s[2]+20)),sbS=share(q=>(q.s[0]+75)*(q.s[4]+20)),bulkS=Math.max(pbS,sbS);
@@ -110,7 +115,7 @@ function monGuide(p,o={}){
   };
   /* ---- 向いている役割 ---- */
   const roles=[];const R=(k,sc,name,text,set)=>roles.push({k,sc,name,text,set});
-  if(offS>=.45&&bestStab.length)R('attacker',offS+.3,`${atkName}アタッカー`,`${atkStat}が${p.s[ai]}（メガシンカも入れた${RANKP.length}匹中${rk(ai)}位）と${lvl(offS)}。タイプ一致の${list(bestStab.slice(0,2).map(m=>m.n))}が主な攻撃手段になる。`,'attacker');
+  if(offS>=.45&&bestStab.length)R('attacker',offS+.3,`${atkName}アタッカー`,`${atkStat}が${ps[ai]}${bfl(ai)}（メガシンカも入れた${RANKP.length}匹中${rk(ai)}位）と${lvl(offS)}。タイプ一致の${list(bestStab.slice(0,2).map(m=>m.n))}が主な攻撃手段になる。`,'attacker');
   if(setup.length&&offS>=.35&&atk.length)R('setup',offS+.42,'積んで勝負を決める役',`${list(setup.slice(0,3).map(mName))}を覚える。相手が交代したときや、壁・まひで作った安全なターンに積むと、そのまま何匹も倒せることがある。`,'setup');
   /* 2026/11/16 依頼主の報告（イダイトウが「攻撃を削って防御」の型になる）：HPだけが高く、防御・特防がどちらも80未満なら受け役にしない */
   if(bulkS>=.65&&Math.max(B,D)>=80&&(heal.length||abK.includes('regenerator')||piv.length))R('bulky',bulkS+.2,'受けて粘る役（サイクル）',`耐久は${lvl(pbS)===lvl(sbS)?'物理・特殊ともに'+lvl(pbS):'物理が'+lvl(pbS)+'・特殊が'+lvl(sbS)}。${heal.length?mName(heal[0])+'で回復でき、':''}${abK.includes('regenerator')?ABN.regenerator+'で引っ込むたびに回復できるので、':''}交代を繰り返す戦い方に向く。`,'bulky');
@@ -161,10 +166,10 @@ function monGuide(p,o={}){
   const abImm=md.filter(x=>x.by&&x.m===0).map(x=>({t:x.t,k:x.by}));
   const pros=[],cons=[];
   if(weak.length<=1)pros.push([weak.length?`弱点が${weak[0][0]}だけ`:'弱点がない',
-    `${list(p.t)}タイプ${abImm.length?`に加えて、特性${esc(ABN[abImm[0].k]||abImm[0].k)}で${list(abImm.map(x=>x.t))}技が効かない`:'の'}ため、${weak.length?`弱点は${weak[0][0]}の1つだけ`:'弱点がない'}。半減以下で受けられるタイプも${res.length}つあるので、相手の攻撃を受けながら、交代で出しやすい。`,3,'def']);
-  else if(res.length>=8)pros.push(['受けられるタイプが多い',`半減以下で受けられるタイプが${res.length}つ${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}ある。相手の技を読めば、交代で出してダメージを抑えやすい。`,2,'def']);
+    `${list(p.t)}タイプ${abImm.length?`に加えて、特性${esc(ABN[abImm[0].k]||abImm[0].k)}で${list(abImm.map(x=>x.t))}技が効かない`:'の'}ため、${weak.length?`弱点は${weak[0][0]}の1つだけ`:'弱点がない'}。半減以下で受けられるタイプも${res.length}${res.length<10?'つ':'個'}あるので、相手の攻撃を受けながら、交代で出しやすい。`,3,'def']);
+  else if(res.length>=8)pros.push(['受けられるタイプが多い',`半減以下で受けられるタイプが${res.length}${res.length<10?'つ':'個'}${imm.length?`（${list(imm.map(x=>x[0]))}は無効）`:''}ある。相手の技を読めば、交代で出してダメージを抑えやすい。`,2,'def']);
   if(spdS>=.75)pros.push(['素早さが高い',`素早さ${S}（最速で${maxSpe(p)}）は、収録${sr.n}匹のうち上から${topPct(spdS)}%ほど。多くの相手より先に攻撃できるので、削れた相手を先に倒しやすい。`,2.5,'off']);
-  if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${p.s[ai]}はメガシンカも入れた${RANKP.length}匹で${rk(ai)}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
+  if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${ps[ai]}${bfl(ai)}はメガシンカも入れた${RANKP.length}匹で${rk(ai)}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
   if(pbS>=.7&&pbS>=sbS)pros.push(['物理技に強い',`HP${h}・防御${B}で、物理技を受けても倒れにくい。物理アタッカーの多い相手に出しやすい。`,2,'def']);
   else if(sbS>=.7)pros.push(['特殊技に強い',`HP${h}・特防${D}で、特殊技を受けても倒れにくい。特殊アタッカーの多い相手に出しやすい。`,2,'def']);
   if(piv.length)pros.push(['交代しながら攻撃できる',`${esc(list(piv.slice(0,2).map(mName)))}で、攻撃や補助のあとに有利な味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
@@ -173,7 +178,7 @@ function monGuide(p,o={}){
   if(h<=65&&Math.max(B,D)>=95)cons.push(['HPが低め',`${B>=D?'防御':'特防'}${Math.max(B,D)}は高いが、HP${h}が低いので、思ったほどは耐えない。等倍の強い技を続けて受けると倒れやすいので、受けに出すときは半減以下で受けられる相手を選ぶ。`,3,'HPが低く、思ったほどは耐えない']);
   const x4=weak.filter(x=>x[1]>=4);
   if(x4.length)cons.push([`${list(x4.map(x=>x[0]))}が4倍の弱点`,`${list(x4.map(x=>x[0]))}タイプの技は4倍のダメージになり、耐久があっても一撃で倒されやすい。${list(x4.map(x=>x[0]))}技を持つ相手の前には出さないようにする。`,3,`${list(x4.map(x=>x[0]))}技を4倍で受ける`]);
-  if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}つが弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
+  if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}${weak.length<10?'つ':'個'}が弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
   if(spdS<.25)cons.push(['素早さが低い',`最速にしても${maxSpe(p)}で、多くの相手に先に攻撃される。トリックルームを使うか、先に攻撃を受けても耐えられる相手に合わせて出す。`,2,'素早さが低く、先に攻撃されやすい']);
   if(offS<.3)cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
   if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、きあいのタスキで確実に1回動く使い方が向く。'}`,2,'打たれ弱い']);
@@ -351,9 +356,19 @@ function monGuide(p,o={}){
     const strong2=prankSup&&role2===prankSup?'いたずらごころで補助技を先に出せること':atkR&&role2===atkR?(offPro?offPro[0].replace(/が高い$/,'の高さ'):''):strong;
     const opt=roles.filter(r=>r!==role2&&['setup','support','bulky','tr','pivot'].includes(r.k)).slice(0,2).map(r=>esc(r.name).replace(/（.*$/,''));
     const lead2=`${esc(p.n)}は、${strong2&&!wxr?strong2+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'いろいろな役をこなせるポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+    /* 2026/11/16 依頼主に届いた報告（メガガブリアスの図鑑：通常・メガ・メガZ で「どんなポケモン？」が同じ）：
+       姿ごとの違いを種族値・タイプ・特性のデータから1文足す。メガの姿＝元の姿から何が変わるか、元の姿＝それぞれのメガで何が変わるか */
+    const fdiff=(a,b)=>{const d=SN.map((n,i)=>({n,i,a:a.s[i],b:b.s[i],d:b.s[i]-a.s[i]})).filter(x=>x.d);
+      const upx=d.filter(x=>x.d>0).sort((x,y)=>y.d-x.d).slice(0,2),dn=d.filter(x=>x.d<0).sort((x,y)=>x.d-y.d).slice(0,1);
+      const kind=q=>q.s[1]>=q.s[3]+10?'物理':q.s[3]>=q.s[1]+10?'特殊':'';
+      return{t:[upx.length?`${upx.map(x=>`${x.n}が${x.a}→${x.b}`).join('、')}に上が${dn.length?'り':'る'}`:'',dn.length?`${dn.map(x=>`${x.n}は${x.a}→${x.b}に下がる`).join('')}`:''].filter(Boolean).join('、'),
+        ty:a.t.join()!==b.t.join()?`${list(b.t)}タイプになり`:'',kc:kind(a)!==kind(b)&&kind(b)?`${kind(b)}で攻める形に変わる`:''}};
+    let formLead='';
+    if(base){const x=fdiff(base,p);formLead=`元の姿（${esc(base.n)}）と比べると、${x.ty?x.ty+'、':''}${x.t||'種族値の配分が変わり'}。特性は${esc(ABN[p.ab]||p.ab)}${x.kc?`で、${x.kc}`:'になる'}。`}
+    else if(megas.length)formLead=megas.map(m=>{const x=fdiff(p,m);return `${esc(m.n)}にメガシンカすると、${x.ty?x.ty+'、':''}${x.t||'種族値の配分が変わる'}${x.kc?`（${x.kc}）`:''}。`}).join('');
     /* 役割の並びも、ひとことの役を先頭に。積む役には「積み技を入れた型のとき」と添える */
     const roles2=[role2,...topRoles.filter(r=>r!==role2)].filter(Boolean).slice(0,4).map(r=>r.k==='setup'?{...r,name:r.name+'（積み技を入れた型のとき）'}:r);
-    return{lead:lead2,pros:pros.slice(0,3),cons:cons.slice(0,3),num:numHTML,roles:roles2,megaCh,megas:megas.map(m=>({m,stone:Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no)})),
+    return{lead:lead2+formLead,pros:pros.slice(0,3),cons:cons.slice(0,3),num:numHTML,roles:roles2,megaCh,megas:megas.map(m=>({m,stone:Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no)})),
       sets:SETS,setHTML,live:liveF?gmLiveHTML(p,lk):'',liveF,usage:base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk),
       mvParts,abl,partners,good,axis:axisHTML,repl,stab:stabTypes,item}}
   if(base)return megaHead+sections;

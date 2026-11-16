@@ -80,6 +80,20 @@ await pg.evaluate(()=>{team.length=0;[445,6,130,279,902,681].forEach(no=>team.pu
 const LD=await pg.evaluate(async()=>{document.querySelector('[data-tt="check"]').click();const now=!!document.querySelector('#tout .tt-load');
   for(let i=0;i<200&&!document.querySelector('#tout #st-box');i++)await new Promise(r=>setTimeout(r,50));return{now,done:!!document.querySelector('#tout #st-box'),gone:!document.querySelector('#tout .tt-load')}});
 ok(LD.now&&LD.done&&LD.gone,'チェックを押すとすぐ「計算しています」→中身に置きかわる '+JSON.stringify(LD));
+/* 2026/11/16 依頼主に届いた報告：「12つ」の数え方・ギルガルドの火力をシールドフォルムで判定しない */
+const BF=await pg.evaluate(()=>{const g=monGuide(byNo[681]),k=monGuide(byNo[964]);
+  return{tsu:[...P,...MEGAP].filter(p=>{try{return /\d{2}つ/.test(monGuide(p))}catch(e){return false}}).map(p=>p.n),
+    ag:[!/攻撃・特攻が控えめ|攻撃50・特攻50/.test(g),/攻撃140（ブレードフォルム）/.test(g),/12個/.test(g)],
+    pf:[!/攻撃・特攻が控えめ/.test(k),/160（マイティフォルム）/.test(k)]}});
+const FL=await pg.evaluate(()=>{const L=[445,10058,10309].map(n=>monGuide(byNo[n],{parts:true}).lead);
+  const all=[...P,...MEGAP],fam={};all.forEach(p=>{const k=p.base||p.no;(fam[k]=fam[k]||[]).push(monGuide(p,{parts:true}).lead.replace(/^[^は]+は、/,''))});
+  return{diff:new Set(L.map(t=>t.replace(/^[^は]+は、/,''))).size===3,mz:/特攻が80→141/.test(L[2])&&/ふゆう/.test(L[2]),m:/攻撃が130→170/.test(L[1]),
+    dup:Object.entries(fam).filter(([k,a])=>a.length>1&&new Set(a).size<a.length).map(([k])=>byNo[k].n),bad:all.filter(p=>/上がり。/.test(monGuide(p,{parts:true}).lead)).map(p=>p.n)}});
+ok(FL.diff&&FL.mz&&FL.m,'ガブリアス・メガ・メガZ の「どんなポケモン？」が姿ごとに違う '+JSON.stringify(FL));
+ok(!FL.dup.length&&!FL.bad.length,'姿の違うページで同じ説明・文の終わりの誤り '+JSON.stringify(FL));
+ok(!BF.tsu.length,'10以上を「Nつ」と数えない '+BF.tsu.join('・'));
+ok(BF.ag.every(Boolean),'ギルガルドはブレードフォルムの攻撃で判定 '+JSON.stringify(BF.ag));
+ok(BF.pf.every(Boolean),'イルカマンはマイティフォルムで判定 '+JSON.stringify(BF.pf));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
