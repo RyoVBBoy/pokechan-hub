@@ -102,6 +102,20 @@ await pg.evaluate(()=>{for(let i=0;i<3;i++)route()});await pg.waitForTimeout(300
 ok(await cnt('calc_done')===1,'描き直しでダメージ計算を数えています');
 await pg.evaluate(()=>{const s=document.querySelector('[data-c="weather"]');s.value='rain';s.dispatchEvent(new Event('change'))});await pg.waitForTimeout(200);
 ok(await cnt('calc_done')===1,'同じ条件を2回数えています');
+/* 2026/11/17：使用率の高い型があとから届いて、攻撃側・受ける側の育成が入れかわった（前はこのとき同じ条件の選び直しを2回目として数え、ときどき落ちていた）。
+   時間に頼らず、ここで入れかえを起こして確かめる */
+const sig0=await pg.evaluate(()=>JSON.stringify([CS.a,CS.d]));
+await pg.evaluate(()=>{CS.a={...CS.a,item:'lifeorb',sp:[2,32,0,0,0,32]};CS.d={...CS.d,item:'leftovers',sp:[32,0,32,0,2,0]};route()});await pg.waitForTimeout(300);
+ok(await pg.evaluate(s=>JSON.stringify([CS.a,CS.d])!==s,sig0),'（確かめの準備）育成が入れかわった');
+ok(await cnt('calc_done')===1,'あとから届いた型での描き直しを数えています');
+await pg.evaluate(()=>{const s=document.querySelector('[data-c="weather"]');s.value='rain';s.dispatchEvent(new Event('change'))});await pg.waitForTimeout(200);
+ok(await cnt('calc_done')===1,'型が入れかわったあと、同じ条件を選び直しただけで数えています');
+await pg.evaluate(()=>{const s=document.querySelector('[data-c="weather"]');s.value='sun';s.dispatchEvent(new Event('change'))});await pg.waitForTimeout(200);
+ok(await cnt('calc_done')===2,'型が入れかわったあとの本当の変更（天気）を数えません');
+await pg.click('[data-t="crit"]');await pg.waitForTimeout(200);
+ok(await cnt('calc_done')===3,'条件の札（急所）の変更を数えません');
+await pg.evaluate(()=>{const s=document.querySelector('[data-c="mv"]');const o=[...s.options].find(x=>x.value!==s.value);s.value=o.value;s.dispatchEvent(new Event('change'))});await pg.waitForTimeout(200);
+ok(await cnt('calc_done')===4,'技の変更を数えません');
 /* 図鑑：何文字打っても1回の表示で1回 */
 await pg.evaluate(()=>{location.hash='#/dex'});await pg.waitForTimeout(600);
 await pg.fill('#dq','が');await pg.fill('#dq','がぶ');await pg.fill('#dq','がぶり');await pg.waitForTimeout(100);
