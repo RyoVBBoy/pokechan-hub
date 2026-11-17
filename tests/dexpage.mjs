@@ -98,6 +98,10 @@ const FSW=await pg.evaluate(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms
   for(const no of [10058,10309,445,10058,445]){const a=document.querySelector(`.fam-pills a[href="#/p/${no}"]`);if(!a){out.push('no'+no);continue}a.click();await w(500);out.push(tab())}
   document.querySelector('#seg [data-i="3"]').click();await w(300);const a=document.querySelector('.fam-pills a[href="#/p/10058"]');a.click();await w(500);out.push(tab());return out});
 ok(FSW.slice(0,5).every(t=>t==="0")&&FSW[5]==="3","姿を切りかえても開いていたタブのまま "+FSW.join(','));
+/* 2026/11/17 依頼主：対策の番号は別々の崩し方なので「崩す手順」ではなく「崩す方法」。全部の姿で「手順」と書かない */
+const BRW=await pg.evaluate(()=>{const bad=[],noH=[];[...P,...MEGAP].forEach(p=>{let h='';try{h=breakHTML(p)}catch(e){return}
+  if(/手順/.test(h))bad.push(p.n);if(!/<h3>崩す方法<\/h3>/.test(h)&&/<ol class="gtips">/.test(h))noH.push(p.n)});return{bad,noH}});
+ok(!BRW.bad.length&&!BRW.noH.length,'対策は「崩す方法」と書く（「手順」なし） '+JSON.stringify(BRW));
 ok(!BF.tsu.length,'10以上を「Nつ」と数えない '+BF.tsu.join('・'));
 ok(BF.ag.every(Boolean),'ギルガルドはブレードフォルムの攻撃で判定 '+JSON.stringify(BF.ag));
 ok(BF.pf.every(Boolean),'イルカマンはマイティフォルムで判定 '+JSON.stringify(BF.pf));

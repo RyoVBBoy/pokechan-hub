@@ -1,6 +1,6 @@
 /* ===================== 図鑑の「対策」タブ＝崩し方（2026/11/08 依頼主の要望） =====================
    前はタイプ一致で弱点を突けるポケモンを並べるだけで、「どう崩すか」が分からなかった。
-   相手（p）の使用率の高い型（detSet）を mkMon にして、データだけから手順を作る（ほかのサイトの文章は使わない）：
+   相手（p）の使用率の高い型（detSet）を mkMon にして、データだけから崩す方法を作る（ほかのサイトの文章は使わない）：
    ①弱点と効きにくいタイプ（monDef＝特性込み）と、物理・特殊のどちらが通りやすいか（HP×防御 と HP×特防）
    ②素早さ（上を取るのに要る素早さ種族値・こだわりスカーフ・先制技）
    ③持ち物（BR_ITEM）・特性（BR_AB。型の特性＋持てるほかの特性は「特性が〇〇なら」）
@@ -105,14 +105,14 @@ function breakSteps(p,c){
     steps.push({h:'攻撃を受ける',t:`使用率の高い型の攻撃技は${ats.join('・')}タイプ。${rt.length?`<b>${rt.join('・')}</b>タイプなら全部を半減以下で受けられる。`:'1つのタイプで全部を半減できるタイプはないので、型の技をよく見て受ける。'}${w.length?`計算では${w.join('・')}などが35%未満しか受けない。`:''}`})}
   /* ひとこと */
   const best=[...c.ohko,...c.strong][0];
-  const lead=`${nm0}は${weak.length?weak.slice(0,2).map(x=>x.t).join('・')+'が弱点':'弱点のタイプがなく'}、素早さは${sp}。${best?`使用率の高い型どうしで計算すると、<b>${best.q.n}</b>の${best.mv?'「'+esc(best.mv)+'」':'攻撃'}が${best.my>=100?'一撃で倒せる':'最大'+Math.round(best.my)+'%'}など、下の手順で崩せる。`:'1匹で崩すのは難しいので、下の手順で2匹がかりで崩す。'}`;
+  const lead=`${nm0}は${weak.length?weak.slice(0,2).map(x=>x.t).join('・')+'が弱点':'弱点のタイプがなく'}、素早さは${sp}。${best?`使用率の高い型どうしで計算すると、<b>${best.q.n}</b>の${best.mv?'「'+esc(best.mv)+'」':'攻撃'}が${best.my>=100?'一撃で倒せる':'最大'+Math.round(best.my)+'%'}など、下の方法で崩せる。`:'1匹で崩すのは難しいので、下の方法で2匹がかりで崩す。'}`;
   return{lead,steps,set:s,sp,c};
 }
 /* 崩す役1匹の理由（技・ダメージ・素早さ・受けるダメージ） */
 const brWhy=(p,r)=>{const n=formInfo(p).base,pc=v=>v>=100?'一撃で倒せる':`最大${Math.round(v)}%`;
   return `${r.fast?'先に動いて':'1回受けてから'}${r.mv?'「'+esc(r.mv)+'」で':''}${pc(r.my)}。${n}からは${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒されるほど受けるが、先に動けば間に合う':'最大'+Math.round(r.their)+'%'}。`};
-/* 手順の一覧（図鑑のタブと静的ページ counter/ で共通） */
-const brStepsHTML=B=>`<h3>崩す手順</h3><ol class="gtips">${B.steps.map(x=>`<li><b>${x.h}</b>${Array.isArray(x.t)?`<ul>${x.t.map(y=>`<li>${y}</li>`).join('')}</ul>`:'：'+x.t}</li>`).join('')}</ol>`;
+/* 崩す方法の一覧（番号は手順ではなく、別々の崩し方。2026/11/17 依頼主：「手順」→「方法」）（図鑑のタブと静的ページ counter/ で共通） */
+const brStepsHTML=B=>`<h3>崩す方法</h3><ol class="gtips">${B.steps.map(x=>`<li><b>${x.h}</b>${Array.isArray(x.t)?`<ul>${x.t.map(y=>`<li>${y}</li>`).join('')}</ul>`:'：'+x.t}</li>`).join('')}</ol>`;
 function breakHTML(p){
   let B;try{B=breakSteps(p)}catch(e){return '<p class="empty">計算できませんでした。</p>'}
   const {c}=B,s=B.set,href=q=>`#/p/${q.no}`;
