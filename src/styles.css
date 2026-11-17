@@ -3139,3 +3139,70 @@ section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 .kdv-basis.theory{background:rgba(127,127,127,.12)}
 .kdv-basis b{display:block}.kdv-basis small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
 .kd-on small.kd-bk{color:var(--acc);font-weight:700}.kd-on small.kd-bk.theory{color:var(--mute)}
+
+/* ツールの画面：「まずはこの3つ」の見出しの横の「使い方を見る」と、はじめてだけのカード、画面で見る使い方（2026/11/16、84-toolsguide.js）。
+   見た目の見直し（2026/11/16 依頼主「すりガラスで上品に」）：角の丸みは 外のカード20px・中の画像とボタン14px・アイコン14px にそろえる。
+   ぼかし（backdrop-filter）は、このカードと使い方の画面の2か所だけ（一覧の行にはかけない＝重くしない、前からの決まり）。
+   光らせすぎない：影は弱い2重、押す場所はテーマの色の細い線＋まわりを少し暗くするだけ */
+:root{--tg-r:20px;--tg-r2:14px;--tg-hl:rgba(255,255,255,.07);--tg-sh:0 1px 2px rgba(0,0,0,.25),0 8px 28px rgba(0,0,0,.28);--tg-dim:rgba(6,6,14,.42);--tg-bk:rgba(4,4,10,.55)}
+:root[data-theme=light]{--tg-hl:rgba(255,255,255,.75);--tg-sh:0 1px 2px rgba(30,32,60,.06),0 10px 30px rgba(30,32,60,.10);--tg-dim:rgba(20,18,40,.20);--tg-bk:rgba(20,22,40,.32)}
+/* まずはこの3つ・すぐ使う（ツールの画面だけ） */
+.tprim-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 4px 10px}
+.tprim-hd .tprim-h{margin:0;letter-spacing:.01em}
+.tprim-c{border-radius:var(--tg-r);background:linear-gradient(160deg,var(--tg-hl),transparent 42%),var(--card);box-shadow:var(--tg-sh)}
+.tprim-i{border-radius:var(--tg-r2);background:var(--accf);background:linear-gradient(150deg,color-mix(in srgb,var(--accf) 78%,#fff),var(--accf) 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 12px rgba(var(--acc-rgb),.22)}
+.tquick .ttile-i{border-radius:var(--tg-r2);background:linear-gradient(160deg,var(--tg-hl),transparent 60%),var(--elev2)}
+.tg-link{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:0 12px;margin-right:-6px;border:0;border-radius:999px;background:none;color:var(--acc);font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}
+.tg-link:hover,.tg-link:focus-visible{background:rgba(var(--acc-rgb),.12)}
+/* はじめてだけのカード */
+.tg-card{display:flex;align-items:center;gap:12px;margin:12px 12px 2px;padding:10px 6px 10px 12px;border-radius:var(--tg-r);
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.04) 55%,transparent),var(--glass-p,var(--card));
+  -webkit-backdrop-filter:var(--glass-blur,blur(20px));backdrop-filter:var(--glass-blur,blur(20px));border:1px solid var(--glass-b,var(--card-b));box-shadow:var(--tg-sh)}
+.tg-card-i{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:var(--tg-r2);color:var(--acc);background:rgba(var(--acc-rgb),.14)}
+.tg-card-m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;font-size:12.5px;color:var(--dim)}
+.tg-card-m b{font-size:14.5px;color:var(--fg)}
+.tg-card .btn{flex:none;min-height:40px;padding:0 18px}
+.tg-x{flex:none;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--dim);cursor:pointer}
+.tg-x:hover,.tg-x:focus-visible{background:var(--soft,rgba(127,127,127,.12))}
+/* 画面で見る使い方 */
+.tg-v{position:fixed;inset:0;z-index:310;display:flex;align-items:center;justify-content:center;padding:16px;--tg-mh:50dvh}
+.tg-bk{position:absolute;inset:0;background:var(--tg-bk);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.tg-p{position:relative;display:flex;flex-direction:column;width:100%;max-width:440px;max-height:calc(100dvh - 32px);overflow:auto;padding:14px 20px 20px;border-radius:24px;
+  background:linear-gradient(170deg,var(--tg-hl),transparent 30%),var(--glass-p,var(--bg));-webkit-backdrop-filter:var(--glass-blur,blur(24px));backdrop-filter:var(--glass-blur,blur(24px));
+  border:1px solid var(--glass-b,var(--card-b));box-shadow:var(--tg-sh),0 24px 60px rgba(0,0,0,.25)}
+.tg-p:focus{outline:none}
+.tg-hd{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.tg-n{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--acc);background:rgba(var(--acc-rgb),.12)}
+.tg-close{display:grid;place-items:center;width:44px;height:44px;margin-right:-10px;border:0;border-radius:50%;background:none;color:var(--fg);cursor:pointer}
+.tg-close:hover,.tg-close:focus-visible{background:var(--soft,rgba(127,127,127,.12))}
+.tg-body{display:flex;flex-direction:column}
+.tg-fig{position:relative;margin:8px auto 0;max-width:100%;border-radius:var(--tg-r2);overflow:hidden;line-height:0;background:var(--bg);
+  box-shadow:0 0 0 1px var(--glass-b,var(--card-b)),0 6px 20px rgba(0,0,0,.18)}
+.tg-img{display:block;width:100%;height:auto}
+/* 押す場所：テーマの色の細い線と、やわらかい外側の光。まわりは少しだけ暗く */
+.tg-ring{position:absolute;border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.95),0 0 0 6px rgba(var(--acc-rgb),.18),0 0 18px 4px rgba(var(--acc-rgb),.22),0 0 0 9999px var(--tg-dim)}
+.tg-pulse{animation:tg-pulse 1.6s ease-in-out 2}
+@keyframes tg-pulse{50%{box-shadow:0 0 0 2px rgba(var(--acc-rgb),1),0 0 0 9px rgba(var(--acc-rgb),.10),0 0 22px 6px rgba(var(--acc-rgb),.26),0 0 0 9999px var(--tg-dim)}}
+.tg-p h2{margin:18px 0 6px;font-size:18px;font-weight:800;letter-spacing:.01em}
+.tg-d{margin:0;font-size:14.5px;line-height:1.65;color:var(--dim)}
+.tg-dots{display:flex;justify-content:center;gap:6px;margin:16px 0 0}
+.tg-dots i{width:6px;height:6px;border-radius:3px;background:rgba(127,127,140,.35);transition:width .2s}
+.tg-dots i.on{background:var(--accf);width:18px}
+.tg-ft{display:flex;gap:10px;margin-top:18px}
+.tg-ft .btn{flex:1;min-height:46px;border-radius:var(--tg-r2)}
+.tg-ft .tg-prev{background:transparent;border:1px solid var(--glass-b,var(--card-b))}
+.tg-ft .btn:disabled{opacity:.38}
+@media(max-width:699px){
+  /* スマホは下からのシート：中身の高さだけ（画像の下に大きな空きを作らない）。後ろの画面は暗くして見せる */
+  .tg-v{padding:0;align-items:flex-end;--tg-mh:56dvh}
+  .tg-p{max-width:none;max-height:94dvh;border-radius:24px 24px 0 0;border-width:1px 0 0;padding:8px 18px max(16px,env(safe-area-inset-bottom));animation:tg-up .26s cubic-bezier(.2,.8,.2,1)}
+  .tg-p::before{content:"";display:block;width:36px;height:4px;margin:0 auto 4px;border-radius:2px;background:rgba(127,127,140,.4)}
+}
+@keyframes tg-up{from{transform:translateY(24px);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.tg-pulse,.tg-p{animation:none}.tg-dots i{transition:none}}
+@media(prefers-reduced-transparency:reduce){.tg-card,.tg-p,.tg-bk{-webkit-backdrop-filter:none;backdrop-filter:none}.tg-p{background:var(--bg)}}
+/* 読みやすさの見直し（2026/11/16 最終確認：すりガラスの上で文字の明るさの比が4.5に届かなかったところ）。補足の文字は「薄い灰色」より少し濃く */
+.tg-card-m span,.tg-d,.tprim .tprim-d{color:var(--dim);color:color-mix(in srgb,var(--fg) 40%,var(--dim))}
+:root[data-theme=light] .tg-link,:root[data-theme=light] .tg-n{color:color-mix(in srgb,var(--acc) 80%,#000)}
+

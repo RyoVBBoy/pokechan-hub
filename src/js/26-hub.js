@@ -14,14 +14,18 @@ function toolsView(){
     {href:'#/dex',ic:I.dex||I.book,t:'図鑑',d:'種族値・弱点・覚える技・使用率の高い型'},
     {href:'#/team',ic:I.grid,t:'パーティと診断',d:'6匹の育成・弱点のチェック・おすすめの選出'}]:[];
   const prim=new Set(PRIMARY.map(x=>x.href));
-  V.innerHTML=`${PRIMARY.length?`<section class="tprim" aria-label="まずはこの3つ"><h2 class="tprim-h">まずはこの3つ</h2><div class="tprim-g">${PRIMARY.map(x=>`<a class="tprim-c" href="${x.href}"><span class="tprim-i">${SVG(x.ic,26)}</span><span class="tprim-t">${esc(x.t)}</span><span class="tprim-d">${esc(x.d)}</span><span class="tprim-go">${SVG(I.chev,18)}</span></a>`).join('')}</div></section>`:''}
+  /* 並び（2026/11/16 依頼主）：使い方ガイドのカード（はじめてだけ）→ まずはこの3つ → すぐ使う → 対戦の形式 → その他のツール → そのほか（相性・役割など、前と同じ） */
+  const tg=g.id==='pokechamp'&&typeof toolsGuideCardHTML==='function';
+  V.innerHTML=`${tg?toolsGuideCardHTML():''}${PRIMARY.length?`<section class="tprim" aria-labelledby="tprim-h"><div class="tprim-hd"><h2 class="tprim-h" id="tprim-h">まずはこの3つ</h2>${tg?toolsGuideLinkHTML():''}</div><div class="tprim-g">${PRIMARY.map(x=>`<a class="tprim-c" href="${x.href}"><span class="tprim-i">${SVG(x.ic,26)}</span><span class="tprim-t">${esc(x.t)}</span><span class="tprim-d">${esc(x.d)}</span><span class="tprim-go">${SVG(I.chev,18)}</span></a>`).join('')}</div></section>`:''}
+  ${g.id==='pokechamp'?toolsQuickHTML():''}
   ${g.id==='pokechamp'?`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
   <p class="note" style="padding-top:4px">選んだ形式（いまは<b>${FMTN()}</b>：${PICK()}匹選出・先発${LEADN()}匹）で、選出・予想・使用率を計算します。</p>`:''}
-  <h2 class="tother-h">そのほかのツール</h2>
+  <h2 class="tother-h">その他のツール</h2>
   ${secs.map(sc=>{const ts=all.filter(t=>t.sec===sc&&!prim.has(t.href));return ts.length?`<div class="sec tother-s"><h3>${esc(sc)}</h3></div>${ts.map(row).join('')}`:''}).join('')}
   ${g.id==='pokechamp'?toolsTopHTML():''}
   ${g.id==='pokechamp'?toolsBottomHTML():''}`;
   if(g.id==='pokechamp')toolsTopBind(V);
+  if(tg)toolsGuideBind(V);
   if(g.id==='pokechamp')bindFmt(V,toolsView);
   V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrY();toolsView();scrTo(0,y)});
 }
