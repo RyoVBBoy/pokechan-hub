@@ -92,10 +92,11 @@ const FL=await pg.evaluate(()=>{const L=[445,10058,10309].map(n=>monGuide(byNo[n
 ok(FL.diff&&FL.mz&&FL.m,'ガブリアス・メガ・メガZ の「どんなポケモン？」が姿ごとに違う '+JSON.stringify(FL));
 ok(!FL.dup.length&&!FL.bad.length,'姿の違うページで同じ説明・文の終わりの誤り '+JSON.stringify(FL));
 /* 姿の切りかえ：技・特性を見たあと概要に戻し、メガ→元の姿と切りかえても概要のまま */
-await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForTimeout(900);
+/* 2026/11/17：GitHub の公開の機械では0.9秒で描き終わらないことがあった（#seg がまだ無い）。決まった時間ではなく、描き終わるまで待つ */
+await pg.evaluate(()=>{location.hash='#/p/445'});await pg.waitForSelector('#seg [data-i="3"]');await pg.waitForSelector('.fam-pills a[href="#/p/10058"]');await pg.waitForTimeout(300);
 const FSW=await pg.evaluate(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)),tab=()=>document.querySelector('#seg [aria-selected="true"]').dataset.i,out=[];
   document.querySelector('#seg [data-i="3"]').click();await w(300);document.querySelector('#seg [data-i="0"]').click();await w(300);
-  for(const no of [10058,10309,445,10058,445]){const a=document.querySelector(`.fam-pills a[href="#/p/${no}"]`);if(!a){out.push('no'+no);continue}a.click();await w(500);out.push(tab())}
+  for(const no of [10058,10309,445,10058,445]){const a=document.querySelector(`.fam-pills a[href="#/p/${no}"]`);if(!a){out.push('no'+no);continue}a.click();for(let k=0;k<60&&!(curNo===no&&document.querySelector('#seg [aria-selected="true"]'));k++)await w(100);await w(200);out.push(tab())}
   document.querySelector('#seg [data-i="3"]').click();await w(300);const a=document.querySelector('.fam-pills a[href="#/p/10058"]');a.click();await w(500);out.push(tab());return out});
 ok(FSW.slice(0,5).every(t=>t==="0")&&FSW[5]==="3","姿を切りかえても開いていたタブのまま "+FSW.join(','));
 /* 2026/11/17 依頼主：対策の番号は別々の崩し方なので「崩す手順」ではなく「崩す方法」。全部の姿で「手順」と書かない */
