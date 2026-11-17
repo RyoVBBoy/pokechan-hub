@@ -36,6 +36,13 @@ async function mediaUpload(req,env,db,now){
   if(!me)return J({error:'ログインしてください。'},401);
   if(!row)return J({error:'先にプロフィールを作ってください。'},403);
   if(row.banned)return J({error:'このアカウントは利用を停止しています。'},403);
+  return mediaSave(req,env,db,row.uid,now);
+}
+/* 受け取った画像を確かめて保存する（2026/11/16：運営の Tips の画像〔tips.js〕も同じ決まりで受け取るため、利用者の画像の処理から分けた。中身は前と同じ）
+   1日の枚数・大きさ・中身の種類（JPEG・PNG・WebP）をサーバーで確かめる。uid はその画像の持ち主（投稿に付けられるのはこの uid の投稿だけ） */
+async function mediaSave(req,env,db,uid,now){
+  await mediaInit(db);
+  const row={uid};
   const c=await db.prepare(`SELECT COUNT(*) AS c FROM media WHERE uid=? AND created_at>?`).bind(row.uid,now-864e5).first();
   if(c&&c.c>=MEDIA_PER_DAY)return J({error:`1日に送れる画像（${MEDIA_PER_DAY}枚）を超えました。`},429);
   const len=+req.headers.get('content-length')||0;if(len>MEDIA_MAX)return J({error:'画像が大きすぎます。'},413);

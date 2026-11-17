@@ -4,7 +4,7 @@ function home(){tlView(null,true)}
 /* 「すぐ使う」（2026/11/16 依頼主：ツールの画面で「まずはこの3つ」のすぐ下に置く。前は「そのほかのツール」の下＝toolsTopHTML の先頭だった） */
 function toolsQuickHTML(){
   return `<section class="tquick" aria-labelledby="tquick-h"><div class="sec" style="padding-top:14px"><h2 id="tquick-h">すぐ使う</h2><span style="font-size:12px;color:var(--dim)">☆を押したツールが先頭に</span></div>
-  <div class="tgrid">${quickTools(8).map(toolTile).join('')}</div></section>`;
+  <div class="tgrid">${quickTools(8).map(toolTile).join('')}</div>${typeof tipsRowHTML==='function'?tipsRowHTML():''}</section>`;
 }
 function toolsTopHTML(){
   return `

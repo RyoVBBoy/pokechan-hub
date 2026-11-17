@@ -19,6 +19,9 @@ async function verifyIdToken(tok,env){
   if(hd.alg!=='RS256'||!hd.kid)return null;
   const now=Math.floor(Date.now()/1000);
   if(pl.aud!==pid||pl.iss!=='https://securetoken.google.com/'+pid||typeof pl.sub!=='string'||!pl.sub||pl.sub.length>128)return null;
+  /* 運営・お知らせなどの bot のアカウント（uid が bot: で始まる）には、ログインでなれない（2026/11/16 見直し）。
+     Google・メールのログインでは uid は Firebase が決め、bot: にはならないが、もし作られても bot のアカウントを乗っ取れないようにここで断る */
+  if(pl.sub.startsWith('bot:'))return null;
   if(!(pl.exp>now-30)||pl.iat>now+300||(pl.auth_time&&pl.auth_time>now+300))return null;
   const k=(await authKeys()).find(x=>x.kid===hd.kid);if(!k)return null;
   const key=await crypto.subtle.importKey('jwk',{kty:k.kty,n:k.n,e:k.e,alg:'RS256',ext:true},{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
@@ -37,7 +40,30 @@ const HANDLE_NG=['admin','administrator','root','system','support','official','p
 function handleError(h){
   if(!HANDLE_RE.test(h))return 'ユーザーIDは半角英数字と _ の3〜15文字にしてください。';
   const l=h.toLowerCase();if(HANDLE_NG.some(x=>l===x||l.startsWith('official')||l.includes('pokemon')||l.includes('nintendo')))return 'このユーザーIDは使えません。';
+  /* 運営の「Game Kid/s Tips」（@gamekids_tips）と紛らわしい ID（2026/11/16） */
+  if(offLike(l)||l==='tips')return 'このユーザーIDは使えません。';
   return null;
+}
+/* 運営のアカウント（Game Kid/s・「運営」の札）と紛らわしい名前・ID か（2026/11/16、同日見直し）。
+   ならし方：NFKC（全角→半角）・小文字・見えない文字（ゼロ幅など）を消す・形の似たキリル文字/ギリシャ文字をローマ字に・よくある数字の置きかえ（1→i 0→o 3→e 4→a 5→s 9→g）・
+   ひらがな→カタカナ・小さいカナ→大きいカナ・記号とすき間を消す。そのうえで「gamekid」「ゲームキッズ」を探す */
+const OFF_CONF={'а':'a','е':'e','о':'o','і':'i','ӏ':'i','к':'k','м':'m','ԁ':'d','ѕ':'s','ɡ':'g','ց':'g','α':'a','ε':'e','ο':'o','ι':'i','κ':'k','μ':'m','ѵ':'v','ʂ':'s'};
+function offNorm(t){
+  let x=String(t||'').normalize('NFKC').toLowerCase().replace(/[​-‏⁠-⁤﻿︀-️­͏᠎]/g,'');
+  x=[...x].map(c=>OFF_CONF[c]||c).join('');
+  x=x.replace(/[1!|]/g,'i').replace(/0/g,'o').replace(/3/g,'e').replace(/4/g,'a').replace(/5/g,'s').replace(/9/g,'g');
+  x=x.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60)).replace(/[ァィゥェォッャュョヮ]/g,c=>({'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ','ッ':'ツ','ャ':'ヤ','ュ':'ユ','ョ':'ヨ','ヮ':'ワ'})[c]);
+  return x.replace(/[\s\-_.・･\/\\'"`’＿＝=+*~～()（）「」『』【】\[\]{}<>、,。:：;；!?！？♪☆★♡]+/g,'');
+}
+function offLike(t){const x=offNorm(t);return /gamek[il]d|ゲ[ーｰ-]?ムキ[ツ]?ズ/.test(x)}
+/* 表示名の決まり（2026/11/16 見直し：前は「運営」「公式」を含む名前をすべて止めていて、「大会運営のたろう」「公式戦が好き」なども使えなかった）。
+   止めるのは ①Game Kid/s と紛らわしい名前 ②名前そのものが運営・公式を名のるもの（運営／公式／運営アカウント／公式チーム／サイト運営 など。ならしたあとで全体が一致）
+   ③【公式】［運営］のように括弧で運営・公式の札のように見せるもの ④Tips と運営・公式を組み合わせたもの */
+const OFF_ROLE=/^(?:当?サイト|ゲームキツズ)?(?:運営|公式)(?:運営|公式)?(?:アカウント|チーム|スタツフ|事務局|担当|者|部|垢|bot|ボツト|tips|チツプス)?$/;
+function nameError(n){
+  const raw=String(n||'').normalize('NFKC'),x=offNorm(raw);
+  const bad=offLike(raw)||OFF_ROLE.test(x)||/[【\[［(（「『<〈《]\s*(?:運営|公式)\s*[】\]］)）」』>〉》]/.test(raw)||(/tips|チツプス/.test(x)&&/運営|公式/.test(x));
+  return bad?'この表示名は使えません（Game Kid/s の運営・公式のアカウントと紛らわしいため）。':null;
 }
 const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',av:u.avatar||null,created_at:u.created_at,private:!!u.private};
 /* 本人にだけ返す項目（メッセージの設定） */
@@ -57,6 +83,8 @@ async function userApi(req,env,db,path,body,now){
     const handle=String(body.handle||'').trim(),name=clean(body.name,20),bio=clean(body.bio,160);
     const he=handleError(handle);if(he)return J({error:he},400);
     if(name.length<1)return J({error:'表示名を入れてください。'},400);
+    /* 運営・公式と紛らわしい表示名（2026/11/16）。前から使っている名前を変えないまま保存するときは止めない（自己紹介だけ直す人を困らせない） */
+    const nmE=nameError(name);if(nmE&&!(row&&row.name===name))return J({error:nmE},400);
     const ng=ngCheck(handle,name,bio);if(ng)return J({error:ng},400);
     if(!row&&!body.agree)return J({error:'利用規約とプライバシーポリシーへの同意が必要です。'},400);
     const dup=await db.prepare(`SELECT uid FROM users WHERE handle=? COLLATE NOCASE`).bind(handle).first();

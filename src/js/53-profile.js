@@ -65,7 +65,7 @@ async function userView(h){
               <button class="btn ${u.followed||u.requested?'btn-s':'btn-p'} pf-b" id="twp-f">${pfFollowTxt(u)}</button>`}
         </div>
       </div>
-      <h2 class="pf-n"><span data-notr>${esc(u.name)}</span>${u.private?`<span class="pf-lock" title="非公開アカウント" aria-label="非公開アカウント">${SVG(I.lock,17)}</span>`:''}</h2>
+      <h2 class="pf-n"><span data-notr>${esc(u.name)}</span>${typeof tipsBadge==='function'?tipsBadge(u):''}${u.private?`<span class="pf-lock" title="非公開アカウント" aria-label="非公開アカウント">${SVG(I.lock,17)}</span>`:''}</h2>
       <div class="pf-h">@${esc(u.handle)}${u.follows_me?'<span class="pf-fm">フォローされています</span>':''}</div>
       ${u.bio?`<p class="pf-bio" data-notr>${linkTags(u.bio)}</p>`:''}
       <div class="pf-meta">

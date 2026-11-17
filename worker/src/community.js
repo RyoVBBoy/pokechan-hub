@@ -70,6 +70,8 @@ async function api(req,env,u,ctx){
   }
   /* 画像は JSON ではなく中身そのものを受け取るので、先に分ける（media.js） */
   if(path==='/api/media'&&req.method==='POST')return mediaUpload(req,env,db,now);
+  /* 運営の Tips の画像（管理用の合言葉だけ。tips.js） */
+  if(path==='/api/admin/tips/media'&&req.method==='POST')return tipsMedia(req,env,db,now,isAdmin,ip);
   /* 選出画面のスクショから相手の6匹を読む（worker_src.js の oppReadApi） */
   if(path==='/api/opp-read'&&req.method==='POST')return oppReadApi(req,env,db,now);
   /* 対戦の振り返り（replay.js）：大きな JSON を自分で読むので、ここで分ける */
@@ -85,6 +87,8 @@ async function api(req,env,u,ctx){
   /* タイムライン・フォロー・通知（social.js） */
   /* ランキングbot（rankbot.js） */
   {const r=await rankApi(req,env,db,path,body,now,isAdmin);if(r)return r}
+  /* 運営の Tips アカウント（tips.js） */
+  {const r=await tipsApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
   /* お問い合わせ・間違いの報告（contact.js） */
   {const r=await contactApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
   {const r=await pushApi(req,env,db,path,body,now);if(r)return r}

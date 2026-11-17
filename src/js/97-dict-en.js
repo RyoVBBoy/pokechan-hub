@@ -130,7 +130,7 @@ const EN={
 /* 流行・診断・比較 */
 'シングルのランクバトルで、いま多く使われているポケモンと、その組み合わせから作った':'Pokémon used most in Singles ranked battles right now, and ','流行パーティ':'meta teams',
 'を決めます（シングル）。':' (Singles).','を決めます（ダブル）。':' (Doubles).','診断':'Check','選出':'Picks','まずはこの3つ':'Start here',
-'技のダメージ（％）と、何回で倒せるかを計算':'Move damage (%) and how many hits to KO','パーティと診断':'Team & check','6匹の育成・弱点のチェック・おすすめの選出':'Build 6, check weaknesses, get recommended picks','そのほかのツール':'More tools','その他のツール':'More tools',
+'技のダメージ（％）と、何回で倒せるかを計算':'Move damage (%) and how many hits to KO','パーティと診断':'Team & check','6匹の育成・弱点のチェック・おすすめの選出':'Build 6, check weaknesses, get recommended picks','そのほかのツール':'More tools','その他のツール':'More tools','運営':'Staff','ツールの使い方を、実際の画面で1つずつ紹介':'How to use each tool, shown with real screens',
 'シングルのランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ':'Pokémon used most in Singles ranked battles right now. Meta teams are ',
 'ダブルのランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ':'Pokémon used most in Doubles ranked battles right now. Meta teams are ',
 '代表的な組み合わせ':'typical combinations','です（実在の特定のプレイヤーの構築ではありません）。':' built by following “often used together” from top Pokémon (not a specific player\'s team).',

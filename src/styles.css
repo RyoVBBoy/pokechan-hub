@@ -3206,3 +3206,24 @@ section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 .tg-card-m span,.tg-d,.tprim .tprim-d{color:var(--dim);color:color-mix(in srgb,var(--fg) 40%,var(--dim))}
 :root[data-theme=light] .tg-link,:root[data-theme=light] .tg-n{color:color-mix(in srgb,var(--acc) 80%,#000)}
 
+/* 運営の「Game Kid/s Tips」（2026/11/16、85-tips.js）：「運営」の札・ツールを開くボタン・ツールの画面の入口 */
+.tw-off{flex:none;display:inline-flex;align-items:center;height:18px;margin-left:4px;padding:0 6px;border-radius:6px;font-style:normal;font-size:11px;font-weight:800;letter-spacing:.02em;
+  color:var(--acc);background:rgba(var(--acc-rgb),.14);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.28);vertical-align:middle}
+:root[data-theme=light] .tw-off{color:color-mix(in srgb,var(--acc) 80%,#000)}
+.pf-n .tw-off{height:20px;font-size:12px;margin-left:8px}
+.tw-tool{display:inline-flex;align-items:center;gap:4px;min-height:40px;margin:8px 0 2px;padding:0 14px 0 10px;border-radius:999px;font-size:13.5px;font-weight:700;
+  color:var(--acc);background:rgba(var(--acc-rgb),.10);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.22)}
+:root[data-theme=light] .tw-tool{color:color-mix(in srgb,var(--acc) 80%,#000)}
+.tw-tool:hover{background:rgba(var(--acc-rgb),.16)}
+.tips-row{display:flex;align-items:center;gap:12px;margin:2px 12px 6px;padding:12px 10px 12px 12px;border-radius:var(--tg-r,20px);color:var(--fg);
+  background:linear-gradient(160deg,var(--tg-hl,transparent),transparent 45%),var(--card);border:1px solid var(--card-b);box-shadow:var(--tg-sh,none);min-height:44px}
+.tips-row:hover{border-color:rgba(var(--acc-rgb),.45)}
+.tips-ic{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:var(--tg-r2,14px);color:var(--acc);background:rgba(var(--acc-rgb),.14)}
+.tips-m{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.tips-m b{display:flex;align-items:center;font-size:14.5px}
+.tips-m>span{font-size:12.5px;color:var(--dim);color:color-mix(in srgb,var(--fg) 40%,var(--dim))}
+.tips-row .chev{color:var(--dim)}
+/* 「運営」の札がある投稿は、名前を短くせず @ID の方を短くする（スマホの幅で「Game Kid…」と切れないように） */
+.tw-who b:has(+ .tw-off){flex-shrink:0;max-width:62%}
+.tw-who .tw-off+span{min-width:0}
+

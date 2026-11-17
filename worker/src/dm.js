@@ -7,6 +7,7 @@
    ・500文字まで、2秒に1件・1日300件。グループは20人まで・1日10個まで作れる */
 const DM_MAX=500,DM_PAGE=50,DM_GROUP_MAX=20;
 const DM_LOCKED='このユーザーは非公開アカウントのためメッセージを送信できません';
+const DM_BOT='このアカウントにはメッセージを送れません（運営・お知らせのアカウントです）';
 let DM_READY=false;
 async function dmInit(db){
   if(DM_READY)return;
@@ -40,6 +41,8 @@ const DM_FOLLOWING='このユーザーは、自分がフォローしている人
 async function dmBlock(db,fromUid,to){
   if(!to||to.banned)return 'ユーザーが見つかりません。';
   if(to.uid===fromUid)return '自分にはメッセージを送れません。';
+  /* 運営・お知らせなどの bot のアカウント（2026/11/16）：だれも読まないので送れない */
+  if(String(to.uid||'').startsWith('bot:'))return DM_BOT;
   if(to.private){
     const r=await db.prepare(`SELECT 1 AS x FROM follows WHERE ((src=?1 AND dst=?2) OR (src=?2 AND dst=?1)) AND ok=1 LIMIT 1`).bind(fromUid,to.uid).first();
     if(!r)return DM_LOCKED}
@@ -134,7 +137,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
     let conv=0,others=[],url;
     if(body.to){
       const t=await db.prepare(`SELECT uid,handle,name,private,dm_from,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(String(body.to)).first();
-      const why=await dmBlock(db,uid,t);if(why)return J({error:why,locked:why===DM_LOCKED,limited:why===DM_FOLLOWING},why===DM_LOCKED||why===DM_FOLLOWING?403:t?400:404);
+      const why=await dmBlock(db,uid,t);if(why)return J({error:why,locked:why===DM_LOCKED,limited:why===DM_FOLLOWING},why===DM_LOCKED||why===DM_FOLLOWING||why===DM_BOT?403:t?400:404);
       others=[t.uid];url='#/messages/'+meRow.handle;
       const pair=[uid,t.uid].sort().join('|');
       const c=await db.prepare(`SELECT id FROM dm_convs WHERE pair=?`).bind(pair).first();
@@ -178,7 +181,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
     if(mk&&mk.c>=10)return J({error:'1日に作れるグループは10個までです。'},429);
     const mem=[];
     for(const h of hs){const t=await db.prepare(`SELECT uid,handle,name,private,dm_from,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(h).first();
-      const why=await dmBlock(db,uid,t);if(why)return J({error:(t?`@${t.handle}：`:'')+why,locked:why===DM_LOCKED},why===DM_LOCKED?403:400);mem.push(t.uid)}
+      const why=await dmBlock(db,uid,t);if(why)return J({error:(t?`@${t.handle}：`:'')+why,locked:why===DM_LOCKED},why===DM_LOCKED||why===DM_BOT?403:400);mem.push(t.uid)}
     const c=await db.prepare(`INSERT INTO dm_convs(kind,title,owner,created_at,last_at,last_body,last_uid) VALUES('group',?,?,?,?,?,?) RETURNING id`).bind(title,uid,now,now,'グループを作りました',uid).first();
     await db.batch([uid,...mem].map(x=>db.prepare(`INSERT OR IGNORE INTO dm_members(conv_id,uid,last_read,joined_at) VALUES(?,?,0,?)`).bind(c.id,x,now)));
     for(const o of mem)await later(pushTo(db,o,{title:`${meRow.name}さんがグループ「${title}」に追加しました`,body:'',url:'#/messages/g/'+c.id,tag:'dm-'+c.id},'dmg:'+c.id));
