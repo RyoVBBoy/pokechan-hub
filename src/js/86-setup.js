@@ -106,11 +106,13 @@ function setupHTML(R){
 function setupBind(root,redraw){
   const S=setupState(),box=root.querySelector('#su-box');if(!box)return;
   box.addEventListener('toggle',()=>{S.open=box.open});
-  box.querySelectorAll('[data-su-side]').forEach(b=>b.onclick=()=>{S.side=b.dataset.suSide;redraw()});
-  box.querySelectorAll('[data-su-mv]').forEach(b=>b.onclick=()=>{const e=setupUse(S.side,+b.dataset.suMv);if(e)toast(e);redraw()});
-  const r=box.querySelector('[data-su-reset]');if(r)r.onclick=()=>{setupReset(S.side);redraw()};
-  box.querySelectorAll('[data-su-st]').forEach(b=>b.onclick=()=>{const e=setupStep(S.side,b.dataset.suSt,+b.dataset.suD);if(e)toast(e);redraw();
+  /* redraw に操作の前の指紋（calcSig）を渡し、計算の条件が変わったときだけ操作の回数に数える（21-calc.js の calcEv） */
+  const sg=()=>typeof calcSig==='function'?calcSig():undefined;
+  box.querySelectorAll('[data-su-side]').forEach(b=>b.onclick=()=>{const s0=sg();S.side=b.dataset.suSide;redraw(s0)});
+  box.querySelectorAll('[data-su-mv]').forEach(b=>b.onclick=()=>{const s0=sg();const e=setupUse(S.side,+b.dataset.suMv);if(e)toast(e);redraw(s0)});
+  const r=box.querySelector('[data-su-reset]');if(r)r.onclick=()=>{const s0=sg();setupReset(S.side);redraw(s0)};
+  box.querySelectorAll('[data-su-st]').forEach(b=>b.onclick=()=>{const s0=sg();const e=setupStep(S.side,b.dataset.suSt,+b.dataset.suD);if(e)toast(e);redraw(s0);
     /* 描き直したあとも、押したボタンに焦点を戻す（続けて押せるように。止まったボタンなら同じ能力のもう一方へ） */
     const q=document.querySelector(`#su-box [data-su-st="${b.dataset.suSt}"][data-su-d="${b.dataset.suD}"]`);const f=q&&!q.disabled?q:document.querySelector(`#su-box [data-su-st="${b.dataset.suSt}"]:not([disabled])`);if(f)f.focus({preventScroll:true})});
-  const sel=box.querySelector('[data-su-bp]');if(sel)sel.onchange=()=>{const e=bpSet(S.side,+sel.value||0);if(e)toast(e);redraw()};
+  const sel=box.querySelector('[data-su-bp]');if(sel)sel.onchange=()=>{const s0=sg();const e=bpSet(S.side,+sel.value||0);if(e)toast(e);redraw(s0)};
 }

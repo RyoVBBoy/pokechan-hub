@@ -169,6 +169,21 @@ for(const W of [390,1280]){
   const H=await pg.evaluate(()=>{const d=document.getElementById('su-box');d.open=false;const sc=document.scrollingElement||document.body;const h1=document.body.scrollHeight;
     const st=d.querySelector('.su-steps');const keep=st.outerHTML;st.remove();const h0=document.body.scrollHeight;return{h0,h1}});
   ok(H.h0===H.h1,W+'：たたんだ状態では＋−を足してもページの高さは同じ',H);
+  /* 10. 操作の回数（calc_done、2026/11/17）：積み技・ランクの操作も、計算の条件が変わったときだけ数える。あとから型が入れかわっても、何も変えない操作は数えない。
+     同じ条件はタブの中で1回だけ数える決まりなので、前の確かめで出てこない状態（受ける側のHP 37%）から始める */
+  await pg.evaluate(()=>{CS=null;route();CS.dHP=37;route()});await W8(400);await open();
+  const ev=()=>pg.evaluate(()=>EV_LOG.filter(x=>x==='calc_done').length);
+  let e0=await ev();
+  await tap(14);ok(await ev()===e0+1,W+'：積み技の札（つるぎのまい）は1回と数える');
+  await pg.evaluate(()=>{CS.a={...CS.a,item:'lifeorb',sp:[2,32,0,0,0,32]};CS.d={...CS.d,item:'leftovers'};route()});await W8(300);await open();
+  e0=await ev();ok(e0===await ev(),W+'：（準備）型の入れかえ');
+  await pg.evaluate(()=>{CS.a.stg.atk=6});await pg.evaluate(()=>route());await W8(300);await open();e0=await ev();
+  await tap(14);ok(await ev()===e0&&/これ以上/.test(await lastToast()),W+'：型が入れかわったあと、+6でつるぎのまい（何も変わらない）は数えない');
+  await pg.evaluate(()=>{const b=document.querySelector('#su-box [data-su-st="atk"][data-su-d="1"]');b.disabled=false;b.click()});await W8(200);
+  ok(await ev()===e0,W+'：+6の＋（何も変わらない）は数えない');
+  await side('d');ok(await ev()===e0,W+'：攻撃側／受ける側の切りかえだけでは数えない');
+  await step('def',-1);ok(await ev()===e0+1,W+'：＋／−で受ける側の防御を変えると1回と数える');
+  await side('a');await pg.selectOption('#su-box [data-su-bp]','134');await W8();ok(await ev()===e0+2,W+'：バトンタッチを選ぶと1回と数える');
   /* 8. 条件の欄の高さ・はみ出し */
   await pg.evaluate(()=>{CS=null;route()});await W8(400);
   const L=await pg.evaluate(()=>{const d=document.getElementById('su-box');d.open=false;const h=d.getBoundingClientRect().height;return{h,over:document.body.scrollWidth-document.documentElement.clientWidth}});
