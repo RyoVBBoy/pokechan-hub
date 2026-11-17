@@ -100,6 +100,7 @@ function dpBuildsHTML(p,g){
 }
 /* パーティに入れる：同じポケモンがいれば育成を置きかえる前に確かめる。6匹いれば何もしない（黙って入れかえない） */
 async function dpToParty(p,s){
+  if(!s&&p.base)return dpMegaToEdit(p);
   const no=p.base||p.no,name=byNo[no].n,i=team.findIndex(x=>x.no===no);
   const sv=s?{...toSaved(s),src:'copy'}:undefined;
   if(i>=0){
@@ -110,6 +111,44 @@ async function dpToParty(p,s){
   team.push({no,sel:team.filter(x=>x.sel).length<PICK(),...(sv?{set:sv}:{})});saveTeam();
   if(!s){nav('#/edit/'+(team.length-1));return}
   toast(`${name}をこの型でパーティに入れました`);
+}
+/* メガシンカの姿のページの「パーティに入れて育成を決める」（2026/11/16 依頼主 段階2）。
+   前は元の姿だけを入れて（いれば育成の画面を開くだけで）、メガストーンを持たせていなかった。
+   パーティにはメガシンカの姿の番号を入れず、元の姿（p.base）＋その姿のメガストーン（p.stone）で表す。決まりは「パーティに追加」（09-pokemon.js の dpAddMega、段階1）と同じ：
+   ・元の姿がいない：元の姿＋メガストーン（{it} だけ）で入れて育成の画面へ。6匹いれば入れない
+   ・元の姿がいて、もう同じメガストーン：何も書きかえずに育成の画面へ
+   ・元の姿がいて、持ち物なし：確かめずに持ち物だけ足して育成の画面へ
+   ・元の姿がいて、ほかの持ち物：確かめる。キャンセルなら何も変えず図鑑のページのまま。変えるなら持ち物だけ（技・特性・性格・能力ポイント・src はそのまま、
+     出どころ prov は育成の画面で変えたときと同じ＝「あなたの育成」・最初の出どころを from に）
+   確かめの間にもう一度押しても2つ目は出さない（DP_ADDING を段階1と共有）。確かめの間にパーティが変わったら何も変えない */
+async function dpMegaToEdit(p){
+  if(typeof DP_ADDING!=='undefined'&&DP_ADDING)return;
+  const base=byNo[p.base],k=p.stone;
+  if(!base||!k||!ITEMN[k]||!megaOf(base.no,k)){toast('このメガシンカの姿は、パーティに入れられません');return}
+  const stoneN=ITEMN[k],slot=TEAMS.cur,pn=`「${teamName(slot)}」`;
+  const i=team.findIndex(x=>x.no===base.no);
+  if(i<0){
+    if(team.length>=6){toast(`${pn}は6匹そろっています。入れかえる匹を外してから入れてください`);return}
+    team.push({no:base.no,sel:team.filter(x=>x.sel).length<PICK(),set:{it:{n:stoneN,k}}});saveTeam();
+    nav('#/edit/'+(team.length-1));return}
+  const x=team[i],cur=x.set&&x.set.it&&x.set.it.k||null;
+  if(cur===k){nav('#/edit/'+i);return}
+  if(cur){
+    DP_ADDING=true;let ok=false;
+    try{ok=await askConfirm({title:`${base.n}の持ち物を変えますか？`,
+      text:`${pn}の${i+1}番目の${base.n}は、いま「${ITEMN[cur]||cur}」を持っています。${p.n}にするには、持ち物を「${stoneN}」に変えます。技・特性・性格・能力ポイントは変わりません。キャンセルすると、いまのままです。`,
+      ok:'持ち物を変える',danger:true})}finally{DP_ADDING=false}
+    if(!ok){toast('持ち物は変えていません');return}
+    if(TEAMS.cur!==slot||team[i]!==x||((x.set&&x.set.it&&x.set.it.k)||null)!==cur){toast('パーティが変わったため、持ち物は変えていません');return}
+  }
+  /* 持ち物だけを変えた新しい型を作ってから入れかえる（元の型は書きかえない） */
+  let set;
+  if(x.set){const prev=typeof provOf==='function'?provOf(x.set):null;
+    const pv=typeof mkProv==='function'?provForSave(prev&&prev.s==='user'?prev:mkProv({s:'user',from:prev})):null;
+    set={...x.set,it:{n:stoneN,k}};if(pv)set.prov=pv;else delete set.prov}
+  else set={it:{n:stoneN,k}};
+  team[i]={...x,set};saveTeam();
+  toast(`${pn}の${base.n}に${stoneN}を持たせました`);nav('#/edit/'+i);
 }
 function dpBuildsBind(el,p,g){
   if(typeof cbddMount==='function')cbddMount(el,p,DPF||FMT);
