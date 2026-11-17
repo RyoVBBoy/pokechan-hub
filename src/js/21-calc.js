@@ -47,7 +47,7 @@ function calcX(no,src){
   const p=byNo[no];const mine=team.some(t=>t.no===no);
   const c=(src!=='common'&&mine)?mySetFor(no):detSet(p),sv=setToSaved(p,c);
   return{no,src:(src!=='common'&&mine)?'mine':'common',ab:c.ab||'',item:c.item||'',sp:[...sv.sp],up:sv.up,dn:sv.dn,
-    moves:(c.moves||[]).filter(m=>!m.prot&&m.pow>0),stg:{atk:0,def:0,spa:0,spd:0}};
+    moves:(c.moves||[]).filter(m=>!m.prot&&m.pow>0),stg:{atk:0,def:0,spa:0,spd:0,spe:0}};
 }
 function calcInit(){
   const a=team[0]?team[0].no:445,d=(team[1]&&team[1].no!==a)?149:(a===149?445:149);
@@ -137,7 +137,7 @@ function calcSide(key,X,isAtk){
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
   <div style="padding:4px 12px 8px">${natGrid(X.up,X.dn,j=>`data-c="${key}.nat" data-v="${j}"`)}</div>
   <div class="cgrid">${stat.map(i=>`<label><span>${SN[i]} <b>${st[i]}</b></span><input type="number" min="0" max="${SP_CAP}" value="${X.sp[i]}" data-c="${key}.sp${i}" inputmode="numeric"><small>能力ポイント</small></label>`).join('')}
-    ${(isAtk?[['atk','攻撃'],['spa','特攻']]:[['def','防御'],['spd','特防']]).map(([k,n])=>`<label><span>${n}ランク</span><select class="sel" data-c="${key}.stg.${k}">${[6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6].map(v=>`<option value="${v}"${v===(X.stg[k]||0)?' selected':''}>${v>0?'+'+v:v}</option>`).join('')}</select></label>`).join('')}</div>
+    ${[['atk','攻撃'],['def','防御'],['spa','特攻'],['spd','特防'],['spe','素早さ']].map(([k,n])=>`<label><span>${n}ランク</span><select class="sel" data-c="${key}.stg.${k}">${[6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6].map(v=>`<option value="${v}"${v===(X.stg[k]||0)?' selected':''}>${v>0?'+'+v:v}</option>`).join('')}</select></label>`).join('')}</div>
   </div>`;
 }
 /* 攻守の入れかえ（2026/11/11 依頼主：⇅ を180度回し、上下の2匹を0.3秒ですべらせて入れかえる。表示だけでなく中身も入れかえる）
@@ -151,6 +151,7 @@ function calcSwapData(){
   const h=CS.aHP;CS.aHP=CS.dHP;CS.dHP=h;CS.disgOff=false;
   const aSt=CS.aSt&&((CS.aSt==='brn')===!!CS.burn)?CS.aSt:(CS.burn?'brn':'');
   CS.aSt=CS.dSt||'';CS.dSt=aSt;CS.burn=CS.aSt==='brn';
+  if(typeof setupSwap==='function'&&CS.setup)setupSwap();   /* 積み技・バトンタッチの覚えもポケモンといっしょに入れかえる（86-setup.js） */
 }
 function calcSwap(draw){
   const box=document.querySelector('#calc-root .cv-vs'),sd=box?[...box.querySelectorAll('.cv-side')]:[];
@@ -234,6 +235,7 @@ function calcView(){
       ${R&&MCOND[mkey(R.mv)]?`<button class="pill" data-t="cond" aria-pressed="${CS.cond}">${MCOND[mkey(R.mv)]}（威力2倍）</button>`:''}
       ${R&&(R.a.ab==='protean'||R.a.ab==='libero')?`<button class="pill" data-t="protean" aria-pressed="${CS.protean!==false}">${ABN[R.a.ab]}がこの技で発動する</button>`:''}
       ${R&&R.d.ab==='disguise'&&R.a.ab!=='mold-breaker'?`<button class="pill" data-t="disgOff" aria-pressed="${!!CS.disgOff}">ばけのかわがはがれている</button>`:''}</div>
+    ${typeof setupHTML==='function'?setupHTML(R):''}
     ${R&&R.mv.maxH>1&&R.mv.minH!==R.mv.maxH&&R.a.ab!=='skill-link'?`<div class="natr"><span style="width:62px">当たる回数</span><select class="sel" data-c="hits" id="c-hits">${Array.from({length:R.mv.maxH-R.mv.minH+1},(_,i)=>R.mv.minH+i).map(v=>`<option value="${v}"${v===R.n?' selected':''}>${v}回</option>`).join('')}</select></div>`:''}
     <div class="natr"><span style="width:62px">天気</span><select class="sel" data-c="weather">${[['','なし'],['sun','はれ'],['rain','あめ'],['sand','すなあらし'],['snow','ゆき']].map(([k,n])=>`<option value="${k}"${k===CS.weather?' selected':''}>${n}</option>`).join('')}</select></div>
     ${R&&MCOUNT[mkey(R.mv)]?`<div class="natr"><span style="width:62px">回数</span><select class="sel" data-c="cnt">${Array.from({length:MCOUNT[mkey(R.mv)][1]+1},(_,i)=>`<option value="${i}"${i===CS.cnt?' selected':''}>${MCOUNT[mkey(R.mv)][0]}：${i}</option>`).join('')}</select></div>`:''}
@@ -267,8 +269,8 @@ function calcView(){
         else if(k1==='dSt'){CS.dSt=v}
         else if(k1==='cnt'){CS.cnt=+v}
         else{const X=CS[k1];
-          if(k2==='no'){CS[k1]=calcX(+v,k1==='d'?'common':undefined);CS.mv=null;CS.hits=0;CS.disgOff=false;calcEnsure(+v)}
-          else if(k2==='src'){CS[k1]=calcX(X.no,v);if(k1==='a')CS.mv=null}
+          if(k2==='no'){CS[k1]=calcX(+v,k1==='d'?'common':undefined);CS.mv=null;CS.hits=0;CS.disgOff=false;if(typeof setupSideChanged==='function')setupSideChanged(k1);calcEnsure(+v)}
+          else if(k2==='src'){CS[k1]=calcX(X.no,v);if(k1==='a')CS.mv=null;if(typeof setupSideChanged==='function')setupSideChanged(k1)}
           else if(k2==='ab')X.ab=v;
           else if(k2==='item')X.item=v;
           else if(k2==='nat'){const n=NATS[+v];X.up=n[1];X.dn=n[2]}
@@ -279,6 +281,7 @@ function calcView(){
       });
     });
     root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y);calcEv()});
+    if(typeof setupBind==='function')setupBind(root,()=>{const y=scrY();draw();scrTo(0,y);calcEv()});
     bindFmt(root,()=>{CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw();calcEnsure(CS.a.no,CS.d.no).then(c=>{if(c&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}})});
     calcVerBind(R,draw);
     root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{CS.mv=+b.dataset.mvpick;CS.hits=0;const y=scrY();draw();scrTo(0,y);calcEv()});

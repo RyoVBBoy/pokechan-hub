@@ -3227,3 +3227,40 @@ section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 .tw-who b:has(+ .tw-off){flex-shrink:0;max-width:62%}
 .tw-who .tw-off+span{min-width:0}
 
+/* ダメージ計算の「積み技・ランク」（2026/11/16、86-setup.js）：条件の欄の中に1行でたたむ。開くと側の切りかえ・積み技の札・いまのランク・バトンタッチ */
+.su-box{margin:0 12px 8px;border-radius:var(--tg-r2,14px);background:var(--card);border:1px solid var(--card-b)}
+.su-box>summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;cursor:pointer;list-style:none}
+.su-box>summary::-webkit-details-marker{display:none}
+.su-box>summary b{flex:none;font-size:14px}
+.su-sum{min-width:0;flex:1;font-size:12.5px;color:var(--dim);color:color-mix(in srgb,var(--fg) 40%,var(--dim));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.su-box>summary::after{content:"›";flex:none;color:var(--dim);transition:transform .15s}
+.su-box[open]>summary::after{transform:rotate(90deg)}
+.su-in{padding:0 4px 10px}
+.su-side{padding:2px 8px 6px;flex-wrap:wrap}
+.su-h{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px;padding:4px 12px 4px;font-size:13px;font-weight:700}
+.su-h>span{white-space:nowrap}
+.su-h small{font-weight:500;font-size:11.5px;color:var(--dim)}
+.su-chips{padding:0 8px 4px;flex-wrap:wrap}
+.su-chip small{margin-left:5px;font-size:11px;font-weight:500;opacity:.75}
+.su-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 12px}
+.su-now{font-size:13px;color:var(--dim)}
+.su-now b{color:var(--fg)}
+.su-bp{padding:4px 12px 2px}
+.su-bp>span{flex:none;white-space:nowrap;font-size:13px;color:var(--dim)}
+.su-reset{flex:none}
+.su-bp-note{margin:2px 12px 6px;padding:8px 10px;border-radius:10px;font-size:12.5px;line-height:1.55;background:rgba(var(--acc-rgb),.10)}
+.su-notes,.su-none{padding:2px 12px 0;font-size:11.5px}
+/* ランクを1段ずつ変える＋／−（2026/11/17、86-setup.js の setupStepsHTML）：5つを2〜3列の小さな升に。上がっている＝緑・下がっている＝赤・0＝灰色 */
+.su-steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;padding:4px 8px 8px}
+.su-st{display:grid;grid-template-columns:minmax(0,1fr) 38px 28px 38px;align-items:center;gap:0;padding:2px 0 2px 8px;border-radius:12px;background:var(--soft,rgba(127,127,140,.08));border:1px solid transparent}
+.su-st-n{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-st-b{display:grid;place-items:center;width:38px;height:40px;border:0;border-radius:10px;background:transparent;color:var(--fg);font:inherit;font-size:20px;font-weight:700;line-height:1;cursor:pointer;touch-action:manipulation}
+.su-st-b:hover:not(:disabled){background:rgba(var(--acc-rgb),.14)}
+.su-st-b:disabled{opacity:.28;cursor:not-allowed}
+.su-st-v{text-align:center;font-size:14px;font-weight:800}
+.su-zero .su-st-v{color:var(--dim)}
+.su-pos{--su-c:#3fbf7f;background:rgba(63,191,127,.13);border-color:rgba(63,191,127,.35)}
+.su-neg{--su-c:#ff5a66;background:rgba(255,90,102,.12);border-color:rgba(255,90,102,.35)}
+.su-pos .su-st-v,.su-neg .su-st-v{color:var(--su-c)}
+:root[data-theme=light] .su-pos{--su-c:#13784a}
+:root[data-theme=light] .su-neg{--su-c:#c4162a}
