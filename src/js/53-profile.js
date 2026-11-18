@@ -184,7 +184,7 @@ function gkcHTML(u,isMuted){
   <section class="gkp-head" aria-label="プロフィール">
     <div class="gkp-cv" aria-hidden="true">${gkcCover(null)}</div>
     <div class="gkp-idr"><button class="gkp-av${u.card&&g?' gk-cr gk-cr--lg':''}" id="pf-av" style="background:${avCol(u.handle)}" aria-label="${g?`${esc(u.name)}のゲームカードを開く`:`${esc(u.name)}のアイコンを大きく見る`}" data-notr>${avIn(u)}</button><div class="gkc-acts">${acts}</div></div>
-    <div class="gkp-id"><h2 class="gkp-nm"><span data-notr>${esc(u.name)}</span>${u.private?`<span class="gkc-lk" title="非公開アカウント" aria-label="非公開アカウント">${SVG(I.lock,16)}</span>`:''}</h2>
+    <div class="gkp-id"><h2 class="gkp-nm"><span data-notr>${esc(u.name)}</span>${typeof tipsBadge==='function'?tipsBadge(u):''}${u.private?`<span class="gkc-lk" title="非公開アカウント" aria-label="非公開アカウント">${SVG(I.lock,16)}</span>`:''}</h2>
       <div class="gkp-hd"><span>@${esc(u.handle)}</span>${u.follows_me?'<span class="gkc-fm">フォローされています</span>':''}</div></div>
     ${u.bio?`<p class="gkp-bio" data-notr>${linkTags(u.bio)}</p>`:''}
     <div class="gkp-sub"><span class="gkc-since">${SVG(PF_I.cal,14)}${L('利用開始：','Joined ')}${pfMonth(u.created_at)}</span></div>

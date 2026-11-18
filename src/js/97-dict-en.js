@@ -80,7 +80,7 @@ const EN={
 '数値の出どころと、どこまで確かめたか':'Where the numbers come from and how far they are verified',
 /* ダメージ計算 */
 'あなたのパーティの育成や、よく使われている型を使って、':'Using your team\'s builds or common sets, calculates damage down to ','乱数16段階':'all 16 rolls','までのダメージを計算します。数字はすべて変えられます。':'. Every number can be changed.',
-'攻撃側':'Attacker','防御側':'Defender','使用率の高い型':'Most-used sets','持ち物':'Item','性格':'Nature','能力ポイント':'Stat points','攻撃ランク':'Atk stage','特攻ランク':'SpA stage','防御ランク':'Def stage','特防ランク':'SpD stage',
+'攻撃側':'Attacker','防御側':'Defender','使用率の高い型':'Most-used sets','持ち物':'Item','性格':'Nature','能力ポイント':'Stat points','攻撃ランク':'Atk stage','特攻ランク':'SpA stage','防御ランク':'Def stage','特防ランク':'SpD stage','素早さランク':'Spe stage',
 '技':'Move','⇅ 攻守を入れ替える':'⇅ Swap attacker and defender','条件':'Conditions','急所':'Critical hit','リフレクター（相手側）':'Reflect (defender\'s side)','ひかりのかべ（相手側）':'Light Screen (defender\'s side)','攻撃側がやけど':'Attacker is burned',
 '残りHP':'Remaining HP','状態':'Status','天気':'Weather','ダメージなし':'No damage','乱数16段階のダメージ':'All 16 damage rolls','ゲームの結果と照らし合わせる':'Compare with in-game results',
 '上と同じ条件でゲーム内で技を当て、実際に減ったHPを入れてください。自分のポケモンが受けたときは数値、相手のときは％で入れます。':'Use the move in game under the same conditions and enter the HP lost: a number for your own Pokémon, a % for the opponent\'s.',
@@ -130,7 +130,7 @@ const EN={
 /* 流行・診断・比較 */
 'シングルのランクバトルで、いま多く使われているポケモンと、その組み合わせから作った':'Pokémon used most in Singles ranked battles right now, and ','流行パーティ':'meta teams',
 'を決めます（シングル）。':' (Singles).','を決めます（ダブル）。':' (Doubles).','診断':'Check','選出':'Picks','まずはこの3つ':'Start here',
-'技のダメージ（％）と、何回で倒せるかを計算':'Move damage (%) and how many hits to KO','パーティと診断':'Team & check','6匹の育成・弱点のチェック・おすすめの選出':'Build 6, check weaknesses, get recommended picks','そのほかのツール':'More tools',
+'技のダメージ（％）と、何回で倒せるかを計算':'Move damage (%) and how many hits to KO','パーティと診断':'Team & check','6匹の育成・弱点のチェック・おすすめの選出':'Build 6, check weaknesses, get recommended picks','そのほかのツール':'More tools','その他のツール':'More tools','運営':'Staff','ツールの使い方を、実際の画面で1つずつ紹介':'How to use each tool, shown with real screens',
 'シングルのランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ':'Pokémon used most in Singles ranked battles right now. Meta teams are ',
 'ダブルのランクバトルで、いま多く使われているポケモンです。流行パーティは、上位のポケモンから「一緒によく使われるポケモン」をたどって組んだ':'Pokémon used most in Doubles ranked battles right now. Meta teams are ',
 '代表的な組み合わせ':'typical combinations','です（実在の特定のプレイヤーの構築ではありません）。':' built by following “often used together” from top Pokémon (not a specific player\'s team).',

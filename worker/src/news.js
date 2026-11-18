@@ -120,10 +120,22 @@ async function newsFromSearch(env,q,d){
     if(title.length>=4&&!/^(www\.)?[a-z0-9.-]+\.[a-z]+$/i.test(title))out.push({title:title.slice(0,100),date:null,url})}
   return out;
 }
-async function newsFind(env,db,dbg){
-  dbg=dbg||{};
+async function newsFind(env,db,dbg,opt){
+  dbg=dbg||{};opt=opt||{};
   /* まず公式サイトのお知らせのデータを直接読む（いちばん確実） */
   try{const o=await newsFromOfficial(dbg);if(o.length){dbg.via='official';return o}}catch(e){dbg.officialErr=String(e.message||e).slice(0,100)}
+  /* 公式のデータが読めないときの予備（AI・Google 検索を使う）は、毎時の回では前と同じ1日3回（日本時間 10:47・16:47・22:47）だけ（2026/11/18、AI の回数を増やさない） */
+  if(opt.noAi){dbg.aiSkipped=true;return[]}
+  /* 毎時の回（cron）は、AI の予備を使う前に D1 で「この回の分」を1回だけ取る（news_ai の slot＝日本時間の日付＋時）。
+     取れなければ使わない＝同じ回が2回動いても・Worker が起動し直しても、1日3回を超えない（覚えはメモリではなく D1） */
+  if(opt.aiSlot){
+    await db.prepare(`CREATE TABLE IF NOT EXISTS news_ai(slot TEXT PRIMARY KEY,day TEXT,at INTEGER)`).run();
+    const day=opt.aiSlot.slice(0,10);
+    const used=await db.prepare(`SELECT COUNT(*) AS c FROM news_ai WHERE day=?`).bind(day).first();
+    if(used&&used.c>=NEWS_AI_MAX){dbg.aiSkipped='limit';return[]}
+    const r=await db.prepare(`INSERT OR IGNORE INTO news_ai(slot,day,at) VALUES(?,?,?)`).bind(opt.aiSlot,day,Date.now()).run();
+    if(!r||!r.meta||r.meta.changes!==1){dbg.aiSkipped='claimed';return[]}
+  }
   const srcs=(await db.prepare(`SELECT url FROM news_src ORDER BY created_at`).all()).results.map(r=>r.url);
   const out=[];dbg.src=[];
   for(const s of srcs.slice(0,3)){
@@ -161,9 +173,9 @@ const newsBody=(title,cat,date)=>{const tail=' #公式のお知らせ',head=`【
    ・時刻の区切りは日本時間（Asia/Tokyo＝UTC+9 で、1時間の区切りは UTC と同じ）。見つけられなかった・何もない回は何もしない */
 const NEWS_HOUR=36e5;
 const newsNextHour=t=>Math.floor(t/NEWS_HOUR)*NEWS_HOUR+NEWS_HOUR;
-async function newsFetch(env,db,now,max=3){
+async function newsFetch(env,db,now,max=3,opt){
   await newsInit(db);
-  const dbg={};let items=[];try{items=await newsFind(env,db,dbg)}catch(e){return{found:0,queued:[],err:String(e.message||e).slice(0,120),dbg}}
+  const dbg={};let items=[];try{items=await newsFind(env,db,dbg,opt)}catch(e){return{found:0,queued:[],err:String(e.message||e).slice(0,120),dbg}}
   const first=!(await db.prepare(`SELECT 1 FROM news_seen LIMIT 1`).first());
   const fresh=[];for(const it of items){const dup=await db.prepare(`SELECT 1 FROM news_seen WHERE url=?`).bind(it.url).first();if(dup){if(it.cat||it.date)await db.prepare(`UPDATE news_seen SET cat=COALESCE(cat,?),date=COALESCE(date,?) WHERE url=?`).bind(it.cat||null,it.date||null,it.url).run();continue}fresh.push(it)}
   /* 新しいものから max 件を待ちに（古い順に入れる＝投稿も古い順で、タイムラインで新しいものが上）。それより古いものは記録だけ */
@@ -248,6 +260,9 @@ async function newsApi(req,env,db,path,now,isAdmin){
   }
   return J({error:'見つかりません。'},404);
 }
-async function newsFetchCron(env,now){if(!env.DB)return;try{await newsFetch(env,env.DB,now||Date.now())}catch(e){}}
+const NEWS_AI_UTC=[1,7,13],NEWS_AI_MAX=3;
+/* slot：日本時間の「YYYY-MM-DD-HH」（予備を使える回だけ） */
+const newsAiSlot=now=>{const h=new Date(now).getUTCHours();if(!NEWS_AI_UTC.includes(h))return null;return new Date(now+9*36e5).toISOString().slice(0,13).replace('T','-')};
+async function newsFetchCron(env,now){if(!env.DB)return;now=now||Date.now();const slot=newsAiSlot(now);try{await newsFetch(env,env.DB,now,3,slot?{aiSlot:slot}:{noAi:true})}catch(e){}}
 /* ちょうどの時刻の回：scheduledTime（HH:00）と今の遅いほうまでに時刻が来たものを投稿する（少し遅れて動いても同じ時刻の分を出す） */
 async function newsPublishCron(env,at){if(!env.DB)return;try{await newsPublish(env.DB,Math.max(Date.now(),at||0))}catch(e){}}

@@ -7,13 +7,14 @@ import path from 'node:path';
 import {makeD1} from './d1mock.mjs';
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
 globalThis.caches={default:{match:async()=>null,put:async()=>{}}};
-let FEED={data:[]},FAIL=false,TIER_CALLS=0;
+let FEED={data:[]},FAIL=false,TIER_CALLS=0,AI_CALLS=0;
 globalThis.fetch=async u=>{u=String(u);
   if(u.includes('champions-news.pokemon-home.com')){if(FAIL)throw new Error('network');return new Response(JSON.stringify(FEED),{headers:{'content-type':'application/json'}})}
+  if(u.includes('generativelanguage.googleapis.com')){AI_CALLS++;return new Response('{}',{status:500})}
   if(u.endsWith('/assets/tier.json')){TIER_CALLS++;return new Response('',{status:404})}
   return new Response('',{status:404})};
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
-const DB=makeD1();const env={DB,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123'};
+const DB=makeD1();const env={DB,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',GEMINI_API_KEY:'test-key'};
 /* 本番と同じく、表（users など）を先に作っておく（サイトへの最初のアクセスで作られる） */
 await w.fetch(new Request('https://x.dev/api/tl',{headers:{'cf-connecting-ip':'10.0.0.1'}}),env,{waitUntil(){}});
 let bad=0,n=0;const ok=(c,m,i)=>{n++;if(!c){bad++;console.error('NG',m,i===undefined?'':JSON.stringify(i))}};
@@ -101,4 +102,18 @@ await run('47 * * * *',JST(2026,11,19,16,47));ok(TIER_CALLS===1,'ランキング
 FEED={data:[item(20,'管理画面から確認')]};const real=Date.now;Date.now=()=>JST(2026,11,19,16,52);
 const r=await w.fetch(new Request('https://x.dev/api/admin/news/run',{method:'POST',headers:{'content-type':'application/json','x-admin-token':'admin-secret-123','cf-connecting-ip':'10.0.0.9'},body:'{}'}),env,{waitUntil(){}});Date.now=real;
 const j=await r.json();ok(r.status===200&&j.queued>=1&&j.publish_at===JST(2026,11,19,17,0)&&!(await posts()).some(p=>/管理画面/.test(p.body)),'今すぐ確認：待ちに入れ、17:00 に投稿する予定を返す',j);
+/* 13. 公式のデータが読めないとき：AI・検索の予備は前と同じ1日3回（日本時間 10:47・16:47・22:47）だけ。ほかの毎時の回では AI を呼ばない */
+FAIL=true;AI_CALLS=0;await run('47 * * * *',JST(2026,11,19,17,47));await run('47 * * * *',JST(2026,11,19,18,47));
+ok(AI_CALLS===0,'公式が読めない毎時の回では AI を呼ばない',AI_CALLS);
+await run('47 * * * *',JST(2026,11,19,22,47));ok(AI_CALLS>0,'22:47 の回では前と同じく予備（AI）を使う',AI_CALLS);/* 同じ 22:47 の回がもう一度・同時に2つ動いても（やり直し・Worker の起動し直し）、AI の予備は使わない（D1 の news_ai で1回だけ） */
+{const c0=AI_CALLS;await Promise.all([run('47 * * * *',JST(2026,11,19,22,47,5)),run('47 * * * *',JST(2026,11,19,22,47,9))]);
+ok(AI_CALLS===c0,'同じ回が重ねて動いても AI の予備は2回目を使わない',[c0,AI_CALLS])}
+/* 1日に予備を使った回は3回まで（D1 に残る）：別の日の 10:47・16:47・22:47 で3回、その日の記録は3行 */
+for(const h of [10,16,22])await run('47 * * * *',JST(2026,11,20,h,47));
+{const r=await DB.prepare(`SELECT day,COUNT(*) AS c FROM news_ai GROUP BY day ORDER BY day`).all();
+ ok(JSON.stringify(r.results)==='[{"day":"2026-11-19","c":1},{"day":"2026-11-20","c":3}]','予備を使った回は D1 に残り、1日3回まで',r.results)}
+/* 上限の確かめ：表に同じ日の3行があれば、予備の回でも使わない */
+await DB.prepare(`INSERT INTO news_ai(slot,day,at) VALUES('2026-11-21-x1','2026-11-21',0),('2026-11-21-x2','2026-11-21',0),('2026-11-21-x3','2026-11-21',0)`).run();
+{const c0=AI_CALLS;await run('47 * * * *',JST(2026,11,21,10,47));ok(AI_CALLS===c0,'その日にもう3回使っていれば使わない',[c0,AI_CALLS])}
+FAIL=false;
 console.log(bad?`newsbot: NG（${bad}件）`:`newsbot: OK（${n}項目）`);if(bad)process.exitCode=1;

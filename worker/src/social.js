@@ -37,7 +37,8 @@ async function socialInit(db){
     db.prepare(`CREATE INDEX IF NOT EXISTS bookmarks_note ON bookmarks(note_id)`)
   ]);
   /* あとから足した列（返信・リポスト）。すでにあるときのエラーは無視する */
-  for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0','link TEXT']){
+  /* tool＝運営の Tips が紹介するツール（tips.js、2026/11/16） */
+  for(const c of ['reply_to INTEGER DEFAULT 0','repost_of INTEGER DEFAULT 0','replies INTEGER DEFAULT 0','reposts INTEGER DEFAULT 0','link TEXT','tool TEXT']){
     try{await db.prepare(`ALTER TABLE notes ADD COLUMN ${c}`).run()}catch(e){}}
   /* プロフィールの写真（media の鍵。2026/11/03） */
   try{await db.prepare(`ALTER TABLE users ADD COLUMN avatar TEXT`).run()}catch(e){}
@@ -75,7 +76,8 @@ const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0 AND ${VIS('ou')})) 
 const CARDVIS=(a,p='?1')=>`EXISTS(SELECT 1 FROM game_profiles cg WHERE cg.uid=${a}.uid AND cg.game='pokechamp' AND cg.card=1 AND (cg.uid=${p} OR (COALESCE(cg.vis,'inherit')<>'only_me'
   AND ((COALESCE(cg.vis,'inherit') IN ('inherit','public') AND COALESCE(${a}.private,0)=0) OR EXISTS(SELECT 1 FROM follows cf WHERE cf.src=${p} AND cf.dst=${a}.uid AND cf.ok=1)))))`;
 const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
-  COALESCE(o.media,n.media) AS media,COALESCE(o.link,n.link) AS link,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
+  COALESCE(o.media,n.media) AS media,COALESCE(o.link,n.link) AS link,COALESCE(o.tool,n.tool) AS tool,
+  CASE WHEN (CASE WHEN o.id IS NULL THEN n.uid ELSE o.uid END)='bot:tips' THEN 1 ELSE 0 END AS off,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
   CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,CASE WHEN o.id IS NULL THEN u.avatar ELSE ou.avatar END AS av,
   CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
   (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
@@ -85,7 +87,7 @@ const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) A
   CASE WHEN o.id IS NULL THEN ${CARDVIS('u')} ELSE ${CARDVIS('ou')} END AS card`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
 const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
-  user:{handle:r.handle,name:r.name,av:r.av||null,...(r.card?{card:true}:{})},reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
+  user:{handle:r.handle,name:r.name,av:r.av||null,...(r.off?{off:true}:{}),...(r.card?{card:true}:{})},...(r.tool?{tool:r.tool}:{}),reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
 const recount=(db,id)=>db.prepare(`UPDATE notes SET replies=(SELECT COUNT(*) FROM notes WHERE reply_to=?1 AND hidden=0),reposts=(SELECT COUNT(*) FROM notes WHERE repost_of=?1) WHERE id=?1`).bind(id);
@@ -238,6 +240,9 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const e=need();if(e)return e;const id=+m[1];
     const reason=REASONS.includes(body.reason)?body.reason:'その他',rid='u'+(await sha('note|'+meUid)).slice(0,15);
     await db.prepare(`INSERT OR IGNORE INTO reports(kind,target,reason,aid,created_at) VALUES('note',?,?,?,?)`).bind(id,reason,rid,now).run();
+    /* 運営の Tips の投稿（2026/11/16）：通報で自動に隠さない（1件で画像・3件で投稿の決まりを使わない）。通報は管理画面の「通報」に並び、運営者が確かめる */
+    const own=await db.prepare(`SELECT uid FROM notes WHERE id=?`).bind(id).first();
+    if(own&&own.uid==='bot:tips')return J({ok:true,review:true});
     const c=await db.prepare(`SELECT COUNT(*) AS n FROM reports WHERE kind='note' AND target=?`).bind(id).first();
     /* 画像つきの投稿は、通報1件で画像を確認待ちにする（運営者が確認して戻す） */
     await db.prepare(`UPDATE notes SET media_hidden=1 WHERE id=? AND media IS NOT NULL`).bind(id).run();
@@ -271,7 +276,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     /* created：本人が「ゲームカードを作る」で保存したときだけ true（game_profiles.card）。相棒・看板パーティ・戦績からは決めない */
     const created=!!p.g_card;
     const games=show?{pokechamp:{created,partner:gp||null,showcase:sc,results:results.filter(x=>x.game==='pokechamp'),...(me?{vis:gv,eff,capped:gv==='public'&&!!p.private}:{})}}:{};
-    return J({user:{...base,...(show&&created?{card:true}:{}),partner:show?gp||null:null,showcase:sc,games,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,requested:!!p.requested,private:!!p.private,
+    return J({user:{...base,...(p.uid==='bot:tips'?{off:true}:{}),...(show&&created?{card:true}:{}),partner:show?gp||null:null,showcase:sc,games,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,requested:!!p.requested,private:!!p.private,
       locked,me:p.uid===meUid,results}});
   }
   /* その人の投稿 */

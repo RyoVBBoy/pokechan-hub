@@ -1,12 +1,13 @@
 /* ===================== ホーム ===================== */
 /* ホームは投稿（32-timeline.js の tlView）。もとのホームの中身（すぐ使う・相性・役割・ランキング）はツール画面の上に出す */
 function home(){tlView(null,true)}
+/* 「すぐ使う」（2026/11/16 依頼主：ツールの画面で「まずはこの3つ」のすぐ下に置く。前は「そのほかのツール」の下＝toolsTopHTML の先頭だった） */
+function toolsQuickHTML(){
+  return `<section class="tquick" aria-labelledby="tquick-h"><div class="sec" style="padding-top:14px"><h2 id="tquick-h">すぐ使う</h2><span style="font-size:12px;color:var(--dim)">☆を押したツールが先頭に</span></div>
+  <div class="tgrid">${quickTools(8).map(toolTile).join('')}</div>${typeof tipsRowHTML==='function'?tipsRowHTML():''}</section>`;
+}
 function toolsTopHTML(){
-  const top=(i,n)=>[...P].sort((a,b)=>b.s[i]-a.s[i]).slice(0,n);
-  const qt=quickTools(8);
   return `
-  <div class="sec" style="padding-top:14px"><h2>すぐ使う</h2><span style="font-size:12px;color:var(--dim)">☆を押したツールが先頭に</span></div>
-  <div class="tgrid">${qt.map(toolTile).join('')}</div>
   <section class="hero" style="padding-top:8px">
     <span class="kicker"><i></i>レギュレーション M-C ／ 2026年9月9日から</span>${srcLine('regulation').replace('srcline','srcline" style="padding:8px 0 0')}
     <h2>${P.length}匹の種族値と<br>Lv50ステータス</h2>

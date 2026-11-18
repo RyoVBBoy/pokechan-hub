@@ -36,8 +36,14 @@ const koLabel=k=>!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定
 const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
 /* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
-function calcEv(){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
-  evCount('calc_done',JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,CS.disgOff,FMT]))}catch(e){}}
+/* 操作の回数（calc_done）：利用者の操作で計算の条件が変わったときだけ数える。
+   2026/11/17：前は「計算の中身の指紋」だけで同じ条件を見分けていたので、あとから届いた使用率の高い型で攻撃側・受ける側の育成が入れかわると、
+   何も変えない操作（同じ天気を選び直す等）でも指紋が変わって2回目として数えていた（admhits のときどき落ちる原因）。
+   操作の前の指紋（before）を受け取り、操作のあとと同じなら数えない。before が無い呼び出しは前と同じ（指紋だけで1回） */
+const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,CS.disgOff,FMT]);
+function calcEv(before){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
+  const sig=calcSig();if(before!==undefined&&sig===before)return;
+  evCount('calc_done',sig)}catch(e){}}
 const koBadge=k=>!k||!k.n||k.n>8?'':k.p>=.9999?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
 const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
 const koShort=k=>!k.n||k.n>8?'—':(k.p>=.9999?'確':'乱')+k.n;
@@ -47,7 +53,7 @@ function calcX(no,src){
   const p=byNo[no];const mine=team.some(t=>t.no===no);
   const c=(src!=='common'&&mine)?mySetFor(no):detSet(p),sv=setToSaved(p,c);
   return{no,src:(src!=='common'&&mine)?'mine':'common',ab:c.ab||'',item:c.item||'',sp:[...sv.sp],up:sv.up,dn:sv.dn,
-    moves:(c.moves||[]).filter(m=>!m.prot&&m.pow>0),stg:{atk:0,def:0,spa:0,spd:0}};
+    moves:(c.moves||[]).filter(m=>!m.prot&&m.pow>0),stg:{atk:0,def:0,spa:0,spd:0,spe:0}};
 }
 function calcInit(){
   const a=team[0]?team[0].no:445,d=(team[1]&&team[1].no!==a)?149:(a===149?445:149);
@@ -137,7 +143,7 @@ function calcSide(key,X,isAtk){
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
   <div style="padding:4px 12px 8px">${natGrid(X.up,X.dn,j=>`data-c="${key}.nat" data-v="${j}"`)}</div>
   <div class="cgrid">${stat.map(i=>`<label><span>${SN[i]} <b>${st[i]}</b></span><input type="number" min="0" max="${SP_CAP}" value="${X.sp[i]}" data-c="${key}.sp${i}" inputmode="numeric"><small>能力ポイント</small></label>`).join('')}
-    ${(isAtk?[['atk','攻撃'],['spa','特攻']]:[['def','防御'],['spd','特防']]).map(([k,n])=>`<label><span>${n}ランク</span><select class="sel" data-c="${key}.stg.${k}">${[6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6].map(v=>`<option value="${v}"${v===(X.stg[k]||0)?' selected':''}>${v>0?'+'+v:v}</option>`).join('')}</select></label>`).join('')}</div>
+    ${[['atk','攻撃'],['def','防御'],['spa','特攻'],['spd','特防'],['spe','素早さ']].map(([k,n])=>`<label><span>${n}ランク</span><select class="sel" data-c="${key}.stg.${k}">${[6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6].map(v=>`<option value="${v}"${v===(X.stg[k]||0)?' selected':''}>${v>0?'+'+v:v}</option>`).join('')}</select></label>`).join('')}</div>
   </div>`;
 }
 /* 攻守の入れかえ（2026/11/11 依頼主：⇅ を180度回し、上下の2匹を0.3秒ですべらせて入れかえる。表示だけでなく中身も入れかえる）
@@ -151,6 +157,7 @@ function calcSwapData(){
   const h=CS.aHP;CS.aHP=CS.dHP;CS.dHP=h;CS.disgOff=false;
   const aSt=CS.aSt&&((CS.aSt==='brn')===!!CS.burn)?CS.aSt:(CS.burn?'brn':'');
   CS.aSt=CS.dSt||'';CS.dSt=aSt;CS.burn=CS.aSt==='brn';
+  if(typeof setupSwap==='function'&&CS.setup)setupSwap();   /* 積み技・バトンタッチの覚えもポケモンといっしょに入れかえる（86-setup.js） */
 }
 function calcSwap(draw){
   const box=document.querySelector('#calc-root .cv-vs'),sd=box?[...box.querySelectorAll('.cv-side')]:[];
@@ -234,6 +241,7 @@ function calcView(){
       ${R&&MCOND[mkey(R.mv)]?`<button class="pill" data-t="cond" aria-pressed="${CS.cond}">${MCOND[mkey(R.mv)]}（威力2倍）</button>`:''}
       ${R&&(R.a.ab==='protean'||R.a.ab==='libero')?`<button class="pill" data-t="protean" aria-pressed="${CS.protean!==false}">${ABN[R.a.ab]}がこの技で発動する</button>`:''}
       ${R&&R.d.ab==='disguise'&&R.a.ab!=='mold-breaker'?`<button class="pill" data-t="disgOff" aria-pressed="${!!CS.disgOff}">ばけのかわがはがれている</button>`:''}</div>
+    ${typeof setupHTML==='function'?setupHTML(R):''}
     ${R&&R.mv.maxH>1&&R.mv.minH!==R.mv.maxH&&R.a.ab!=='skill-link'?`<div class="natr"><span style="width:62px">当たる回数</span><select class="sel" data-c="hits" id="c-hits">${Array.from({length:R.mv.maxH-R.mv.minH+1},(_,i)=>R.mv.minH+i).map(v=>`<option value="${v}"${v===R.n?' selected':''}>${v}回</option>`).join('')}</select></div>`:''}
     <div class="natr"><span style="width:62px">天気</span><select class="sel" data-c="weather">${[['','なし'],['sun','はれ'],['rain','あめ'],['sand','すなあらし'],['snow','ゆき']].map(([k,n])=>`<option value="${k}"${k===CS.weather?' selected':''}>${n}</option>`).join('')}</select></div>
     ${R&&MCOUNT[mkey(R.mv)]?`<div class="natr"><span style="width:62px">回数</span><select class="sel" data-c="cnt">${Array.from({length:MCOUNT[mkey(R.mv)][1]+1},(_,i)=>`<option value="${i}"${i===CS.cnt?' selected':''}>${MCOUNT[mkey(R.mv)][0]}：${i}</option>`).join('')}</select></div>`:''}
@@ -259,6 +267,7 @@ function calcView(){
     root.querySelectorAll('[data-c]').forEach(el=>{
       const ev=el.tagName==='BUTTON'?'click':'change';
       el.addEventListener(ev,()=>{
+        const s0=calcSig();
         const [k1,k2,k3]=el.dataset.c.split('.');const v=el.dataset.v??el.value;
         if(k1==='mv'){CS.mv=+v;CS.hits=0}
         else if(k1==='hits'){CS.hits=+v}
@@ -267,21 +276,23 @@ function calcView(){
         else if(k1==='dSt'){CS.dSt=v}
         else if(k1==='cnt'){CS.cnt=+v}
         else{const X=CS[k1];
-          if(k2==='no'){CS[k1]=calcX(+v,k1==='d'?'common':undefined);CS.mv=null;CS.hits=0;CS.disgOff=false;calcEnsure(+v)}
-          else if(k2==='src'){CS[k1]=calcX(X.no,v);if(k1==='a')CS.mv=null}
+          if(k2==='no'){CS[k1]=calcX(+v,k1==='d'?'common':undefined);CS.mv=null;CS.hits=0;CS.disgOff=false;if(typeof setupSideChanged==='function')setupSideChanged(k1);calcEnsure(+v)}
+          else if(k2==='src'){CS[k1]=calcX(X.no,v);if(k1==='a')CS.mv=null;if(typeof setupSideChanged==='function')setupSideChanged(k1)}
           else if(k2==='ab')X.ab=v;
           else if(k2==='item')X.item=v;
           else if(k2==='nat'){const n=NATS[+v];X.up=n[1];X.dn=n[2]}
           else if(k2==='stg')X.stg[k3]=+v;
           else if(k2.startsWith('sp')){const i=+k2.slice(2),others=X.sp.reduce((s,x,j)=>j===i?s:s+x,0);X.sp[i]=Math.max(0,Math.min(+v||0,SP_CAP,SP_TOTAL-others))}
         }
-        const y=scrY();if(el.tagName==='INPUT')setTimeout(()=>{draw();scrTo(0,y);calcEv()},0);else{draw();scrTo(0,y);calcEv()}
+        const y=scrY();if(el.tagName==='INPUT')setTimeout(()=>{draw();scrTo(0,y);calcEv(s0)},0);else{draw();scrTo(0,y);calcEv(s0)}
       });
     });
-    root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y);calcEv()});
+    root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const s0=calcSig();CS[b.dataset.t]=!CS[b.dataset.t];const y=scrY();draw();scrTo(0,y);calcEv(s0)});
+    /* 積み技・ランク（86-setup.js）：操作の前の指紋 s0 を受け取り、変わったときだけ数える */
+    if(typeof setupBind==='function')setupBind(root,s0=>{const y=scrY();draw();scrTo(0,y);calcEv(s0)});
     bindFmt(root,()=>{CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw();calcEnsure(CS.a.no,CS.d.no).then(c=>{if(c&&keyOf(cur)==='calc'){CS.a=calcX(CS.a.no,CS.a.src);CS.d=calcX(CS.d.no,CS.d.src);draw()}})});
     calcVerBind(R,draw);
-    root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{CS.mv=+b.dataset.mvpick;CS.hits=0;const y=scrY();draw();scrTo(0,y);calcEv()});
+    root.querySelectorAll('[data-mvpick]').forEach(b=>b.onclick=()=>{const s0=calcSig();CS.mv=+b.dataset.mvpick;CS.hits=0;const y=scrY();draw();scrTo(0,y);calcEv(s0)});
     root.querySelectorAll('details[data-more]').forEach(d=>d.addEventListener('toggle',()=>{CALC_OPEN[d.dataset.more]=d.open}));
     document.getElementById('c-swap').onclick=()=>{calcSwap(draw);setTimeout(calcEv,400)};
     /* 長い一覧（特性・持ち物・ほかの技）は名前で探して選べる（74-sselect.js。中身は今までの select のまま） */
