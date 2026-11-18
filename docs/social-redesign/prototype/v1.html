@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game Kid/s ソーシャル見本</title>
+<!-- 見本（デザインの確認用）。本番のサイトとは別のファイルで、サーバーにはつながっていません。外部の読み込みはありません。 -->
+<style>
+:root{--bg:#000;--fg:#E8E9EE;--dim:#9AA0B4;--mute:#6B7085;--line:rgba(255,255,255,.09);
+  --card:rgba(255,255,255,.055);--card-b:rgba(255,255,255,.09);--glass:rgba(10,12,14,.55);--glass-b:rgba(255,255,255,.10);
+  --acc:#A99CFF;--accf:#7C6CF0;--onacc:#fff;--acc-t:rgba(169,156,255,.18);--glow-rgb:124,108,240;--glow-k:1;
+  --ok:#2BC48A;--warn:#F5B83D;--bad:#F4545E;--note:#F5D547}
+[data-theme=light]{--bg:#EEF0F5;--fg:#1E2030;--dim:#646a80;--mute:#9095A8;--line:rgba(30,32,60,.09);
+  --card:rgba(255,255,255,.68);--card-b:rgba(255,255,255,.95);--glass:rgba(255,255,255,.74);--glass-b:rgba(15,20,25,.08);
+  --acc:#5B57D9;--accf:#5B57D9;--acc-t:rgba(91,87,217,.12)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#15161c;color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- 見本の操作バー（サイトの一部ではない） ---------- */
+.pb{position:fixed;inset:0 0 auto 0;height:52px;z-index:50;display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:#22232b;color:#eee;border-bottom:2px dashed var(--note);overflow-x:auto;white-space:nowrap}
+.pb .tag{background:var(--note);color:#222;font-weight:800;font-size:12px;padding:4px 8px;border-radius:6px}
+.pb .grp{display:flex;gap:2px;background:#33343e;border-radius:9px;padding:3px}
+.pb .grp button{padding:5px 10px;border-radius:7px;font-size:13px;color:#bbb}
+.pb .grp button.on{background:#555869;color:#fff;font-weight:700}
+.pb .sp{flex:1}
+.stage{position:fixed;inset:52px 0 0 0;display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:0}
+.stage.m{padding:20px 0 40px;background:radial-gradient(circle at 50% 0,#2a2b35,#15161c 60%)}
+
+/* ---------- アプリの枠 ---------- */
+.app{position:relative;width:100%;height:100%;background:var(--bg);overflow:hidden;isolation:isolate}
+.stage.m .app{width:390px;height:844px;flex:none;border-radius:44px;border:10px solid #050506;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.bgl{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.bgl .img{position:absolute;inset:-24px;background-size:cover;background-position:center}
+.bgl .ov{position:absolute;inset:0}
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden}
+.cols{display:grid;grid-template-columns:250px 600px 330px;justify-content:center;min-height:100%}
+.stage.m .cols{display:block}
+
+/* 左のメニュー（PC） */
+.rail{position:sticky;top:0;height:100vh;max-height:calc(100vh - 52px);padding:14px 14px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line)}
+.stage.m .rail{display:none}
+.logo{display:flex;align-items:center;gap:10px;padding:6px 10px 14px;font-weight:900;font-size:19px;letter-spacing:.02em}
+.logo .mk{width:34px;height:34px}
+.rail a{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:999px;font-size:16px}
+.rail a svg.i{width:24px;height:24px}
+.rail a.on{font-weight:800;background:var(--acc-t);color:var(--acc)}
+.rail a:hover{background:rgba(127,127,127,.12)}
+.rail .post{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:999px;background:var(--accf);color:var(--onacc);font-weight:800;font-size:16px}
+.rail .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:999px}
+.rail .me small{display:block;color:var(--dim);font-size:12px}
+
+/* 真ん中 */
+.main{min-width:0;border-right:1px solid var(--line)}
+.stage.m .main{border:0;padding-bottom:110px}
+.hd{position:sticky;top:0;z-index:5;background:var(--glass);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);border-bottom:1px solid var(--line)}
+.hd-r{display:flex;align-items:center;gap:10px;height:54px;padding:0 16px}
+.hd-r h1{font-size:19px;margin:0;font-weight:800;flex:1}
+.hd-m{display:none}
+.stage.m .hd-m{display:flex}
+.stage.m .hd-d{display:none}
+.hd-m .mid{flex:1;display:flex;justify-content:center}
+.hd-m .mid .mk{width:28px;height:28px}
+.back{width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+.back:hover{background:rgba(127,127,127,.15)}
+.tabs{display:flex}
+.tabs button{flex:1;height:48px;position:relative;color:var(--dim);font-weight:600}
+.tabs button.on{color:var(--fg);font-weight:800}
+.tabs button.on::after{content:'';position:absolute;left:50%;bottom:0;width:56px;height:4px;border-radius:4px;background:var(--accf);transform:translateX(-50%)}
+
+/* 右の列 */
+.side{padding:14px 20px;display:flex;flex-direction:column;gap:16px}
+.stage.m .side{display:none}
+.srch{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;background:var(--card);border:1px solid var(--card-b);color:var(--dim)}
+.box{background:var(--card);border:1px solid var(--card-b);border-radius:18px;padding:14px 16px}
+.box h3{margin:0 0 8px;font-size:17px}
+.box a.q{display:flex;align-items:center;gap:12px;padding:9px 0}
+.box a.q small{display:block;color:var(--dim);font-size:12px}
+
+/* 下のメニュー（スマホ） */
+.tabbar{display:none}
+.stage.m .tabbar{display:flex;position:absolute;left:12px;right:12px;bottom:20px;height:62px;border-radius:31px;z-index:20;
+  background:rgba(60,60,70,.46);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.25),0 10px 30px rgba(0,0,0,.35);padding:5px}
+[data-theme=light] .stage.m .tabbar{background:rgba(255,255,255,.6)}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:10px;border-radius:26px;opacity:.62}
+.tabbar a.on{opacity:1;background:rgba(255,255,255,.16);font-weight:800}
+[data-theme=light] .tabbar a.on{background:rgba(30,32,60,.08)}
+.tabbar svg.i{width:23px;height:23px}
+.fab{display:none}
+.stage.m .fab{display:grid;place-items:center;position:absolute;right:18px;bottom:96px;width:60px;height:60px;z-index:21;color:var(--onacc)}
+.fab svg.hx{position:absolute;inset:0;width:60px;height:60px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+.fab .i{position:relative;width:24px;height:24px}
+
+/* ---------- 共通の部品 ---------- */
+.av{border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;flex:none}
+.chips{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:6px 14px;border-radius:999px;border:1px solid var(--card-b);background:var(--card);font-size:13px;font-weight:600;color:var(--dim)}
+.chip.on{background:var(--accf);color:var(--onacc);border-color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 18px;border-radius:999px;font-weight:800}
+.btn-p{background:var(--accf);color:var(--onacc)}
+.btn-o{border:1px solid var(--card-b);background:var(--card)}
+.btn-s{height:32px;padding:0 14px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--card-b);border-radius:20px}
+.sec{padding:0 12px}
+.lbl{font-size:12px;color:var(--dim);font-weight:700;letter-spacing:.04em;margin:18px 16px 8px}
+
+/* 投稿欄 */
+.cmp{margin:12px;padding:14px;display:flex;gap:12px}
+.cmp .b{flex:1;min-width:0}
+.cmp .ta{min-height:52px;color:var(--mute);font-size:16px;padding-top:6px}
+.cmp .tools{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line);padding-top:10px;margin-top:8px;flex-wrap:wrap}
+.cmp .tools .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--acc)}
+.cmp .tools .ic:hover{background:var(--acc-t)}
+.catsel{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 10px;border-radius:999px;border:1px dashed var(--acc);color:var(--acc);font-size:12px;font-weight:700}
+.cmp .go{margin-left:auto}
+
+/* 投稿 */
+.tw{display:flex;gap:12px;padding:14px 16px;margin:0 12px 10px;background:var(--card);border:1px solid var(--card-b);border-radius:20px}
+.tw .b{flex:1;min-width:0}
+.tw .h{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;font-size:13px}
+.tw .h b{font-size:14px}
+.tw .h span{color:var(--dim)}
+.cat{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;margin:4px 0 2px}
+.cat.c1{background:rgba(244,84,94,.16);color:#FF8A92}.cat.c2{background:rgba(43,196,138,.16);color:#4FDCA6}
+.cat.c3{background:rgba(70,150,255,.16);color:#7DB8FF}.cat.c4{background:rgba(245,184,61,.16);color:#FFC95A}
+[data-theme=light] .cat.c1{color:#C42B37}[data-theme=light] .cat.c2{color:#12805F}[data-theme=light] .cat.c3{color:#2563D9}[data-theme=light] .cat.c4{color:#A0620A}
+.tw .t{font-size:14px;line-height:1.55;margin-top:3px;word-break:break-word}
+.tw .t .mon{white-space:nowrap;color:var(--acc);font-weight:700;border-bottom:1px dotted var(--acc)}
+.tw .t .tag{color:var(--acc)}
+.tw .a{display:flex;justify-content:space-between;max-width:440px;margin-top:10px;color:var(--dim)}
+.tw .a button{display:flex;align-items:center;gap:5px;font-size:13px;padding:4px;border-radius:999px}
+.tw .a button:hover{color:var(--acc)}
+.tw .a button.liked{color:#F4547A}
+.tw .a svg.i{width:19px;height:19px}
+.lnk{margin-top:10px;border:1px solid var(--card-b);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:13px}
+.lnk small{display:block;color:var(--dim)}
+.imgph{margin-top:10px;border-radius:14px;height:180px;background:linear-gradient(135deg,#2d2a5a,#7C6CF0 55%,#e98f6f);position:relative;overflow:hidden}
+.imgph::after{content:'画像（見本）';position:absolute;right:10px;bottom:8px;font-size:11px;color:#fff;opacity:.8}
+
+/* 共有したパーティ */
+.tm{margin-top:10px;border:1px solid var(--card-b);border-radius:16px;overflow:hidden;background:rgba(127,127,127,.06)}
+.tm-h{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:13px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tm-h b{font-size:14px}
+.disc{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--acc);background:var(--acc-t);padding:3px 8px;border-radius:999px}
+.tm-g{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line)}
+.tm-m{background:var(--bg);background:color-mix(in srgb,var(--bg) 82%,transparent);padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;min-width:0}
+.tm-m .shp{width:46px;height:46px}
+.tm-m b{font-size:12px}
+.tm-m .ty{display:flex;gap:3px}
+.tm-m .ty i{font-style:normal;font-size:9px;font-weight:800;color:#fff;padding:1px 5px;border-radius:4px}
+.tm-m .dt{font-size:10.5px;color:var(--dim);line-height:1.35;width:100%;overflow:hidden}
+.tm-f{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:11.5px;color:var(--dim);flex-wrap:wrap}
+.tm-f .btn{margin-left:auto}
+
+/* プレイヤーカード */
+.pc-cover{height:150px;position:relative;overflow:hidden;background:linear-gradient(120deg,var(--c1),var(--c2))}
+.pc-cover .big{position:absolute;right:-10px;top:-24px;width:200px;height:200px;opacity:.9}
+.pc-cover .hexp{position:absolute;inset:0;opacity:.18}
+.pc-top{padding:0 16px;position:relative;display:flow-root}
+.pc-av{width:92px;height:92px;margin-top:-46px;border:4px solid var(--bg);box-shadow:0 0 0 3px var(--c1);font-size:34px}
+.pc-acts{position:absolute;right:16px;top:12px;display:flex;gap:8px}
+.pc-nm{margin-top:10px;font-size:22px;font-weight:900;display:flex;align-items:center;gap:6px}
+.pc-id{color:var(--dim)}
+.pc-bio{margin:8px 0 6px}
+.pc-meta{display:flex;gap:14px;color:var(--dim);font-size:13px;flex-wrap:wrap}
+.pc-stats{display:grid;grid-template-columns:repeat(4,1fr);margin:14px 12px 4px;padding:10px 4px}
+.pc-stats div{text-align:center}
+.pc-stats b{display:block;font-size:18px}
+.pc-stats span{font-size:11px;color:var(--dim)}
+.gp{margin:12px;overflow:hidden}
+.gp-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.gp-h .gm{width:30px;height:30px;border-radius:9px;background:#ffcb05;color:#222;font-weight:900;font-size:12px;display:grid;place-items:center}
+.gp-h b{font-size:15px}
+.gp-h small{display:block;color:var(--dim);font-size:11.5px}
+.gp-h .vis{margin-left:auto;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px}
+.gp-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.gp-row:last-child{border:0}
+.gp-row .k{width:76px;flex:none;font-size:12px;color:var(--dim);font-weight:700}
+.partner{display:flex;align-items:center;gap:10px}
+.partner .shp{width:40px;height:40px}
+.rk{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
+.rkb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.vb{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
+.vb.v{background:var(--accf);color:var(--onacc)}
+.vb.s{border:1px solid var(--dim);color:var(--dim)}
+.rk-n{font-size:11.5px;color:var(--mute)}
+.sc6{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;flex:1}
+.sc6 a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--dim);min-width:0}
+.sc6 .shp{width:38px;height:38px}
+.sc6 span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.more-g{display:flex;align-items:center;gap:8px;padding:11px 14px;color:var(--mute);font-size:12px;border-top:1px dashed var(--line)}
+
+/* 共有の画面 */
+.step{margin:12px;padding:14px}
+.step h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px}
+.step h3 .n{width:22px;height:22px;border-radius:50%;background:var(--accf);color:var(--onacc);font-size:12px;display:grid;place-items:center}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;border-radius:14px;border:1px solid var(--card-b);margin-bottom:8px}
+.opt small{display:block;color:var(--dim);font-size:12px}
+.opt .rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--dim);flex:none;display:grid;place-items:center}
+.opt.on{border-color:var(--accf);background:var(--acc-t)}
+.opt.on .rd{border-color:var(--accf)}
+.opt.on .rd::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--accf)}
+.opt[disabled]{opacity:.45;cursor:not-allowed}
+.opt .mini{display:flex;gap:2px;margin-left:auto}
+.opt .mini svg{width:24px;height:24px}
+.lockbox{display:flex;gap:10px;padding:11px 12px;border-radius:14px;background:rgba(127,127,127,.09);font-size:12.5px;color:var(--dim)}
+.lockbox b{color:var(--fg)}
+.lockbox ul{margin:4px 0 0;padding-left:18px}
+
+/* 背景の設定 */
+.pre{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pre button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700}
+.pre .sw{width:100%;aspect-ratio:3/4;border-radius:14px;border:2px solid var(--card-b);position:relative;overflow:hidden}
+.pre button.on .sw{border-color:var(--accf);box-shadow:0 0 0 3px var(--acc-t)}
+.pre button.on .sw::after{content:'✓';position:absolute;right:5px;top:4px;width:18px;height:18px;border-radius:50%;background:var(--accf);color:#fff;font-size:11px;display:grid;place-items:center}
+.seg{display:flex;gap:2px;background:rgba(127,127,127,.12);border-radius:10px;padding:3px}
+.seg button{flex:1;height:32px;border-radius:8px;font-size:13px;font-weight:700;color:var(--dim)}
+.seg button.on{background:var(--card);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.srow{display:flex;align-items:center;gap:12px;margin:12px 0}
+.srow .k{width:74px;flex:none;font-size:13px;font-weight:700}
+.srow input[type=range]{flex:1;accent-color:var(--accf)}
+.srow output{width:42px;text-align:right;font-variant-numeric:tabular-nums;color:var(--dim);font-size:13px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs button{width:72px;height:72px;border-radius:12px;background-size:cover;border:2px solid var(--card-b);font-size:11px;font-weight:700}
+.thumbs button.on{border-color:var(--accf)}
+.thumbs label{width:72px;height:72px;border-radius:12px;border:2px dashed var(--dim);display:grid;place-items:center;text-align:center;font-size:11px;color:var(--dim);cursor:pointer;line-height:1.3}
+.meter{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(127,127,127,.09);font-size:13px}
+.meter .bar{flex:1;height:8px;border-radius:4px;background:rgba(127,127,127,.25);overflow:hidden}
+.meter .bar i{display:block;height:100%;border-radius:4px}
+.dots{display:flex;gap:12px;flex-wrap:wrap}
+.dots button{width:34px;height:34px;border-radius:50%;border:3px solid transparent}
+.dots button.on{border-color:var(--fg)}
+.sync{display:grid;gap:6px;font-size:12.5px}
+.sync div{display:flex;gap:8px;align-items:flex-start}
+.ck{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:10px}
+.ck input{accent-color:var(--accf);width:18px;height:18px}
+
+/* 設計メモ（見本の注釈） */
+.nt{display:block;margin:8px 12px;padding:8px 11px;border:1.5px dashed var(--note);border-radius:10px;background:rgba(245,213,71,.08);color:var(--fg);font-size:12px;line-height:1.5}
+.nt::before{content:'設計メモ';display:inline-block;margin-right:6px;font-size:10.5px;font-weight:900;background:var(--note);color:#222;padding:1px 6px;border-radius:4px}
+.no-notes .nt{display:none}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;z-index:60;background:#2b2c36;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;pointer-events:none;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.scr{display:none}
+.scr.on{display:block}
+@media (max-width:1200px){.cols{grid-template-columns:88px 600px}.side{display:none}.rail a span,.rail .post span,.rail .me div,.logo span{display:none}.rail a{justify-content:center}}
+</style>
+</head>
+<body>
+<div class="pb" role="toolbar" aria-label="見本の操作">
+  <span class="tag">デザインの見本・動きません</span>
+  <div class="grp" id="pb-scr">
+    <button data-go="feed" class="on">① フィード</button>
+    <button data-go="card">② プレイヤーカード</button>
+    <button data-go="share">③ パーティの共有</button>
+    <button data-go="bg">④ 背景の設定</button>
+  </div>
+  <div class="grp" id="pb-dev"><button data-dev="d" class="on">PC</button><button data-dev="m">スマホ</button></div>
+  <div class="grp" id="pb-th"><button data-th="dark" class="on">ダーク</button><button data-th="light">ライト</button></div>
+  <div class="grp" id="pb-nt"><button data-nt="1" class="on">設計メモあり</button><button data-nt="0">なし</button></div>
+</div>
+
+<div class="stage" id="stage"><div class="app" id="app">
+  <div class="bgl" id="bgl"><div class="img" id="bgimg"></div><div class="ov" id="bgov"></div></div>
+  <div class="scroll" id="scroll"><div class="cols">
+    <nav class="rail" id="rail"></nav>
+    <main class="main">
+      <section class="scr on" data-s="feed" id="s-feed"></section>
+      <section class="scr" data-s="card" id="s-card"></section>
+      <section class="scr" data-s="share" id="s-share"></section>
+      <section class="scr" data-s="bg" id="s-bg"></section>
+    </main>
+    <aside class="side" id="side"></aside>
+  </div></div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <button class="fab" id="fab" aria-label="投稿する"><svg class="hx" viewBox="0 0 60 60"><path d="M30 3 53.4 16.5v27L30 57 6.6 43.5v-27z" fill="var(--accf)"/></svg><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======== 見本のデータ（架空の利用者・投稿） ======== */
+const IC={
+ home:'<path d="M4 10.5 12 4l8 6.5V20h-5v-6h-6v6H4z"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+ tool:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+ grid:'<path d="M12 3.5 19.4 7.8v8.4L12 20.5 4.6 16.2V7.8z"/><path d="M12 3.5v17M4.6 7.8l14.8 8.4M19.4 7.8 4.6 16.2"/>',
+ mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="m4 7 8 6 8-6"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+ user:'<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/>',bookmark:'<path d="M6.5 4h11v16.5L12 16.5l-5.5 4z"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>',
+ reply:'<path d="M20 12a7.5 7.5 0 0 1-10.8 6.7L4.5 20l1.4-4.2A7.5 7.5 0 1 1 20 12z"/>',repost:'<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5M17 7v5M7 17v-5"/>',
+ heart:'<path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z"/>',
+ share:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M5 13v6.5h14V13"/>',image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 16-5-5-8.5 8.5"/>',
+ lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>',
+ back:'<path d="M15 5 8 12l7 7"/>',chev:'<path d="m9 6 6 6-6 6"/>',tag:'<path d="M4 4h7.5L20 12.5 12.5 20 4 11.5z"/><circle cx="8.5" cy="8.5" r="1.3"/>',
+ trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4.5a3 3 0 0 0 3.5 4M16 6h3.5a3 3 0 0 1-3.5 4M12 13v4M8.5 20h7"/>',
+ cal:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',calc:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',book:'<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>',
+ eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+ pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',check:'<path d="m5 12.5 4.5 4.5L19 7"/>',
+ dev:'<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/>',cloud:'<path d="M7 18.5a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4.5 4.5 0 0 1-.5 9z"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'};
+const S=(k,s)=>`<svg class="i" viewBox="0 0 24 24"${s?` style="width:${s}px;height:${s}px"`:''}>${IC[k]}</svg>`;
+const MARK=`<svg class="mk" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 24 16 38 20 24 24 20 38 16 24 2 20 16 16z" fill="currentColor"/><circle cx="20" cy="20" r="3.2" fill="var(--bg)"/></svg>`;
+const TY={dragon:['ドラゴン','#6F5CF0'],ground:['じめん','#C99A45'],steel:['はがね','#7E93A8'],ghost:['ゴースト','#735797'],water:['みず','#3F86F0'],fairy:['フェアリー','#D685AD'],flying:['ひこう','#8C8FEA'],fire:['ほのお','#EE7A30']};
+/* 種族値（HP・攻撃・防御・素早さ・特防・特攻）。図形は当サイトと同じ「種族値の形」で、公式の画像は使わない */
+const MON={
+ gab:{n:'ガブリアス',t:['dragon','ground'],s:[108,130,95,102,85,80],it:'きあいのタスキ',ab:'さめはだ',mv:'じしん・げきりん・ステルスロック・つるぎのまい',nat:'ようき'},
+ surf:{n:'サーフゴー',t:['steel','ghost'],s:[87,60,95,84,91,133],it:'こだわりスカーフ',ab:'おうごんのからだ',mv:'ゴールドラッシュ・シャドーボール・トリック・わるだくみ',nat:'おくびょう'},
+ ashi:{n:'アシレーヌ',t:['water','fairy'],s:[80,74,74,60,116,126],it:'しんぴのしずく',ab:'げきりゅう',mv:'うたかたのアリア・ムーンフォース・アクアジェット・まもる',nat:'ひかえめ'},
+ armor:{n:'アーマーガア',t:['flying','steel'],s:[98,87,105,67,85,53],it:'オボンのみ',ab:'ミラーアーマー',mv:'ブレイブバード・ボディプレス・はねやすめ・とんぼがえり',nat:'わんぱく'},
+ wind:{n:'ウインディ',t:['fire'],s:[90,110,80,95,80,100],it:'シュカのみ',ab:'いかく',mv:'フレアドライブ・しんそく・おにび・ほえる',nat:'いじっぱり'},
+ kai:{n:'カイリュー',t:['dragon','flying'],s:[91,134,95,80,100,100],it:'いのちのたま',ab:'マルチスケイル',mv:'しんそく・げきりん・りゅうのまい・じしん',nat:'いじっぱり'}};
+const TEAM=['gab','surf','ashi','armor','wind','kai'];
+function shape(k,size){const m=MON[k],c1=TY[m.t[0]][1],c2=TY[m.t[1]||m.t[0]][1];
+  const pt=r=>m.s.map((v,i)=>{const a=-Math.PI/2+i*Math.PI/3,rr=r*Math.max(.12,Math.min(1,v/150));return (rr*Math.cos(a)).toFixed(1)+','+(rr*Math.sin(a)).toFixed(1)}).join(' ');
+  const full=m.s.map((v,i)=>{const a=-Math.PI/2+i*Math.PI/3;return (44*Math.cos(a)).toFixed(1)+','+(44*Math.sin(a)).toFixed(1)}).join(' ');
+  return `<svg class="shp" viewBox="-50 -50 100 100" aria-hidden="true"><polygon points="${full}" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="2"/><polygon points="${pt(44)}" fill="${c1}" stroke="${c2}" stroke-width="5" stroke-linejoin="round"/></svg>`}
+const tyChips=m=>m.t.map(t=>`<i style="background:${TY[t][1]}">${TY[t][0]}</i>`).join('');
+const AV=(ch,c,s)=>`<span class="av" style="width:${s}px;height:${s}px;background:${c};font-size:${s*.42}px">${ch}</span>`;
+const CATS=[['c1','対戦募集'],['c2','構築相談'],['c3','質問'],['c4','雑談']];
+const catHTML=c=>{const x=CATS.find(z=>z[0]===c);return x?`<span class="cat ${c}">${S('tag',12)}${x[1]}</span>`:''};
+const note=t=>`<span class="nt">${t}</span>`;
+
+/* 投稿の本文：ポケモンの名前は「同じ投稿で1回だけ」リンク（見本では手で付けた。本番は kfold で正規化してぴったり一致・3文字以上・除外リスト） */
+const mon=n=>`<a class="mon" href="#" title="図鑑を開く（自動リンク）" data-toast="図鑑のページへ（見本なので移動しません）">${n}</a>`;
+const LEVELS=[['p','ポケモンだけ','名前とタイプだけを見せる（いまの看板パーティと同じ）'],['i','＋持ち物・特性','持ち物と特性も見せる'],['f','＋技・性格・能力ポイント','育成の全部を見せる（戦術メモは含まない）']];
+function teamBlock(level,opt={}){const L=LEVELS.find(x=>x[0]===level);
+  return `<div class="tm"><div class="tm-h">${S('grid',18)}<b>${opt.name||'S5 ガブサーフ対面'}</b><span style="color:var(--dim)">シングル</span><span class="disc">${S('eye',13)}公開：${L[1]}</span></div>
+  <div class="tm-g">${TEAM.map(k=>{const m=MON[k];return `<div class="tm-m">${shape(k)}<b>${m.n}</b><span class="ty">${tyChips(m)}</span>${level!=='p'?`<span class="dt">${m.it}<br>${m.ab}</span>`:''}${level==='f'?`<span class="dt">${m.nat}・${m.mv}</span>`:''}</div>`}).join('')}</div>
+  <div class="tm-f">${S('cal',14)}共有した時点の内容（2026/11/16）・もとのパーティを変えても変わりません<button class="btn btn-o btn-s" data-toast="空いている枠に写します（見本なので動きません）">このパーティを使う</button></div></div>`}
+
+function post(o){return `<article class="tw">${AV(o.ch,o.c,42)}<div class="b">
+  <div class="h"><b>${o.name}</b><span>@${o.id}・${o.time}</span></div>${o.cat?catHTML(o.cat):''}
+  <div class="t">${o.text}</div>${o.extra||''}
+  <div class="a"><button data-toast="返信（見本）">${S('reply')}${o.r||''}</button><button data-toast="リポスト（見本）">${S('repost')}${o.rp||''}</button><button data-like>${S('heart')}<span>${o.l||''}</span></button><button data-toast="ブックマーク（見本）">${S('bookmark')}</button><button data-toast="共有（見本）">${S('share')}</button></div>
+  </div></article>`}
+
+const POSTS=[
+ {ch:'ミ',c:'#6F5CF0',name:'ミナト',id:'minato_pk',time:'12分',cat:'c1',text:`今夜21時から、シングルでプライベート対戦してくれる方いませんか？ ${mon('ガブリアス')}入りの構築を試したいです。2〜3戦でOK。ガブリアスのタスキ型の調子を見たいです <span class="tag">#シングル</span>`,r:3,rp:1,l:12,
+  extra:note('カテゴリ（任意）は本文の上に小さく。本文の「ガブリアス」は最初の1回だけリンク、2回目はふつうの文字（D4）。')},
+ {ch:'ソ',c:'#12805F',name:'そらまめ',id:'soramame_b',time:'40分',cat:'c2',text:`シーズン5で使っている構築です。${mon('サーフゴー')}の枠をほかのポケモンにするか迷っています。素早さ操作が足りない気がする…意見ください！`,r:8,rp:4,l:31,extra:teamBlock('i')+note('パーティの共有は、選んだ範囲（ここでは「＋持ち物・特性」）だけを、共有した時点の写しとして載せる。戦術メモは含まれない。')},
+ {ch:'公',c:'#2563D9',name:'お知らせbot（非公式）',id:'news_bot',time:'2時間',text:'【公式・アップデート】Ver.1.3.0 の配信について（2026/11/17） <span class="tag">#公式のお知らせ</span>',l:54,
+  extra:`<a class="lnk" href="#" data-toast="公式サイトへ（見本）">${S('link',18)}<span><b>公式サイトで読む</b><small>pokemonchampions.jp</small></span></a>`},
+ {ch:'ハ',c:'#C93360',name:'はるか',id:'haruka_vgc',time:'3時間',cat:'c4',text:`今日のランクは${mon('カイリュー')}に3回負けた…マルチスケイルを先に崩せる仲間がほしい。 <span class="tag">#ダブル</span>`,r:2,l:18,extra:`<div class="imgph"></div>`}
+];
+
+/* ======== 画面 ======== */
+const NAV=[['feed','home','ホーム'],['x','search','検索'],['x','tool','ツール'],['x','grid','パーティ'],['x','mail','メッセージ']];
+function railHTML(cur){return `<div class="logo">${MARK}<span>Game Kid/s</span></div>
+ ${[['feed','home','ホーム'],['x','search','検索'],['x','tool','ツール'],['x','grid','パーティ'],['x','mail','メッセージ'],['x','bell','お知らせ'],['x','bookmark','ブックマーク'],['card','user','プロフィール'],['bg','gear','設定（背景）']].map(([s,i,t])=>`<a href="#" data-go="${s}" class="${s===cur?'on':''}">${S(i)}<span>${t}</span></a>`).join('')}
+ <button class="post" data-go="share">${S('pen')}<span>投稿する</span></button>
+ <a class="me" href="#" data-go="card">${AV('ミ','#6F5CF0',40)}<div><b>ミナト</b><small>@minato_pk</small></div></a>`}
+function tabbarHTML(cur){const map={feed:'feed',card:'card'};return NAV.map(([s,i,t])=>`<a href="#" data-go="${s}" class="${s===cur?'on':''}">${S(i)}<span>${t}</span></a>`).join('')}
+function sideHTML(){return `<div class="srch">${S('search')}検索</div>
+ <div class="box"><h3>よく使う機能</h3>${[['calc','ダメージ計算','乱数16段階・確定数'],['target','選出アシスト','相手の6匹から選出を決める'],['book','図鑑','種族値・技・対策']].map(([i,t,d])=>`<a class="q" href="#" data-toast="ツールへ（見本）">${S(i)}<span><b>${t}</b><small>${d}</small></span></a>`).join('')}</div>
+ <div class="box"><h3>カテゴリ</h3>${CATS.map(([c,t],k)=>`<a class="q" href="#" data-cat="${c}">${catHTML(c)}<small style="margin-left:auto">今日 ${[24,17,9,41][k]}件</small></a>`).join('')}</div>
+ ${note('右の列は今の「よく使う機能」を残し、左のメニューにあった「対戦募集」「構築相談・質問」はカテゴリに置きかえ。')}`}
+function hdr(title,back,mobileLogo){
+  return `<div class="hd"><div class="hd-r hd-m">${back?`<button class="back" data-go="${back}" aria-label="戻る">${S('back')}</button>`:`<button data-go="card" aria-label="プロフィール">${AV('ミ','#6F5CF0',32)}</button>`}
+   ${mobileLogo?`<div class="mid">${MARK}</div><span style="width:32px"></span>`:`<h1>${title}</h1>`}</div>
+   <div class="hd-r hd-d">${back?`<button class="back" data-go="${back}" aria-label="戻る">${S('back')}</button>`:''}<h1>${title}</h1></div>`}
+
+function feedHTML(){return hdr('ホーム',null,true)+`<div class="tabs"><button class="on">みんな</button><button data-toast="フォロー中（見本）">フォロー中</button></div></div>
+ <div class="chips" id="catchips"><button class="chip on" data-cat="all">すべて</button>${CATS.map(([c,t])=>`<button class="chip" data-cat="${c}">${t}</button>`).join('')}</div>
+ ${note('対戦募集・構築相談・質問・雑談は、別のメニューではなく「投稿のカテゴリ（任意）」。ここで絞り込む。')}
+ <div class="card cmp">${AV('ミ','#6F5CF0',42)}<div class="b"><div class="ta">いま何してる？ 対戦の感想や構築の相談など</div>
+  <div class="tools"><button class="ic" aria-label="画像" data-toast="画像を選ぶ（見本）">${S('image')}</button><button class="ic" aria-label="パーティを添付" data-go="share" title="パーティを添付">${S('grid')}</button>
+  <button class="catsel" data-toast="カテゴリを選ぶ（任意・見本）">${S('tag',14)}カテゴリ：なし ▾</button><button class="btn btn-p btn-s go" data-toast="投稿（見本なので送られません）">投稿</button></div></div></div>
+ <div id="feedlist">${POSTS.map(post).join('')}</div>`}
+
+function cardHTML(){const c1=TY.dragon[1],c2=TY.ground[1];
+ const big=(()=>{const m=MON.gab,pt=m.s.map((v,i)=>{const a=-Math.PI/2+i*Math.PI/3,r=92*Math.min(1,v/150);return (r*Math.cos(a)).toFixed(1)+','+(r*Math.sin(a)).toFixed(1)}).join(' '),full=m.s.map((v,i)=>{const a=-Math.PI/2+i*Math.PI/3;return (92*Math.cos(a)).toFixed(1)+','+(92*Math.sin(a)).toFixed(1)}).join(' ');
+  return `<svg class="big" viewBox="-100 -100 200 200"><polygon points="${full}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.2"/><polygon points="${pt}" fill="rgba(255,255,255,.22)" stroke="rgba(255,255,255,.55)" stroke-width="2" stroke-linejoin="round"/></svg>`})();
+ return hdr('ミナト','feed')+`</div>
+ <div class="pc-cover" style="--c1:${c1};--c2:${c2}"><svg class="hexp" width="100%" height="100%"><defs><pattern id="hx" width="28" height="48" patternUnits="userSpaceOnUse"><path d="M14 0 28 8v16L14 32 0 24V8zM14 32v16" fill="none" stroke="#fff" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#hx)"/></svg>${big}</div>
+ <div class="pc-top" style="--c1:${c1}">${AV('ミ','#6F5CF0',92).replace('class="av"','class="av pc-av"')}
+  <div class="pc-acts"><button class="btn btn-o btn-s" data-toast="メッセージ（見本）">${S('mail',16)}</button><button class="btn btn-p btn-s" data-toast="フォロー（見本）">フォローする</button></div>
+  <div class="pc-nm">ミナト</div><div class="pc-id">@minato_pk</div>
+  <div class="pc-bio">シングル中心のトレーナー。対面構築が好き。週末はよく<span class="tag" style="color:var(--acc)">#対戦募集</span>しています。</div>
+  <div class="pc-meta"><span>${S('cal',15)} 2026年10月からトレーナー</span></div></div>
+ <div class="card pc-stats"><div><b>128</b><span>投稿</span></div><div><b>342</b><span>フォロワー</span></div><div><b>180</b><span>フォロー中</span></div><div><b>1,204</b><span>もらったいいね</span></div></div>
+ ${note('ここまでが全ゲーム共通の「プレイヤーカード」。帯の色・図形は、表示するゲームのプロフィール（いまはポケモンの相棒）から。')}
+ <div class="lbl">ゲームのプロフィール</div>
+ <div class="card gp"><div class="gp-h"><span class="gm">ポケ</span><div><b>ポケモンチャンピオンズ</b><small>トレーナーとしてのプロフィール</small></div><span class="vis">${S('eye',14)}公開</span></div>
+  <div class="gp-row"><span class="k">相棒</span><div class="partner">${shape('gab')}<div><b>ガブリアス</b><div class="tm-m" style="padding:0;background:none;align-items:flex-start"><span class="ty">${tyChips(MON.gab)}</span></div></div></div></div>
+  <div class="gp-row" style="align-items:flex-start"><span class="k">ランク・実績</span><div class="rk">
+   <div class="rkb"><span class="vb v">${S('trophy',12)}確認済み</span><b>シーズン4・シングル</b><span>最終128位（レート1,912）</span></div>
+   <div class="rkb"><span class="vb s">自己申告</span><b>シーズン5・シングル</b><span>レート1,820（11/16 時点）</span></div>
+   <div class="rk-n">自己申告の実績は、運営が証拠を確認するまで「自己申告」と表示され、ランキング・集計には使いません。</div></div></div>
+  <div class="gp-row" style="align-items:flex-start"><span class="k">看板パーティ</span><div style="flex:1;min-width:0"><div class="sc6">${TEAM.map(k=>`<a href="#" data-toast="図鑑へ（見本）">${shape(k)}<span>${MON[k].n}</span></a>`).join('')}</div>
+   <button class="btn btn-o btn-s" style="margin-top:10px" data-go="share">このパーティを見る</button></div></div>
+  <div class="more-g">${S('grid',16)}ゲームが増えると、ここにゲームごとのプロフィールが並びます（いまは表示しない）</div></div>
+ ${note('注目のゲームの設定は、ゲームが1つのあいだは出さない（D2・D3）。非公開のゲームプロフィールは、自動で選ばれることも表示されることもない。')}
+ <div class="tabs" style="border-bottom:1px solid var(--line);margin-top:6px"><button class="on">投稿</button><button data-toast="画像（見本）">画像</button></div>
+ <div style="height:10px"></div>${post(POSTS[0]).replace(/<span class="nt">[\s\S]*?<\/span>/,'')}`}
+
+let SH={slot:0,level:'i'};
+function shareHTML(){const slots=[['S5 ガブサーフ対面','6匹・育成済み',1],['雨パ（作りかけ）','4匹',1],['（空き）','まだ作っていません',0]];
+ return hdr('パーティを共有する','feed')+`</div>
+ ${note('パーティは、自分で選んで中身を確かめてからでないと共有できない。')}
+ <div class="card step"><h3><span class="n">1</span>共有するパーティを選ぶ</h3>
+  ${slots.map(([n,d,ok],i)=>`<button class="opt${SH.slot===i?' on':''}" data-slot="${i}"${ok?'':' disabled'}><span class="rd"></span><span><b>パーティ${i+1}：${n}</b><small>${d}</small></span>${i===0?`<span class="mini">${TEAM.map(k=>shape(k)).join('')}</span>`:''}</button>`).join('')}</div>
+ <div class="card step"><h3><span class="n">2</span>見せる範囲を選ぶ</h3>
+  ${LEVELS.map(([k,t,d])=>`<button class="opt${SH.level===k?' on':''}" data-lv="${k}"><span class="rd"></span><span><b>${t}</b><small>${d}</small></span></button>`).join('')}
+  <div class="lockbox">${S('lock',18)}<div><b>いつも共有されないもの</b><ul><li>パーティの戦術メモ・戦い方のメモ</li><li>選出の考え方・相手ごとのメモ</li><li>対戦の記録</li></ul></div></div></div>
+ <div class="card step"><h3><span class="n">3</span>投稿される内容を確かめる</h3>
+  <div class="t" style="font-size:14px">シーズン5で使っている構築です。サーフゴーの枠を迷っています。</div>
+  <div id="shprev">${teamBlock(SH.level)}</div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap"><button class="btn btn-o" data-go="feed">やめる</button><button class="btn btn-p" data-toast="投稿（見本なので送られません）">この内容で投稿する</button></div></div>
+ ${note('投稿には、そのとき見せた項目だけの写しを入れる。もとのパーティを書きかえても消しても、投稿の中身は変わらない。')}
+ <div class="lbl">投稿されたときの見え方</div>${post({...POSTS[1],extra:teamBlock(SH.level)})}`}
+
+/* ======== 背景 ======== */
+const ACC={purple:['#7C6CF0','#A99CFF','124,108,240','#5B57D9'],blue:['#3B82F6','#6AAEFF','59,130,246','#2F6FE0'],green:['#17A07A','#4AD3A0','23,160,122','#138A66'],pink:['#E5476F','#FF7A99','229,71,111','#D63B63'],orange:['#E07B12','#FFAD5C','224,123,18','#C76A0A'],mono:['#E8E9EE','#D5D7DE','200,200,210','#1E2030']};
+let BG={preset:'glow',glow:'normal',acc:'purple',img:0,ov:45,blur:4,auto:true,user:null};
+const IMGS=[];/* 見本の画像（このページで描いた架空の風景。外部の画像は使わない） */
+function mkImg(kind){const c=document.createElement('canvas');c.width=640;c.height=960;const g=c.getContext('2d');
+  if(kind===0){const s=g.createLinearGradient(0,0,0,960);s.addColorStop(0,'#0b1030');s.addColorStop(.55,'#3a2a6b');s.addColorStop(1,'#f08a5d');g.fillStyle=s;g.fillRect(0,0,640,960);
+    for(let i=0;i<120;i++){g.fillStyle=`rgba(255,255,255,${Math.random()*.8})`;g.fillRect(Math.random()*640,Math.random()*520,1.6,1.6)}
+    g.fillStyle='#1a1438';for(let x=0;x<640;x+=40){const h=140+((x*7919)%160);g.fillRect(x,960-h-120,36,h+120)}
+    g.fillStyle='rgba(255,214,120,.8)';for(let i=0;i<70;i++){g.fillRect((i*97)%640,700+((i*53)%200),4,6)}}
+  else{const s=g.createLinearGradient(0,0,0,960);s.addColorStop(0,'#bfe6ff');s.addColorStop(.6,'#e9f7ff');s.addColorStop(1,'#ffffff');g.fillStyle=s;g.fillRect(0,0,640,960);
+    g.fillStyle='#fff8d6';g.beginPath();g.arc(470,190,70,0,7);g.fill();
+    [['#7fcf7a',620],['#4fae5c',720],['#2f8a4a',820]].forEach(([col,y],k)=>{g.fillStyle=col;g.beginPath();g.moveTo(0,960);for(let x=0;x<=640;x+=20)g.lineTo(x,y+Math.sin(x/90+k*2)*40);g.lineTo(640,960);g.fill()})}
+  return c.toDataURL('image/jpeg',.82)}
+function avgLum(src,cb){const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=24;const g=c.getContext('2d');g.drawImage(im,0,0,24,24);const d=g.getImageData(0,0,24,24).data;let r=0,gg=0,b=0;for(let i=0;i<d.length;i+=4){r+=d[i];gg+=d[i+1];b+=d[i+2]}const n=d.length/4;cb([r/n,gg/n,b/n])};im.src=src}
+const lin=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};
+const lumOf=c=>.2126*lin(c[0])+.7152*lin(c[1])+.0722*lin(c[2]);
+const ratio=(a,b)=>{const x=Math.max(a,b),y=Math.min(a,b);return (x+.05)/(y+.05)};
+const AVG={};
+const isLight=()=>document.documentElement.dataset.theme==='light';
+function contrastAt(ov,avg){const L=isLight(),o=L?[238,240,245]:[0,0,0],k=ov/100,eff=avg.map((v,i)=>v*(1-k)+o[i]*k),fg=L?[30,32,48]:[232,233,238];return ratio(lumOf(eff),lumOf(fg))}
+function minOv(avg){for(let o=0;o<=90;o++)if(contrastAt(o,avg)>=4.5)return o;return 90}
+function curImg(){return BG.img==='u'?BG.user:IMGS[BG.img]}
+function applyBg(){const el=document.getElementById('bgimg'),ov=document.getElementById('bgov'),a=ACC[BG.acc],L=isLight(),R=document.documentElement.style;
+  R.setProperty('--accf',L?a[3]:a[0]);R.setProperty('--acc',L?a[3]:a[1]);R.setProperty('--glow-rgb',a[2]);R.setProperty('--acc-t',`rgba(${a[2]},${L?.12:.18})`);R.setProperty('--onacc',BG.acc==='mono'&&!L?'#000':'#fff');
+  el.style.filter='';el.style.backgroundImage='';ov.style.background='';el.style.backgroundColor='';
+  const k=BG.glow==='strong'?1.5:1;
+  if(BG.preset==='glow'){el.style.backgroundImage=`radial-gradient(52vmax 38vmax at 100% 0%,rgba(${a[2]},${(L?.35:.44)*k}),transparent 70%)`}
+  else if(BG.preset==='dusk'){el.style.backgroundImage=L?'linear-gradient(165deg,#f3e9ff 0%,#ffe9dc 55%,#EEF0F5 100%)':'linear-gradient(165deg,#120c2e 0%,#2b1440 45%,#3a1c22 80%,#000 100%)'}
+  else if(BG.preset==='hex'){const st=L?'rgba(30,32,60,.07)':'rgba(255,255,255,.06)';el.style.backgroundImage=`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='42' height='72'><path d='M21 0 42 12v24L21 48 0 36V12zM21 48v24' fill='none' stroke='${st}' stroke-width='1.2'/></svg>`)}"),radial-gradient(40vmax 30vmax at 100% 0%,rgba(${a[2]},.22),transparent 70%)`;el.style.backgroundSize='42px 72px,auto'}
+  else if(BG.preset==='img'){const s=curImg();if(s){el.style.backgroundImage=`url(${s})`;el.style.backgroundSize='cover';el.style.filter=BG.blur?`blur(${BG.blur}px)`:'';
+    ov.style.background=L?`rgba(238,240,245,${BG.ov/100})`:`rgba(0,0,0,${BG.ov/100})`}}
+  if(BG.preset!=='img')el.style.backgroundSize=BG.preset==='hex'?'42px 72px,auto':'';
+}
+function meterHTML(){const s=curImg(),avg=s&&AVG[s];if(!avg)return `<div class="meter">読みやすさを計算中…</div>`;
+  const r=contrastAt(BG.ov,avg),ok=r>=4.5,col=r>=7?'var(--ok)':ok?'var(--warn)':'var(--bad)',w=Math.min(100,r/10*100);
+  return `<div class="meter"><b style="color:${col}">${r>=7?'とても読みやすい':ok?'読みやすい':'読みにくい'}</b><div class="bar"><i style="width:${w}%;background:${col}"></i></div><span style="font-variant-numeric:tabular-nums">${r.toFixed(1)} : 1</span></div>
+  <div style="font-size:12px;color:var(--dim);margin-top:6px">文字と背景の明るさの差（4.5 : 1 以上を目安）。${ok?'':`暗さを ${minOv(avg)}% 以上にすると読みやすくなります。`}</div>`}
+function bgHTML(){const P=[['glow','光','いまの背景'],['dusk','夕暮れ',''],['hex','六角形',''],['none','なし',''],['img','自分の画像','']];
+ const sw=k=>{const a=ACC[BG.acc][2];return k==='glow'?`background:var(--bg) radial-gradient(120% 70% at 100% 0%,rgba(${a},.7),transparent 70%)`:k==='dusk'?'background:linear-gradient(165deg,#120c2e,#2b1440 45%,#3a1c22 80%,#000)':k==='hex'?`background:#000 url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='14' height='24'><path d='M7 0 14 4v8L7 16 0 12V4zM7 16v8' fill='none' stroke='rgba(255,255,255,.35)' stroke-width='1'/></svg>")}")`:k==='none'?'background:var(--bg)':`background:#333 url(${curImg()||IMGS[0]}) center/cover`};
+ return hdr('背景','feed')+`</div>
+ ${note('設定とプライバシー › 表示・カスタマイズ › 背景。動かすと、後ろの画面がその場で変わる（ライブプレビュー）。')}
+ <div class="card step"><h3>背景の種類</h3><div class="pre">${P.map(([k,t])=>`<button data-pre="${k}" class="${BG.preset===k?'on':''}"><span class="sw" style="${sw(k)}"></span>${t}</button>`).join('')}</div>
+  ${BG.preset==='glow'?`<div class="srow"><span class="k">光の強さ</span><div class="seg" style="flex:1"><button data-glow="normal" class="${BG.glow==='normal'?'on':''}">ふつう</button><button data-glow="strong" class="${BG.glow==='strong'?'on':''}">強め</button></div></div>`:''}
+ </div>
+ ${BG.preset==='img'?`<div class="card step"><h3>自分の画像</h3>
+  <div class="thumbs">${IMGS.map((s,i)=>`<button data-img="${i}" class="${BG.img===i?'on':''}" style="background-image:url(${s})" aria-label="見本の画像${i+1}"></button>`).join('')}${BG.user?`<button data-img="u" class="${BG.img==='u'?'on':''}" style="background-image:url(${BG.user})" aria-label="選んだ画像"></button>`:''}
+   <label>画像を<br>選ぶ<input type="file" accept="image/*" id="bgfile" hidden></label></div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:6px">見本の2枚はこのページで描いた架空の風景です。選んだ画像はこの画面の中だけで使い、どこにも送りません。</div>
+  <div class="srow"><span class="k">暗さ</span><input type="range" min="0" max="90" value="${BG.ov}" id="r-ov"><output id="o-ov">${BG.ov}%</output></div>
+  <div class="srow"><span class="k">ぼかし</span><input type="range" min="0" max="16" value="${BG.blur}" id="r-bl"><output id="o-bl">${BG.blur}px</output></div>
+  <div id="meter">${meterHTML()}</div>
+  <label class="ck"><input type="checkbox" id="c-auto" ${BG.auto?'checked':''}>読みやすさを保つ（読みにくくなる暗さにはしない）</label>
+ </div>${note('スマホで重くならないよう、本番ではぼかしを保存のときに1回だけかけた画像にする（動き続けるぼかしは使わない）。投稿のカードは今までどおり半透明だけ。')}`:''}
+ <div class="card step"><h3>テーマの色</h3><div class="dots">${Object.entries(ACC).map(([k,a])=>`<button data-acc="${k}" class="${BG.acc===k?'on':''}" style="background:${a[0]}" aria-label="${k}"></button>`).join('')}</div></div>
+ <div class="lbl">見え方の確認</div>${post(POSTS[3]).replace(/<span class="nt">[\s\S]*?<\/span>/,'')}
+ <div class="card step"><h3>ほかの端末との同期</h3><div class="sync">
+  <div>${S('cloud',18)}<span><b>ログイン中はほかの端末にも反映</b><br><span style="color:var(--dim)">背景の種類・テーマの色・光の強さ</span></span></div>
+  <div>${S('dev',18)}<span><b>この端末だけ</b><br><span style="color:var(--dim)">選んだ画像（ほかの端末には送りません）</span></span></div></div></div>
+ ${note('ログインする前に選んだ背景は、アカウントにまだ背景がなければそのまま引きつぐ。あればアカウントの設定に置きかわる（確認は出さない）。ログアウト・別の人のログインで、この端末の背景の記録は消える（D5・D6）。')}`}
+
+/* ======== 動き（見本の中だけ） ======== */
+let CUR='feed';
+function render(){
+  document.getElementById('s-feed').innerHTML=feedHTML();document.getElementById('s-card').innerHTML=cardHTML();
+  document.getElementById('s-share').innerHTML=shareHTML();document.getElementById('s-bg').innerHTML=bgHTML();
+  document.getElementById('rail').innerHTML=railHTML(CUR);document.getElementById('tabbar').innerHTML=tabbarHTML(CUR);document.getElementById('side').innerHTML=sideHTML();
+  document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.dataset.s===CUR));
+  document.querySelectorAll('#pb-scr button').forEach(b=>b.classList.toggle('on',b.dataset.go===CUR));
+  document.getElementById('fab').style.display=CUR==='feed'?'':'none';
+  applyBg();bindBg();
+}
+function go(s){if(s==='x'){toast('この画面は見本に含まれていません');return}CUR=s;render();document.getElementById('scroll').scrollTop=0}
+let tt;function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),1800)}
+function setOv(v){BG.ov=v;const o=document.getElementById('o-ov'),r=document.getElementById('r-ov');if(o)o.textContent=v+'%';if(r)r.value=v;applyBg();const m=document.getElementById('meter');if(m)m.innerHTML=meterHTML()}
+function ensureAvg(cb){const s=curImg();if(!s||AVG[s]){cb&&cb();return}avgLum(s,a=>{AVG[s]=a;if(BG.auto)BG.ov=Math.max(BG.ov,minOv(a));cb&&cb()})}
+function bindBg(){
+  const ov=document.getElementById('r-ov');if(ov)ov.oninput=e=>{let v=+e.target.value;const a=AVG[curImg()];if(BG.auto&&a)v=Math.max(v,minOv(a));setOv(v)};
+  const bl=document.getElementById('r-bl');if(bl)bl.oninput=e=>{BG.blur=+e.target.value;document.getElementById('o-bl').textContent=BG.blur+'px';applyBg()};
+  const au=document.getElementById('c-auto');if(au)au.onchange=e=>{BG.auto=e.target.checked;const a=AVG[curImg()];if(BG.auto&&a)setOv(Math.max(BG.ov,minOv(a)))};
+  const f=document.getElementById('bgfile');if(f)f.onchange=e=>{const file=e.target.files[0];if(!file)return;const rd=new FileReader();rd.onload=()=>{
+    const im=new Image();im.onload=()=>{const sc=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*sc;c.height=im.height*sc;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      BG.user=c.toDataURL('image/jpeg',.85);BG.img='u';ensureAvg(render)};im.src=rd.result};rd.readAsDataURL(file)};
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]');if(g){e.preventDefault();go(g.dataset.go);return}
+  const t=e.target.closest('[data-toast]');if(t){e.preventDefault();toast(t.dataset.toast);return}
+  const lk=e.target.closest('[data-like]');if(lk){lk.classList.toggle('liked');const s=lk.querySelector('span');s.textContent=(+s.textContent||0)+(lk.classList.contains('liked')?1:-1);return}
+  const c=e.target.closest('[data-cat]');if(c){e.preventDefault();if(CUR!=='feed')go('feed');const k=c.dataset.cat;document.querySelectorAll('#catchips .chip').forEach(b=>b.classList.toggle('on',b.dataset.cat===k));
+    document.getElementById('feedlist').innerHTML=POSTS.filter(p=>k==='all'||p.cat===k).map(post).join('')||'<p style="text-align:center;color:var(--dim)">このカテゴリの投稿はまだありません</p>';return}
+  const sl=e.target.closest('[data-slot]');if(sl&&!sl.disabled){SH.slot=+sl.dataset.slot;render();return}
+  const lv=e.target.closest('[data-lv]');if(lv){SH.level=lv.dataset.lv;const y=document.getElementById('scroll').scrollTop;render();document.getElementById('scroll').scrollTop=y;return}
+  const keep=fn=>{const y=document.getElementById('scroll').scrollTop;fn();document.getElementById('scroll').scrollTop=y};
+  const pr=e.target.closest('[data-pre]');if(pr){keep(()=>{BG.preset=pr.dataset.pre;if(BG.preset==='img')ensureAvg(()=>keep(render));render()});return}
+  const gl=e.target.closest('[data-glow]');if(gl){keep(()=>{BG.glow=gl.dataset.glow;render()});return}
+  const ac=e.target.closest('[data-acc]');if(ac){keep(()=>{BG.acc=ac.dataset.acc;render()});return}
+  const im=e.target.closest('[data-img]');if(im){keep(()=>{BG.img=im.dataset.img==='u'?'u':+im.dataset.img;ensureAvg(()=>keep(render));render()});return}
+  const dv=e.target.closest('[data-dev]');if(dv){setDev(dv.dataset.dev);return}
+  const th=e.target.closest('[data-th]');if(th){document.documentElement.dataset.theme=th.dataset.th;document.querySelectorAll('#pb-th button').forEach(b=>b.classList.toggle('on',b===th));
+    const a=AVG[curImg()];if(BG.auto&&a)BG.ov=Math.max(BG.ov,minOv(a));render();return}
+  const nt=e.target.closest('[data-nt]');if(nt){document.body.classList.toggle('no-notes',nt.dataset.nt==='0');document.querySelectorAll('#pb-nt button').forEach(b=>b.classList.toggle('on',b===nt));return}
+});
+function setDev(d){document.getElementById('stage').classList.toggle('m',d==='m');document.querySelectorAll('#pb-dev button').forEach(b=>b.classList.toggle('on',b.dataset.dev===d))}
+IMGS.push(mkImg(0),mkImg(1));
+setDev(innerWidth<760?'m':'d');
+/* 画面の幅が狭い（スマホで直接開いた）ときは枠なしで全画面に */
+if(innerWidth<430){const st=document.createElement('style');st.textContent='.stage.m{padding:0;background:none}.stage.m .app{width:100%;height:100%;border:0;border-radius:0;box-shadow:none}';document.head.appendChild(st)}
+const q=new URLSearchParams(location.search);if(q.get('s'))CUR=q.get('s');if(q.get('d'))setDev(q.get('d'));if(q.get('t'))document.documentElement.dataset.theme=q.get('t');if(q.get('bg'))BG.preset=q.get('bg');if(q.get('img'))BG.img=+q.get('img');
+render();if(BG.preset==='img')ensureAvg(render);
+</script>
+</body>
+</html>

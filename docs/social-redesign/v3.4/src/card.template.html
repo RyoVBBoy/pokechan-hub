@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Player Card V3.4</title>
+<!--
+  Game Kid/s プレイヤーカード 見本 V3.4（デザインの見本。本番のコードではない）
+  ・V3.3 の見た目の決まり（色の変数・持ち上げた面・記号の中立の板と内側の輪・下のメニューの中のボタン）をそのまま使う
+  ・ゲームの公式の絵・アイコン・ロゴは使わない。記号はすべてこのファイルで作った図形（種族値の形・六角形）。ロゴはサイト自身のもの（src/static/logo.png）だけ
+  ・人や結果はすべて見本のデータ
+-->
+<style>
+:root{
+  --canvas:#0E0F14;
+  --sheet:rgba(20,22,29,.80);
+  --raised:#22252F;
+  --card-top:#262A35; --card-bot:#1E2129;           /* カードの面（上がわずかに明るい） */
+  --well:rgba(255,255,255,.045); --well-2:rgba(255,255,255,.075);
+  --hover:rgba(255,255,255,.045); --press:rgba(255,255,255,.08);
+  --hl:inset 0 1px 0 rgba(255,255,255,.06);
+  --lift:0 22px 48px -20px rgba(0,0,0,.7),0 2px 6px rgba(0,0,0,.25);
+  --t1:#ECEEF3; --t2:#B3B8C6; --t3:#9096A8; --t4:#5E6475;
+  --brand:#7C6CF0; --brand-tx:#B1A6FF; --brand-rgb:124,108,240; --onbrand:#fff;
+  --sig-plate:rgba(255,255,255,.07); --sig-ring:rgba(255,255,255,.08);
+  --cv1:#201D33; --cv2:#191A26;                      /* 帯の地（紫がかった黒） */
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#0A0B0F;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--brand-tx);outline-offset:2px;border-radius:10px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
+.num{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ===== 見本のバー（本番には出ない） ===== */
+.pv{position:fixed;inset:0 0 auto 0;height:48px;z-index:100;display:flex;align-items:center;gap:10px;padding:0 12px;background:#17181E;border-bottom:2px dashed #F5D547;font-size:12.5px;color:#d9d9e2;overflow-x:auto;scrollbar-width:none}
+.pv::-webkit-scrollbar{display:none}
+.pv .tag{flex:none;background:#F5D547;color:#2a2300;font-weight:900;font-size:11px;padding:3px 8px;border-radius:5px}
+.pv .g{display:flex;gap:2px;background:#25262E;border-radius:9px;padding:3px;flex:none}
+.pv .g button{padding:5px 10px;border-radius:7px;color:#a9a9b6;white-space:nowrap}
+.pv .g button[aria-pressed=true]{background:#43444F;color:#fff;font-weight:700}
+.nobar .pv{display:none}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,14px);opacity:0;transition:.22s;z-index:120;background:#1E1F27;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;border-left:4px solid #F5D547;box-shadow:0 12px 30px rgba(0,0,0,.4);pointer-events:none;max-width:calc(100vw - 24px)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ===== 舞台 ===== */
+.stage{position:fixed;inset:48px 0 0 0;overflow:hidden}
+.nobar .stage{inset:0}
+.app{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--canvas)}
+.bg{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(52vmax 38vmax at 100% 0%,rgba(var(--brand-rgb),.24),transparent 70%),var(--canvas)}
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+
+/* PC：V3.3 と同じ3列 */
+.d-grid{display:grid;grid-template-columns:248px minmax(0,600px) 320px;gap:28px;justify-content:center;padding:0 24px;min-height:100%}
+.app.m .d-grid{display:block;padding:0}
+.rail{position:sticky;top:0;height:min(100vh,760px);padding:18px 0 20px;display:flex;flex-direction:column;gap:4px}
+.app.m .rail,.app.m .side{display:none}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 14px 10px}
+.mk{width:28px;height:28px;background:var(--t1);-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat;flex:none}
+.wm{font-weight:800;font-size:17.5px;letter-spacing:-.01em}
+.ni{display:flex;align-items:center;gap:16px;height:50px;padding:0 14px;border-radius:16px;font-size:16.5px;color:var(--t2);transition:background .15s,color .15s}
+.ni svg.i{width:25px;height:25px}
+.ni:hover{background:var(--hover);color:var(--t1)}
+.ni[aria-current=page]{color:var(--t1);font-weight:800}.ni[aria-current=page] svg{color:var(--brand-tx);stroke-width:2.1}
+.qa{margin-top:18px;height:50px;border-radius:25px;background:var(--brand);color:var(--onbrand);font-weight:750;font-size:15.5px;display:flex;align-items:center;justify-content:center;gap:9px}
+.me{margin-top:auto;display:flex;align-items:center;gap:11px;padding:10px;border-radius:16px;background:var(--hover)}
+.me b{display:block;font-size:14.5px}.me small{display:block;color:var(--t3);font-size:12.5px}
+.main{min-width:0;background:var(--sheet);min-height:100%;padding-bottom:64px}
+.app.m .main{background:none;padding-bottom:calc(96px + var(--sab,0px))}
+.side{position:sticky;top:0;height:100vh;overflow:auto;padding:14px 0 24px;display:flex;flex-direction:column;gap:16px;scrollbar-width:none}
+.box{background:var(--sheet);border-radius:22px;padding:6px 0 10px;box-shadow:var(--hl)}
+.box h3{margin:0;padding:12px 18px 6px;font-size:16.5px;font-weight:800}
+.srch{display:flex;align-items:center;gap:10px;height:46px;padding:0 16px;border-radius:23px;background:var(--well-2);color:var(--t3);font-size:14px}
+.tl{display:flex;gap:12px;align-items:center;padding:10px 18px;border-radius:12px}
+.tl b{display:block;font-size:14.5px}.tl small{display:block;color:var(--t3);font-size:12.5px}
+.tl .ti{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--well-2);color:var(--brand-tx)}
+
+/* 上の見出し */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:6px;height:54px;padding:0 6px;background:rgba(14,15,20,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.app:not(.m) .top{background:rgba(20,22,29,.86)}
+.top .ib{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;color:var(--t1)}
+.top .ib:hover{background:var(--hover)}
+.top b{font-size:16.5px;font-weight:800;flex:1;min-width:0}
+.top small{display:block;font-size:11.5px;color:var(--t3);font-weight:600}
+
+/* =====================================================================
+   柱1：プレイヤーカード＝1枚の持ち上げた面
+   ===================================================================== */
+.pc{position:relative;margin:6px 12px 0;border-radius:26px;padding:6px 6px 16px;
+  background:linear-gradient(180deg,var(--card-top),var(--card-bot) 62%);box-shadow:var(--hl),var(--lift)}
+.app:not(.m) .pc{margin:10px 16px 0}
+/* 帯：カードの中の窓（角の丸い板）。紫がかった黒の地に、この画面のための六角形の構図 */
+.cv{position:relative;height:104px;border-radius:20px;overflow:hidden;background:linear-gradient(115deg,var(--cv1),var(--cv2));box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+.app:not(.m) .cv{height:128px}
+.cv svg{position:absolute;inset:0;width:100%;height:100%}
+/* アイコン：帯のふちにかかる位置に固定し、カードの面の色の輪でくり抜く */
+.idr{display:flex;align-items:flex-end;gap:10px;padding:0 10px;margin-top:-38px;position:relative}
+.av{flex:none;width:80px;height:80px;border-radius:50%;display:grid;place-items:center;font-size:31px;font-weight:800;color:#fff;
+  box-shadow:0 0 0 5px var(--card-top),0 10px 24px -8px rgba(0,0,0,.6);position:relative}
+.av::after{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.acts{margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:2px}
+.ic{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--t1);background:var(--well-2);box-shadow:var(--hl)}
+.ic:hover{background:rgba(255,255,255,.1)}
+.btn{height:40px;padding:0 18px;border-radius:20px;font-size:14px;font-weight:750;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn.p{background:var(--brand);color:var(--onbrand);box-shadow:0 6px 16px -8px rgba(var(--brand-rgb),.9)}
+.btn.s{background:var(--well-2);color:var(--t1);box-shadow:var(--hl)}
+.who{padding:12px 14px 0}
+.nm{display:flex;align-items:center;gap:8px;font-size:23px;font-weight:800;letter-spacing:-.015em;line-height:1.2}
+.nm .lk{color:var(--t3)}
+.hd{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:3px;font-size:14px;color:var(--t2)}
+.fm{font-size:11.5px;font-weight:700;color:var(--t2);background:var(--well-2);padding:3px 8px;border-radius:7px}
+.bio{margin:10px 0 0;font-size:14.5px;line-height:1.65;color:var(--t1)}
+.bio a{color:var(--brand-tx);white-space:nowrap}
+/* 数と利用開始：線で区切らず、間かくで1行に */
+.meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 18px;margin-top:12px}
+.st{display:inline-flex;align-items:baseline;gap:5px;font-size:13px;color:var(--t2);border-radius:8px}
+.st b{font-size:16px;font-weight:800;color:var(--t1)}
+button.st:hover span{text-decoration:underline}
+.since{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--t2)}
+.since svg.i{width:15px;height:15px}
+
+/* =====================================================================
+   柱2：ゲームの名札（ゲームごとの部品）
+   ===================================================================== */
+.gm{margin:16px 6px 0;border-radius:20px;background:var(--well);padding:6px}
+.gp{display:flex;align-items:center;gap:12px;padding:8px 8px 8px 8px;border-radius:15px}
+.gp:hover{background:var(--hover)}
+.sig{display:grid;place-items:center;flex:none;background:linear-gradient(rgba(var(--c1),.14),rgba(var(--c1),.14)),var(--sig-plate);box-shadow:inset 0 0 0 1px var(--sig-ring);border-radius:12px}
+.sig svg{width:78%;height:78%}
+.sig.xs{width:20px;height:20px;border-radius:6px}.sig.s{width:26px;height:26px;border-radius:8px}.sig.l{width:44px;height:44px;border-radius:13px}.sig.xl{width:52px;height:52px;border-radius:15px}
+.gp-t{flex:1;min-width:0;line-height:1.3}
+.gp-t b{display:block;font-size:16px;font-weight:800;letter-spacing:-.005em}
+.gp-t>span{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13px;color:var(--t2)}
+.gp-t>span em{font-style:normal;color:var(--t3)}
+.gp-x{flex:none;color:var(--t3)}
+.gp-vis{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--t2);background:var(--well-2);padding:2px 7px;border-radius:7px;margin-left:8px;vertical-align:2px}
+.gp-vis svg.i{width:12px;height:12px}
+/* 名札の事実（2つまで） */
+.gf{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:2px 2px 2px}
+.gf div{border-radius:13px;background:var(--well);padding:9px 12px}
+.gf small{display:block;font-size:11.5px;color:var(--t3);font-weight:700;letter-spacing:.02em}
+.gf b{display:block;font-size:15px;font-weight:800;margin-top:1px}
+
+/* =====================================================================
+   柱3：シーズンの戦績
+   ===================================================================== */
+.rec{padding:14px 10px 4px}
+.rh{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
+.rh h3{margin:0;font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--t2)}
+.rh button{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;color:var(--brand-tx);min-height:32px;padding:0 4px}
+.rh button svg.i{width:15px;height:15px}
+/* 見出し：最高位 */
+.best{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin-top:8px;padding:14px 16px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(var(--brand-rgb),.16),rgba(var(--brand-rgb),.05) 60%),var(--well);box-shadow:var(--hl)}
+.best-n{display:flex;align-items:baseline;gap:2px;line-height:1}
+.best-n b{font-size:46px;font-weight:850;letter-spacing:-.03em}
+.best-n i{font-style:normal;font-size:17px;font-weight:800;color:var(--t2)}
+.best-m small{display:block;font-size:11.5px;font-weight:800;letter-spacing:.1em;color:var(--brand-tx)}
+.best-m b{display:block;font-size:15px;font-weight:800;margin-top:2px}
+.best-m span{display:block;font-size:12.5px;color:var(--t2);margin-top:1px}
+/* 確認済みの印：六角形＋チェック（控えめ・色はブランドの文字色） */
+.seal{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--brand-tx);white-space:nowrap}
+.seal svg{width:18px;height:18px;flex:none}
+.seal.lg{flex-direction:column;gap:3px;font-size:11px}
+.seal.lg svg{width:30px;height:30px}
+/* 1件1行：段位の印｜シーズン・形式｜順位｜印 */
+.rl{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rr{display:grid;grid-template-columns:22px minmax(0,1fr) auto 18px;align-items:center;gap:12px;min-height:50px;padding:6px 12px 6px 12px;border-radius:14px}
+.rr:hover{background:var(--hover)}
+.tier{width:22px;height:22px;display:block}
+.rr-m b{display:block;font-size:14.5px;font-weight:750}
+.rr-m small{display:block;font-size:12.5px;color:var(--t2)}
+.rr-p{font-size:22px;font-weight:850;letter-spacing:-.02em;text-align:right;line-height:1}
+.rr-p i{font-style:normal;font-size:12px;font-weight:800;color:var(--t2);margin-left:1px}
+.rr .seal svg{width:18px;height:18px}
+.more{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;font-size:13px;font-weight:750;color:var(--brand-tx)}
+.more svg.i{width:16px;height:16px;transition:transform .2s}.more[aria-expanded=true] svg.i{transform:rotate(180deg)}
+/* 自己申告：別の静かな一まとまり */
+.self{margin:10px 2px 0;padding:10px 4px 4px;border-radius:16px;background:rgba(255,255,255,.025)}
+.self h4{display:flex;align-items:center;gap:8px;margin:0 8px 2px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--t2)}
+.self h4 small{font-size:11.5px;font-weight:600;letter-spacing:0;color:var(--t3)}
+.self .rr{min-height:42px;grid-template-columns:22px minmax(0,1fr) auto 64px}
+.self .rr-m b{font-weight:650;color:var(--t2);font-size:14px}
+.self .rr-p{font-size:17px;font-weight:750;color:var(--t2)}
+.sr-tag{justify-self:end;font-size:11.5px;font-weight:700;color:var(--t2);background:var(--well-2);padding:3px 8px;border-radius:7px}
+/* 看板パーティ（カードの中・6つの記号） */
+.sc{margin:12px 2px 0;padding:12px 10px 6px;border-radius:16px}
+.sc-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 2px}
+.sc-h h3{margin:0;font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--t2)}
+.sc-h span{font-size:13px;color:var(--t1);font-weight:700}
+.sc-g{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:10px}
+.app.m .sc-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.sc-g .sig.s{width:36px;height:36px;border-radius:11px}
+.sc-g a{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:8px 2px;border-radius:14px}
+.sc-g a:hover{background:var(--hover)}
+.sc-g small{font-size:11px;color:var(--t2);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ゲームのプロフィールがないとき（本人だけ） */
+.gadd{display:flex;align-items:center;gap:12px;text-align:left;width:calc(100% - 12px);margin:16px 6px 0;padding:12px 14px;border-radius:18px;background:var(--well);color:var(--t1)}
+.gadd .sig{color:var(--brand-tx)}
+.gadd b{display:block;font-size:14.5px}.gadd small{display:block;font-size:12.5px;color:var(--t2)}
+/* 非公開（許可されていない人） */
+.lockn{display:flex;align-items:center;gap:12px;margin:16px 6px 0;padding:14px;border-radius:18px;background:var(--well);font-size:13.5px;color:var(--t2);line-height:1.55}
+.lockn b{display:block;color:var(--t1);font-size:14.5px}
+
+/* 投稿・画像（カードの外。V3.3 の読む面のつづき） */
+.tabs{display:flex;gap:4px;margin:18px 12px 0;padding:4px;border-radius:16px;background:var(--well)}
+.app:not(.m) .tabs{margin:18px 16px 0}
+.tabs button{flex:1;height:40px;border-radius:12px;font-size:14px;font-weight:700;color:var(--t3);display:flex;align-items:center;justify-content:center;gap:6px}
+.tabs button[aria-selected=true]{background:var(--well-2);color:var(--t1)}
+.post{display:grid;grid-template-columns:40px 1fr;gap:12px;padding:16px}
+.post .pa{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff}
+.post b{font-size:14.5px}.post .ph{font-size:13px;color:var(--t3)}
+.post p{margin:4px 0 0;font-size:14.5px;line-height:1.65}
+.empty{padding:28px 16px;text-align:center;color:var(--t3);font-size:14px}
+
+/* スマホの下のメニュー（V3.3）：よく使う機能は浮かせず、メニューの中の六角形 */
+.nav{display:none}
+.app.m .nav{display:flex;align-items:center;gap:2px;position:absolute;z-index:30;left:10px;right:10px;bottom:calc(var(--sab,0px) + 8px);height:58px;padding:4px;border-radius:21px;
+  background:rgba(30,32,42,.9);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);box-shadow:var(--hl),0 10px 26px -8px rgba(0,0,0,.5)}
+.nav a{flex:1;min-width:0;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:16px;font-size:10px;font-weight:650;color:var(--t3);white-space:nowrap}
+.nav a svg.i{width:22px;height:22px}
+.nav a[aria-current=page]{color:var(--t1);background:var(--well-2)}.nav a[aria-current=page] svg{color:var(--brand-tx)}
+.nav-q{flex:none;width:50px;height:50px;margin-left:2px;display:grid;place-items:center;position:relative;color:#fff}
+.nav-q svg.hx{position:absolute;inset:0;width:50px;height:50px}
+.nav-q svg.i{position:relative;width:20px;height:20px}
+
+/* 「確認済みとは」 */
+.scrim{position:fixed;inset:0;z-index:90;background:rgba(5,6,10,.55);opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.pop{position:fixed;z-index:91;left:50%;top:50%;width:min(360px,calc(100vw - 32px));transform:translate(-50%,-46%);opacity:0;pointer-events:none;transition:.2s;
+  background:var(--raised);border-radius:22px;padding:18px 18px 14px;box-shadow:var(--hl),var(--lift)}
+.pop.on{opacity:1;transform:translate(-50%,-50%);pointer-events:auto}
+.pop h3{margin:0 0 10px;font-size:16px}
+.pop dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:start;font-size:13.5px;line-height:1.55;color:var(--t2)}
+.pop dt{font-weight:800;color:var(--t1);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pop dd{margin:0}
+.pop .btn{margin-top:14px;width:100%;justify-content:center}
+</style>
+</head>
+<body>
+<div class="pv" role="toolbar" aria-label="見本の切りかえ（本番には出ない）">
+  <span class="tag">見本 V3.4</span>
+  <div class="g" data-k="dev"><button data-v="m">スマホ</button><button data-v="d">PC</button></div>
+  <div class="g" data-k="viewer"><button data-v="owner">本人</button><button data-v="follower">フォロワー</button><button data-v="visitor">訪問者</button></div>
+  <div class="g" data-k="data"><button data-v="full">確認済みあり</button><button data-v="self">自己申告だけ</button><button data-v="nogame">ゲームなし</button></div>
+  <div class="g" data-k="priv"><button data-v="0">公開アカウント</button><button data-v="1">非公開アカウント</button></div>
+</div>
+<div class="stage"><div class="app" id="app"><div class="bg"></div><div class="scroll" id="scroll"><div class="d-grid">
+  <nav class="rail" id="rail" aria-label="メニュー"></nav>
+  <main class="main" id="main"></main>
+  <aside class="side" id="side"></aside>
+</div></div><nav class="nav" id="nav" aria-label="メニュー"></nav></div></div>
+<div class="scrim" id="scrim"></div>
+<div class="pop" id="pop" role="dialog" aria-modal="true" aria-labelledby="pop-h">
+  <h3 id="pop-h">確認済みとは</h3>
+  <dl>
+    <dt><span class="seal" data-seal></span></dt><dd>運営者が証拠のスクリーンショットを見て、順位とパーティを確かめた結果です。</dd>
+    <dt><span class="sr-tag">自己申告</span></dt><dd>本人が登録した結果です。まだ確かめていません。</dd>
+  </dl>
+  <p style="margin:12px 0 0;font-size:12.5px;color:var(--t3);line-height:1.55">結果はシーズンの結果の画面から登録します。証拠を付けると確認の対象になります。</p>
+  <button class="btn s" id="pop-x">閉じる</button>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const LOGO='__LOGO__';
+/* ---------- 見本のデータ（実在の人ではない） ---------- */
+const TY={dragon:'124,108,240',ground:'176,150,112',steel:'150,160,178',ghost:'118,98,170',flying:'130,160,220',water:'82,140,220',fairy:'226,140,190',fire:'230,122,80'};
+const MONS={
+  gab:{n:'ガブリアス',t:['dragon','ground'],s:[108,130,95,80,85,102]},
+  sur:{n:'サーフゴー',t:['steel','ghost'],s:[87,60,95,133,91,84]},
+  kai:{n:'カイリュー',t:['dragon','flying'],s:[91,134,95,100,100,80]},
+  asi:{n:'アシレーヌ',t:['water','fairy'],s:[80,74,74,126,116,60]},
+  win:{n:'ウインディ',t:['fire'],s:[90,110,80,100,80,95]},
+  arm:{n:'アーマーガア',t:['flying','steel'],s:[98,87,105,53,85,67]}};
+const USER={name:'ミナト',handle:'minato_pk',col:'#6B5BD6',bio:'シングル中心。サイクルより対面が好きです。#構築紹介 をよく書きます。',since:'2025年12月',posts:128,followers:342,following:96};
+const RES_V=[{s:'S6',f:'シングル',r:8},{s:'S5',f:'ダブル',r:46},{s:'S4',f:'シングル',r:120},{s:'S3',f:'シングル',r:512}];
+const RES_S=[{s:'S6',f:'ダブル',r:230},{s:'S2',f:'シングル',r:34}];
+const ST={dev:innerWidth<700?'m':'d',viewer:'visitor',data:'full',priv:'0',more:false};
+new URLSearchParams(location.search).forEach((v,k)=>{if(k in ST)ST[k]=v;if(k==='bar'&&v==='0')document.body.classList.add('nobar')});
+
+/* ---------- 部品 ---------- */
+const IC={back:'<path d="M15 5l-7 7 7 7"/>',dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2.6"/><path d="m4 7 8 6 8-6"/>',lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.4"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+ cal:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',chev:'<path d="m9 6 6 6-6 6"/>',down:'<path d="m6 9 6 6 6-6"/>',
+ info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',home:'<path d="M4 10.5 12 4l8 6.5V20h-5v-6h-6v6H4z"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+ tool:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.4"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.4"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.4"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.4"/>',
+ bolt:'<path d="M13 3 5.5 13.5H12L11 21l7.5-10.5H12z"/>',pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',plus:'<path d="M12 5v14M5 12h14"/>',
+ post:'<path d="M5 5h14v10H9l-4 4z"/>',img:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20 16l-5-5-8.5 8.5"/>',user:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>'};
+const S=(k,s)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"${s?` style="width:${s}px;height:${s}px"`:''}>${IC[k]}</svg>`;
+const hexPts=(R,f=()=>1,vals=[1,1,1,1,1,1])=>vals.map((v,i)=>{const r=R*f(v),t=-Math.PI/2+i*Math.PI/3;return (r*Math.cos(t)).toFixed(1)+','+(r*Math.sin(t)).toFixed(1)}).join(' ');
+let GID=0;
+/* ポケモンの記号（V3.3 と同じ：六角形の外わく＋種族値の形を2色で塗る） */
+function monSig(k,size){const m=MONS[k],c1=TY[m.t[0]],c2=TY[m.t[1]||m.t[0]],id='g'+(++GID);
+  return `<span class="sig ${size}" style="--c1:${c1}" role="img" aria-label="${m.n}"><svg viewBox="-48 -48 96 96" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset=".5" stop-color="rgb(${c1})" stop-opacity=".85"/><stop offset=".5" stop-color="rgb(${c2})" stop-opacity=".85"/></linearGradient></defs>
+  <polygon points="${hexPts(40)}" fill="none" stroke="rgb(${c1})" stroke-opacity=".3" stroke-width="2.6" stroke-linejoin="round"/><polygon points="${hexPts(40,v=>Math.max(.15,Math.min(1,v/150)),m.s)}" fill="url(#${id})" stroke="rgb(${c2})" stroke-width="3.4" stroke-linejoin="round"/></svg></span>`}
+/* ゲームの記号（ゲームごとの部品・このサイトで作った図形）：ポケモンチャンピオンズ＝6つの面に分けた六角形 */
+const GAME={id:'pokechamp',name:'ポケモンチャンピオンズ',c:'124,108,240',
+  emblem:()=>`<svg viewBox="-48 -48 96 96" aria-hidden="true"><polygon points="${hexPts(38)}" fill="rgba(177,166,255,.10)" stroke="#B1A6FF" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="${hexPts(20)}" fill="#B1A6FF" fill-opacity=".9"/>${[0,1,2,3,4,5].map(i=>{const t=-Math.PI/2+i*Math.PI/3;return `<line x1="${(20*Math.cos(t)).toFixed(1)}" y1="${(20*Math.sin(t)).toFixed(1)}" x2="${(38*Math.cos(t)).toFixed(1)}" y2="${(38*Math.sin(t)).toFixed(1)}" stroke="#B1A6FF" stroke-opacity=".55" stroke-width="2.4"/>`}).join('')}</svg>`};
+const gameSig=size=>`<span class="sig ${size}" style="--c1:${GAME.c}" role="img" aria-label="${GAME.name}">${GAME.emblem()}</span>`;
+/* 段位の印：六角形を下から満たす（1桁＝全部・2桁＝3分の2・3桁＝3分の1）。自己申告は線だけ */
+function tierSvg(r,quiet){const lv=r<10?3:r<100?2:r<1000?1:0,id='t'+(++GID),c=quiet?'#9096A8':'#B1A6FF';
+  return `<svg class="tier" viewBox="-12 -12 24 24" aria-label="${lv===3?'最終1桁':lv===2?'最終2桁':lv===1?'最終3桁':'4桁以上'}" role="img"><defs><clipPath id="${id}"><polygon points="${hexPts(10.5)}"/></clipPath></defs>
+    ${quiet?'':`<rect x="-12" y="${(12-24*lv/3).toFixed(1)}" width="24" height="24" fill="${c}" fill-opacity=".85" clip-path="url(#${id})"/>`}
+    <polygon points="${hexPts(10.5)}" fill="none" stroke="${c}" stroke-opacity="${quiet?.7:1}" stroke-width="1.6" stroke-linejoin="round"/></svg>`}
+/* 確認済みの印：六角形の中にチェック */
+const sealSvg=()=>`<svg viewBox="-12 -12 24 24" aria-hidden="true"><polygon points="${hexPts(10.5)}" fill="rgba(177,166,255,.16)" stroke="#B1A6FF" stroke-width="1.6" stroke-linejoin="round"/><path d="M-4.6 .3l3.1 3.1 6-6.2" fill="none" stroke="#B1A6FF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const seal=(cls='')=>`<span class="seal ${cls}">${sealSvg()}確認済み</span>`;
+const sealIcon=()=>`<span class="seal" aria-label="確認済み" title="確認済み">${sealSvg()}</span>`;
+/* 帯：紫がかった黒に、六角形の格子と、相棒の種族値の形を線で大きく（色は1色・透かしではなく線） */
+function coverSvg(partner){const m=MONS[partner];
+  const hx=[];for(let row=-1;row<6;row++)for(let col=-1;col<26;col++){const x=col*30+(row%2?15:0),y=row*26;hx.push(`<polygon points="${hexPts(15).split(' ').map(p=>{const[a,b]=p.split(',').map(Number);return (a+x).toFixed(1)+','+(b+y).toFixed(1)}).join(' ')}"/>`)}
+  const big=m?`<g transform="translate(0,0)"><polygon points="${hexPts(74)}" fill="none" stroke="#B1A6FF" stroke-opacity=".18" stroke-width="1.2"/><polygon points="${hexPts(52)}" fill="none" stroke="#B1A6FF" stroke-opacity=".12" stroke-width="1"/>
+    <polygon points="${hexPts(74,v=>Math.max(.15,Math.min(1,v/150)),m.s)}" fill="rgba(124,108,240,.20)" stroke="#B1A6FF" stroke-opacity=".75" stroke-width="1.6" stroke-linejoin="round"/></g>`:'';
+  return `<svg viewBox="0 0 600 128" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+    <defs><linearGradient id="cvf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="1"/></linearGradient><mask id="cvm"><rect width="600" height="128" fill="url(#cvf)"/></mask></defs>
+    <g mask="url(#cvm)" fill="none" stroke="#B1A6FF" stroke-opacity=".07" stroke-width="1">${hx.join('')}</g>
+    <polygon points="380,0 600,0 600,128 300,128" fill="rgba(124,108,240,.07)"/><polygon points="470,0 600,0 600,128 410,128" fill="rgba(124,108,240,.06)"/>
+    <g transform="translate(520,64)">${big}</g></svg>`}
+
+/* ---------- 画面 ---------- */
+function card(){
+  const own=ST.viewer==='owner',fol=ST.viewer==='follower',priv=ST.priv==='1',locked=priv&&!own&&!fol,hasGame=ST.data!=='nogame';
+  const rv=ST.data==='full'?RES_V:[],rs=RES_S;
+  const actions=own?`<button class="ic" aria-label="リンクをコピー" data-t="リンクをコピーしました（見本）">${S('link',18)}</button><button class="btn s" data-t="プロフィールの編集（見本）">プロフィールを編集</button>`
+    :`<button class="ic" aria-label="その他" data-t="ブロック・報告・リンクをコピー（見本）">${S('dots',18)}</button>${locked?'':`<button class="ic" aria-label="メッセージ" data-t="メッセージ（見本）">${S('mail',18)}</button>`}
+      <button class="btn ${fol?'s':'p'}" data-t="（見本）">${fol?'フォロー中':locked?'フォローをリクエスト':'フォローする'}</button>`;
+  let h=`<section class="pc" aria-label="プレイヤーカード">
+    <div class="cv">${coverSvg(hasGame&&!locked?'gab':null)}</div>
+    <div class="idr"><span class="av" style="background:${USER.col}" aria-hidden="true">ミ</span><div class="acts">${actions}</div></div>
+    <div class="who">
+      <div class="nm"><span>${USER.name}</span>${priv?`<span class="lk" title="非公開アカウント" aria-label="非公開アカウント">${S('lock',16)}</span>`:''}</div>
+      <div class="hd"><span>@${USER.handle}</span>${fol?'<span class="fm">フォローされています</span>':''}<span class="since">${S('cal')}利用開始：${USER.since}</span></div>
+      ${locked?'':`<p class="bio">シングル中心。サイクルより対面が好きです。<a href="#">#構築紹介</a> をよく書きます。</p>`}
+      <div class="meta"><span class="st num"><b>${USER.posts}</b>投稿</span><button class="st num" data-t="フォロワーの一覧（見本）"><b>${USER.followers}</b><span>フォロワー</span></button><button class="st num" data-t="フォロー中の一覧（見本）"><b>${USER.following}</b><span>フォロー中</span></button></div>
+    </div>`;
+  if(locked)h+=`<div class="lockn">${S('lock',22)}<span><b>このアカウントは非公開です</b>フォローが許可されると、ゲームのプロフィールと投稿を見られます。</span></div>`;
+  else if(!hasGame){if(own)h+=`<button class="gadd" data-t="ゲームのプロフィールを追加（見本）"><span class="sig l" style="--c1:124,108,240">${S('plus',22)}</span><span><b>ゲームのプロフィールを追加</b><small>相棒・看板パーティ・シーズンの戦績をカードに出せます（なくてもかまいません）</small></span></button>`}
+  else{
+    h+=`<div class="gm" aria-label="${GAME.name}のプロフィール">
+      <a class="gp" href="#" data-t="${own?'このゲームのプロフィールを編集（見本）':'相棒の図鑑へ（見本）'}">${gameSig('l')}
+        <span class="gp-t"><b>${GAME.name}${own&&priv?`<span class="gp-vis">${S('lock')}フォロワーのみ</span>`:''}</b><span><em>相棒</em>${monSig('gab','xs')}ガブリアス</span></span>
+        <span class="gp-x">${S(own?'pen':'chev',18)}</span></a>
+      <div class="gf"><div><small>主な形式</small><b>シングル</b></div><div><small>確認済みの戦績</small><b class="num">${rv.length?rv.length+'件':'なし'}</b></div></div>
+      <div class="rec"><div class="rh"><h3>シーズンの戦績</h3><button id="what">${S('info')}確認済みとは</button></div>`;
+    if(rv.length){const best=rv.reduce((a,b)=>b.r<a.r?b:a);
+      h+=`<div class="best"><div class="best-n num"><b>${best.r}</b><i>位</i></div><div class="best-m"><small>最高位</small><b>${best.s}・${best.f}</b><span>${best.r<10?"最終1桁":best.r<100?"最終2桁":"最終3桁"}</span></div>${seal('lg')}</div>
+        <ul class="rl" aria-label="確認済みの戦績">${(ST.more?rv:rv.slice(0,3)).map(r=>`<li class="rr">${tierSvg(r.r)}<span class="rr-m"><b>${r.s}</b><small>${r.f}・${r.r<10?'最終1桁':r.r<100?'最終2桁':'最終3桁'}</small></span><span class="rr-p num">${r.r}<i>位</i></span>${sealIcon()}</li>`).join('')}</ul>
+        ${rv.length>3?`<button class="more" id="more" aria-expanded="${ST.more}">${ST.more?'閉じる':`もっと見る（${rv.length-3}件）`}${S('down')}</button>`:''}`}
+    h+=`<div class="self" aria-label="自己申告の戦績"><h4>自己申告 <small>運営者の確認はまだです</small></h4><ul class="rl">${rs.map(r=>`<li class="rr">${tierSvg(r.r,1)}<span class="rr-m"><b>${r.s}</b><small>${r.f}</small></span><span class="rr-p num">${r.r}<i>位</i></span><span class="sr-tag">自己申告</span></li>`).join('')}</ul></div></div>
+      <div class="sc"><div class="sc-h"><h3>看板パーティ</h3><span>ガブサーフ対面</span></div><div class="sc-g">${Object.keys(MONS).map(k=>`<a href="#" data-t="${MONS[k].n}の図鑑へ（見本）">${monSig(k,'s')}<small>${MONS[k].n}</small></a>`).join('')}</div></div>
+    </div>`}
+  h+=`</section>`;
+  /* 投稿 */
+  if(!locked)h+=`<div class="tabs" role="tablist"><button role="tab" aria-selected="true">${S('post',17)}投稿</button><button role="tab" aria-selected="false" data-t="画像（見本）">${S('img',17)}画像</button></div>`;
+  h+=locked?''
+    :`<article class="post"><span class="pa" style="background:${USER.col}">ミ</span><div><b>${USER.name}</b> <span class="ph">@${USER.handle}・2時間</span><p>S6 は最終1桁でした。ガブリアスとサーフゴーで前に出る形がいちばん安定しました。</p></div></article>
+      <article class="post"><span class="pa" style="background:${USER.col}">ミ</span><div><b>${USER.name}</b> <span class="ph">@${USER.handle}・1日</span><p>アシレーヌの持ち物、まだ迷っています。</p></div></article>`;
+  return h;
+}
+function render(){
+  const app=document.getElementById('app');const m=ST.dev==='m';app.classList.toggle('m',m);
+  document.getElementById('main').innerHTML=`<div class="top">${m?`<a class="ib" href="#" aria-label="戻る" data-t="戻る（見本）">${S('back')}</a>`:''}<b>${m?'':''}${USER.name}<small>投稿 ${USER.posts}件</small></b><a class="ib" href="#" aria-label="その他" data-t="（見本）">${S('dots')}</a></div>`+card();
+  document.getElementById('rail').innerHTML=`<div class="brand"><span class="mk"></span><span class="wm">Game Kid/s</span></div>`
+    +[['home','ホーム'],['search','検索'],['tool','ツール'],['grid','パーティ'],['mail','メッセージ'],['user','プロフィール',1]].map(([i,t,c])=>`<a class="ni" href="#"${c?' aria-current="page"':` data-t="${t}（見本）"`}>${S(i)}<span>${t}</span></a>`).join('')
+    +`<a class="qa" href="#" data-t="相性を調べる（見本）">${S('bolt',19)}相性を調べる</a><div class="me"><span class="pa" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:${USER.col}">ミ</span><span><b>${USER.name}</b><small>@${USER.handle}</small></span></div>`;
+  document.getElementById('side').innerHTML=m?'':`<div class="srch">${S('search',18)}ポケモン名で相性を調べる</div><div class="box"><h3>すぐ使う</h3>${[['bolt','タイプ相性','相手のポケモンから効く技'],['grid','ダメージ計算','乱数16段階まで'],['tool','選出アシスト','相手の6匹から3匹']].map(([i,t,d])=>`<a class="tl" href="#" data-t="${t}（見本）"><span class="ti">${S(i,18)}</span><span><b>${t}</b><small>${d}</small></span></a>`).join('')}</div>`;
+  document.getElementById('nav').innerHTML=[['home','ホーム'],['search','検索'],['tool','ツール'],['grid','パーティ'],['mail','メッセージ']].map(([i,t])=>`<a href="#" data-t="${t}（見本）">${S(i)}${t}</a>`).join('')
+    +`<button class="nav-q" aria-label="相性を調べる" data-t="相性を調べる（見本）"><svg class="hx" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2.5c1.4 0 2.7.4 3.9 1l12.5 7.2c2.4 1.4 3.9 4 3.9 6.8v13c0 2.8-1.5 5.4-3.9 6.8l-12.5 7.2a7.8 7.8 0 0 1-7.8 0L7.6 37.3c-2.4-1.4-3.9-4-3.9-6.8v-13c0-2.8 1.5-5.4 3.9-6.8l12.5-7.2c1.2-.6 2.5-1 3.9-1z" fill="var(--brand)"/></svg>${S('bolt',20)}</button>`;
+  document.querySelectorAll('.mk').forEach(e=>e.style.setProperty('--logo',`url(${LOGO})`));
+  document.querySelectorAll('[data-seal]').forEach(e=>{e.innerHTML=sealSvg()+'確認済み'});
+  document.querySelectorAll('.pv .g').forEach(g=>g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(ST[g.dataset.k]===b.dataset.v))));
+  const w=document.getElementById('what');if(w)w.onclick=()=>pop(true);
+  const mo=document.getElementById('more');if(mo)mo.onclick=()=>{ST.more=!ST.more;render()};
+}
+const toast=t=>{const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('on'),1600)};
+const pop=on=>{document.getElementById('pop').classList.toggle('on',on);document.getElementById('scrim').classList.toggle('on',on);if(on)document.getElementById('pop-x').focus()};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t){e.preventDefault();toast(t.dataset.t)}
+  const b=e.target.closest('.pv .g button');if(b){ST[b.parentNode.dataset.k]=b.dataset.v;ST.more=false;render()}
+  if(e.target.closest('#pop-x,#scrim'))pop(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')pop(false)});
+render();
+</script>
+</body>
+</html>

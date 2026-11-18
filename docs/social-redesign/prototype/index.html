@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game Kid/s ソーシャル見本 v2</title>
+<!--
+  Game Kid/s ソーシャルの作りかえ・デザインの見本（第2版 2026-11-17）
+  ・本番のサイトとは別のファイル。サーバーにはつながらず、外部の読み込みもない（このファイルだけで開ける）。
+  ・黄色い点線のもの（上の操作バー・番号の印・設計メモの欄・「見本」の知らせ）は見本のためだけの部品で、本番には出ない。
+  ・投稿・いいね・保存などは、この画面の中で見た目が変わるだけ。読み直すと元に戻る。
+  ・ポケモンの絵は使わず、当サイトと同じ「種族値の形」を描く。画像の見本2枚もこのページで描いた架空の風景。
+-->
+<style>
+/* ================= 色と大きさの決まり ================= */
+:root{
+  --bg:#000;--s1:rgba(255,255,255,.045);--s2:rgba(255,255,255,.075);--s3:rgba(255,255,255,.11);
+  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
+  --t1:#ECEDF2;--t2:#A4A9BB;--t3:#71768B;
+  --acc:#B3A8FF;--accf:#7C6CF0;--onacc:#fff;--acc-t:rgba(150,136,255,.16);--acc-rgb:124,108,240;
+  --glass:rgba(12,12,18,.62);--bar:rgba(52,52,64,.5);--sel:rgba(255,255,255,.14);
+  --ok:#3CCB95;--warn:#F2B544;--bad:#F2606A;--like:#F45B83;
+  --sh:0 1px 0 rgba(255,255,255,.04) inset;
+  --r-card:18px;--r-in:12px;
+  --proto:#F5D547;--proto-ink:#2a2300;
+}
+[data-theme=light]{
+  --bg:#EEF0F5;--s1:rgba(255,255,255,.74);--s2:rgba(255,255,255,.92);--s3:#fff;
+  --bd:rgba(30,32,60,.08);--bd2:rgba(30,32,60,.16);
+  --t1:#1E2030;--t2:#5D6377;--t3:#8D92A5;
+  --acc:#5B57D9;--accf:#5B57D9;--acc-t:rgba(91,87,217,.11);
+  --glass:rgba(246,247,251,.72);--bar:rgba(255,255,255,.62);--sel:rgba(30,32,60,.08);
+  --sh:0 1px 2px rgba(30,32,60,.04),0 6px 22px rgba(30,32,60,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#101016;color:var(--t1);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+[data-theme=light] body{background:#D9DCE5}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;padding:0}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:8px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ================= 見本の操作バー（本番には出ない） ================= */
+.pb{position:fixed;inset:0 0 auto 0;height:56px;z-index:80;display:flex;align-items:center;gap:10px;padding:0 14px;
+  background:#1B1B22;color:#E9E9EE;border-bottom:2px dashed var(--proto);font-size:13px}
+.pb-tag{display:flex;align-items:center;gap:8px;flex:none}
+.pb-tag b{background:var(--proto);color:var(--proto-ink);font-size:11.5px;font-weight:900;padding:4px 9px;border-radius:6px;letter-spacing:.02em}
+.pb-tag span{color:#B9B9C6;font-size:12px}
+.pb-g{display:flex;gap:2px;background:#2C2C36;border-radius:10px;padding:3px;flex:none}
+.pb-g button{padding:6px 11px;border-radius:8px;color:#B4B4C2;font-size:12.5px;white-space:nowrap}
+.pb-g button[aria-pressed=true]{background:#4A4A5A;color:#fff;font-weight:700}
+.pb-sp{flex:1}
+.pb-notes{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1.5px dashed var(--proto);color:var(--proto);font-weight:800;font-size:12.5px;flex:none}
+.pb-notes[aria-pressed=true]{background:var(--proto);color:var(--proto-ink)}
+.pb-menu{display:none;padding:7px 12px;border-radius:9px;background:#2C2C36;font-weight:700;flex:none}
+.pb-dd{display:none;position:fixed;top:60px;right:10px;left:10px;z-index:81;background:#1B1B22;border:2px dashed var(--proto);border-radius:14px;padding:12px;flex-direction:column;gap:10px;color:#eee;max-height:calc(100vh - 80px);overflow:auto}
+.pb-dd.on{display:flex}
+.pb-dd .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pb-dd .row>span{width:72px;color:#B9B9C6;font-size:12px}
+.pb-ctx{display:flex;gap:8px;align-items:center}
+.pb-ctx>span{color:#9a9aa8;font-size:11.5px}
+@media (max-width:1180px){.pb-full{display:none!important}.pb-menu{display:block}}
+@media (max-width:1560px){.pb.ctx .pb-full{display:none!important}.pb.ctx .pb-menu{display:block}}
+@media (max-width:1320px){.pb-tag span{display:none}}
+.pb-ctx>span{white-space:nowrap}
+
+/* ================= 舞台（PC は画面いっぱい、スマホは枠） ================= */
+.stage{position:fixed;inset:56px 0 0 0;display:flex;justify-content:center;align-items:flex-start;overflow:auto}
+.stage.m{padding:24px 0 48px;background:radial-gradient(70% 60% at 50% 0,rgba(124,108,240,.10),transparent 70%)}
+.app{position:relative;width:100%;height:100%;background:var(--bg);overflow:hidden;isolation:isolate;transition:background .3s}
+.stage.m .app{width:390px;height:844px;flex:none;border-radius:46px;border:11px solid #0A0A0D;box-shadow:0 0 0 1px #2a2a33,0 40px 90px rgba(0,0,0,.55)}
+.stage.full{padding:0}
+.stage.full .app{width:100%;height:100%;border:0;border-radius:0;box-shadow:none}
+.sbar,.notch{display:none}
+.stage.m:not(.full) .sbar{display:flex;position:absolute;top:0;left:0;right:0;height:44px;z-index:30;align-items:center;justify-content:space-between;padding:0 26px 0 32px;font-size:15px;font-weight:700;pointer-events:none}
+.sbar i{display:flex;gap:5px;align-items:center}
+.sbar i b{display:block;width:22px;height:11px;border-radius:3px;border:1.5px solid currentColor;position:relative}
+.sbar i b::after{content:'';position:absolute;inset:1.5px 5px 1.5px 1.5px;background:currentColor;border-radius:1px}
+.stage.m:not(.full) .notch{display:block;position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#000;z-index:31}
+
+/* 背景のレイヤー */
+.bgl{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.bgl .img{position:absolute;inset:-30px;background-position:center;background-size:cover}
+.bgl .ov{position:absolute;inset:0}
+
+/* ================= アプリの枠組み ================= */
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+.stage.m:not(.full) .scroll{top:44px}
+.cols{display:grid;grid-template-columns:264px minmax(0,600px) 330px;justify-content:center;min-height:100%}
+.stage.m .cols{display:block}
+@media (max-width:1240px){.stage:not(.m) .cols{grid-template-columns:88px minmax(0,600px)}.stage:not(.m) .side{display:none}
+  .stage:not(.m) .rail .lbl-t,.stage:not(.m) .rail .me-t,.stage:not(.m) .logo b{display:none}.stage:not(.m) .rail .ni,.stage:not(.m) .rail .post{justify-content:center;padding:0}}
+
+/* 左のメニュー */
+.rail{position:sticky;top:0;height:calc(100vh - 56px);padding:18px 14px 16px;display:flex;flex-direction:column;gap:2px}
+.stage.m .rail{display:none}
+.logo{display:flex;align-items:center;gap:10px;padding:2px 12px 18px;font-size:18px;font-weight:900;letter-spacing:.01em}
+.logo svg{width:30px;height:30px;color:var(--t1)}
+.ni{display:flex;align-items:center;gap:14px;height:48px;padding:0 14px;border-radius:14px;font-size:15.5px;color:var(--t2);transition:background .15s,color .15s}
+.ni svg.i{width:23px;height:23px}
+.ni:hover{background:var(--s1);color:var(--t1)}
+.ni[aria-current=page]{color:var(--t1);font-weight:800;background:var(--s2)}
+.ni[aria-current=page] svg.i{color:var(--acc)}
+.ni .badge{margin-left:auto;min-width:20px;height:20px;border-radius:10px;background:var(--accf);color:var(--onacc);font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 6px}
+.rail .post{margin:14px 0 0;height:50px;border-radius:16px;background:var(--accf);color:var(--onacc);font-weight:800;font-size:15.5px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 24px rgba(var(--acc-rgb),.28)}
+.rail .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px}
+.rail .me:hover{background:var(--s1)}
+.rail .me small{display:block;color:var(--t3);font-size:12px}
+
+/* 真ん中 */
+.main{min-width:0;border-left:1px solid var(--bd);border-right:1px solid var(--bd);min-height:100%}
+.stage.m .main{border:0;padding-bottom:120px}
+.hd{position:sticky;top:0;z-index:10;background:var(--glass);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid var(--bd)}
+.hd-r{display:flex;align-items:center;gap:8px;height:56px;padding:0 12px 0 16px}
+.hd-r h1{font-size:18px;margin:0;font-weight:800;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.hd-r h1 small{display:block;font-size:12px;color:var(--t3);font-weight:500}
+.hd-mid{flex:1;display:flex;justify-content:center}
+.hd-mid svg{width:26px;height:26px}
+.ib{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--t1);flex:none}
+.ib:hover{background:var(--s2)}
+.only-m{display:none!important}.stage.m .only-m{display:flex!important}.stage.m .only-d{display:none!important}
+.tabs{display:flex}
+.tabs button{flex:1;height:46px;position:relative;color:var(--t3);font-weight:700;font-size:14.5px}
+.tabs button:hover{background:var(--s1)}
+.tabs button[aria-selected=true]{color:var(--t1)}
+.tabs button[aria-selected=true]::after{content:'';position:absolute;left:50%;bottom:0;width:52px;height:3px;border-radius:3px;background:var(--accf);transform:translateX(-50%)}
+
+/* 右の列 */
+.side{padding:18px 22px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:calc(100vh - 56px);overflow:auto}
+.stage.m .side{display:none}
+.srch{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:14px;background:var(--s1);border:1px solid var(--bd);color:var(--t3);font-size:14px;flex:none}
+.panel{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r-card);box-shadow:var(--sh)}
+.panel>h3{margin:0;padding:14px 16px 6px;font-size:15px;font-weight:800}
+.ql{display:flex;align-items:center;gap:12px;padding:10px 16px}
+.ql:hover{background:var(--s1)}
+.ql .qi{width:36px;height:36px;border-radius:11px;background:var(--acc-t);color:var(--acc);display:grid;place-items:center;flex:none}
+.ql b{display:block;font-size:14px}
+.ql small{display:block;color:var(--t3);font-size:12px}
+.side-foot{font-size:11.5px;color:var(--t3);padding:0 6px}
+
+/* 下のメニュー（スマホ） */
+.tabbar,.fab,.mfoot{display:none}
+.stage.m .tabbar{display:flex;position:absolute;left:14px;right:14px;bottom:22px;height:62px;border-radius:31px;z-index:20;padding:5px;
+  background:var(--bar);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 12px 30px rgba(0,0,0,.28);border:1px solid var(--bd)}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;border-radius:26px;color:var(--t2)}
+.tabbar a[aria-current=page]{background:var(--sel);color:var(--t1);font-weight:800}
+.tabbar a[aria-current=page] svg.i{color:var(--acc)}
+.tabbar svg.i{width:23px;height:23px}
+.stage.m.flow .tabbar{display:none}
+.stage.m .fab.on{display:grid;place-items:center;position:absolute;right:20px;bottom:100px;width:58px;height:58px;z-index:21;color:var(--onacc)}
+.fab svg.hx{position:absolute;inset:0;width:58px;height:58px;filter:drop-shadow(0 8px 16px rgba(var(--acc-rgb),.35))}
+.fab svg.i{position:relative;width:23px;height:23px}
+.stage.m .mfoot.on{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:22;gap:10px;padding:12px 16px 30px;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--bd)}
+.mfoot .btn{flex:1}
+
+/* ================= 共通の部品 ================= */
+.av{border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;padding:0 20px;border-radius:999px;font-weight:800;font-size:14.5px;white-space:nowrap;transition:filter .15s,background .15s,opacity .15s}
+.btn:hover{filter:brightness(1.08)}
+.btn-p{background:var(--accf);color:var(--onacc)}
+.btn-p:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.btn-o{border:1px solid var(--bd2);background:var(--s1)}
+.btn-g{color:var(--t2)}
+.btn-s{height:34px;padding:0 15px;font-size:13px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r-card);box-shadow:var(--sh)}
+.sec-t{font-size:12px;color:var(--t3);font-weight:800;letter-spacing:.06em;margin:22px 20px 10px;display:flex;align-items:center;gap:8px}
+.sec-t::after{content:'';flex:1;height:1px;background:var(--bd)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);opacity:0;transition:.22s;z-index:90;display:flex;gap:10px;align-items:center;
+  background:#1D1D25;color:#fff;padding:11px 16px 11px 12px;border-radius:12px;font-size:13px;pointer-events:none;max-width:calc(100vw - 32px);border-left:4px solid var(--proto);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.toast b{background:var(--proto);color:var(--proto-ink);font-size:10.5px;padding:2px 6px;border-radius:4px;flex:none}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+/* カテゴリ（色は小さな点だけ） */
+.cd{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.cat-label{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--t2);padding:3px 9px 3px 8px;border-radius:999px;background:var(--s2);margin:3px 0 4px}
+.chips{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--bd);align-items:center}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--bd2);font-size:13px;font-weight:700;color:var(--t2)}
+.chip:hover{background:var(--s1)}
+.chip[aria-pressed=true]{background:var(--t1);color:var(--bg);border-color:transparent}
+
+/* 投稿欄 */
+.cmp{display:flex;gap:12px;padding:16px;border-bottom:1px solid var(--bd)}
+.cmp .b{flex:1;min-width:0}
+.cmp textarea{width:100%;border:0;background:transparent;resize:none;font-size:16px;line-height:1.5;padding:8px 0 4px;min-height:54px;outline:none;color:var(--t1)}
+.cmp textarea::placeholder{color:var(--t3)}
+.cmp-att{display:flex;align-items:center;gap:8px;margin:4px 0 8px;font-size:12.5px;color:var(--t2)}
+.cmp-row{display:flex;align-items:center;gap:4px;padding-top:10px;border-top:1px solid var(--bd);margin-top:6px;flex-wrap:wrap}
+.cmp-row .ib{color:var(--acc);width:36px;height:36px}
+.cmp-row .ib:hover{background:var(--acc-t)}
+.catbtn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 12px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--acc);border:1px solid rgba(var(--acc-rgb),.45);margin-left:4px}
+.catbtn[data-set]{color:var(--t1);border-color:var(--bd2);background:var(--s2)}
+.cmp-row .cnt{font-size:12px;color:var(--t3);margin-right:4px}
+.cmp-row .sp{flex:1}
+.cnt.over{color:var(--bad);font-weight:800}
+.menuw{position:relative}
+.menu{position:absolute;top:38px;left:0;z-index:15;min-width:230px;background:var(--s3);border:1px solid var(--bd2);border-radius:14px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.35);display:none}
+[data-theme=dark] .menu{background:#1C1C24}
+.menu.on{display:block}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:9px;font-size:13.5px;font-weight:600;text-align:left;color:var(--t1)}
+.menu button:hover{background:var(--s2)}
+.menu button small{color:var(--t3);font-weight:500;margin-left:auto;font-size:11.5px}
+.menu .ck{margin-left:auto;color:var(--acc)}
+
+/* 投稿 */
+.tw{display:flex;gap:12px;padding:16px;border-bottom:1px solid var(--bd);transition:background .15s}
+.tw:hover{background:rgba(127,127,140,.035)}
+.tw.new{animation:twIn .9s ease}
+@keyframes twIn{from{background:var(--acc-t)}to{background:transparent}}
+.tw .b{flex:1;min-width:0}
+.tw .h{display:flex;align-items:center;gap:6px;font-size:13.5px;min-width:0;height:22px}
+.tw .h b{font-size:14.5px;white-space:nowrap}
+.tw .h .u{color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tw .h .bot{font-size:10.5px;font-weight:800;color:var(--t2);border:1px solid var(--bd2);padding:0 5px;border-radius:4px}
+.tw .h .more{margin-left:auto;color:var(--t3);width:30px;height:30px}
+.tw .t{font-size:14.5px;line-height:1.62;margin-top:2px;word-break:break-word;white-space:pre-wrap}
+.mon{color:var(--acc);font-weight:700;white-space:nowrap;text-decoration:underline;text-decoration-color:rgba(var(--acc-rgb),.45);text-underline-offset:3px;text-decoration-thickness:1px}
+.mon:hover{text-decoration-color:currentColor}
+.tg{color:var(--acc)}
+.tw .a{display:flex;justify-content:space-between;align-items:center;max-width:430px;margin:10px 0 -6px -8px;color:var(--t3)}
+.tw .a button{display:flex;align-items:center;gap:4px;font-size:13px;padding:6px 8px;border-radius:999px;transition:color .15s,background .15s;min-width:44px}
+.tw .a button:hover{color:var(--acc);background:var(--acc-t)}
+.tw .a button.like[aria-pressed=true]{color:var(--like)}
+.tw .a button.like[aria-pressed=true] svg{fill:currentColor}
+.tw .a button.bm[aria-pressed=true]{color:var(--acc)}
+.tw .a button.bm[aria-pressed=true] svg{fill:currentColor}
+.tw .a svg.i{width:19px;height:19px}
+.lnk{margin-top:10px;border:1px solid var(--bd2);border-radius:14px;display:flex;align-items:center;gap:12px;padding:12px 14px}
+.lnk:hover{background:var(--s1)}
+.lnk .li{width:40px;height:40px;border-radius:10px;background:var(--s2);display:grid;place-items:center;color:var(--t2);flex:none}
+.lnk small{display:block;color:var(--t3);font-size:12px}
+.lnk b{font-size:13.5px}
+.media{margin-top:10px;border-radius:16px;overflow:hidden;border:1px solid var(--bd);aspect-ratio:16/9;position:relative}
+.media canvas{width:100%;height:100%;display:block}
+.media em{position:absolute;right:10px;bottom:8px;font-style:normal;font-size:10.5px;color:#fff;background:rgba(0,0,0,.45);padding:2px 7px;border-radius:6px}
+
+/* 共有したパーティ（投稿の中） */
+.tm{margin-top:10px;border:1px solid var(--bd2);border-radius:16px;overflow:hidden}
+.tm-h{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bd);flex-wrap:wrap;background:var(--s1)}
+.tm-h .ti{color:var(--acc)}
+.tm-h b{font-size:13.5px}
+.tm-h .fm{font-size:11.5px;color:var(--t3)}
+.disc{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--t2);border:1px solid var(--bd2);padding:2px 8px 2px 6px;border-radius:999px}
+.tm-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.tm-m{padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.tm-m:nth-child(3n){border-right:0}
+.tm-m:nth-last-child(-n+3){border-bottom:0}
+.tm-m .shp{width:44px;height:44px}
+.tm-m b{font-size:12.5px;line-height:1.3}
+.ty{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.ty i{font-style:normal;font-size:9.5px;font-weight:800;color:#fff;padding:1px 6px;border-radius:5px;line-height:1.5}
+.tm-m .dt{font-size:11px;color:var(--t2);line-height:1.4;width:100%;overflow-wrap:anywhere}
+.tm-m .dt.mv{color:var(--t3);font-size:10.5px}
+.tm-f{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;border-top:1px solid var(--bd);background:var(--s1)}
+.tm-f .btn{margin-left:auto}
+
+/* ================= プレイヤーカード ================= */
+.pc-cover{height:168px;position:relative;overflow:hidden;background:linear-gradient(125deg,var(--c1),var(--c2))}
+.pc-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.28))}
+.pc-cover .hexp{position:absolute;inset:0;width:100%;height:100%;opacity:.14}
+.pc-cover .big{position:absolute;right:18px;top:-18px;width:190px;height:190px}
+.pc-top{padding:0 20px;position:relative;display:flow-root}
+.pc-av{width:96px;height:96px;margin-top:-48px;border:4px solid var(--bg);box-shadow:0 0 0 2.5px var(--c1);font-size:36px;position:relative;z-index:1}
+.pc-acts{position:absolute;right:20px;top:14px;display:flex;gap:8px}
+.pc-nm{margin-top:12px;font-size:23px;font-weight:900;line-height:1.25}
+.pc-id{color:var(--t3);font-size:14px}
+.pc-bio{margin:10px 0 8px;font-size:14.5px}
+.pc-meta{display:flex;gap:16px;color:var(--t3);font-size:13px;flex-wrap:wrap}
+.pc-meta span{display:inline-flex;align-items:center;gap:5px}
+.pc-stats{display:flex;gap:6px 18px;margin:14px 0 6px;flex-wrap:wrap;font-size:14px}
+.pc-stats button,.pc-stats span.st{display:flex;gap:5px;align-items:baseline;color:var(--t3)}
+.pc-stats b{color:var(--t1);font-size:15px}
+.pc-stats button:hover span{text-decoration:underline}
+.gp{margin:0 16px 16px;overflow:hidden}
+.gp-h{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--bd)}
+.gmark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:11.5px;font-weight:900;flex:none}
+.gp-h>div{min-width:0;flex:1}.gp-h b{font-size:15px;display:block;line-height:1.3}.gp-h small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gp-h small{display:block;color:var(--t3);font-size:12px}
+.vis{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--t2);border:1px solid var(--bd2);border-radius:999px;padding:3px 9px 3px 7px;white-space:nowrap}
+.vis.priv{color:var(--warn);border-color:rgba(242,181,68,.4)}
+.gp-sec{padding:14px 16px;border-bottom:1px solid var(--bd)}
+.gp-k{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;color:var(--t3);letter-spacing:.04em;margin-bottom:10px}
+.gp-k button{font-size:12.5px;color:var(--acc);font-weight:700;letter-spacing:0;padding:4px 6px;border-radius:8px}
+.gp-k button:hover{background:var(--acc-t)}
+.partner{display:flex;align-items:center;gap:12px}
+.partner .shp{width:48px;height:48px}
+.partner b{font-size:15.5px;display:block;margin-bottom:2px}
+.partner .ty{justify-content:flex-start}
+.rk-l{display:flex;flex-direction:column;gap:8px}
+.rk{display:flex;align-items:center;gap:6px 10px;padding:10px 12px;border-radius:12px;background:var(--s1);border:1px solid var(--bd);flex-wrap:wrap}
+.rk .main-t{font-weight:800;font-size:14px}
+.rk .sub{color:var(--t2);font-size:13px}
+.rk .when{margin-left:auto;color:var(--t3);font-size:12px}
+.vb{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 9px 2px 7px;border-radius:999px;white-space:nowrap}
+.vb.v{background:var(--acc-t);color:var(--acc)}
+.vb.s{border:1px dashed var(--t3);color:var(--t2);padding:1px 9px}
+.rk-legend{font-size:12px;color:var(--t3);margin-top:10px;line-height:1.6}
+.sc6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.sc6 a{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--t2);min-width:0;padding:8px 2px;border-radius:12px}
+.sc6 a:hover{background:var(--s1)}
+.sc6 .shp{width:42px;height:42px}
+.sc6 span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-more{display:flex;align-items:center;gap:10px;padding:12px 16px;color:var(--t3);font-size:12.5px;background:var(--s1)}
+.empty{padding:28px 20px;text-align:center;color:var(--t3);font-size:13.5px}
+.empty b{display:block;color:var(--t1);font-size:15px;margin-bottom:4px}
+
+/* ================= 共有の画面 ================= */
+.stepper{display:flex;gap:6px;padding:14px 16px 4px}
+.stepper span{flex:1;height:4px;border-radius:2px;background:var(--s3)}
+.stepper span.on{background:var(--accf)}
+.blk{margin:12px 16px;padding:16px}
+.blk h3{margin:0 0 4px;font-size:15.5px;display:flex;align-items:center;gap:10px}
+.blk h3 .n{width:24px;height:24px;border-radius:50%;background:var(--acc-t);color:var(--acc);font-size:12.5px;font-weight:900;display:grid;place-items:center;flex:none}
+.blk .lead{margin:0 0 12px 34px;color:var(--t3);font-size:12.5px}
+.blk .lead.l0{margin-left:0}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--bd2);margin-top:8px;transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){background:var(--s1)}
+.opt small{display:block;color:var(--t3);font-size:12px;margin-top:1px}
+.opt b{font-size:14px}
+.opt .rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--t3);flex:none;display:grid;place-items:center}
+.opt[aria-checked=true]{border-color:var(--accf);background:var(--acc-t)}
+.opt[aria-checked=true] .rd{border-color:var(--accf)}
+.opt[aria-checked=true] .rd::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--accf)}
+.opt:disabled{opacity:.42;cursor:not-allowed}
+.opt .mini{display:flex;gap:1px;margin-left:auto;flex:none}
+.opt .mini svg{width:22px;height:22px}
+.stage.m .opt .mini{display:none}
+.opt .tx{min-width:0}
+.lockbox{display:flex;gap:12px;padding:12px 14px;border-radius:14px;background:var(--s2);font-size:12.5px;color:var(--t2);margin-top:12px}
+.lockbox svg{color:var(--t2);margin-top:2px}
+.lockbox b{color:var(--t1);font-size:13px}
+.lockbox ul{margin:4px 0 0;padding-left:18px}
+.prv-text{width:100%;border:1px solid var(--bd2);border-radius:12px;background:transparent;padding:10px 12px;resize:vertical;min-height:64px;font-size:16px;outline:none;line-height:1.5}
+.prv-text:focus{border-color:var(--accf)}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.stage.m .actions.flow-a{display:none}
+.snap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.snap>div{border:1px solid var(--bd);border-radius:12px;padding:10px;background:var(--s1);min-width:0}
+.snap small{display:block;font-size:11.5px;color:var(--t3);margin-bottom:6px;font-weight:700}
+.snap .row6{display:flex;flex-wrap:wrap;gap:2px}
+.snap .row6 svg{width:26px;height:26px}
+.snap .diff{border-radius:50%;box-shadow:0 0 0 2px var(--warn)}
+
+/* ================= 背景の設定 ================= */
+.pre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.pre button{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--t2);min-width:0}
+.pre button[aria-checked=true]{color:var(--t1)}
+.pre .sw{width:100%;aspect-ratio:3/4.2;border-radius:14px;border:1px solid var(--bd2);position:relative;overflow:hidden;transition:box-shadow .15s}
+.pre .sw .ln{position:absolute;left:14%;right:14%;height:6%;border-radius:4px;background:rgba(255,255,255,.18)}
+[data-theme=light] .pre .sw .ln{background:rgba(30,32,60,.12)}
+.pre button[aria-checked=true] .sw{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accf)}
+.pre .tag{font-size:10px;color:var(--t3);font-weight:600;margin-top:-5px;white-space:nowrap}
+.seg{display:flex;gap:2px;background:var(--s2);border-radius:11px;padding:3px}
+.seg button{flex:1;height:34px;border-radius:9px;font-size:13px;font-weight:700;color:var(--t2)}
+.seg button[aria-checked=true]{background:var(--s3);color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+[data-theme=dark] .seg button[aria-checked=true]{background:rgba(255,255,255,.14)}
+.fld{margin-top:16px}
+.fld>label,.fld>.k{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px}
+.fld>label output{color:var(--t3);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accf);height:24px;margin:0}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap}
+.thumbs button,.thumbs label{width:76px;height:76px;border-radius:14px;background-size:cover;background-position:center;border:1px solid var(--bd2);transition:box-shadow .15s}
+.thumbs button[aria-checked=true]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accf)}
+.thumbs label{border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;font-size:11px;color:var(--t2);cursor:pointer;position:relative}
+.meter{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--s2)}
+.meter .top{display:flex;align-items:center;gap:10px;font-size:13px}
+.meter .bar{flex:1;height:6px;border-radius:3px;background:var(--s3);position:relative}
+[data-theme=light] .meter .bar{background:rgba(30,32,60,.1)}
+.meter .bar i{display:block;height:100%;border-radius:3px;transition:width .2s}
+.meter .bar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--t2);left:45%;border-radius:1px}
+.meter p{margin:6px 0 0;font-size:12px;color:var(--t3)}
+.tgl{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:13.5px;cursor:pointer}
+.tgl input{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:13px;background:var(--s3);position:relative;flex:none;cursor:pointer;transition:background .2s;border:1px solid var(--bd2);margin:0}
+[data-theme=light] .tgl input{background:rgba(30,32,60,.14)}
+.tgl input::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tgl input:checked{background:var(--accf)}
+.tgl input:checked::after{transform:translateX(18px)}
+.tgl small{display:block;color:var(--t3);font-size:12px}
+.dots{display:flex;gap:14px;flex-wrap:wrap}
+.dots button{width:36px;height:36px;border-radius:50%}
+.dots button[aria-checked=true]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--t1)}
+.sync{display:grid;gap:10px}
+.sync>div{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:12px;background:var(--s1);border:1px solid var(--bd)}
+.sync .si{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--acc-t);color:var(--acc)}
+.sync .si.l{background:var(--s2);color:var(--t2)}
+.sync b{font-size:13.5px;display:block}
+.sync small{color:var(--t3);font-size:12px}
+.prev-wrap{margin:0 16px;overflow:hidden}
+.prev-wrap .tw{border-bottom:0}
+
+/* ================= 設計メモ（本番には出ない） ================= */
+.pin{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--proto);color:var(--proto-ink);font-size:11px;font-weight:900;vertical-align:middle;flex:none;box-shadow:0 0 0 3px rgba(245,213,71,.22);cursor:pointer;line-height:1;margin:0 4px;font-family:inherit}
+.pin.abs{position:absolute;z-index:6;margin:0}
+.tw .a button.pin{justify-content:center;min-width:0;width:20px;height:20px;padding:0;color:var(--proto-ink);background:var(--proto);border-radius:50%;font-size:11px;gap:0}
+.tw .a button.pin:hover{color:var(--proto-ink);background:var(--proto)}
+body.no-notes .pin{display:none!important}
+.np{position:fixed;top:56px;right:0;bottom:0;width:390px;max-width:100vw;z-index:70;background:#17171D;color:#E7E7EE;border-left:2px dashed var(--proto);transform:translateX(102%);transition:transform .25s ease;display:flex;flex-direction:column;visibility:hidden}
+.np.on{transform:none;visibility:visible}
+.np-h{display:flex;align-items:center;gap:8px;padding:12px 12px 12px 16px;border-bottom:1px solid #2a2a33}
+.np-h b{flex:1;font-size:14px}
+.np-h b em{font-style:normal;background:var(--proto);color:var(--proto-ink);font-size:10.5px;padding:2px 6px;border-radius:4px;margin-right:6px}
+.np-b{overflow:auto;padding:12px 16px 40px;font-size:13px;line-height:1.65}
+.np-n{display:flex;gap:10px;padding:10px;border-radius:12px;margin-bottom:6px;transition:background .3s}
+.np-n.hl{background:rgba(245,213,71,.13)}
+.np-n .pin{margin:2px 0 0;box-shadow:none;cursor:default}
+.np-n b{display:block;color:#fff}
+.tagd{display:inline-block;font-size:10.5px;font-weight:800;color:#C8BFFF;border:1px solid #4b4570;border-radius:4px;padding:0 5px;margin:2px 4px 2px 0;line-height:1.6}
+.tagd.u{color:#FFCF7A;border-color:#6b5427}
+.np-sec{font-size:11px;font-weight:900;letter-spacing:.08em;color:#8e8e9c;margin:18px 0 8px}
+.np textarea{width:100%;min-height:76px;background:#22222a;border:1px solid #33333d;border-radius:10px;color:#fff;padding:9px 10px;font-size:13px;resize:vertical}
+.np .demo-out{margin-top:8px;padding:10px;border-radius:10px;background:#000;line-height:1.7;font-size:14px;white-space:pre-wrap;color:#ECEDF2;--acc:#B3A8FF;--acc-rgb:124,108,240}
+.np ul.why{margin:6px 0 0;padding-left:18px;color:#bdbdca;font-size:12px}
+.np .mini-x{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#ddd}
+.np .mini-x:hover{background:#2a2a33}
+.np .tgl input{background:#33333d}
+.np .tgl input:checked{background:#7C6CF0}
+.ur{display:flex;gap:8px;margin-bottom:6px;font-size:12.5px;color:#d8d8e2}
+</style>
+</head>
+<body>
+
+<!-- ============ 見本の操作バー ============ -->
+<div class="pb" role="toolbar" aria-label="見本の操作（本番には出ません）">
+  <div class="pb-tag"><b>デザインの見本</b><span class="pb-full">実際の投稿・保存・通信はしません</span></div>
+  <div class="pb-g pb-full" id="pb-scr" role="group" aria-label="画面"></div>
+  <div class="pb-sp"></div>
+  <div class="pb-ctx pb-full" id="pb-ctx"></div>
+  <div class="pb-g pb-full" id="pb-dev" role="group" aria-label="端末"></div>
+  <div class="pb-g pb-full" id="pb-th" role="group" aria-label="明るさ"></div>
+  <button class="pb-notes" id="pb-notes" aria-pressed="false">設計メモ</button>
+  <button class="pb-menu" id="pb-menu" aria-expanded="false">見本の操作 ▾</button>
+</div>
+<div class="pb-dd" id="pb-dd" aria-label="見本の操作"></div>
+
+<!-- ============ 見本のアプリ ============ -->
+<div class="stage" id="stage"><div class="app" id="app">
+  <div class="bgl" aria-hidden="true"><div class="img" id="bgimg"></div><div class="ov" id="bgov"></div></div>
+  <div class="notch" aria-hidden="true"></div>
+  <div class="sbar" aria-hidden="true"><span>21:08</span><i><svg class="i" viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M2 18h3v3H2zM7 14h3v7H7zM12 10h3v11h-3zM17 6h3v15h-3z" fill="currentColor" stroke="none"/></svg><b></b></i></div>
+  <div class="scroll" id="scroll"><div class="cols">
+    <nav class="rail" id="rail" aria-label="メニュー"></nav>
+    <main class="main" id="main"></main>
+    <aside class="side" id="side" aria-label="よく使う機能"></aside>
+  </div></div>
+  <nav class="tabbar" id="tabbar" aria-label="メニュー"></nav>
+  <button class="fab" id="fab" aria-label="投稿する"><svg class="hx" viewBox="0 0 58 58" aria-hidden="true"><path d="M29 2.5 51.9 15.75v26.5L29 55.5 6.1 42.25v-26.5z" fill="var(--accf)"/></svg><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
+  <div class="mfoot" id="mfoot"></div>
+</div></div>
+
+<aside class="np" id="np" aria-label="設計メモ"></aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   見本のデータ（架空の利用者・投稿・パーティ）
+   ===================================================================== */
+const IC={
+ home:'<path d="M4 10.5 12 4l8 6.5V20h-5v-6h-6v6H4z"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+ tool:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+ party:'<path d="M12 3.5 19.4 7.8v8.4L12 20.5 4.6 16.2V7.8z"/><path d="M12 3.5v17M4.6 7.8l14.8 8.4M19.4 7.8 4.6 16.2"/>',
+ mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="m4 7 8 6 8-6"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+ user:'<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/>',bookmark:'<path d="M6.5 4h11v16.5L12 16.5l-5.5 4z"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>',
+ reply:'<path d="M20 12a7.5 7.5 0 0 1-10.8 6.7L4.5 20l1.4-4.2A7.5 7.5 0 1 1 20 12z"/>',repost:'<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5M17 7v5M7 17v-5"/>',
+ heart:'<path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z"/>',
+ share:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M5 13v6.5h14V13"/>',image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 16-5-5-8.5 8.5"/>',
+ lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>',
+ back:'<path d="M15 5 8 12l7 7"/>',down:'<path d="m6 9 6 6 6-6"/>',close:'<path d="M6 6l12 12M18 6 6 18"/>',
+ cal:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',calc:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',book:'<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>',
+ eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+ pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',check:'<path d="m5 12.5 4.5 4.5L19 7"/>',
+ dev:'<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/>',cloud:'<path d="M7 18.5a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4.5 4.5 0 0 1-.5 9z"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ dots:'<circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/>',
+ tag:'<path d="M4 4h7.5L20 12.5 12.5 20 4 11.5z"/><circle cx="8.5" cy="8.5" r="1.3"/>',reset:'<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4.5v3.5h3.5"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>'};
+const S=(k,s)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"${s?` style="width:${s}px;height:${s}px"`:''}>${IC[k]}</svg>`;
+const MARK=`<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2.5 23.8 16.2 37.5 20 23.8 23.8 20 37.5 16.2 23.8 2.5 20 16.2 16.2z" fill="currentColor"/><circle cx="20" cy="20" r="3" fill="var(--bg)"/></svg>`;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ゲームの一覧（本番の GAMES と同じ考え方：いまは1つだけ。画面はこの表から作る） */
+const GAMES=[{id:'pokechamp',name:'ポケモンチャンピオンズ',short:'ポケ',color:'#FFCB05',ink:'#2a2200'}];
+
+const TY={dragon:['ドラゴン','#6656D8'],ground:['じめん','#B98A3A'],steel:['はがね','#6E8296'],ghost:['ゴースト','#6A4F8E'],water:['みず','#3779DB'],fairy:['フェアリー','#C76F9E'],flying:['ひこう','#7E82DC'],fire:['ほのお','#DD6A26']};
+/* 種族値（HP・攻撃・防御・素早さ・特防・特攻）→「種族値の形」。公式の画像は使わない */
+const MON={
+ gab:{n:'ガブリアス',en:'Garchomp',t:['dragon','ground'],s:[108,130,95,102,85,80],it:'きあいのタスキ',ab:'さめはだ',nat:'ようき',mv:['じしん','げきりん','ステルスロック','つるぎのまい']},
+ surf:{n:'サーフゴー',en:'Gholdengo',t:['steel','ghost'],s:[87,60,95,84,91,133],it:'こだわりスカーフ',ab:'おうごんのからだ',nat:'おくびょう',mv:['ゴールドラッシュ','シャドーボール','トリック','わるだくみ']},
+ ashi:{n:'アシレーヌ',en:'Primarina',t:['water','fairy'],s:[80,74,74,60,116,126],it:'しんぴのしずく',ab:'げきりゅう',nat:'ひかえめ',mv:['うたかたのアリア','ムーンフォース','アクアジェット','まもる']},
+ armor:{n:'アーマーガア',en:'Corviknight',t:['flying','steel'],s:[98,87,105,67,85,53],it:'オボンのみ',ab:'ミラーアーマー',nat:'わんぱく',mv:['ブレイブバード','ボディプレス','はねやすめ','とんぼがえり']},
+ wind:{n:'ウインディ',en:'Arcanine',t:['fire'],s:[90,110,80,95,80,100],it:'シュカのみ',ab:'いかく',nat:'いじっぱり',mv:['フレアドライブ','しんそく','おにび','ほえる']},
+ kai:{n:'カイリュー',en:'Dragonite',t:['dragon','flying'],s:[91,134,95,80,100,100],it:'いのちのたま',ab:'マルチスケイル',nat:'いじっぱり',mv:['しんそく','げきりん','りゅうのまい','じしん']},
+ dpt:{n:'ドラパルト',en:'Dragapult',t:['dragon','ghost'],s:[88,120,75,142,75,100],it:'いのちのたま',ab:'すりぬけ',nat:'ようき',mv:['ドラゴンアロー','ゴーストダイブ','とんぼがえり','りゅうのまい']}};
+function shape(k){const m=MON[k],c1=TY[m.t[0]][1],c2=TY[m.t[1]||m.t[0]][1],R=44;
+  const P=f=>m.s.map((v,i)=>{const a=-Math.PI/2+i*Math.PI/3,r=R*f(v);return (r*Math.cos(a)).toFixed(1)+','+(r*Math.sin(a)).toFixed(1)}).join(' ');
+  return `<svg class="shp" viewBox="-50 -50 100 100" role="img" aria-label="${m.n}"><polygon points="${P(()=>1)}" fill="none" stroke="currentColor" stroke-opacity=".16" stroke-width="2"/><polygon points="${P(v=>Math.max(.12,Math.min(1,v/150)))}" fill="${c1}" stroke="${c2}" stroke-width="5" stroke-linejoin="round"/></svg>`}
+const tyChips=m=>`<span class="ty">${m.t.map(t=>`<i style="background:${TY[t][1]}">${TY[t][0]}</i>`).join('')}</span>`;
+const AV=(ch,c,s,cls)=>`<span class="av${cls?' '+cls:''}" style="width:${s}px;height:${s}px;background:${c};font-size:${Math.round(s*.42)}px" aria-hidden="true">${ch}</span>`;
+const ME={ch:'ミ',c:'#6656D8',name:'ミナト',id:'minato_pk'};
+
+const CATS=[{k:'battle',t:'対戦募集',c:'#E2666F',d:'対戦の相手を探す'},{k:'build',t:'構築相談',c:'#3CB98A',d:'パーティの組み方を相談'},{k:'q',t:'質問',c:'#5B9BF0',d:'わからないことを聞く'},{k:'chat',t:'雑談',c:'#E3A73E',d:'なんでも話す'}];
+const catOf=k=>CATS.find(c=>c.k===k);
+const catLabel=k=>{const c=catOf(k);return c?`<span class="cat-label"><i class="cd" style="background:${c.c}"></i>${c.t}</span>`:''};
+
+/* =====================================================================
+   ポケモンの名前の自動リンク（D4 の決まりを見本で再現）
+   ・kfold：ひらがな→カタカナ、小さい字→大きい字（本番の検索と同じ考え方。1文字ずつ置きかえるので位置がずれない）
+   ・日本語：前後がカタカナ・長音・英数字なら別の言葉の一部とみなしてリンクしない（英語の単語の区切りは使わない）
+   ・英語：単語の区切り（\b）で、大文字小文字を同じに見る
+   ・3文字未満は対象外、除外リストの名前も対象外、#タグと@IDの中は見ない、同じポケモンは1回だけ
+   ===================================================================== */
+const SMALL={'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ','ッ':'ツ','ャ':'ヤ','ュ':'ユ','ョ':'ヨ','ヮ':'ワ','ヵ':'カ','ヶ':'ケ'};
+const kfold=s=>[...s].map(ch=>{const c=ch.charCodeAt(0);const k=(c>=0x3041&&c<=0x3096)?String.fromCharCode(c+0x60):ch;return SMALL[k]||k}).join('');
+const EXCLUDE=['ソーナンス'];/* 見本の除外リスト（ふだんの言葉と重なる名前の例。中身は未決定 U5） */
+const LINKABLE=Object.entries(MON).map(([k,m])=>({k,ja:m.n,en:m.en})).concat([{k:'x1',ja:'ソーナンス',en:'Wobbuffet'}]);
+const isKataOrAlnum=ch=>!!ch&&/[゠-ヿA-Za-z0-9]/.test(ch);
+function linkify(raw,log){
+  const out=[],used=new Set();
+  for(const part of raw.split(/([#＃][^\s#＃@＠]+|[@＠][A-Za-z0-9_]+)/)){
+    if(!part)continue;
+    if(/^[#＃]/.test(part)){out.push(`<span class="tg">${esc(part)}</span>`);log&&log.push(['skip',part,'ハッシュタグの中は見ない']);continue}
+    if(/^[@＠]/.test(part)){out.push(`<span class="tg">${esc(part)}</span>`);log&&log.push(['skip',part,'@IDの中は見ない']);continue}
+    const f=kfold(part),hits=[];
+    for(const p of LINKABLE){
+      const jn=kfold(p.ja);let from=0,i;
+      while((i=f.indexOf(jn,from))>=0){from=i+1;
+        const before=part[i-1],after=part[i+jn.length],orig=part.slice(i,i+jn.length);
+        if(p.ja.length<3){log&&log.push(['no',orig,'3文字未満']);continue}
+        if(isKataOrAlnum(before)||isKataOrAlnum(after)){log&&log.push(['no',orig,`すぐ${isKataOrAlnum(before)?'前':'後'}が「${isKataOrAlnum(before)?before:after}」で、別の言葉の一部かもしれない`]);continue}
+        hits.push({i,len:jn.length,p,orig});}
+      const re=new RegExp('\\b'+p.en+'\\b','ig');let m;
+      while((m=re.exec(part)))hits.push({i:m.index,len:p.en.length,p,orig:m[0]});
+    }
+    hits.sort((a,b)=>a.i-b.i);
+    let pos=0;
+    for(const h of hits){
+      if(h.i<pos)continue;
+      if(EXCLUDE.includes(h.p.ja)){log&&log.push(['no',h.orig,'除外リストにある名前']);continue}
+      if(used.has(h.p.k)){log&&log.push(['no',h.orig,'同じ投稿で2回目']);continue}
+      used.add(h.p.k);
+      out.push(esc(part.slice(pos,h.i)));
+      out.push(`<a class="mon" href="#" data-toast="図鑑の「${esc(h.p.ja)}」のページへ（見本なので移動しません）">${esc(h.orig)}</a>`);
+      log&&log.push(['ok',h.orig,`「${h.p.ja}」の図鑑へ`]);
+      pos=h.i+h.len;
+    }
+    out.push(esc(part.slice(pos)));
+  }
+  return out.join('');
+}
+
+/* =====================================================================
+   見本の状態
+   ===================================================================== */
+const team0=()=>({name:'S5 ガブサーフ対面',fmt:'シングル',mons:['gab','surf','ashi','armor','wind','kai']});
+const ST={
+  scr:'feed',dev:'d',theme:'dark',notes:true,np:false,npHl:null,
+  feedTab:'all',cat:'all',menu:false,
+  draft:{text:'',cat:null},
+  posts:null,
+  card:{viewer:'other',priv:false},
+  share:{slot:0,level:'p',text:'シーズン5で使っている構築です。サーフゴーの枠を迷っていて、素早さ操作が足りない気がします。',teams:[team0(),{name:'雨パ（作りかけ）',fmt:'ダブル',mons:['ashi','armor','kai','wind']},null],edited:false,posted:null},
+  bg:{preset:'glow',glow:'normal',acc:'purple',img:0,ov:45,blur:6,auto:true,user:null},
+  demo:'メガガブリアスより、ふつうのガブリアスが好き。がぶりあす最高！\n#ガブリアス @garchomp_fan\nGarchomp と Dragonite、DragoniteZ、ソーナンスもいる'
+};
+const LEVELS=[
+  {k:'p',t:'ポケモンだけ',d:'名前とタイプだけ（いまの看板パーティと同じ）'},
+  {k:'i',t:'＋ 持ち物・特性',d:'育成の考え方の一部も見せる'},
+  {k:'f',t:'＋ 技・性格',d:'技と性格まで見せる（能力ポイントは未決定・U3）'}];
+function snapshot(team,level){return {name:team.name,fmt:team.fmt,level,date:'2026/11/17',mons:team.mons.map(k=>{const m=MON[k],o={k};if(level!=='p'){o.it=m.it;o.ab=m.ab}if(level==='f'){o.nat=m.nat;o.mv=m.mv.slice()}return o})}}
+function teamBlock(sn,opt={}){const L=LEVELS.find(l=>l.k===sn.level);
+  return `<div class="tm" role="group" aria-label="共有されたパーティ ${esc(sn.name)}"><div class="tm-h"><span class="ti">${S('party',18)}</span><b>${esc(sn.name)}</b><span class="fm">${sn.fmt}・${sn.mons.length}匹</span><span class="disc">${S('eye',13)}公開：${L.t.replace('＋ ','＋')}</span></div>
+  <div class="tm-g">${sn.mons.map(o=>{const m=MON[o.k];return `<div class="tm-m">${shape(o.k)}<b>${m.n}</b>${tyChips(m)}${o.it?`<span class="dt">${o.it}<br>${o.ab}</span>`:''}${o.mv?`<span class="dt mv">${o.nat}・${o.mv.join('／')}</span>`:''}</div>`}).join('')}</div>
+  <div class="tm-f">${S('cal',14)}<span>${sn.date} に共有した時点の内容</span>${opt.noUse?'':`<button class="btn btn-o btn-s" data-toast="空いているパーティの枠に写します（見本なので写しません）">このパーティを使う</button>`}</div></div>`}
+
+function seedPosts(){return [
+  {id:1,u:ME,time:'12分',cat:'battle',text:'今夜21時から、シングルのプライベート対戦の相手を募集します。ガブリアス入りの対面構築を試したいので、2〜3戦お願いできる方いませんか？ ガブリアスはタスキ型です #シングル',r:3,rp:1,l:12,f:1},
+  {id:2,u:{ch:'ソ',c:'#178A66',name:'そらまめ',id:'soramame_b'},time:'40分',cat:'build',text:'シーズン5で使っている構築です。サーフゴーの枠をほかのポケモンにするか迷っています。素早さ操作が足りない気がする…意見ください！',team:snapshot(team0(),'i'),r:8,rp:4,l:31,f:1},
+  {id:3,u:{ch:'公',c:'#2F6FE0',name:'お知らせbot',id:'news_bot',bot:1},time:'2時間',text:'【公式・アップデート】Ver.1.3.0 の配信について（2026/11/17） #公式のお知らせ',link:{t:'公式サイトで読む',d:'pokemonchampions.jp'},l:54},
+  {id:4,u:{ch:'ハ',c:'#C93360',name:'はるか',id:'haruka_vgc'},time:'3時間',cat:'chat',text:'ランクでカイリューに3連敗…マルチスケイルを先に崩せる仲間がほしい。今日はもう寝ます #ダブル',media:1,r:2,l:18,f:1},
+  {id:5,u:{ch:'レ',c:'#C76A0A',name:'れん',id:'ren_tactics'},time:'5時間',cat:'q',text:'アシレーヌの持ち物って、しんぴのしずく以外だと何が多いですか？ 特殊受けが重くて悩んでます',r:6,l:9}]}
+ST.posts=seedPosts();
+
+/* =====================================================================
+   設計メモ（画面ごと。番号の印と右の欄が対応）
+   ===================================================================== */
+const NOTES={
+ feed:[
+  ['対戦募集などは「カテゴリ」に','左のメニューにあった「対戦募集」「構築相談・質問」の入口は外し、投稿に付ける任意のカテゴリ（4つ）にしました。絞り込みはこのチップで。色は小さな点だけにして、本文の読みやすさを優先しています。',['決定','U2','U9']],
+  ['投稿欄でカテゴリを選ぶ（任意）','はじめは「なし」。押すと4つから選べます。パーティの絵のボタンは共有の画面へ進むだけで、中身を確かめるまで添付されません。',['決定']],
+  ['ポケモンの名前の自動リンク','正規化してぴったり一致した名前だけ、同じ投稿で1回だけリンクします（2回目の「ガブリアス」はふつうの文字）。下の「自動リンクを試す」で決まりを確かめられます。',['D4','U5']],
+  ['共有されたパーティは「写し」','投稿には、そのとき選んだ範囲だけの写しが入ります。もとのパーティを変えても消しても、投稿の中身は変わりません。右上に公開の範囲を必ず出します。',['決定','U3','U7']],
+  ['操作の並びは今のまま','返信 → リポスト → いいね → ブックマーク → 共有。順番は今のサイトと同じ。押せる広さは44px以上。いいね・ブックマークは押すと見た目だけ変わります（見本）。',['維持']]],
+ card:[
+  ['全ゲーム共通のプレイヤーカード','上の帯・アイコン・名前・自己紹介・数字は、どのゲームでも同じ形。帯の色と大きな図形だけ、表示するゲームのプロフィール（いまはポケモンの相棒のタイプ）から取ります。表示できるゲームがなければ、名前の色とテーマの色。',['決定','D2']],
+  ['ゲームごとのプロフィール','ポケモンチャンピオンズの部分。ゲームが増えたら、ここに同じ形で並びます。ゲームが1つのあいだは「注目のゲーム」の設定を出しません。',['D2','D3','U1']],
+  ['ランク：確認済みと自己申告','確認済み＝運営が証拠を見たもの（色の付いた札）。自己申告＝点線の枠で、ランキング・集計・信頼の判断には使いません。シーズン・形式ごとに表示。',['D1','U8']],
+  ['看板パーティ（今の機能を残す）','6匹の種族値の形。公開はポケモンだけ（育成は見せない）。',['維持']],
+  ['非公開のゲームプロフィール','上の操作バーの「ゲームプロフィール：非公開」で確かめられます。ほかの人には何も出ず、帯の色にも使いません（注目のゲームの自動の選び方でも表に出ない）。本人には「非公開・あなただけに表示」。',['D2','U1']]],
+ share:[
+  ['自分で選んで、確かめてから','パーティは勝手に添付されません。①パーティを選ぶ ②見せる範囲 ③投稿される内容を確かめる、の順。空の枠は選べません。',['決定']],
+  ['見せる範囲は3段階（案）','ポケモンだけ（はじめ）／＋持ち物・特性／＋技・性格。能力ポイントを入れるかは未決定です。',['U3']],
+  ['いつも共有されないもの','戦術メモ・戦い方のメモ・選出の考え方・対戦の記録は、どの段階でも入りません。鍵の枠でいつも見せます。',['決定']],
+  ['写しは変わらない','「パーティ1を編集してみる」で、もとのパーティを変えても、投稿済みの写しが変わらないことを確かめられます。',['決定','U7']]],
+ bg:[
+  ['「光」はプリセットの1つ','いまの右上の光をそのまま「光」として残し、はじめの背景にします。ほかに夕暮れ・六角形・なし・自分の画像。',['決定']],
+  ['自分の画像は読みやすさを守る','暗さ（ライトでは明るさ）とぼかしをその場で変えられ、文字と背景の明るさの差を出します。「読みやすさを保つ」がオンなら、4.5:1を下回る暗さにはなりません。',['決定']],
+  ['スマホで重くしない','本番では、ぼかしは保存のときに1回だけ画像にかけ、動き続けるぼかしは使いません。投稿のカードは今までどおり半透明だけ。',['決定']],
+  ['同期するもの・しないもの','背景の種類・テーマの色・光の強さはログイン中ならほかの端末にも。画像はこの端末だけ。画像のない端末で「自分の画像」が選ばれていたときの見え方は未決定（案：光）。',['D6','U4']],
+  ['ログインする前に選んだ背景','アカウントに背景がまだなければ引きつぎ、あればアカウントの設定で置きかえます（確認は出さない）。ログアウト・別の人のログインでこの端末の背景の記録は消えます。',['D5']]]
+};
+const UNRESOLVED=[
+  ['U1','ゲームプロフィールの公開・非公開は、ゲームごとに切りかえるか、鍵垢の設定に従うか。新しいプロフィールのはじめの状態。'],
+  ['U2','カテゴリを投稿の項目として持つか、今のハッシュタグを使うか。古い #対戦募集 の投稿をカテゴリに入れるか。'],
+  ['U3','見せる範囲の3段階でよいか。性格・能力ポイントを共有してよいか。'],
+  ['U4','画像のない端末で「自分の画像」が選ばれていたときの見え方（案：光）。'],
+  ['U5','除外リストの中身と管理する人。英語の名前は英語表示のときだけリンクするか。'],
+  ['U6','注目のゲームの「最近使った」の数え方。'],
+  ['U7','投稿を残したまま、共有したパーティだけ取り消せるようにするか。'],
+  ['U8','自己申告のランクを入れる場所（案：今のシーズンの実績の登録欄）。'],
+  ['U9','対戦募集の近道を完全に外すか、フィードのチップだけにするか（案：チップだけ）。'],
+  ['U10','右の列のカテゴリに件数を出すか（見本では出している）。'],
+  ['U11','背景に使う画像の大きさの上限と、不適切な画像の扱い（端末の中だけなので運営は見ない）。']];
+const pin=(scr,i,abs)=>`<button class="pin${abs?' abs':''}" data-pin="${scr}:${i}" aria-label="設計メモ ${i+1}"${abs?` style="${abs}"`:''}>${i+1}</button>`;
+
+/* =====================================================================
+   画面の部品
+   ===================================================================== */
+const SCREENS=[['feed','フィード'],['card','プレイヤーカード'],['share','パーティの共有'],['bg','背景の設定']];
+function railHTML(){const cur=ST.scr==='share'?'feed':ST.scr;
+  const items=[['feed','home','ホーム'],['x','search','検索'],['x','tool','ツール'],['x','party','パーティ'],['x','mail','メッセージ',2],['x','bell','お知らせ',5],['x','bookmark','ブックマーク'],['card','user','プロフィール'],['bg','gear','設定']];
+  return `<a href="#" class="logo" data-go="feed" aria-label="Game Kid/s ホーム">${MARK}<b>Game Kid/s</b></a>
+  ${items.map(([s,i,t,n])=>`<a href="#" class="ni" data-go="${s}"${s===cur?' aria-current="page"':''} aria-label="${t}">${S(i)}<span class="lbl-t">${t}</span>${n?`<span class="badge lbl-t">${n}</span>`:''}</a>`).join('')}
+  <button class="post" data-act="compose" aria-label="投稿する">${S('pen')}<span class="lbl-t">投稿する</span></button>
+  <a href="#" class="me" data-go="card" aria-label="自分のプロフィール">${AV(ME.ch,ME.c,40)}<div class="me-t"><b>${ME.name}</b><small>@${ME.id}</small></div></a>`}
+function tabbarHTML(){const cur=ST.scr;return [['feed','home','ホーム'],['x','search','検索'],['x','tool','ツール'],['x','party','パーティ'],['x','mail','メッセージ']].map(([s,i,t])=>`<a href="#" data-go="${s}"${s===cur?' aria-current="page"':''}>${S(i)}<span>${t}</span></a>`).join('')}
+function sideHTML(){const cnt={};CATS.forEach(c=>cnt[c.k]=ST.posts.filter(p=>p.cat===c.k).length);
+  return `<div class="srch">${S('search',18)}検索</div>
+  <section class="panel"><h3>よく使う機能</h3><div style="padding:0 0 8px">${[['calc','ダメージ計算','乱数16段階・確定数'],['target','選出アシスト','相手の6匹から選出を決める'],['book','図鑑','種族値・技・対策']].map(([i,t,d])=>`<a class="ql" href="#" data-toast="ツールの画面へ（この見本には含まれていません）"><span class="qi">${S(i,19)}</span><span><b>${t}</b><small>${d}</small></span></a>`).join('')}</div></section>
+  <section class="panel"><h3>カテゴリ</h3><div style="padding:0 0 8px">${CATS.map(c=>`<a class="ql" href="#" data-cat="${c.k}"><span class="qi" style="background:var(--s2)"><i class="cd" style="background:${c.c};width:10px;height:10px"></i></span><span><b>${c.t}</b><small>${c.d}</small></span><small class="num" style="margin-left:auto;color:var(--t3)">${cnt[c.k]}件</small></a>`).join('')}</div></section>
+  <div class="side-foot">Game Kid/s は非公式のファンサイトです・利用規約・プライバシーポリシー</div>`}
+function header(o){
+  const m=o.logo?`<div class="hd-r only-m"><button class="ib" data-go="card" aria-label="プロフィール">${AV(ME.ch,ME.c,32)}</button><div class="hd-mid">${MARK}</div><span style="width:38px"></span></div>`
+    :`<div class="hd-r only-m">${o.back?`<button class="ib" data-go="${o.back}" aria-label="戻る">${S('back')}</button>`:''}<h1>${o.title}${o.sub?`<small>${o.sub}</small>`:''}</h1>${o.right||''}</div>`;
+  const d=`<div class="hd-r only-d">${o.back?`<button class="ib" data-go="${o.back}" aria-label="戻る">${S('back')}</button>`:''}<h1>${o.title}${o.sub?`<small>${o.sub}</small>`:''}</h1>${o.right||''}</div>`;
+  return m+d}
+
+function postHTML(p,opt={}){const u=p.u,lk=(p.l||0)+(p.liked?1:0);
+  return `<article class="tw${p.isNew?' new':''}" aria-label="${esc(u.name)}の投稿">${AV(u.ch,u.c,42)}<div class="b">
+   <div class="h"><b>${esc(u.name)}</b>${u.bot?'<span class="bot">bot</span>':''}<span class="u">@${u.id}・${p.time}</span><button class="ib more" aria-label="その他の操作" data-toast="通報・ミュートなど（今の画面と同じ）">${S('dots',18)}</button></div>
+   ${p.cat?catLabel(p.cat):''}
+   <div class="t">${linkify(p.text)}${opt.pinText||''}</div>
+   ${p.team?teamBlock(p.team)+(opt.pinTeam||''):''}
+   ${p.link?`<a class="lnk" href="#" data-toast="公式サイトを新しいタブで開きます（見本）"><span class="li">${S('link',19)}</span><span><b>${p.link.t}</b><small>${p.link.d}</small></span></a>`:''}
+   ${p.media?`<div class="media"><canvas data-media width="640" height="360" role="img" aria-label="投稿の画像（見本）"></canvas><em>画像（見本）</em></div>`:''}
+   <div class="a">
+    <button aria-label="返信 ${p.r||0}件" data-toast="返信の画面（今の画面と同じ）">${S('reply')}<span class="num">${p.r||''}</span></button>
+    <button aria-label="リポスト ${p.rp||0}件" data-toast="リポスト（今の画面と同じ）">${S('repost')}<span class="num">${p.rp||''}</span></button>
+    <button class="like" data-like="${p.id}" aria-pressed="${!!p.liked}" aria-label="いいね ${lk}件">${S('heart')}<span class="num">${lk||''}</span></button>
+    <button class="bm" data-bm="${p.id}" aria-pressed="${!!p.bm}" aria-label="ブックマーク">${S('bookmark')}</button>
+    <button aria-label="共有" data-toast="リンクをコピーしました（見本）">${S('share')}</button>${opt.pinAct||''}
+   </div></div></article>`}
+
+/* ---------------- ① フィード ---------------- */
+function feedHTML(){
+  const list=ST.posts.filter(p=>(ST.feedTab==='all'||p.f)&&(ST.cat==='all'||p.cat===ST.cat));
+  const d=ST.draft,len=[...d.text].length,c=catOf(d.cat);
+  return `<div class="hd">${header({title:'ホーム',logo:1})}
+   <div class="tabs" role="tablist" aria-label="タイムライン"><button role="tab" data-ftab="all" aria-selected="${ST.feedTab==='all'}">みんな</button><button role="tab" data-ftab="fol" aria-selected="${ST.feedTab==='fol'}">フォロー中</button></div></div>
+  <div class="chips" role="group" aria-label="カテゴリで絞り込む">
+   <button class="chip" data-cat="all" aria-pressed="${ST.cat==='all'}">すべて</button>
+   ${CATS.map(x=>`<button class="chip" data-cat="${x.k}" aria-pressed="${ST.cat===x.k}"><i class="cd" style="background:${x.c}"></i>${x.t}</button>`).join('')}
+   ${pin('feed',0)}</div>
+  <div class="cmp">${AV(ME.ch,ME.c,42)}<div class="b">
+   <label class="sr" for="cmp-t">投稿の内容</label>
+   <textarea id="cmp-t" rows="2" placeholder="対戦の感想・構築の相談・募集など">${esc(d.text)}</textarea>
+   <div class="cmp-row">
+    <button class="ib" aria-label="画像を付ける" data-toast="画像を選ぶ（今の画面と同じ）">${S('image')}</button>
+    <button class="ib" aria-label="パーティを共有する" data-go="share">${S('party')}</button>
+    <span class="menuw">
+     <button class="catbtn" id="catbtn"${c?' data-set':''} aria-haspopup="menu" aria-expanded="${ST.menu}">${c?`<i class="cd" style="background:${c.c}"></i>${c.t}`:`${S('tag',14)}カテゴリ`}${S('down',14)}</button>
+     <div class="menu${ST.menu?' on':''}" role="menu" aria-label="カテゴリ（任意）">
+      <button role="menuitemradio" aria-checked="${!d.cat}" data-dcat="">なし${!d.cat?`<span class="ck">${S('check',16)}</span>`:'<small>はじめ</small>'}</button>
+      ${CATS.map(x=>`<button role="menuitemradio" aria-checked="${d.cat===x.k}" data-dcat="${x.k}"><i class="cd" style="background:${x.c}"></i>${x.t}${d.cat===x.k?`<span class="ck">${S('check',16)}</span>`:`<small>${x.d}</small>`}</button>`).join('')}
+     </div>${pin('feed',1,'right:-10px;top:-12px')}</span>
+    <span class="sp"></span><span class="cnt num${len>140?' over':''}" id="cmp-c" aria-live="polite"${len?'':' hidden'}>${len}/140</span>
+    <button class="btn btn-p btn-s" id="cmp-go" ${len&&len<=140?'':'disabled'}>投稿</button>
+   </div></div></div>
+  ${list.map(p=>postHTML(p,{pinText:p.id===1?pin('feed',2):'',pinTeam:p.id===2?pin('feed',3):'',pinAct:p.id===1?pin('feed',4):''})).join('')||`<div class="empty"><b>このカテゴリの投稿はまだありません</b>カテゴリを付けて、最初の投稿をしてみましょう</div>`}`}
+
+/* ---------------- ② プレイヤーカード ---------------- */
+function cardHTML(){
+  const self=ST.card.viewer==='self',priv=ST.card.priv,showGame=!priv||self,useGame=!priv,g=GAMES[0];
+  const c1=useGame?TY.dragon[1]:ME.c,c2=useGame?TY.ground[1]:'var(--accf)';
+  const big=useGame?(()=>{const m=MON.gab,P=f=>m.s.map((v,i)=>{const a=-Math.PI/2+i*Math.PI/3,r=88*f(v);return (r*Math.cos(a)).toFixed(1)+','+(r*Math.sin(a)).toFixed(1)}).join(' ');
+    return `<svg class="big" viewBox="-100 -100 200 200" aria-hidden="true"><polygon points="${P(()=>1)}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/><polygon points="${P(v=>Math.min(1,v/150))}" fill="rgba(255,255,255,.18)" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-linejoin="round"/></svg>`})():'';
+  const acts=self?`<button class="btn btn-o btn-s" data-toast="プロフィールの編集（今の画面と同じ）">プロフィールを編集</button>`
+    :`<button class="ib" style="border:1px solid var(--bd2)" aria-label="メッセージを送る" data-toast="メッセージ（今の画面と同じ）">${S('mail',18)}</button><button class="btn btn-p btn-s" data-follow aria-pressed="false">フォローする</button>`;
+  return `<div class="hd">${header({title:ME.name,sub:'128件の投稿',back:'feed'})}</div>
+  <div class="pc-cover" style="--c1:${c1};--c2:${c2}"><svg class="hexp" aria-hidden="true"><defs><pattern id="hx" width="28" height="48" patternUnits="userSpaceOnUse"><path d="M14 0 28 8v16L14 32 0 24V8zM14 32v16" fill="none" stroke="#fff" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#hx)"/></svg>${big}${pin('card',0,'left:14px;top:14px')}</div>
+  <div class="pc-top" style="--c1:${c1}">${AV(ME.ch,ME.c,96,'pc-av')}
+   <div class="pc-acts">${acts}</div>
+   <div class="pc-nm">${ME.name}</div><div class="pc-id">@${ME.id}</div>
+   <div class="pc-bio">シングル中心のトレーナー。対面構築が好き。週末はよく<span class="tg">#対戦募集</span>しています。</div>
+   <div class="pc-meta"><span>${S('cal',15)}2026年10月からトレーナー</span></div>
+   <div class="pc-stats"><button data-toast="フォロー中の一覧（今の画面と同じ）"><b class="num">180</b><span>フォロー中</span></button><button data-toast="フォロワーの一覧（今の画面と同じ）"><b class="num">342</b><span>フォロワー</span></button><span class="st"><b class="num">1,204</b><span>もらったいいね</span></span></div>
+  </div>
+  <div class="sec-t">ゲームのプロフィール${pin('card',1)}${pin('card',4)}</div>
+  ${showGame?`<section class="card gp" aria-label="${g.name}のプロフィール">
+   <div class="gp-h"><span class="gmark" style="background:${g.color};color:${g.ink}">${g.short}</span><div><b>${g.name}</b><small>シングル中心・2026年10月から</small></div>
+    ${priv?`<span class="vis priv">${S('lock',13)}非公開・あなただけ</span>`:`<span class="vis">${S('eye',13)}公開</span>`}</div>
+   <div class="gp-sec"><div class="gp-k"><span>相棒</span>${self?'<button data-toast="相棒を選ぶ（今の画面と同じ）">変更</button>':''}</div>
+    <div class="partner">${shape('gab')}<div><b>ガブリアス</b>${tyChips(MON.gab)}</div></div></div>
+   <div class="gp-sec"><div class="gp-k"><span>ランク・実績${pin('card',2)}</span>${self?'<button data-toast="今のシーズンの実績の登録欄へ（案・U8）">＋ 追加</button>':''}</div>
+    <div class="rk-l">
+     <div class="rk"><span class="vb v">${S('check',12)}確認済み</span><span class="main-t">シーズン4・シングル</span><span class="sub num">最終128位・レート1,912</span><span class="when">2026/10</span></div>
+     <div class="rk"><span class="vb s">自己申告</span><span class="main-t">シーズン5・シングル</span><span class="sub num">レート1,820</span><span class="when">11/16 時点</span></div>
+    </div>
+    <div class="rk-legend">「確認済み」は運営が証拠のスクリーンショットを確かめたもの。「自己申告」は本人の申告で、ランキングや集計には使いません。</div></div>
+   <div class="gp-sec"><div class="gp-k"><span>看板パーティ${pin('card',3)}</span>${self?'<button data-toast="保存しているパーティから選ぶ（今の画面と同じ）">変更</button>':''}</div>
+    <div class="sc6">${team0().mons.map(k=>`<a href="#" data-toast="図鑑の「${MON[k].n}」へ（見本）">${shape(k)}<span>${MON[k].n}</span></a>`).join('')}</div></div>
+   <div class="gp-more">${S('plus',16)}ゲームが増えると、ここにゲームごとのプロフィールが同じ形で並びます</div>
+  </section>`:`<div class="card gp"><div class="empty"><b>公開しているゲームのプロフィールはありません</b>このトレーナーは、ゲームのプロフィールを非公開にしています</div></div>`}
+  <div class="tabs" role="tablist" aria-label="投稿" style="border-bottom:1px solid var(--bd);margin-top:4px"><button role="tab" aria-selected="true">投稿</button><button role="tab" aria-selected="false" data-toast="画像の一覧（今の画面と同じ）">画像</button></div>
+  ${postHTML(ST.posts.find(p=>p.id===1))}`}
+
+/* ---------------- ③ パーティの共有 ---------------- */
+function shareHTML(){const sh=ST.share,t=sh.teams[sh.slot],sn=snapshot(t,sh.level);
+  return `<div class="hd">${header({title:'パーティを共有',sub:'投稿にパーティを付ける',back:'feed'})}</div>
+  <div class="stepper" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+  <section class="card blk"><h3><span class="n">1</span>共有するパーティを選ぶ${pin('share',0)}</h3><p class="lead">保存しているパーティ（3つまで）から選びます</p>
+   <div role="radiogroup" aria-label="共有するパーティ">${sh.teams.map((tm,i)=>tm?`<button class="opt" role="radio" data-slot="${i}" aria-checked="${sh.slot===i}"><span class="rd"></span><span class="tx"><b>パーティ${i+1}：${esc(tm.name)}</b><small>${tm.fmt}・${tm.mons.length}匹${i===0&&sh.edited?'・編集した':''}</small></span><span class="mini">${tm.mons.map(k=>shape(k)).join('')}</span></button>`
+     :`<button class="opt" role="radio" aria-checked="false" disabled><span class="rd"></span><span class="tx"><b>パーティ${i+1}：空き</b><small>まだ作っていないので選べません</small></span></button>`).join('')}</div></section>
+  <section class="card blk"><h3><span class="n">2</span>見せる範囲を選ぶ${pin('share',1)}</h3><p class="lead">投稿を消せば、共有も消えます</p>
+   <div role="radiogroup" aria-label="見せる範囲">${LEVELS.map(l=>`<button class="opt" role="radio" data-lv="${l.k}" aria-checked="${sh.level===l.k}"><span class="rd"></span><span class="tx"><b>${l.t}</b><small>${l.d}</small></span></button>`).join('')}</div>
+   <div class="lockbox">${S('lock',18)}<div><b>いつも共有されないもの${pin('share',2)}</b><ul><li>パーティの戦術メモ・戦い方のメモ</li><li>選出の考え方・相手ごとのメモ</li><li>対戦の記録</li></ul></div></div></section>
+  <section class="card blk"><h3><span class="n">3</span>投稿される内容を確かめる</h3><p class="lead">ここに見えているものだけが投稿されます</p>
+   <label class="sr" for="sh-text">投稿の文</label><textarea class="prv-text" id="sh-text">${esc(sh.text)}</textarea>
+   ${teamBlock(sn,{noUse:1})}
+   <div class="actions flow-a"><button class="btn btn-o" data-go="feed">やめる</button><button class="btn btn-p" data-act="sharepost">この内容で投稿する</button></div></section>
+  <section class="card blk" style="border:1.5px dashed var(--proto)"><h3><span class="n" style="background:var(--proto);color:var(--proto-ink)">見</span>写しが変わらないことを確かめる${pin('share',3)}</h3><p class="lead">見本だけの操作です。パーティ1のカイリューをドラパルトに変えても、投稿済みの写しはそのまま</p>
+   <button class="btn btn-o btn-s" data-act="editsrc">${sh.edited?'パーティ1を元に戻す':'パーティ1を編集してみる'}</button>
+   <div class="snap"><div><small>いまのパーティ1</small><div class="row6">${sh.teams[0].mons.map(k=>`<span${k==='dpt'?' class="diff"':''}>${shape(k)}</span>`).join('')}</div></div>
+    <div><small>${sh.posted?'あなたの投稿の写し（'+sh.posted.date+'）':'そらまめさんの投稿の写し'}</small><div class="row6">${(sh.posted||ST.posts.find(p=>p.id===2).team).mons.map(o=>`<span>${shape(o.k)}</span>`).join('')}</div></div></div></section>
+  <div style="height:20px"></div>`}
+
+/* ---------------- ④ 背景の設定 ---------------- */
+const ACC={purple:['紫','#7C6CF0','#B3A8FF','124,108,240','#5B57D9'],blue:['青','#3B82F6','#7DB4FF','59,130,246','#2F6FE0'],green:['緑','#17A07A','#5AD8A8','23,160,122','#138A66'],pink:['ピンク','#E5476F','#FF8FAA','229,71,111','#D63B63'],orange:['オレンジ','#E07B12','#FFB56B','224,123,18','#C76A0A'],mono:['灰色','#E8E9EE','#E8E9EE','200,200,210','#1E2030']};
+const PRESETS=[['glow','光','はじめ'],['dusk','夕暮れ',''],['hex','六角形',''],['none','なし',''],['img','画像','この端末だけ']];
+const IMGS=[];
+function bgHTML(){const b=ST.bg,L=isLight();
+  return `<div class="hd">${header({title:'背景',sub:'設定 › 表示・カスタマイズ',back:'feed',right:`<button class="btn btn-g btn-s" data-act="bgreset">${S('reset',15)}元に戻す</button>`})}</div>
+  <section class="card blk"><h3>背景の種類${pin('bg',0)}</h3><p class="lead l0">押すと、後ろの画面がその場で変わります</p>
+   <div class="pre" role="radiogroup" aria-label="背景の種類">${PRESETS.map(([k,t,tag])=>`<button role="radio" data-pre="${k}" aria-checked="${b.preset===k}"><span class="sw" style="${swatch(k)}">${k!=='img'?'<i class="ln" style="top:30%"></i><i class="ln" style="top:44%;right:30%"></i><i class="ln" style="top:62%"></i>':''}</span>${t}${tag?`<span class="tag">${tag}</span>`:''}</button>`).join('')}</div>
+   ${b.preset==='glow'?`<div class="fld"><div class="k">光の強さ</div><div class="seg" role="radiogroup" aria-label="光の強さ"><button role="radio" data-glow="soft" aria-checked="${b.glow==='soft'}">弱め</button><button role="radio" data-glow="normal" aria-checked="${b.glow==='normal'}">ふつう</button><button role="radio" data-glow="strong" aria-checked="${b.glow==='strong'}">強め</button></div></div>`:''}
+  </section>
+  ${b.preset==='img'?`<section class="card blk"><h3>自分の画像${pin('bg',1)}</h3><p class="lead l0">見本の2枚はこのページで描いた架空の風景です。選んだ画像はこの画面の中だけで使い、どこにも送りません</p>
+   <div class="thumbs" role="radiogroup" aria-label="画像">${IMGS.map((s,i)=>`<button role="radio" data-img="${i}" aria-checked="${b.img===i}" style="background-image:url(${s})" aria-label="見本の画像${i+1}"></button>`).join('')}${b.user?`<button role="radio" data-img="u" aria-checked="${b.img==='u'}" style="background-image:url(${b.user})" aria-label="選んだ画像"></button>`:''}
+    <label>${S('plus',18)}画像を選ぶ<input type="file" accept="image/*" id="bgfile" class="sr"></label></div>
+   <div class="fld"><label for="r-ov">${L?'明るさ（文字を読みやすく）':'暗さ（文字を読みやすく）'}<output id="o-ov" class="num">${b.ov}%</output></label><input type="range" min="0" max="90" value="${b.ov}" id="r-ov"></div>
+   <div class="fld"><label for="r-bl">ぼかし<output id="o-bl" class="num">${b.blur}px</output></label><input type="range" min="0" max="16" value="${b.blur}" id="r-bl"></div>
+   <div id="meter">${meterHTML()}</div>
+   <label class="tgl"><input type="checkbox" id="c-auto" ${b.auto?'checked':''}><span>読みやすさを保つ<small>文字が読みにくくなる${L?'明るさ':'暗さ'}にはしません</small></span></label>
+   <div style="margin-top:8px">${pin('bg',2)}</div></section>`:''}
+  <section class="card blk"><h3>テーマの色</h3><p class="lead l0">ボタン・選んでいる所・光の色</p>
+   <div class="dots" role="radiogroup" aria-label="テーマの色">${Object.entries(ACC).map(([k,a])=>`<button role="radio" data-acc="${k}" aria-checked="${b.acc===k}" style="background:${a[1]}" aria-label="${a[0]}" title="${a[0]}"></button>`).join('')}</div></section>
+  <div class="sec-t">見え方の確認</div>
+  <div class="prev-wrap card">${postHTML(ST.posts.find(p=>p.id===5))}</div>
+  <section class="card blk"><h3>ほかの端末との同期${pin('bg',3)}${pin('bg',4)}</h3>
+   <div class="sync" style="margin-top:10px"><div><span class="si">${S('cloud',18)}</span><span><b>ログイン中はほかの端末にも反映</b><small>背景の種類・テーマの色・光の強さ</small></span></div>
+   <div><span class="si l">${S('dev',18)}</span><span><b>この端末だけ</b><small>選んだ画像と、その暗さ・ぼかし</small></span></div></div></section>
+  <div style="height:24px"></div>`}
+function swatch(k){const a=ACC[ST.bg.acc],L=isLight();
+  if(k==='glow')return `background:${L?'#EEF0F5':'#000'} radial-gradient(130% 80% at 100% 0%,rgba(${a[3]},${L?.45:.75}),transparent 70%)`;
+  if(k==='dusk')return L?'background:linear-gradient(165deg,#E6DCFF,#FBE3D6 55%,#EEF0F5)':'background:linear-gradient(165deg,#15102f,#2c1745 48%,#3a1d25 82%,#0a0a0a)';
+  if(k==='hex'&&L)return `background:#EEF0F5 url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='14' height='24'><path d='M7 0 14 4v8L7 16 0 12V4zM7 16v8' fill='none' stroke='rgba(30,32,60,.25)' stroke-width='1'/></svg>")}")`;
+  if(k==='hex')return `background:#000 url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='14' height='24'><path d='M7 0 14 4v8L7 16 0 12V4zM7 16v8' fill='none' stroke='rgba(255,255,255,.3)' stroke-width='1'/></svg>")}")`;
+  if(k==='none')return 'background:var(--bg)';
+  return `background:#222 url(${curImg()||IMGS[0]}) center/cover`}
+
+/* 背景をかける・読みやすさを計る（WCAG のコントラスト比の計算） */
+const isLight=()=>ST.theme==='light';
+function curImg(){return ST.bg.img==='u'?ST.bg.user:IMGS[ST.bg.img]}
+const AVG={};
+const lin=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};
+const lum=c=>.2126*lin(c[0])+.7152*lin(c[1])+.0722*lin(c[2]);
+const ratio=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+function contrastAt(ov,avg){const o=isLight()?[238,240,245]:[0,0,0],k=ov/100,eff=avg.map((v,i)=>v*(1-k)+o[i]*k),fg=isLight()?[30,32,48]:[236,237,242];return ratio(lum(eff),lum(fg))}
+function minOv(avg){for(let o=0;o<=90;o++)if(contrastAt(o,avg)>=4.5)return o;return 90}
+function avgOf(src,cb){if(AVG[src]){cb(AVG[src]);return}const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=24;const g=c.getContext('2d');g.drawImage(im,0,0,24,24);const d=g.getImageData(0,0,24,24).data;let r=0,gg=0,b=0;for(let i=0;i<d.length;i+=4){r+=d[i];gg+=d[i+1];b+=d[i+2]}const n=d.length/4;AVG[src]=[r/n,gg/n,b/n];cb(AVG[src])};im.src=src}
+function meterHTML(){const s=curImg(),avg=s&&AVG[s];if(!avg)return `<div class="meter"><div class="top">読みやすさを計っています…</div></div>`;
+  const r=contrastAt(ST.bg.ov,avg),ok=r>=4.5,col=r>=7?'var(--ok)':ok?'var(--warn)':'var(--bad)',w=Math.min(100,r/10*100);
+  return `<div class="meter" role="status"><div class="top"><b style="color:${col};min-width:7.5em">${r>=7?'とても読みやすい':ok?'読みやすい':'読みにくい'}</b><div class="bar"><i style="width:${w}%;background:${col}"></i><s title="目安 4.5:1"></s></div><span class="num">${r.toFixed(1)} : 1</span></div>
+   <p>文字と背景の明るさの差（縦の線が目安の 4.5 : 1）。${ok?'このまま読みやすく表示できます。':`${isLight()?'明るさ':'暗さ'}を ${minOv(avg)}% 以上にすると読みやすくなります。`}</p></div>`}
+function applyBg(){const el=document.getElementById('bgimg'),ov=document.getElementById('bgov'),b=ST.bg,a=ACC[b.acc],L=isLight(),R=document.documentElement.style;
+  R.setProperty('--accf',L?a[4]:a[1]);R.setProperty('--acc',L?a[4]:a[2]);R.setProperty('--acc-rgb',a[3]);R.setProperty('--acc-t',`rgba(${a[3]},${L?.11:.16})`);R.setProperty('--onacc',b.acc==='mono'&&!L?'#111':'#fff');
+  el.style.cssText='';ov.style.background='';
+  const k={soft:.6,normal:1,strong:1.45}[b.glow];
+  if(b.preset==='glow')el.style.backgroundImage=`radial-gradient(52vmax 38vmax at 100% 0%,rgba(${a[3]},${(L?.30:.42)*k}),transparent 70%)`;
+  else if(b.preset==='dusk')el.style.backgroundImage=L?'linear-gradient(165deg,#ECE4FF 0%,#FBE8DE 55%,#EEF0F5 100%)':'linear-gradient(165deg,#120c2b 0%,#26123a 45%,#2e161c 80%,#000 100%)';
+  else if(b.preset==='hex'){const st=L?'rgba(30,32,60,.07)':'rgba(255,255,255,.055)';el.style.backgroundImage=`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='42' height='72'><path d='M21 0 42 12v24L21 48 0 36V12zM21 48v24' fill='none' stroke='${st}' stroke-width='1.2'/></svg>`)}"),radial-gradient(40vmax 30vmax at 100% 0%,rgba(${a[3]},${L?.14:.2}),transparent 70%)`;el.style.backgroundSize='42px 72px,auto'}
+  else if(b.preset==='img'){const s=curImg();if(s){el.style.backgroundImage=`url(${s})`;el.style.backgroundSize='cover';if(b.blur)el.style.filter=`blur(${b.blur}px)`;ov.style.background=L?`rgba(238,240,245,${b.ov/100})`:`rgba(0,0,0,${b.ov/100})`}}
+}
+/* 見本の画像（このページで描く架空の風景） */
+function mkImg(kind){const c=document.createElement('canvas');c.width=720;c.height=1080;const g=c.getContext('2d');let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  if(kind===0){const s=g.createLinearGradient(0,0,0,1080);s.addColorStop(0,'#0a0f2c');s.addColorStop(.5,'#36275f');s.addColorStop(.82,'#c9706a');s.addColorStop(1,'#f2a46f');g.fillStyle=s;g.fillRect(0,0,720,1080);
+    for(let i=0;i<160;i++){g.fillStyle=`rgba(255,255,255,${rnd()*.8})`;g.fillRect(rnd()*720,rnd()*560,1.6,1.6)}
+    g.fillStyle='#17122f';for(let x=0;x<720;x+=44){const h=160+rnd()*240;g.fillRect(x,1080-h,40,h)}
+    g.fillStyle='rgba(255,212,120,.85)';for(let i=0;i<110;i++){g.fillRect(rnd()*720,760+rnd()*300,4,6)}}
+  else{const s=g.createLinearGradient(0,0,0,1080);s.addColorStop(0,'#9fd8ff');s.addColorStop(.6,'#e6f6ff');s.addColorStop(1,'#ffffff');g.fillStyle=s;g.fillRect(0,0,720,1080);
+    g.fillStyle='#fff6d0';g.beginPath();g.arc(540,210,80,0,7);g.fill();
+    g.fillStyle='rgba(255,255,255,.85)';[[120,260],[300,180],[420,330]].forEach(([x,y])=>{g.beginPath();g.ellipse(x,y,90,26,0,0,7);g.fill()});
+    [['#8fd68a',700],['#5bb569',790],['#358f50',890]].forEach(([col,y],k)=>{g.fillStyle=col;g.beginPath();g.moveTo(0,1080);for(let x=0;x<=720;x+=20)g.lineTo(x,y+Math.sin(x/95+k*2)*44);g.lineTo(720,1080);g.fill()})}
+  return c.toDataURL('image/jpeg',.82)}
+function drawMedia(){document.querySelectorAll('canvas[data-media]').forEach(c=>{if(c.dataset.done)return;c.dataset.done=1;const g=c.getContext('2d');
+  const s=g.createLinearGradient(0,0,640,360);s.addColorStop(0,'#1b1838');s.addColorStop(1,'#3b2f6e');g.fillStyle=s;g.fillRect(0,0,640,360);
+  g.fillStyle='rgba(255,255,255,.07)';for(let i=0;i<6;i++)g.fillRect(40+i*96,60,80,240);
+  g.fillStyle='#fff';g.font='bold 34px sans-serif';g.textAlign='center';g.fillText('LOSE × 3',320,190);g.font='16px sans-serif';g.fillStyle='rgba(255,255,255,.7)';g.fillText('（スクリーンショットの代わりの見本）',320,226)})}
+
+/* =====================================================================
+   描く・操作
+   ===================================================================== */
+function chromeHTML(){
+  const seg=(arr,cur,attr)=>arr.map(([k,t])=>`<button ${attr}="${k}" aria-pressed="${cur===k}">${t}</button>`).join('');
+  const scrs=SCREENS.map(([k,t],i)=>[k,`${i+1} ${t}`]);
+  document.getElementById('pb-scr').innerHTML=seg(scrs,ST.scr,'data-go');
+  document.getElementById('pb-dev').innerHTML=seg([['d','PC'],['m','スマホ']],ST.dev,'data-dev');
+  document.getElementById('pb-th').innerHTML=seg([['dark','ダーク'],['light','ライト']],ST.theme,'data-th');
+  const ctx=ST.scr==='card'?`<span>見る人</span><div class="pb-g">${seg([['other','ほかの人'],['self','本人']],ST.card.viewer,'data-viewer')}</div><span>ゲームプロフィール</span><div class="pb-g">${seg([['0','公開'],['1','非公開']],ST.card.priv?'1':'0','data-priv')}</div>`:'';
+  document.getElementById('pb-ctx').innerHTML=ctx;document.querySelector('.pb').classList.toggle('ctx',!!ctx);
+  const nb=document.getElementById('pb-notes');nb.setAttribute('aria-pressed',ST.np);nb.textContent=`設計メモ（${(NOTES[ST.scr]||[]).length}）`;
+  document.getElementById('pb-dd').innerHTML=`<div class="row"><span>画面</span><div class="pb-g" style="flex-wrap:wrap">${seg(scrs,ST.scr,'data-go')}</div></div>
+   <div class="row"><span>端末</span><div class="pb-g">${seg([['d','PC'],['m','スマホ']],ST.dev,'data-dev')}</div></div>
+   <div class="row"><span>明るさ</span><div class="pb-g">${seg([['dark','ダーク'],['light','ライト']],ST.theme,'data-th')}</div></div>
+   <div class="row"><span>番号の印</span><div class="pb-g">${seg([['1','出す'],['0','出さない']],ST.notes?'1':'0','data-pins')}</div></div>
+   ${ctx?`<div class="row">${ctx}</div>`:''}
+   <div style="font-size:11.5px;color:#a3a3b0">黄色の点線のもの（このバー・番号の印・設計メモ・下に出る「見本」の知らせ）は見本だけの部品で、本番には出ません。</div>`;
+}
+function npHTML(){const list=NOTES[ST.scr]||[];
+  return `<div class="np-h"><b><em>見本</em>設計メモ：${SCREENS.find(s=>s[0]===ST.scr)[1]}</b><button class="mini-x" data-act="npclose" aria-label="設計メモを閉じる">${S('close',18)}</button></div>
+  <div class="np-b">
+   <label class="tgl" style="margin:0 0 10px;color:#ddd"><input type="checkbox" id="np-pins" ${ST.notes?'checked':''}><span>画面に番号の印を出す</span></label>
+   ${list.map(([t,d,tags],i)=>`<div class="np-n${ST.npHl===i?' hl':''}" id="np-${i}"><span class="pin" aria-hidden="true">${i+1}</span><div><b>${t}</b>${tags.map(x=>`<span class="tagd${/^U/.test(x)?' u':''}">${x}</span>`).join('')}<div>${d}</div></div></div>`).join('')}
+   ${ST.scr==='feed'?`<div class="np-sec">自動リンクを試す（D4）</div><textarea id="demo-in" aria-label="試す文">${esc(ST.demo)}</textarea><div class="demo-out" id="demo-out"></div><ul class="why" id="demo-why"></ul>`:''}
+   <div class="np-sec">決まったこと</div>
+   <div style="color:#c9c9d4;font-size:12.5px">D1 ランク：自己申告は「自己申告」と表示・確認済みは運営の確認後だけ・集計には使わない<br>D2 注目のゲーム：本人の選び → 最近使った公開のプロフィール → ポケモンチャンピオンズ<br>D3 ゲームの切りかえは隠したまま・画面は GAMES から作る<br>D4 自動リンクの決まり（上で試せる）<br>D5 ログイン前の背景はアカウントに無いときだけ引きつぐ<br>D6 小さな設定だけ同期・画像はこの端末だけ</div>
+   <div class="np-sec">まだ決まっていないこと</div>
+   ${UNRESOLVED.map(([k,t])=>`<div class="ur"><span class="tagd u" style="flex:none;height:18px">${k}</span><span>${t}</span></div>`).join('')}
+  </div>`}
+function demoRun(){const out=document.getElementById('demo-out');if(!out)return;const log=[];out.innerHTML=linkify(ST.demo,log);
+  document.getElementById('demo-why').innerHTML=log.map(([k,w,why])=>`<li><b style="color:${k==='ok'?'#7ee2b0':k==='skip'?'#9fb6ff':'#ffb3b3'}">${k==='ok'?'リンク':k==='skip'?'見ない':'リンクしない'}</b>「${esc(w)}」…${why}</li>`).join('')}
+function npRefresh(){const np=document.getElementById('np');np.classList.toggle('on',ST.np);np.innerHTML=npHTML();demoRun()}
+
+function render(keepScroll){
+  const sc=document.getElementById('scroll'),y=sc.scrollTop;
+  document.documentElement.dataset.theme=ST.theme;
+  const st=document.getElementById('stage');st.classList.toggle('m',ST.dev==='m');st.classList.toggle('full',ST.dev==='m'&&innerWidth<440);st.classList.toggle('flow',ST.scr==='share');
+  document.body.classList.toggle('no-notes',!ST.notes);
+  document.getElementById('rail').innerHTML=railHTML();document.getElementById('tabbar').innerHTML=tabbarHTML();document.getElementById('side').innerHTML=sideHTML();
+  document.getElementById('main').innerHTML={feed:feedHTML,card:cardHTML,share:shareHTML,bg:bgHTML}[ST.scr]();
+  document.getElementById('fab').classList.toggle('on',ST.scr==='feed');
+  const mf=document.getElementById('mfoot');mf.classList.toggle('on',ST.scr==='share');mf.innerHTML=ST.scr==='share'?`<button class="btn btn-o" data-go="feed">やめる</button><button class="btn btn-p" data-act="sharepost">この内容で投稿する</button>`:'';
+  chromeHTML();npRefresh();applyBg();drawMedia();
+  ST.posts.forEach(p=>delete p.isNew);
+  sc.scrollTop=keepScroll?y:0;
+  const q=new URLSearchParams();q.set('s',ST.scr);q.set('d',ST.dev);q.set('t',ST.theme);if(ST.bg.preset!=='glow')q.set('bg',ST.bg.preset);
+  try{history.replaceState(null,'','?'+q)}catch(e){}
+}
+let TT;function toast(t){const el=document.getElementById('toast');el.innerHTML=`<b>見本</b><span>${esc(t)}</span>`;el.classList.add('on');clearTimeout(TT);TT=setTimeout(()=>el.classList.remove('on'),2400)}
+function go(s){if(s==='x'){toast('この画面はこの見本には含まれていません');return}ST.scr=s;ST.menu=false;ST.npHl=null;closeDD();render()}
+function closeDD(){document.getElementById('pb-dd').classList.remove('on');document.getElementById('pb-menu').setAttribute('aria-expanded','false')}
+function ensureAvg(cb){const s=curImg();if(!s)return cb&&cb();avgOf(s,a=>{if(ST.bg.auto)ST.bg.ov=Math.max(ST.bg.ov,minOv(a));cb&&cb()})}
+
+document.addEventListener('click',e=>{
+  const T=s=>e.target.closest(s);let x;
+  if((x=T('[data-pin]'))){e.preventDefault();const [,i]=x.dataset.pin.split(':');ST.np=true;ST.npHl=+i;chromeHTML();npRefresh();document.getElementById('np-'+i)?.scrollIntoView({block:'center',behavior:'smooth'});return}
+  if((x=T('[data-go]'))){e.preventDefault();go(x.dataset.go);return}
+  if((x=T('[data-toast]'))){e.preventDefault();toast(x.dataset.toast);return}
+  if(T('#pb-menu')){const dd=document.getElementById('pb-dd'),on=!dd.classList.contains('on');dd.classList.toggle('on',on);T('#pb-menu').setAttribute('aria-expanded',on);return}
+  if(T('#pb-notes')){ST.np=!ST.np;ST.npHl=null;chromeHTML();npRefresh();return}
+  if(T('[data-act=npclose]')){ST.np=false;chromeHTML();npRefresh();return}
+  if((x=T('[data-dev]'))){ST.dev=x.dataset.dev;closeDD();render(true);return}
+  if((x=T('[data-th]'))){ST.theme=x.dataset.th;const s=curImg();if(ST.bg.preset==='img'&&s&&AVG[s]&&ST.bg.auto)ST.bg.ov=Math.max(ST.bg.ov,minOv(AVG[s]));closeDD();render(true);return}
+  if((x=T('[data-pins]'))){ST.notes=x.dataset.pins==='1';render(true);return}
+  if((x=T('[data-viewer]'))){ST.card.viewer=x.dataset.viewer;render(true);return}
+  if((x=T('[data-priv]'))){ST.card.priv=x.dataset.priv==='1';render(true);return}
+  if(!T('.pb-dd'))closeDD();
+  /* フィード */
+  if((x=T('[data-ftab]'))){ST.feedTab=x.dataset.ftab;render(true);return}
+  if((x=T('[data-cat]'))){e.preventDefault();ST.cat=x.dataset.cat;if(ST.scr!=='feed'){ST.scr='feed';render()}else render(true);return}
+  if(T('#catbtn')){ST.menu=!ST.menu;render(true);if(ST.menu)document.querySelector('.menu button')?.focus();return}
+  if((x=T('[data-dcat]'))){ST.draft.cat=x.dataset.dcat||null;ST.menu=false;render(true);document.getElementById('catbtn')?.focus();return}
+  if(ST.menu&&!T('.menu')){ST.menu=false;render(true)}
+  if(T('#cmp-go')){const d=ST.draft;ST.posts.unshift({id:Date.now(),u:ME,time:'たった今',cat:d.cat,text:d.text,f:1,isNew:1});ST.draft={text:'',cat:null};ST.cat='all';render();toast('この画面の中だけに追加しました。読み直すと消えます');return}
+  if(T('[data-act=compose]')||T('#fab')){if(ST.scr!=='feed'){ST.scr='feed';render()}setTimeout(()=>document.getElementById('cmp-t')?.focus(),30);return}
+  if((x=T('[data-like]'))){const p=ST.posts.find(p=>p.id==x.dataset.like);p.liked=!p.liked;render(true);return}
+  if((x=T('[data-bm]'))){const p=ST.posts.find(p=>p.id==x.dataset.bm);p.bm=!p.bm;render(true);toast(p.bm?'ブックマークに追加しました':'ブックマークから外しました');return}
+  if((x=T('[data-follow]'))){const on=x.getAttribute('aria-pressed')!=='true';x.setAttribute('aria-pressed',on);x.textContent=on?'フォロー中':'フォローする';x.className=on?'btn btn-o btn-s':'btn btn-p btn-s';return}
+  /* 共有 */
+  if((x=T('[data-slot]'))&&!x.disabled){ST.share.slot=+x.dataset.slot;render(true);return}
+  if((x=T('[data-lv]'))){ST.share.level=x.dataset.lv;render(true);return}
+  if(T('[data-act=editsrc]')){const t=ST.share.teams[0];ST.share.edited=!ST.share.edited;t.mons[5]=ST.share.edited?'dpt':'kai';render(true);return}
+  if(T('[data-act=sharepost]')){const sh=ST.share,sn=snapshot(sh.teams[sh.slot],sh.level);sh.posted=sn;
+    ST.posts.unshift({id:Date.now(),u:ME,time:'たった今',cat:'build',text:sh.text,team:sn,f:1,isNew:1});ST.cat='all';ST.feedTab='all';go('feed');toast('この画面の中だけに投稿しました（写しはこの時点の内容）');return}
+  /* 背景 */
+  if((x=T('[data-pre]'))){ST.bg.preset=x.dataset.pre;if(ST.bg.preset==='img')ensureAvg(()=>render(true));render(true);return}
+  if((x=T('[data-glow]'))){ST.bg.glow=x.dataset.glow;render(true);return}
+  if((x=T('[data-acc]'))){ST.bg.acc=x.dataset.acc;render(true);return}
+  if((x=T('[data-img]'))){ST.bg.img=x.dataset.img==='u'?'u':+x.dataset.img;ensureAvg(()=>render(true));render(true);return}
+  if(T('[data-act=bgreset]')){ST.bg={preset:'glow',glow:'normal',acc:'purple',img:0,ov:45,blur:6,auto:true,user:ST.bg.user};render(true);toast('はじめの背景（光・紫）に戻しました');return}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='cmp-t'){ST.draft.text=t.value;const len=[...t.value].length,c=document.getElementById('cmp-c'),b=document.getElementById('cmp-go');c.textContent=len+'/140';c.hidden=!len;c.classList.toggle('over',len>140);b.disabled=!(len&&len<=140);return}
+  if(t.id==='sh-text'){ST.share.text=t.value;return}
+  if(t.id==='demo-in'){ST.demo=t.value;demoRun();return}
+  if(t.id==='r-ov'){let v=+t.value;const a=AVG[curImg()];if(ST.bg.auto&&a){const m=minOv(a);if(v<m){v=m;t.value=m}}ST.bg.ov=v;document.getElementById('o-ov').textContent=v+'%';applyBg();document.getElementById('meter').innerHTML=meterHTML();return}
+  if(t.id==='r-bl'){ST.bg.blur=+t.value;document.getElementById('o-bl').textContent=ST.bg.blur+'px';applyBg();return}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='c-auto'){ST.bg.auto=t.checked;ensureAvg(()=>render(true));return}
+  if(t.id==='np-pins'){ST.notes=t.checked;render(true);return}
+  if(t.id==='bgfile'){const f=t.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    ST.bg.user=c.toDataURL('image/jpeg',.85);ST.bg.img='u';ensureAvg(()=>render(true))};im.src=rd.result};rd.readAsDataURL(f)}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ST.menu){ST.menu=false;render(true);document.getElementById('catbtn')?.focus()}else if(ST.np){ST.np=false;chromeHTML();npRefresh()}closeDD()}});
+addEventListener('resize',()=>document.getElementById('stage').classList.toggle('full',ST.dev==='m'&&innerWidth<440));
+
+/* はじめの状態（アドレスに ?s=feed|card|share|bg&d=d|m&t=dark|light&bg=glow|dusk|hex|none|img&img=0|1&notes=0&np=1&viewer=self&priv=1&lv=p|i|f を付けて指定できる） */
+IMGS.push(mkImg(0),mkImg(1));
+(()=>{const q=new URLSearchParams(location.search);
+  ST.dev=q.get('d')||(innerWidth<760?'m':'d');if(q.get('s')&&SCREENS.some(s=>s[0]===q.get('s')))ST.scr=q.get('s');
+  if(q.get('t'))ST.theme=q.get('t')==='light'?'light':'dark';else if(matchMedia('(prefers-color-scheme: light)').matches)ST.theme='light';
+  if(q.get('bg')&&PRESETS.some(p=>p[0]===q.get('bg')))ST.bg.preset=q.get('bg');if(q.get('img'))ST.bg.img=+q.get('img')?1:0;if(q.get('notes')==='0')ST.notes=false;if(q.get('np')==='1')ST.np=true;
+  if(q.get('viewer')==='self')ST.card.viewer='self';if(q.get('priv')==='1')ST.card.priv=true;if(LEVELS.some(l=>l.k===q.get('lv')))ST.share.level=q.get('lv');
+})();
+render();if(ST.bg.preset==='img')ensureAvg(()=>render(true));
+</script>
+</body>
+</html>

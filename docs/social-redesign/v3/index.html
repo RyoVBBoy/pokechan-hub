@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Game Kid/s フィード V3</title>
+<!--
+  Game Kid/s フィード V3（デザインの見本 2026-11-17）
+  ・フィードの画面だけ。PC/スマホ × ダーク/ライト の4つ。
+  ・このファイルだけで開ける（外部の読み込みなし）。ロゴは src/static/logo.png を埋め込んだもの。
+  ・黄色い点線の部品（上の見本バー・設計メモ・「見本」の知らせ）は見本だけのもの。本番には出ない。
+  ・投稿・いいね・背景などはこの画面の中だけで動く。読み直すと元に戻る。ダメージ計算・対戦結果の数値は見本。
+-->
+<style>
+/* =====================================================================
+   1. トークン（面の明るさで階層を作る。線は使わない）
+   ===================================================================== */
+.app{
+  /* 面：canvas（いちばん奥）→ rail（左右の列）→ card（投稿）→ inset（投稿の中の部品）→ raised（浮く物） */
+  --canvas:#12141B; --rail:#151821;
+  --card:rgba(29,32,43,.84); --card-solid:#1D202B; --inset:rgba(255,255,255,.045); --inset-2:rgba(255,255,255,.075);
+  --raised:#262A38; --hover:rgba(255,255,255,.05); --press:rgba(255,255,255,.08);
+  --hl:inset 0 1px 0 rgba(255,255,255,.06);
+  --sh-1:0 1px 2px rgba(0,0,0,.28),0 10px 28px -6px rgba(0,0,0,.35);
+  --sh-2:0 2px 6px rgba(0,0,0,.3),0 22px 48px -10px rgba(0,0,0,.55);
+  /* 文字：4段 */
+  --t1:#ECEEF4; --t2:#B3B8C7; --t3:#7F8597; --t4:#5F6577;
+  /* ブランド（紫は「主役の操作」と「今いる場所」だけ） */
+  --brand:#7C6CF0; --brand-ink:#fff; --brand-tx:#B4A9FF; --brand-soft:rgba(124,108,240,.16); --brand-rgb:124,108,240;
+  --win:#4FD1A0; --win-soft:rgba(79,209,160,.13); --lose:#F0727C; --like:#F2668B;
+  --focus:#B4A9FF;
+  --chip-a:.15; --chip-a2:.24;
+  color-scheme:dark;
+}
+.app[data-theme=light]{
+  --canvas:#ECEEF3; --rail:#E6E9F0;
+  --card:rgba(255,255,255,.9); --card-solid:#FFFFFF; --inset:#F3F4F8; --inset-2:#EBEDF3;
+  --raised:#FFFFFF; --hover:rgba(20,24,40,.04); --press:rgba(20,24,40,.07);
+  --hl:inset 0 1px 0 rgba(255,255,255,.9);
+  --sh-1:0 1px 2px rgba(22,26,44,.05),0 8px 26px -8px rgba(22,26,44,.12);
+  --sh-2:0 2px 6px rgba(22,26,44,.08),0 24px 50px -12px rgba(22,26,44,.22);
+  --t1:#151824; --t2:#4C5366; --t3:#767D90; --t4:#9AA0B1;
+  --brand:#5F52E0; --brand-tx:#4B3FCF; --brand-soft:rgba(95,82,224,.10); --brand-rgb:95,82,224;
+  --win:#13936A; --win-soft:rgba(19,147,106,.10); --lose:#D24652; --like:#D93A68;
+  --focus:#5F52E0;
+  --chip-a:.12; --chip-a2:.2;
+  color-scheme:light;
+}
+/* 文字の大きさ（PC）。スマホは .m で上書き */
+.app{--fs-title:22px;--fs-name:15px;--fs-body:15.5px;--lh-body:1.72;--fs-meta:13px;--fs-label:12px;--fs-mod:14px;--pad:22px;--gap:16px;--r-card:22px;--r-mod:16px}
+.app.m{--fs-title:20px;--fs-name:15px;--fs-body:15px;--lh-body:1.68;--fs-meta:12.5px;--fs-label:11.5px;--fs-mod:13.5px;--pad:18px;--gap:12px;--r-card:22px;--r-mod:14px}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#0B0C10;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;color:#e8e8ee}
+button,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.app :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:10px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* =====================================================================
+   2. 見本のバー（本番には出ない）
+   ===================================================================== */
+.pv{position:fixed;inset:0 0 auto 0;height:48px;z-index:100;display:flex;align-items:center;gap:10px;padding:0 12px;background:#17181E;border-bottom:2px dashed #F5D547;font-size:12.5px;color:#d9d9e2;overflow-x:auto;scrollbar-width:none}
+.pv::-webkit-scrollbar{display:none}
+.pv .tag{flex:none;background:#F5D547;color:#2a2300;font-weight:900;font-size:11px;padding:3px 8px;border-radius:5px}
+.pv .g{display:flex;gap:2px;background:#25262E;border-radius:9px;padding:3px;flex:none}
+.pv .g button{padding:5px 10px;border-radius:7px;color:#a9a9b6;white-space:nowrap}
+.pv .g button[aria-pressed=true]{background:#43444F;color:#fff;font-weight:700}
+.pv .sp{flex:1}
+.pv .x{flex:none;padding:5px 10px;border-radius:8px;border:1.5px dashed #F5D547;color:#F5D547;font-weight:800;white-space:nowrap}
+.pv .x[aria-pressed=true]{background:#F5D547;color:#2a2300}
+.show-vis [data-vis]{outline:1.5px dashed #F5D547!important;outline-offset:2px}
+.notes{position:fixed;top:48px;right:0;bottom:0;width:380px;max-width:100vw;z-index:99;background:#17181E;color:#dcdce4;border-left:2px dashed #F5D547;padding:16px 18px 40px;overflow:auto;font-size:13px;line-height:1.7;transform:translateX(104%);transition:transform .25s;visibility:hidden}
+.notes.on{transform:none;visibility:visible}
+.notes h2{font-size:14px;margin:0 0 6px;color:#fff}
+.notes h3{font-size:11px;letter-spacing:.08em;color:#8d8d99;margin:18px 0 6px}
+.notes p{margin:0 0 8px}
+.notes code{background:#24252c;padding:1px 5px;border-radius:4px;font-size:12px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);opacity:0;transition:.22s;z-index:120;display:flex;gap:10px;align-items:center;background:#1E1F27;color:#fff;padding:10px 16px 10px 10px;border-radius:12px;font-size:13px;border-left:4px solid #F5D547;box-shadow:0 12px 30px rgba(0,0,0,.4);pointer-events:none;max-width:calc(100vw - 24px)}
+.toast b{background:#F5D547;color:#2a2300;font-size:10.5px;padding:2px 6px;border-radius:4px;flex:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* =====================================================================
+   3. 舞台
+   ===================================================================== */
+.stage{position:fixed;inset:48px 0 0 0;overflow:auto;display:flex;justify-content:center;align-items:flex-start}
+.stage.phone{padding:28px 0 56px;background:radial-gradient(60% 50% at 50% 0,#1d1e28,#0B0C10 70%)}
+.app{position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;color:var(--t1);background:var(--canvas);transition:background-color .3s}
+.stage.phone .app{width:390px;height:844px;flex:none;border-radius:48px;box-shadow:0 0 0 10px #050507,0 0 0 11px #2a2b33,0 40px 100px rgba(0,0,0,.6)}
+.stage.bare{padding:0}
+.stage.bare .app{width:100%;height:100%;border-radius:0;box-shadow:none}
+/* スマホの安全な余白（枠の中では iPhone の値をまねる） */
+.app.m{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+.stage.phone .app.m{--sat:47px;--sab:34px}
+
+/* 背景の層 */
+.bg,.bg-img,.bg-veil{position:absolute;inset:0;z-index:-3;pointer-events:none}
+.bg-img{z-index:-2;background-size:cover;background-position:center;opacity:0;transition:opacity .25s}
+.bg-veil{z-index:-1}
+.bg.mesh{background:
+  radial-gradient(42% 38% at 12% 8%,rgba(var(--brand-rgb),.20),transparent 70%),
+  radial-gradient(38% 34% at 92% 14%,rgba(64,150,210,.12),transparent 70%),
+  radial-gradient(46% 40% at 70% 96%,rgba(190,96,160,.10),transparent 72%),
+  radial-gradient(40% 40% at 4% 86%,rgba(72,170,150,.07),transparent 70%),var(--canvas)}
+.app[data-theme=light] .bg.mesh{background:
+  radial-gradient(42% 38% at 12% 8%,rgba(var(--brand-rgb),.13),transparent 70%),
+  radial-gradient(38% 34% at 92% 14%,rgba(64,150,210,.10),transparent 70%),
+  radial-gradient(46% 40% at 70% 96%,rgba(210,110,170,.08),transparent 72%),var(--canvas)}
+.bg.slate{background:var(--canvas)}
+.bg.noise{background:var(--noise) repeat,var(--canvas);background-size:180px 180px,auto}
+.bg.atmos{background:
+  radial-gradient(60% 46% at 100% 0%,rgba(var(--brand-rgb),.26),transparent 72%),
+  radial-gradient(70% 50% at 50% 115%,rgba(0,0,0,.28),transparent 70%),var(--canvas)}
+.app[data-theme=light] .bg.atmos{background:radial-gradient(60% 46% at 100% 0%,rgba(var(--brand-rgb),.15),transparent 72%),var(--canvas)}
+
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scroll-behavior:smooth;overscroll-behavior:contain}
+
+/* =====================================================================
+   4. PC のレイアウト（3列。列の区別は面の明るさだけ）
+   ===================================================================== */
+.d-grid{display:grid;grid-template-columns:260px minmax(0,640px) 320px;gap:32px;justify-content:center;padding:0 28px;min-height:100%}
+.app.m .d-grid{display:block;padding:0}
+@media (max-width:1300px){.app:not(.m) .d-grid{grid-template-columns:76px minmax(0,640px);gap:24px}.app:not(.m) .side{display:none}
+  .app:not(.m) .rail .lb,.app:not(.m) .rail .wm,.app:not(.m) .rail .me-t{display:none}.app:not(.m) .rail .ni,.app:not(.m) .rail .compose{justify-content:center;padding:0}}
+.rail{position:sticky;top:0;height:100vh;max-height:calc(100vh - 48px);padding:26px 0 22px;display:flex;flex-direction:column;gap:4px}
+.app.m .rail{display:none}
+.brand{display:flex;align-items:center;gap:12px;padding:0 14px 26px}
+.mk{width:30px;height:30px;background:var(--t1);-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat;flex:none}
+.wm{font-weight:800;font-size:18px;letter-spacing:-.01em}
+.wm span{color:var(--t3);font-weight:600}
+.ni{position:relative;display:flex;align-items:center;gap:16px;height:48px;padding:0 16px;border-radius:14px;color:var(--t2);font-size:15.5px;transition:background .15s,color .15s}
+.ni:hover{background:var(--hover);color:var(--t1)}
+.ni[aria-current=page]{color:var(--t1);font-weight:700;background:var(--card);box-shadow:var(--hl),var(--sh-1)}
+.ni[aria-current=page] svg{color:var(--brand-tx)}
+.ni svg.i{width:22px;height:22px}
+.ni .ct{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--t2);background:var(--inset-2);min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 7px}
+.compose{margin-top:18px;height:52px;border-radius:16px;background:var(--brand);color:var(--brand-ink);font-weight:750;font-size:15.5px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 10px 24px -8px rgba(var(--brand-rgb),.65),inset 0 1px 0 rgba(255,255,255,.2);transition:transform .15s,filter .15s}
+.compose:hover{filter:brightness(1.07)}
+.compose:active{transform:scale(.98)}
+.me{margin-top:auto;display:flex;align-items:center;gap:12px;padding:10px;border-radius:16px}
+.me:hover{background:var(--hover)}
+.me b{display:block;font-size:14.5px}
+.me small{display:block;color:var(--t3);font-size:12.5px}
+
+.feed{min-width:0;padding-bottom:80px}
+.side{position:sticky;top:0;height:calc(100vh - 48px);overflow:auto;padding:26px 0 24px;display:flex;flex-direction:column;gap:20px;scrollbar-width:none}
+
+/* フィードの上（PC）：見出し＋切りかえ＋カテゴリ */
+.fh{position:sticky;top:0;z-index:20;padding:24px 0 14px;margin:0 -12px;padding-left:12px;padding-right:12px}
+.fh::before,.app.m .m-top::before{content:'';position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--canvas) 84%,transparent);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
+.fh::after,.app.m .m-top::after{content:'';position:absolute;left:0;right:0;bottom:-18px;height:18px;z-index:-1;background:linear-gradient(color-mix(in srgb,var(--canvas) 84%,transparent),transparent);pointer-events:none}
+.fh-top{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.fh h1{font-size:var(--fs-title);font-weight:800;letter-spacing:-.01em;margin:0;flex:1}
+.seg{display:inline-flex;background:var(--inset);border-radius:12px;padding:3px;box-shadow:var(--hl)}
+.seg button{height:34px;padding:0 16px;border-radius:9px;font-size:13.5px;font-weight:650;color:var(--t3);transition:background .15s,color .15s}
+.seg button[aria-selected=true]{background:var(--raised);color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.cats{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 4px}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:12px;font-size:13px;font-weight:650;color:var(--t2);transition:background .15s,color .15s}
+.cat:hover{background:var(--hover);color:var(--t1)}
+.cat[aria-pressed=true]{background:var(--card);color:var(--t1);box-shadow:var(--hl),var(--sh-1)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block}
+
+/* =====================================================================
+   5. 面（カード）
+   ===================================================================== */
+.sf{background:var(--card);border-radius:var(--r-card);box-shadow:var(--hl),var(--sh-1)}
+.list{display:flex;flex-direction:column;gap:var(--gap)}
+
+/* 投稿欄（PC） */
+.cmp{padding:18px 20px 14px;display:flex;gap:14px;margin-bottom:var(--gap)}
+.cmp .b{flex:1;min-width:0}
+.cmp textarea{width:100%;border:0;outline:0;resize:none;background:transparent;font-size:16.5px;line-height:1.55;padding:8px 0 6px;min-height:56px;color:var(--t1)}
+.cmp textarea::placeholder{color:var(--t4)}
+.tb{display:flex;align-items:center;gap:2px;margin-top:6px}
+.tb .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--t2);transition:background .15s,color .15s}
+.tb .ic:hover{background:var(--hover);color:var(--t1)}
+.tb .catpick{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;margin-left:6px;border-radius:11px;background:var(--inset);font-size:13px;font-weight:650;color:var(--t2)}
+.tb .catpick:hover{color:var(--t1)}
+.tb .sp{flex:1}
+.cnt{font-size:12px;color:var(--t3);margin-right:12px}
+.cnt.over{color:var(--lose);font-weight:800}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 20px;border-radius:12px;font-size:14px;font-weight:750;transition:filter .15s,transform .15s,opacity .15s}
+.btn-p{background:var(--brand);color:var(--brand-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.btn-p:hover{filter:brightness(1.07)}
+.btn-p:disabled{opacity:.35;cursor:not-allowed;filter:none}
+.btn-q{background:var(--inset-2);color:var(--t1)}
+.btn-q:hover{background:var(--press)}
+.menu{position:absolute;z-index:40;min-width:240px;padding:6px;border-radius:16px;background:var(--raised);box-shadow:var(--hl),var(--sh-2);display:none}
+.menu.on{display:block}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:11px;text-align:left;font-size:14px;font-weight:600}
+.menu button:hover{background:var(--hover)}
+.menu small{margin-left:auto;color:var(--t3);font-weight:500;font-size:12px}
+.menu .ck{margin-left:auto;color:var(--brand-tx)}
+
+/* =====================================================================
+   6. 投稿
+   ===================================================================== */
+.post{padding:var(--pad) var(--pad) 10px;position:relative;transition:background .2s}
+.post.new{animation:pin .9s ease}
+@keyframes pin{from{box-shadow:var(--hl),0 0 0 2px rgba(var(--brand-rgb),.45),var(--sh-1)}to{box-shadow:var(--hl),0 0 0 2px transparent,var(--sh-1)}}
+.ph{display:flex;align-items:center;gap:12px}
+.av{border-radius:50%;display:grid;place-items:center;font-weight:750;color:#fff;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.pm{flex:1;min-width:0;line-height:1.35}
+.pm .n{display:flex;align-items:center;gap:6px;font-size:var(--fs-name);font-weight:700;min-width:0}
+.pm .n span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm .bot{font-size:10.5px;font-weight:750;color:var(--t2);background:var(--inset-2);padding:1px 6px;border-radius:5px;flex:none}
+.pm .s{display:flex;align-items:center;gap:6px;font-size:var(--fs-meta);color:var(--t3);margin-top:2px;min-width:0;white-space:nowrap}
+.pm .s .h{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pm .s .sep{color:var(--t4)}
+.pm .s .c{display:inline-flex;align-items:center;gap:5px;color:var(--t2);font-weight:600}
+.more{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:var(--t3);margin-right:-8px}
+.more:hover{background:var(--hover);color:var(--t1)}
+.pb{margin-top:14px;display:flex;flex-direction:column;gap:14px}
+.tx{font-size:var(--fs-body);line-height:var(--lh-body);color:var(--t1);word-break:break-word;white-space:pre-wrap;letter-spacing:.005em}
+.tx .ht{color:var(--brand-tx);font-weight:600;white-space:nowrap}
+/* ポケモンの名前：タイプの色を薄く敷いた小さなチップ（下線のリンクにしない） */
+.pk{display:inline-flex;align-items:center;gap:5px;padding:0 7px 0 6px;margin:0 1px;border-radius:7px;line-height:1.55;font-weight:600;color:var(--t1);background:rgba(var(--tc),var(--chip-a));vertical-align:baseline;white-space:nowrap;transition:background .15s}
+.pk:hover{background:rgba(var(--tc),var(--chip-a2))}
+.pk i{width:7px;height:7px;border-radius:2px;background:rgb(var(--tc));transform:rotate(45deg);flex:none}
+/* 考え方のタグ（1投稿に3つまで） */
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:var(--inset-2);font-size:12.5px;font-weight:650;color:var(--t2)}
+.tag:hover{color:var(--t1)}
+
+/* 部品（投稿の中）：1段沈んだ面 */
+.mod{background:var(--inset);border-radius:var(--r-mod);padding:14px 16px}
+.mh{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:var(--fs-label);color:var(--t3);font-weight:650;letter-spacing:.02em}
+.mh b{color:var(--t1);font-size:var(--fs-mod);font-weight:700;letter-spacing:0}
+.mh .r{margin-left:auto;display:inline-flex;align-items:center;gap:5px}
+
+/* ① パーティの帯 */
+.party{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:8px 2px 6px;border-radius:12px;transition:background .15s}
+.slot:hover{background:var(--hover)}
+.tile{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(var(--tc),.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.tile svg{width:34px;height:34px}
+.slot .nm{font-size:11.5px;color:var(--t2);font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mf{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t3);flex-wrap:wrap}
+.mf .lnk{margin-left:auto;color:var(--t2);font-weight:650;display:inline-flex;align-items:center;gap:4px;padding:4px 8px;margin-right:-8px;border-radius:9px}
+.mf .lnk:hover{background:var(--hover);color:var(--t1)}
+
+/* ② ダメージ計算 */
+.calc .vs{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.who .tile{width:38px;height:38px;border-radius:12px}
+.who .tile svg{width:28px;height:28px}
+.who b{display:block;font-size:14px;font-weight:700;white-space:nowrap}
+.who small{display:block;font-size:11.5px;color:var(--t3);white-space:nowrap}
+.arrow{color:var(--t4);flex:none}
+.mv{margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:10px;background:var(--inset-2);font-size:13px;font-weight:700;white-space:nowrap}
+.res{display:flex;align-items:flex-end;gap:16px;margin-top:16px;flex-wrap:wrap}
+.pct{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.pct small{font-size:15px;font-weight:700;color:var(--t2);margin-left:2px}
+.ko{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:8px;font-size:12.5px;font-weight:750;background:var(--inset-2);color:var(--t1)}
+.ko em{font-style:normal;color:var(--t3);font-weight:650;margin-left:6px}
+.hp{position:relative;height:8px;border-radius:4px;background:rgba(127,135,160,.18);margin-top:14px;overflow:hidden}
+.hp .rest{position:absolute;inset:0 auto 0 0;background:rgba(79,209,160,.55);border-radius:4px}
+.app[data-theme=light] .hp .rest{background:rgba(19,147,106,.45)}
+.hp .rng{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(var(--tc),.85) 0 4px,rgba(var(--tc),.55) 4px 8px)}
+.cond{font-size:12px;color:var(--t3);margin-top:10px;line-height:1.6}
+
+/* ③ 対戦の結果 */
+.rec{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center}
+.outcome{display:flex;flex-direction:column;align-items:center;justify-content:center;width:72px;height:72px;border-radius:18px;background:var(--win-soft);color:var(--win)}
+.outcome b{font-size:17px;font-weight:850;letter-spacing:.06em;line-height:1.1}
+.outcome small{font-size:11px;font-weight:700;opacity:.85;margin-top:2px}
+.outcome.l{background:rgba(240,114,124,.12);color:var(--lose)}
+.teams{display:flex;flex-direction:column;gap:8px;min-width:0}
+.tr{display:flex;align-items:center;gap:10px;min-width:0}
+.tr .lb{width:3.6em;flex:none;font-size:11.5px;color:var(--t3);font-weight:650}
+.tr .mini{display:flex;gap:4px}
+.mini .tile{width:30px;height:30px;border-radius:9px}
+.mini .tile svg{width:22px;height:22px}
+.mini .tile.ko-x{opacity:.5;filter:grayscale(.7)}
+.rate{text-align:right;line-height:1.3}
+.rate b{display:block;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.rate .d{font-size:13px;font-weight:750;color:var(--win)}
+.rate small{display:block;font-size:11px;color:var(--t3);margin-top:3px}
+.selfrep{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;color:var(--t3);box-shadow:inset 0 0 0 1px var(--t4)}
+
+/* ④ リンク */
+.link{display:flex;align-items:center;gap:14px;padding:14px 16px}
+.link .lg{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--inset-2);color:var(--t2);flex:none}
+.link b{display:block;font-size:14px;line-height:1.4}
+.link small{display:block;font-size:12px;color:var(--t3);margin-top:2px}
+.link:hover{background:var(--inset-2)}
+
+/* 操作の並び（返信→リポスト→いいね→ブックマーク→共有） */
+.acts{display:flex;align-items:center;justify-content:space-between;margin:10px -10px 0;max-width:470px}
+.act{display:inline-flex;align-items:center;gap:6px;min-width:44px;height:40px;padding:0 10px;border-radius:12px;color:var(--t3);font-size:13px;font-weight:600;transition:background .15s,color .15s}
+.act:hover{background:var(--hover);color:var(--t1)}
+.act svg.i{width:19px;height:19px}
+.act.like[aria-pressed=true]{color:var(--like)}
+.act.like[aria-pressed=true] svg{fill:currentColor}
+.act.bm[aria-pressed=true]{color:var(--t1)}
+.act.bm[aria-pressed=true] svg{fill:currentColor}
+.act.like:active svg{transform:scale(.85)}
+
+/* 右の列（PC） */
+.search{display:flex;align-items:center;gap:12px;height:48px;padding:0 18px;border-radius:16px;background:var(--inset);color:var(--t3);font-size:14.5px;box-shadow:var(--hl)}
+.pnl{padding:18px 8px 10px}
+.pnl h2{font-size:15px;font-weight:750;margin:0 12px 10px;display:flex;align-items:center}
+.pnl h2 small{margin-left:auto;font-size:12px;color:var(--t3);font-weight:550}
+.ql{display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:14px}
+.ql:hover{background:var(--hover)}
+.ql .q{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--inset-2);color:var(--t2);flex:none}
+.ql b{display:block;font-size:14px;font-weight:650}
+.ql small{display:block;font-size:12px;color:var(--t3)}
+.foot{font-size:11.5px;color:var(--t4);padding:0 12px;line-height:1.7}
+
+/* 背景の選び方（PC の右の列とスマホのシート共通） */
+.bgp{padding:2px 12px 8px}
+.pre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.pre button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;font-weight:650;color:var(--t3);min-width:0}
+.pre button[aria-checked=true]{color:var(--t1)}
+.sw{width:100%;aspect-ratio:1;border-radius:14px;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(127,135,160,.18);transition:box-shadow .15s}
+.pre button[aria-checked=true] .sw{box-shadow:0 0 0 2px var(--card-solid),0 0 0 4px var(--brand)}
+.sw.add{display:grid;place-items:center;color:var(--t3);background:var(--inset)}
+.rng-row{margin-top:16px}
+.rng-row label{display:flex;justify-content:space-between;font-size:13px;font-weight:650;margin-bottom:6px}
+.rng-row output{color:var(--t3);font-weight:550}
+input[type=range]{width:100%;accent-color:var(--brand);margin:0;height:28px}
+.readable{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--t3)}
+.readable i{width:8px;height:8px;border-radius:50%;background:var(--win);flex:none}
+.readable.warn i{background:#E5A93A}
+
+/* =====================================================================
+   7. スマホ（別に設計）
+   ===================================================================== */
+.m-top{display:none}
+.app.m .m-top{display:block;position:sticky;top:0;z-index:20;padding:calc(var(--sat) + 4px) 10px 6px}
+.mt-row{display:flex;align-items:center;gap:6px;height:48px}
+.mt-row .seg{flex:1;max-width:236px;margin:0 auto;display:flex}
+.mt-row .seg button{flex:1;height:36px}
+.mt-row .mk{width:26px;height:26px}
+.ib{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--t2)}
+.ib:hover,.ib:active{background:var(--hover);color:var(--t1)}
+.app.m .fh{display:none}
+.m-cats{display:none}
+.app.m .m-cats{display:block;margin:4px -12px 12px}
+.app.m .cats{padding:2px 12px 4px;scroll-padding:0 12px}
+.app.m .cat{height:36px}
+.app.m .feed{padding:6px 12px calc(var(--sab) + 120px)}
+.app.m .cmp{display:none}
+.app.m .post{padding:16px 16px 6px}
+.app.m .pb{margin-top:12px;gap:12px}
+.app.m .acts{margin:6px -8px 0;max-width:none}
+.app.m .act{height:44px;padding:0 8px}
+.app.m .mod{padding:12px}
+.app.m .party{gap:4px}
+.app.m .slot{padding:4px 0}
+.app.m .slot .nm{display:none}
+.app.m .tile{width:44px;height:44px;border-radius:13px}
+.app.m .party .tile{width:100%;max-width:46px;height:auto;aspect-ratio:1}
+.app.m .calc .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:6px}
+.app.m .calc .who{flex-direction:column;align-items:flex-start;gap:6px}
+.app.m .calc .arrow{align-self:center}
+.app.m .mv{grid-column:1/-1;margin:6px 0 0;justify-self:start}
+.app.m .pct{font-size:26px}
+.app.m .rec{grid-template-columns:auto 1fr;gap:12px 14px}
+.app.m .rate{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;text-align:left;padding-top:10px;margin-top:2px;box-shadow:inset 0 1px 0 rgba(127,135,160,.12)}
+.app.m .rate b{font-size:17px}
+.app.m .rate small{margin:0 0 0 auto}
+.app.m .outcome{width:64px;height:64px}
+.app.m .tags{gap:6px}
+.app.m .tag{height:28px;padding:0 11px;font-size:12px}
+
+/* 下のメニュー＋投稿ボタン */
+.nav,.fab{display:none}
+.app.m .nav{display:flex;position:absolute;z-index:30;left:12px;right:12px;bottom:calc(var(--sab) + 8px);height:64px;padding:6px;border-radius:24px;background:var(--raised);box-shadow:var(--hl),var(--sh-2)}
+.app.m[data-theme=dark] .nav{background:rgba(38,42,56,.92);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%)}
+.app.m[data-theme=light] .nav{background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:18px;font-size:10.5px;font-weight:600;color:var(--t3);position:relative}
+.nav a svg.i{width:23px;height:23px}
+.nav a[aria-current=page]{color:var(--t1);background:var(--inset-2)}
+.nav a[aria-current=page] svg{color:var(--brand-tx)}
+.nav a .bd{position:absolute;top:8px;left:calc(50% + 6px);min-width:16px;height:16px;border-radius:8px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.app.m .fab{display:grid;place-items:center;position:absolute;z-index:31;right:18px;bottom:calc(var(--sab) + 86px);width:60px;height:60px;color:#fff;transition:transform .15s}
+.fab:active{transform:scale(.94)}
+.fab svg.hx{position:absolute;inset:0;width:60px;height:60px;filter:drop-shadow(0 10px 16px rgba(var(--brand-rgb),.45)) drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.fab svg.i{position:relative;width:24px;height:24px}
+
+/* シート（スマホの投稿・背景） */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(5,6,10,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--raised);border-radius:28px 28px 0 0;box-shadow:var(--hl),var(--sh-2);padding:10px 18px calc(var(--sab) + 18px);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-height:88%;overflow:auto}
+.sheet.on{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--t4);opacity:.6;margin:0 auto 14px}
+.sheet h2{font-size:17px;font-weight:750;margin:0 0 14px;display:flex;align-items:center}
+.sheet h2 .ib{margin-left:auto;margin-right:-10px}
+.sheet textarea{width:100%;min-height:120px;border:0;outline:0;resize:none;background:var(--inset);border-radius:16px;padding:14px;font-size:16px;line-height:1.55;color:var(--t1)}
+.sheet .tb{margin-top:10px}
+.app:not(.m) .scrim,.app:not(.m) .sheet{display:none}
+</style>
+</head>
+<body>
+
+<div class="pv" role="toolbar" aria-label="見本の操作（本番には出ません）">
+  <span class="tag">見本 V3</span>
+  <div class="g" id="pv-v" role="group" aria-label="表示する形"></div>
+  <span class="sp"></span>
+  <button class="x" id="pv-vis" aria-pressed="false" title="見た目だけで動かない部品に点線を付ける">見た目だけの部品</button>
+  <button class="x" id="pv-notes" aria-pressed="false">設計メモ</button>
+</div>
+<aside class="notes" id="notes" aria-label="設計メモ"></aside>
+
+<div class="stage" id="stage">
+ <div class="app" id="app" data-theme="dark">
+  <div class="bg atmos" id="bg"></div><div class="bg-img" id="bgimg"></div><div class="bg-veil" id="bgveil"></div>
+  <div class="scroll" id="scroll">
+   <div class="d-grid">
+    <nav class="rail" aria-label="メニュー" id="rail"></nav>
+    <main class="feed" id="feed"></main>
+    <aside class="side" id="side" aria-label="よく使う機能と表示"></aside>
+   </div>
+  </div>
+  <nav class="nav" id="nav" aria-label="メニュー"></nav>
+  <button class="fab" id="fab" aria-label="投稿する"><svg class="hx" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 3c1.7 0 3.4.4 4.9 1.3l15.6 9c3 1.7 4.9 5 4.9 8.4v18.6c0 3.5-1.9 6.7-4.9 8.4l-15.6 9a9.8 9.8 0 0 1-9.8 0l-15.6-9c-3-1.7-4.9-4.9-4.9-8.4V21.7c0-3.5 1.9-6.7 4.9-8.4l15.6-9C26.6 3.4 28.3 3 30 3z" fill="var(--brand)"/></svg><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
+  <div class="scrim" id="scrim"></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t"></section>
+ </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const LOGO='data:image/png;base64,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';
+/* ---------- アイコン ---------- */
+const IC={home:'<path d="M4 10.5 12 4l8 6.5V20h-5v-6h-6v6H4z"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+ tool:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+ party:'<path d="M12 3.5 19.4 7.8v8.4L12 20.5 4.6 16.2V7.8z"/><path d="M12 3.5v17M4.6 7.8l14.8 8.4M19.4 7.8 4.6 16.2"/>',
+ mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2.6"/><path d="m4 7 8 6 8-6"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+ user:'<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/>',bookmark:'<path d="M6.5 4.5h11v16l-5.5-4-5.5 4z"/>',
+ reply:'<path d="M20 12a7.5 7.5 0 0 1-10.8 6.7L4.5 20l1.4-4.2A7.5 7.5 0 1 1 20 12z"/>',repost:'<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5M17 7v5M7 17v-5"/>',
+ heart:'<path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z"/>',
+ share:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M5 13v6.5h14V13"/>',image:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 16-5-5-8.5 8.5"/>',
+ dots:'<circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/>',down:'<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>',
+ arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',calc:'<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',book:'<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>',
+ eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+ pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',check:'<path d="m5 12.5 4.5 4.5L19 7"/>',close:'<path d="M6 6l12 12M18 6 6 18"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ tune:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',plus:'<path d="M12 5v14M5 12h14"/>',chev:'<path d="m9 6 6 6-6 6"/>',
+ tag:'<path d="M4 4h7.5L20 12.5 12.5 20 4 11.5z"/><circle cx="8.5" cy="8.5" r="1.3"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'};
+const S=(k,s)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"${s?` style="width:${s}px;height:${s}px"`:''}>${IC[k]}</svg>`;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- データ（架空の利用者と投稿。ポケモンは当サイトと同じ「種族値の形」で描き、公式の絵は使わない） ---------- */
+const TY={dragon:'115,102,232',ground:'196,154,78',steel:'132,149,168',ghost:'122,98,168',water:'76,143,230',fairy:'217,127,175',flying:'140,149,232',fire:'229,122,58',dark:'110,94,88'};
+const TYN={dragon:'ドラゴン',ground:'じめん',steel:'はがね',ghost:'ゴースト',water:'みず',fairy:'フェアリー',flying:'ひこう',fire:'ほのお'};
+const MON={
+ gab:{n:'ガブリアス',en:'Garchomp',t:['dragon','ground'],s:[108,130,95,102,85,80]},
+ surf:{n:'サーフゴー',en:'Gholdengo',t:['steel','ghost'],s:[87,60,95,84,91,133]},
+ ashi:{n:'アシレーヌ',en:'Primarina',t:['water','fairy'],s:[80,74,74,60,116,126]},
+ armor:{n:'アーマーガア',en:'Corviknight',t:['flying','steel'],s:[98,87,105,67,85,53]},
+ wind:{n:'ウインディ',en:'Arcanine',t:['fire'],s:[90,110,80,95,80,100]},
+ kai:{n:'カイリュー',en:'Dragonite',t:['dragon','flying'],s:[91,134,95,80,100,100]},
+ dpt:{n:'ドラパルト',en:'Dragapult',t:['dragon','ghost'],s:[88,120,75,142,75,100]},
+ mimi:{n:'ミミッキュ',en:'Mimikyu',t:['ghost','fairy'],s:[55,90,80,96,105,50]}};
+function shape(k){const m=MON[k],a=TY[m.t[0]],b=TY[m.t[1]||m.t[0]];
+  const P=f=>m.s.map((v,i)=>{const r=40*f(v),t=-Math.PI/2+i*Math.PI/3;return (r*Math.cos(t)).toFixed(1)+','+(r*Math.sin(t)).toFixed(1)}).join(' ');
+  return `<svg viewBox="-48 -48 96 96" aria-hidden="true"><polygon points="${P(()=>1)}" fill="none" stroke="rgb(${a})" stroke-opacity=".28" stroke-width="2.4" stroke-linejoin="round"/><polygon points="${P(v=>Math.max(.15,Math.min(1,v/150)))}" fill="rgb(${a})" stroke="rgb(${b})" stroke-width="5" stroke-linejoin="round"/></svg>`}
+const tile=(k,extra)=>`<span class="tile${extra?' '+extra:''}" style="--tc:${TY[MON[k].t[0]]}">${shape(k)}</span>`;
+const AV=(u,s)=>`<span class="av" style="width:${s}px;height:${s}px;background:${u.c};font-size:${Math.round(s*.4)}px" aria-hidden="true">${u.ch}</span>`;
+const CATS=[{k:'battle',t:'対戦募集',c:'#E07079'},{k:'build',t:'構築相談',c:'#42B98E'},{k:'q',t:'質問',c:'#5C9BEB'},{k:'chat',t:'雑談',c:'#DDA545'}];
+const catOf=k=>CATS.find(c=>c.k===k);
+
+/* ---------- ポケモンの名前の自動リンク（決定 D4：kfold で正規化・3文字以上・除外リスト・日本語と英語で区切りを別に・#と@は見ない・同じポケモンは1回） ---------- */
+const SMALL={'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ','ッ':'ツ','ャ':'ヤ','ュ':'ユ','ョ':'ヨ','ヮ':'ワ','ヵ':'カ','ヶ':'ケ'};
+const kfold=s=>[...s].map(ch=>{const c=ch.charCodeAt(0);const k=(c>=0x3041&&c<=0x3096)?String.fromCharCode(c+0x60):ch;return SMALL[k]||k}).join('');
+const EXCLUDE=[];
+const edge=ch=>!!ch&&/[゠-ヿA-Za-z0-9]/.test(ch);
+function rich(raw){const out=[],used=new Set();
+  for(const part of raw.split(/([#＃][^\s#＃@＠]+|[@＠][A-Za-z0-9_]+)/)){
+    if(!part)continue;
+    if(/^[#＃@＠]/.test(part)){out.push(`<span class="ht">${esc(part)}</span>`);continue}
+    const f=kfold(part),hits=[];
+    for(const [k,m] of Object.entries(MON)){const jn=kfold(m.n);let from=0,i;
+      while((i=f.indexOf(jn,from))>=0){from=i+1;if(m.n.length<3||edge(part[i-1])||edge(part[i+jn.length]))continue;hits.push({i,len:jn.length,k})}
+      const re=new RegExp('\\b'+m.en+'\\b','ig');let x;while((x=re.exec(part)))hits.push({i:x.index,len:m.en.length,k});}
+    hits.sort((a,b)=>a.i-b.i);let pos=0;
+    for(const h of hits){if(h.i<pos||used.has(h.k)||EXCLUDE.includes(MON[h.k].n))continue;used.add(h.k);
+      out.push(esc(part.slice(pos,h.i)));
+      out.push(`<a href="#" class="pk" style="--tc:${TY[MON[h.k].t[0]]}" data-toast="図鑑の「${MON[h.k].n}」へ（見本なので移動しません）"><i aria-hidden="true"></i>${esc(part.slice(h.i,h.i+h.len))}</a>`);pos=h.i+h.len}
+    out.push(esc(part.slice(pos)))}
+  return out.join('')}
+
+const U={me:{ch:'ミ',c:'#6457D6',name:'ミナト',id:'minato_pk'},sora:{ch:'ソ',c:'#1E8A69',name:'そらまめ',id:'soramame_b'},ren:{ch:'レ',c:'#B9651C',name:'れん',id:'ren_tactics'},
+ haru:{ch:'ハ',c:'#B83A62',name:'はるか',id:'haruka_vgc'},bot:{ch:'公',c:'#3462C9',name:'お知らせbot',id:'news_bot',bot:1},yu:{ch:'ユ',c:'#5A6478',name:'ユウ',id:'yu_double'}};
+const POSTS=[
+ {id:1,u:'me',t:'12分',f:1,text:'シーズン5、最終2桁まで行けた構築です。ガブリアスとサーフゴーで前に出て、削れたところをカイリューで締める流れ。選出の考え方はリプに書きます #構築紹介',
+  party:{name:'ガブサーフ対面',fmt:'シングル',mons:['gab','surf','ashi','armor','wind','kai'],date:'11/16'},tags:['対面構築','カイリュー軸','スカーフ枠あり'],r:14,rp:22,l:186},
+ {id:2,u:'sora',t:'40分',cat:'build',f:1,text:'タスキのガブリアスで受けのカイリューを崩せるか計算してみた。マルチスケイルが残っていると乱数2発…ここはいのちのたまの方がいいのかな？',
+  calc:{a:'gab',d:'kai',move:'げきりん',mt:'dragon',aCond:'こうげき32・いじっぱり',dCond:'HP32・ぼうぎょ2',min:47.6,max:56.3,ko:'乱数2発',kop:'68.4%',note:'マルチスケイルで1発目のダメージ半分（計算に含む）'},r:9,rp:3,l:41},
+ {id:3,u:'haru',t:'1時間',cat:'chat',text:'ドラパルト入りのパーティに3連勝！やっとレート1,800を超えた…今日はここで止めます',
+  rec:{win:1,fmt:'シングル・ランクバトル',mine:['gab','kai','armor'],opp:['dpt','mimi','surf'],down:{mine:['armor'],opp:['dpt','mimi','surf']},rate:1812,diff:18},r:4,l:67},
+ {id:4,u:'ren',t:'2時間',cat:'q',f:1,text:'アシレーヌの持ち物、しんぴのしずく以外だと何が多いですか？ 特殊受けを置かれると止まってしまって…',r:11,l:8},
+ {id:5,u:'bot',t:'3時間',text:'【公式・アップデート】Ver.1.3.0 の配信について（2026/11/17） #公式のお知らせ',link:{t:'Ver.1.3.0 の配信について',d:'公式サイトで読む・pokemonchampions.jp'},l:52},
+ {id:6,u:'yu',t:'5時間',cat:'battle',text:'今夜21時からダブルのプライベート対戦できる方いませんか？ ルールはレベル50・メガシンカあり。ウインディ入りの雨対策を試したいです',r:6,l:13}];
+
+/* ---------- 状態 ---------- */
+const ST={v:'dd',tab:'all',cat:'all',menu:false,sheet:null,draft:'',dcat:null,vis:false,notes:false,
+  bg:{p:'atmos',img:null,k:60}};
+const isM=()=>ST.v[0]==='m',theme=()=>ST.v[1]==='d'?'dark':'light';
+
+/* ---------- 部品 ---------- */
+function partyMod(p){return `<div class="mod" role="group" aria-label="パーティ ${esc(p.name)}">
+  <div class="mh"><b>${esc(p.name)}</b><span>${p.fmt}・6匹</span><span class="r">${S('eye',13)}ポケモンだけ公開</span></div>
+  <div class="party">${p.mons.map(k=>`<a href="#" class="slot" title="${MON[k].n}" aria-label="${MON[k].n}" data-toast="図鑑の「${MON[k].n}」へ（見本）">${tile(k)}<span class="nm">${MON[k].n}</span></a>`).join('')}</div>
+  <div class="mf">${S('cal',13)}${p.date}に共有した時点の内容<a href="#" class="lnk" data-toast="空いているパーティの枠に写します（見本）">このパーティを使う${S('chev',14)}</a></div></div>`}
+function calcMod(c){const A=MON[c.a],D=MON[c.d];
+  return `<div class="mod calc" role="group" aria-label="ダメージ計算の結果">
+  <div class="mh">${S('calc',14)}<span>ダメージ計算</span><span class="r">シングル</span></div>
+  <div class="vs"><div class="who">${tile(c.a)}<span><b>${A.n}</b><small>${c.aCond}</small></span></div><span class="arrow">${S('arrow',18)}</span><div class="who">${tile(c.d)}<span><b>${D.n}</b><small>${c.dCond}</small></span></div>
+   <span class="mv"><span class="dot" style="background:rgb(${TY[c.mt]})"></span>${c.move}</span></div>
+  <div class="res"><span class="pct num">${c.min}<small>〜</small>${c.max}<small>%</small></span><span class="ko">${c.ko}<em>${c.kop}</em></span></div>
+  <div class="hp" style="--tc:${TY[c.mt]}" aria-hidden="true"><span class="rest" style="width:${100-c.max}%"></span><span class="rng" style="left:${100-c.max}%;width:${c.max-c.min}%"></span></div>
+  <div class="cond">${c.note}</div></div>`}
+function recMod(r){const row=(lb,arr,down)=>`<div class="tr"><span class="lb">${lb}</span><span class="mini">${arr.map(k=>tile(k,down.includes(k)?'ko-x':'')).join('')}</span></div>`;
+  return `<div class="mod" role="group" aria-label="対戦の結果">
+  <div class="mh">${S('target',14)}<span>${r.fmt}</span><span class="r"><span class="selfrep">本人の記録</span></span></div>
+  <div class="rec"><div class="outcome${r.win?'':' l'}"><b>${r.win?'WIN':'LOSE'}</b><small>${r.win?'勝ち':'負け'}</small></div>
+   <div class="teams">${row('自分',r.mine,r.down.mine)}${row('相手',r.opp,r.down.opp)}</div>
+   <div class="rate"><b class="num">${r.rate.toLocaleString()}</b><span class="d num">+${r.diff}</span><small>レート・自己申告</small></div></div></div>`}
+function postHTML(p){const u=U[p.u],c=catOf(p.cat),lk=(p.l||0)+(p.liked?1:0);
+  return `<article class="post sf${p.isNew?' new':''}" aria-label="${esc(u.name)}の投稿">
+  <header class="ph">${AV(u,44)}<div class="pm"><div class="n"><span>${esc(u.name)}</span>${u.bot?'<span class="bot">bot</span>':''}</div>
+   <div class="s"><span class="h">@${u.id}</span><span class="sep">·</span><span>${p.t}</span>${c?`<span class="sep">·</span><span class="c"><span class="dot" style="background:${c.c}"></span>${c.t}</span>`:''}</div></div>
+   <button class="more" aria-label="その他の操作" data-toast="通報・ミュートなど（今の機能と同じ）" data-vis>${S('dots',18)}</button></header>
+  <div class="pb"><div class="tx">${rich(p.text)}</div>
+   ${p.party?partyMod(p.party):''}${p.calc?calcMod(p.calc):''}${p.rec?recMod(p.rec):''}
+   ${p.link?`<a href="#" class="mod link" data-toast="公式サイトを開きます（見本）" data-vis><span class="lg">${S('link',20)}</span><span><b>${p.link.t}</b><small>${p.link.d}</small></span></a>`:''}
+   ${p.tags?`<div class="tags">${p.tags.map(t=>`<a href="#" class="tag" data-toast="「${t}」の投稿を探す（見本）" data-vis>${t}</a>`).join('')}</div>`:''}</div>
+  <div class="acts">
+   <button class="act" aria-label="返信 ${p.r||0}件" data-toast="返信（今の機能と同じ）" data-vis>${S('reply')}<span class="num">${p.r||''}</span></button>
+   <button class="act" aria-label="リポスト ${p.rp||0}件" data-toast="リポスト（今の機能と同じ）" data-vis>${S('repost')}<span class="num">${p.rp||''}</span></button>
+   <button class="act like" data-like="${p.id}" aria-pressed="${!!p.liked}" aria-label="いいね ${lk}件">${S('heart')}<span class="num">${lk||''}</span></button>
+   <button class="act bm" data-bm="${p.id}" aria-pressed="${!!p.bm}" aria-label="ブックマーク">${S('bookmark')}</button>
+   <button class="act" aria-label="共有" data-toast="リンクをコピーしました（見本）" data-vis>${S('share')}</button>
+  </div></article>`}
+
+function railHTML(){return `<a href="#" class="brand" aria-label="Game Kid/s ホーム"><span class="mk" aria-hidden="true"></span><span class="wm">Game Kid<span>/</span>s</span></a>
+  ${[['home','ホーム',1],['search','検索'],['tool','ツール'],['party','パーティ'],['mail','メッセージ',0,2],['bell','お知らせ',0,5],['bookmark','ブックマーク'],['user','プロフィール']].map(([i,t,cur,n])=>`<a href="#" class="ni"${cur?' aria-current="page"':` data-toast="「${t}」はこの見本に含まれていません" data-vis`}>${S(i)}<span class="lb">${t}</span>${n?`<span class="ct lb">${n}</span>`:''}</a>`).join('')}
+  <button class="compose" id="d-compose">${S('pen',19)}<span class="lb">投稿する</span></button>
+  <a href="#" class="me" data-toast="プロフィール（この見本に含まれていません）" data-vis>${AV(U.me,40)}<span class="me-t"><b>${U.me.name}</b><small>@${U.me.id}</small></span></a>`}
+function navHTML(){return [['home','ホーム',1],['search','検索'],['tool','ツール'],['party','パーティ'],['mail','メッセージ',0,2]].map(([i,t,cur,n])=>`<a href="#"${cur?' aria-current="page"':` data-toast="「${t}」はこの見本に含まれていません" data-vis`}>${S(i)}<span>${t}</span>${n?`<span class="bd">${n}</span>`:''}</a>`).join('')}
+const PRE=[['atmos','光'],['mesh','メッシュ'],['slate','スレート'],['noise','ノイズ']];
+function swatchStyle(k){const L=theme()==='light',c=L?'#ECEEF3':'#12141B',b=L?'95,82,224':'124,108,240';
+  if(k==='mesh')return `background:radial-gradient(70% 60% at 15% 10%,rgba(${b},${L?.3:.45}),transparent 70%),radial-gradient(60% 60% at 95% 20%,rgba(64,150,210,.3),transparent 70%),radial-gradient(70% 60% at 70% 100%,rgba(200,100,160,.25),transparent 70%),${c}`;
+  if(k==='slate')return `background:${c}`;
+  if(k==='noise')return `background:var(--noise) repeat,${c};background-size:90px 90px,auto`;
+  return `background:radial-gradient(90% 80% at 100% 0%,rgba(${b},${L?.4:.6}),transparent 72%),${c}`}
+function bgPanel(){const b=ST.bg,img=b.p==='img';
+  return `<div class="bgp">
+  <div class="pre" role="radiogroup" aria-label="背景">${PRE.map(([k,t])=>`<button role="radio" data-pre="${k}" aria-checked="${b.p===k}"><span class="sw" style="${swatchStyle(k)}"></span>${t}</button>`).join('')}
+   <button role="radio" data-pre="img" aria-checked="${img}">${b.img?`<span class="sw" style="background:url(${b.img}) center/cover"></span>`:`<span class="sw add">${S('plus',18)}</span>`}画像</button></div>
+  ${img&&b.img?`<div class="rng-row"><label for="r-k">画像の濃さ<output id="o-k" class="num">${b.k}%</output></label><input id="r-k" type="range" min="10" max="${maxK()}" value="${Math.min(b.k,maxK())}">
+   <div class="readable"><i></i><span>文字が読みやすい範囲だけ動かせます（最大 ${maxK()}%）</span></div>
+   <div style="display:flex;gap:8px;margin-top:12px"><label class="btn btn-q" style="height:34px;font-size:13px;cursor:pointer">別の画像を選ぶ<input type="file" accept="image/*" class="sr" data-file></label><button class="btn btn-q" style="height:34px;font-size:13px" data-sample>見本の写真</button></div></div>`
+   :img?`<div class="rng-row" style="display:flex;gap:8px"><label class="btn btn-q" style="height:34px;font-size:13px;cursor:pointer">画像を選ぶ<input type="file" accept="image/*" class="sr" data-file></label><button class="btn btn-q" style="height:34px;font-size:13px" data-sample>見本の写真を使う</button></div>`:''}
+  </div>`}
+function sideHTML(){return `<div class="search">${S('search',19)}ポケモン・トレーナー・投稿</div>
+  <section class="sf pnl"><h2>よく使うツール</h2>${[['calc','ダメージ計算','乱数16段階・確定数'],['target','選出アシスト','相手の6匹から選出を決める'],['book','図鑑','種族値・技・対策']].map(([i,t,d])=>`<a href="#" class="ql" data-toast="ツール（この見本に含まれていません）" data-vis><span class="q">${S(i,19)}</span><span><b>${t}</b><small>${d}</small></span></a>`).join('')}</section>
+  <section class="sf pnl"><h2>背景<small>この端末で動きます</small></h2>${bgPanel()}</section>
+  <div class="foot">Game Kid/s は非公式のファンサイトです<br>利用規約・プライバシーポリシー</div>`}
+function feedHTML(){const list=POSTS.filter(p=>(ST.tab==='all'||p.f)&&(ST.cat==='all'||p.cat===ST.cat));
+  const segH=`<div class="seg" role="tablist" aria-label="タイムライン"><button role="tab" data-tab="all" aria-selected="${ST.tab==='all'}">みんな</button><button role="tab" data-tab="fol" aria-selected="${ST.tab==='fol'}">フォロー中</button></div>`;
+  const catsH=`<div class="cats" role="group" aria-label="カテゴリで絞り込む"><button class="cat" data-cat="all" aria-pressed="${ST.cat==='all'}">すべて</button>${CATS.map(c=>`<button class="cat" data-cat="${c.k}" aria-pressed="${ST.cat===c.k}"><span class="dot" style="background:${c.c}"></span>${c.t}</button>`).join('')}</div>`;
+  const len=[...ST.draft].length,dc=catOf(ST.dcat);
+  return `<div class="m-top"><div class="mt-row"><button class="ib" aria-label="メニュー" data-toast="左のメニュー（今の機能と同じ）" data-vis>${AV(U.me,32)}</button>${segH}<button class="ib" id="m-bg" aria-label="背景を変える">${S('tune',22)}</button></div></div>
+  <div class="m-cats">${catsH}</div>
+  <div class="fh"><div class="fh-top"><h1>ホーム</h1>${segH}</div>${catsH}</div>
+  <div class="sf cmp">${AV(U.me,44)}<div class="b"><label class="sr" for="d-t">投稿の内容</label><textarea id="d-t" rows="2" placeholder="対戦の感想、構築の相談、募集など">${esc(ST.draft)}</textarea>
+   <div class="tb"><button class="ic" aria-label="画像を付ける" data-toast="画像を選ぶ（今の機能と同じ）" data-vis>${S('image')}</button><button class="ic" aria-label="パーティを共有する" data-toast="パーティを共有する画面へ（V2 の流れ・この見本に含まれていません）" data-vis>${S('party')}</button>
+    <span style="position:relative"><button class="catpick" id="d-cat" aria-haspopup="menu" aria-expanded="${ST.menu}">${dc?`<span class="dot" style="background:${dc.c}"></span>${dc.t}`:`${S('tag',15)}カテゴリ`}${S('down',15)}</button>${catMenu('d')}</span>
+    <span class="sp"></span><span class="cnt num${len>140?' over':''}" id="d-c"${len?'':' hidden'}>${len}/140</span><button class="btn btn-p" id="d-go" ${len&&len<=140?'':'disabled'}>投稿</button></div></div></div>
+  <div class="list">${list.map(postHTML).join('')||`<div class="sf" style="padding:40px 24px;text-align:center;color:var(--t3)"><b style="display:block;color:var(--t1);font-size:16px;margin-bottom:4px">このカテゴリの投稿はまだありません</b>カテゴリを付けて、最初の投稿をしてみましょう</div>`}</div>`}
+function catMenu(w){const on=ST.menu===w;return `<div class="menu${on?' on':''}" role="menu" style="${w==='d'?'top:42px;left:0':'bottom:50px;left:0'}">
+  <button role="menuitemradio" aria-checked="${!ST.dcat}" data-dcat="">カテゴリなし${!ST.dcat?`<span class="ck">${S('check',17)}</span>`:'<small>はじめ</small>'}</button>
+  ${CATS.map(c=>`<button role="menuitemradio" aria-checked="${ST.dcat===c.k}" data-dcat="${c.k}"><span class="dot" style="background:${c.c}"></span>${c.t}${ST.dcat===c.k?`<span class="ck">${S('check',17)}</span>`:''}</button>`).join('')}</div>`}
+function sheetHTML(){
+  if(ST.sheet==='compose'){const len=[...ST.draft].length,dc=catOf(ST.dcat);
+    return `<div class="grab"></div><h2 id="sheet-t">投稿する<button class="ib" data-close aria-label="閉じる">${S('close',20)}</button></h2>
+    <label class="sr" for="m-t">投稿の内容</label><textarea id="m-t" placeholder="対戦の感想、構築の相談、募集など">${esc(ST.draft)}</textarea>
+    <div class="tb"><button class="ic" aria-label="画像を付ける" data-toast="画像を選ぶ（今の機能と同じ）" data-vis>${S('image')}</button><button class="ic" aria-label="パーティを共有する" data-toast="パーティを共有する画面へ（この見本に含まれていません）" data-vis>${S('party')}</button>
+     <span style="position:relative"><button class="catpick" id="m-cat" aria-haspopup="menu" aria-expanded="${ST.menu==='m'}">${dc?`<span class="dot" style="background:${dc.c}"></span>${dc.t}`:`${S('tag',15)}カテゴリ`}${S('down',15)}</button>${catMenu('m')}</span>
+     <span class="sp"></span><span class="cnt num${len>140?' over':''}" id="m-c"${len?'':' hidden'}>${len}/140</span><button class="btn btn-p" id="m-go" ${len&&len<=140?'':'disabled'}>投稿</button></div>`}
+  if(ST.sheet==='bg')return `<div class="grab"></div><h2 id="sheet-t">背景<button class="ib" data-close aria-label="閉じる">${S('close',20)}</button></h2>${bgPanel()}<p style="font-size:12px;color:var(--t3);margin:14px 12px 0">背景の種類はログイン中ならほかの端末にも反映されます。画像はこの端末だけに保存されます。</p>`;
+  return ''}
+
+/* ---------- 背景 ---------- */
+const NOISE=`url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .3 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>")}")`;
+let AVG=null;
+const lin=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)},lum=c=>.2126*lin(c[0])+.7152*lin(c[1])+.0722*lin(c[2]);
+/* 画像の濃さの上限：本文の色（t1）と、画像を重ねたあとの背景の明るさの差が 7:1 以上を保てるところまで */
+function maxK(){if(!AVG)return 60;const L=theme()==='light',base=L?[236,238,243]:[18,20,27],fg=L?[21,24,36]:[236,238,244];
+  for(let k=85;k>=10;k-=5){/* 85% を上限（画像が主役になりすぎない） */const e=base.map((v,i)=>v*(1-k/100)+AVG[i]*(k/100));const a=lum(e),b=lum(fg);if((Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=7)return k}return 10}
+function applyBg(){const b=ST.bg,el=document.getElementById('bg'),im=document.getElementById('bgimg');
+  document.getElementById('app').style.setProperty('--noise',NOISE);
+  el.className='bg '+(b.p==='img'?'slate':b.p);
+  if(b.p==='img'&&b.img){im.style.backgroundImage=`url(${b.img})`;im.style.opacity=Math.min(b.k,maxK())/100}else im.style.opacity=0}
+function sample(){/* 見本の写真：このページで描く、ぼけた夜の光（抽象的な写真の代わり） */
+  const c=document.createElement('canvas');c.width=900;c.height=1400;const g=c.getContext('2d');let s=11;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const bgG=g.createLinearGradient(0,0,0,1400);bgG.addColorStop(0,'#141a2e');bgG.addColorStop(1,'#2a1a2c');g.fillStyle=bgG;g.fillRect(0,0,900,1400);
+  for(let i=0;i<70;i++){const x=r()*900,y=r()*1400,rad=30+r()*110,h=[[255,170,90],[120,140,255],[255,110,150],[90,210,200]][Math.floor(r()*4)];
+    const gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,`rgba(${h},${.18+r()*.25})`);gr.addColorStop(.7,`rgba(${h},${.06+r()*.08})`);gr.addColorStop(1,`rgba(${h},0)`);g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill()}
+  return c.toDataURL('image/jpeg',.82)}
+function setImg(src){ST.bg.img=src;ST.bg.p='img';const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=24;const g=c.getContext('2d');g.drawImage(im,0,0,24,24);const d=g.getImageData(0,0,24,24).data;let t=[0,0,0];for(let i=0;i<d.length;i+=4){t[0]+=d[i];t[1]+=d[i+1];t[2]+=d[i+2]}AVG=t.map(v=>v/(d.length/4));ST.bg.k=Math.min(ST.bg.k,maxK());render(true)};im.src=src}
+
+/* ---------- 設計メモ（見本） ---------- */
+const NOTES=`<h2>設計メモ：フィード V3</h2>
+<p>くわしくは <code>docs/social-redesign/v3/design-notes.md</code>。</p>
+<h3>見本のルール</h3><p>上のバー・この欄・「見本」の知らせは見本だけ。「見た目だけの部品」を押すと、押しても動かない（知らせが出るだけの）部品に点線が付きます。</p>
+<h3>実際に動くもの</h3><p>4つの形の切りかえ／みんな・フォロー中／カテゴリで絞り込む／投稿欄（カテゴリ・140字・投稿するとこの画面に追加）／いいね・ブックマーク／背景（4つ＋画像・画像の濃さ）／スマホの投稿シート・背景シート</p>
+<h3>守っている決定</h3><p>カテゴリは任意の4つ（左のメニューの入口は無し）・操作の並び（返信→リポスト→いいね→ブックマーク→共有）・自動リンクの決まり（D4）・パーティは写しで公開範囲を出す・自己申告の数字は「自己申告」と書く（D1）・背景の種類は同期、画像は端末だけ（D6）。</p>
+<h3>見本の数値</h3><p>ダメージ計算の％・確率、対戦の結果、レートは見た目を確かめるための見本です。実際の計算結果ではありません。</p>
+<h3>決めてほしいこと</h3><p>ダークモードの奥の色を真っ黒（今のサイト）から濃いスレートに変えること／背景の種類を「光・メッシュ・スレート・ノイズ」に入れかえること（V2 の夕暮れ・六角形はなくなる）／考え方のタグ（1投稿3つまで）を新しく作るか。ほかの未決定 U1〜U11 は plan.md のまま。</p>`;
+
+/* ---------- 描く ---------- */
+function render(keep){const sc=document.getElementById('scroll'),y=sc.scrollTop;
+  const app=document.getElementById('app'),st=document.getElementById('stage');
+  app.dataset.theme=theme();app.classList.toggle('m',isM());
+  st.classList.toggle('phone',isM()&&innerWidth>=480);st.classList.toggle('bare',isM()&&innerWidth<480);
+  document.getElementById('rail').innerHTML=railHTML();document.getElementById('feed').innerHTML=feedHTML();document.getElementById('side').innerHTML=isM()?'':sideHTML();
+  document.getElementById('nav').innerHTML=navHTML();
+  const sh=document.getElementById('sheet');sh.innerHTML=sheetHTML();sh.classList.toggle('on',!!ST.sheet);document.getElementById('scrim').classList.toggle('on',!!ST.sheet);
+  document.getElementById('pv-v').innerHTML=[['dd','PC・ダーク'],['dl','PC・ライト'],['md','スマホ・ダーク'],['ml','スマホ・ライト']].map(([k,t])=>`<button data-v="${k}" aria-pressed="${ST.v===k}">${t}</button>`).join('');
+  document.body.classList.toggle('show-vis',ST.vis);document.getElementById('pv-vis').setAttribute('aria-pressed',ST.vis);
+  const n=document.getElementById('notes');n.classList.toggle('on',ST.notes);n.innerHTML=NOTES;document.getElementById('pv-notes').setAttribute('aria-pressed',ST.notes);
+  document.querySelectorAll('.mk').forEach(e=>e.style.setProperty('--logo',`url(${LOGO})`));
+  applyBg();POSTS.forEach(p=>delete p.isNew);
+  sc.scrollTop=keep?y:0;
+  try{history.replaceState(null,'','?v='+ST.v+(ST.bg.p!=='atmos'?'&bg='+ST.bg.p:''))}catch(e){}}
+let TT;function toast(t){const el=document.getElementById('toast');el.innerHTML=`<b>見本</b><span>${esc(t)}</span>`;el.classList.add('on');clearTimeout(TT);TT=setTimeout(()=>el.classList.remove('on'),2300)}
+function post(){const text=ST.draft.trim();if(!text)return;POSTS.unshift({id:Date.now(),u:'me',t:'たった今',cat:ST.dcat,text,f:1,isNew:1});ST.draft='';ST.dcat=null;ST.sheet=null;ST.menu=false;ST.cat='all';render();toast('この画面の中だけに追加しました。読み直すと消えます')}
+function typed(id,cid,gid){const t=document.getElementById(id);ST.draft=t.value;const len=[...t.value].length,c=document.getElementById(cid);c.hidden=!len;c.textContent=len+'/140';c.classList.toggle('over',len>140);document.getElementById(gid).disabled=!(len&&len<=140)}
+
+document.addEventListener('click',e=>{const T=s=>e.target.closest(s);let x;
+  if((x=T('[data-v]'))){ST.v=x.dataset.v;ST.sheet=null;ST.menu=false;render();return}
+  if(T('#pv-vis')){ST.vis=!ST.vis;render(true);return}
+  if(T('#pv-notes')){ST.notes=!ST.notes;render(true);return}
+  if((x=T('[data-toast]'))){e.preventDefault();toast(x.dataset.toast);return}
+  if((x=T('[data-tab]'))){ST.tab=x.dataset.tab;render(true);return}
+  if((x=T('[data-cat]'))){ST.cat=x.dataset.cat;render(true);return}
+  if(T('#d-cat')){ST.menu=ST.menu==='d'?false:'d';render(true);document.querySelector('.menu.on button')?.focus();return}
+  if(T('#m-cat')){ST.menu=ST.menu==='m'?false:'m';render(true);document.querySelector('.menu.on button')?.focus();return}
+  if((x=T('[data-dcat]'))){ST.dcat=x.dataset.dcat||null;const w=ST.menu;ST.menu=false;render(true);document.getElementById(w+'-cat')?.focus();return}
+  if(ST.menu&&!T('.menu')){ST.menu=false;render(true)}
+  if(T('#d-go')){post();return}
+  if(T('#m-go')){post();return}
+  if(T('#d-compose')){document.getElementById('d-t')?.focus();return}
+  if(T('#fab')){ST.sheet='compose';render(true);setTimeout(()=>document.getElementById('m-t')?.focus(),300);return}
+  if(T('#m-bg')){ST.sheet='bg';render(true);return}
+  if(T('[data-close]')||T('#scrim')){ST.sheet=null;ST.menu=false;render(true);return}
+  if((x=T('[data-like]'))){const p=POSTS.find(p=>p.id==x.dataset.like);p.liked=!p.liked;render(true);return}
+  if((x=T('[data-bm]'))){const p=POSTS.find(p=>p.id==x.dataset.bm);p.bm=!p.bm;render(true);toast(p.bm?'ブックマークに追加しました':'ブックマークから外しました');return}
+  if((x=T('[data-pre]'))){if(x.dataset.pre==='img'){if(!ST.bg.img){setImg(sample());return}ST.bg.p='img'}else ST.bg.p=x.dataset.pre;render(true);return}
+  if(T('[data-sample]')){setImg(sample());return}
+});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='d-t')return typed('d-t','d-c','d-go');
+  if(t.id==='m-t')return typed('m-t','m-c','m-go');
+  if(t.id==='r-k'){ST.bg.k=+t.value;document.querySelectorAll('#o-k').forEach(o=>o.textContent=t.value+'%');applyBg()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.matches('[data-file]')&&t.files[0]){const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);setImg(c.toDataURL('image/jpeg',.85))};im.src=rd.result};rd.readAsDataURL(t.files[0])}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ST.menu){const w=ST.menu;ST.menu=false;render(true);document.getElementById(w+'-cat')?.focus()}else if(ST.sheet){ST.sheet=null;render(true)}else if(ST.notes){ST.notes=false;render(true)}}});
+addEventListener('resize',()=>render(true));
+(()=>{const q=new URLSearchParams(location.search);const v=q.get('v');ST.v=['dd','dl','md','ml'].includes(v)?v:(innerWidth<700?'md':'dd');
+  if(!v&&matchMedia('(prefers-color-scheme: light)').matches)ST.v=ST.v[0]+'l';
+  const b=q.get('bg');if(['atmos','mesh','slate','noise'].includes(b))ST.bg.p=b;
+  render();if(b==='img')setImg(sample())})();
+</script>
+</body>
+</html>

@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Game Kid/s フィード V3.3</title>
+<!--
+  Game Kid/s フィード V3.3（V3.2 に5つの細かい改善を入れた見本 2026-11-17）
+  ・いまのサイトの使い方（左のメニュー・みんな／フォロー中・小さな投稿欄・スマホの下のタブ）をそのまま使い、
+    V3.1 の独自の印（シジル）と対戦データの部品を「データのある投稿だけ」に入れた。
+  ・ゲームの公式の絵・アイコン・ロゴは使わない。ロゴはサイト自身のもの（src/static/logo.png）だけを埋め込む。
+  ・黄色い点線の部品（上の見本バー・設計メモ・「見本」の知らせ）は見本だけのもの。本番には出ない。
+  ・このファイルだけで開ける。投稿・いいね・背景などはこの画面の中だけで動く（読み直すと元に戻る）。
+-->
+<style>
+/* =====================================================================
+   1. トークン：面は3段だけ（地・読む面・中の部品）。線ではなく明るさの差で分ける
+   ===================================================================== */
+.app{
+  --canvas:#0E0F14;
+  --sheet:rgba(20,22,29,.80);      /* 読む面（真ん中の列・右の列の箱） */
+  --sheet-img:rgba(18,20,27,.90);  /* 背景に画像を使っているとき */
+  --well:rgba(255,255,255,.045);   /* 投稿の中の部品 */
+  --well-2:rgba(255,255,255,.075);
+  --raised:#22252F; --hover:rgba(255,255,255,.045); --press:rgba(255,255,255,.08);
+  --sep:rgba(255,255,255,.06);     /* 投稿のあいだの区切り（細く・薄く・本文の列から） */
+  --hl:inset 0 1px 0 rgba(255,255,255,.05);
+  --lift:0 18px 40px -16px rgba(0,0,0,.6);
+  --t1:#ECEEF3; --t2:#B3B8C6; --t3:#9096A8; --t4:#5E6475;
+  --brand:#7C6CF0; --brand-tx:#B1A6FF; --brand-rgb:124,108,240; --onbrand:#fff;
+  --pos:#45C796; --neg:#EE6F79; --warm:240,140,90; --like:#F2668B;
+  --chip:.13;
+  --input:rgba(255,255,255,.055);  /* 投稿欄の入力面（V3.3：少し明るく） */
+  --sig-plate:rgba(255,255,255,.07); --sig-ring:rgba(255,255,255,.08);  /* 記号の後ろの中立の板と内側の輪（V3.3） */
+  color-scheme:dark;
+}
+.app[data-theme=light]{
+  --canvas:#ECEEF3;
+  --sheet:rgba(255,255,255,.82);
+  --sheet-img:rgba(255,255,255,.92);
+  --well:#F3F4F8; --well-2:#EAECF2;
+  --raised:#FFFFFF; --hover:rgba(20,24,40,.04); --press:rgba(20,24,40,.07);
+  --sep:rgba(20,24,40,.07);
+  --hl:inset 0 1px 0 rgba(255,255,255,.8);
+  --lift:0 16px 36px -14px rgba(22,26,44,.25);
+  --t1:#151824; --t2:#454C5F; --t3:#5E6477; --t4:#9CA2B2;
+  --brand:#5F52E0; --brand-tx:#4B3FCF; --brand-rgb:95,82,224;
+  --pos:#12906A; --neg:#CF4450; --warm:226,104,52; --like:#D93A68;
+  --chip:.11;
+  --input:rgba(20,24,40,.035);
+  --sig-plate:rgba(255,255,255,.55); --sig-ring:rgba(20,24,40,.06);
+  color-scheme:light;
+}
+.app{--fs-body:14.5px;--lh-body:1.65;--fs-name:14.5px;--fs-meta:13px}
+.app.m{--fs-body:15px;--lh-body:1.62}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#0A0B0F;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;color:#e8e8ee}
+button,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.app :focus-visible{outline:2px solid var(--brand-tx);outline-offset:2px;border-radius:10px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
+.num{font-variant-numeric:tabular-nums}
+.pt{font-feature-settings:"palt"}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ===== 見本のバー（本番には出ない） ===== */
+.pv{position:fixed;inset:0 0 auto 0;height:48px;z-index:100;display:flex;align-items:center;gap:10px;padding:0 12px;background:#17181E;border-bottom:2px dashed #F5D547;font-size:12.5px;color:#d9d9e2;overflow-x:auto;scrollbar-width:none}
+.pv::-webkit-scrollbar{display:none}
+.pv .tag{flex:none;background:#F5D547;color:#2a2300;font-weight:900;font-size:11px;padding:3px 8px;border-radius:5px}
+.pv .g{display:flex;gap:2px;background:#25262E;border-radius:9px;padding:3px;flex:none}
+.pv .g button{padding:5px 10px;border-radius:7px;color:#a9a9b6;white-space:nowrap}
+.pv .g button[aria-pressed=true]{background:#43444F;color:#fff;font-weight:700}
+.pv .sp{flex:1}
+.pv .x{flex:none;padding:5px 10px;border-radius:8px;border:1.5px dashed #F5D547;color:#F5D547;font-weight:800;white-space:nowrap}
+.pv .x[aria-pressed=true]{background:#F5D547;color:#2a2300}
+.show-vis [data-vis]{outline:1.5px dashed #F5D547!important;outline-offset:2px}
+.notes{position:fixed;top:48px;right:0;bottom:0;width:380px;max-width:100vw;z-index:99;background:#17181E;color:#dcdce4;border-left:2px dashed #F5D547;padding:16px 18px 40px;overflow:auto;font-size:13px;line-height:1.7;transform:translateX(104%);transition:transform .25s;visibility:hidden}
+.notes.on{transform:none;visibility:visible}
+.notes h2{font-size:14px;margin:0 0 6px;color:#fff}.notes h3{font-size:11px;letter-spacing:.08em;color:#8d8d99;margin:18px 0 6px}.notes p{margin:0 0 8px}
+.notes code{background:#24252c;padding:1px 5px;border-radius:4px;font-size:12px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);opacity:0;transition:.22s;z-index:120;display:flex;gap:10px;align-items:center;background:#1E1F27;color:#fff;padding:10px 16px 10px 10px;border-radius:12px;font-size:13px;border-left:4px solid #F5D547;box-shadow:0 12px 30px rgba(0,0,0,.4);pointer-events:none;max-width:calc(100vw - 24px)}
+.toast b{background:#F5D547;color:#2a2300;font-size:10.5px;padding:2px 6px;border-radius:4px;flex:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ===== 舞台と背景 ===== */
+.stage{position:fixed;inset:48px 0 0 0;overflow:auto;display:flex;justify-content:center;align-items:flex-start}
+.stage.phone{padding:28px 0 56px;background:radial-gradient(60% 50% at 50% 0,#1d1e28,#0A0B0F 70%)}
+.app{position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;color:var(--t1);background:var(--canvas)}
+.stage.phone .app{width:390px;height:844px;flex:none;border-radius:48px;box-shadow:0 0 0 10px #050507,0 0 0 11px #2a2b33,0 40px 100px rgba(0,0,0,.6)}
+.stage.bare{padding:0}.stage.bare .app{width:100%;height:100%;border-radius:0;box-shadow:none}
+.app.m{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+.stage.phone .app.m{--sat:47px;--sab:34px}
+.bg,.bg-img{position:absolute;inset:0;pointer-events:none}
+.bg{z-index:-3}.bg-img{z-index:-2;background-size:cover;background-position:center;opacity:0;transition:opacity .25s}
+/* いまのサイトの「光」（右上だけ）を残す */
+.bg.atmos{background:radial-gradient(52vmax 38vmax at 100% 0%,rgba(var(--brand-rgb),.30),transparent 70%),var(--canvas)}
+.app[data-theme=light] .bg.atmos{background:radial-gradient(52vmax 38vmax at 100% 0%,rgba(var(--brand-rgb),.17),transparent 70%),var(--canvas)}
+.bg.mesh{background:radial-gradient(42% 38% at 10% 6%,rgba(var(--brand-rgb),.18),transparent 70%),radial-gradient(38% 34% at 94% 12%,rgba(64,150,210,.11),transparent 70%),radial-gradient(46% 40% at 72% 98%,rgba(190,96,160,.09),transparent 72%),var(--canvas)}
+.app[data-theme=light] .bg.mesh{background:radial-gradient(42% 38% at 10% 6%,rgba(var(--brand-rgb),.12),transparent 70%),radial-gradient(38% 34% at 94% 12%,rgba(64,150,210,.09),transparent 70%),radial-gradient(46% 40% at 72% 98%,rgba(210,110,170,.07),transparent 72%),var(--canvas)}
+.bg.slate{background:var(--canvas)}
+.bg.noise{background:var(--noise),var(--canvas);background-size:180px 180px,auto}
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;overscroll-behavior:contain}
+
+/* =====================================================================
+   2. PC：いまのサイトと同じ3列（左のメニュー／真ん中の読む面／右の列）
+   ===================================================================== */
+.d-grid{display:grid;grid-template-columns:248px minmax(0,600px) 320px;gap:28px;justify-content:center;padding:0 24px;min-height:100%}
+.app.m .d-grid{display:block;padding:0}
+@media (max-width:1240px){.app:not(.m) .d-grid{grid-template-columns:72px minmax(0,600px);gap:20px}.app:not(.m) .side{display:none}
+  .app:not(.m) .rail .lb,.app:not(.m) .rail .wm,.app:not(.m) .rail .me-t{display:none}.app:not(.m) .rail .ni,.app:not(.m) .rail .qa{justify-content:center;padding:0}}
+.rail{position:sticky;top:0;height:min(calc(100vh - 48px),760px);padding:18px 0 20px;display:flex;flex-direction:column;gap:4px}
+.app.m .rail{display:none}
+/* 背景に画像を使うときは、左のメニューの文字の後ろにも面を敷く */
+.app.bgimg .rail{margin:10px 0;height:min(calc(100vh - 68px),760px);padding:12px 8px;border-radius:22px;background:var(--sheet-img)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 14px 10px}
+.mk{width:28px;height:28px;background:var(--t1);-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat;flex:none}
+.wm{font-weight:800;font-size:17.5px;letter-spacing:-.01em}.wm span{color:var(--t3);font-weight:600}
+.ni{display:flex;align-items:center;gap:16px;height:50px;padding:0 14px;border-radius:16px;font-size:16.5px;color:var(--t2);transition:background .15s,color .15s}
+.ni svg.i{width:25px;height:25px}
+.ni:hover{background:var(--hover);color:var(--t1)}
+.ni[aria-current=page]{color:var(--t1);font-weight:800}
+.ni[aria-current=page] svg{color:var(--brand-tx);stroke-width:2.1}
+.ni .ct{margin-left:auto;font-size:11.5px;font-weight:800;color:var(--onbrand);background:var(--brand);min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 6px}
+/* いまのサイトと同じ：左の大きなボタンは「よく使う機能」（はじめは 相性を調べる） */
+.qa{margin-top:18px;height:50px;border-radius:25px;background:var(--brand);color:var(--onbrand);font-weight:750;font-size:15.5px;display:flex;align-items:center;justify-content:center;gap:9px;transition:filter .15s,transform .15s}
+.qa:hover{filter:brightness(1.07)}.qa:active{transform:scale(.98)}
+.me{margin-top:auto;display:flex;align-items:center;gap:11px;padding:10px;border-radius:16px;background:var(--hover)}
+.me:hover{background:var(--hover)}
+.me b{display:block;font-size:14.5px}.me small{display:block;color:var(--t3);font-size:12.5px}
+
+/* 真ん中：1枚の読む面（投稿ごとの箱はつくらない） */
+.feed{min-width:0;background:var(--sheet);min-height:100%;padding-bottom:60px}
+.app.bgimg .feed{background:var(--sheet-img)}
+.app:not(.m) .feed{border-radius:0}
+.side{position:sticky;top:0;height:calc(100vh - 48px);overflow:auto;padding:14px 0 24px;display:flex;flex-direction:column;gap:16px;scrollbar-width:none}
+
+/* 上：みんな／フォロー中（いまのサイトと同じ2等分）＋カテゴリ */
+.fh{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--canvas) 76%,transparent);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%)}
+.app[data-theme=light] .fh{background:color-mix(in srgb,#F6F7FA 82%,transparent)}
+.mt-row{display:none}
+.tabs{display:flex;position:relative;height:50px}
+.tabs button{flex:1;position:relative;font-size:14.5px;font-weight:650;color:var(--t3);transition:color .15s,background .15s}
+.tabs button:hover{background:var(--hover)}
+.tabs button[aria-selected=true]{color:var(--t1);font-weight:800}
+.tabs button[aria-selected=true]::after{content:'';position:absolute;left:50%;bottom:0;width:44px;height:3px;border-radius:3px;background:var(--brand);transform:translateX(-50%)}
+.cats{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px 12px 10px}
+.cats::-webkit-scrollbar{display:none}
+/* V3.3：横に続きがあるときだけ、その端を少しうすくする（ずっと出る飾りにはしない） */
+.cats{scroll-padding-inline:24px;-webkit-mask-image:linear-gradient(90deg,var(--fl,#000) 0,#000 var(--fw-l,0px),#000 calc(100% - var(--fw-r,0px)),var(--fr,#000) 100%);mask-image:linear-gradient(90deg,var(--fl,#000) 0,#000 var(--fw-l,0px),#000 calc(100% - var(--fw-r,0px)),var(--fr,#000) 100%)}
+.cats[data-fade~=r]{--fr:transparent;--fw-r:36px}.cats[data-fade~=l]{--fl:transparent;--fw-l:24px}
+.app.m .cats::after{content:'';flex:none;width:12px}
+.cat{flex:none;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:10px;font-size:13px;font-weight:650;color:var(--t3);transition:background .15s,color .15s}
+.cat:hover{background:var(--hover);color:var(--t1)}
+.cat[aria-pressed=true]{background:var(--well-2);color:var(--t1)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block}
+
+/* 投稿欄（いまのサイトと同じく小さい。押すと道具が出る） */
+.cmp{display:flex;gap:12px;padding:14px 18px 12px;box-shadow:inset 0 -1px 0 var(--sep)}
+.cmp .b{flex:1;min-width:0}
+.cmp textarea{width:100%;border:0;outline:0;resize:none;background:var(--input);border-radius:12px;font-size:16px;line-height:1.5;padding:9px 12px;min-height:42px;max-height:180px;color:var(--t1);transition:background .15s}
+.cmp textarea:focus{background:color-mix(in srgb,var(--input) 100%,rgba(var(--brand-rgb),.06))}
+.cmp textarea::placeholder,.sheet textarea::placeholder{color:var(--t4)}
+.tb{display:flex;align-items:center;gap:2px;margin-top:4px}
+.cmp:not(.open) .tb .ext{display:none}
+.tb .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:var(--brand-tx);transition:background .15s}
+.tb .ic:hover{background:var(--hover)}
+.catpick{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;margin-left:4px;border-radius:10px;font-size:12.5px;font-weight:650;color:var(--t2);background:var(--well)}
+.tb .sp{flex:1}
+.cnt{font-size:12px;color:var(--t3);margin-right:10px}
+.cnt.over{color:var(--neg);font-weight:800}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 18px;border-radius:18px;font-size:14px;font-weight:750;transition:filter .15s,opacity .15s}
+.btn-p{background:var(--brand);color:var(--onbrand)}
+.btn-p:hover{filter:brightness(1.07)}.btn-p:disabled{opacity:.35;cursor:not-allowed;filter:none}
+.btn-q{background:var(--well-2);color:var(--t1);height:34px;font-size:13px;padding:0 14px;border-radius:12px}
+.menu{position:absolute;z-index:40;min-width:230px;padding:6px;border-radius:16px;background:var(--raised);box-shadow:var(--hl),var(--lift);display:none}
+.menu.on{display:block}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:11px;text-align:left;font-size:14px;font-weight:600}
+.menu button:hover{background:var(--hover)}
+.menu small{margin-left:auto;color:var(--t3);font-weight:500;font-size:12px}
+.menu .ck{margin-left:auto;color:var(--brand-tx)}
+
+/* =====================================================================
+   3. 投稿：ふつうの投稿は箱なし（本文とアイコンだけ）。区切りは本文の列から細く
+   ===================================================================== */
+.post{display:grid;grid-template-columns:42px minmax(0,1fr);column-gap:12px;padding:14px 18px 6px;position:relative}
+.post::after{content:'';position:absolute;left:72px;right:18px;bottom:0;height:1px;background:var(--sep)}
+.post:last-child::after{display:none}
+.post.new{animation:nw 1.2s ease}
+@keyframes nw{from{background:rgba(var(--brand-rgb),.10)}to{background:transparent}}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:750;color:#fff;font-size:16px}
+.ph{display:flex;align-items:baseline;gap:6px;min-width:0;font-size:var(--fs-meta);line-height:1.4}
+.ph b{font-size:var(--fs-name);font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.ph .bot{font-size:10.5px;font-weight:750;color:var(--t2);background:var(--well-2);padding:0 5px;border-radius:5px;align-self:center}
+.ph .m2{color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ph .c{display:inline-flex;align-items:center;gap:5px;color:var(--t2);font-weight:600;white-space:nowrap}
+.ph .more{margin-left:auto;align-self:center;width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;color:var(--t3)}
+.ph .more:hover{background:var(--hover);color:var(--t1)}
+.tx{font-size:var(--fs-body);line-height:var(--lh-body);margin-top:2px;word-break:break-word;white-space:pre-wrap}
+.tx .ht{color:var(--brand-tx);white-space:nowrap}
+/* ポケモンの名前：色を薄く敷いた小さなチップ（下線のリンクにしない） */
+.ent{display:inline-flex;align-items:center;gap:5px;padding:0 6px 0 5px;margin:0 1px;border-radius:6px;font-weight:650;background:rgba(var(--c1),var(--chip));white-space:nowrap}
+.ent:hover{background:rgba(var(--c1),calc(var(--chip) + .08))}
+.ent .dm{width:7px;height:7px;border-radius:2px;transform:rotate(45deg);background:linear-gradient(135deg,rgb(var(--c1)) 50%,rgb(var(--c2)) 50%);flex:none}
+.acts{display:flex;justify-content:space-between;max-width:430px;margin:4px 0 0 -9px}
+.act{display:inline-flex;align-items:center;gap:5px;min-width:44px;height:38px;padding:0 9px;border-radius:19px;color:var(--t3);font-size:13px;transition:color .15s,background .15s}
+.act svg.i{width:18px;height:18px}
+.act:hover{color:var(--brand-tx);background:rgba(var(--brand-rgb),.09)}
+.act.like:hover{color:var(--like);background:rgba(242,102,139,.1)}
+.act.like[aria-pressed=true]{color:var(--like)}.act.like[aria-pressed=true] svg{fill:currentColor}
+.act.bm[aria-pressed=true]{color:var(--brand-tx)}.act.bm[aria-pressed=true] svg{fill:currentColor}
+.link{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding:12px 14px;border-radius:14px;background:var(--well)}
+.link b{font-size:13.5px;color:var(--brand-tx)}.link small{font-size:12px;color:var(--t3)}
+.link:hover{background:var(--well-2)}
+
+/* =====================================================================
+   4. データの部品（データのある投稿だけ）。投稿の中の1段沈んだ面
+   ===================================================================== */
+.mod{margin-top:10px;padding:12px 14px;border-radius:14px;background:var(--well)}
+.mh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:2px;font-size:12px;color:var(--t3);margin-bottom:10px}
+.mh b{font-size:13.5px;font-weight:750;color:var(--t1)}
+.mh svg.i{width:15px;height:15px}
+.mh .r{margin-left:auto;display:inline-flex;align-items:center;gap:5px}
+/* 分析の部品は小さな「分析」の見出しで区別する（色や枠は増やさない） */
+.mh .kick{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--t3);padding:1px 6px;border-radius:5px;background:var(--well-2)}
+.mf .sepd{color:var(--t4)}
+.cv-sum{display:flex;flex-wrap:wrap;gap:6px 16px;margin-bottom:10px;font-size:12.5px;color:var(--t2)}
+/* V3.3：弱点の重なりの要点（注意の1行＋上位のタイプ）と、開くと出る18タイプ */
+.cv-warn{display:flex;align-items:center;gap:7px;margin:0 0 10px;font-size:13px;font-weight:650;color:var(--t1)}
+.cv-warn svg{color:rgb(var(--warm));flex:none}.cv-warn.ok svg{color:var(--pos)}
+.cv-top{display:flex;flex-wrap:wrap;gap:6px}
+.cv-t{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px 0 6px;border-radius:9px;font-size:12.5px;color:var(--t1)}
+.cv-t b{display:grid;place-items:center;width:20px;height:20px;border-radius:6px;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.12)}
+.app[data-theme=light] .cv-t b{background:rgba(255,255,255,.7)}
+.cv-t em{font-style:normal;font-weight:800;font-size:12px;color:var(--t2)}
+.cv-t.w2{background:rgba(var(--warm),.24)}.cv-t.w3{background:rgba(var(--warm),.42)}.cv-t.w1{background:rgba(var(--warm),.12)}
+.cv-more{align-self:center;font-size:12px;color:var(--t3);margin-left:2px}
+.cv-tg{display:inline-flex;align-items:center;gap:4px;margin-top:10px;min-height:36px;padding:0 10px 0 8px;margin-left:-8px;border-radius:10px;font-size:12.5px;font-weight:700;color:var(--t2)}
+.cv-tg:hover{background:var(--hover);color:var(--t1)}
+.cv-tg svg{transition:transform .2s}.cv-tg[aria-expanded=true] svg{transform:rotate(180deg)}
+.app.m .cv-tg{min-height:44px}
+.cv-det{margin-top:6px}.cv-det[hidden]{display:none}
+.cv-sum>span{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.cv-sum b{font-weight:700;color:var(--t1);margin-right:4px}
+.cv-sum i{font-style:normal;display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 6px;border-radius:6px;font-size:11.5px;font-weight:800;color:var(--t1)}
+.cv-sum i.w{background:rgba(var(--warm),.32)}.cv-sum i.g{background:rgba(69,199,150,.16)}
+.cv-sum .more2{font-size:11.5px;color:var(--t3);margin-left:2px}
+.cv-sum i em{font-style:normal;font-weight:700;color:var(--t2);font-size:10.5px}
+.gctx{display:inline-flex;align-items:center;gap:5px;margin:0 0 14px 14px;align-self:flex-start;height:22px;padding:0 8px 0 6px;border-radius:7px;font-size:11px;font-weight:750;color:rgb(var(--game-rgb));background:rgba(var(--game-rgb),.12)}
+.gctx svg{width:13px;height:13px}
+.app[data-theme=light] .gctx{color:color-mix(in srgb,rgb(var(--game-rgb)) 70%,#000)}
+@media (max-width:1240px){.app:not(.m) .gctx{margin-left:0;align-self:center;padding:0 5px}}
+.sig{display:grid;place-items:center;flex:none;background:linear-gradient(rgba(var(--c1),.12),rgba(var(--c1),.12)),var(--sig-plate);box-shadow:inset 0 0 0 1px var(--sig-ring);border-radius:10px}
+.sig svg{width:78%;height:78%}
+.sig.xs{width:20px;height:20px;border-radius:6px}.sig.s{width:24px;height:24px;border-radius:7px}.sig.m{width:32px;height:32px;border-radius:10px}.sig.l{width:40px;height:40px;border-radius:12px}
+.sig.down{opacity:.45;filter:grayscale(.8)}
+/* パーティ：PC は1列に6匹、スマホは3×2で名前つき */
+.party{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.mem{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;padding:6px 2px;border-radius:10px}
+.mem:hover{background:var(--hover)}
+.mem .nm{font-size:11.5px;font-weight:650;color:var(--t2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.party{grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+.app.m .party{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px}
+.app.m .party[data-n="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+.app.m .mem{flex-direction:row;gap:7px;padding:4px}
+.app.m .mem .sig.l{width:32px;height:32px;border-radius:10px}
+.mf{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11.5px;color:var(--t3);flex-wrap:wrap}
+.mf .lk{margin-left:auto;display:inline-flex;align-items:center;gap:3px;color:var(--t2);font-weight:650;padding:4px 6px;border-radius:8px}
+.mf .lk:hover{background:var(--hover);color:var(--t1)}
+/* 弱点の重なり：ふだんは1行のまとめ。押すと18タイプの帯 */
+.ov{margin-top:10px;padding-top:10px;box-shadow:inset 0 1px 0 var(--sep)}
+.ov-sum{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:12.5px;color:var(--t2);min-height:36px;border-radius:8px;white-space:nowrap}
+.app.m .ov-sum .cnt2{display:none}
+.app.m .ov-sum{min-height:44px}
+.ov-sum b{color:var(--t1);font-weight:700}
+.ov-sum .chev{margin-left:auto;color:var(--t3);transition:transform .2s}
+.ov-sum[aria-expanded=true] .chev{transform:rotate(180deg)}
+.ov-sum .wl{display:inline-flex;gap:3px}
+.ov-sum .wl i{font-style:normal;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:rgba(var(--warm),.3);color:var(--t1)}
+.heat{display:grid;grid-template-columns:repeat(18,minmax(0,1fr));gap:3px}
+.heat[hidden]{display:none}
+.hc{height:48px;border-radius:7px;display:grid;grid-template-rows:14px 1fr 6px;justify-items:center;align-items:center;padding:4px 0 4px;background:var(--well-2);font-size:11px;font-weight:700;color:var(--t3)}
+.hc b{font-size:12.5px;font-weight:800;color:var(--t1);line-height:1}.hc b.z{color:var(--t4);font-weight:600}
+.hc.w1{background:rgba(var(--warm),.15)}.hc.w2{background:rgba(var(--warm),.32)}.hc.w3{background:rgba(var(--warm),.55)}
+.hc.w1 .ab,.hc.w2 .ab,.hc.w3 .ab{color:var(--t1)}
+.hc .rs{display:flex;gap:2px;height:4px}.hc .rs i{width:4px;height:4px;border-radius:50%;background:var(--pos)}
+.app.m .heat{grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:11px;color:var(--t3)}
+.legend>span{display:inline-flex;align-items:center;gap:5px}
+.legend .s3{display:inline-flex;gap:2px}.legend .s3 i{width:15px;height:13px;border-radius:4px;display:grid;place-items:center;font-size:9px;font-weight:800;font-style:normal;color:var(--t1)}
+.legend .pd{width:6px;height:6px;border-radius:50%;background:var(--pos)}
+/* ダメージ計算 */
+.vs{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who{display:flex;align-items:center;gap:8px;min-width:0}
+.who b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap}.who small{display:block;font-size:11px;color:var(--t3);white-space:nowrap}
+.arrow{color:var(--t4)}
+.mvc{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:9px;background:var(--well-2);font-size:12.5px;font-weight:700;white-space:nowrap}
+.res{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin-top:12px}
+.big{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.big small{font-size:13px;font-weight:700;color:var(--t2);margin:0 2px}
+.vd{font-size:12.5px;font-weight:750;padding:3px 9px;border-radius:8px;background:var(--well-2)}
+.vd em{font-style:normal;color:var(--t3);margin-left:5px;font-weight:650}
+.distrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:end;margin-top:10px}
+.distrow .k{font-size:11px;color:var(--t3);line-height:1.25}.distrow .k small{display:block;color:var(--t4);font-size:10px}
+.dist{display:flex;align-items:flex-end;gap:2px;height:24px}
+.dist i{flex:1;min-width:0;border-radius:2px;background:rgba(var(--c1),.45)}.dist i.ko{background:rgb(var(--c1))}
+.hp{position:relative;height:6px;border-radius:3px;background:rgba(127,135,160,.18);margin-top:10px;overflow:hidden}
+.hp .rest{position:absolute;inset:0 auto 0 0;background:var(--pos);opacity:.6}
+.hp .rng{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(var(--c1),.9) 0 4px,rgba(var(--c1),.5) 4px 8px)}
+.cond{font-size:11.5px;color:var(--t3);margin-top:8px}
+.app.m .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:6px}
+/* V3.3：スマホの分析の部品は、補足の文字を1px大きく、行間と上下の余白を少し広く（大きな数字はそのまま） */
+.app.m .mod.an{padding:14px 14px 15px}
+.app.m .an .mh{font-size:13px;margin-bottom:12px}
+.app.m .an .mh .kick{font-size:11px}
+.app.m .an .who small{font-size:12px;line-height:1.45}
+/* 攻撃側と受ける側を1行ずつに（条件の文が細かく折れないように） */
+.app.m .an .vs{grid-template-columns:minmax(0,1fr);gap:4px}
+.app.m .an .vs .arrow{transform:rotate(90deg);width:16px;margin-left:8px;height:14px;display:grid;place-items:center}
+.app.m .an .vs .who{min-width:0}.app.m .an .vs .who>span{min-width:0}
+.app.m .an .vs .who small{overflow:hidden;text-overflow:ellipsis}
+.app.m .an .vs .mvc{margin-top:6px}
+.app.m .an .who b{font-size:14px}
+.app.m .an .mvc{font-size:13px}
+.app.m .an .vd{font-size:13px}.app.m .an .vd em{font-size:12.5px}
+.app.m .an .res{margin-top:14px}
+.app.m .an .distrow{margin-top:12px;gap:12px}
+.app.m .an .distrow .k{font-size:12px;line-height:1.45}.app.m .an .distrow .k small{font-size:11px}
+.app.m .an .cond{font-size:12.5px;line-height:1.6;margin-top:10px}
+.app.m .an .lad .w{font-size:13px}.app.m .an .lad .note,.app.m .an .lad .ticks{font-size:11px}
+.app.m .an .legend{font-size:12px;line-height:1.5}
+.app.m .mvc{grid-column:1/-1;margin:4px 0 0;justify-self:start}
+/* 素早さの並び */
+.lad{display:grid;grid-template-columns:7.4em minmax(0,1fr) 2.2em 1.3em;column-gap:8px;row-gap:3px;align-items:center}
+.lad .w{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;font-weight:650}
+.lad .w span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lad .trk{position:relative;height:26px;display:flex;align-items:center}
+.lad .trk::before{content:'';position:absolute;left:0;right:0;height:2px;border-radius:1px;background:var(--well-2)}
+.lad .bar{position:relative;height:5px;border-radius:3px;background:linear-gradient(90deg,rgba(var(--c1),.3),rgb(var(--c1)))}
+.lad .v{font-size:12.5px;font-weight:800;text-align:right}
+.lad .tie{display:grid;place-items:center;width:18px;height:18px;border-radius:5px;font-size:12px;font-weight:800;color:var(--t2);background:var(--well-2)}
+.lad .tie:empty{background:none}
+.lad .ticks{grid-column:2;display:flex;justify-content:space-between;font-size:10px;color:var(--t4)}
+.lad .note{grid-column:1/-1;display:flex;gap:6px;align-items:center;margin-top:6px;font-size:11px;color:var(--t3)}
+.app.m .lad{grid-template-columns:6.4em minmax(0,1fr) 2.1em 1.3em}
+.app.m .lad .w{font-size:12px}
+/* 対戦の記録 */
+.rec{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.oc{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;align-content:center;background:rgba(69,199,150,.13);color:var(--pos)}
+.oc b{font-size:14.5px;font-weight:850;letter-spacing:.06em;line-height:1.1}.oc small{font-size:10.5px;font-weight:700}
+.tms{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tm{display:flex;align-items:center;gap:8px}
+.tm .lb{width:2.4em;font-size:11px;color:var(--t3);flex:none}
+.tm .row{display:flex;gap:3px}
+.tm .left{font-size:11px;color:var(--t3)}
+.rt{text-align:right;line-height:1.25}.rt b{display:block;font-size:18px;font-weight:800}.rt .d{font-size:12px;font-weight:750;color:var(--pos)}.rt small{display:block;font-size:10.5px;color:var(--t3)}
+.app.m .rec{grid-template-columns:auto 1fr}
+.app.m .rt{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;text-align:left;padding-top:8px;box-shadow:inset 0 1px 0 var(--sep)}
+.app.m .rt small{margin-left:auto}
+
+/* =====================================================================
+   5. 右の列（いまのサイトと同じ：検索・すぐ使う・表示）
+   ===================================================================== */
+.search{display:flex;align-items:center;gap:10px;height:46px;padding:0 16px;border-radius:23px;background:var(--sheet);color:var(--t3);font-size:14px}
+.app.bgimg .search,.app.bgimg .pnl{background:var(--sheet-img)}
+.pnl{background:var(--sheet);border-radius:20px;padding:14px 6px 8px}
+.pnl h2{font-size:16px;font-weight:800;margin:0 12px 6px;display:flex;align-items:center}
+.pnl h2 small{margin-left:auto;font-size:11.5px;font-weight:550;color:var(--t3)}
+.ql{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:14px}
+.ql:hover{background:var(--hover)}
+.ql .q{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--well-2);color:var(--t2);flex:none}
+.ql b{display:block;font-size:14px;font-weight:700}.ql small{display:block;font-size:12px;color:var(--t3)}
+.foot{font-size:11.5px;color:var(--t4);padding:0 12px;line-height:1.7}
+.app.bgimg .foot{color:var(--t2)}
+.bgp{padding:2px 10px 8px}
+.pre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.pre button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;font-weight:650;color:var(--t3);min-width:0}
+.pre button[aria-checked=true]{color:var(--t1)}
+.sw{width:100%;aspect-ratio:1;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(127,135,160,.2)}
+.pre button[aria-checked=true] .sw{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--brand)}
+.sw.add{display:grid;place-items:center;color:var(--t3);background:var(--well)}
+.rng{margin-top:14px}
+.rng label{display:flex;justify-content:space-between;font-size:13px;font-weight:650;margin-bottom:4px}
+.rng output{color:var(--t3);font-weight:550}
+input[type=range]{width:100%;accent-color:var(--brand);margin:0;height:28px}
+.hint{display:flex;gap:7px;align-items:center;margin-top:4px;font-size:11.5px;color:var(--t3)}
+.hint i{width:7px;height:7px;border-radius:50%;background:var(--pos);flex:none}
+
+/* =====================================================================
+   6. スマホ：上は小さく（下にスクロールで隠れる）、下のタブに投稿ボタン
+   ===================================================================== */
+.app.m .fh{padding-top:var(--sat);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.app.m.top-hide .fh{transform:translateY(calc(-100% + 0px))}
+.app.m .mt-row{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 6px}
+.app.m .mt-row .mk{width:24px;height:24px}
+.ib{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--t2)}
+.ib:hover,.ib:active{background:var(--hover)}
+.app.m .tabs{height:44px}
+.app.m .feed{padding-bottom:calc(var(--sab) + 88px)}
+.app.m .cmp{display:none}
+.app.m .post{padding:12px 14px 4px;column-gap:10px;grid-template-columns:40px minmax(0,1fr)}
+.app.m .av{width:40px;height:40px}
+.app.m .post::after{left:64px;right:14px}
+.app.m .acts{max-width:none}
+.app.m .act{height:44px}
+.nav{display:none}
+.app.m .nav{display:flex;align-items:center;gap:2px;position:absolute;z-index:30;left:10px;right:10px;bottom:calc(var(--sab) + 6px);height:56px;padding:4px;border-radius:20px;box-shadow:var(--hl),0 8px 22px -8px rgba(0,0,0,.4)}
+.app.m[data-theme=dark] .nav{background:rgba(30,32,42,.9);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%)}
+.app.m[data-theme=light] .nav{background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--hl),0 6px 20px -8px rgba(22,26,44,.22)}
+.nav a{flex:1;min-width:0;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:16px;font-size:10px;font-weight:600;color:var(--t3);position:relative;white-space:nowrap}
+.nav a svg.i{width:22px;height:22px}
+.nav a[aria-current=page]{color:var(--t1);background:var(--well-2)}
+.nav a[aria-current=page] svg{color:var(--brand-tx)}
+.nav a .bd{position:absolute;top:5px;left:calc(50% + 5px);min-width:16px;height:16px;border-radius:8px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.nav-post{flex:none;width:48px;height:48px;margin-left:2px;display:grid;place-items:center;position:relative;color:#fff}
+.nav-post svg.hx{position:absolute;inset:0;width:48px;height:48px}
+.nav-post svg.i{position:relative;width:20px;height:20px}
+.nav-post:active{transform:scale(.94)}
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(5,6,10,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--raised);border-radius:26px 26px 0 0;box-shadow:var(--hl),var(--lift);padding:10px 18px calc(var(--sab) + 18px);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-height:88%;overflow:auto}
+.sheet.on{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--t4);opacity:.6;margin:0 auto 12px}
+.sheet h2{font-size:17px;font-weight:750;margin:0 0 12px;display:flex;align-items:center}
+.sheet h2 .ib{margin-left:auto;margin-right:-10px}
+.sheet textarea{width:100%;min-height:120px;border:0;outline:0;resize:none;background:var(--well);border-radius:16px;padding:14px;font-size:16px;line-height:1.55;color:var(--t1)}
+.app:not(.m) .scrim,.app:not(.m) .sheet{display:none}
+</style>
+</head>
+<body>
+<div class="pv" role="toolbar" aria-label="見本の操作（本番には出ません）">
+  <span class="tag">見本 V3.3</span>
+  <div class="g" id="pv-v" role="group" aria-label="表示する形"></div>
+  <div class="g" id="pv-g" role="group" aria-label="ゲームの例（作りの確認）"></div>
+  <span class="sp"></span>
+  <button class="x" id="pv-vis" aria-pressed="false" title="見た目だけで動かない部品に点線を付ける">見た目だけの部品</button>
+  <button class="x" id="pv-notes" aria-pressed="false">設計メモ</button>
+</div>
+<aside class="notes" id="notes" aria-label="設計メモ"></aside>
+<div class="stage" id="stage">
+ <div class="app" id="app" data-theme="dark">
+  <div class="bg atmos" id="bg"></div><div class="bg-img" id="bgimg"></div>
+  <div class="scroll" id="scroll"><div class="d-grid">
+    <nav class="rail" aria-label="メニュー" id="rail"></nav>
+    <main class="feed" id="feed"></main>
+    <aside class="side" id="side" aria-label="すぐ使う・表示"></aside>
+  </div></div>
+  <nav class="nav" id="nav" aria-label="メニュー"></nav>
+  <div class="scrim" id="scrim"></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t"></section>
+ </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const LOGO='data:image/png;base64,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';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const IC={home:'<path d="M4 10.5 12 4l8 6.5V20h-5v-6h-6v6H4z"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+ tool:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+ grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.4"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.4"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.4"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.4"/>',
+ mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2.6"/><path d="m4 7 8 6 8-6"/>',
+ reply:'<path d="M12 5.8c4.1 0 7.15 2.75 7.15 6.15S16.1 18.1 12 18.1c-1 0-1.9-.15-2.75-.45L5.1 18.9l1.1-3.3C5.35 14.6 4.85 13.35 4.85 11.95 4.85 8.55 7.9 5.8 12 5.8z"/>',
+ repost:'<path d="M3.8 9.5 6.5 6.6l2.7 2.9M6.5 7v7.4a3 3 0 0 0 3 3H13M20.2 14.5l-2.7 2.9-2.7-2.9M17.5 17V9.6a3 3 0 0 0-3-3H11"/>',
+ heart:'<path d="M12 18.2s-7.15-4.1-7.15-8.7A3.85 3.85 0 0 1 12 7.4a3.85 3.85 0 0 1 7.15 2.1c0 4.6-7.15 8.7-7.15 8.7z"/>',
+ bookmark:'<path d="M7.2 5.4h9.6a1 1 0 0 1 1 1v12.2L12 15l-5.8 3.6V6.4a1 1 0 0 1 1-1z"/>',
+ share:'<path d="M12 14V5.7M8.4 9.2 12 5.7l3.6 3.5M5.9 12.5v4.8a1 1 0 0 0 1 1h10.2a1 1 0 0 0 1-1v-4.8"/>',
+ image:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 16-5-5-8.5 8.5"/>',
+ team:'<path d="M12 3.5 19.4 7.8v8.4L12 20.5 4.6 16.2V7.8z"/><path d="M12 3.5v17M4.6 7.8l14.8 8.4M19.4 7.8 4.6 16.2"/>',
+ dots:'<circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/>',down:'<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>',
+ arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',calc:'<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',book:'<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>',
+ bolt:'<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',trend:'<path d="M3.5 17.5 9 12l4 4 7.5-8"/><path d="M15 8h5.5v5.5"/>',
+ eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+ pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',check:'<path d="m5 12.5 4.5 4.5L19 7"/>',close:'<path d="M6 6l12 12M18 6 6 18"/>',
+ tune:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',plus:'<path d="M12 5v14M5 12h14"/>',warn:'<path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17h.01"/>',chev:'<path d="m9 6 6 6-6 6"/>',
+ tag:'<path d="M4 4h7.5L20 12.5 12.5 20 4 11.5z"/><circle cx="8.5" cy="8.5" r="1.3"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+ heat:'<rect x="3.5" y="9" width="3.5" height="6" rx="1"/><rect x="8.5" y="9" width="3.5" height="6" rx="1"/><rect x="13.5" y="9" width="3.5" height="6" rx="1"/><rect x="18.5" y="9" width="2" height="6" rx="1"/>'};
+const S=(k,s)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"${s?` style="width:${s}px;height:${s}px"`:''}>${IC[k]}</svg>`;
+const rgb=hex=>{const n=parseInt(hex.slice(1),16);return `${n>>16},${n>>8&255},${n&255}`};
+
+/* =====================================================================
+   A. ゲームのパックの登録（ゲームごとに違うもの：データ・記号の形・色・言葉・分析のしかた）
+      共通の部品（B）は pack.ent() / pack.sigil() / pack.words / pack.coverage() だけを使う。
+      新しいゲームは PACKS に1つ足す（画面の作りは変えない）。
+   ===================================================================== */
+const TYPES=[['normal','ノ','ノーマル','#9A9A8E'],['fire','炎','ほのお','#E57A3A'],['water','水','みず','#4C8FE6'],['electric','電','でんき','#E7C23C'],['grass','草','くさ','#5DB65A'],['ice','氷','こおり','#6CC7D0'],['fighting','闘','かくとう','#C9524A'],['poison','毒','どく','#A15CB8'],['ground','地','じめん','#C49A4E'],['flying','飛','ひこう','#8C95E8'],['psychic','超','エスパー','#E86A8E'],['bug','虫','むし','#98B03A'],['rock','岩','いわ','#B4A46A'],['ghost','霊','ゴースト','#7A62A8'],['dragon','竜','ドラゴン','#7366E8'],['dark','悪','あく','#6E625C'],['steel','鋼','はがね','#8495A8'],['fairy','妖','フェアリー','#D97FAF']];
+const TC={};TYPES.forEach(t=>TC[t[0]]=t);
+/* タイプ相性（ゲームの決まり＝事実。1倍以外だけ） */
+const CHART={normal:{rock:.5,ghost:0,steel:.5},fire:{fire:.5,water:.5,grass:2,ice:2,bug:2,rock:.5,dragon:.5,steel:2},water:{fire:2,water:.5,grass:.5,ground:2,rock:2,dragon:.5},
+ electric:{water:2,electric:.5,grass:.5,ground:0,flying:2,dragon:.5},grass:{fire:.5,water:2,grass:.5,poison:.5,ground:2,flying:.5,bug:.5,rock:2,dragon:.5,steel:.5},
+ ice:{fire:.5,water:.5,grass:2,ice:.5,ground:2,flying:2,dragon:2,steel:.5},fighting:{normal:2,ice:2,poison:.5,flying:.5,psychic:.5,bug:.5,rock:2,ghost:0,dark:2,steel:2,fairy:.5},
+ poison:{grass:2,poison:.5,ground:.5,rock:.5,ghost:.5,steel:0,fairy:2},ground:{fire:2,electric:2,grass:.5,poison:2,flying:0,bug:.5,rock:2,steel:2},
+ flying:{electric:.5,grass:2,fighting:2,bug:2,rock:.5,steel:.5},psychic:{fighting:2,poison:2,psychic:.5,dark:0,steel:.5},
+ bug:{fire:.5,grass:2,fighting:.5,poison:.5,flying:.5,psychic:2,ghost:.5,dark:2,steel:.5,fairy:.5},rock:{fire:2,ice:2,fighting:.5,ground:.5,flying:2,bug:2,steel:.5},
+ ghost:{normal:0,psychic:2,ghost:2,dark:.5},dragon:{dragon:2,steel:.5,fairy:0},dark:{fighting:.5,psychic:2,ghost:2,dark:.5,fairy:.5},
+ steel:{fire:.5,water:.5,electric:.5,ice:2,rock:2,steel:.5,fairy:2},fairy:{fire:.5,fighting:2,poison:.5,dragon:2,dark:2,steel:.5}};
+const eff=(a,ds)=>ds.reduce((m,d)=>m*((CHART[a]||{})[d]??1),1);
+/* 記号の形（ゲームごと）。どれも 96×96 の箱・外わく・2色の斜め塗り分けで、大きさと太さをそろえる */
+function hexSigil(e){const R=40,P=f=>e.stats.map((v,i)=>{const r=R*f(v),t=-Math.PI/2+i*Math.PI/3;return (r*Math.cos(t)).toFixed(1)+','+(r*Math.sin(t)).toFixed(1)}).join(' ');
+  return `<svg viewBox="-48 -48 96 96" aria-hidden="true"><polygon points="${P(()=>1)}" fill="none" stroke="rgb(${e.c1})" stroke-opacity=".3" stroke-width="2.6" stroke-linejoin="round"/><polygon points="${P(v=>Math.max(.15,Math.min(1,v/150)))}" fill="url(#g-${e.key})" stroke="rgb(${e.c2})" stroke-width="3.4" stroke-linejoin="round"/></svg>`}
+function diaSigil(e){const R=40,ax=[[0,-1],[1,0],[0,1],[-1,0]],P=f=>e.stats.map((v,i)=>((R*f(v))*ax[i][0]).toFixed(1)+','+((R*f(v))*ax[i][1]).toFixed(1)).join(' ');
+  return `<svg viewBox="-48 -48 96 96" aria-hidden="true"><polygon points="${P(()=>1)}" fill="none" stroke="rgb(${e.c1})" stroke-opacity=".3" stroke-width="2.6" stroke-linejoin="round"/><polygon points="${P(v=>Math.max(.18,Math.min(1,v/10)))}" fill="url(#g-${e.key})" stroke="rgb(${e.c2})" stroke-width="3.4" stroke-linejoin="round"/></svg>`}
+const PACKS={
+ pokechamp:{id:'pokechamp',name:'ポケモンチャンピオンズ',short:'ポケチャン',color:'#E8B931',sigil:hexSigil,
+  /* 当サイトのゲームの印（独自）：円の中の六角形。公式のロゴではない */
+  glyph:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6.5 16.8 9.25v5.5L12 17.5l-4.8-2.75v-5.5z"/></svg>',
+  words:{entity:'ポケモン',team:'パーティ',unit:'匹',speed:'素早さ種族値',speedNote:'実際の値は育て方で変わる',speedAsc:false,tie:1,search:'ポケモン名で相性を調べる',disclose:'ポケモンだけ公開',use:'このパーティを使う'},
+  raw:{gab:['ガブリアス','Garchomp',['dragon','ground'],[108,130,95,102,85,80]],surf:['サーフゴー','Gholdengo',['steel','ghost'],[87,60,95,84,91,133]],
+   ashi:['アシレーヌ','Primarina',['water','fairy'],[80,74,74,60,116,126]],armor:['アーマーガア','Corviknight',['flying','steel'],[98,87,105,67,85,53]],
+   wind:['ウインディ','Arcanine',['fire'],[90,110,80,95,80,100]],kai:['カイリュー','Dragonite',['dragon','flying'],[91,134,95,80,100,100]],
+   dpt:['ドラパルト','Dragapult',['dragon','ghost'],[88,120,75,142,75,100]],mimi:['ミミッキュ','Mimikyu',['ghost','fairy'],[55,90,80,96,105,50]]},
+  ent(k){const [n,en,t,st]=this.raw[k];return {key:'pc-'+k,id:k,n,en,stats:st,speed:st[3],types:t,c1:rgb(TC[t[0]][3]),c2:rgb(TC[t[1]||t[0]][3]),sub:t.map(x=>TC[x][2]).join('・')}},
+  /* このゲームだけの分析：タイプごとの「弱い（2倍以上）」「受けられる（半分以下）」の数 */
+  coverage(ids){return TYPES.map(([k,ab,name])=>{let w=0,r=0;ids.forEach(id=>{const x=eff(k,this.ent(id).types);if(x>1)w++;else if(x<1)r++});return {k,ab,name,w,r}})}},
+ /* 作りの確認のための架空のゲーム（キャラクター・数値はすべて作りもの） */
+ arena:{id:'arena',name:'ARENA LINE（架空）',short:'ARENA',color:'#3FB6C9',sigil:diaSigil,
+  glyph:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 21 12 12 21 3 12z"/><path d="M12 8v8M8 12h8"/></svg>',
+  words:{entity:'キャラクター',team:'チーム',unit:'人',speed:'発生フレーム',speedNote:'小さいほど速い・架空のデータ',speedAsc:true,tie:0,search:'キャラクター名で探す',disclose:'キャラクターだけ公開',use:'このチームを使う'},
+  cls:{rush:['突進','#E0664F'],zone:['遠距離','#4F9BE0'],grap:['投げ','#B07A3F'],trap:['設置','#8D6BD8']},
+  raw:{soma:['ソウマ','Soma',['rush','grap'],[9,7,3,5],6],nem:['ネム','Nem',['zone','trap'],[5,6,9,4],11],gald:['ガルド','Gald',['grap','rush'],[8,3,2,9],8],
+   iv:['イヴ','Iv',['trap','zone'],[6,5,7,5],9],towa:['トワ','Towa',['rush'],[7,9,4,4],5],balk:['バルク','Balk',['grap'],[9,2,2,10],10]},
+  ent(k){const [n,en,c,st,fr]=this.raw[k];return {key:'ar-'+k,id:k,n,en,stats:st,speed:fr,types:c,c1:rgb(this.cls[c[0]][1]),c2:rgb(this.cls[c[1]||c[0]][1]),sub:c.map(x=>this.cls[x][0]).join('・')}}}};
+const PK=g=>PACKS[g];
+
+/* =====================================================================
+   B. Game Kid/s の共通の部品（どのゲームでも同じ形）
+   ===================================================================== */
+function defsHTML(){let d='';for(const pk of Object.values(PACKS))for(const k of Object.keys(pk.raw)){const e=pk.ent(k);d+=`<linearGradient id="g-${e.key}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgb(${e.c1})"/><stop offset=".52" stop-color="rgb(${e.c1})"/><stop offset=".52" stop-color="rgb(${e.c2})"/><stop offset="1" stop-color="rgb(${e.c2})"/></linearGradient>`}
+  return `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${d}</defs></svg>`}
+/* 記号の大きさは4段だけ：xs 20・s 24・m 32・l 40（角の丸みは大きさの3割） */
+const sig=(pk,k,size,extra)=>{const e=pk.ent(k);return `<span class="sig ${size}${extra?' '+extra:''}" style="--c1:${e.c1}" role="img" aria-label="${e.n}">${pk.sigil(e)}</span>`};
+/* 名前のチップ（決定 D4：kfold・前後の区切り・#と@は見ない・同じ名前は1回） */
+const SMALL={'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ','ッ':'ツ','ャ':'ヤ','ュ':'ユ','ョ':'ヨ','ヮ':'ワ','ヵ':'カ','ヶ':'ケ'};
+const kfold=s=>[...s].map(ch=>{const c=ch.charCodeAt(0);const k=(c>=0x3041&&c<=0x3096)?String.fromCharCode(c+0x60):ch;return SMALL[k]||k}).join('');
+const edge=ch=>!!ch&&/[゠-ヿA-Za-z0-9]/.test(ch);
+function rich(pk,raw){const out=[],used=new Set();
+  for(const part of raw.split(/([#＃][^\s#＃@＠]+|[@＠][A-Za-z0-9_]+)/)){if(!part)continue;
+    if(/^[#＃@＠]/.test(part)){out.push(`<span class="ht">${esc(part)}</span>`);continue}
+    const f=kfold(part),hits=[];
+    for(const k of Object.keys(pk.raw)){const e=pk.ent(k),jn=kfold(e.n);let from=0,i;
+      while((i=f.indexOf(jn,from))>=0){from=i+1;if(edge(part[i-1])||edge(part[i+jn.length]))continue;hits.push({i,len:jn.length,k})}}
+    hits.sort((a,b)=>a.i-b.i);let pos=0;
+    for(const h of hits){if(h.i<pos||used.has(h.k))continue;used.add(h.k);const e=pk.ent(h.k);
+      out.push(esc(part.slice(pos,h.i)),`<a href="#" class="ent" style="--c1:${e.c1};--c2:${e.c2}" data-toast="「${e.n}」のページへ（見本なので移動しません）" data-vis><i class="dm" aria-hidden="true"></i>${esc(part.slice(h.i,h.i+h.len))}</a>`);pos=h.i+h.len}
+    out.push(esc(part.slice(pos)))}
+  return out.join('')}
+const modHead=(icon,title,right,an)=>`<div class="mh">${an?'<span class="kick">分析</span>':''}${S(icon,15)}<b>${title}</b>${right?`<span class="r">${right}</span>`:''}</div>`;
+
+/* ---- 構造の部品（情報をそのまま見せる）：パーティ・チーム、対戦の記録 ---- */
+function mTeam(pk,m){return `<div class="mod" data-mod="team" role="group" aria-label="${pk.words.team} ${esc(m.name)}">
+  ${modHead('team',`<span class="pt">${esc(m.name)}</span>`,`${S('eye',13)}${pk.words.disclose}`)}
+  <div class="party" data-n="${m.ids.length}" style="--n:${m.ids.length}">${m.ids.map(k=>{const e=pk.ent(k);return `<a href="#" class="mem" aria-label="${e.n}（${e.sub}）" data-toast="「${e.n}」のページへ（見本）" data-vis>${sig(pk,k,'l')}<span class="nm">${e.n}</span></a>`}).join('')}</div>
+  <div class="mf"><span>${m.fmt}・${m.ids.length}${pk.words.unit}</span><span class="sepd">·</span>${m.date}に共有した時点の内容<a href="#" class="lk" data-toast="空いている枠に写します（見本）" data-vis>${pk.words.use}${S('chev',13)}</a></div></div>`}
+function mRecord(pk,m){const row=(lb,ids,down)=>`<div class="tm"><span class="lb">${lb}</span><span class="row">${ids.map(k=>sig(pk,k,'s',down.includes(k)?'down':'')).join('')}</span><span class="left num">残り${ids.length-down.length}</span></div>`;
+  return `<div class="mod" data-mod="record" role="group" aria-label="対戦の記録">
+  ${modHead('target',m.fmt,'本人の記録')}
+  <div class="rec"><div class="oc"><b>WIN</b><small>勝ち</small></div><div class="tms">${row('自分',m.mine,m.dm)}${row('相手',m.opp,m.do)}</div>
+   ${m.rate?`<div class="rt"><b class="num">${m.rate.toLocaleString()}</b><span class="d num">+${m.diff}</span><small>レート・自己申告</small></div>`:`<div class="rt"><b class="num">${m.score}</b><small>${m.scoreNote}</small></div>`}</div></div>`}
+
+/* ---- 分析の部品（数字を図で見せる）：ダメージ、速さの並び、弱点の重なり ---- */
+function mCalc(pk,m){const A=pk.ent(m.a),D=pk.ent(m.d),rolls=[...Array(16)].map((_,i)=>m.min+(m.max-m.min)*i/15);
+  return `<div class="mod an" data-mod="calc" role="group" aria-label="ダメージ計算" style="--c1:${m.ac}">
+  ${modHead('calc','ダメージ計算','シングル',1)}
+  <div class="vs"><div class="who">${sig(pk,m.a,'m')}<span><b>${A.n}</b><small>${m.aCond}</small></span></div><span class="arrow">${S('arrow',16)}</span><div class="who">${sig(pk,m.d,'m')}<span><b>${D.n}</b><small>${m.dCond}</small></span></div><span class="mvc"><span class="dot" style="background:rgb(${m.ac})"></span>${m.action}</span></div>
+  <div class="res"><span class="big num">${m.min.toFixed(1)}<small>〜</small>${m.max.toFixed(1)}<small>%</small></span><span class="vd">${m.verdict}<em class="num">${m.prob}</em></span></div>
+  <div class="distrow"><span class="k">乱数16段階<small>濃い＝50%以上</small></span><span class="dist" role="img" aria-label="16段階のうち${rolls.filter(r=>r>=50).length}段階が50%以上">${rolls.map(r=>`<i class="${r>=50?'ko':''}" style="height:${30+r/m.max*70}%"></i>`).join('')}</span></div>
+  <div class="hp" aria-hidden="true"><span class="rest" style="width:${100-m.max}%"></span><span class="rng" style="left:${100-m.max}%;width:${m.max-m.min}%"></span></div>
+  <div class="cond">${m.note}</div></div>`}
+function mSpeed(pk,m){const W=pk.words,asc=W.speedAsc,es=m.ids.map(k=>pk.ent(k)).sort((a,b)=>asc?a.speed-b.speed:b.speed-a.speed);
+  /* 棒が長いほど速い（フレームのように小さいほど速いゲームは向きを逆にする） */
+  const x=v=>Math.max(3,(asc?(m.max-v):(v-m.min))/(m.max-m.min)*100),tied=e=>es.some(o=>o!==e&&Math.abs(o.speed-e.speed)<=W.tie);
+  const ticks=asc?[...m.ticks].reverse():m.ticks;
+  return `<div class="mod an" data-mod="speed" role="group" aria-label="${W.speed}">
+  ${modHead('bolt',W.speed,W.speedNote,1)}
+  <div class="lad">${es.map(e=>`<span class="w">${sig(pk,e.id,'s')}<span>${e.n}</span></span><span class="trk" style="--c1:${e.c1}"><span class="bar" style="width:${x(e.speed)}%"></span></span><span class="v num">${e.speed}</span><span class="tie"${tied(e)?` title="差が${W.tie||'なし'}以内"`:' aria-hidden="true"'}>${tied(e)?'≈':''}</span>`).join('')}
+   <span></span><span class="ticks num" aria-hidden="true">${ticks.map(t=>`<span>${t}</span>`).join('')}</span><span></span><span></span>
+   ${es.some(tied)?`<span class="note"><span class="tie">≈</span>${W.tie?'差が1以内（ほぼ同じ）':'同じ値'}</span>`:''}</div></div>`}
+function mCover(pk,m,p){if(!pk.coverage)return '';const U2=pk.words.unit,cells=pk.coverage(m.ids);
+  /* 計算は V3.2 と同じ（coverage）。見せ方だけ：重なりの大きい順（同じなら受けられる数の少ない順）に上位を要点に */
+  const weak=cells.filter(c=>c.w>=2).sort((a,b)=>b.w-a.w||a.r-b.r),top=weak.slice(0,4),rest=weak.length-top.length,max=weak.length?weak[0].w:0;
+  const safe=cells.filter(c=>!c.w&&c.r>=3),open=!!(ST.covOpen&&ST.covOpen[p.id]),id='cov-'+p.id;
+  const warn=weak.length?`${weak.length}タイプで${U2==='匹'?'2匹':'2'+U2}以上が同時に弱い${max>=3?`（最大${max}${U2}）`:''}`:'2'+U2+'以上が同時に弱いタイプはない';
+  return `<div class="mod an" data-mod="cover" role="group" aria-label="弱点の重なり">
+  ${modHead('heat','弱点の重なり',`${m.ids.length}${U2}・タイプ相性だけ`,1)}
+  <p class="cv-warn${weak.length?'':' ok'}" role="note">${S(weak.length?'warn':'check',15)}<span>${warn}</span></p>
+  ${top.length?`<div class="cv-top">${top.map(c=>`<span class="cv-t w${Math.min(3,c.w)}" title="${c.name}：弱い${c.w}${U2}・受けられる${c.r}${U2}"><b>${c.ab}</b><span>${c.name}</span><em class="num">${c.w}${U2}</em></span>`).join('')}${rest>0?`<span class="cv-more">ほか${rest}タイプ</span>`:''}</div>`:''}
+  <button class="cv-tg" data-cov="${p.id}" aria-expanded="${open}" aria-controls="${id}">${open?'閉じる':'18タイプすべてを見る'}${S('down',15)}</button>
+  <div class="cv-det" id="${id}"${open?'':' hidden'}>
+   ${safe.length?`<div class="cv-sum"><span><b>よく受けられる</b>${safe.map(c=>`<i class="g" title="${c.name}：${c.r}${U2}が受けられる">${c.ab}</i>`).join('')}</span></div>`:''}
+   <div class="heat">${cells.map(c=>`<span class="hc${c.w?' w'+Math.min(3,c.w):''}" role="img" aria-label="${c.name}：弱い${c.w}${U2}・受けられる${c.r}${U2}"><span class="ab" aria-hidden="true">${c.ab}</span><b class="num${c.w?'':' z'}" aria-hidden="true">${c.w||'·'}</b><span class="rs" aria-hidden="true">${'<i></i>'.repeat(Math.min(3,c.r))}</span></span>`).join('')}</div>
+   <div class="legend"><span>数字＝弱い${U2}数<span class="s3" aria-hidden="true"><i style="background:rgba(var(--warm),.15)">1</i><i style="background:rgba(var(--warm),.32)">2</i><i style="background:rgba(var(--warm),.55)">3+</i></span></span><span><span class="pd"></span>受けられる${U2}（半分以下）</span><span>特性は含まない</span></div></div></div>`}
+const MODS={team:mTeam,record:mRecord,calc:mCalc,speed:mSpeed,cover:mCover};
+/* 投稿の種類：部品から決める（ふつう／構造／分析）。見た目の枠は同じで、中の部品だけが変わる */
+const kindOf=p=>{const ks=(p.mods||[]).map(m=>m.k);return ks.some(k=>['calc','speed','cover'].includes(k))?'analytical':ks.length?'structured':'text'};
+
+/* =====================================================================
+   C. 見本の投稿（ふつうの投稿が中心）
+   ===================================================================== */
+const U={me:{ch:'ミ',c:'#6457D6',name:'ミナト',id:'minato_pk'},sora:{ch:'ソ',c:'#1E8A69',name:'そらまめ',id:'soramame_b'},ren:{ch:'レ',c:'#B9651C',name:'れん',id:'ren_tactics'},
+ haru:{ch:'ハ',c:'#B83A62',name:'はるか',id:'haruka_vgc'},bot:{ch:'公',c:'#3462C9',name:'お知らせbot（非公式）',id:'news_bot',bot:1},yu:{ch:'ユ',c:'#5A6478',name:'ユウ',id:'yu_double'},
+ rio:{ch:'リ',c:'#8A4FB8',name:'りお',id:'rio_frames'},aki:{ch:'ア',c:'#2F7F95',name:'あき',id:'aki_casual'},kai:{ch:'カ',c:'#2F7F95',name:'カイト',id:'kaito_al'},nao:{ch:'ナ',c:'#7A5C2E',name:'なお',id:'nao_cover'}};
+const CATS=[{k:'battle',t:'対戦募集',c:'#E07079'},{k:'build',t:'構築相談',c:'#42B98E'},{k:'q',t:'質問',c:'#5C9BEB'},{k:'chat',t:'雑談',c:'#DDA545'}];
+const catOf=k=>CATS.find(c=>c.k===k);
+const TEAM6=['gab','surf','ashi','armor','wind','kai'];
+const POSTS=[
+ {id:1,g:'pokechamp',u:'me',t:'12分',f:1,text:'シーズン5、最終2桁まで行けた構築です。ガブリアスとサーフゴーで前に出て、削れたところをカイリューで締める流れ。選出の考え方はリプに書きます #構築紹介',
+  mods:[{k:'team',name:'ガブサーフ対面',fmt:'シングル',ids:TEAM6,date:'11/16'}],r:14,rp:22,l:186},
+ {id:2,g:'pokechamp',u:'ren',t:'25分',cat:'q',f:1,text:'アシレーヌの持ち物、しんぴのしずく以外だと何が多いですか？ 特殊受けを置かれると止まってしまって…',r:11,l:8},
+ {id:3,g:'pokechamp',u:'sora',t:'40分',cat:'build',f:1,text:'タスキのガブリアスで受けのカイリューを崩せるか計算してみた。マルチスケイルが残っていると乱数2発…いのちのたまの方がいいのかな？',
+  mods:[{k:'calc',a:'gab',d:'kai',action:'げきりん',ac:rgb('#7366E8'),aCond:'こうげき32・いじっぱり',dCond:'HP32・ぼうぎょ2',min:47.6,max:56.3,verdict:'乱数2発',prob:'68.4%',note:'マルチスケイルで1発目のダメージ半分（計算に含む）'}],r:9,rp:3,l:41},
+ {id:4,g:'pokechamp',u:'yu',t:'1時間',cat:'battle',text:'今夜21時からダブルのプライベート対戦できる方いませんか？ ルールはレベル50・メガシンカあり。ウインディ入りの雨対策を試したいです',r:6,l:13},
+ {id:5,g:'pokechamp',u:'bot',t:'2時間',text:'【公式・アップデート】Ver.1.3.0 の配信について（2026/11/17） #公式のお知らせ',link:{t:'公式サイトで読む ↗',d:'www.pokemonchampions.jp'},rp:3,l:52},
+ {id:6,g:'pokechamp',u:'nao',t:'2時間',cat:'build',text:'ミナトさんの構築の弱点を数えてみた。ほのお・でんき・こおり・じめんあたりが2匹ずつ重なってる。ウインディが1枚いるのは大きいかも',
+  mods:[{k:'cover',ids:TEAM6}],r:3,l:27},
+ {id:7,g:'pokechamp',u:'rio',t:'3時間',cat:'q',text:'素早さの並びを整理してみた。ミミッキュとウインディ、ほぼ同じなのに抜かれるときがある…ドラパルトは別格',
+  mods:[{k:'speed',ids:['dpt','gab','mimi','wind','surf','kai','armor','ashi'],min:50,max:150,ticks:[50,75,100,125,150]}],r:5,l:22},
+ {id:8,g:'pokechamp',u:'aki',t:'4時間',cat:'chat',text:'今日はランクお休みして、友だちとのんびりプライベート対戦。勝ち負けを気にしないと新しい技も試せて楽しい',r:2,l:31,f:1},
+ {id:9,g:'pokechamp',u:'haru',t:'5時間',cat:'chat',text:'ドラパルト入りのパーティに3連勝！やっとレート1,800を超えた…今日はここで止めます',
+  mods:[{k:'record',fmt:'シングル・ランクバトル',mine:['gab','kai','armor'],opp:['dpt','mimi','surf'],dm:['armor'],do:['dpt','mimi','surf'],rate:1812,diff:18}],r:4,l:67},
+ /* 架空のゲーム（作りの確認用） */
+ {id:21,g:'arena',u:'kai',t:'30分',cat:'build',f:1,text:'ソウマとガルドの2枚で押して、イヴで固める3人チーム。投げ2枚は重すぎる？ #チーム紹介',mods:[{k:'team',name:'押し込み3人',fmt:'3on3',ids:['soma','gald','iv'],date:'11/17'}],r:7,l:58},
+ {id:22,g:'arena',u:'aki',t:'1時間',cat:'chat',text:'今日は練習モードでコンボの確認だけ。指が覚えるまでもう少し',r:1,l:12,f:1},
+ {id:23,g:'arena',u:'rio',t:'2時間',cat:'q',text:'発生の早い順にまとめました。トワの5は反撃の要。バルクは遅いけど1発が重い',mods:[{k:'speed',ids:['towa','soma','gald','iv','balk','nem'],min:4,max:12,ticks:[4,6,8,10,12]}],r:3,l:31},
+ {id:24,g:'arena',u:'kai',t:'6時間',cat:'chat',text:'大会予選、ネム相手に2-1で勝ち。遠距離はやっぱり近づくまでが勝負',mods:[{k:'record',fmt:'3on3・大会予選',mine:['soma','gald','iv'],opp:['nem','iv','balk'],dm:['soma'],do:['nem','iv','balk'],score:'2-1',scoreNote:'ラウンド'}],r:2,l:19}];
+
+/* =====================================================================
+   D. 状態・描画
+   ===================================================================== */
+const ST={covOpen:{},g:'pokechamp',v:'dd',tab:'all',cat:'all',menu:false,sheet:null,draft:'',dcat:null,open:false,vis:false,notes:false,bg:{p:'atmos',img:null,k:60}};
+const isM=()=>ST.v[0]==='m',theme=()=>ST.v[1]==='d'?'dark':'light';
+const AV=u=>`<span class="av" style="background:${u.c}" aria-hidden="true">${u.ch}</span>`;
+function postHTML(p){const u=U[p.u],c=catOf(p.cat),lk=(p.l||0)+(p.liked?1:0),rp=(p.rp||0),pk=PK(p.g),kind=kindOf(p);
+  return `<article class="post${p.isNew?' new':''}" data-kind="${kind}" aria-label="${esc(u.name)}の投稿">${AV(u)}<div class="pb">
+  <div class="ph"><b>${esc(u.name)}</b>${u.bot?'<span class="bot">bot</span>':''}<span class="m2">@${u.id} · ${p.t}</span>${c?`<span class="c"><span class="dot" style="background:${c.c}"></span>${c.t}</span>`:''}<button class="more" aria-label="その他の操作" data-toast="通報・表示しない（今の機能と同じ）" data-vis>${S('dots',17)}</button></div>
+  <div class="tx">${rich(pk,p.text)}</div>
+  ${p.link?`<a href="#" class="link" data-toast="公式サイトを新しいタブで開きます（見本）" data-vis><b>${p.link.t}</b><small>${p.link.d}</small></a>`:''}
+  ${(p.mods||[]).map(m=>MODS[m.k](pk,m,p)).join('')}
+  <div class="acts">
+   <button class="act" aria-label="返信 ${p.r||0}件" data-toast="返信（今の機能と同じ）" data-vis>${S('reply')}<span class="num">${p.r||''}</span></button>
+   <button class="act" aria-label="リポスト ${rp}件" data-toast="リポスト（今の機能と同じ）" data-vis>${S('repost')}<span class="num">${rp||''}</span></button>
+   <button class="act like" data-like="${p.id}" aria-pressed="${!!p.liked}" aria-label="いいね ${lk}件">${S('heart')}<span class="num">${lk||''}</span></button>
+   <button class="act bm" data-bm="${p.id}" aria-pressed="${!!p.bm}" aria-label="ブックマーク">${S('bookmark')}</button>
+   <button class="act" aria-label="共有" data-toast="リンクをコピーしました（見本）" data-vis>${S('share')}</button></div></div></article>`}
+function railHTML(){return `<a href="#" class="brand" aria-label="Game Kid/s ホーム"><span class="mk" aria-hidden="true"></span><span class="wm">Game Kid<span>/</span>s</span></a><span class="gctx" style="--game-rgb:${rgb(PK(ST.g).color)}" title="いま見ているゲーム：${PK(ST.g).name}">${PK(ST.g).glyph}<span class="lb">${PK(ST.g).short}</span></span>
+  ${[['home','ホーム',1],['search','検索'],['tool','ツール'],['grid',PK(ST.g).words.team],['mail','メッセージ',0,2]].map(([i,t,cur,n])=>`<a href="#" class="ni"${cur?' aria-current="page"':` data-toast="「${t}」はこの見本に含まれていません" data-vis`} aria-label="${t}">${S(i)}<span class="lb">${t}</span>${n?`<span class="ct lb">${n}</span>`:''}</a>`).join('')}
+  <button class="qa" data-toast="相性を調べる（今の機能と同じ。⚡ボタンの機能は設定で変えられる）" data-vis>${S('bolt',19)}<span class="lb">相性を調べる</span></button>
+  <a href="#" class="me" data-toast="左のメニュー（今の機能と同じ）" data-vis>${AV(U.me)}<span class="me-t"><b>${U.me.name}</b><small>@${U.me.id}</small></span></a>`}
+function navHTML(){return [['home','ホーム',1],['search','検索'],['tool','ツール'],['grid',PK(ST.g).words.team],['mail','メッセージ',0,2]].map(([i,t,cur,n])=>`<a href="#"${cur?' aria-current="page"':` data-toast="「${t}」はこの見本に含まれていません" data-vis`}>${S(i)}<span>${t}</span>${n?`<span class="bd">${n}</span>`:''}</a>`).join('')
+  +`<button class="nav-post" id="nav-post" aria-label="投稿する"><svg class="hx" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2.5c1.4 0 2.7.4 3.9 1l12.5 7.2c2.4 1.4 3.9 4 3.9 6.8v13c0 2.8-1.5 5.4-3.9 6.8l-12.5 7.2a7.8 7.8 0 0 1-7.8 0L7.6 37.3c-2.4-1.4-3.9-4-3.9-6.8v-13c0-2.8 1.5-5.4 3.9-6.8l12.5-7.2c1.2-.6 2.5-1 3.9-1z" fill="var(--brand)"/></svg>${S('pen',20)}</button>`}
+const PRE=[['atmos','光'],['mesh','メッシュ'],['slate','無地'],['noise','ノイズ']];
+function swatch(k){const L=theme()==='light',c=L?'#ECEEF3':'#0E0F14',b=L?'95,82,224':'124,108,240';
+  if(k==='mesh')return `background:radial-gradient(70% 60% at 15% 10%,rgba(${b},${L?.28:.42}),transparent 70%),radial-gradient(60% 60% at 95% 20%,rgba(64,150,210,.28),transparent 70%),${c}`;
+  if(k==='slate')return `background:${c}`;if(k==='noise')return `background:var(--noise),${c};background-size:90px 90px,auto`;
+  return `background:radial-gradient(90% 80% at 100% 0%,rgba(${b},${L?.4:.6}),transparent 72%),${c}`}
+function bgPanel(){const b=ST.bg,img=b.p==='img';
+  return `<div class="bgp"><div class="pre" role="radiogroup" aria-label="背景">${PRE.map(([k,t])=>`<button role="radio" data-pre="${k}" aria-checked="${b.p===k}"><span class="sw" style="${swatch(k)}"></span>${t}</button>`).join('')}
+   <button role="radio" data-pre="img" aria-checked="${img}">${b.img?`<span class="sw" style="background:url(${b.img}) center/cover"></span>`:`<span class="sw add">${S('plus',17)}</span>`}画像</button></div>
+  ${img?`<div class="rng">${b.img?`<label for="r-k">画像の濃さ<output id="o-k" class="num">${b.k}%</output></label><input id="r-k" type="range" min="10" max="90" value="${b.k}"><div class="hint"><i></i>投稿の面は自動で濃くなり、文字が読みやすいままです</div>`:''}
+   <div style="display:flex;gap:8px;margin-top:10px"><label class="btn btn-q" style="cursor:pointer">画像を選ぶ<input type="file" accept="image/*" class="sr" data-file></label><button class="btn btn-q" data-sample>見本の写真</button></div></div>`:''}</div>`}
+function sideHTML(){return `<div class="search">${S('search',18)}${PK(ST.g).words.search}</div>
+  <section class="pnl"><h2>すぐ使う</h2>${[['target','選出アシスト','相手の6匹から、出すべき3匹と先発'],['calc','ダメージ計算','あなたの育成や使用率の高い型で'],['bolt','タイプ相性','相手のポケモンやタイプから'],['trend','流行のポケモンとパーティ','使用率ランキングと組み合わせ']].map(([i,t,d])=>`<a href="#" class="ql" data-toast="ツール（今の機能と同じ）" data-vis><span class="q">${S(i,18)}</span><span><b>${t}</b><small>${d}</small></span></a>`).join('')}</section>
+  <section class="pnl"><h2>背景<small>この端末で動きます</small></h2>${bgPanel()}</section>
+  <div class="foot">利用規約・プライバシーポリシー・データの出典・お問い合わせ<br>非公式のファンサイトです。ゲームの公式の画像は使っていません。</div>`}
+function catMenu(w){return `<div class="menu${ST.menu===w?' on':''}" role="menu" style="${w==='d'?'top:38px;left:0':'bottom:46px;left:0'}">
+  <button role="menuitemradio" aria-checked="${!ST.dcat}" data-dcat="">カテゴリなし${!ST.dcat?`<span class="ck">${S('check',16)}</span>`:'<small>はじめ</small>'}</button>
+  ${CATS.map(c=>`<button role="menuitemradio" aria-checked="${ST.dcat===c.k}" data-dcat="${c.k}"><span class="dot" style="background:${c.c}"></span>${c.t}${ST.dcat===c.k?`<span class="ck">${S('check',16)}</span>`:''}</button>`).join('')}</div>`}
+function toolbar(w){const len=[...ST.draft].length,dc=catOf(ST.dcat);
+  return `<div class="tb"><button class="ic" aria-label="画像を付ける" data-toast="画像を選ぶ（スクリーンショットはゲームごとのガイドラインに従う・確認中）" data-vis>${S('image')}</button>
+   <span class="ext"><button class="ic" aria-label="パーティを共有する" data-toast="パーティを共有する画面へ（V2 の流れ）" data-vis>${S('team')}</button></span>
+   <span class="ext" style="position:relative"><button class="catpick" id="${w}-cat" aria-haspopup="menu" aria-expanded="${ST.menu===w}">${dc?`<span class="dot" style="background:${dc.c}"></span>${dc.t}`:`${S('tag',14)}カテゴリ`}${S('down',14)}</button>${catMenu(w)}</span>
+   <span class="sp"></span><span class="cnt num${len>140?' over':''}" id="${w}-c"${len>120?'':' hidden'}>${140-len}</span><button class="btn btn-p" id="${w}-go" ${len&&len<=140?'':'disabled'}>投稿する</button></div>`}
+function feedHTML(){const list=POSTS.filter(p=>p.g===ST.g&&(ST.tab==='all'||p.f)&&(ST.cat==='all'||p.cat===ST.cat));
+  return `<div class="fh"><div class="mt-row"><button class="ib" aria-label="メニュー" data-toast="左のメニュー（今の機能と同じ）" data-vis><span class="av" style="width:32px;height:32px;font-size:13px;background:${U.me.c}" aria-hidden="true">${U.me.ch}</span></button><span class="mk" role="img" aria-label="Game Kid/s"></span><button class="ib" id="m-bg" aria-label="背景を変える">${S('tune',21)}</button></div>
+   <div class="tabs" role="tablist" aria-label="タイムライン"><button role="tab" data-tab="all" aria-selected="${ST.tab==='all'}">みんな</button><button role="tab" data-tab="fol" aria-selected="${ST.tab==='fol'}">フォロー中</button></div>
+   <div class="cats" role="group" aria-label="カテゴリで絞り込む"><button class="cat" data-cat="all" aria-pressed="${ST.cat==='all'}">すべて</button>${CATS.map(c=>`<button class="cat" data-cat="${c.k}" aria-pressed="${ST.cat===c.k}"><span class="dot" style="background:${c.c}"></span>${c.t}</button>`).join('')}</div></div>
+  <div class="cmp${ST.open||ST.draft?' open':''}">${AV(U.me)}<div class="b"><label class="sr" for="d-t">投稿の内容</label><textarea id="d-t" rows="1" placeholder="いまどうしてる？（#タグで見つけてもらいやすく）">${esc(ST.draft)}</textarea>${toolbar('d')}</div></div>
+  <div class="list">${list.map(postHTML).join('')||`<p style="padding:40px 24px;text-align:center;color:var(--t3)">このカテゴリの投稿はまだありません</p>`}</div>`}
+function sheetHTML(){
+  if(ST.sheet==='compose')return `<div class="grab"></div><h2 id="sheet-t">投稿する<button class="ib" data-close aria-label="閉じる">${S('close',20)}</button></h2><label class="sr" for="m-t">投稿の内容</label><textarea id="m-t" placeholder="いまどうしてる？">${esc(ST.draft)}</textarea><div class="cmp open" style="padding:0;box-shadow:none;display:block">${toolbar('m')}</div>`;
+  if(ST.sheet==='bg')return `<div class="grab"></div><h2 id="sheet-t">背景<button class="ib" data-close aria-label="閉じる">${S('close',20)}</button></h2>${bgPanel()}<p style="font-size:12px;color:var(--t3);margin:12px 10px 0">背景の種類はログイン中ならほかの端末にも反映されます。画像はこの端末だけに保存されます。</p>`;
+  return ''}
+
+/* 背景 */
+const NOISE=`url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>")}")`;
+function applyBg(){const b=ST.bg,app=document.getElementById('app'),el=document.getElementById('bg'),im=document.getElementById('bgimg');
+  app.style.setProperty('--noise',NOISE);el.className='bg '+(b.p==='img'?'slate':b.p);
+  const on=b.p==='img'&&!!b.img;app.classList.toggle('bgimg',on);
+  im.style.backgroundImage=on?`url(${b.img})`:'';im.style.opacity=on?b.k/100:0;
+  /* 画像を濃くするほど、読む面も濃くする（文字の読みやすさを守る） */
+  const L=theme()==='light',a=on?Math.min(.97,.88+b.k/100*.09):null;
+  app.style.setProperty('--sheet-img',on?(L?`rgba(255,255,255,${a})`:`rgba(18,20,27,${a})`):'')}
+function sample(){const c=document.createElement('canvas');c.width=900;c.height=1400;const g=c.getContext('2d');let s=11;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const G=g.createLinearGradient(0,0,0,1400);G.addColorStop(0,'#141a2e');G.addColorStop(1,'#2a1a2c');g.fillStyle=G;g.fillRect(0,0,900,1400);
+  for(let i=0;i<70;i++){const x=r()*900,y=r()*1400,rad=30+r()*110,h=[[255,170,90],[120,140,255],[255,110,150],[90,210,200]][Math.floor(r()*4)];
+    const gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,`rgba(${h},${.18+r()*.25})`);gr.addColorStop(.7,`rgba(${h},${.06+r()*.08})`);gr.addColorStop(1,`rgba(${h},0)`);g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill()}
+  return c.toDataURL('image/jpeg',.82)}
+
+const NOTES=`<h2>設計メモ：フィード V3.3</h2><p>くわしくは <code>docs/social-redesign/v3.3/design-notes.md</code>。V3.2 から変えたのは5つだけ：ダークの投稿欄と記号の見やすさ／左のメニューの間隔／スマホのダメージ計算の小さな文字／弱点の重なりは要点だけにして、18タイプは開いて見る／スマホのカテゴリは右端をうすくして横に動かせると分かるように。</p>
+<h3>いまのサイトから残したもの</h3><p>左のメニュー（ホーム・検索・ツール・パーティ・メッセージ）と「相性を調べる」の大きなボタン／みんな・フォロー中の2等分のタブ／小さな投稿欄／投稿の並び（返信→リポスト→いいね→ブックマーク→共有）／右の列（検索・すぐ使う）／スマホの下のタブ。</p>
+<h3>投稿の3つの種類</h3><p>ふつう（文字だけ・箱なし）／構造（パーティ・チーム・対戦の記録を、記号でそのまま見せる）／分析（ダメージ・速さの並び・弱点の重なりを、小さな図で見せる）。どれも同じ投稿の形で、中の部品だけが変わる。</p><h3>ゲームのパック</h3><p>上の「架空のゲーム（構造の確認）」で、同じ部品が別のゲームのデータ・記号・言葉で動くことを確かめられる（実在のゲームではない）。</p>
+<h3>変えたこと</h3><p>投稿ごとの枠線つきの箱をやめ、1枚の読む面に並べる（区切りは本文の列から細く）／スマホの投稿ボタンを下のタブの中へ（投稿の上に重ならない）／上のバーは下にスクロールすると隠れる。</p>
+<h3>見本の数値</h3><p>ダメージ・確率・レートは見本。タイプ相性と種族値は実際のゲームの値。</p>`;
+
+function render(keep){const sc=document.getElementById('scroll'),y=sc.scrollTop,app=document.getElementById('app'),st=document.getElementById('stage');
+  app.dataset.theme=theme();app.classList.toggle('m',isM());
+  st.classList.toggle('phone',isM()&&innerWidth>=480);st.classList.toggle('bare',isM()&&innerWidth<480);
+  document.getElementById('rail').innerHTML=railHTML();document.getElementById('feed').innerHTML=feedHTML();document.getElementById('side').innerHTML=isM()?'':sideHTML();
+  document.getElementById('nav').innerHTML=navHTML();
+  const sh=document.getElementById('sheet');sh.innerHTML=sheetHTML();sh.classList.toggle('on',!!ST.sheet);document.getElementById('scrim').classList.toggle('on',!!ST.sheet);
+  document.getElementById('pv-v').innerHTML=[['dd','PC・ダーク'],['dl','PC・ライト'],['md','スマホ・ダーク'],['ml','スマホ・ライト']].map(([k,t])=>`<button data-v="${k}" aria-pressed="${ST.v===k}">${t}</button>`).join('');
+  document.getElementById('pv-g').innerHTML=[['pokechamp','ポケチャン'],['arena','架空のゲーム（構造の確認）']].map(([k,t])=>`<button data-g="${k}" aria-pressed="${ST.g===k}">${t}</button>`).join('');
+  document.body.classList.toggle('show-vis',ST.vis);document.getElementById('pv-vis').setAttribute('aria-pressed',ST.vis);
+  const n=document.getElementById('notes');n.classList.toggle('on',ST.notes);n.innerHTML=NOTES;document.getElementById('pv-notes').setAttribute('aria-pressed',ST.notes);
+  document.querySelectorAll('.mk').forEach(e=>e.style.setProperty('--logo',`url(${LOGO})`));
+  applyBg();POSTS.forEach(p=>delete p.isNew);catsSync(true);
+  sc.scrollTop=keep?y:0;app.classList.remove('top-hide');LASTY=sc.scrollTop;
+  try{history.replaceState(null,'','?v='+ST.v+(ST.g!=='pokechamp'?'&g='+ST.g:'')+(ST.bg.p!=='atmos'?'&bg='+ST.bg.p:''))}catch(e){}}
+let TT;function toast(t){const el=document.getElementById('toast');el.innerHTML=`<b>見本</b><span>${esc(t)}</span>`;el.classList.add('on');clearTimeout(TT);TT=setTimeout(()=>el.classList.remove('on'),2400)}
+function post(){const text=ST.draft.trim();if(!text)return;POSTS.unshift({id:Date.now(),g:ST.g,u:'me',t:'たった今',cat:ST.dcat,text,f:1,isNew:1});ST.draft='';ST.dcat=null;ST.open=false;ST.sheet=null;ST.menu=false;ST.cat='all';render();toast('この画面の中だけに追加しました。読み直すと消えます')}
+function typed(w){const t=document.getElementById(w+'-t');ST.draft=t.value;const len=[...t.value].length,c=document.getElementById(w+'-c');c.hidden=len<=120;c.textContent=140-len;c.classList.toggle('over',len>140);document.getElementById(w+'-go').disabled=!(len&&len<=140);
+  if(w==='d'){t.style.height='auto';t.style.height=Math.min(180,t.scrollHeight)+'px';if(len&&!ST.open){ST.open=true;document.querySelector('.cmp').classList.add('open')}}}
+
+document.addEventListener('click',e=>{const T=s=>e.target.closest(s);let x;
+  if((x=T('[data-v]'))){ST.v=x.dataset.v;ST.sheet=null;ST.menu=false;render();return}
+  if((x=T('[data-g]'))){ST.g=x.dataset.g;ST.cat='all';render();return}
+  if(T('#pv-vis')){ST.vis=!ST.vis;render(true);return}
+  if(T('#pv-notes')){ST.notes=!ST.notes;render(true);return}
+  if((x=T('[data-toast]'))){e.preventDefault();toast(x.dataset.toast);return}
+  if((x=T('[data-cov]'))){const id=x.dataset.cov;ST.covOpen[id]=!ST.covOpen[id];render(true);document.querySelector(`[data-cov="${id}"]`)?.focus({preventScroll:true});return}
+  if((x=T('[data-tab]'))){ST.tab=x.dataset.tab;render(true);return}
+  if((x=T('[data-cat]'))){ST.cat=x.dataset.cat;render(true);return}
+  if((x=T('#d-cat,#m-cat'))){const w=x.id[0];ST.menu=ST.menu===w?false:w;render(true);document.querySelector('.menu.on button')?.focus();return}
+  if((x=T('[data-dcat]'))){ST.dcat=x.dataset.dcat||null;const w=ST.menu;ST.menu=false;render(true);document.getElementById(w+'-cat')?.focus();return}
+  if(ST.menu&&!T('.menu')){ST.menu=false;render(true)}
+  if(T('#d-go')||T('#m-go')){post();return}
+  if(T('#nav-post')){ST.sheet='compose';render(true);setTimeout(()=>document.getElementById('m-t')?.focus(),300);return}
+  if(T('#m-bg')){ST.sheet='bg';render(true);return}
+  if(T('[data-close]')||T('#scrim')){ST.sheet=null;ST.menu=false;render(true);return}
+  if((x=T('[data-like]'))){const p=POSTS.find(p=>p.id==x.dataset.like);p.liked=!p.liked;render(true);return}
+  if((x=T('[data-bm]'))){const p=POSTS.find(p=>p.id==x.dataset.bm);p.bm=!p.bm;render(true);toast(p.bm?'ブックマークに追加しました':'ブックマークから削除しました');return}
+  if((x=T('[data-pre]'))){if(x.dataset.pre==='img'){ST.bg.p='img';if(!ST.bg.img)ST.bg.img=sample()}else ST.bg.p=x.dataset.pre;render(true);return}
+  if(T('[data-sample]')){ST.bg.img=sample();ST.bg.p='img';render(true);return}
+});
+document.addEventListener('focusin',e=>{if(e.target.id==='d-t'&&!ST.open){ST.open=true;e.target.closest('.cmp').classList.add('open')}});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='d-t')return typed('d');if(t.id==='m-t')return typed('m');
+  if(t.id==='r-k'){ST.bg.k=+t.value;document.getElementById('o-k').textContent=t.value+'%';applyBg()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.matches('[data-file]')&&t.files[0]){const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);ST.bg.img=c.toDataURL('image/jpeg',.85);ST.bg.p='img';render(true)};im.src=rd.result};rd.readAsDataURL(t.files[0])}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ST.menu){const w=ST.menu;ST.menu=false;render(true);document.getElementById(w+'-cat')?.focus()}else if(ST.sheet){ST.sheet=null;render(true)}else if(ST.notes){ST.notes=false;render(true)}}});
+addEventListener('resize',()=>render(true));
+/* カテゴリの横の並び：端のうすさを今の位置に合わせ、選んでいるものは見える位置へ */
+function catsFade(c){const l=c.scrollLeft>2,r=c.scrollLeft+c.clientWidth<c.scrollWidth-2;c.dataset.fade=[l?'l':'',r?'r':''].join(' ').trim()}
+function catsSync(reveal){document.querySelectorAll('.cats').forEach(c=>{if(reveal){const on=c.querySelector('[aria-pressed=true]');if(on){const L=on.offsetLeft-c.offsetLeft,Rr=L+on.offsetWidth;if(Rr>c.scrollLeft+c.clientWidth-36)c.scrollLeft=Rr-c.clientWidth+36;else if(L<c.scrollLeft+24)c.scrollLeft=Math.max(0,L-24)}}catsFade(c);if(!c.dataset.b){c.dataset.b=1;c.addEventListener('scroll',()=>catsFade(c),{passive:true})}})}
+let LASTY=0;
+document.getElementById('scroll').addEventListener('scroll',e=>{const y=e.target.scrollTop,app=document.getElementById('app');
+  if(!isM()){app.classList.remove('top-hide');return}
+  if(y>LASTY+6&&y>90)app.classList.add('top-hide');else if(y<LASTY-6||y<=90)app.classList.remove('top-hide');LASTY=y},{passive:true});
+document.body.insertAdjacentHTML('afterbegin',defsHTML());
+(()=>{const q=new URLSearchParams(location.search);const v=q.get('v');ST.v=['dd','dl','md','ml'].includes(v)?v:(innerWidth<700?'md':'dd');
+  if(!v&&matchMedia('(prefers-color-scheme: light)').matches)ST.v=ST.v[0]+'l';
+  const b=q.get('bg');if(['atmos','mesh','slate','noise'].includes(b))ST.bg.p=b;if(b==='img'){ST.bg.p='img';ST.bg.img=sample()}
+  if(['pokechamp','arena'].includes(q.get('g')))ST.g=q.get('g');
+  if(q.get('cov')==='1')POSTS.forEach(p=>{if((p.mods||[]).some(m=>m.k==='cover'))ST.covOpen[p.id]=true});
+  render()})();
+</script>
+</body>
+</html>
