@@ -40,8 +40,12 @@ async function rpFrames(file,onp){
     let out=[],last=null,stall=0,stalls=0;
     for(let i=0;i<ts.length;i++){
       /* 場所の移動（seek）が3秒で終わらなければ、その場所は飛ばす（前の場面のままの絵を使わない）。5回続けば止まったとみなす */
+      /* 2026/11/18：移動が終わった（seeked）直後は、まだ前の場面の絵のままのことがある（重い端末・混んだ機械で、場面の変わり目を見落としていた）。
+         移動した先の絵が画面に出たこと（requestVideoFrameCallback）も待つ。出なければ1.5秒で先へ（その場所は飛ばさない） */
+      let shown=null;if(typeof v.requestVideoFrameCallback==='function')shown=new Promise(res=>{let tm=setTimeout(res,4500);v.requestVideoFrameCallback(()=>{clearTimeout(tm);res()})});
       const okSeek=await new Promise(res=>{let tm;const done=ok=>{clearTimeout(tm);v.removeEventListener('seeked',onS);res(ok)},onS=()=>done(true);v.addEventListener('seeked',onS);tm=setTimeout(()=>done(false),3000);v.currentTime=ts[i]});
       if(!okSeek){stalls++;if(++stall>=5)throw rpErr('動画の読み込みが止まってしまいました。ほかのアプリを閉じるか、短い動画で試してください。','stall');onp&&onp(i+1,ts.length,out.length);continue}
+      if(shown)await Promise.race([shown,new Promise(r=>setTimeout(r,1500))]);
       stall=0;
       const th1=thumb(),sc1=last?diff(th1,last):999;
       if(sc1>=12||i===ts.length-1){g.drawImage(v,0,0,c.width,c.height);out.push({t:Math.round(ts[i]*10)/10,d:c.toDataURL('image/jpeg',.6).split(',')[1],s:sc1});last=th1}

@@ -194,6 +194,10 @@ const fx=async(b64,type,name)=>pg.evaluate(async([b64,type,name])=>{const u=Uint
 let X=await fx(vid('rp-scenes.webm'),'video/webm','a.webm');if(process.env.RP_DEBUG)console.log(JSON.stringify(X));
 ok(X.ok&&X.n>=5&&X.n<=20&&X.ts[0]<1&&X.ts[X.n-1]>=29&&X.small,'画面が変わった場面だけ取り出す（最初・最後の場面を含む）',X);
 ok(X.ok&&[6,8,9,10,14,16,17,20,26].every(s=>X.ts.some(t=>Math.abs(t-s)<=1.01)),'画面の一部だけ変わった場面（下の文字の帯・片側の入れかわり）も拾う',X.ts);
+/* 重い端末・混んだ機械でも見落とさない（2026/11/18：移動の直後に前の場面の絵を読み、変わり目を見落としていた。処理を8倍遅くして2回） */
+{const cdp=await pg.context().newCDPSession(pg);await cdp.send('Emulation.setCPUThrottlingRate',{rate:8});const miss=[];
+  for(let k=0;k<2;k++){const Y=await fx(vid('rp-scenes.webm'),'video/webm','s.webm');miss.push(Y.ok?[6,8,9,10,14,16,17,20,26].filter(s=>!Y.ts.some(t=>Math.abs(t-s)<=1.01)):['err'])}
+  await cdp.send('Emulation.setCPUThrottlingRate',{rate:1});ok(miss.every(m=>!m.length),'処理が遅い端末でも、画面が変わった場面を見落とさない',miss)}
 X=await fx(vid('rp-nodur.webm'),'video/webm','b.webm');
 ok(X.ok&&X.dur>25&&X.ts[X.n-1]>=25,'長さが書かれていない動画も最後まで見る',X);
 X=await fx(Buffer.from('これは動画ではありません'.repeat(50)).toString('base64'),'video/mp4','c.mp4');
