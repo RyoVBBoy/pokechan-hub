@@ -5,33 +5,38 @@
    ・相手の型（detSet）：ランクバトルの集計がないポケモンは、上位構築に登録された型をまとめたもの（topSetCalc）
    ・相性のいい仲間（prScore）：上位構築でよく一緒に入っている組み合わせ
    ・構築と選出のタブ：上位構築によくある組み合わせ（2匹・3匹）と、いまのパーティに入っているもの
-   新しいシーズンほど重く、順位が高いほど重く数える。データがなければ何もしない（今までどおり）。 */
-const TOPT={st:'idle',fmt:null,at:0,n:0,W:0,freq:{},pair:{},sets:{},core2:[],core3:[],kinds:{},season:null};
+   新しいシーズンほど重く、順位が高いほど重く数える。データがなければ何もしない（今までどおり）。
+   2026/11/18 依頼主の決定：数える（freq・pair・sets・kinds・組み合わせ・相手の候補・型）のは「確認済み」（運営者が証拠を見て記録したもの）だけ。
+   自己申告・記事から集計・運営が登録は TOPT.teams に出どころ（src）つきで残す（一覧で札をつけて見せる用）が、集計・提案・予想には入れない。
+   確認済みが足りないときは今までどおりランクバトルの集計（外部）・合計種族値に戻り、その旨と確認済みの件数（TOPT.n）を出す。 */
+const TOPT={st:'idle',fmt:null,at:0,n:0,all:0,W:0,freq:{},pair:{},sets:{},core2:[],core3:[],kinds:{},season:null};
 const topKey=no=>{const p=byNo[no];return p?(p.base&&byNo[p.base]?p.base:p.no):0};
 const topReady=()=>TOPT.st==='ok'&&TOPT.n>=3&&TOPT.fmt===(typeof FMT!=='undefined'?FMT:'single');
 async function topLoad(force){
   const fmt=typeof FMT!=='undefined'?FMT:'single';
   if(!force&&TOPT.fmt===fmt&&(TOPT.st==='ok'||TOPT.st==='busy')&&Date.now()-TOPT.at<6*3600e3)return TOPT;
-  if(!force){try{const c=JSON.parse(localStorage.getItem('pctopt')||'null');if(c&&c.fmt===fmt&&Date.now()-c.at<6*3600e3&&Array.isArray(c.teams)){topBuild(c.teams,fmt,c.at,c.season);return TOPT}}catch(e){}}
+  if(!force){try{const c=JSON.parse(localStorage.getItem('pctopt2')||'null');if(c&&c.fmt===fmt&&Date.now()-c.at<6*3600e3&&Array.isArray(c.teams)){topBuild(c.teams,fmt,c.at,c.season);return TOPT}}catch(e){}}
   TOPT.st='busy';TOPT.fmt=fmt;
   try{
     const ss=((await authFetch('/api/seasons')).seasons||[]).filter(s=>s.n>0).slice(0,2);
     const teams=[];
     for(let i=0;i<ss.length;i++){let j;try{j=await authFetch(`/api/seasons/${ss[i].id}/teams?fmt=${fmt}`)}catch(e){continue}
-      (j.teams||[]).forEach(t=>teams.push({r:t.rank||null,old:i,v:t.verified||t.auto?1:0,
+      /* 出どころ：サーバーが決めた source（verified・self・article・operator）。無い（前の版のサーバー）ものは確認済みにしない */
+      (j.teams||[]).forEach(t=>{const src=['verified','self','article','operator'].includes(t.source)?t.source:(t.auto?'article':'self');teams.push({r:t.rank||null,old:i,src,v:src==='verified'?1:0,
         /* 2026/11/15：こだわり条件で組むの土台にするため、どのシーズン・どの確認の状態かも残す（80-kdcheck.js の kdTemplates） */
-        id:t.id||null,s:ss[i].name||null,rate:t.rate||null,ver:!!t.verified,auto:!!t.auto,team:(t.team||[]).map(x=>({no:x.no,set:x.set||null})).filter(x=>byNo[x.no])}))}
+        id:t.id||null,s:ss[i].name||null,rate:t.rate||null,ver:src==='verified',auto:src==='article',team:(t.team||[]).map(x=>({no:x.no,set:x.set||null})).filter(x=>byNo[x.no])})})}
     const at=Date.now(),season=ss[0]?ss[0].name:null;
-    try{localStorage.setItem('pctopt',JSON.stringify({fmt,at,teams,season}))}catch(e){}
+    try{localStorage.setItem('pctopt2',JSON.stringify({fmt,at,teams,season}))}catch(e){}
     topBuild(teams,fmt,at,season);
   }catch(e){TOPT.st='err';TOPT.at=Date.now()}
   return TOPT;
 }
 function topBuild(teams,fmt,at,season){
   TOPT.teams=teams;
+  const vt=teams.filter(t=>t.src==='verified'&&t.team.length>=4);
   const freq={},pair={},sets={},tri={},kinds={};let W=0;
-  teams.filter(t=>t.team.length>=4).forEach(t=>{
-    const w=(t.old?.6:1)*(t.r&&t.r<=100?1.5:t.r&&t.r<=1000?1.2:1)*(t.v?1.1:1);W+=w;
+  vt.forEach(t=>{
+    const w=(t.old?.6:1)*(t.r&&t.r<=100?1.5:t.r&&t.r<=1000?1.2:1);W+=w;
     const ks=[...new Set(t.team.map(x=>topKey(x.no)).filter(Boolean))];
     ks.forEach(k=>{freq[k]=(freq[k]||0)+w});
     for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const a=Math.min(ks[i],ks[j]),b=Math.max(ks[i],ks[j]),k=a+'-'+b;pair[k]=(pair[k]||0)+w;
@@ -41,7 +46,7 @@ function topBuild(teams,fmt,at,season){
   });
   Object.keys(freq).forEach(k=>freq[k]/=W||1);
   const top=(o,min)=>Object.entries(o).filter(([,v])=>v>=min).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({nos:k.split('-').map(Number),w:v,pc:Math.round(v/(W||1)*100)}));
-  Object.assign(TOPT,{st:'ok',fmt,at,n:teams.filter(t=>t.team.length>=4).length,W,freq,pair,sets,kinds,season,SC:{},
+  Object.assign(TOPT,{st:'ok',fmt,at,n:vt.length,all:teams.filter(t=>t.team.length>=4).length,W,freq,pair,sets,kinds,season,SC:{},
     core2:top(pair,Math.max(2,W*.12)).slice(0,12),core3:top(tri,Math.max(2,W*.08)).slice(0,8)});
 }
 const topFreq=no=>topReady()?(TOPT.freq[topKey(no)]||0):0;
@@ -78,7 +83,8 @@ function metaOpps(n){
 }
 /* 構築と選出のタブ：上位構築によくある組み合わせ */
 function topCoresHTML(entries){
-  if(!topReady())return '';
+  if(!topReady())return TOPT.st==='ok'&&TOPT.fmt===(typeof FMT!=='undefined'?FMT:'single')&&TOPT.all?`<div class="sec"><h2>上位構築によくある組み合わせ</h2></div>
+  <p class="note" style="padding-top:0">確認済みの上位パーティが少ないため（確認済みデータ：${TOPT.n}件）、組み合わせの集計は出していません。自己申告・記事から集計・運営が登録のパーティは、ツール「上位パーティ」で出どころの札つきで見られます。</p>`:'';
   const ks=new Set(entries.map(x=>topKey(x.no)));
   const nm=no=>esc(formInfo(byNo[no]).base);
   const row=c=>{const has=c.nos.filter(k=>ks.has(k)).length,all=has===c.nos.length;
@@ -87,7 +93,7 @@ function topCoresHTML(entries){
   if(!cores.length)return '';
   const kinds=Object.entries(TOPT.kinds).sort((a,b)=>b[1]-a[1]),kt=kinds.reduce((a,b)=>a+b[1],0);
   return `<div class="sec"><h2>上位構築によくある組み合わせ</h2></div>
-  <p class="note" style="padding-top:0">${esc(TOPT.season||'最近のシーズン')}などの上位パーティ${TOPT.n}件で、いっしょに入っていることが多い組み合わせです（％＝入っていたパーティの割合）。いっしょに使われるのには、弱点を受け合う・場を作って活かすなどの理由があります。</p>
+  <p class="note" style="padding-top:0">${esc(TOPT.season||'最近のシーズン')}などの確認済みの上位パーティ（確認済みデータ：${TOPT.n}件。自己申告・記事から集計・運営が登録は入れていません）で、いっしょに入っていることが多い組み合わせです（％＝入っていたパーティの割合）。いっしょに使われるのには、弱点を受け合う・場を作って活かすなどの理由があります。</p>
   <div class="tc">${cores.map(row).join('')}</div>
   ${kt?`<p class="note">上位パーティの構築のタイプ：${kinds.slice(0,4).map(([k,v])=>`${esc(k)} ${Math.round(v/kt*100)}%`).join('・')}</p>`:''}`;
 }

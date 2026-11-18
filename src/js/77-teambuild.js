@@ -2,7 +2,7 @@
    1匹を選んだところから、①環境のパーティを見る ②こだわり条件で組む ③自分で組む の3つの道。3つは同じ下書き TB を見る。
    ・下書きはパーティとは別（localStorage pctb、端末だけ）。「パーティに入れる」で既存の useTeam（空いている枠へ・空きがなければ確かめてから）
    ・評価は入れかえ案と同じ 76-mvp.js（mvpEvalTeam・mvpCompare・mvpRoles）。新しい評価は作らない
-   ・データの種類を分けて書く：上位パーティ（運営者が確認／本人の申告／記事から集めた）・PokéKit（Showdown の集計）・当サイトが組んだ理論上の型
+   ・データの種類を分けて書く：上位パーティ（確認済み／自己申告／記事から集計／運営が登録）・PokéKit（Showdown の集計）・当サイトが組んだ理論上の型
    ・勝率・順位・使用率は作らない。ダブルは1対1の計算だけ（画面に書く） */
 const TB_KEY='pctb';
 const TB_SRC={pokekit:'集計の型（PokéKit・Showdown の集計）',theory:'当サイトが組んだ理論上の型',team:'上位パーティに登録された育成',teamnoset:'上位パーティのメンバー（育成の登録なし。計算は推定の型）',user:'あなたが登録した育成',none:'育成なし（計算は推定の型）'};
@@ -355,8 +355,9 @@ function tbCmpHTML(C,i,c,nmI){const z=tbPair0(C);if(!z)return '<p class="note">�
     </dl></div>`}
 /* ===================== ① 環境のパーティを見る ===================== */
 /* 上位パーティ（サーバーの seasons）：出典の種類を分ける。勝率・順位は作らない */
-const TB_CAT={chk:['確認済み','ランクバトルの最終順位の登録で、運営者が証拠を確認したもの'],self:['本人の申告','ランクバトルの最終順位の登録（運営者の確認はまだ）'],auto:['記事から集めた','公開された記事から、2つ以上の出典で一致した事実（6匹・順位など）だけを集めたもの']};
-const tbCatOf=t=>t.verified||t.by_admin?'chk':t.auto?'auto':'self';
+const TB_CAT={chk:['確認済み','ランクバトルの最終順位の登録で、運営者が証拠を確認したもの'],self:['自己申告','ランクバトルの最終順位の登録（運営者の確認はまだ）'],auto:['記事から集計','公開された記事から、2つ以上の出典で一致した事実（6匹・順位など）だけを集めたもの'],op:['運営が登録','運営者が登録したもの（証拠の確認の記録はありません）']};
+/* 2026/11/18：出どころはサーバーの source（4つ）。前の「運営者の登録＝確認済み」はやめた（確認の記録がないため） */
+const tbCatOf=t=>t.source==='verified'?'chk':t.source==='article'||(!t.source&&t.auto)?'auto':t.source==='operator'?'op':'self';
 /* 読めなかったシーズンは黙って飛ばさず failed に残す（A2）。total＝読めたシーズンのこの形式の登録の数（標本の大きさ） */
 async function tbFindLoad(fmt){
   const all=((await authFetch('/api/seasons')).seasons||[]),ss=all.filter(s=>s.n>0).slice(0,4),out=[],failed=[];let total=0;

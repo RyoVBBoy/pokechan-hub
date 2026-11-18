@@ -23,10 +23,10 @@ await pg.evaluate(()=>{
     if(u==='/api/seasons')return{seasons:[{id:2,name:'テストシーズン2',n:3},{id:1,name:'テストシーズン1',n:1}]};
     const fmt=(u.match(/fmt=(\w+)/)||[])[1];
     if(/seasons\/2\/teams/.test(u))return{teams:fmt==='single'?[
-      {id:11,rank:12,rate:2100,verified:true,team:[{no:G,set:{ab:{k:'roughskin'},it:{k:'focussash'},mv:[{id:89}],sp:[2,32,0,0,0,32],up:5,dn:3}},...T6.map(no=>({no}))]},
-      {id:12,rank:3,rate:null,auto:true,sources:['https://example.com/a','https://example.org/b'],team:[{no:G},...T6.map(no=>({no}))]},
-      {id:13,rank:null,rate:1900,team:[{no:G},{no:T6[0]},{no:T6[1]},{no:999999}]},
-      {id:14,rank:1,rate:2200,verified:true,team:T6.map(no=>({no}))}]:[{id:21,rank:5,rate:1800,verified:true,team:[{no:G},...T6.map(no=>({no}))]}]};
+      {id:11,rank:12,rate:2100,verified:true,source:'verified',team:[{no:G,set:{ab:{k:'roughskin'},it:{k:'focussash'},mv:[{id:89}],sp:[2,32,0,0,0,32],up:5,dn:3}},...T6.map(no=>({no}))]},
+      {id:12,rank:3,rate:null,auto:true,source:'article',sources:['https://example.com/a','https://example.org/b'],team:[{no:G},...T6.map(no=>({no}))]},
+      {id:13,rank:null,rate:1900,source:'self',team:[{no:G},{no:T6[0]},{no:T6[1]},{no:999999}]},
+      {id:14,rank:1,rate:2200,verified:true,source:'verified',team:T6.map(no=>({no}))}]:[{id:21,rank:5,rate:1800,verified:true,source:'verified',team:[{no:G},...T6.map(no=>({no}))]}]};
     return{teams:[]}};
   localStorage.removeItem('pctb');team.length=0;
 });
@@ -92,7 +92,7 @@ ok(CM,'いまの匹と比べる（入れかえたときの変化）');
 await pg.evaluate(()=>{document.querySelector('[data-tbtab="find"]').click()});await wait(1500);
 const D=await pg.evaluate(()=>{const box=document.getElementById('tb-teams'),t=box.textContent,cards=[...box.querySelectorAll('.tbd-c')];
   return{n:cards.length,fmt:__fetch.filter(u=>/teams/.test(u)).every(u=>/fmt=single/.test(u)),
-    cats:/確認済み/.test(t)&&/記事から集めた/.test(t)&&/本人の申告/.test(t),self:/レート1900（申告）/.test(t),
+    cats:/確認済み/.test(t)&&/記事から集計/.test(t)&&/自己申告/.test(t),self:/レート1900（申告）/.test(t),
     noFake:!/勝率\s*[0-9０-９]/.test(t)&&!/勝率が?高い/.test(t),order:cards.map(c=>c.querySelector('.tbd-tt').textContent).join('|'),
     nostart:!t.includes('最終1位'),bad:!box.innerHTML.includes('999999'),
     src:box.innerHTML.includes('example.org')&&/rel="noopener nofollow"/.test(box.innerHTML),
@@ -100,7 +100,7 @@ const D=await pg.evaluate(()=>{const box=document.getElementById('tb-teams'),t=b
 ok(D.n===3,'最初の1匹が入ったパーティだけ（入っていないパーティは出さない） '+D.n);
 ok(D.nostart,'最初の1匹が入っていないパーティの順位を出さない');
 ok(D.fmt,'いまの形式のパーティだけ読む');
-ok(D.cats&&D.self,'出典の種類（確認済み・記事から集めた・本人の申告）を分ける');
+ok(D.cats&&D.self,'出典の種類（確認済み・記事から集計・自己申告）を分ける');
 ok(D.noFake,'勝率を出さない');
 ok(D.bad,'図鑑に無い番号は出さない');
 ok(D.src,'記事の出典のリンク（nofollow）');
@@ -269,7 +269,7 @@ ok(/2026-10-01〜2026-10-31/.test(F0.t)&&/登録 1件のうち/.test(F0.t),'① 
 ok(F0.sets,'① 0件でも集計の型と仲間は出る');
 await pg.evaluate(()=>{authFetch=async u=>u==='/api/seasons'?{seasons:[]}:{teams:[]}});
 const F1=await findTxt();ok(F1.none&&/まだパーティが登録されたシーズンがありません/.test(F1.t),'① シーズンが無いときの表示');
-await pg.evaluate(()=>{authFetch=async u=>{if(u==='/api/seasons')return{seasons:[{id:6,name:'読めるS',n:1},{id:7,name:'読めないS',n:1}]};if(/seasons\/7/.test(u))throw new Error('x');return{teams:[{id:9,rank:4,verified:true,team:[{no:N('ガブリアス')},{no:N('カビゴン')}]}]}}});
+await pg.evaluate(()=>{authFetch=async u=>{if(u==='/api/seasons')return{seasons:[{id:6,name:'読めるS',n:1},{id:7,name:'読めないS',n:1}]};if(/seasons\/7/.test(u))throw new Error('x');return{teams:[{id:9,rank:4,verified:true,source:'verified',team:[{no:N('ガブリアス')},{no:N('カビゴン')}]}]}}});
 const F2=await findTxt();ok(F2.cards===1&&/一部のシーズン（読めないS）を読み込めませんでした/.test(F2.t),'① 一部のシーズンが読めないときは知らせる');
 await pg.evaluate(()=>{authFetch=window.__af;TB_FIND=null});
 /* ②：できれば守る条件・矛盾・決まった結果 */

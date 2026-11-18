@@ -1,0 +1,80 @@
+// 2026/11/18 の見た目の直しの確認：PC の左のメニュー・左上のアイコン・スマホのホームの左のはみ出し・コミュニティの余白・ホームの右の列・ホームの通知の位置
+import {chromium} from 'playwright';
+import path from 'node:path';
+const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
+const URL0='file://'+path.join(ROOT,'dist/index.html');
+const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
+let n=0,bad=0;const ok=(c,m)=>{n++;if(!c){bad++;console.error('NG',m)}};
+async function page(W,H,theme='dark'){
+  const ctx=await b.newContext({viewport:{width:W,height:H},locale:'ja-JP',hasTouch:W<700,isMobile:W<700});
+  await ctx.addInitScript(t=>{try{localStorage.setItem('pctheme',t)}catch(e){};window.__fakeLogin=1},theme);
+  const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message));
+  await pg.route(/^https?:/,r=>{const p=new URL(r.request().url()).pathname;
+    const J=o=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(o)});
+    if(p==='/api/tl')return J({notes:[],next:null});if(/^\/api\/u\//.test(p))return J({user:{handle:'minato',name:'ミナト',bio:'',created_at:Date.now(),notes:0,followers:0,following:0,me:true,results:[],games:{}}});
+    return r.abort()});
+  await pg.goto(URL0+'#/tools');await pg.waitForTimeout(700);
+  await pg.evaluate(()=>{AUTH.user={getIdToken:async()=>'t'};AUTH.profile={handle:'minato',name:'ミナト',bio:'',av:null};twAuth=async()=>AUTH.profile;refreshBrand()});
+  return pg}
+const go=async(pg,h)=>{await pg.evaluate(h=>{location.hash=h},h);await pg.waitForTimeout(900)};
+/* ---- B：PC の左のメニュー ---- */
+for(const [W,H] of [[1024,800],[1280,900],[1920,1080]]){
+  const pg=await page(W,H);await go(pg,'#/');
+  const r=await pg.evaluate(()=>{const prim=[...document.querySelectorAll('#nav a')].map(a=>a.getAttribute('href')),more=[...document.querySelectorAll('#pc-more a.pcm, #pc-more [data-pcm], #pc-more summary.pcm')].map(a=>a.getAttribute('href')||a.dataset.pcm||'help');
+    const rail=document.querySelector('.tabbar').getBoundingClientRect(),all=[...document.querySelectorAll('#pc-more .pcm')].filter(e=>!e.hidden).map(e=>e.getBoundingClientRect());
+    return{prim,more,dup:more.filter(h=>prim.includes(h)),inRail:all.every(q=>q.left>=rail.left-1&&q.right<=rail.right+1),labels:getComputedStyle(document.querySelector('#pc-more .pcm-l')).position,
+      titles:[...document.querySelectorAll('#pc-more .pcm')].every(e=>e.getAttribute('title')),vis:getComputedStyle(document.getElementById('pc-more')).display}});
+  ok(r.vis==='flex'&&r.more.includes('#/u/minato')&&r.more.includes('#/notif')&&r.more.includes('#/bookmarks')&&r.more.includes('#/community')&&r.more.includes('settings')&&r.more.includes('help')&&r.more.some(h=>/%23%E5%AF%BE%E6%88%A6/.test(h)),W+'：左のメニューに、左から出るメニューにあった項目 '+JSON.stringify(r.more));
+  ok(!r.dup.length&&r.prim.length>=5,W+'：同じ行き先を2回出さない '+JSON.stringify(r.dup));
+  ok(r.inRail&&r.titles,W+'：左の列の中に収まる・名前（title）がある');
+  ok(W>=1280?r.labels==='static':r.labels==='absolute',W+'：1280px以上は文字、それより狭いと記号だけ '+r.labels);
+  /* 左上のアイコン：PC は自分のプロフィールへ（メニューは開かない） */
+  await pg.click('#brand');await pg.waitForTimeout(700);
+  ok(await pg.evaluate(()=>location.hash)==='#/u/minato'&&!(typeof DR!=='undefined'&&DR.open),W+'：左上のアイコンで自分のプロフィールへ（メニューは開かない）');
+  ok(await pg.evaluate(()=>document.querySelector('#pc-more a[href="#/u/minato"]').getAttribute('aria-current'))==='page',W+'：いまの画面の項目に印');
+  /* 設定とヘルプ */
+  await pg.click('#pc-more [data-pcm="settings"]');await pg.waitForTimeout(500);
+  ok(await pg.evaluate(()=>{const m=document.querySelector('.setm');return !!m&&!m.hidden}),W+'：設定とプライバシーで設定の画面');
+  await pg.keyboard.press('Escape');await pg.waitForTimeout(400);
+  await pg.click('#pc-more summary.pcm');await pg.waitForTimeout(300);
+  ok(await pg.evaluate(()=>[...document.querySelectorAll('#pc-more .pcm-sub a')].map(a=>a.getAttribute('href')).join())==='#/help,#/rules,#/guide,#/sources,#/contact,#/contact',W+'：ヘルプセンターの行き先は前と同じ');
+  await pg.evaluate(()=>notifBadge(4));ok(await pg.evaluate(()=>document.getElementById('pc-nf').textContent==='4'&&!document.getElementById('pc-nf').hidden),W+'：お知らせの未読の数');
+  await pg.evaluate(()=>notifBadge(0));
+  {const sw=await pg.evaluate(()=>[document.documentElement.scrollWidth,innerWidth,document.querySelector('.tabbar').scrollWidth,document.querySelector('.tabbar').clientWidth,[...document.querySelectorAll('.tabbar *')].filter(e=>e.getBoundingClientRect().right>document.querySelector('.tabbar').getBoundingClientRect().right+1).map(e=>e.className+':'+Math.round(e.getBoundingClientRect().right))]);const ox=await pg.evaluate(()=>{const t=document.querySelector('.tabbar'),sub=document.querySelector('#pc-more .pcm-sub').getBoundingClientRect();return{ox:getComputedStyle(t).overflowX,sub:sub.width>0&&sub.left>=0&&sub.right<=innerWidth&&(innerWidth>=1280||sub.bottom<=innerHeight)}});
+  ok(sw[0]<=sw[1]&&(sw[2]<=sw[3]+1||ox.ox==='hidden')&&ox.sub,W+'：横にはみ出さない（左の列に横のスクロールが出ない・ヘルプの一覧は画面の中） '+JSON.stringify([sw,ox]))}
+  /* E：ホームの右の列（1280px以上） */
+  if(W>=1280){await go(pg,'#/');
+    const e=await pg.evaluate(()=>{const R=s=>document.querySelector(s).getBoundingClientRect();const hd=R('#hdr'),sr=R('#pcs-search');
+      const tx=[...document.querySelectorAll('.pcside .pcs-t > span:last-child')].map(x=>Math.round(x.getBoundingClientRect().left));
+      const box=[...document.querySelectorAll('.pcside .pcs-box')].map(x=>x.getBoundingClientRect());
+      return{sMid:Math.round((sr.top+sr.bottom)/2),hMid:Math.round((hd.top+hd.bottom)/2),tx:[...new Set(tx)],gap:Math.round(box[1].top-box[0].bottom),boxL:[...new Set(box.map(q=>Math.round(q.left)))]}});
+    ok(Math.abs(e.sMid-e.hMid)<=6,W+'：検索欄は上の見出しの行にそろう '+JSON.stringify([e.sMid,e.hMid]));
+    ok(e.tx.length===1&&e.boxL.length===1&&e.gap===12,W+'：「すぐ使う」と「コミュニティ」の文の左がそろう・箱の間は12px '+JSON.stringify(e))}
+  /* A：コミュニティの左のふちがそろう */
+  await go(pg,'#/community');
+  const c=await pg.evaluate(()=>{const col=document.querySelector('#view').getBoundingClientRect(),note=document.querySelector('.cmv>.note'),r=document.createRange();r.selectNodeContents(note);const t=r.getClientRects()[0];
+    const row=document.querySelector('.cmv .row').getBoundingClientRect();return{note:Math.round(t.left-col.left),card:Math.round(row.left-col.left),right:Math.round(col.right-row.right)}});
+  ok(Math.abs(c.note-c.card)<=1&&c.card===c.right&&c.card>=14&&c.card<=20,W+'：コミュニティの説明の文とカードの左がそろう・左右の余白が同じ '+JSON.stringify(c));
+  ok(!pg.errs.length,W+'：エラーなし '+pg.errs.join('|'));await pg.close();
+}
+/* ---- スマホ：左上のアイコンは今までどおりメニュー・ホームの左のふちにはみ出しがない ---- */
+for(const W of [390,430]){
+  const pg=await page(W,844);await go(pg,'#/');
+  const vis=async()=>pg.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return r.width&&r.height&&cs.visibility!=='hidden'&&cs.display!=='none'&&(r.right>0.5&&r.left<-0.5||r.left<innerWidth-0.5&&r.right>innerWidth+0.5)}).map(e=>e.tagName+'.'+e.className));
+  ok(!(await vis()).length,W+'：開いたことがない状態で左右にはみ出さない');
+  await pg.click('#brand');await pg.waitForTimeout(600);ok(await pg.evaluate(()=>DR.open&&location.hash==='#/'),W+'：スマホは左上のアイコンでメニュー（前と同じ）');
+  await pg.mouse.click(W-20,400);await pg.waitForTimeout(700);
+  ok(await pg.evaluate(()=>!DR.open&&getComputedStyle(document.querySelector('.dr-p')).visibility==='hidden'),W+'：閉じたメニューは見えない');
+  ok(!(await vis()).length,W+'：メニューを開いて閉じたあとも、左のふちにはみ出さない（影・線が出ない）');
+  ok(await pg.evaluate(()=>!document.querySelector('#pc-more .pcm')||getComputedStyle(document.getElementById('pc-more')).display==='none'),W+'：スマホでは左の列の項目を出さない');
+  /* ホームの通知：右のはし・ロゴと同じ行・左のアイコンの反対・重ならない */
+  const bl=await pg.evaluate(()=>{const R=s=>document.querySelector(s).getBoundingClientRect();const be=R('#hd-bell'),lo=R('.hd-logo'),br=R('#brand'),hd=R('#hdr-in');
+    const over=(a,b)=>!(a.right<=b.left||a.left>=b.right||a.bottom<=b.top||a.top>=b.bottom);
+    return{right:Math.round(hd.right-be.right),row:Math.abs((be.top+be.bottom)/2-(lo.top+lo.bottom)/2)<=2&&Math.abs((br.top+br.bottom)/2-(lo.top+lo.bottom)/2)<=3,left:br.left<lo.left&&lo.right<be.left,ov:over(be,lo)||over(be,br),w:Math.round(be.width),h:Math.round(be.height),title:document.querySelector('#hdr-in h1').textContent}});
+  ok(bl.right<=16&&bl.row&&bl.left&&!bl.ov&&bl.w>=44&&bl.h>=44&&bl.title==='',W+'：通知は右のはし・ロゴと同じ行・左のアイコンの反対・44px・「ホーム」の文字なし '+JSON.stringify(bl));
+  await pg.evaluate(()=>notifBadge(2));ok(await pg.evaluate(()=>document.getElementById('hd-bell-n').textContent==='2'&&getComputedStyle(document.querySelector('#brand'),'::after').display==='none'),W+'：未読は通知の数だけ（左上の点を重ねない）');
+  await pg.click('#hd-bell');await pg.waitForTimeout(600);ok(await pg.evaluate(()=>location.hash)==='#/notif',W+'：通知で #/notif');
+  ok(!pg.errs.length,W+'：エラーなし '+pg.errs.join('|'));await pg.close();
+}
+await b.close();
+console.log(bad?`navlayout: NG（${bad}件）`:`navlayout: OK（${n}項目）`);if(bad)process.exitCode=1;

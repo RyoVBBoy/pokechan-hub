@@ -21,7 +21,8 @@ const avIn=u=>u&&u.av&&/^[0-9a-f]{32}$/.test(u.av)?`<img src="${COMM_API}/m/${u.
 /* 写真のない人のアイコンの色（2026/11/05 新しい見た目）：名前ごとに決まった落ち着いた色。人は丸、ポケモンは六角形 */
 const AV_COLS=['#E39B5A','#6FA8D6','#9C8FE6','#4FB892','#E07F97','#C49A4E','#7F93B5','#D27FD0'];
 const avCol=h=>{let n=0;for(const c of String(h||''))n=(n*31+c.charCodeAt(0))>>>0;return AV_COLS[n%AV_COLS.length]};
-const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}" style="background:${avCol(u&&u.handle)}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${avIn(u)}</a>`;
+/* gk-cr：その人のゲームカードがあり、見ている人が見られる（サーバーの u.card）。ほかの印（オンライン・配信中・未読など）には使わない */
+const twAv=(u,s)=>`<a class="tw-av${s?' tw-av--'+s:''}${u&&u.card?' gk-cr':''}" style="background:${avCol(u&&u.handle)}" href="#/u/${esc(u.handle)}" aria-label="${esc(u.name)}のプロフィール">${avIn(u)}</a>`;
 /* プロフィールの写真：真ん中を正方形に切り取って 400px に縮める */
 async function avShrink(file){
   const url=URL.createObjectURL(file);
@@ -284,7 +285,7 @@ let tlTab='all',TLP=null;
 async function tlView(a,home){
   if(a==='following'||a==='all')tlTab=a;
   const myKey=keyOf(cur);
-  if(home)setHeader('',null,{logo:true});else setHeader('タイムライン','#/community');
+  if(home)setHeader('',null,{logo:true,bell:true});else setHeader('タイムライン','#/community');
   V.innerHTML='<p class="empty">読み込み中…</p>';
   const prof=await twAuth();if(keyOf(cur)!==myKey)return;TLP=prof;
   if(tlTab==='following'&&!prof)tlTab='all';
@@ -353,16 +354,27 @@ async function notifView(quiet){
   try{
     const j=await authFetch('/api/notifs');
     const NK={like:[I.heart,'あなたの投稿にいいねしました'],reply:[I.reply,'あなたの投稿に返信しました'],repost:[I.repost,'あなたの投稿をリポストしました'],follow:[I.user,'あなたをフォローしました'],freq:[I.lock,'フォローをリクエストしています'],facc:[I.user,'フォローのリクエストを許可しました']};
-    V.innerHTML=j.notifs.length?j.notifs.map(n=>n.kind==='freq'?`<div class="twn twn-req${n.id>j.seen?' new':''}" data-req="${esc(n.user.handle)}">
-      <span class="twn-i twn-i--follow">${SVG(I.lock,22)}</span>
-      <div class="tw-m"><a href="#/u/${esc(n.user.handle)}" data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></a>
+    /* 2026/11/18 §16 G1：相手のアイコン（種類の小さな印つき）と名前は、それぞれその人のプロフィールへ。
+       行のほかの所は今までどおりの行き先（投稿、フォローならプロフィール）＝行いっぱいの .twn-go。リクエストの許可・断るは別のボタンのまま */
+    const nkSig=n=>{const k=n.kind==='freq'?'follow':n.kind;return `<span class="twn-av">${twAv(n.user)}<span class="twn-k twn-i--${k}" aria-hidden="true">${SVG((NK[n.kind]||NK.follow)[0],12)}</span></span>`};
+    const nkWho=n=>`<a class="twn-who" href="#/u/${esc(n.user.handle)}" data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></a>`;
+    V.innerHTML=j.notifs.length?j.notifs.map(n=>n.kind==='freq'?`<div class="twn twn-req${n.id>j.seen?' new':''}" data-req="${esc(n.user.handle)}" data-kind="freq">
+      ${nkSig(n)}
+      <div class="tw-m"><div>${nkWho(n)}</div>
       <div>${NK.freq[1]}<span class="tw-t">　${ago(n.created_at)}</span></div>
       <div class="twn-act"><button class="btn btn-p" data-ans="1">許可する</button><button class="btn btn-s" data-ans="0">断る</button></div></div></div>`
-      :`<a class="twn${n.id>j.seen?' new':''}" href="${n.kind!=='follow'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}">
-      <span class="twn-i twn-i--${n.kind}">${SVG((NK[n.kind]||NK.follow)[0],22)}</span>
-      <div class="tw-m"><div data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></div>
+      :`<div class="twn twn-l${n.id>j.seen?' new':''}" data-kind="${esc(n.kind)}">
+      <a class="twn-go" href="${n.kind!=='follow'&&n.note_id?'#/n/'+n.note_id:'#/u/'+esc(n.user.handle)}" aria-label="${esc(n.user.name)}さんが${(NK[n.kind]||NK.follow)[1]}"></a>
+      ${nkSig(n)}
+      <div class="tw-m"><div>${nkWho(n)}</div>
       <div>${(NK[n.kind]||NK.follow)[1]}<span class="tw-t">　${ago(n.created_at)}</span></div>
-      ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></a>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいね・返信・リポスト・フォローされると、ここに届きます。</p>';
+      ${n.body?`<div class="twn-b" data-notr>${esc(n.body)}</div>`:''}</div></div>`).join(''):'<p class="empty" style="padding:40px 24px">まだお知らせはありません。<br>いいね・返信・リポスト・フォローされると、ここに届きます。</p>';
+    /* 行のほかの所を押すと前と同じ行き先へ。リンク・ボタンの上と、文字を選んだとき（ドラッグ・長押しで選んだ）は動かない。
+       キーボードは .twn-go（行のリンク）をそのまま使う */
+    V.querySelectorAll('.twn-l').forEach(r=>r.addEventListener('click',e=>{
+      if(e.defaultPrevented||e.button!==0||e.target.closest('a,button'))return;
+      const s=getSelection();if(s&&!s.isCollapsed&&r.contains(s.anchorNode))return;
+      const go=r.querySelector('.twn-go');if(go)nav(go.getAttribute('href'))}));
     V.querySelectorAll('[data-req] [data-ans]').forEach(b=>b.onclick=async()=>{const row=b.closest('[data-req]'),ok=b.dataset.ans==='1';row.querySelectorAll('button').forEach(x=>x.disabled=true);
       try{await authFetch('/api/follow/answer',{handle:row.dataset.req,ok});row.querySelector('.twn-act').innerHTML=`<span class="tw-t">${ok?'許可しました':'断りました'}</span>`}
       catch(e){toast(e.message);row.querySelectorAll('button').forEach(x=>x.disabled=false)}});
@@ -379,7 +391,10 @@ function notifBadge(n){
   /* 2026/11/11：タブが「メッセージ」になったので、お知らせの未読は左上の自分のアイコンの点と左のメニューに出す */
   document.body.dataset.nf=n?'1':'';
   const d=document.getElementById('dr-nf');if(d)d.textContent=n?(n>9?'9+':n):'';
+  const pn=document.getElementById('pc-nf');if(pn){pn.textContent=n?(n>9?'9+':n):'';pn.hidden=!n}
   const c=document.getElementById('cm-notif-n');if(c)c.textContent=n?`未読 ${n}件`:'';
+  /* ホームの右上の通知の数（数がないときは何も出さない） */
+  const hb=document.getElementById('hd-bell-n');if(hb){hb.textContent=n?(n>9?'9+':n):'';hb.hidden=!n;const a=document.getElementById('hd-bell');if(a)a.setAttribute('aria-label',n?`通知（未読${n}件）`:'通知')}
 }
 let notifAt=0;
 async function notifPoll(){

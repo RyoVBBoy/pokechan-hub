@@ -432,12 +432,13 @@ function kdCo(fmt,a,b){
   if(!x&&!y)return null;const z=!y||(x&&x.pc>=y.pc)?x:y;return{pc:z.pc,from:z===x?a:b,via:z.viaN,x,y};
 }
 const kdMetaTxt=fmt=>{const m=typeof mvpMeta==='function'&&mvpMeta(fmt);return m?`PokéKit・${fmt==='double'?'ダブル':'シングル'}・${m.month}・${m.battles.toLocaleString()}戦`:'PokéKit'};
-/* 上位パーティのうち、決めたポケモン（姿ちがいは同じ）が全部入っているもの。新しいシーズン→確認済み→順位→レートの順 */
+/* 上位パーティのうち、決めたポケモン（姿ちがいは同じ）が全部入っているもの。新しいシーズン→順位→レートの順。
+   2026/11/18 依頼主の決定：提案の土台にするのは確認済み（運営者が証拠を見て記録したもの）だけ。自己申告・記事から集計・運営が登録は使わない */
 function kdTemplates(must){
   if(typeof TOPT==='undefined'||TOPT.st!=='ok'||TOPT.fmt!==FMT||!Array.isArray(TOPT.teams))return[];
   const fam=(must||[]).map(kdFam);
-  return TOPT.teams.filter(t=>t.team&&t.team.length>=4&&fam.every(f=>t.team.some(x=>kdFam(x.no)===f)))
+  return TOPT.teams.filter(t=>t.src==='verified'&&t.team&&t.team.length>=4&&fam.every(f=>t.team.some(x=>kdFam(x.no)===f)))
     .slice().sort((a,b)=>((a.old||0)-(b.old||0))||((b.ver?1:0)-(a.ver?1:0))||((a.r||1e9)-(b.r||1e9))||((b.rate||0)-(a.rate||0)));
 }
-const kdTplConf=t=>t.ver?'運営者が確認した登録':t.auto?'記事から自動で集めた（2つ以上の出典で一致）':'本人の申告（未確認）';
+const kdTplConf=t=>t.src==='verified'?'確認済み（運営者が証拠を確認）':t.src==='article'?'記事から集計（2つ以上の出典で一致）':t.src==='operator'?'運営が登録（証拠の確認なし）':'自己申告（未確認）';
 const kdTplTxt=t=>`上位パーティ（${[t.s,t.r?t.r+'位':'',t.rate?'レート'+t.rate:''].filter(Boolean).join('・')}、${kdTplConf(t)}）`;

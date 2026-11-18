@@ -340,9 +340,13 @@ export default{
   async scheduled(ev,env,ctx){
     /* 毎日 3:23 は上位パーティの集め直しと使用率。お知らせは6時間ごと（どの cron でも） */
     if(!ev.cron||ev.cron==='23 18 * * *'){ctx.waitUntil(collectDaily(env).catch(()=>{}));ctx.waitUntil(usageDaily(env).catch(()=>{}))}
-    ctx.waitUntil(newsCron(env));
-    /* ランキングbot：毎朝の公開で作った tier.json を読み、1日1回（10:47 の回から）投稿する */
-    ctx.waitUntil(rankCron(env))},
+    /* お知らせbot（2026/11/18）：見つけるのは1時間に1回（:47）、投稿はちょうどの時刻（:00）の回だけ（news.js の newsFetch／newsPublish） */
+    const at=Number(ev.scheduledTime)||Date.now();
+    if(!ev.cron||ev.cron==='47 * * * *')ctx.waitUntil(newsFetchCron(env,at));
+    if(!ev.cron||ev.cron==='0 * * * *')ctx.waitUntil(newsPublishCron(env,at));
+    /* ランキングbot：前と同じ回（毎日 3:23 と、日本時間 10:47・16:47・22:47）だけ。1日1回投稿する */
+    const uh=new Date(at).getUTCHours();
+    if(!ev.cron||ev.cron==='23 18 * * *'||(ev.cron==='47 * * * *'&&[1,7,13].includes(uh)))ctx.waitUntil(rankCron(env))},
   /* すべての返事にセキュリティの見出しを付け、呼び出してよいサイトを限る（2026/11/05 セキュリティ対策） */
   async fetch(req,env,ctx){
     let res;

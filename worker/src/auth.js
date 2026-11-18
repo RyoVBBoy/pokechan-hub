@@ -39,6 +39,11 @@ function handleError(h){
   const l=h.toLowerCase();if(HANDLE_NG.some(x=>l===x||l.startsWith('official')||l.includes('pokemon')||l.includes('nintendo')))return 'このユーザーIDは使えません。';
   return null;
 }
+const CARD_GAMES=['pokechamp'];
+/* ゲームごとの公開範囲（IA A5・A19）。実際の範囲は、アカウントの設定とくらべて狭いほう */
+const GAME_VIS=['inherit','public','followers','only_me'];
+const gameVisOf=v=>GAME_VIS.includes(v)?v:'inherit';
+const gameEff=(vis,priv)=>vis==='only_me'?'only_me':(vis==='followers'||priv)?'followers':'public';
 const pubUser=u=>u&&{handle:u.handle,name:u.name,bio:u.bio||'',av:u.avatar||null,created_at:u.created_at,private:!!u.private};
 /* 本人にだけ返す項目（メッセージの設定） */
 const meUser=u=>u&&{...pubUser(u),dm_from:u.dm_from==='following'?'following':'all'};
@@ -77,8 +82,18 @@ async function userApi(req,env,db,path,body,now){
       if(!tt.length||tt.length>6||!tt.every(okNo))return J({error:'看板パーティが正しくありません。'},400);
       const n=clean(s.n||'',20);const ng=n&&ngCheck('x',n,'');if(ng)return J({error:ng},400);
       sc=JSON.stringify({n,t:tt})}
-    await db.prepare(`UPDATE users SET partner=?,showcase=?,updated_at=? WHERE uid=?`).bind(partner,sc,now,me.uid).run();
-    return J({ok:true});
+    /* ゲームごと（2026/11/18）：いま受け付けるのはポケモンチャンピオンズだけ（ゲームを増やすときにここへ足す） */
+    const game=body.game==null?'pokechamp':String(body.game);
+    if(!CARD_GAMES.includes(game))return J({error:'このゲームのカードはまだ作れません。'},400);
+    if(body.vis!=null&&!GAME_VIS.includes(body.vis))return J({error:'公開範囲が正しくありません。'},400);
+    const vis=body.vis!=null?body.vis:null;
+    /* card:true＝本人が「ゲームカードを作る／保存する」を押した。いちど作ったカードは、相棒などを直しても作ったまま（ここでは外さない） */
+    const card=body.card===true?1:0;
+    await db.prepare(`INSERT INTO game_profiles(uid,game,partner,showcase,vis,card,updated_at) VALUES(?,?,?,?,COALESCE(?,'inherit'),?,?) ON CONFLICT(uid,game) DO UPDATE SET partner=excluded.partner,showcase=excluded.showcase,vis=COALESCE(?,game_profiles.vis),card=MAX(COALESCE(game_profiles.card,0),excluded.card),updated_at=excluded.updated_at`)
+      .bind(me.uid,game,partner,sc,vis,card,now,vis).run();
+    /* 前の版のサイト・サーバーも読めるように、ポケモンチャンピオンズの分は users にも書く（移しかえが済んだら外す） */
+    if(game==='pokechamp')await db.prepare(`UPDATE users SET partner=?,showcase=?,updated_at=? WHERE uid=?`).bind(partner,sc,now,me.uid).run();
+    return J({ok:true,game,created:card===1||!!(await db.prepare(`SELECT card FROM game_profiles WHERE uid=? AND game=?`).bind(me.uid,game).first()||{}).card});
   }
   /* 戦術メモ（2026/11/06）：ポケモンごと・タイプごとの短い文。どの端末でも同じに（1つずつ、新しく書いたほうをサイトが残す） */
   if(path==='/api/me/memo'){

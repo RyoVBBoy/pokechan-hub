@@ -107,7 +107,8 @@ jobs:
 
           # 毎日 3:23（日本時間）：上位パーティの自動集計
           [triggers]
-          crons = ["23 18 * * *", "47 1,7,13 * * *"]
+          # お知らせbot：:47 に見つけ、:00（ちょうどの時刻）に投稿する（worker_src.js の scheduled）
+          crons = ["23 18 * * *", "47 * * * *", "0 * * * *"]
           TOML
           if [ "$R2_OK" = "1" ]; then
           cat >> wrangler.toml <<TOML

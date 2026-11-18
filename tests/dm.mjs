@@ -104,7 +104,7 @@ await shot(pg,'m-talk');
 /* 鍵垢 */
 await go(pg,'#/u/kagi');await pg.waitForTimeout(500);
 ok(await pg.$eval('#twp-f',e=>e.textContent)==='フォローをリクエスト','非公開アカウントにはフォローをリクエスト');
-ok(!!await pg.$('.pf-lock')&&!!await pg.$('.pf-locked'),'鍵の印と、投稿は見られない表示');
+ok(!!await pg.$('.gkc-lk')&&!!await pg.$('.gkc-lock'),'鍵の印と、投稿は見られない表示');
 await shot(pg,'m-kagi-profile');
 await pg.click('#pf-dm');await pg.waitForTimeout(1000);
 ok(await pg.evaluate(()=>location.hash)==='#/messages/kagi','鍵垢にも会話の画面は開く');

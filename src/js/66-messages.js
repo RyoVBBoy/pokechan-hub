@@ -142,17 +142,23 @@ async function dmNewView(){
   setTimeout(()=>q.focus(),60);
 }
 /* ---- 会話の画面 ---- */
+/* 2026/11/18 §16 G2：グループでは、ほかの人の続けて送ったメッセージのはじめにだけ、28px のアイコンと名前（どちらもその人のプロフィールへ）。
+   続きかどうかは描いたあとに dmRuns が隣どうしで決める（新しく届いた分・前を読み込んだ分の境目でも同じになるように） */
+const dmHead=m=>m.user?`<a class="tw-av dm-sav" href="#/u/${esc(m.user.handle)}" style="background:${avCol(m.user.handle)}" aria-label="${esc(m.user.name)}のプロフィール" data-notr>${avIn(m.user)}</a><a class="dm-who" href="#/u/${esc(m.user.handle)}" data-notr>${esc(m.user.name)}</a>`
+  :`<span class="tw-av dm-sav dm-sav--gone" aria-hidden="true">${SVG(I.user,14)}</span><span class="dm-who" data-notr>（退会したユーザー）</span>`;
 function dmBubbles(msgs,group,prevAt){
-  let out='',pd=prevAt?dmDay(prevAt):'',pu='';
+  let out='',pd=prevAt?dmDay(prevAt):'';
   for(const m of msgs){
-    const d=dmDay(m.created_at);if(d!==pd){out+=`<div class="dm-day"><span>${d}</span></div>`;pd=d;pu=''}
-    const who=m.user?m.user.handle:'';
-    out+=`<div class="dm-m${m.mine?' me':''}" data-id="${m.id}">${!m.mine&&group&&who!==pu?`<div class="dm-who" data-notr>${esc(m.user?m.user.name:'（退会したユーザー）')}</div>`:''}
+    const d=dmDay(m.created_at);if(d!==pd){out+=`<div class="dm-day"><span>${d}</span></div>`;pd=d}
+    const g=group&&!m.mine;
+    out+=`<div class="dm-m${m.mine?' me':''}${g?' dm-g':''}" data-id="${m.id}"${g?` data-u="${esc(m.user?m.user.handle:'')}"`:''}>${g?dmHead(m):''}
       <div class="dm-b" data-notr>${esc(m.body).replace(/\n/g,'<br>')}</div><div class="dm-tm">${dmTime(m.created_at)}</div></div>`;
-    pu=m.mine?'':who;
   }
   return out;
 }
+function dmRuns(log){if(!log)return;
+  log.querySelectorAll('.dm-m.dm-g').forEach(el=>{const p=el.previousElementSibling;
+    el.classList.toggle('cont',!!(p&&p.classList.contains('dm-g')&&p.dataset.u===el.dataset.u))})}
 async function dmTalkView(o){
   setHeader('メッセージ','#/messages');
   V.innerHTML='<p class="empty">読み込み中…</p>';
@@ -180,6 +186,7 @@ async function dmTalkView(o){
       <button class="dm-send" id="dm-send" aria-label="送信" disabled>${SVG('<path d="M4 12 20 4l-6.5 16-2.6-6.9z"/><path d="m10.9 13.1 4.6-4.6"/>',20)}</button></div>
       <div class="dm-warn" id="dm-warn" role="status"></div></div></div>`;
   const log=document.getElementById('dm-log'),ta=document.getElementById('dm-t'),sb=document.getElementById('dm-send'),warn=document.getElementById('dm-warn');
+  dmRuns(log);
   const toBottom=()=>scrTo(0,SCROLLER.scrollHeight);
   requestAnimationFrame(toBottom);
   const check=()=>{const v=ta.value.trim(),w=v?dmOutsideC(v):null;warn.textContent=w?w+'（このサイトの中でやりとりしてください）':[...ta.value].length>450?`あと${500-[...ta.value].length}文字`:'';
@@ -190,14 +197,14 @@ async function dmTalkView(o){
   const add=msgs=>{if(!msgs.length)return;const f=log.querySelector('.dm-first');if(f)f.remove();
     const near=SCROLLER.scrollHeight-scrY()-SCROLLER.clientHeight<160;
     log.insertAdjacentHTML('beforeend',dmBubbles(msgs.filter(m=>!log.querySelector(`[data-id="${m.id}"]`)),group,lastAt));
-    lastId=Math.max(lastId,...msgs.map(m=>m.id));lastAt=msgs[msgs.length-1].created_at;if(near)toBottom()};
+    dmRuns(log);lastId=Math.max(lastId,...msgs.map(m=>m.id));lastAt=msgs[msgs.length-1].created_at;if(near)toBottom()};
   sb.onclick=async()=>{const v=ta.value.trim();if(!v||sb.disabled)return;sb.disabled=true;
     try{const r=await authFetch('/api/dm/send',convId?{conv:convId,body:v}:{to:u.handle,body:v});convId=r.conv;ta.value='';check();add([r.msg]);toBottom();haptic()}
     catch(e){if(e.status===403&&e.message===DM_LOCKED_T){dmTalkView(o);return}warn.textContent=e.message;warn.classList.add('bad');sb.disabled=false}};
   const ol=document.getElementById('dm-older');
   if(ol)ol.onclick=async()=>{const first=log.querySelector('.dm-m');const b=first?+first.dataset.id:0;ol.disabled=true;
     try{const r=await authFetch((group?'/api/dm/'+conv:'/api/dm/with/'+u.handle)+'?before='+b);const h0=SCROLLER.scrollHeight,y0=scrY();
-      ol.insertAdjacentHTML('afterend',dmBubbles(r.msgs,group));if(!r.more)ol.remove();else ol.disabled=false;scrTo(0,y0+SCROLLER.scrollHeight-h0)}catch(e){toast(e.message);ol.disabled=false}};
+      ol.insertAdjacentHTML('afterend',dmBubbles(r.msgs,group));dmRuns(log);if(!r.more)ol.remove();else ol.disabled=false;scrTo(0,y0+SCROLLER.scrollHeight-h0)}catch(e){toast(e.message);ol.disabled=false}};
   const lv=document.getElementById('dm-leave');
   if(lv)lv.onclick=async()=>{if(!await askConfirm({title:'グループを抜けますか？',text:'抜けると、このグループのメッセージは見られなくなります。',ok:'抜ける'}))return;
     try{await authFetch('/api/dm/'+conv+'/leave',{});toast('グループを抜けました');nav('#/messages')}catch(e){toast(e.message)}};

@@ -261,15 +261,16 @@ r=await call(`/api/seasons/${S1}/teams`,{method:'POST',tok:A,body:{fmt:'single',
 r=await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{season_id:S1,fmt:'single',player:'有名な人',rank:1,rate:2100,team:TM6.slice(0,6)}});expect('運営者が登録できる',r[0]===200,r);
 r=await call(`/api/seasons/${S1}/teams?fmt=single`,{tok:A});
 expect('順位の小さい順に並ぶ',r[0]===200&&r[1].teams.map(t=>t.rank).join()==='1,5,12',r[1].teams&&r[1].teams.map(t=>t.rank));
-expect('運営者の登録は確認済み・自分のには mine',r[1].teams[0].verified&&r[1].teams[0].player.name==='有名な人'&&r[1].teams[2].mine&&!r[1].teams[1].mine,r[1].teams);
-expect('よく使われたポケモン',r[1].usage[0].n===3&&r[1].usage[0].pc===100&&r[1].total===3,r[1].usage);
+expect('運営者の登録は「運営が登録」（確認済みではない）・自分のには mine',!r[1].teams[0].verified&&r[1].teams[0].source==='operator'&&r[1].teams[0].player.name==='有名な人'&&r[1].teams[2].mine&&!r[1].teams[1].mine,r[1].teams);
+expect('よく使われたポケモンは確認済みだけで数える（まだ0件）',r[1].usage.length===0&&r[1].verified_total===0&&r[1].total===3&&r[1].by_source.operator===1&&r[1].by_source.self===2,r[1]);
 expect('証拠のスクショの中身・uid は出さない',!JSON.stringify(r[1]).includes(pk)&&!JSON.stringify(r[1]).includes('userA'),'');
 r=await getM(pk);expect('証拠のスクショはだれでも見られるわけではない',r[0]===404,r[0]);
 r=await getM(pk,ADM);expect('運営者は証拠のスクショを見られる',r[0]===200,r[0]);
 r=await call(`/api/seasons/${S1}/teams?fmt=double`);expect('形式ごとに分かれる',r[1].teams.length===0,r[1]);
 r=await call('/api/admin/season-teams',{admin:ADM});expect('運営者の一覧に証拠の鍵',r[1].teams.some(t=>t.id===T1&&t.proof_key===pk),r[1].teams.map(t=>[t.id,t.proof_key]));
 await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,verified:true}});
-r=await call(`/api/seasons/${S1}/teams`);expect('確認済みにできる',r[1].teams.find(t=>t.id===T1).verified,r[1].teams);
+r=await call(`/api/seasons/${S1}/teams`);expect('証拠のある登録は確認済みにできる',r[1].teams.find(t=>t.id===T1).verified&&r[1].teams.find(t=>t.id===T1).source==='verified',r[1].teams);
+expect('よく使われたポケモン：確認済み1件から',r[1].verified_total===1&&r[1].usage.length===6&&r[1].usage[0].pc===100,r[1].usage);
 await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,hidden:true}});
 r=await call(`/api/seasons/${S1}/teams`);expect('非表示にできる',!r[1].teams.some(t=>t.id===T1),r[1].teams);
 await call('/api/admin/season-teams',{method:'POST',admin:ADM,body:{id:T1,hidden:false}});
@@ -301,7 +302,7 @@ r=await call('/api/admin/collect/run',{method:'POST',admin:ADM,body:{season_id:S
 expect('集めて照らし合わせる：2つの出典で一致した1件だけ自動で載る',r[0]===200&&r[1].published===1&&r[1].pending===2,r[1]);
 expect('違う形式のページは数えない',r[1].log.find(x=>x.url==='https://c.example/3').n===0,r[1].log);
 r=await call(`/api/seasons/${S2}/teams?fmt=single`);const at=r[1].teams[0];
-expect('自動で載ったパーティ：順位・出典2つ・6匹',r[1].teams.length===1&&at.auto&&at.rank===1&&at.sources.length===2&&at.team.length===6&&!at.verified,at);
+expect('自動で載ったパーティ：順位・出典2つ・6匹・記事から集計',r[1].teams.length===1&&at.auto&&at.source==='article'&&at.rank===1&&at.sources.length===2&&at.team.length===6&&!at.verified,at);
 expect('自動で載ったパーティ：持ち物も事実から',at.team.find(x=>x.no===445).set.it.k==='choicescarf',at.team);
 r=await call(`/api/admin/collect?season_id=${S2}&fmt=single`,{admin:ADM});
 expect('出典が1つだけのものは確認待ち（地方の姿の名前も読める）',r[1].pending.length===2&&r[1].pending.some(g=>g.player==='Solo'&&g.team.some(x=>x.no===10100)),r[1].pending.map(g=>[g.player,g.team.map(x=>x.no)]));
@@ -340,6 +341,9 @@ for(const u of ['us1','us2','us3']){const t=await tok(u);await call('/api/me/tea
 r=await call('/api/usage?fmt=single',{});const g=r[1].seen.find(x=>x[0]===445);
 expect('使用率：3人が見た相手が集計に出る',r[0]===200&&r[1].previews>=3&&g&&g[2]>0,r[1]);
 const b=r[1].builds[445];expect('使用率：育成の集計（写した型は数えない）',b&&b.it[0][0]==='choicescarf'&&b.mv[0][0]===89&&!r[1].builds[6],r[1].builds);
+expect('使用率：3つの集計を分ける（v2・出どころの印）',r[1].v===2&&r[1].basis.builds==='saved_teams'&&r[1].basis.ranked_builds==='verified_ranks'&&r[1].basis.battle_builds==='battle_records',r[1].basis);
+expect('使用率：対戦の記録は保存したパーティの集計に混ぜない',b.n===3&&r[1].battle_builds[445]&&r[1].battle_builds[445].n===3,[b&&b.n,r[1].battle_builds]);
+expect('使用率：上位パーティは確認済みだけ（シーズン1の確認済みは消したので0件）',r[1].ranked_verified===0&&Object.keys(r[1].ranked_builds).length===0,r[1].ranked_builds);
 r=await call('/api/usage?fmt=double',{});expect('使用率：形式ごとに分かれる',r[1].previews===0,r[1]);}
 /* パーティの同期（/api/me/teams） */
 r=await call('/api/me/teams',{tok:A});expect('パーティ：最初は空',r[0]===200&&r[1].teams===null&&r[1].updated_at===0,r);

@@ -181,8 +181,8 @@ const T7=await pg.evaluate(()=>{const r={};const keepFmt=FMT;FMT='single';
   const sw=N('ラグラージ'),cv=N('アーマーガア'),mk=N('マスカーニャ'),gg=N('ゲンガー'),pr=N('アシレーヌ'),gb=N('ガブリアス');
   const regSet={ab:{k:'pressure'},it:{k:'focussash'},mv:['じごくづき','ふいうち','つるぎのまい','インファイト'].map(x=>({id:MID(x)})),sp:[2,32,0,0,0,32],up:5,dn:3};
   TOPT.st='ok';TOPT.fmt='single';
-  TOPT.teams=[{id:901,s:'テスト用シーズン',r:5,rate:2100,ver:true,auto:false,old:0,v:1,team:[ab,sw,cv,mk,gg,pr].map(no=>({no,set:no===ab?regSet:null}))},
-    {id:902,s:'テスト用シーズン',r:1,rate:2300,ver:true,auto:false,old:0,v:1,team:[gb,sw,cv,mk,gg,pr].map(no=>({no,set:null}))}];
+  TOPT.teams=[{id:901,s:'テスト用シーズン',r:5,rate:2100,ver:true,auto:false,old:0,v:1,src:'verified',team:[ab,sw,cv,mk,gg,pr].map(no=>({no,set:no===ab?regSet:null}))},
+    {id:902,s:'テスト用シーズン',r:1,rate:2300,ver:true,auto:false,old:0,v:1,src:'verified',team:[gb,sw,cv,mk,gg,pr].map(no=>({no,set:null}))}];
   KD_CASE();KD.ng=[gg];KD.seed=0;const T=kdBuild();
   r.tpl=T.basis.kind==='template'&&/テスト用シーズン・5位/.test(T.basis.txt)&&/ゲンガー（入れたくないポケモン）/.test(T.basis.note);
   r.tplMem=[sw,cv,mk,pr].every(no=>T.basis.kept.includes(no)===T.mons.some(m=>m.no===no)&&(T.basis.kept.includes(no)||T.basis.note.includes(formInfo(byNo[no]).base)))&&!T.mons.some(m=>m.no===gg);

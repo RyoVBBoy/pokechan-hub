@@ -62,7 +62,7 @@ function adminView(){
         document.getElementById('adm-nsadd').onclick=()=>act(()=>apost('/api/admin/news/src',{url:document.getElementById('adm-nsrc').value.trim()}),'追加しました');
         document.getElementById('adm-npost').onclick=()=>act(()=>apost('/api/admin/news/post',{cat:document.getElementById('adm-nc').value,title:document.getElementById('adm-nt').value,url:document.getElementById('adm-nu').value.trim()}),'投稿しました');
         document.getElementById('adm-nrun').onclick=async()=>{const m=document.getElementById('adm-nmsg');m.innerHTML='<p class="note">確認しています…（30秒ほど）</p>';
-          try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、${r.posted}件投稿しました。${r.found>r.posted?'それより古いものは記録だけしました（「公式のお知らせ」の画面には出ます）。':''}</p>${r.found?'':`<p class="vcap" style="padding:0 16px;word-break:break-all">調べた結果（開発者向け）：${esc(JSON.stringify(r.dbg||{}))}</p>`}`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
+          try{const r=await apost('/api/admin/news/run',{});m.innerHTML=`<p class="note">${r.found}件見つけ、新しい${r.queued||0}件を${r.publish_at?new Date(r.publish_at).toLocaleTimeString('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit'})+'に投稿します':'待ちに入れました'}（見つけた時刻ではなく、次のちょうどの時刻に投稿）。${r.posted?`時刻が来ていた${r.posted}件を投稿しました。`:''}${r.err?'読み取りに失敗しました：'+esc(r.err):''}</p>${r.found?'':`<p class="vcap" style="padding:0 16px;word-break:break-all">調べた結果（開発者向け）：${esc(JSON.stringify(r.dbg||{}))}</p>`}`;setTimeout(load,1500)}catch(e){m.innerHTML=`<p class="note">${esc(e.message)}</p>`}};
       }else if(admTab==='contact'){
         const st=sessionStorage.getItem('pcadmct')||'new',j=await aget('/api/admin/contacts?st='+st);
         const KN={data:'データの間違い',bug:'不具合',idea:'要望',other:'そのほか'};
@@ -81,7 +81,11 @@ function adminView(){
         await hitsDash(el,aget);
       }else if(admTab==='season'){
         /* シーズンの登録・上位パーティの登録と確認（ladder.js） */
-        const [sj,tj]=await Promise.all([fetch(COMM_API+'/api/seasons').then(r=>r.json()),aget('/api/admin/season-teams')]);
+        const [sj,tj,cj]=await Promise.all([fetch(COMM_API+'/api/seasons').then(r=>r.json()),aget('/api/admin/season-teams'),aget('/api/admin/season-teams/classify').catch(()=>null)]);
+        /* 2026/11/18：出どころ4つ＋もう一度確かめる（ladder.js の ladderSource）。確認済みにできるのは証拠のスクリーンショットがある登録だけ */
+        const SRC_N={verified:'確認済み',self:'自己申告',article:'記事から集計',operator:'運営が登録'};
+        const REV_N={reviewed:'確認の記録あり',stale:'確認のあとで中身が変わった（もう一度確かめる）',rereview:'前の版の確認済み・記録なし（もう一度確かめる）',awaiting:'証拠あり・未確認',none:''};
+        let rvName='';try{rvName=sessionStorage.getItem('pcadmrv')||''}catch(e){}
         const ss=sj.seasons||[],slots=TEAMS.list.map((x,i)=>({i,t:i===TEAMS.cur?team:x.team})).filter(x=>x.t.length);
         const day=v=>`<input type="date" value="${esc(v||'')}">`;
         el.innerHTML=`<div class="sec"><h2>シーズン</h2></div>
@@ -103,16 +107,23 @@ function adminView(){
             <label>ポケモンの名前（6匹を「、」や空白で区切って。育成なしで登録します）<input id="at-names" placeholder="例：ガブリアス、カイリュー、サーフゴー…"></label>
             ${slots.length?`<label>または、あなたが保存したパーティ（育成ごと登録）<select class="sel" id="at-t"><option value="">（名前で入力する）</option>${slots.map(x=>`<option value="${x.i}">${esc(teamName(x.i))}：${x.t.map(y=>byNo[y.no]?esc(byNo[y.no].n):'').join('・')}</option>`).join('')}</select></label>`:''}
             <label>ひとこと<input id="at-c" maxlength="140"></label></div><div class="btns" style="padding:8px 0 0"><button class="btn btn-p" id="at-add">登録する</button></div>
-            <p class="note" style="padding:6px 0 0">過去のシーズンは、ポケモンの名前だけで登録できます（シーズンのまとめの集計に使われます）。育成まで載せたいときは、先にパーティの画面で作って保存し、下で選んでください。運営者の登録は「確認済み」になります。</p></div>`
+            <p class="note" style="padding:6px 0 0">過去のシーズンは、ポケモンの名前だけで登録できます。育成まで載せたいときは、先にパーティの画面で作って保存し、下で選んでください。運営者の登録は「運営が登録」になり、確認済みにはなりません（証拠のスクリーンショットがないため。シーズンのまとめ・よく使われたポケモン・上位構築の集計にも入りません）。</p></div>`
             :'<p class="note">先にシーズンを登録してください。</p>'}
-          <div class="sec"><h2>登録されたパーティ</h2><span style="font-size:12px;color:var(--dim)">確認待ちが上</span></div>
-          ${(tj.teams||[]).length?tj.teams.map(t=>`<div class="bpost"><div class="bpost-h"><b>${esc(t.season)}</b>　${t.fmt==='double'?'ダブル':'シングル'}　${t.rank?t.rank+'位':''}　${t.rate?'レート'+t.rate:''}　${esc(t.player.name)}${t.player.handle?'（@'+esc(t.player.handle)+'）':''}
-            ${t.verified?'　<b>確認済み</b>':t.proof_key?'　<b style="color:var(--w2)">確認待ち</b>':''}${t.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}</div>
+          <div class="sec"><h2>登録されたパーティ</h2><span style="font-size:12px;color:var(--dim)">もう一度確かめる・確認待ちが上</span></div>
+          ${cj&&cj.dry_run?`<div class="bpost adm-cls"><b>出どころの分け方（読むだけ・何も書きかえていません）</b><div class="vcap">全${cj.total}件：${Object.entries(SRC_N).map(([k,v])=>`${v} ${cj.by_source[k]}件`).join('・')}／もう一度確かめる ${cj.pending}件（前の版の確認済み・記録なし ${cj.by_review.rereview}件、確認のあとで変わった ${cj.by_review.stale}件）・証拠あり未確認 ${cj.by_review.awaiting}件</div>
+            <div class="vcap">前の版で「確認済み」だった ${cj.legacy_verified.total}件の行き先：${Object.entries(SRC_N).map(([k,v])=>`${v} ${cj.legacy_verified.to[k]}件`).join('・')}</div></div>`:''}
+          <div class="bpost"><div class="cform" style="padding:0"><label>確認した人の名前（確認の記録に残ります・なくてもよい）<input id="at-rv" maxlength="30" value="${esc(rvName)}"></label></div></div>
+          ${(tj.teams||[]).length?tj.teams.map(t=>`<div class="bpost" data-src="${esc(t.source||'')}"><div class="bpost-h"><b>${esc(t.season)}</b>　${t.fmt==='double'?'ダブル':'シングル'}　${t.rank?t.rank+'位':''}　${t.rate?'レート'+t.rate:''}　${esc(t.player.name)}${t.player.handle?'（@'+esc(t.player.handle)+'）':''}
+            　<b class="adm-src adm-src-${esc(t.source||'self')}">${SRC_N[t.source]||'自己申告'}</b>${t.pending?'　<b style="color:var(--w2)">もう一度確かめる</b>':t.review==='awaiting'?'　<b style="color:var(--w2)">確認待ち</b>':''}${t.hidden?'　<b style="color:var(--w2)">非表示中</b>':''}
+            ${REV_N[t.review]?`<div class="vcap">${esc(REV_N[t.review])}${t.source==='verified'&&t.reviewed_at?`（${esc(new Date(t.reviewed_at).toLocaleString('ja-JP'))}・${esc(t.reviewed_by||'')}）`:''}</div>`:''}</div>
             <div class="bpost-b">${t.team.map(x=>byNo[x.no]?esc(byNo[x.no].n):'').join('・')}${t.comment?'<br>'+esc(t.comment):''}</div>
             ${t.proof_key?`<div class="adm-media" data-keys="${esc(t.proof_key)}"></div>`:''}
-            <div style="display:flex;gap:16px;padding-top:6px;flex-wrap:wrap"><button class="bback" data-tv="${t.id}:${t.verified?0:1}" style="padding:0">${t.verified?'確認済みを外す':'確認済みにする'}</button>
+            <div style="display:flex;gap:16px;padding-top:6px;flex-wrap:wrap">${t.source==='verified'?`<button class="bback" data-tv="${t.id}:0" style="padding:0">確認済みを外す</button>`
+              :t.source!=='article'&&t.proof_key?`<button class="bback" data-tv="${t.id}:1" data-tvp="${esc(t.proof_key)}" style="padding:0">証拠を確かめたので確認済みにする</button>`
+              :`<span class="vcap">${t.source==='article'?'記事から集計は確認済みにできません':'証拠のスクリーンショットがないので確認済みにできません'}</span>`}
+              <button class="bback" data-trh="${t.id}" style="padding:0">確認の履歴</button>
               <button class="bback" data-th="${t.id}:${t.hidden?0:1}" style="padding:0;color:var(--w2)">${t.hidden?'表示に戻す':'非表示にする'}</button>
-              <button class="bback" data-tx="${t.id}" style="padding:0;color:var(--w2)">消す</button></div></div>`).join(''):'<p class="empty">まだ登録はありません。</p>'}`;
+              <button class="bback" data-tx="${t.id}" style="padding:0;color:var(--w2)">消す</button></div><div class="adm-rh" id="adm-rh-${t.id}"></div></div>`).join(''):'<p class="empty">まだ登録はありません。</p>'}`;
         const sp=b=>{const r=b.closest('[data-sid]');return{id:+r.dataset.sid,name:r.querySelector('.as-n').value,start:r.querySelector('.as-s').value,end:r.querySelector('.as-e').value,note:r.querySelector('.as-t').value}};
         el.querySelectorAll('[data-ssave]').forEach(b=>b.onclick=()=>act(()=>apost('/api/admin/seasons',sp(b)),'保存しました'));
         el.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=async()=>{if(await askConfirm({title:'シーズンを削除しますか？',text:'このシーズンを消します。',ok:'削除'}))act(()=>apost('/api/admin/seasons',{id:sp(b).id,delete:true}),'消しました')});
@@ -123,7 +134,13 @@ function adminView(){
           else{const r=admNames(document.getElementById('at-names').value);if(r.bad.length){toast('見つからない名前：'+r.bad.join('、'));return}if(!r.nos.length){toast('ポケモンの名前を入れてください');return}tm=r.nos.map(no=>({no}))}
           act(()=>apost('/api/admin/season-teams',{season_id:+document.getElementById('at-s').value,fmt:document.getElementById('at-f').value,player:document.getElementById('at-p').value,
             rank:document.getElementById('at-r').value,rate:document.getElementById('at-rt').value,comment:document.getElementById('at-c').value,team:tm}),'登録しました')};
-        el.querySelectorAll('[data-tv]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.tv.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,verified:v==='1'}),v==='1'?'確認済みにしました':'確認済みを外しました')});
+        const rvi=document.getElementById('at-rv');if(rvi)rvi.oninput=()=>{try{sessionStorage.setItem('pcadmrv',rvi.value)}catch(e){}};
+        el.querySelectorAll('[data-tv]').forEach(b=>b.onclick=async()=>{const[i,v]=b.dataset.tv.split(':');
+          if(v==='1'&&!await askConfirm({title:'確認済みにしますか？',text:'表示されている証拠のスクリーンショットで、順位・レート・パーティが合っていることを確かめた記録を残します。',ok:'確認済みにする',danger:false}))return;
+          act(()=>apost('/api/admin/season-teams',{id:+i,review:v==='1'?'verify':'unverify',proof:b.dataset.tvp||undefined,reviewer:rvi?rvi.value:''}),v==='1'?'確認済みにしました':'確認済みを外しました')});
+        el.querySelectorAll('[data-trh]').forEach(b=>b.onclick=async()=>{const box=document.getElementById('adm-rh-'+b.dataset.trh);if(!box)return;if(box.innerHTML){box.innerHTML='';return}
+          try{const r=await aget(`/api/admin/season-teams/${+b.dataset.trh}/reviews`);const AN={verify:'確認済みにした',unverify:'確認済みを外した',reset:'中身が変わったので確認を外した'};
+            box.innerHTML=r.reviews.length?r.reviews.map(x=>`<div class="vcap">${esc(new Date(x.created_at).toLocaleString('ja-JP'))}　${esc(AN[x.action]||x.action)}　${esc(x.by||'')}${x.note?'　'+esc(x.note):''}</div>`).join(''):'<div class="vcap">確認の記録はありません。</div>'}catch(e){box.innerHTML=`<div class="vcap">${esc(e.message)}</div>`}});
         el.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{const[i,v]=b.dataset.th.split(':');act(()=>apost('/api/admin/season-teams',{id:+i,hidden:v==='1'}),v==='1'?'非表示にしました':'表示に戻しました')});
         el.querySelectorAll('[data-tx]').forEach(b=>b.onclick=async()=>{if(await askConfirm({title:'登録を削除しますか？',text:'スクリーンショットも消えます。',ok:'削除'}))act(()=>apost('/api/admin/season-teams',{id:+b.dataset.tx,delete:true}),'消しました')});
         if(typeof SEAS!=='undefined')SEAS.list=null;

@@ -26,16 +26,21 @@ const sh=await pg.evaluate(async()=>{const c=document.createElement('canvas');c.
   const b=await new Promise(r=>c.toBlob(r,'image/png'));const x=await twShrink(new File([b],'a.png',{type:'image/png'}));return[x.w,x.h,x.blob.type,x.blob.size]});
 if(!(sh[0]===1600&&sh[1]===533&&/webp|jpeg/.test(sh[2])&&sh[3]<9e5))fail('画像を縮められません: '+sh.join(','));
 // シーズンのまとめ：登録から傾向の文章を作る（型は特性・技で厳しめに判定）・名前で登録
-const sz=await pg.evaluate(()=>{const tm=n=>({team:n.map(no=>({no})),rank:1});const teams=[tm([279,902,904,134,706,445]),tm([445,1000,149,887,727,812]),tm([445,1000,149,94,130,248]),tm([445,1000,149,6,9,3])];
-  const h=szSummary({season:{name:'S',note:''},fmt:'single',teams,usage:[{no:445,n:4,pc:100}]});return[/ガブリアス/.test(h),/あめパーティ/.test(h),/おいかぜパーティ/.test(h),JSON.stringify(admNames('ガブリアス、カイリュー サーフゴー'))]});
-if(!(sz[0]&&sz[1]&&!sz[2]&&sz[3]==='{"nos":[445,149,1000],"bad":[]}'))fail('シーズンのまとめ: '+sz.join(','));
+// 2026/11/18：まとめは確認済み（source:'verified'）の登録だけで作る。自己申告・記事から集計・運営が登録だけならまとめは出さず、確認済みの件数を出す
+const sz=await pg.evaluate(()=>{const tm=(n,source='verified')=>({team:n.map(no=>({no})),rank:1,source});const L=[[279,902,904,134,706,445],[445,1000,149,887,727,812],[445,1000,149,94,130,248],[445,1000,149,6,9,3]];
+  const h=szSummary({season:{name:'S',note:''},fmt:'single',teams:L.map(n=>tm(n)),usage:[{no:445,n:4,pc:100}]});
+  const h2=szSummary({season:{name:'S',note:''},fmt:'single',teams:[...L.map(n=>tm(n,'self')),tm(L[0],'article'),tm(L[1],'operator'),tm(L[2])],usage:[]});
+  return[/ガブリアス/.test(h),/あめパーティ/.test(h),/おいかぜパーティ/.test(h),JSON.stringify(admNames('ガブリアス、カイリュー サーフゴー')),/確認済み4件/.test(h),!/あめパーティ/.test(h2)&&/確認済みデータ：1件/.test(h2)]});
+if(!(sz[0]&&sz[1]&&!sz[2]&&sz[3]==='{"nos":[445,149,1000],"bad":[]}'&&sz[4]&&sz[5]))fail('シーズンのまとめ: '+sz.join(','));
 // 上位パーティと比べる：両方の選出とダメージの表が出る
 const vs=await pg.evaluate(()=>{const keep=team;team=[{no:445},{no:6},{no:9},{no:130}];const h=szVs({team:[{no:149,set:{it:{k:'choicescarf'},mv:[{id:89}]}},{no:1000},{no:727}]});team=keep;
   return[/おすすめの選出/.test(h),/相手が選びそうな/.test(h),(h.match(/<tr>/g)||[]).length,/有利|不利|五分/.test(h)]});
 if(!(vs[0]&&vs[1]&&vs[2]>=8&&vs[3]))fail('上位パーティと比べる: '+vs.join(','));
 // 自動集計のパーティ：印と出典のリンク（nofollow・https だけ）
 const cd=await pg.evaluate(()=>szCard({id:1,fmt:'single',rank:1,rate:null,team:[{no:445},{no:149}],comment:'',verified:false,auto:true,sources:['https://a.example/x','javascript:alert(1)'],player:{name:'Taro'},mine:false}));
-if(!(/自動集計・出典2件/.test(cd)&&/href="https:\/\/a\.example\/x"[^>]*nofollow/.test(cd)&&!/javascript:/.test(cd)))fail('自動集計の印・出典: '+cd.slice(0,200));
+const cd2=await pg.evaluate(()=>['verified','self','operator',undefined].map(source=>szCard({id:2,fmt:'single',rank:1,rate:null,team:[{no:445}],comment:'',source,sources:[],player:{name:'X'},mine:false}).match(/sz-src-(\w+)[^>]*>([^<]+)</).slice(1).join(':')).join('|'));
+if(cd2!=='verified:確認済み|self:自己申告|operator:運営が登録|self:自己申告')fail('上位パーティの出どころの札: '+cd2);
+if(!(/記事から集計・出典2件/.test(cd)&&/href="https:\/\/a\.example\/x"[^>]*nofollow/.test(cd)&&!/javascript:/.test(cd)))fail('自動集計の印・出典: '+cd.slice(0,200));
 // 解説：特性でタイプ相性が変わる（ウォッシュロトムはふゆうでじめん無効→弱点はくさだけ）・強いところ／弱いところが出る
 const wr=await pg.evaluate(()=>{const p=P.find(x=>/ウォッシュ/.test(x.n));const h=monGuide(p);return[/弱点がくさだけ/.test(h),/HPが低め/.test(h),monDef(p).find(x=>x.t==='じめん').m,/強いところ/.test(monGuide(byNo[445]))]});
 if(!(wr[0]&&wr[1]&&wr[2]===0&&wr[3]))fail('解説（特性と相性・強いところ）: '+wr.join(','));
@@ -168,7 +173,11 @@ const du=await pg.evaluate(()=>{const g=byNo[445],gg=byNo[94],mm=byNo[778];const
   return[d1.mt<2,d2.mt>=2,d3.h.pct>0&&d3.mt<9,sc.boost==='swordsdance']});
 if(du.join()!=='true,true,true,true')fail('1対1の判定: '+du.join());
 // 上位構築のデータ（2026/11/06 57-topteams.js）：組み合わせ・相手の候補・相手の型に混ざる
-const tp=await pg.evaluate(()=>{const T=(r,nos)=>({r,old:0,v:1,team:nos.map(no=>({no,set:no===887?{mv:[{id:434}],it:{k:'choicescarf'}}:null}))});
+// 2026/11/18：数えるのは確認済み（src:'verified'）だけ。同じパーティが自己申告・記事から集計・運営が登録なら集計に入らない
+const tq=await pg.evaluate(()=>{const T=(r,nos,src)=>({r,old:0,src,v:0,team:nos.map(no=>({no}))});const L=[[445,823,1018,887,1000,149],[445,823,1018,887,130,727],[445,823,887,1000,149,130],[1018,823,445,1000,727,212]];
+  topBuild(L.map((n,i)=>T(i+1,n,['self','article','operator','self'][i])),FMT,Date.now(),'テスト');const r=[topReady(),TOPT.n,TOPT.all,topFreq(445),/確認済みデータ：0件/.test(topCoresHTML([{no:445}]))];TOPT.st='idle';TOPT.n=0;return r});
+if(tq.join()!=='false,0,4,0,true')fail('上位構築のデータ（確認済みだけ）: '+tq.join());
+const tp=await pg.evaluate(()=>{const T=(r,nos)=>({r,old:0,v:1,src:'verified',team:nos.map(no=>({no,set:no===887?{mv:[{id:434}],it:{k:'choicescarf'}}:null}))});
   topBuild([T(1,[445,823,1018,887,1000,149]),T(5,[445,823,1018,887,130,727]),T(9,[445,823,887,1000,149,130]),T(30,[1018,823,445,1000,727,212])],FMT,Date.now(),'テスト');
   const r=[topReady(),TOPT.core2[0]&&TOPT.core2[0].nos.includes(445),metaOpps(10).some(q=>q.no===823),detSet(byNo[887]).item==='choicescarf'&&detSet(byNo[887]).moves.length===4,/上位構築/.test(topCoresHTML([{no:445},{no:823}]))];
   TOPT.st='idle';TOPT.n=0;return r});

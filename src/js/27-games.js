@@ -130,7 +130,10 @@ function gamesView(){
   if(target!=='#/'){cur=target;setUrl(target)}
 })();
 
-document.addEventListener('click',e=>{if(e.target.closest('#brand'))drawerOpen()});
+/* 左上の自分のアイコン：スマホは今までどおり左から出るメニュー。PC（700px以上）は自分のプロフィールへ（メニューの項目は左の列にある、2026/11/18） */
+document.addEventListener('click',e=>{if(!e.target.closest('#brand'))return;
+  if(matchMedia('(min-width:700px)').matches){const pr=typeof AUTH!=='undefined'&&AUTH.profile;nav(pr?'#/u/'+pr.handle:'#/account');return}
+  drawerOpen()});
 drawNav();
 /* ---- ゲーム内の結果との照らし合わせ（この端末に保存） ---- */
 const DVER={unit:'n',open:false};

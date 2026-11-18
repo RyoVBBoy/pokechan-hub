@@ -10,11 +10,13 @@ function meMark(){
   return pr?`<span class="tw-av hd-av" data-notr>${avIn(pr)}</span>`
     :`<span class="tw-av hd-av hd-av--none">${SVG(I.user,18)}</span>`;
 }
-function refreshBrand(){const b=document.getElementById('brand');if(b)b.innerHTML=meMark()+(MULTI_GAME?'<i aria-hidden="true">▾</i>':'')}
+function refreshBrand(){const b=document.getElementById('brand');if(b)b.innerHTML=meMark()+(MULTI_GAME?'<i aria-hidden="true">▾</i>':'');if(typeof pcNavDraw==='function')pcNavDraw()}
 function setHeader(title,back,o={}){
   HI.innerHTML=(back?`<a class="ibtn" href="${back}" data-back aria-label="戻る">${SVG(I.back,22)}</a>`
-    :`<button class="mark mbtn" id="brand" aria-label="メニューを開く">${meMark()}${MULTI_GAME?'<i aria-hidden="true">▾</i>':''}</button>`)+`<h1>${title}</h1>`
-    +(o.logo?`<a class="hd-logo" href="#/" aria-label="${esc(L('ホーム','Home'))}"><img src="logo.png" alt="" width="34" height="34"></a>`:'');
+    :`<button class="mark mbtn" id="brand" aria-label="${matchMedia('(min-width:700px)').matches?'自分のプロフィールを開く':'メニューを開く'}">${meMark()}${MULTI_GAME?'<i aria-hidden="true">▾</i>':''}</button>`)+`<h1>${title}</h1>`
+    +(o.logo?`<a class="hd-logo" href="#/" aria-label="${esc(L('ホーム','Home'))}"><img src="logo.png" alt="" width="34" height="34"></a>`:'')
+    /* ホームの右上の通知（2026/11/18）：今までのお知らせの画面（#/notif）へ。未読の数は今までの notifPoll／notifBadge の数（notifN）だけを出す */
+    +(o.bell?`<a class="hd-bell" id="hd-bell" href="#/notif" aria-label="${esc(L('通知','Notifications'))}">${SVG(I.bell,24)}<span class="hd-bell-n" id="hd-bell-n"${typeof notifN!=='undefined'&&notifN?'':' hidden'}>${typeof notifN!=='undefined'&&notifN?(notifN>9?'9+':notifN):''}</span></a>`:'');
   /* 前にログインしていた端末では、プロフィールを読んでからアイコンに入れかえる */
   if(!back&&typeof AUTH!=='undefined'&&AUTH.profile===undefined&&typeof twAuth==='function'){let pin=null;try{pin=localStorage.getItem('pcin')}catch(e){}if(pin)twAuth().then(refreshBrand)}
 }

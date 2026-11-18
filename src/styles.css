@@ -1431,7 +1431,15 @@ body::before{inset:0;background:
 .pf-chip-s{width:24px;height:24px;display:block}.pf-chip-s svg{width:100%;height:100%}
 .pf-chip--add{padding:0 12px;color:var(--acc);background:var(--acc-t);box-shadow:none}
 .pf-card{margin:14px 12px 0;border:1px solid var(--card-b);border-radius:20px;background:var(--card);box-shadow:var(--card-s)}
-.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);padding:12px 4px}
+.pf-stats{display:grid;grid-template-columns:repeat(3,1fr);padding:12px 4px}
+.pf-res-h{font-size:12px;font-weight:800;color:var(--dim);margin-top:10px}.pf-res-hs{color:var(--mute)}
+.pf .pf-res .sz-badges{margin-top:6px}.sz-badge.pf-self{font-weight:600;color:var(--mute)}
+.pf-more summary{font-size:12px;color:var(--acc);cursor:pointer;margin-top:6px;min-height:28px}
+.pf-res-n{font-size:11px;color:var(--mute);margin:8px 0 0;line-height:1.5}
+.pf-vis{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--dim)}
+.pf-ed-cap{color:var(--w2)}
+.pf-ed .pf-ed-vis{flex-wrap:wrap;overflow:visible;padding:0;justify-content:flex-start;gap:8px}
+.pf-ed .pf-ed-vis .pill{min-height:40px}
 .pf-stats>div,.pf-stats>a,.pf-stats>.pf-st-b{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
 .pf-stats>*+*{border-left:1px solid var(--line-in)}
 .pf-stats b{font-size:20px;font-weight:800;line-height:1.2}
@@ -3139,3 +3147,321 @@ section.dp-sec>.dp-link{border-top:1px solid var(--line);margin-top:10px}
 .kdv-basis.theory{background:rgba(127,127,127,.12)}
 .kdv-basis b{display:block}.kdv-basis small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
 .kd-on small.kd-bk{color:var(--acc);font-weight:700}.kd-on small.kd-bk.theory{color:var(--mute)}
+/* ===== プレイヤーカードの見た目の整理（2026/11/18 依頼主のスマホの画面から）=====
+   帯を低く・アイコンの重なりを整える・ゲームのまとまり（記号・ゲーム名・相棒・編集）を1つに・数は軽く・実績は1件1行。
+   色は --pf-2（読みやすい二番目の文字）と --pf-3（三番目）をこの画面だけで使う。1pxの線は使わない */
+.pf{--pf-2:#a3a9b1;--pf-3:#8a9099;--pf-surf:rgba(255,255,255,.045);--pf-surf2:rgba(255,255,255,.07);--pf-vt:color-mix(in srgb,var(--acc) 82%,#fff)}
+:root[data-theme=light] .pf{--pf-2:#4c5266;--pf-3:#5d6378;--pf-surf:rgba(30,32,60,.04);--pf-surf2:rgba(30,32,60,.065);--pf-vt:var(--acc)}
+.pf-cover{height:116px}
+.pf-cover::after{height:85%}
+.pf-big{width:170px;height:170px;top:-22px;right:-10px;opacity:.85}
+.pf-head{margin-top:-46px;padding:0 16px}
+.pf-row{align-items:flex-end}
+.pf-av{width:84px;height:84px;padding:2px;box-shadow:0 6px 18px rgba(0,0,0,.32)}
+.pf-av .ac-av{font-size:32px;border-width:3px}
+.pf-btns{padding-bottom:4px}
+.pf-n{margin:10px 0 0;font-size:22px;line-height:1.25}
+.pf-lock{color:var(--pf-2)}.pf-lock svg{width:15px;height:15px}
+.pf-h{font-size:14px;color:var(--pf-2);margin-top:1px}
+.pf-fm{background:var(--pf-surf2);color:var(--pf-2)}
+.pf-bio{margin-top:10px;font-size:14.5px;line-height:1.65}
+/* ゲームのまとまりと、利用開始・公開範囲の1行 */
+.pf-meta{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin-top:12px;color:var(--pf-2);font-size:13px}
+.pf-g{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 10px 8px 8px;border:0;border-radius:14px;
+  background:var(--pf-surf);color:var(--fg);text-align:left;text-decoration:none;cursor:pointer;font:inherit;transition:background .15s}
+.pf-g:active{background:var(--pf-surf2)}
+@media(hover:hover){.pf-g:hover{background:var(--pf-surf2)}}
+.pf-g:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.pf-g-s{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;
+  background:color-mix(in srgb,var(--t1,var(--acc)) 20%,transparent)}
+.pf-g-s svg{width:30px;height:30px;display:block}
+.pf-g-s--none{color:var(--pf-3);background:var(--pf-surf2)}.pf-g-s--none svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6}
+.pf-g-m{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.3}
+.pf-g-m small{font-size:11.5px;color:var(--pf-2);font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-g-m b{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-g--me:not(:has(.pf-g-s:not(.pf-g-s--none))) .pf-g-m b{color:var(--acc)}
+.pf-g-ed{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:var(--pf-2);background:var(--pf-surf2)}
+.pf-sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;padding:0 2px}
+.pf-since,.pf-vis{display:inline-flex;align-items:center;gap:5px;color:var(--pf-2);font-size:12.5px}
+.pf-since svg,.pf-vis svg{opacity:.85}
+/* 数：カードの枠をやめて、1行に軽く並べる（数字は太く、ことばは二番目の色） */
+.pf-stats{display:flex;flex-wrap:wrap;gap:4px 18px;margin:12px 16px 0;padding:0;border:0;background:none;box-shadow:none}
+.pf-stats>*+*{border-left:0}
+.pf-stats>div,.pf-stats>.pf-st-b{flex-direction:row;align-items:baseline;gap:4px;padding:6px 0;min-height:32px}
+.pf-stats b{font-size:15px;line-height:1.2}
+.pf-stats span{font-size:13px;color:var(--pf-2)}
+.pf-fq{margin:12px 12px 0;border:0;background:var(--pf-surf)}
+/* 実績：1件1行。確認済みは面の上、自己申告は面なしで控えめに（でも読める色） */
+.pf-res{padding:4px 12px 0;margin-top:14px}
+.pf-res-h{margin:12px 4px 6px;font-size:12.5px;font-weight:800;color:var(--fg);letter-spacing:.02em}
+.pf-res-hs{color:var(--pf-2)}
+.pf-rl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.pf-r{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:48px;padding:6px 12px 6px 10px;border-radius:12px}
+.pf-r--v{background:var(--pf-surf)}
+.pf-r--s{padding-top:4px;padding-bottom:4px;min-height:40px}
+.pf-r-p{font-size:20px;font-weight:800;line-height:1;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.pf-r-p small{font-size:11px;font-weight:700;margin-left:2px;color:var(--pf-2)}
+.pf-r--s .pf-r-p{font-size:16px;color:var(--pf-2)}
+.pf-r-m{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.pf-r-m b{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-r-m small{font-size:12px;color:var(--pf-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-r--s .pf-r-m b{font-weight:600;color:var(--pf-2)}
+.pf-r-st{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;white-space:nowrap}
+.pf-r--v .pf-r-st{color:var(--pf-vt)}
+.pf-r--v .pf-r-st svg{fill:none;stroke:currentColor;stroke-width:2.4}
+.pf-r--s .pf-r-st{color:var(--pf-2);font-weight:600;padding:2px 8px;border-radius:6px;background:var(--pf-surf2)}
+.pf .pf-more summary{display:flex;align-items:center;min-height:40px;padding:0 4px;margin:0;font-size:13px;font-weight:700;color:var(--acc)}
+.pf .pf-more[open] summary{margin-bottom:6px}
+.pf-res-n{margin:8px 4px 0;font-size:11.5px;color:var(--pf-3)}
+.pf-sc{margin-top:14px}
+.pf-tabs{margin-top:16px}
+/* 下のメニューと重ならない余白（スマホ）。⚡はこの画面では右の端のつまみ（46-ptr.js の FAB_DOCK） */
+@media(max-width:699px){#twp-list{padding-bottom:calc(96px + env(safe-area-inset-bottom))}}
+@media(min-width:700px){.pf-cover{height:132px}}
+/* ===== §16 G1：お知らせの相手のアイコン（種類の印つき）と名前は、それぞれプロフィールへ（2026/11/18）。
+   行のほかの所は .twn-go（行いっぱいのリンク）で今までの行き先へ ===== */
+.twn{position:relative}
+.twn-go{position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none} /* キーボード・読み上げ用。指・マウスは行の click（32-timeline.js）で受け、文字を選べるようにする */
+.twn-l{cursor:pointer}
+.twn-go:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.twn-av,.twn .tw-m a,.twn .twn-act{position:relative;z-index:1}
+.twn .tw-m{position:relative;z-index:0;min-width:0}
+.twn-av{flex:none;width:40px;height:40px;position:relative}
+.twn-k{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--elev,var(--bg));box-shadow:0 0 0 2px var(--bg)}
+.twn-k svg{width:12px;height:12px}
+.twn-who{color:inherit;text-decoration:none}
+@media(hover:hover){.twn-who:hover b{text-decoration:underline}}
+/* ===== §16 G2：グループのメッセージ。続けて送ったはじめにだけ 28px のアイコンと名前（吹き出しの大きさは前と同じ） ===== */
+.dm-m.dm-g{position:relative;padding-left:36px;max-width:calc(80% + 36px)}
+.dm-sav{position:absolute;left:0;top:6px;width:28px;height:28px;font-size:12px}
+.dm-sav--gone{background:var(--soft);color:var(--dim)}
+.dm-g .dm-who{color:var(--dim);text-decoration:none;min-height:20px;display:inline-flex;align-items:center}
+@media(hover:hover){.dm-g a.dm-who:hover{text-decoration:underline}}
+.dm-m.dm-g.cont .dm-sav,.dm-m.dm-g.cont .dm-who{display:none}
+/* ===== プレイヤーカード V3.4（2026/11/18、docs/social-redesign/v3.4 の見本を本番へ。53-profile.js の gkcHTML） =====
+   V3.3 の決まり：持ち上げた面（上がわずかに明るい・長いやわらかい影・上のふちの細い光）、記号の中立の板と内側の輪、1pxの区切り線を使わない。
+   色はこの画面の変数 --gkc-*（暗い色が基本。明るい色は下で最低限そろえる＝P2） */
+.gkc-page{--gkc-top:#262A35;--gkc-bot:#1E2129;--gkc-cv1:#201D33;--gkc-cv2:#191A26;--gkc-well:rgba(255,255,255,.045);--gkc-well2:rgba(255,255,255,.075);
+  --gkc-t1:#ECEEF3;--gkc-t2:#B3B8C6;--gkc-t3:#9096A8;--gkc-ln:#B1A6FF;--gkc-rgb:124,108,240;--gkc-q:#9096A8;--gkc-plate:rgba(255,255,255,.07);--gkc-ring:rgba(255,255,255,.08);
+  --gkc-hl:inset 0 1px 0 rgba(255,255,255,.06);--gkc-lift:0 22px 48px -20px rgba(0,0,0,.7),0 2px 6px rgba(0,0,0,.25)}
+:root[data-theme=light] .gkc-page{--gkc-top:#FFFFFF;--gkc-bot:#F7F8FB;--gkc-cv1:#E7E3FA;--gkc-cv2:#EFEEF6;--gkc-well:rgba(20,24,40,.035);--gkc-well2:rgba(20,24,40,.06);
+  --gkc-t1:#151824;--gkc-t2:#454C5F;--gkc-t3:#5E6477;--gkc-ln:#5F52E0;--gkc-rgb:95,82,224;--gkc-q:#7A8093;--gkc-plate:rgba(255,255,255,.7);--gkc-ring:rgba(20,24,40,.07);
+  --gkc-hl:inset 0 1px 0 rgba(255,255,255,.8);--gkc-lift:0 16px 36px -14px rgba(22,26,44,.22)}
+.gkc{position:relative;margin:8px 12px 0;border-radius:26px;padding:6px 6px 16px;color:var(--gkc-t1);background:linear-gradient(180deg,var(--gkc-top),var(--gkc-bot) 62%);box-shadow:var(--gkc-hl),var(--gkc-lift)}
+.gkc-cv{position:relative;height:104px;border-radius:20px;overflow:hidden;background:linear-gradient(115deg,var(--gkc-cv1),var(--gkc-cv2));box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+.gkc-cv svg{position:absolute;inset:0;width:100%;height:100%}
+.gkc-idr{position:relative;display:flex;align-items:flex-end;gap:10px;padding:0 10px;margin-top:-38px}
+.gkc-av{flex:none;width:80px;height:80px;border-radius:50%;display:grid;place-items:center;overflow:hidden;font-size:31px;font-weight:800;color:#fff;position:relative;box-shadow:0 0 0 5px var(--gkc-top),0 10px 24px -8px rgba(0,0,0,.6)}
+.gkc-av img{width:100%;height:100%;object-fit:cover;display:block}
+.gkc-acts{margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:2px}
+.gkc-ic{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;border:0;cursor:pointer;color:var(--gkc-t1);background:var(--gkc-well2);box-shadow:var(--gkc-hl);text-decoration:none}
+.gkc-btn{height:40px;padding:0 18px;border:0;border-radius:20px;font:inherit;font-size:14px;font-weight:750;cursor:pointer;white-space:nowrap}
+.gkc-btn--p{background:var(--accf);color:var(--onacc);box-shadow:0 6px 16px -8px rgba(var(--gkc-rgb),.9)}
+.gkc-btn--s{background:var(--gkc-well2);color:var(--gkc-t1);box-shadow:var(--gkc-hl)}
+.gkc-btn:disabled{opacity:.6}
+.gkc-who{padding:12px 14px 0}
+.gkc-nm{display:flex;align-items:center;gap:8px;margin:0;font-size:23px;font-weight:800;letter-spacing:-.015em;line-height:1.2}
+.gkc-lk{display:inline-flex;color:var(--gkc-t3)}
+.gkc-hd{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:3px;font-size:14px;color:var(--gkc-t2)}
+.gkc-fm{font-size:11.5px;font-weight:700;color:var(--gkc-t2);background:var(--gkc-well2);padding:3px 8px;border-radius:7px}
+.gkc-since{display:inline-flex;align-items:center;gap:5px;font-size:13px}
+.gkc-bio{margin:10px 0 0;font-size:14.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.gkc-meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 18px;margin-top:10px}
+.gkc-st{display:inline-flex;align-items:baseline;gap:5px;min-height:32px;padding:0;border:0;background:none;color:var(--gkc-t2);font:inherit;font-size:13px;border-radius:8px}
+.gkc-st b{font-size:16px;font-weight:800;color:var(--gkc-t1)}
+button.gkc-st{cursor:pointer}@media(hover:hover){button.gkc-st:hover span{text-decoration:underline}}
+.gkc-lock{display:flex;align-items:center;gap:12px;margin:16px 6px 0;padding:14px;border-radius:18px;background:var(--gkc-well);font-size:13.5px;color:var(--gkc-t2);line-height:1.55}
+.gkc-lock b{display:block;color:var(--gkc-t1);font-size:14.5px}
+/* ゲームの名札 */
+.gkc-gm{margin:16px 6px 0;border-radius:20px;background:var(--gkc-well);padding:6px}
+.gkc-gp{display:flex;align-items:center;gap:12px;width:100%;padding:8px;border:0;border-radius:15px;background:none;color:inherit;font:inherit;text-align:left;text-decoration:none}
+button.gkc-gp,a.gkc-gp{cursor:pointer}@media(hover:hover){button.gkc-gp:hover,a.gkc-gp:hover{background:var(--gkc-well)}}
+.gkc-sig{display:grid;place-items:center;flex:none;background:linear-gradient(color-mix(in srgb,var(--t1,var(--accf)) 14%,transparent),color-mix(in srgb,var(--t1,var(--accf)) 14%,transparent)),var(--gkc-plate);box-shadow:inset 0 0 0 1px var(--gkc-ring);border-radius:12px}
+.gkc-sig svg{width:78%;height:78%;display:block}
+.gkc-sig--l{width:44px;height:44px;border-radius:13px;--t1:var(--accf)}.gkc-sig--m{width:36px;height:36px;border-radius:11px}.gkc-sig--xs{width:20px;height:20px;border-radius:6px}
+.gkc-sig--plus{color:var(--gkc-ln)}.gkc-sig--plus svg{width:22px;height:22px}
+.gkc-gp-t{flex:1;min-width:0;line-height:1.3}
+.gkc-gp-t>b{display:block;font-size:16px;font-weight:800}
+.gkc-gp-t>span{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13px;color:var(--gkc-t2)}
+.gkc-gp-t em{font-style:normal;color:var(--gkc-t3)}
+.gkc-gp-x{flex:none;color:var(--gkc-t3)}
+.gkc-vis{display:inline-flex;align-items:center;gap:4px;margin-left:8px;vertical-align:2px;font-size:11px;font-weight:700;color:var(--gkc-t2);background:var(--gkc-well2);padding:2px 7px;border-radius:7px}
+.gkc-gf{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:2px}
+.gkc-gf div{border-radius:13px;background:var(--gkc-well);padding:9px 12px}
+.gkc-gf small{display:block;font-size:11.5px;font-weight:700;color:var(--gkc-t3)}
+.gkc-gf b{display:block;font-size:15px;font-weight:800;margin-top:1px}
+/* シーズンの戦績 */
+.gkc-rec{padding:14px 10px 4px}
+.gkc-rh{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
+.gkc-rh h3,.gkc-sc-h h3{margin:0;font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--gkc-t2)}
+.gkc-what{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:0 4px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:700;color:var(--gkc-ln);cursor:pointer}
+.gkc-best{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin-top:8px;padding:14px 16px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(var(--gkc-rgb),.16),rgba(var(--gkc-rgb),.05) 60%),var(--gkc-well);box-shadow:var(--gkc-hl)}
+.gkc-best-n{display:flex;align-items:baseline;gap:2px;line-height:1}
+.gkc-best-n b{font-size:46px;font-weight:850;letter-spacing:-.03em}
+.gkc-best-n i,.gkc-rr-p i{font-style:normal;font-weight:800;color:var(--gkc-t2)}
+.gkc-best-n i{font-size:17px}
+.gkc-best-m{min-width:0}
+.gkc-best-m small{display:block;font-size:11.5px;font-weight:800;letter-spacing:.1em;color:var(--gkc-ln)}
+.gkc-best-m b{display:block;font-size:15px;font-weight:800;margin-top:2px}
+.gkc-best-m span{display:block;font-size:12.5px;color:var(--gkc-t2);margin-top:1px}
+.gkc-seal{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--gkc-ln);white-space:nowrap}
+.gkc-seal svg{width:18px;height:18px;flex:none}
+.gkc-seal.lg{flex-direction:column;gap:3px;font-size:11px}.gkc-seal.lg svg{width:30px;height:30px}
+.gkc-rl{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.gkc-rr{display:grid;grid-template-columns:22px minmax(0,1fr) auto 18px;align-items:center;gap:12px;min-height:50px;padding:6px 12px;border-radius:14px}
+.gkc-tier{width:22px;height:22px;display:block}
+.gkc-rr-m{min-width:0}
+.gkc-rr-m b{display:block;font-size:14.5px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gkc-rr-m small{display:block;font-size:12.5px;color:var(--gkc-t2)}
+.gkc-rr-p{font-size:22px;font-weight:850;letter-spacing:-.02em;text-align:right;line-height:1;white-space:nowrap}
+.gkc-rr-p i{font-size:12px;margin-left:1px}
+.gkc-more summary{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;font-size:13px;font-weight:750;color:var(--gkc-ln);cursor:pointer;list-style:none}
+.gkc-more summary::-webkit-details-marker{display:none}
+.gkc-more summary svg{width:15px;height:15px;transform:rotate(90deg);transition:transform .2s}.gkc-more[open] summary svg{transform:rotate(-90deg)}
+.gkc-self{margin:10px 2px 0;padding:10px 4px 4px;border-radius:16px;background:rgba(255,255,255,.025)}
+:root[data-theme=light] .gkc-self{background:rgba(20,24,40,.025)}
+.gkc-self h4{display:flex;align-items:center;gap:8px;margin:0 8px 2px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--gkc-t2)}
+.gkc-self h4 small{font-size:11.5px;font-weight:600;letter-spacing:0;color:var(--gkc-t3)}
+.gkc-self .gkc-rr{min-height:42px;grid-template-columns:22px minmax(0,1fr) auto 64px}
+.gkc-self .gkc-rr-m b{font-weight:650;color:var(--gkc-t2);font-size:14px}
+.gkc-self .gkc-rr-p{font-size:17px;font-weight:750;color:var(--gkc-t2)}
+.gkc-srt{justify-self:end;font-size:11.5px;font-weight:700;color:var(--gkc-t2);background:var(--gkc-well2);padding:3px 8px;border-radius:7px}
+/* 看板パーティ */
+.gkc-sc{margin:12px 2px 0;padding:12px 10px 4px}
+.gkc-sc-h{display:flex;align-items:center;gap:8px;padding:0 2px}
+.gkc-sc-h span{margin-left:auto;font-size:13px;font-weight:700}
+.gkc-ed{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:16px;background:var(--gkc-well2);color:var(--gkc-t2);cursor:pointer}
+.gkc-sc-h h3+.gkc-ed{margin-left:auto}
+.gkc-sc-g{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:10px}
+@media(max-width:699px){.gkc-sc-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}}
+.gkc-mon{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:8px 2px;border-radius:14px;color:inherit;text-decoration:none}
+@media(hover:hover){.gkc-mon:hover{background:var(--gkc-well)}}
+.gkc-mon small{font-size:11.5px;color:var(--gkc-t2);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gkc-sc-go{display:flex;align-items:center;justify-content:center;gap:2px;min-height:40px;margin-top:4px;font-size:13px;font-weight:700;color:var(--gkc-ln);text-decoration:none}
+/* 本人だけ：まだないとき */
+.gkc-add,.gkc-addrow{display:flex;align-items:center;gap:12px;width:calc(100% - 12px);margin:16px 6px 0;padding:12px 14px;border:0;border-radius:18px;background:var(--gkc-well);color:var(--gkc-t1);font:inherit;text-align:left;cursor:pointer}
+.gkc-addrow{width:100%;margin:12px 0 0;color:var(--gkc-t1)}.gkc-addrow svg{color:var(--gkc-ln)}
+.gkc-add b,.gkc-addrow b{display:block;font-size:14.5px}.gkc-add small,.gkc-addrow small{display:block;font-size:12.5px;color:var(--gkc-t2)}
+/* カードの外 */
+.gkc-fq{margin:12px 12px 0}
+.gkc-tabs{margin:18px 12px 4px}
+@media(min-width:700px){.gkc{margin:10px 16px 0}.gkc-cv{height:128px}.gkc-tabs{margin:18px 16px 4px}}
+@media(max-width:699px){.gkc-page~#twp-list{padding-bottom:calc(96px + env(safe-area-inset-bottom))}}
+.gkc-bio a{white-space:nowrap}
+.gkc-meta.pf-stats{margin:10px 0 0;padding:0}.gkc .pf-st-b{padding:0;min-height:32px}
+/* ===== 2026/11/18 作りかえ：ふつうのプロフィール（gkp-*）と、上に重ねて開くゲームカード（gkcm・中は gkc-*） ===== */
+.gkp-head{position:relative;margin:8px 12px 0;padding:6px 6px 14px;border-radius:24px;color:var(--gkc-t1);background:linear-gradient(180deg,var(--gkc-top),var(--gkc-bot) 70%);box-shadow:var(--gkc-hl),0 12px 30px -18px rgba(0,0,0,.55)}
+.gkp-cv{height:64px;border-radius:18px;overflow:hidden;background:linear-gradient(115deg,var(--gkc-cv1),var(--gkc-cv2));position:relative}
+.gkp-cv svg{position:absolute;inset:0;width:100%;height:100%}
+.gkp-idr{display:flex;align-items:flex-end;gap:10px;padding:0 10px;margin-top:-30px;position:relative}
+.gkp-av{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;overflow:hidden;padding:0;border:0;cursor:pointer;font:inherit;font-size:28px;font-weight:800;color:#fff;box-shadow:0 0 0 4px var(--gkc-top),0 8px 20px -8px rgba(0,0,0,.55)}
+.gkp-av img{width:100%;height:100%;object-fit:cover;display:block}
+.gkp-av:focus-visible{outline:2px solid var(--gkc-ln);outline-offset:4px}
+.gkp-id{padding:14px 12px 0}
+.gkp-nm{display:flex;align-items:center;gap:8px;margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.25}
+.gkp-hd{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:4px;font-size:14.5px;color:var(--gkc-t2)}
+.gkp-bio{margin:12px 12px 0;font-size:14.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.gkp-bio a{white-space:nowrap}
+.gkp-sub{margin:10px 12px 0;color:var(--gkc-t2)}
+.gkp-meta.pf-stats{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 18px;margin:6px 12px 0;padding:0}
+.gkp .pf-st-b{padding:0;min-height:32px}
+.gkp-card{display:flex;align-items:center;gap:10px;width:calc(100% - 12px);margin:12px 6px 0;padding:8px 12px 8px 8px;border:0;border-radius:16px;background:var(--gkc-well);color:var(--gkc-t1);font:inherit;text-align:left;cursor:pointer}
+@media(hover:hover){.gkp-card:hover{background:var(--gkc-well2)}}
+.gkp-card .gkc-sig--s{width:36px;height:36px;border-radius:11px;--t1:var(--accf)}
+.gkp-card-t{flex:1;min-width:0;line-height:1.3}.gkp-card-t b{display:block;font-size:14.5px;font-weight:800}
+.gkp-card-t small{display:block;font-size:12.5px;color:var(--gkc-t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gkp-card>svg{color:var(--gkc-t3);flex:none}
+.gkp-mk{display:inline-flex;align-items:center;gap:6px;min-height:36px;margin:10px 12px 0;padding:0 12px;border:0;border-radius:18px;background:var(--gkc-well);color:var(--gkc-ln);font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.gkp-lock{margin:12px 6px 0}
+.gkp-tabs{margin:12px 12px 4px}
+@media(min-width:700px){.gkp-head{margin:10px 16px 0}.gkp-cv{height:80px}.gkp-tabs{margin:12px 16px 4px}}
+/* ゲームカード（重ねて開く）：スマホは画面いっぱい、PC は真ん中 */
+.gkcm{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center}
+.gkcm-bg{position:absolute;inset:0;background:rgba(5,6,10,.62);opacity:0;transition:opacity .2s}
+.gkcm.on .gkcm-bg{opacity:1}
+.gkcm-p{position:relative;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;overscroll-behavior:contain;border-radius:28px;background:var(--canvas,var(--bg));
+  padding:0 0 18px;transform:translateY(16px);opacity:0;transition:transform .24s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.gkcm.on .gkcm-p{transform:none;opacity:1}
+.gkcm-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;background:inherit}
+.gkcm-top b{font-size:15px;font-weight:800;color:var(--gkc-t1)}
+.gkcm .gkc{margin:0 12px}
+.gkc-av--xl{width:96px;height:96px;font-size:38px}
+.gkcm .gkc-idr{margin-top:-48px}
+@media(max-width:699px){.gkcm{align-items:stretch}.gkcm-p{width:100%;max-height:none;height:100%;border-radius:0;padding-bottom:calc(24px + env(safe-area-inset-bottom))}.gkcm-top{padding-top:calc(10px + env(safe-area-inset-top))}}
+body.gkcm-on{overflow:hidden}
+/* 看板パーティ：6匹を3×2で、記号と名前を大きく（スマホでも名前が読める） */
+.gkcm .gkc-sc-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.gkcm .gkc-mon{padding:10px 4px 8px;gap:7px;background:var(--gkc-well)}
+.gkcm .gkc-sig--m{width:48px;height:48px;border-radius:14px}
+.gkcm .gkc-mon small{font-size:13px;font-weight:700;color:var(--gkc-t1)}
+/* アイコンを大きく見る（写真がないとき） */
+.gkl{position:fixed;inset:0;z-index:310;display:grid;place-items:center;background:rgba(5,6,10,.82)}
+.gkl-av{width:min(240px,60vw);height:min(240px,60vw);border-radius:50%;display:grid;place-items:center;font-size:min(100px,25vw);font-weight:800;color:#fff;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.gkl-x{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;--gkc-t1:#fff;--gkc-well2:rgba(255,255,255,.12)}
+/* ===== ゲームカードがある人のアイコンの輪（2026/11/18）＝「この人はゲームカードを作っている（見られる）」だけの印 =====
+   ・6つに切れた面の輪（六角形の面のイメージ・紫の2色）。止まっている（動かさない・光らせない）
+   ・オンライン／配信中／未読／確認済みなどの印には使わない。ほかの状態の印は別の色・形・名前で作る（この --gk-cardring* と .gk-cr はこれ専用） */
+:root{--gk-cardring:#A89BFF;--gk-cardring-2:#6F5FE8}
+:root[data-theme=light]{--gk-cardring:#6F5FE8;--gk-cardring-2:#4B3FCF}
+.gk-cr{position:relative;overflow:visible!important}
+.gk-cr img{border-radius:50%}
+.gk-cr::after{content:'';position:absolute;inset:-4px;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from -30deg,var(--gk-cardring) 0 54deg,transparent 54deg 60deg,var(--gk-cardring-2) 60deg 114deg,transparent 114deg 120deg,var(--gk-cardring) 120deg 174deg,transparent 174deg 180deg,
+    var(--gk-cardring-2) 180deg 234deg,transparent 234deg 240deg,var(--gk-cardring) 240deg 294deg,transparent 294deg 300deg,var(--gk-cardring-2) 300deg 354deg,transparent 354deg 360deg);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px))}
+.gk-cr--lg::after{inset:-6px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 3px))}
+.gkp-av.gk-cr{box-shadow:0 0 0 7px var(--gkc-top),0 8px 20px -8px rgba(0,0,0,.55)}
+.gkp-av.gk-cr img{width:100%;height:100%;object-fit:cover}
+/* ===== ホームの右上の通知（2026/11/18）：静かな鈴。未読があるときだけ小さな数 ===== */
+.hd-bell{position:absolute;right:6px;top:50%;margin-top:-22px;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--dim);text-decoration:none}
+.hd-bell svg{width:24px;height:24px}
+@media(hover:hover){.hd-bell:hover{background:var(--hov,rgba(127,127,127,.1));color:var(--fg)}}
+.hd-bell:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.hd-bell-n{position:absolute;top:5px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accf);color:var(--onacc);font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+.hd-bell-n[hidden]{display:none}
+/* ホームでは鈴が未読を出すので、左上のアイコンの点は重ねない（同じことを2か所に出さない） */
+.hdr-in:has(.hd-bell) #brand::after{display:none}
+.gkcm.gkcm-off{visibility:hidden;pointer-events:none}
+/* ===== 2026/11/18 スマホのホームの左のふちのはみ出し：閉じた左のメニュー（.dr-p）の影（box-shadow 1px の線と 8px の影）と枠が、
+   画面の左のふち（x=0）に出ていた。閉じたら（閉じる動きが終わってから）見えなくする。開く・指で引き出すときは今までどおり ===== */
+.drawer .dr-p{transition:transform .3s var(--ease),visibility 0s linear 0s}
+.drawer:not(.on) .dr-p{visibility:hidden;transition:transform .3s var(--ease),visibility 0s linear .3s}
+/* ===== PC の左のメニューの続き（2026/11/18、31-desktop.js の pcNavDraw）：左から出るメニューにあった項目。スマホでは出さない ===== */
+.pc-more{display:none}
+@media(min-width:700px){
+  .pc-more{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:10px;width:100%}
+  .pcm{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;width:48px;height:44px;padding:0;border:0;border-radius:999px;background:none;color:var(--dim);font:inherit;cursor:pointer;text-decoration:none;list-style:none}
+  .pcm::-webkit-details-marker{display:none}
+  .pcm svg{width:22px;height:22px;flex:none}
+  .pcm:hover{background:var(--hov);color:var(--fg)}
+  .pcm[aria-current=page]{color:var(--fg)}.pcm[aria-current=page] .pcm-l{font-weight:800}
+  .pcm:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .pcm-l{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .pcm-n{position:absolute;top:4px;left:28px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--accf);color:var(--onacc);font:800 10px/16px var(--ff);font-style:normal;text-align:center}
+  .pcm-n[hidden],.pcm[hidden]{display:none}
+  .pcm-d{width:100%;display:flex;flex-direction:column;align-items:center}
+  .pcm-sub{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px;width:100%}
+  .pcm-sub a{display:block;padding:8px 12px;border-radius:10px;font-size:13px;color:var(--dim);text-decoration:none}
+  .pcm-sub a:hover{background:var(--hov);color:var(--fg)}
+  .pc-post{margin-top:12px}
+}
+@media(min-width:700px) and (max-width:1279px){.pcm-sub{display:none}.pcm-d[open] .pcm-sub{display:flex;position:fixed;left:calc(var(--gl) + var(--navw));bottom:20px;width:220px;padding:6px;border-radius:14px;background:var(--elev,var(--bg));box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:60}}
+@media(min-width:1280px){
+  .pc-more{align-items:stretch}
+  .pcm{width:auto;justify-content:flex-start;height:42px;padding:0 20px 0 13px}
+  .pcm-l{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:16px;color:inherit}
+  .pcm-n{position:static;margin-left:auto}
+  .pcm-d{align-items:stretch}
+  .pcm-sub{padding-left:42px}
+}
+/* ===== コミュニティ（PC）：説明の文とカードの左のふちをそろえる（前は 16px・10px・26px でばらばら）。中の文はカードの中で 16px ===== */
+@media(min-width:700px){.cmv{padding:0 6px}.cmv>.note{padding:18px 10px 12px}}
+/* ===== PC の右の列（ホーム）：検索欄を上の見出しの行の高さにそろえ、「すぐ使う」と「コミュニティ」を同じ形（記号の四角＋文）にして文の左をそろえる、箱の間は 12px ===== */
+@media(min-width:1280px){
+  .pcside{padding-top:4px}
+  .pcs-search{margin:4px 0 12px}
+  .pcs-box--cm{margin-top:12px}
+  .pcs-box--cm h2{padding-bottom:6px}
+}
+@media(min-width:700px){.tabbar{overflow-x:hidden}}

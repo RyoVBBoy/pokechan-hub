@@ -39,11 +39,15 @@ function szKinds(t){
   return out;
 }
 /* ---- シーズンのまとめ：登録されたパーティから、当サイトが自動で傾向を文章にする（記事の写しではない） ---- */
+/* 2026/11/18 依頼主の決定：まとめ（順位から作る集計）は確認済みの登録だけで作る。自己申告・記事から集計・運営が登録は数えない */
+const SZ_SRC={verified:['確認済み','運営者が証拠のスクリーンショットを確かめて記録した登録'],self:['自己申告','本人の登録（運営者の確認はまだ）'],
+  article:['記事から集計','公開された記事から、2つ以上の出典で一致した事実だけを集めたもの'],operator:['運営が登録','運営者が登録したもの（証拠の確認の記録はありません）']};
+const szSrc=t=>SZ_SRC[t.source]?t.source:(t.auto?'article':'self');
 function szSummary(j){
-  const s=j.season,T=j.teams.map(t=>({t,ps:t.team.map(x=>byNo[x.no]).filter(Boolean)})).filter(x=>x.ps.length>=3),n=T.length;
-  const head=`<div class="sec"><h2>シーズンのまとめ</h2><span style="font-size:12px;color:var(--dim)">${n}件の登録から</span></div>`
+  const s=j.season,T=j.teams.filter(t=>szSrc(t)==='verified').map(t=>({t,ps:t.team.map(x=>byNo[x.no]).filter(Boolean)})).filter(x=>x.ps.length>=3),n=T.length;
+  const head=`<div class="sec"><h2>シーズンのまとめ</h2><span style="font-size:12px;color:var(--dim)">確認済み${n}件の登録から</span></div>`
     +(s.note?`<div class="gdoc gsub"><h3>運営者より</h3><p class="sz-note" data-notr>${esc(s.note)}</p></div>`:'');
-  if(n<3)return s.note?head:'';
+  if(n<3)return (s.note?head:'')+(j.teams.length?`<p class="note sz-few">確認済みの登録が少ないため（確認済みデータ：${n}件）、シーズンのまとめは出していません。下の一覧には、出どころの札（確認済み・自己申告・記事から集計・運営が登録）をつけてすべての登録を並べています。</p>`:'');
   const pc=x=>Math.round(x/n*100);
   /* 軸：一緒に使われた2匹・3匹の組み合わせ */
   const pairs={},trios={};
@@ -93,7 +97,7 @@ async function seasonView(a){
   const s=SEAS.list.find(x=>x.id===+a)||SEAS.list[0];
   V.innerHTML=`<div class="pills sz-pills">${SEAS.list.map(x=>`<a class="pill" href="#/season/${x.id}" aria-pressed="${x.id===s.id}"><span data-notr>${esc(x.name)}</span>${x.end&&x.end<today()?'<small class="sz-end">終了</small>':''}</a>`).join('')}</div>
     <div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
-    <p class="note" style="padding-top:2px">${s.start||s.end?`期間 ${esc(s.start||'')}〜${esc(s.end||'')}。`:''}このシーズンに上位になった人のパーティです。本人が登録したもの（スクリーンショットを運営者が確かめたものは「確認済み」）と、運営者が登録したものがあります。</p>
+    <p class="note" style="padding-top:2px">${s.start||s.end?`期間 ${esc(s.start||'')}〜${esc(s.end||'')}。`:''}このシーズンに上位になった人のパーティです。それぞれに出どころの札があります：確認済み（証拠を運営者が確かめて記録したもの）・自己申告・記事から集計・運営が登録。まとめとよく使われたポケモンは確認済みの登録だけで数えています。</p>
     <div class="btns" style="padding-top:4px"><button class="btn btn-p" id="sz-new">${SVG(I.trophy,16)}自分の結果を登録する</button></div>
     <div id="sz-form"></div><div id="sz-body"><p class="empty">読み込み中…</p></div>`;
   bindFmt(V,()=>seasonView(String(s.id)));
@@ -103,7 +107,8 @@ async function seasonView(a){
     const j=await authFetch(`/api/seasons/${s.id}/teams?fmt=${FMT}`);
     mine=j.teams.find(t=>t.mine)||null;if(mine)document.getElementById('sz-new').lastChild.textContent='自分の登録を直す';
     const body=document.getElementById('sz-body');if(!body)return;
-    body.innerHTML=szSummary(j)+(j.usage.length?`<div class="sec"><h2>よく使われたポケモン</h2><span style="font-size:12px;color:var(--dim)">${j.total}件の登録から</span></div>
+    const nv=j.verified_total!=null?j.verified_total:j.teams.filter(t=>szSrc(t)==='verified').length;
+    body.innerHTML=szSummary(j)+(j.usage.length?`<div class="sec"><h2>よく使われたポケモン</h2><span style="font-size:12px;color:var(--dim)">確認済み${nv}件の登録から</span></div>
       <div class="sz-use">${j.usage.filter(u=>byNo[u.no]).slice(0,12).map(u=>{const p=byNo[u.no];return `<a class="sz-u" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><span class="sz-un">${esc(formInfo(p).base)}${formInfo(p).tag?`<i class="ftag ftag-${formInfo(p).kind}">${esc(formInfo(p).tag)}</i>`:''}</span><b>${u.pc}%</b></a>`}).join('')}</div>`:'')
       +`<div class="sec"><h2>パーティ</h2><span style="font-size:12px;color:var(--dim)">順位の高い順</span></div>`
       +(j.teams.length?j.teams.map(szCard).join(''):`<p class="empty" style="padding:28px 24px">${FMTN()}の登録はまだありません。<br>上位になったら、ぜひ登録してください。</p>`);
@@ -121,7 +126,7 @@ function szCard(t){
   const mons=t.team.map(x=>({p:byNo[x.no],s:cleanSet(x.set)})).filter(x=>x.p);
   const who=t.player.handle?`<a href="#/u/${esc(t.player.handle)}" data-notr>${esc(t.player.name)}</a>`:`<span data-notr>${esc(t.player.name)}</span>`;
   return `<div class="sz-card">
-    <div class="sz-h">${t.rank?`<b class="sz-rk">${t.rank}位</b>`:''}${t.rate?`<span class="sz-rt">レート ${t.rate}</span>`:''}<span class="sz-who">${who}</span>${t.verified?'<span class="atag on">確認済み</span>':''}${t.auto?`<span class="atag">自動集計・出典${t.sources.length}件</span>`:''}</div>
+    <div class="sz-h">${t.rank?`<b class="sz-rk">${t.rank}位</b>`:''}${t.rate?`<span class="sz-rt">レート ${t.rate}</span>`:''}<span class="sz-who">${who}</span>${(c=>`<span class="atag sz-src sz-src-${c}${c==='verified'?' on':''}" title="${esc(SZ_SRC[c][1])}">${SZ_SRC[c][0]}${c==='article'&&t.sources.length?`・出典${t.sources.length}件`:''}</span>`)(szSrc(t))}</div>
     <div class="sz-mons">${mons.map(({p})=>`<a class="sz-m" href="#/p/${p.no}"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small></a>`).join('')}</div>
     ${t.comment?`<p class="sz-c" data-notr>${esc(t.comment)}</p>`:''}${srcLinks(t.sources)}
     ${mons.some(x=>x.s&&(x.s.it||x.s.mv.length))?`<details class="sz-det"><summary>育成を見る</summary>${mons.map(({p,s})=>`<div class="sz-set"><b>${nm(p,{no:false})}</b><span>${s?[s.it&&esc(s.it.n),s.ab&&esc(s.ab.n),s.up>0&&s.dn>0&&esc(natName(s.up,s.dn).replace(/（.*$/,''))].filter(Boolean).join('・'):''}</span><span>${s?s.mv.map(m=>esc(m.n)).join('・'):''}</span></div>`).join('')}</details>`:''}
@@ -142,7 +147,7 @@ function szForm(s,mine,pre){
       <label>レート（わかれば）<input type="number" id="sz-rate" inputmode="numeric" min="1" placeholder="例：1850" value="${mine&&mine.rate||''}"></label>
       <label>ひとこと（140文字まで・なくてもよい）<textarea id="sz-cm" maxlength="140" rows="2" placeholder="例：初めての2桁！">${esc(mine&&mine.comment||'')}</textarea></label>
       <label>証拠のスクリーンショット（なくてもよい）<input type="file" id="sz-proof" accept="image/*"></label></div>
-    <p class="note" style="padding:0 0 8px;color:var(--mute)">スクリーンショットは運営者だけが見ます（ほかの人には表示しません）。確かめられたら「確認済み」の印が付きます。保存したパーティの育成（技・持ち物など）も一緒に公開されます。</p>
+    <p class="note" style="padding:0 0 8px;color:var(--mute)">スクリーンショットは運営者だけが見ます（ほかの人には表示しません）。確かめられたら「確認済み」の印が付きます（それまでは「自己申告」）。登録のあとで順位・レート・パーティ・スクリーンショットを変えると、もう一度確かめるまで確認済みは外れます。保存したパーティの育成（技・持ち物など）も一緒に公開されます。</p>
     <div class="btns" style="padding:0 0 12px"><button class="btn btn-p" id="sz-send">登録する</button><button class="btn btn-s" id="sz-cancel">やめる</button></div></div>`;
   const pv=()=>{const t=slots.find(x=>x.i===pick).t;document.getElementById('sz-pv').innerHTML=t.map(x=>byNo[x.no]).filter(Boolean).map(p=>`<span class="sz-m"><span class="av">${stamp(p)}</span><small>${esc(formInfo(p).base)}</small></span>`).join('')};pv();
   el.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{pick=+b.dataset.slot;el.querySelectorAll('[data-slot]').forEach(x=>x.setAttribute('aria-pressed',x===b));pv()});
@@ -163,7 +168,7 @@ function szForm(s,mine,pre){
 function szShotBind(s){const b=document.getElementById('sz-shot');if(b)b.onclick=()=>{IMPORT_NEXT='#/season/'+s.id;nav('#/import')}}
 /* プロフィールに出す実績の印 */
 const rankLabel=r=>r.rank?(r.rank<10?'最終1桁':r.rank<100?'最終2桁':r.rank<1000?'最終3桁':`最終${r.rank}位`)+`（${r.rank}位）`:`レート${r.rate}`;
-const resultBadges=rs=>(rs||[]).length?`<div class="sz-badges">${rs.map(r=>`<span class="sz-badge${r.verified?' on':''}">${SVG(I.trophy,14)}<span data-notr>${esc(r.season)}</span> ${r.fmt==='double'?'ダブル':'シングル'} ${rankLabel(r)}${r.verified?'・確認済み':''}</span>`).join('')}</div>`:'';
+const resultBadges=rs=>(rs||[]).length?`<div class="sz-badges">${rs.map(r=>{const v=r.source?r.source==='verified':false;return `<span class="sz-badge${v?' on':''}">${SVG(I.trophy,14)}<span data-notr>${esc(r.season)}</span> ${r.fmt==='double'?'ダブル':'シングル'} ${rankLabel(r)}・${v?'確認済み':'自己申告'}</span>`}).join('')}</div>`:'';
 /* ---- 自分のパーティと比べる：選出アシストと同じ計算（analyze）で、両方から見た最善の選出と、お互いに何%入るかを出す ----
    相手の育成は、登録されていればそれを使い、なければ「使用率の高い型」を仮定する */
 function szVs(t){

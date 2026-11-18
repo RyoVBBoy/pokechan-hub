@@ -8,6 +8,7 @@ function freqBadge(n){
   FREQ_N=n;
   const d=document.getElementById('dr-fq');if(d)d.textContent=n?(n>9?'9+':n):'';
   const r=document.getElementById('dr-fqrow');if(r)r.hidden=!n;
+  const pq=document.getElementById('pc-fq'),pr2=document.getElementById('pc-fqrow');if(pq){pq.textContent=n?(n>9?'9+':n):'';pq.hidden=!n}if(pr2)pr2.hidden=!n;
   const b=document.getElementById('nf-fq');if(b){b.hidden=!n;const c=b.querySelector('b.num');if(c)c.textContent=n}
   const p=document.getElementById('pf-fq-n');if(p)p.textContent=n?n+'件':'';
 }

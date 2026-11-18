@@ -144,7 +144,8 @@ addEventListener('hashchange',()=>{if(PS)postSheetClose()});
    ・数字が右に並ぶ画面（ダメージ計算・育成・図鑑のページ・パーティ）では、はじめから画面の右の端（ページの余白）に収まる細いつまみにする。
    ・ほかの画面は、下にスクロールしたらつまみにして、上に戻ると元の形に。
    ・スマホで文字を入れている間（キーボードが出ている間）は隠す。押したときの動き（相性を調べる等）は同じ。投稿のボタン（ホーム）は変えない */
-const FAB_DOCK=new Set(['calc','edit','p','team']);
+/* 2026/11/18：プロフィール（u）も読む画面なので、⚡は右の端のつまみにして内容と下のメニューに重ねない */
+const FAB_DOCK=new Set(['calc','edit','p','team','u']);
 let FAB_DY=-1;
 function fabDock(){
   const w=document.getElementById('fabwrap'),b=document.getElementById('fab');if(!w||!b)return;

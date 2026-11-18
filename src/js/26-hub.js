@@ -27,7 +27,7 @@ function toolsView(){
 }
 function communityView(){
   setHeader('コミュニティ');
-  V.innerHTML=`<p class="note" style="padding-top:14px">ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集・相談・質問は、タイムラインにタグを付けて投稿します（タグを押すと、そのタグの投稿と投稿欄が開きます）。</p>
+  V.innerHTML=`<div class="cmv"><p class="note" style="padding-top:14px">ほかのトレーナーと対戦したり、情報を交換したりする場所です。対戦募集・相談・質問は、タイムラインにタグを付けて投稿します（タグを押すと、そのタグの投稿と投稿欄が開きます）。</p>
   ${hubRow('#/tl','タイムライン','トレーナーの投稿を見る・投稿する・フォローする')}
   ${hubRow('#/notif','お知らせ','いいね・フォローされたとき<span id="cm-notif-n" style="color:var(--acc);margin-left:6px">'+(notifN?'未読 '+notifN+'件':'')+'</span>')}
   ${hubRow('#/account','アカウント',typeof AUTH!=='undefined'&&AUTH.profile?`@${esc(AUTH.profile.handle)}・プロフィール`:'ログイン・プロフィール')}
@@ -36,7 +36,7 @@ function communityView(){
   ${hubRow('#/search/'+encodeURIComponent('#構築相談'),'<span data-notr>#構築相談</span>','パーティの組み方を相談する')}
   ${hubRow('#/search/'+encodeURIComponent('#質問'),'<span data-notr>#質問</span>','わからないことを聞く')}
   ${hubRow('#/search/'+encodeURIComponent('#雑談'),'<span data-notr>#雑談</span>','なんでも話す')}
-  ${hubRow('#/rules','利用ルール','禁止していること・通報と削除・保存する情報')}`;
+  ${hubRow('#/rules','利用ルール','禁止していること・通報と削除・保存する情報')}</div>`;
 }
 
 

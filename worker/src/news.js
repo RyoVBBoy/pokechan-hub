@@ -38,7 +38,9 @@ async function newsInit(db){
     db.prepare(`CREATE TABLE IF NOT EXISTS news_seen(url TEXT PRIMARY KEY,title TEXT,note_id INTEGER,created_at INTEGER)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS news_src(url TEXT PRIMARY KEY,created_at INTEGER)`)
   ]);
-  for(const c of ['notes ADD COLUMN link TEXT','news_seen ADD COLUMN cat TEXT','news_seen ADD COLUMN date TEXT'])try{await db.prepare(`ALTER TABLE ${c}`).run()}catch(e){}
+  /* 2026/11/18：見つけた時刻（fetched_at）と投稿する時刻（publish_at＝次のちょうどの時刻）と状態（state：queued 待ち・posting 投稿中・posted 済み・skipped 記録だけ）。
+     前からある行は state が空＝済み（投稿したか記録だけ）として扱う */
+  for(const c of ['notes ADD COLUMN link TEXT','news_seen ADD COLUMN cat TEXT','news_seen ADD COLUMN date TEXT','news_seen ADD COLUMN state TEXT','news_seen ADD COLUMN fetched_at INTEGER','news_seen ADD COLUMN publish_at INTEGER','news_seen ADD COLUMN posted_at INTEGER','news_seen ADD COLUMN claimed_at INTEGER'])try{await db.prepare(`ALTER TABLE ${c}`).run()}catch(e){}
   NEWS_READY=true;
 }
 const newsOk=u=>{try{const x=new URL(String(u));return x.protocol==='https:'&&NEWS_HOST.test(x.hostname)&&x.href.length<=500?x.href:null}catch(e){return null}};
@@ -152,22 +154,64 @@ async function newsFind(env,db,dbg){
 }
 /* 投稿の本文：【公式・種類】題名（日付） #公式のお知らせ（タグで公式のお知らせだけを検索できる） */
 const newsBody=(title,cat,date)=>{const tail=' #公式のお知らせ',head=`【公式・${cat||'お知らせ'}】`,d=date?`（${String(date).replace(/-/g,'/')}）`:'';return head+String(title).slice(0,140-head.length-d.length-tail.length)+d+tail};
-async function newsRun(env,db,now,max=3){
-  await newsInit(db);await socialInit(db);
-  const dbg={};const items=await newsFind(env,db,dbg);let posted=0;const list=[];
+/* ===== 2026/11/18 投稿の時刻：見つける（1時間に1回・:47）と、投稿する（ちょうどの時刻 HH:00）を分ける =====
+   ・newsFetch：新しいお知らせを見つけたら、すぐには投稿せず news_seen に state='queued'・publish_at＝次のちょうどの時刻 で残す（16:47 → 17:00、16:59 → 17:00）
+   ・newsPublish：publish_at が来た待ちのものを投稿する。1件ずつ「待ち→投稿中」を1回だけ取れたときだけ投稿する（やり直し・二重に動いても二度投稿しない）。
+     投稿に失敗したら待ちに戻し、次のちょうどの時刻にもう一度
+   ・時刻の区切りは日本時間（Asia/Tokyo＝UTC+9 で、1時間の区切りは UTC と同じ）。見つけられなかった・何もない回は何もしない */
+const NEWS_HOUR=36e5;
+const newsNextHour=t=>Math.floor(t/NEWS_HOUR)*NEWS_HOUR+NEWS_HOUR;
+async function newsFetch(env,db,now,max=3){
+  await newsInit(db);
+  const dbg={};let items=[];try{items=await newsFind(env,db,dbg)}catch(e){return{found:0,queued:[],err:String(e.message||e).slice(0,120),dbg}}
   const first=!(await db.prepare(`SELECT 1 FROM news_seen LIMIT 1`).first());
-  /* 新しいものから max 件を投稿する（タイムラインで新しいものが上に来るように、古い順に投稿）。初回は残りを記録だけ */
   const fresh=[];for(const it of items){const dup=await db.prepare(`SELECT 1 FROM news_seen WHERE url=?`).bind(it.url).first();if(dup){if(it.cat||it.date)await db.prepare(`UPDATE news_seen SET cat=COALESCE(cat,?),date=COALESCE(date,?) WHERE url=?`).bind(it.cat||null,it.date||null,it.url).run();continue}fresh.push(it)}
-  const toPost=new Set(fresh.slice(0,max));
+  /* 新しいものから max 件を待ちに（古い順に入れる＝投稿も古い順で、タイムラインで新しいものが上）。それより古いものは記録だけ */
+  const toQ=new Set(fresh.slice(0,max)),at=newsNextHour(now),queued=[];
   for(const it of [...fresh].reverse()){
-    if(!toPost.has(it)){await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,0,?,?,?)`).bind(it.url,it.title,now,it.cat||null,it.date||null).run();continue}
-    await newsBot(db,now);
-    const body=newsBody(it.title,it.cat,it.date);
-    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media,link) VALUES(?,?,?,?,0,NULL,?) RETURNING id`).bind(NEWS_UID,body,now,'bot',it.url).first();
-    await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date) VALUES(?,?,?,?,?,?)`).bind(it.url,it.title,r.id,now,it.cat||null,it.date||null).run();
-    posted++;list.push(it);
+    const q=toQ.has(it);
+    await db.prepare(`INSERT OR IGNORE INTO news_seen(url,title,note_id,created_at,cat,date,state,fetched_at,publish_at) VALUES(?,?,0,?,?,?,?,?,?)`)
+      .bind(it.url,it.title,now,it.cat||null,it.date||null,q?'queued':'skipped',now,q?at:null).run();
+    if(q)queued.push({title:it.title,url:it.url,publish_at:at});
   }
-  return{posted,found:items.length,first,items:list,dbg};
+  return{found:items.length,queued,first,publish_at:queued.length?at:null,dbg};
+}
+/* 投稿中（posting）のまま NEWS_STALE より長く止まっている行（投稿の途中で止まった）：
+   その URL の bot の投稿がもうあれば「済み」にする（二度投稿しない）、なければ待ちに戻す（なくさない） */
+const NEWS_STALE=15*60e3;
+async function newsRecover(db,now){
+  const st=(await db.prepare(`SELECT url FROM news_seen WHERE state='posting' AND COALESCE(claimed_at,0)<?`).bind(now-NEWS_STALE).all()).results;
+  for(const it of st){
+    const n=await db.prepare(`SELECT id,created_at FROM notes WHERE uid=? AND link=? ORDER BY id LIMIT 1`).bind(NEWS_UID,it.url).first();
+    if(n)await db.prepare(`UPDATE news_seen SET state='posted',note_id=?,posted_at=? WHERE url=? AND state='posting'`).bind(n.id,n.created_at,it.url).run();
+    else await db.prepare(`UPDATE news_seen SET state='queued' WHERE url=? AND state='posting'`).bind(it.url).run();
+  }
+  return st.length;
+}
+async function newsPublish(db,now){
+  await newsInit(db);await socialInit(db);
+  await newsRecover(db,now);
+  const due=(await db.prepare(`SELECT url,title,cat,date FROM news_seen WHERE state='queued' AND publish_at<=? ORDER BY publish_at,rowid`).bind(now).all()).results;
+  let posted=0;const list=[];
+  for(const it of due){
+    const c=await db.prepare(`UPDATE news_seen SET state='posting',claimed_at=? WHERE url=? AND state='queued'`).bind(now,it.url).run();
+    if(!c||!c.meta||c.meta.changes!==1)continue;   /* ほかの回がもう取った */
+    try{
+      await newsBot(db,now);
+      /* 投稿と「済み」の印を1つの取引（D1 の batch）で：どちらか片方だけになることはない（投稿したのに待ちのまま、が起きない） */
+      await db.batch([
+        db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media,link) VALUES(?,?,?,?,0,NULL,?)`).bind(NEWS_UID,newsBody(it.title,it.cat,it.date),now,'bot',it.url),
+        db.prepare(`UPDATE news_seen SET state='posted',posted_at=?,note_id=(SELECT MAX(id) FROM notes WHERE uid=? AND link=?) WHERE url=? AND state='posting'`).bind(now,NEWS_UID,it.url,it.url)
+      ]);
+      posted++;list.push(it);
+    }catch(e){await db.prepare(`UPDATE news_seen SET state='queued' WHERE url=? AND state='posting'`).bind(it.url).run()}
+  }
+  return{posted,items:list};
+}
+/* 管理画面の「今すぐ確認」：見つけて待ちに入れる（投稿は次のちょうどの時刻）。もう時刻が来ている待ちがあれば、それは投稿する */
+async function newsRun(env,db,now,max=3){
+  const f=await newsFetch(env,db,now,max);const p=await newsPublish(db,now);
+  return{found:f.found,queued:f.queued.length,publish_at:f.publish_at,posted:p.posted,first:f.first,items:p.items,err:f.err,dbg:f.dbg};
 }
 async function newsApi(req,env,db,path,now,isAdmin){
   /* だれでも見られる一覧：GET /api/news?cat=種類（公式のお知らせのページ用） */
@@ -204,4 +248,6 @@ async function newsApi(req,env,db,path,now,isAdmin){
   }
   return J({error:'見つかりません。'},404);
 }
-async function newsCron(env){if(!env.DB)return;try{await newsRun(env,env.DB,Date.now())}catch(e){}}
+async function newsFetchCron(env,now){if(!env.DB)return;try{await newsFetch(env,env.DB,now||Date.now())}catch(e){}}
+/* ちょうどの時刻の回：scheduledTime（HH:00）と今の遅いほうまでに時刻が来たものを投稿する（少し遅れて動いても同じ時刻の分を出す） */
+async function newsPublishCron(env,at){if(!env.DB)return;try{await newsPublish(env.DB,Math.max(Date.now(),at||0))}catch(e){}}

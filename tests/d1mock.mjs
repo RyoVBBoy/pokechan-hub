@@ -9,5 +9,6 @@ export function makeD1(){
     async first(){const st=sq.prepare(this.sql);return (isRead(this.sql)?st.get(...this.args):(st.run(...this.args),undefined))||null}
     async run(){const st=sq.prepare(this.sql);if(isRead(this.sql)){st.all(...this.args);return{meta:{changes:0}}}const r=st.run(...this.args);return{meta:{changes:Number(r.changes)}}}
   }
-  return{prepare:sql=>new St(sql),batch:async l=>{const out=[];for(const s of l)out.push(await s.run());return out}};
+  /* 本物の D1 と同じく、batch は1つの取引（どれかが失敗したら全部取り消す） */
+  return{prepare:sql=>new St(sql),batch:async l=>{const out=[];sq.exec('BEGIN');try{for(const s of l)out.push(await s.run());sq.exec('COMMIT')}catch(e){sq.exec('ROLLBACK');throw e}return out}};
 }
