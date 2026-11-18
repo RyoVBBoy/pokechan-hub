@@ -32,6 +32,20 @@ for(const [W,H] of [[1024,800],[1280,900],[1920,1080]]){
   await pg.click('#brand');await pg.waitForTimeout(700);
   ok(await pg.evaluate(()=>location.hash)==='#/u/minato'&&!(typeof DR!=='undefined'&&DR.open),W+'：左上のアイコンで自分のプロフィールへ（メニューは開かない）');
   ok(await pg.evaluate(()=>document.querySelector('#pc-more a[href="#/u/minato"]').getAttribute('aria-current'))==='page',W+'：いまの画面の項目に印');
+  /* 選んでいる項目の色（2026/11/18）：スマホの下のメニューと同じテーマの色（--acc）をアイコンと名前に・下地はうすいテーマの色。
+     選んでいない項目はテーマの色にしない・マウスを乗せた下地は選んでいる下地と別の色 */
+  {const sel=async()=>pg.evaluate(()=>{const tmp=document.createElement('i');tmp.style.color='var(--acc)';document.body.appendChild(tmp);const acc=getComputedStyle(tmp).color;tmp.style.color='var(--acc-t)';const acct=getComputedStyle(tmp).color;tmp.remove();
+      const C=e=>e&&getComputedStyle(e).color,B=e=>getComputedStyle(e).backgroundColor;
+      const cur=[...document.querySelectorAll('.tabbar .tb[aria-current=page], #pc-more .pcm[aria-current=page]')];
+      const oth=[...document.querySelectorAll('.tabbar .tb:not([aria-current]), #pc-more a.pcm:not([aria-current])')];
+      return{acc,acct,n:cur.length,cur:cur.every(e=>C(e)===acc&&C(e.querySelector('svg'))===acc&&(!e.querySelector('span,.pcm-l')||C(e.querySelector('span,.pcm-l'))===acc)&&B(e)===acct),
+        oth:oth.length>0&&oth.every(e=>C(e)!==acc&&B(e)!==acct)}});
+    const p1=await sel();ok(p1.n===1&&p1.cur&&p1.oth,W+'：左の列の続きの項目（プロフィール）を選ぶと、アイコンと名前がテーマの色・ほかはそのまま '+JSON.stringify(p1));
+    await go(pg,'#/tools');const p2=await sel();ok(p2.n===1&&p2.cur&&p2.oth,W+'：主な項目（ツール）も同じ選んでいる色 '+JSON.stringify(p2));
+    await pg.hover('.tabbar .tb:not([aria-current])');await pg.waitForTimeout(300);
+    const hv=await pg.evaluate(()=>{const h=document.querySelector('.tabbar .tb:not([aria-current]):hover'),s=document.querySelector('.tabbar .tb[aria-current=page]');return{h:getComputedStyle(h).backgroundColor,hc:getComputedStyle(h).color,s:getComputedStyle(s).backgroundColor,sc:getComputedStyle(s).color}});
+    ok(hv.h!==hv.s&&hv.hc!==hv.sc&&hv.h!=='rgba(0, 0, 0, 0)',W+'：マウスを乗せた色と選んでいる色は別 '+JSON.stringify(hv));
+    await pg.mouse.move(W-5,H-5)}
   /* 設定とヘルプ */
   await pg.click('#pc-more [data-pcm="settings"]');await pg.waitForTimeout(500);
   ok(await pg.evaluate(()=>{const m=document.querySelector('.setm');return !!m&&!m.hidden}),W+'：設定とプライバシーで設定の画面');

@@ -24,7 +24,14 @@ function pcNavDraw(){
 }
 /* いまの画面の項目に印（aria-current） */
 function pcNavMark(){const el=document.getElementById('pc-more');if(!el)return;const h=location.hash||'#/';
-  el.querySelectorAll('a.pcm').forEach(a=>{const on=a.getAttribute('href')===h||(h.startsWith('#/u/')&&a.getAttribute('href')===h.split('/').slice(0,3).join('/'));on?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')})}
+  let hit=false;
+  el.querySelectorAll('a.pcm').forEach(a=>{const on=a.getAttribute('href')===h||(h.startsWith('#/u/')&&a.getAttribute('href')===h.split('/').slice(0,3).join('/'));if(on)hit=true;on?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
+  /* PC で続きの項目（プロフィール・お知らせなど）がいまの画面なら、その項目だけを選んでいる印にする（2026/11/18）。
+     下のメニューの仲間分け（例：プロフィールはホームのタブ）で主な項目にも印が付き、2つ光っていたため。スマホ（続きの項目を出さない）は今までどおり */
+  if(hit&&matchMedia('(min-width:700px)').matches)document.querySelectorAll('.tabbar .tb[aria-current]').forEach(e=>e.removeAttribute('aria-current'))}
+/* 画面の幅がスマホ⇔PC に変わったら、主な項目の印を付け直す（route と同じ決め方） */
+try{matchMedia('(min-width:700px)').addEventListener('change',()=>{const k=(typeof cur==='string'?cur:location.hash).replace(/^#\/?/,'').split('/')[0];
+  document.querySelectorAll('.tb').forEach(e=>{const on=e.dataset.k===navGroup(k);on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});pcNavMark();if(typeof moveTbPill==='function')moveTbPill()})}catch(e){}
 document.addEventListener('click',e=>{if(e.target.closest('[data-pcm="settings"]')&&typeof settingsOpen==='function')settingsOpen()});
 function drawSide(){
   if(!document.getElementById('pc-more').innerHTML)pcNavDraw();else pcNavMark();

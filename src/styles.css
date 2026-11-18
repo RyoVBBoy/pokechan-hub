@@ -3590,3 +3590,14 @@ body.gkcm-on{overflow:hidden}
 .su-pos .su-st-v,.su-neg .su-st-v{color:var(--su-c)}
 :root[data-theme=light] .su-pos{--su-c:#13784a}
 :root[data-theme=light] .su-neg{--su-c:#c4162a}
+/* ===== 2026/11/18 PC の左のメニュー：いま見ている画面の項目を、スマホの下のメニューと同じテーマの色（--acc）にする =====
+   ・アイコンと名前（1280px以上で出る文字）の両方をテーマの色。アイコンはスマホと同じく太い線＋うすい塗り
+   ・下地はテーマの色のうすい色（--acc-t）。マウスを乗せたときの灰色（--hov）とは別の色にして、乗せただけ／選んでいるを見分けられるようにする
+   ・選んでいない項目は今までどおり（主な項目は文字の色、続きの項目はうすい色）。大きさ・並び・幅は変えない */
+@media(min-width:700px){
+  .tb[aria-current=page],.pcm[aria-current=page]{color:var(--acc)!important;background:var(--acc-t)}
+  .tb[aria-current=page] span,.pcm[aria-current=page] .pcm-l{color:var(--acc)}
+  .tb[aria-current=page] svg,.pcm[aria-current=page] svg{stroke-width:2.5}
+  .tb[aria-current=page] svg path,.pcm[aria-current=page] svg path{fill:currentColor;fill-opacity:.18}
+  .tb[aria-current=page]:hover,.pcm[aria-current=page]:hover{color:var(--acc)!important;background:var(--acc-t)}
+}
