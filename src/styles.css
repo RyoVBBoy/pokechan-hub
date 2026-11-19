@@ -3661,3 +3661,14 @@ body.gkcm-on{overflow:hidden}
 /* 投稿のどこを押しても投稿の画面へ（2026/11/19、32-timeline.js の twBind）：押せる投稿は指の形に。投稿の画面の大きな投稿はそのまま */
 .tw:not(.tw--big){cursor:pointer}
 .tw:not(.tw--big) .tw-b{cursor:inherit}
+/* ===== 2026/11/19 依頼主：画像を大きく見る画面（twViewer） =====
+   ①PC（700px以上）：画像が画面の端まで広がり、左右の矢印・✕・枚数と重なって大きすぎた → 上下64px・左右80pxを空け、その中に収める（拡大はこれまでどおり）
+   ②前後の矢印：文字（‹ ›）だと字の形で丸の中で下にずれていた → 真ん中に描いた線の印にし、丸も画面の上下のまん中にそろえる */
+/* ③縦長の画像が画面の下にはみ出していた（画像の高さの上限が効いていなかった＝囲みの行の高さが決まっていなかった）→ 囲みの中を1マスに決めて、その中に収める */
+.tw-vs{grid-template:100%/100%}
+.tw-vs img{max-width:100%;max-height:100%;min-width:0;min-height:0}
+.tw-vp,.tw-vn{padding:0;font-size:0;transform:translateY(-50%)}
+.tw-vp svg,.tw-vn svg{display:block}
+@media(min-width:700px){
+  .tw-vs{padding:64px 80px;box-sizing:border-box}
+}
