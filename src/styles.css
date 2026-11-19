@@ -3642,3 +3642,7 @@ body.gkcm-on{overflow:hidden}
 .gsw-o.gsw-pc.on .psheet-p{transform:none;opacity:1}
 .gsw-o.gsw-pc h3{font-size:15px;margin:2px 8px 8px}
 @media(prefers-reduced-motion:reduce){.gsw-o.gsw-pc .psheet-p{transition:none}}
+
+/* 投稿のどこを押しても投稿の画面へ（2026/11/19、32-timeline.js の twBind）：押せる投稿は指の形に。投稿の画面の大きな投稿はそのまま */
+.tw:not(.tw--big){cursor:pointer}
+.tw:not(.tw--big) .tw-b{cursor:inherit}

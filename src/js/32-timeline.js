@@ -195,8 +195,15 @@ function twBind(root,reload){
       b.setAttribute('aria-pressed',on);sp.textContent=cnt>0?cnt:'';
       try{const j=await authFetch(`/api/notes/${id}/like`,{on});sp.textContent=j.likes||''}
       catch(err){b.setAttribute('aria-pressed',!on);sp.textContent=Math.max(0,cnt+(on?-1:1))||'';toast(err.message)}};
-    /* 本文を押すと、その投稿の画面（返信も見られる） */
-    el.querySelector('.tw-b').onclick=e=>{if(e.target.closest('a')||el.classList.contains('tw--big')||getSelection().toString())return;nav('#/n/'+id)};
+    /* 投稿のどこを押しても、その投稿の画面（返信も見られる）へ（2026/11/19 依頼主「X と同じに」。前は本文だけで、押せる所が小さかった）。
+       リンク・ボタン・画像・下の操作の並び・入力欄・☆ を押したときは、それぞれの動きのまま。文字を選んでいるときは移らない。
+       投稿の画面の大きな投稿（tw--big）は移らない。Ctrl/⌘＋クリック・ホイールのクリックは新しいタブで開く */
+    const twSkip=t=>t.closest('a,button,input,textarea,select,label,video,[role="button"],.tw-md,.tw-a');
+    const twOpenTab=()=>open(location.pathname+location.search+'#/n/'+id,'_blank','noopener');
+    el.onclick=e=>{if(el.classList.contains('tw--big')||twSkip(e.target)||getSelection().toString())return;
+      if(e.metaKey||e.ctrlKey){twOpenTab();return}
+      nav('#/n/'+id)};
+    el.onauxclick=e=>{if(e.button!==1||el.classList.contains('tw--big')||twSkip(e.target))return;e.preventDefault();twOpenTab()};
     el.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>twViewer(b.closest('.tw-md').dataset.mk.split(','),+b.dataset.mi));
     el.querySelector('[data-reply]').onclick=()=>{if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'返信するにはログインしてください');nav('#/account');return}
       twReplySheet(el,id,()=>{const sp=el.querySelector('[data-reply] span');sp.textContent=(+sp.textContent||0)+1;if(keyOf(cur)==='n')noteView(cur.split('/')[2])})};
