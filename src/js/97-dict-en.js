@@ -2,6 +2,8 @@
    キーは画面に出る日本語そのまま（前後の空白は無視）。EN_RE は数字や名前が入る文の置きかえ。
    訳が見つからない文字は日本語のまま出る（tests/i18n.mjs が主な画面の残りを一覧にする）。 */
 const EN={
+'いまのゲーム':'Current game','いま対応しているゲームは、このゲームだけです。ほかのゲームは、対応したらここに並びます。':'This is the only game supported right now. Other games will appear here once they are supported.',
+'図鑑・選出アシスト・ダメージ計算・対戦募集':'Pokédex, team preview assist, damage calc, battle partners',
 'はじめ方を選んでください。あとから入れかえ・育成の変更ができます。':'Choose how to start. You can swap Pokémon and edit sets later.',
 'おすすめパーティから始める':'Start from a recommended team','ポケモンを1匹ずつ選ぶ':'Pick Pokémon one by one',
 '変更は自動で保存されます':'Changes are saved automatically','保存中…':'Saving…','自動保存済み ✓':'Saved automatically ✓','保存できませんでした':'Could not save',

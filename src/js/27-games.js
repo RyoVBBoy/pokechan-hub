@@ -19,7 +19,9 @@ I.image='<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" c
 I.book='<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>';
 I.info='<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>';
 const GAMES=[
-  {id:'pokechamp',name:'ポケモンチャンピオンズ',short:'ポケチャン',home:'#/',status:'ready',color:'#ffcb05',desc:'図鑑・選出アシスト・ダメージ計算・対戦募集',
+  /* sym＝Game Kid/s のゲームの印（24×24 の線の絵。公式のロゴ・キャラクターは使わない）。ポケモンチャンピオンズ＝六角形（当サイトでポケモンを表す形）＋王冠（チャンピオン） */
+  {id:'pokechamp',name:'ポケモンチャンピオンズ',en:'Pokémon Champions',short:'ポケチャン',home:'#/',status:'ready',color:'#ffcb05',desc:'図鑑・選出アシスト・ダメージ計算・対戦募集',
+    sym:'<path d="M12 2.6 20.2 7.3v9.4L12 21.4 3.8 16.7V7.3z"/><path d="M7.6 15.4h8.8l.9-5.6-3.1 2.2L12 8.4l-2.2 3.6-3.1-2.2z"/>',
     tabs:[['',I.home,'ホーム'],['search',I.search,'検索'],['tools',I.tool,'ツール'],['team',I.grid,'パーティ']],fab:true,
     quick:['assist','calc','types','meta'],
     tools:()=>[
@@ -36,7 +38,8 @@ const GAMES=[
       {id:'import',sec:'連携',href:'#/import',ic:I.image,t:'画像から取り込む',s:'取り込み',d:'ゲームのチーム画面のスクショから、技・持ち物・能力ポイントまで'},
       {id:'learn',sec:'資料',href:'#/learn',ic:I.book,t:'攻略ガイド（道具・技・特性・構築・戦術）',s:'ガイド',d:'持ち物・技・特性の使いどころ、構築の型、戦術・用語を当サイトの言葉で解説'},
     ]},
-  {id:'efootball',name:'eFootball',short:'イーフト',home:null,status:'soon',color:'#1d9bf0',desc:'育成・スカッド作成など（準備中）'}
+  /* status:'soon' のゲームは、切り替えの一覧に出さない（公開前・対応前のゲーム） */
+  {id:'efootball',name:'eFootball',en:'eFootball',short:'イーフト',home:null,status:'soon',color:'#1d9bf0',desc:'育成・スカッド作成など（準備中）',sym:'<circle cx="12" cy="12" r="8.6"/><path d="m12 7.6 3.4 2.5-1.3 4H9.9l-1.3-4z"/>'}
 ];
 /* いまはポケモンチャンピオンズ専用のサイトとして運営する（2026/10/31 依頼主の方針）。
    true にすると、ゲームの切り替え（左のメニュー・#/games・起動時の選択）が出る。ゲームを増やすときに true にする */
@@ -47,7 +50,11 @@ const BRAND={logo:null}; /* ロゴ画像のURLを入れると、左上の丸の�
 const gpGet=()=>{const d={pins:['pokechamp'],start:'last',last:'pokechamp'};try{return{...d,...JSON.parse(localStorage.getItem('pcgames')||'{}')}}catch(e){return d}};
 const gpSet=o=>{try{localStorage.setItem('pcgames',JSON.stringify({...gpGet(),...o}))}catch(e){}};
 const gameOf=id=>GAMES.find(g=>g.id===id);
-const curGame=()=>MULTI_GAME?(gameOf(gpGet().last)||GAMES[0]):GAMES[0];
+/* 切り替えられるゲーム＝公開して対応しているもの（status:'ready'）だけ */
+const readyGames=()=>GAMES.filter(g=>g.status==='ready');
+/* いまのゲーム＝最後に選んだゲーム（この端末の pcgames.last）。対応していない・消えたゲームなら、対応している最初のゲーム */
+const curGame=()=>{const g=gameOf(gpGet().last);return g&&g.status==='ready'?g:readyGames()[0]};
+const gameName=g=>L(g.name,g.en||g.name);
 /* ---- ツール：マイツール（☆）・最近使った（この端末に保存。ゲームごと） ---- */
 const toolsOf=g=>(g&&g.tools?g.tools():[]);
 const tlsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){return{}}};
@@ -74,30 +81,50 @@ function drawNav(){
   ROOTS=tabs.map(x=>x[0]);
   document.getElementById('nav').innerHTML=tabs.map(([k,ic,l])=>
     `<a class="tb" href="#/${k}" data-k="${k}" aria-label="${l}" title="${l}">${SVG(ic)}<span>${l}</span></a>`).join('');
-  const pb=document.querySelector('.pc-brand .mark');if(pb)pb.outerHTML=gameMark(curGame(),30).replace('class="gmark"','class="gmark mark"');
+  gswDraw();
   const fab=document.getElementById('pc-post');if(fab)fab.hidden=!curGame().fab;
 }
-const gameMark=(g,sz=36)=>`<span class="gmark" style="width:${sz}px;height:${sz}px;background:${g.color}"><b style="font-size:${Math.round(sz*.34)}px">${esc(g.short.slice(0,2))}</b></span>`;
+/* ゲームの印：ゲームの色の角の丸い四角に、そのゲームの Game Kid/s の印（sym）。文字の略称（「ポケ」など）は出さない */
+const gameMark=(g,sz=36)=>`<span class="gmark" aria-hidden="true" style="width:${sz}px;height:${sz}px;background:${g.color}"><svg viewBox="0 0 24 24" width="${Math.round(sz*.66)}" height="${Math.round(sz*.66)}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${g.sym||''}</svg></span>`;
+/* ===== 左上のゲームの切り替え（2026/11/19）：PC は左の列のいちばん上（#gsw）、スマホは左から出るメニューのいちばん上（data-dr="game"）。
+   いまのゲームの印と正式な名前を出し、押すとゲームの一覧（対応しているゲームだけ）。共通のもの（お知らせ・アカウント・設定）は切りかえても同じ ===== */
+const gswLabel=g=>L(`ゲーム：${gameName(g)}（押すとゲームを切り替える）`,`Game: ${gameName(g)} (switch game)`);
+function gswDraw(){const b=document.getElementById('gsw');if(!b)return;const g=curGame();
+  b.innerHTML=`${gameMark(g,30)}<span class="gsw-t"><small>Game Kid/s</small><b>${esc(gameName(g))}</b></span><svg class="gsw-c" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+  b.setAttribute('aria-label',gswLabel(g));b.title=gameName(g)}
 function openGame(g){
   if(!g)return;
-  if(g.status!=='ready'){toast(`${g.name}は準備中です。ピン留めしておくと、公開したときにすぐ開けます`);return}
-  const ch=curGame().id!==g.id;gpSet({last:g.id});if(ch)drawNav();nav(g.home);
+  if(g.status!=='ready'){toast(`${g.name}は準備中です。対応したら選べるようになります`);return}
+  const ch=curGame().id!==g.id;gpSet({last:g.id});
+  if(!ch)return;
+  /* ちがうゲームに切りかえたとき：下（左）のメニュー・ツール・ホームをそのゲームのものに。タブごとに覚えていた前のゲームの画面は捨てる */
+  try{for(const k in TABMEM)delete TABMEM[k];sessionStorage.removeItem('pctabmem')}catch(e){}
+  drawNav();if(typeof pcNavDraw==='function')pcNavDraw();nav(g.home||'#/');
 }
-function gameSheet(){
-  if(!MULTI_GAME)return;
-  const gp=gpGet(),cg=curGame();
-  const list=(gp.pins.length?gp.pins.map(gameOf).filter(Boolean):GAMES.filter(g=>g.status==='ready'));
-  const o=document.createElement('div');o.className='psheet';
-  o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="ゲームを切り替える"><h3>ゲームを切り替える</h3>
-    ${list.map(g=>`<button class="gsw" data-g="${g.id}">${gameMark(g,34)}<span><b>${esc(g.name)}</b><small>${g.status==='ready'?esc(g.desc):'準備中'}</small></span>${g.id===cg.id?'<i>✓</i>':''}</button>`).join('')}
-    ${GAMES.filter(g=>!list.includes(g)&&g.status!=='ready').map(g=>`<button class="gsw" data-g="${g.id}" style="opacity:.55">${gameMark(g,34)}<span><b>${esc(g.name)}</b><small>近日追加予定</small></span></button>`).join('')}
-    <button class="psheet-o" data-more>ゲームを選ぶ・マイゲームを編集</button><button class="psheet-o" data-lang>言語 / Language</button><button class="psheet-x">閉じる</button></div>`;
-  document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
-  const done=()=>{o.classList.remove('on');setTimeout(()=>o.remove(),180)};
-  o.querySelector('.psheet-bg').onclick=done;o.querySelector('.psheet-x').onclick=done;o.querySelector('[data-lang]').addEventListener('click',done);
-  o.querySelector('[data-more]').onclick=()=>{done();nav('#/games')};
-  o.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{done();openGame(gameOf(b.dataset.g))});
+function gameSheet(from){
+  if(document.querySelector('.gsw-o'))return;
+  const cg=curGame(),list=readyGames(),pc=matchMedia('(min-width:700px)').matches;
+  const o=document.createElement('div');o.className='psheet gsw-o'+(pc?' gsw-pc':'');
+  o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-labelledby="gsw-h"><h3 id="gsw-h">ゲームを切り替える</h3>
+    <div class="gsw-l" role="listbox" aria-labelledby="gsw-h">${list.map(g=>{const on=g.id===cg.id;return `<button class="gsw" role="option" aria-selected="${on}" data-g="${g.id}">${gameMark(g,34)}<span><b>${esc(gameName(g))}</b><small>${esc(g.desc)}</small></span>${on?`<i aria-hidden="true">${SVG(I.check||'<path d="m5 12.5 4.5 4.5L19 7.5"/>',18)}</i>`:''}</button>`}).join('')}</div>
+    ${list.length<2?'<p class="gsw-n">いま対応しているゲームは、このゲームだけです。ほかのゲームは、対応したらここに並びます。</p>':''}
+    ${MULTI_GAME?'<button class="psheet-o" data-more>ゲームを選ぶ・マイゲームを編集</button>':''}<button class="psheet-x">閉じる</button></div>`;
+  document.body.appendChild(o);
+  const btn=from||(pc?document.getElementById('gsw'):null);
+  /* PC：押したボタンのすぐ下に出す。スマホ：下から出る */
+  if(pc&&btn){const r=btn.getBoundingClientRect(),p=o.querySelector('.psheet-p');p.style.left=Math.round(Math.max(8,r.left))+'px';p.style.top=Math.round(r.bottom+6)+'px'}
+  if(btn)btn.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>o.classList.add('on'));
+  const sel=o.querySelector('.gsw[aria-selected=true]')||o.querySelector('.gsw');setTimeout(()=>{try{sel&&sel.focus()}catch(e){}},30);
+  const done=back=>{o.classList.remove('on');document.removeEventListener('keydown',key,true);if(btn){btn.setAttribute('aria-expanded','false');if(back)try{btn.focus()}catch(e){}}setTimeout(()=>o.remove(),180)};
+  const key=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();done(true);return}
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){const bs=[...o.querySelectorAll('.gsw')],i=bs.indexOf(document.activeElement);if(bs.length){e.preventDefault();bs[(i+(e.key==='ArrowDown'?1:bs.length-1))%bs.length].focus()}}};
+  document.addEventListener('keydown',key,true);
+  o.querySelector('.psheet-bg').onclick=()=>done(true);o.querySelector('.psheet-x').onclick=()=>done(true);
+  const m=o.querySelector('[data-more]');if(m)m.onclick=()=>{done();nav('#/games')};
+  o.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{done(true);openGame(gameOf(b.dataset.g))});
 }
+document.addEventListener('click',e=>{const b=e.target.closest('#gsw');if(b){e.preventDefault();gameSheet(b)}});
 function gamesView(){
   if(!MULTI_GAME){nav('#/');return}
   setHeader('ゲームを選ぶ',curGame().home||'#/');

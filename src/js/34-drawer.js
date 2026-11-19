@@ -32,6 +32,7 @@ function drawerHTML(){
   return `<div class="dr-bg"></div><nav class="dr-p" aria-label="メニュー">
     <div class="dr-head">${pr?`<a href="#/u/${esc(pr.handle)}" class="dr-me">${twAv(pr,'')}<div data-notr><b>${esc(pr.name)}</b><small>@${esc(pr.handle)}</small></div></a><div class="dr-ff" id="dr-ff"></div>`
       :`<a href="#/account" class="dr-me"><span class="tw-av" style="background:var(--elev2);color:var(--dim)">${SVG(I.user,22)}</span><div><b>ログイン</b><small>パーティをどの端末でも・投稿・フォロー</small></div></a>`}</div>
+    <button class="dr-game" data-dr="game" aria-haspopup="dialog" aria-label="${esc(gswLabel(g))}">${gameMark(g,30)}<span class="gsw-t"><small>いまのゲーム</small><b>${esc(gameName(g))}</b></span>${SVG(I.swap,20)}</button>
     ${it(pr?'#/u/'+esc(pr.handle):'#/account',I.user,'プロフィール')}
     ${it('#/notif',I.bell,'お知らせ<i class="dr-n" id="dr-nf">'+(notifN?(notifN>9?'9+':notifN):'')+'</i>')}
     ${pr?it('#/requests',I.user,'フォローリクエスト<i class="dr-n" id="dr-fq">'+(FREQ_N?(FREQ_N>9?'9+':FREQ_N):'')+'</i>',' id="dr-fqrow"'+(FREQ_N?'':' hidden')):''}
@@ -40,7 +41,6 @@ function drawerHTML(){
     ${it('#/community',I.chat,'コミュニティ')}
     ${it('#/team',I.grid,'パーティ')}
     ${it('#/tools',I.star,'マイツール')}
-    ${MULTI_GAME?`<button class="dr-i" data-dr="game">${SVG(I.swap,24)}<span>ゲームを切り替える</span><span class="dr-g">${gameMark(g,22)}</span></button>`:''}
     ${it('#/search/'+encodeURIComponent('#対戦募集'),I.swords||I.chat,'対戦募集')}
     ${it('#/search/'+encodeURIComponent('#構築相談'),I.chat,'構築相談・質問')}
     <div class="dr-sep"></div>

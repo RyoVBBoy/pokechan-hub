@@ -3601,3 +3601,44 @@ body.gkcm-on{overflow:hidden}
   .tb[aria-current=page] svg path,.pcm[aria-current=page] svg path{fill:currentColor;fill-opacity:.18}
   .tb[aria-current=page]:hover,.pcm[aria-current=page]:hover{color:var(--acc)!important;background:var(--acc-t)}
 }
+/* ===== 2026/11/19 左上のゲームの切り替え（27-games.js の gswDraw・gameSheet）=====
+   ・PC：左の列のいちばん上。前の「ポケ」の四角と「Game Kid/s」の場所・大きさのまま、ゲームの印と正式な名前（1280px以上）と ▾。押すと下に一覧
+   ・スマホ：左から出るメニューのいちばん上の行（いまのゲーム）。押すと下から一覧
+   ・ゲームの印は文字ではなく Game Kid/s の線の絵（公式のロゴ・キャラクターは使わない） */
+.gmark{color:#1a1400}
+.gmark svg{display:block}
+@media(min-width:700px){
+  .pc-brand{border:0;background:none;color:var(--fg);font:inherit;cursor:pointer;text-align:left;max-width:100%}
+  .pc-brand:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .pc-brand .gsw-t,.pc-brand .gsw-c{display:none}
+}
+@media(min-width:1280px){
+  .pc-brand{gap:8px;padding:8px 10px 8px 8px}
+  .pc-brand .gsw-t{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+  .pc-brand .gsw-t small{font-size:11px;font-weight:600;color:var(--dim)}
+  /* 正式な名前は省略しない（入りきらなければ2行に） */
+  .pc-brand .gsw-t b{font-size:14px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+  .pc-brand .gsw-c{display:block;flex:none;color:var(--dim)}
+  .pc-brand[aria-expanded=true] .gsw-c{transform:rotate(180deg)}
+}
+/* スマホの左のメニュー：いまのゲームの行 */
+.dr-game{display:flex;align-items:center;gap:12px;width:calc(100% - 24px);margin:4px 12px 8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--soft,transparent);color:var(--fg);font:inherit;text-align:left;cursor:pointer;min-height:52px}
+.dr-game .gsw-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.dr-game .gsw-t small{font-size:11.5px;color:var(--dim)}
+.dr-game .gsw-t b{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-game>svg{flex:none;color:var(--dim)}
+/* 一覧 */
+.gsw-o .gsw{min-height:56px;padding:10px 8px;border-radius:12px;border-bottom:0;cursor:pointer}
+.gsw-o .gsw:hover{background:var(--hov)}
+.gsw-o .gsw:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.gsw-o .gsw[aria-selected=true] b{color:var(--acc)}
+.gsw-o .gsw i{display:grid;place-items:center;color:var(--acc)}
+.gsw-n{margin:8px 8px 4px;font-size:12.5px;line-height:1.6;color:var(--dim)}
+/* PC：ボタンのすぐ下に浮かぶ小さな窓（下から出さない） */
+.gsw-o.gsw-pc{align-items:flex-start;justify-content:flex-start}
+.gsw-o.gsw-pc .psheet-bg{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+.gsw-o.gsw-pc .psheet-p{position:fixed;width:320px;max-width:calc(100vw - 16px);border-radius:16px;padding:12px;transform:translateY(-6px);opacity:0;transition:transform .16s,opacity .16s;
+  box-shadow:0 12px 36px rgba(0,0,0,.28),0 0 0 1px var(--line);background:var(--bg)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+.gsw-o.gsw-pc.on .psheet-p{transform:none;opacity:1}
+.gsw-o.gsw-pc h3{font-size:15px;margin:2px 8px 8px}
+@media(prefers-reduced-motion:reduce){.gsw-o.gsw-pc .psheet-p{transition:none}}
