@@ -107,7 +107,7 @@ function gameSheet(from){
   const o=document.createElement('div');o.className='psheet gsw-o'+(pc?' gsw-pc':'');
   o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-labelledby="gsw-h"><h3 id="gsw-h">ゲームを切り替える</h3>
     <div class="gsw-l" role="listbox" aria-labelledby="gsw-h">${list.map(g=>{const on=g.id===cg.id;return `<button class="gsw" role="option" aria-selected="${on}" data-g="${g.id}">${gameMark(g,34)}<span><b>${esc(gameName(g))}</b><small>${esc(g.desc)}</small></span>${on?`<i aria-hidden="true">${SVG(I.check||'<path d="m5 12.5 4.5 4.5L19 7.5"/>',18)}</i>`:''}</button>`}).join('')}</div>
-    ${list.length<2?'<p class="gsw-n">いま対応しているゲームは、このゲームだけです。ほかのゲームは、対応したらここに並びます。</p>':''}
+    ${list.length<2?'<p class="gsw-n">いま対応しているゲームは、このゲームだけです。ほかのゲームは、対応した時にここに並びます。</p>':''}
     ${MULTI_GAME?'<button class="psheet-o" data-more>ゲームを選ぶ・マイゲームを編集</button>':''}<button class="psheet-x">閉じる</button></div>`;
   document.body.appendChild(o);
   const btn=from||(pc?document.getElementById('gsw'):null);
