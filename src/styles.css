@@ -3658,17 +3658,6 @@ body.gkcm-on{overflow:hidden}
   .tbd-bar{bottom:calc(var(--tbB) + 64px)}
   #twp-list,.gkc-page~#twp-list{padding-bottom:calc(var(--tbB) + 88px)}
 }
-/* ===== 2026/11/19 iPhone のホーム画面から開いたとき、iOS が渡すページの高さが画面より短い分（--vshim、00-start.js の vpShim が測る） =====
-   ページ（html・body）をその分だけ下へのばし、画面の下に固定するもの（下のメニュー・⚡・通知・下をふさぐ帯・全画面の窓）も同じ分だけ下げる。
-   --tbB0＝画面の下からのメニューの高さ、--tbB＝iOS が渡したページの下からの高さ（固定するものはこちら）。差がない端末（ほとんど）では今までと同じ */
-:root{--vshim:0px}
-html.vshim{height:calc(100% + var(--vshim));overflow:visible}
-@media(max-width:699px){
-  :root{--tbB0:max(8px, calc(env(safe-area-inset-bottom) - 10px));--tbB:calc(var(--tbB0) - var(--vshim))}
-  .app{padding-bottom:calc(var(--tbB0) + 102px)!important}
-  body::after{bottom:calc(-1 * var(--vshim));height:calc(var(--tbB0) + 4px)!important}
-  .kd-bar{bottom:calc(var(--tbB0) + 84px)}
-  .tbd-bar{bottom:calc(var(--tbB0) + 64px)}
-  #twp-list,.gkc-page~#twp-list{padding-bottom:calc(var(--tbB0) + 88px)}
-}
-html.vshim :is(.psheet,.sheet,.drawer,.tw-view,.xc,.setm,.gkcm,.gkl,.tg-v){bottom:calc(-1 * var(--vshim))}
+/* 投稿のどこを押しても投稿の画面へ（2026/11/19、32-timeline.js の twBind）：押せる投稿は指の形に。投稿の画面の大きな投稿はそのまま */
+.tw:not(.tw--big){cursor:pointer}
+.tw:not(.tw--big) .tw-b{cursor:inherit}

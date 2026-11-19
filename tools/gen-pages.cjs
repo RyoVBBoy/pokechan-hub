@@ -32,7 +32,7 @@ const TSLUG={'ノーマル':'normal','ほのお':'fire','みず':'water','でん
  const D=await pg.evaluate((TSLUG)=>{
   const out={mons:[],types:[]};
   const lvRange=(p,i)=>{const b=p.s[i];if(i===0)return[b+75,b+75,b+32+75];return[Math.floor((b+20)*.9),b+20,Math.floor((b+32+20)*1.1)]};
-  const rowL=(q,root)=>`<a class="row" href="${root}pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}<span class="no">#${String(q.dno||q.no).padStart(4,'0')}</span></div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`;
+  const rowL=(q,root)=>`<a class="row" href="${root}pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}<span class="no">No.${String(q.dno||q.no).padStart(4,'0')}</span></div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`;
   const badge=(lab,c)=>`<span class="srcb" style="--c:${c};cursor:default"><i></i>${lab}</span>`;
   P.forEach((p,k)=>{
    const tb=monDef(p).map(x=>[x.t,x.m]),weak=tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),res=tb.filter(x=>x[1]<1);
@@ -46,7 +46,7 @@ const TSLUG={'ノーマル':'normal','ほのお':'fire','みず':'water','でん
    const R='__ROOT__';
    const html=`
 <nav class="crumb"><a href="${R}">ホーム</a> › <a href="${R}pokemon/">ポケモン一覧</a> › ${p.n}</nav>
-<div class="sh1"><span class="av" style="width:64px;height:64px">${stamp(p)}</span><div><span class="no">#${String(p.dno||p.no).padStart(4,'0')}</span><h1>${p.n}</h1><div class="chips">${p.t.map(t=>`<a href="${R}type/${TSLUG[t]}/">${chip(t)}</a>`).join('')}<span class="rt">${p.roles.join('・')}</span></div></div></div>
+<div class="sh1"><span class="av" style="width:64px;height:64px">${stamp(p)}</span><div><span class="no">No.${String(p.dno||p.no).padStart(4,'0')}</span><h1>${p.n}</h1><div class="chips">${p.t.map(t=>`<a href="${R}type/${TSLUG[t]}/">${chip(t)}</a>`).join('')}<span class="rt">${p.roles.join('・')}</span></div></div></div>
 <p class="lead">${p.n}は<b>${p.t.join('・')}</b>タイプのポケモンです。合計種族値は<b>${p.bst}</b>で、収録${P.length}匹中${sumRank}位。いちばん高い能力は${SN[p.mi]}（${p.s[p.mi]}）です。弱点は${weak.length?weak.map(x=>`<b>${x[0]}</b>${x[1]>=4?'（4倍）':''}`).join('・'):'ありません'}${w4.length?'。とくに'+w4.join('・')+'の技は4倍のダメージを受けます':''}。</p>
 <div class="cta"><a class="btn btn-p" href="${R}#/p/${p.no}">Lv50の実数値を計算</a><a class="btn btn-s" href="${R}counter/${p.no}/">${p.n}の対策・倒し方</a></div>
 <div class="sec"><h2>種族値</h2><span style="font-size:12px;color:var(--dim)">右は収録${P.length}匹中の順位</span></div>
@@ -111,7 +111,7 @@ ${sec(`${p.n}を相手にするとき気をつけたいポケモン`,`${p.n}が�
 <div class="pn">${k>0?`<a href="${R}counter/${P[k-1].no}/">← ${P[k-1].n}の対策</a>`:'<span></span>'}${k<P.length-1?`<a href="${R}counter/${P[k+1].no}/">${P[k+1].n}の対策 →</a>`:''}</div>`;
    return{no:p.no,n:p.n,html,desc:`ポケモンチャンピオンズの${p.n}の対策・倒し方。弱点は${weak.map(x=>x.t).join('・')||'なし'}。${top.length?top.join('・')+'などが有利。':''}上から一撃で倒せるポケモン・強く出られるポケモン・攻撃を受けられるポケモンをダメージ計算で紹介。`}}catch(e){return null}}).filter(Boolean);
   out.names={};[...P,...(typeof MEGAP!=='undefined'?MEGAP:[])].forEach(q=>{if(q&&q.no)out.names[q.no]=q.n});
-  out.pokeIndex=P.map(q=>`<a class="row" href="__ROOT__pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}<span class="no">#${String(q.dno||q.no).padStart(4,'0')}</span></div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`).join('');
+  out.pokeIndex=P.map(q=>`<a class="row" href="__ROOT__pokemon/${q.no}/"><span class="av">${stamp(q)}</span><div class="row-m"><div class="row-t">${q.n}<span class="no">No.${String(q.dno||q.no).padStart(4,'0')}</span></div><div class="chips">${q.t.map(chip).join('')}</div></div><div class="row-n"><b>${q.bst}</b><span>合計</span></div></a>`).join('');
   /* 構築の型（40-guide-builds.js の ARCHS）：型ごとのページ */
   out.builds=ARCHS.map(a=>{const R='__ROOT__',ex=archBuild(a),ss=archSets(a,ex);
    const mA=q=>`<a class="pill gchip" href="${R}pokemon/${q.no}/">${formInfo(q).base}${formInfo(q).tag?'（'+formInfo(q).tag+'）':''}</a>`;

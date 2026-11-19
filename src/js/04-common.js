@@ -67,7 +67,7 @@ function formInfo(p){
       base=LANG==='en'?((typeof NAMES!=='undefined'&&NAMES.en.p[DNO[p.no]])||p.n):m[1]}}
   return p._f={base,tag,kind};
 }
-const nm=(p,o={})=>{const f=formInfo(p);return `<span class="pn${o.big?' pn-big':''}"><b class="pn-n">${esc(f.base)}</b>${f.tag?`<i class="ftag ftag-${f.kind}">${esc(f.tag)}</i>`:''}${o.no===false?'':`<span class="no">#${String(p.dno||p.no).padStart(4,'0')}</span>`}</span>`};
+const nm=(p,o={})=>{const f=formInfo(p);return `<span class="pn${o.big?' pn-big':''}"><b class="pn-n">${esc(f.base)}</b>${f.tag?`<i class="ftag ftag-${f.kind}">${esc(f.tag)}</i>`:''}${o.no===false?'':`<span class="no">No.${String(p.dno||p.no).padStart(4,'0')}</span>`}</span>`};
 /* 素早さの順位：収録ポケモンの最速（性格で上げ・ポイント32）と比べて、全体で何位か（自分は数えない）。同じ速さの数も返す */
 const spdRank=(v,self)=>{const o=P.filter(q=>q.no!==self);return{rank:o.filter(q=>maxSpe(q)>v).length+1,same:o.filter(q=>maxSpe(q)===v).length,n:o.length+1}};
 const spdRankHTML=(v,self)=>{const r=spdRank(v,self);return L(`収録${r.n}匹の最速（性格で上げ・ポイント32）と比べると、<b>全体で${r.rank}位</b>${r.same?`（同じ速さが${r.same}匹）`:''}です。`,

@@ -105,27 +105,20 @@ for(const [W,H,sa] of [[375,667,0],[390,844,0],[390,844,34],[430,932,34],[360,78
   ok(r.sa===sa&&r.gap===want&&r.cover<=want+4&&r.fab===14&&r.clear,`${W}x${H} 下の余白${sa}px：メニューの下は${want}px（何もない帯を作らない）・下をふさぐ帯は小さく・⚡との間は同じ・ページの終わりはメニューに隠れない `+JSON.stringify(r));
   await ctx.close();
 }
-/* ---- iPhone のホーム画面から開き、iOS が画面より短いページの高さを渡したとき（2026/11/19 依頼主のスクリーンショット：下に約60pt の黒い帯） ----
-   navigator.standalone と screen.height をまねて「足りない分」を作り、ページと下のメニューが画面の下までそろうか（計算の上で）を確かめる。
-   ほんとうの iPhone では iOS が描く範囲が変わるので、ここで分かるのは位置の決め方まで */
-for(const [name,stand,extra,sa] of [['iPhone のホーム画面・足りない62',true,62,34],['iPhone のホーム画面・足りない59',true,59,34],['Safari（standalone でない）',false,62,0],['ホーム画面・差なし',true,0,34],['差が大きすぎる（はかり違い）',true,200,34]]){
+/* ---- iPhone のホーム画面から開いたとき（navigator.standalone）、screen.height と innerHeight が違っても、下のメニューは画面の中・中身はスクロールできる ----
+   2026/11/19：差の分だけページをのばしてメニューを下げる作り（vpShim）を入れたら、依頼主の iPhone でメニューが画面の下で切れ、画面も動かなくなった（もとに戻した） */
+for(const ex of [0,59,62]){
   const ctx=await b.newContext({viewport:{width:390,height:780},locale:'ja-JP',hasTouch:true,isMobile:true});
-  await ctx.addInitScript(([st,ex])=>{if(st)Object.defineProperty(Navigator.prototype,'standalone',{get:()=>true,configurable:true});
-    Object.defineProperty(Screen.prototype,'height',{get:()=>innerHeight+ex,configurable:true})},[stand,extra]);
-  const pg=await ctx.newPage();await pg.route(/^https?:/,r=>r.abort());pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message));
-  const cdp=await ctx.newCDPSession(pg);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:sa?47:0,bottom:sa,left:0,right:0}});
+  await ctx.addInitScript(ex=>{Object.defineProperty(Navigator.prototype,'standalone',{get:()=>true,configurable:true});
+    Object.defineProperty(Screen.prototype,'height',{get:()=>innerHeight+ex,configurable:true})},ex);
+  const pg=await ctx.newPage();await pg.route(/^https?:/,r=>r.abort());
+  const cdp=await ctx.newCDPSession(pg);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:47,bottom:34,left:0,right:0}});
   await pg.goto(URL0+'#/tools');await pg.waitForTimeout(900);
-  const r=await pg.evaluate(()=>{const H=innerHeight,de=document.documentElement,vs=parseFloat(getComputedStyle(de).getPropertyValue('--vshim'))||0,bottom=H+vs;
-    const t=document.querySelector('.tabbar').getBoundingClientRect(),f=document.querySelector('.fabwrap .fab').getBoundingClientRect(),af=getComputedStyle(document.body,'::after');
-    return{vs,cls:de.classList.contains('vshim'),html:Math.round(de.getBoundingClientRect().height),body:Math.round(document.body.getBoundingClientRect().height),H,
-      gap:Math.round(bottom-t.bottom),fab:Math.round(t.top-f.bottom),coverBottom:Math.round(H-parseFloat(af.bottom))}});
-  const want=stand&&extra>0&&extra<=120?extra:0;
-  ok(r.vs===want&&r.cls===(want>0),name+'：足りない分だけ --vshim（'+want+'px）',r);
-  ok(r.html===r.H+want&&r.body===r.H+want,name+'：ページ（html・body）をその分だけ下へのばす',r);
-  ok(r.gap===Math.max(8,sa-10)&&r.fab===14&&r.coverBottom===r.H+want,name+'：下のメニュー・⚡・下をふさぐ帯は画面の下から測って前と同じ',r);
-  if(want){await pg.click('#brand');await pg.waitForTimeout(500);ok(await pg.evaluate(v=>Math.round(document.querySelector('.drawer').getBoundingClientRect().bottom)===innerHeight+v,want),name+'：全画面の窓（左のメニュー）も画面の下まで');
-    await pg.evaluate(()=>window.scrollTo(0,50));await pg.waitForTimeout(100);ok(await pg.evaluate(()=>window.scrollY===0),name+'：ページ全体は動かない（中身のスクロールは今までどおり）')}
-  ok(!pg.errs.length,name+'：エラーなし',pg.errs);await ctx.close();
+  const r=await pg.evaluate(()=>{const t=document.querySelector('.tabbar').getBoundingClientRect();return{H:innerHeight,bot:Math.round(t.bottom),top:Math.round(t.top),html:Math.round(document.documentElement.getBoundingClientRect().height)}});
+  ok(r.bot<=r.H&&r.H-r.bot===24&&r.html===r.H,`ホーム画面（差${ex}px）：下のメニューは画面の中（下から24px）・ページはのばさない `+JSON.stringify(r));
+  await pg.mouse.move(195,300);await pg.mouse.wheel(0,500);await pg.waitForTimeout(400);
+  const top=await pg.evaluate(()=>document.body.scrollTop);ok(top>100,`ホーム画面（差${ex}px）：中身はスクロールできる（${top}）`);
+  await ctx.close();
 }
 await b.close();
 console.log(bad?`navlayout: NG（${bad}件）`:`navlayout: OK（${n}項目）`);if(bad)process.exitCode=1;
