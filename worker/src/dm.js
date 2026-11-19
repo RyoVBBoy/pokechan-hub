@@ -52,7 +52,8 @@ async function dmBlock(db,fromUid,to){
     if(!r)return DM_FOLLOWING}
   return null;
 }
-const dmUser=x=>({handle:x.handle,name:x.name,av:x.avatar||null,private:!!x.private});
+/* off＝「運営」の札（social.js の OFFX と同じ決め方） */
+const dmUser=x=>({handle:x.handle,name:x.name,av:x.avatar||null,private:!!x.private,...(x.uid==='bot:tips'||x.off?{off:true}:{})});
 const dmMsgOut=(x,me)=>({id:x.id,body:x.body,created_at:x.created_at,mine:x.uid===me,user:x.handle?{handle:x.handle,name:x.name,av:x.avatar||null}:null});
 async function dmMsgs(db,conv,me,u){
   const after=parseInt(u.searchParams.get('after')||'',10)||0,before=parseInt(u.searchParams.get('before')||'',10)||9e15;
@@ -97,7 +98,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
       (SELECT COUNT(*) FROM dm_msgs x WHERE x.conv_id=c.id AND x.id>m.last_read AND x.uid<>?1) AS unread,
       (SELECT COUNT(*) FROM dm_members y WHERE y.conv_id=c.id) AS n
       FROM dm_members m JOIN dm_convs c ON c.id=m.conv_id WHERE m.uid=?1 AND c.kind=?2 AND c.last_at>0 ORDER BY c.last_at DESC LIMIT 100`).bind(uid,kind).all()).results;
-    const mem=r.length?(await db.prepare(`SELECT m.conv_id,s.handle,s.name,s.avatar,s.private FROM dm_members m JOIN users s ON s.uid=m.uid AND s.banned=0
+    const mem=r.length?(await db.prepare(`SELECT m.conv_id,s.handle,s.name,s.avatar,s.private,s.uid,COALESCE(s.off,0) AS off FROM dm_members m JOIN users s ON s.uid=m.uid AND s.banned=0
       WHERE m.conv_id IN (SELECT conv_id FROM dm_members WHERE uid=?1) AND m.uid<>?1`).bind(uid).all()).results:[];
     const by={};for(const x of mem)(by[x.conv_id]=by[x.conv_id]||[]).push(dmUser(x));
     const out=r.map(c=>({id:c.id,kind:c.kind,title:c.title||'',n:c.n,last_at:c.last_at,last:c.last_body||'',last_mine:c.last_uid===uid,unread:Math.min(c.unread,99),members:(by[c.id]||[]).slice(0,5)}))
@@ -111,7 +112,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 1対1の会話を開く：相手・送れるか（理由）・やりとり */
   if((m=path.match(/^\/api\/dm\/with\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const t=await db.prepare(`SELECT uid,handle,name,avatar,private,dm_from,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(m[1]).first();
+    const t=await db.prepare(`SELECT uid,handle,name,avatar,private,dm_from,banned,COALESCE(off,0) AS off FROM users WHERE handle=? COLLATE NOCASE`).bind(m[1]).first();
     if(!t||t.banned)return J({error:'ユーザーが見つかりません。'},404);
     if(t.uid===uid)return J({error:'自分にはメッセージを送れません。'},400);
     const reason=await dmBlock(db,uid,t);
@@ -124,7 +125,7 @@ async function dmApi(req,env,db,path,u,body,now,ip,ctx){
   if((m=path.match(/^\/api\/dm\/(\d+)$/))&&req.method==='GET'){
     const c=await db.prepare(`SELECT c.id,c.kind,c.title,c.owner FROM dm_convs c JOIN dm_members m ON m.conv_id=c.id AND m.uid=? WHERE c.id=?`).bind(uid,+m[1]).first();
     if(!c)return J({error:'この会話は見つかりません。'},404);
-    const mem=(await db.prepare(`SELECT s.handle,s.name,s.avatar,s.private,s.uid FROM dm_members m JOIN users s ON s.uid=m.uid AND s.banned=0 WHERE m.conv_id=? ORDER BY m.joined_at`).bind(c.id).all()).results;
+    const mem=(await db.prepare(`SELECT s.handle,s.name,s.avatar,s.private,s.uid,COALESCE(s.off,0) AS off FROM dm_members m JOIN users s ON s.uid=m.uid AND s.banned=0 WHERE m.conv_id=? ORDER BY m.joined_at`).bind(c.id).all()).results;
     const msgs=await dmMsgs(db,c.id,uid,u);
     if(!u.searchParams.get('after')||msgs.msgs.length)await dmRead(db,c.id,uid);
     return J({conv:{id:c.id,kind:c.kind,title:c.title||'',owner:c.owner===uid,members:mem.filter(x=>x.uid!==uid).map(dmUser)},can:true,reason:null,...msgs});

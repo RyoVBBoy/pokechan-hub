@@ -13,7 +13,7 @@ function freqBadge(n){
   const p=document.getElementById('pf-fq-n');if(p)p.textContent=n?n+'件':'';
 }
 const fwRowHTML=(x,o={})=>`<div class="fw-row" data-fh="${esc(x.handle)}">
-  <a class="fw-a" href="#/u/${esc(x.handle)}">${dmAv(x)}<div class="row-m"><div class="dm-l1"><b data-notr>${esc(x.name)}</b>${x.private?SVG(I.lock,13):''}</div>
+  <a class="fw-a" href="#/u/${esc(x.handle)}">${dmAv(x)}<div class="row-m"><div class="dm-l1"><b data-notr>${esc(x.name)}</b>${typeof tipsBadge==='function'?tipsBadge(x):''}${x.private?SVG(I.lock,13):''}</div>
     <div class="fw-h"><span class="tw-t" data-notr>@${esc(x.handle)}</span>${x.follows_me&&!o.req?'<span class="pf-fm">フォローされています</span>':''}</div>
     ${x.bio?`<div class="fw-bio" data-notr>${esc(x.bio)}</div>`:''}</div></a>
   ${o.btns||''}</div>`;

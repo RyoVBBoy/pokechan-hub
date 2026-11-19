@@ -79,7 +79,7 @@ const flBtn=u=>{if(u.me)return '';const on=!!(u.followed||u.requested),t=pfFollo
 function flRow(u){
   return `<div class="fl-row" data-fl-go="${esc(u.handle)}" role="link" tabindex="0" aria-label="${esc(u.name)}（@${esc(u.handle)}）のプロフィール">
     <span class="tw-av fl-av${u.card?' gk-cr':''}" style="background:${avCol(u.handle)}" aria-hidden="true">${avIn(u)}</span>
-    <span class="fl-tx"><span class="fl-nm"><b data-notr>${esc(u.name)}</b>${u.private?`<span class="fl-lock" title="非公開のアカウント" aria-label="非公開のアカウント">${SVG(I.lock,14)}</span>`:''}</span>
+    <span class="fl-tx"><span class="fl-nm"><b data-notr>${esc(u.name)}</b>${typeof tipsBadge==='function'?tipsBadge(u):''}${u.private?`<span class="fl-lock" title="非公開のアカウント" aria-label="非公開のアカウント">${SVG(I.lock,14)}</span>`:''}</span>
       <span class="fl-hd" data-notr>@${esc(u.handle)}${u.follows_me&&!u.me?'<em>フォローされています</em>':''}</span>
       ${u.bio?`<span class="fl-bio" data-notr>${esc(u.bio)}</span>`:''}</span>
     ${flBtn(u)}</div>`;

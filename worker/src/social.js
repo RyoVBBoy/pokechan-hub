@@ -58,6 +58,9 @@ async function socialInit(db){
   try{await db.prepare(`ALTER TABLE users ADD COLUMN private INTEGER DEFAULT 0`).run()}catch(e){}
   /* メッセージを受け取る相手（2026/11/11）：'all'＝だれでも／'following'＝自分がフォローしている人だけ */
   try{await db.prepare(`ALTER TABLE users ADD COLUMN dm_from TEXT DEFAULT 'all'`).run()}catch(e){}
+  /* 公式の運営の札（2026/11/19）：users.off＝1 のアカウントに「運営」の札。付けられるのは管理用の合言葉を持つ運営者だけ（tips.js の /api/admin/official）。
+     本人の保存（/api/me）では変えられない。Tips（bot:tips）は前と同じく uid でいつも付く */
+  try{await db.prepare(`ALTER TABLE users ADD COLUMN off INTEGER DEFAULT 0`).run()}catch(e){}
   try{await db.prepare(`ALTER TABLE follows ADD COLUMN ok INTEGER DEFAULT 1`).run()}catch(e){}
   await db.batch([
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
@@ -75,9 +78,11 @@ const NOTE_OK=`(n.repost_of=0 OR (o.hidden=0 AND ou.banned=0 AND ${VIS('ou')})) 
    アイコンの輪（アカウントの印とは別の「ゲームカードがある」印）にだけ使う。見られない人には 0（あることも出さない） */
 const CARDVIS=(a,p='?1')=>`EXISTS(SELECT 1 FROM game_profiles cg WHERE cg.uid=${a}.uid AND cg.game='pokechamp' AND cg.card=1 AND (cg.uid=${p} OR (COALESCE(cg.vis,'inherit')<>'only_me'
   AND ((COALESCE(cg.vis,'inherit') IN ('inherit','public') AND COALESCE(${a}.private,0)=0) OR EXISTS(SELECT 1 FROM follows cf WHERE cf.src=${p} AND cf.dst=${a}.uid AND cf.ok=1)))))`;
+/* 「運営」の札が付くアカウントか（サーバーだけが決める。名前・ID では決めない） */
+const OFFX=a=>`(${a}.uid='bot:tips' OR COALESCE(${a}.off,0)=1)`;
 const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) AS body,COALESCE(o.created_at,n.created_at) AS created_at,
   COALESCE(o.media,n.media) AS media,COALESCE(o.link,n.link) AS link,COALESCE(o.tool,n.tool) AS tool,
-  CASE WHEN (CASE WHEN o.id IS NULL THEN n.uid ELSE o.uid END)='bot:tips' THEN 1 ELSE 0 END AS off,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
+  CASE WHEN o.id IS NULL THEN ${OFFX('u')} ELSE ${OFFX('ou')} END AS off,COALESCE(o.media_hidden,n.media_hidden) AS media_hidden,COALESCE(o.likes,n.likes) AS likes,COALESCE(o.replies,n.replies) AS replies,COALESCE(o.reposts,n.reposts) AS reposts,COALESCE(o.reply_to,n.reply_to) AS reply_to,
   CASE WHEN o.id IS NULL THEN u.handle ELSE ou.handle END AS handle,CASE WHEN o.id IS NULL THEN u.name ELSE ou.name END AS name,CASE WHEN o.id IS NULL THEN u.avatar ELSE ou.avatar END AS av,
   CASE WHEN o.id IS NULL THEN NULL ELSE u.handle END AS rp_handle,CASE WHEN o.id IS NULL THEN NULL ELSE u.name END AS rp_name,
   (SELECT pu.handle FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=COALESCE(o.reply_to,n.reply_to) AND pn.hidden=0) AS reply_handle,
@@ -241,8 +246,9 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const reason=REASONS.includes(body.reason)?body.reason:'その他',rid='u'+(await sha('note|'+meUid)).slice(0,15);
     await db.prepare(`INSERT OR IGNORE INTO reports(kind,target,reason,aid,created_at) VALUES('note',?,?,?,?)`).bind(id,reason,rid,now).run();
     /* 運営の Tips の投稿（2026/11/16）：通報で自動に隠さない（1件で画像・3件で投稿の決まりを使わない）。通報は管理画面の「通報」に並び、運営者が確かめる */
-    const own=await db.prepare(`SELECT uid FROM notes WHERE id=?`).bind(id).first();
-    if(own&&own.uid==='bot:tips')return J({ok:true,review:true});
+    /* 公式の運営の札のアカウント（2026/11/19）も同じ：通報で自動に隠さず、運営者が確かめる */
+    const own=await db.prepare(`SELECT n.uid,${OFFX('x')} AS off FROM notes n LEFT JOIN users x ON x.uid=n.uid WHERE n.id=?`).bind(id).first();
+    if(own&&(own.uid==='bot:tips'||own.off))return J({ok:true,review:true});
     const c=await db.prepare(`SELECT COUNT(*) AS n FROM reports WHERE kind='note' AND target=?`).bind(id).first();
     /* 画像つきの投稿は、通報1件で画像を確認待ちにする（運営者が確認して戻す） */
     await db.prepare(`UPDATE notes SET media_hidden=1 WHERE id=? AND media IS NOT NULL`).bind(id).run();
@@ -251,7 +257,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   /* 公開プロフィール（フォロー数つき） */
   if((m=path.match(/^\/api\/u\/([A-Za-z0-9_]{3,15})$/))&&req.method==='GET'){
-    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,partner,showcase,private,
+    const p=await db.prepare(`SELECT uid,handle,name,bio,avatar,created_at,partner,showcase,private,${OFFX('users')} AS off,
       (SELECT partner FROM game_profiles WHERE uid=users.uid AND game='pokechamp') AS g_partner,(SELECT showcase FROM game_profiles WHERE uid=users.uid AND game='pokechamp') AS g_showcase,
       EXISTS(SELECT 1 FROM game_profiles WHERE uid=users.uid AND game='pokechamp') AS g_has,(SELECT vis FROM game_profiles WHERE uid=users.uid AND game='pokechamp') AS g_vis,
       (SELECT card FROM game_profiles WHERE uid=users.uid AND game='pokechamp') AS g_card,
@@ -276,7 +282,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     /* created：本人が「ゲームカードを作る」で保存したときだけ true（game_profiles.card）。相棒・看板パーティ・戦績からは決めない */
     const created=!!p.g_card;
     const games=show?{pokechamp:{created,partner:gp||null,showcase:sc,results:results.filter(x=>x.game==='pokechamp'),...(me?{vis:gv,eff,capped:gv==='public'&&!!p.private}:{})}}:{};
-    return J({user:{...base,...(p.uid==='bot:tips'?{off:true}:{}),...(show&&created?{card:true}:{}),partner:show?gp||null:null,showcase:sc,games,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,requested:!!p.requested,private:!!p.private,
+    return J({user:{...base,...(p.off?{off:true}:{}),...(show&&created?{card:true}:{}),partner:show?gp||null:null,showcase:sc,games,followers:p.followers,following:p.following,notes:p.notes,followed:!!p.followed,follows_me:!!p.follows_me,requested:!!p.requested,private:!!p.private,
       locked,me:p.uid===meUid,results}});
   }
   /* その人の投稿 */
@@ -297,11 +303,11 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const before=parseInt(u.searchParams.get('before')||'',10)||9e15;
     const r=(await db.prepare(`SELECT f.created_at AS at,x.handle,x.name,x.bio,x.avatar,x.private,
       EXISTS(SELECT 1 FROM follows a WHERE a.src=?2 AND a.dst=x.uid AND a.ok=1) AS followed,EXISTS(SELECT 1 FROM follows a WHERE a.src=?2 AND a.dst=x.uid AND a.ok=0) AS requested,
-      EXISTS(SELECT 1 FROM follows a WHERE a.src=x.uid AND a.dst=?2 AND a.ok=1) AS follows_me,x.uid=?2 AS me,${CARDVIS('x','?2')} AS card
+      EXISTS(SELECT 1 FROM follows a WHERE a.src=x.uid AND a.dst=?2 AND a.ok=1) AS follows_me,x.uid=?2 AS me,${CARDVIS('x','?2')} AS card,${OFFX('x')} AS off
       FROM follows f JOIN users x ON x.uid=${fl?'f.src':'f.dst'} AND x.banned=0
       WHERE ${fl?'f.dst':'f.src'}=?1 AND f.ok=1 AND f.created_at<?3 ORDER BY f.created_at DESC LIMIT 50`).bind(pu.uid,meUid,before).all()).results;
     /* 非公開アカウントの自己紹介は、本人と許可されたフォロワーにだけ */
-    return J({users:r.map(x=>({handle:x.handle,name:x.name,bio:x.private&&!x.followed&&!x.me?'':x.bio||'',av:x.avatar||null,private:!!x.private,followed:!!x.followed,requested:!!x.requested,follows_me:!!x.follows_me,me:!!x.me,...(x.card?{card:true}:{})})),
+    return J({users:r.map(x=>({handle:x.handle,name:x.name,bio:x.private&&!x.followed&&!x.me?'':x.bio||'',av:x.avatar||null,private:!!x.private,followed:!!x.followed,requested:!!x.requested,follows_me:!!x.follows_me,me:!!x.me,...(x.card?{card:true}:{}),...(x.off?{off:true}:{})})),
       next:r.length===50?r[49].at:null});
   }
   /* フォローのリクエストの一覧（2026/11/11 依頼主）：届いたもの（本人に許可を待っている）と、自分が送ったもの */
@@ -367,8 +373,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
       WHERE n.hidden=0 AND ${NOTE_OK} AND n.id<?2 AND instr(lower(n.body),lower(?3))>0 ORDER BY n.id DESC LIMIT ${PAGE}`).bind(meUid,before,q).all();
     let users=[];
     if(!tag&&before>=9e15){const like='%'+q.replace(/[%_\\]/g,c=>'\\'+c)+'%';
-      users=(await db.prepare(`SELECT handle,name,bio,avatar,private,uid=?2 AS me,EXISTS(SELECT 1 FROM follows f WHERE f.src=?2 AND f.dst=users.uid AND f.ok=1) AS followed,${CARDVIS('users','?2')} AS card FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like,meUid).all()).results
-        .map(x=>({handle:x.handle,name:x.name,bio:x.private&&!x.followed&&!x.me?'':x.bio||'',av:x.avatar||null,private:!!x.private,...(x.card?{card:true}:{})}))}
+      users=(await db.prepare(`SELECT handle,name,bio,avatar,private,uid=?2 AS me,EXISTS(SELECT 1 FROM follows f WHERE f.src=?2 AND f.dst=users.uid AND f.ok=1) AS followed,${CARDVIS('users','?2')} AS card,${OFFX('users')} AS off FROM users WHERE banned=0 AND (name LIKE ?1 ESCAPE '\\' OR handle LIKE ?1 ESCAPE '\\') LIMIT 5`).bind(like,meUid).all()).results
+        .map(x=>({handle:x.handle,name:x.name,bio:x.private&&!x.followed&&!x.me?'':x.bio||'',av:x.avatar||null,private:!!x.private,...(x.card?{card:true}:{}),...(x.off?{off:true}:{})}))}
     return J({...pageOut(withMine(r.results)),users});
   }
   /* よく使われているハッシュタグ（この7日間） */
@@ -385,11 +391,11 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   }
   if(path==='/api/notifs'&&req.method==='GET'){
     const e=need();if(e)return e;
-    const r=await db.prepare(`SELECT n.id,n.kind,n.note_id,n.created_at,a.handle,a.name,a.avatar,substr(t.body,1,80) AS body,${CARDVIS('a')} AS card
+    const r=await db.prepare(`SELECT n.id,n.kind,n.note_id,n.created_at,a.handle,a.name,a.avatar,substr(t.body,1,80) AS body,${CARDVIS('a')} AS card,${OFFX('a')} AS off
       FROM notifs n JOIN users a ON a.uid=n.actor AND a.banned=0 LEFT JOIN notes t ON t.id=n.note_id
       WHERE n.uid=?1 AND n.id<?2 ORDER BY n.id DESC LIMIT 30`).bind(meUid,beforeOf(u)).all();
     const seen=await db.prepare(`SELECT notif_seen FROM user_state WHERE uid=?`).bind(meUid).first();
-    return J({notifs:r.results.map(x=>({id:x.id,kind:x.kind,note_id:x.note_id||null,body:x.body,created_at:x.created_at,user:{handle:x.handle,name:x.name,av:x.avatar||null,...(x.card?{card:true}:{})}})),
+    return J({notifs:r.results.map(x=>({id:x.id,kind:x.kind,note_id:x.note_id||null,body:x.body,created_at:x.created_at,user:{handle:x.handle,name:x.name,av:x.avatar||null,...(x.card?{card:true}:{}),...(x.off?{off:true}:{})}})),
       seen:seen?seen.notif_seen:0,next:r.results.length===30?r.results[29].id:null});
   }
   if(path==='/api/notifs/seen'&&req.method==='POST'){

@@ -358,7 +358,7 @@ async function notifView(quiet){
     /* 2026/11/18 §16 G1：相手のアイコン（種類の小さな印つき）と名前は、それぞれその人のプロフィールへ。
        行のほかの所は今までどおりの行き先（投稿、フォローならプロフィール）＝行いっぱいの .twn-go。リクエストの許可・断るは別のボタンのまま */
     const nkSig=n=>{const k=n.kind==='freq'?'follow':n.kind;return `<span class="twn-av">${twAv(n.user)}<span class="twn-k twn-i--${k}" aria-hidden="true">${SVG((NK[n.kind]||NK.follow)[0],12)}</span></span>`};
-    const nkWho=n=>`<a class="twn-who" href="#/u/${esc(n.user.handle)}" data-notr><b>${esc(n.user.name)}</b> <span class="tw-t">@${esc(n.user.handle)}</span></a>`;
+    const nkWho=n=>`<a class="twn-who" href="#/u/${esc(n.user.handle)}" data-notr><b>${esc(n.user.name)}</b>${typeof tipsBadge==='function'?tipsBadge(n.user):''} <span class="tw-t">@${esc(n.user.handle)}</span></a>`;
     V.innerHTML=j.notifs.length?j.notifs.map(n=>n.kind==='freq'?`<div class="twn twn-req${n.id>j.seen?' new':''}" data-req="${esc(n.user.handle)}" data-kind="freq">
       ${nkSig(n)}
       <div class="tw-m"><div>${nkWho(n)}</div>
@@ -456,5 +456,5 @@ async function searchView(a){
     else if(box)box.innerHTML=`<p class="note" style="padding-top:0"><a href="#/account" style="color:var(--acc)">ログインしてプロフィールを作る</a>と、このタグで投稿できます。</p>`}
   twFeed(document.getElementById('sr-list'),'/api/search?q='+encodeURIComponent(q),`「${esc(q)}」を含む投稿はまだありません。`);
   try{const j=await authFetch('/api/search?q='+encodeURIComponent(q));const el=document.getElementById('sr-users');
-    if(el&&j.users&&j.users.length)el.innerHTML=`<div class="sec"><h2>トレーナー</h2></div>`+j.users.map(x=>`<a class="row" href="#/u/${esc(x.handle)}">${twAv(x)}<div class="row-m" data-notr><div class="row-t">${esc(x.name)}</div><div class="row-s">@${esc(x.handle)}${x.bio?'　'+esc(x.bio.slice(0,40)):''}</div></div></a>`).join('')}catch(e){}
+    if(el&&j.users&&j.users.length)el.innerHTML=`<div class="sec"><h2>トレーナー</h2></div>`+j.users.map(x=>`<a class="row" href="#/u/${esc(x.handle)}"><span class="tw-av${x.card?' gk-cr':''}" style="background:${avCol(x.handle)}" aria-hidden="true">${avIn(x)}</span><div class="row-m" data-notr><div class="row-t">${esc(x.name)}${typeof tipsBadge==='function'?tipsBadge(x):''}</div><div class="row-s">@${esc(x.handle)}${x.bio?'　'+esc(x.bio.slice(0,40)):''}</div></div></a>`).join('')}catch(e){}
 }

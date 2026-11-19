@@ -161,6 +161,43 @@ const used=(await env.DB.prepare(`SELECT COUNT(*) AS c FROM media WHERE uid='bot
 ok(last&&last[0]===200,'30枚目までは送れる',last);r=await upload(png());ok(r[0]===429,'31枚目は1日の上限で断る',r);
 
 
+/* ---------- 12. 公式の運営の札（2026/11/19）：運営者のアカウントに付ける。サーバーの設定で決まり、本人は付けられない ---------- */
+{const [tz]=await mkUser('uz','zed_admin','ゼッド');
+  /* 本人・ほかの利用者は付けられない（合言葉なし・違う合言葉・ログインだけ・自分の保存に off を混ぜる） */
+  let q=await call('/api/admin/official',{method:'POST',body:{handle:'zed_admin'}});ok(q[0]===401,'合言葉なしでは運営の札を付けられない',q);
+  q=await call('/api/admin/official',{method:'POST',tok:tz,body:{handle:'zed_admin'}});ok(q[0]===401,'本人がログインしていても自分に付けられない',q);
+  q=await call('/api/admin/official',{method:'POST',admin:'wrong-secret-xyz',body:{handle:'zed_admin'}});ok(q[0]===401,'違う合言葉では付けられない',q);
+  q=await call('/api/admin/official',{tok:tz});ok(q[0]===401,'利用者は一覧も見られない',q);
+  q=await call('/api/me',{method:'POST',tok:tz,body:{handle:'zed_admin',name:'ゼッド',agree:true,off:1,official:true}});ok(q[0]===200&&!(q[1].user&&q[1].user.off),'自分の保存に off を混ぜても付かない',q);
+  q=await call('/api/u/zed_admin');ok(q[0]===200&&!('off' in q[1].user),'まだ札はない',q[1].user);
+  /* 運営者が付ける */
+  q=await call('/api/admin/official',{method:'POST',admin:ADMIN,body:{handle:'@Zed_Admin',on:true}});ok(q[0]===200&&q[1].handle==='zed_admin'&&q[1].off===true,'運営者が付けられる（@ や大文字小文字は気にしない）',q);
+  q=await call('/api/admin/official',{admin:ADMIN});ok(q[0]===200&&q[1].users.some(x=>x.handle==='zed_admin'&&!x.fixed)&&q[1].users.some(x=>x.handle==='gamekids_tips'&&x.fixed),'一覧に出る（Tips はいつも付く）',q);
+  /* どこでも同じ札：プロフィール・投稿・検索・お知らせ・フォローの一覧・メッセージ */
+  q=await call('/api/u/zed_admin');ok(q[1].user.off===true,'プロフィールに札',q[1].user);
+  const post=await call('/api/notes',{method:'POST',tok:tz,body:{body:'運営からのお知らせです #運営'}});ok(post[0]===200,'札のある人も投稿できる',post);
+  q=await call('/api/tl');const mine=(q[1].notes||[]).find(x=>x.user.handle==='zed_admin');ok(mine&&mine.user.off===true&&!mine.tool,'投稿に札（ツールのボタンは付かない）',mine);
+  q=await call('/api/search?q=zed');ok((q[1].users||[]).some(x=>x.handle==='zed_admin'&&x.off===true),'検索のトレーナーに札',q[1].users);
+  await call('/api/follow',{method:'POST',tok:tz,body:{handle:'alice'}});
+  q=await call('/api/notifs',{tok:ta});ok((q[1].notifs||[]).some(x=>x.user.handle==='zed_admin'&&x.user.off===true),'お知らせに札',q[1].notifs);
+  q=await call('/api/u/alice/follows?kind=followers',{tok:ta});ok((q[1].users||[]).some(x=>x.handle==='zed_admin'&&x.off===true),'フォローの一覧に札',q[1]);
+  q=await call('/api/dm/with/zed_admin',{tok:ta});ok(q[0]===200&&q[1].user.off===true,'メッセージの相手に札',q[1]);
+  /* ほかの人には付かない・名前で同じ見た目にはできない */
+  q=await call('/api/u/alice');ok(!('off' in q[1].user),'ほかの利用者には付かない',q[1].user);
+  /* 通報で自動に隠さない（Tips と同じ：運営者が確かめる） */
+  for(const t of [tb,tc,td])await call(`/api/notes/${post[1].id}/report`,{method:'POST',tok:t,body:{reason:'その他'}});
+  q=await call('/api/tl');ok((q[1].notes||[]).some(x=>x.id===post[1].id),'札のある人の投稿は通報3件でも自動で隠れない',q[1].notes&&q[1].notes.map(x=>x.id));
+  /* 付けられないもの：bot のアカウント・ないID・停止中 */
+  q=await call('/api/admin/official',{method:'POST',admin:ADMIN,body:{handle:'gamekids_tips',on:false}});ok(q[0]===400,'Tips の札は外せない',q);
+  q=await call('/api/admin/official',{method:'POST',admin:ADMIN,body:{handle:'nobody_here'}});ok(q[0]===404,'ないIDは404',q);
+  q=await call('/api/admin/official',{method:'POST',admin:ADMIN,body:{handle:'a b'}});ok(q[0]===400,'IDの形でないものは400',q);
+  /* 外す・記録 */
+  q=await call('/api/admin/official',{method:'POST',admin:ADMIN,body:{handle:'zed_admin',on:false}});ok(q[0]===200&&q[1].off===false,'外せる',q);
+  q=await call('/api/u/zed_admin');ok(!('off' in q[1].user),'外すと札が消える',q[1].user);
+  q=await call('/api/tl');const m2=(q[1].notes||[]).find(x=>x.user.handle==='zed_admin');ok(m2&&!m2.user.off,'投稿の札も消える',m2);
+  q=await call('/api/admin/tips',{admin:ADMIN});ok(q[1].log.some(l=>l.action==='official_on'&&l.detail==='@zed_admin')&&q[1].log.some(l=>l.action==='official_off'),'付けた・外したは操作の記録に残る',q[1].log);
+}
+
 /* ================= B. 画面 ================= */
 const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
 const URL0='file://'+path.join(ROOT,'dist/index.html');
@@ -189,6 +226,14 @@ for(const W of [390,1280]){
   await pg.click('#tt .tw-tool');await pg.waitForTimeout(400);ok(await pg.evaluate(()=>location.hash)==='#/dex',W+'：「図鑑を開く」で図鑑へ移る');
   ok(!errs.length,W+'：エラーなし',errs);await ctx.close();
 }
+/* 運営の札（2026/11/19）：検索のトレーナーの行に札・行の中にリンクを重ねない（前は行の中のアイコンもリンクで、行が2つに割れていた） */
+{const ctx=await b.newContext({viewport:{width:390,height:844},locale:'ja-JP'});const pg=await ctx.newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+  await pg.route(/^https?:/,r=>{const p=new URL(r.request().url()).pathname;if(p==='/api/search')return r.fulfill({json:{notes:[],next:null,users:[{handle:'zed_admin',name:'ゼッド',bio:'運営',av:null,off:true,card:true},{handle:'zed_fan',name:'ファン',bio:'',av:null}]}});return r.abort()});
+  await pg.goto(URL0+'#/search/zed');await pg.waitForTimeout(1200);
+  const R=await pg.evaluate(()=>{const rows=[...document.querySelectorAll('#view a.row')].filter(a=>/@zed_/.test(a.textContent));
+    return{n:rows.length,nested:rows.some(a=>a.querySelector('a')),av:rows.every(a=>a.querySelector('.tw-av')),badge:rows.map(a=>!!a.querySelector('.tw-off')),ring:!!(rows[0]&&rows[0].querySelector('.tw-av.gk-cr'))}});
+  ok(R.n===2&&!R.nested&&R.av&&R.badge.join()==='true,false'&&R.ring,'検索のトレーナー：運営の札は札のある人だけ・行の中にリンクを重ねない',R);
+  ok(!errs.length,'検索：エラーなし',errs);await ctx.close()}
 /* 管理画面の Tips タブ：合言葉を付けて送る・画像を送ってから投稿する */
 {const ctx=await b.newContext({viewport:{width:1280,height:900},locale:'ja-JP'});const pg=await ctx.newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
   const seen=[];
@@ -196,6 +241,8 @@ for(const W of [390,1280]){
     if(u.pathname==='/api/admin/tips')return r.fulfill({json:{tools:['calc','dex'],notes:[{id:5,body:'前の Tips',tool:'calc',created_at:Date.now(),hidden:0,reports:2}],log:[{at:Date.now(),action:'tips_post',target:5,detail:'calc',who:'0123456789abcdef'}],user:{handle:'gamekids_tips'}}});
     if(u.pathname==='/api/admin/tips/media')return r.fulfill({json:{ok:true,key:'a'.repeat(32),w:10,h:10}});
     if(u.pathname==='/api/admin/tips/post')return r.fulfill({json:{ok:true,id:6}});
+    if(u.pathname==='/api/admin/official'&&r.request().method()==='GET')return r.fulfill({json:{users:[{handle:'gamekids_tips',name:'Game Kid/s Tips',fixed:true},{handle:'zed_admin',name:'ゼッド',fixed:false}]}});
+    if(u.pathname==='/api/admin/official')return r.fulfill({json:{ok:true,handle:'new_admin',off:true}});
     return r.fulfill({json:{}})});
   await pg.route(/^https?:\/\/(?!.*workers\.dev)/,r=>r.abort());
   await pg.goto(URL0+'#/tools');await pg.evaluate(()=>{sessionStorage.setItem('pcadmin','admin-secret-123');location.hash='#/admin'});await pg.waitForTimeout(500);
@@ -207,6 +254,11 @@ for(const W of [390,1280]){
   await pg.click('#tp-post');await pg.waitForTimeout(800);
   const up=seen.find(s=>s[0]==='/api/admin/tips/media'),ps=seen.find(s=>s[0]==='/api/admin/tips/post');
   ok(up&&up[1]===ADMIN&&ps&&ps[1]===ADMIN,'管理画面：画像を送ってから投稿する（どちらも合言葉を付ける）',seen);
+  /* 運営の札：一覧（Tips は「いつも付く」・ほかは「外す」）・ID を入れて確かめてから付ける（合言葉を付けて送る） */
+  ok(await pg.$eval('#view',e=>/運営の札が付いているアカウント/.test(e.textContent)&&!!e.querySelector('[data-off-rm="zed_admin"]')&&!e.querySelector('[data-off-rm="gamekids_tips"]')&&/いつも付く/.test(e.textContent)),'管理画面：運営の札の一覧');
+  await pg.fill('#of-h','@new_admin');await pg.click('#of-add');await pg.waitForTimeout(300);
+  const cf=await pg.$('.xc .btn, [role=dialog] button');await pg.evaluate(()=>{const bs=[...document.querySelectorAll('button')].filter(b=>b.textContent.trim()==='付ける');bs[bs.length-1]&&bs[bs.length-1].click()});await pg.waitForTimeout(500);
+  const of=seen.find(s=>s[0]==='/api/admin/official'&&s[2]==='POST');ok(of&&of[1]===ADMIN,'管理画面：確かめてから合言葉を付けて運営の札を付ける',seen.filter(s=>s[0].includes('official')));
   ok(!errs.length,'管理画面：エラーなし',errs);await ctx.close()}
 await b.close();
 console.log(process.exitCode?'tips: NG':`tips: OK（${n}項目）`);

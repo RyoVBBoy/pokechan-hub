@@ -78,3 +78,29 @@ async function tipsApi(req,env,db,path,body,now,isAdmin,ip){
   }
   return J({error:'見つかりません。'},404);
 }
+
+/* ===== 公式の運営の札（2026/11/19 依頼主）=====
+   ・運営者（管理用の合言葉を持つ人）のアカウントに「運営」の札を付ける・外す。札はサーバーの users.off で決まり、投稿・プロフィール・検索・お知らせ・フォローの一覧に同じく出る（social.js の OFFX）。
+   ・付けられるのは /api/admin/official だけ（合言葉の確かめは community.js の決まり）。本人の保存（/api/me）は off を受け付けないので、自分では付けられない。
+   ・bot: のアカウント（お知らせ・ランキング・Tips）は対象にしない（Tips はいつも札あり）。停止中のアカウントには付けない。付けた・外したは admin_log に残す */
+async function officialApi(req,env,db,path,body,now,isAdmin,ip){
+  if(path!=='/api/admin/official')return null;
+  if(!isAdmin)return tipsDenied(env);
+  await tipsInit(db);
+  if(req.method==='GET'){
+    const r=await db.prepare(`SELECT handle,name,uid='bot:tips' AS fixed FROM users WHERE (uid='bot:tips' OR COALESCE(off,0)=1) AND banned=0 ORDER BY uid='bot:tips' DESC,handle`).all();
+    return J({users:r.results.map(x=>({handle:x.handle,name:x.name,fixed:!!x.fixed}))});
+  }
+  if(req.method==='POST'){
+    const h=String(body.handle||'').replace(/^@/,'').trim(),on=body.on!==false;
+    if(!/^[A-Za-z0-9_]{3,15}$/.test(h))return J({error:'ユーザーIDを入れてください。'},400);
+    const u=await db.prepare(`SELECT uid,handle,name,banned FROM users WHERE handle=? COLLATE NOCASE`).bind(h).first();
+    if(!u)return J({error:'そのユーザーIDのアカウントは見つかりません。'},404);
+    if(String(u.uid).startsWith('bot:'))return J({error:'お知らせ・ランキング・Tips のアカウントは変えられません。'},400);
+    if(on&&u.banned)return J({error:'停止中のアカウントには付けられません。'},400);
+    await db.prepare(`UPDATE users SET off=? WHERE uid=?`).bind(on?1:0,u.uid).run();
+    await tipsLog(db,env,ip,now,on?'official_on':'official_off',0,'@'+u.handle);
+    return J({ok:true,handle:u.handle,name:u.name,off:on});
+  }
+  return J({error:'見つかりません。'},404);
+}

@@ -90,7 +90,7 @@ async function dmListView(){
       const title=c.kind==='group'?esc(c.title):esc(u.name);
       const sub=c.kind==='group'?`${c.n}人`:`@${esc(u.handle)}`;
       return `<a class="row dm-row${c.unread?' dm-unread':''}" href="${href}">${c.kind==='group'?dmGroupAv(c):dmAv(u)}
-        <div class="row-m"><div class="dm-l1"><b data-notr>${title}</b>${c.kind!=='group'&&u.private?SVG(I.lock,13):''}<span class="tw-t" data-notr>${sub}</span><span class="dm-at">${dmAgo(c.last_at)}</span></div>
+        <div class="row-m"><div class="dm-l1"><b data-notr>${title}</b>${c.kind!=='group'&&typeof tipsBadge==='function'?tipsBadge(u):''}${c.kind!=='group'&&u.private?SVG(I.lock,13):''}<span class="tw-t" data-notr>${sub}</span><span class="dm-at">${dmAgo(c.last_at)}</span></div>
         <div class="dm-l2" data-notr>${c.last_mine?'<span class="dm-you">あなた：</span>':''}${esc(c.last)}</div></div>${c.unread?`<i class="dm-badge">${c.unread}</i>`:''}</a>`}).join('')
       :`<div class="dm-empty">${SVG(kind==='group'?I.grid:I.mail,36)}<b>${kind==='group'?'グループはまだありません':'メッセージはまだありません'}</b>
         <span>${kind==='group'?'「新しいメッセージ」から、メンバーを選んでグループを作れます。':'トレーナーのプロフィールの ✉ か「新しいメッセージ」から送れます。'}</span></div>`;
@@ -175,7 +175,7 @@ async function dmTalkView(o){
   document.body.classList.add('dm-talk');
   const head=group?`<div class="dm-peer"><span class="dm-gav">${j.conv.members.slice(0,3).map(x=>dmAv(x)).join('')}</span><div class="row-m"><b data-notr>${esc(j.conv.title)}</b>
       <span class="tw-t" data-notr>${j.conv.members.length+1}人：あなた・${j.conv.members.map(x=>esc(x.name)).join('・')}</span></div><button class="btn btn-s dm-leave" id="dm-leave">抜ける</button></div>`
-    :`<a class="dm-peer" href="#/u/${esc(u.handle)}">${dmAv(u,40)}<div class="row-m"><b data-notr>${esc(u.name)}${u.private?SVG(I.lock,14):''}</b><span class="tw-t" data-notr>@${esc(u.handle)}${u.private?'・非公開アカウント':''}</span></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
+    :`<a class="dm-peer" href="#/u/${esc(u.handle)}">${dmAv(u,40)}<div class="row-m"><b data-notr>${esc(u.name)}${typeof tipsBadge==='function'?tipsBadge(u):''}${u.private?SVG(I.lock,14):''}</b><span class="tw-t" data-notr>@${esc(u.handle)}${u.private?'・非公開アカウント':''}</span></div><span class="chev">${SVG(I.chev,18)}</span></a>`;
   const lock=!j.can;
   V.innerHTML=`<div class="dm-talkv">${head}
     <div class="dm-log" id="dm-log">${j.more?'<button class="bback dm-older" id="dm-older">前のメッセージを読む</button>':''}${j.msgs.length?dmBubbles(j.msgs,group):`<div class="dm-first">${lock?'':`<b>${group?'グループを作りました':esc(u.name)+'さんとのメッセージ'}</b><span>最初のメッセージを送ってみましょう。対戦の相談やあいさつなど、このサイトの中でやりとりしてください。</span>`}</div>`}</div>

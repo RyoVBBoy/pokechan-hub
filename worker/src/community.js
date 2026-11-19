@@ -89,6 +89,7 @@ async function api(req,env,u,ctx){
   {const r=await rankApi(req,env,db,path,body,now,isAdmin);if(r)return r}
   /* 運営の Tips アカウント（tips.js） */
   {const r=await tipsApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
+  {const r=await officialApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
   /* お問い合わせ・間違いの報告（contact.js） */
   {const r=await contactApi(req,env,db,path,body,now,isAdmin,ip);if(r)return r}
   {const r=await pushApi(req,env,db,path,body,now);if(r)return r}
