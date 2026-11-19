@@ -3617,7 +3617,7 @@ body.gkcm-on{overflow:hidden}
   .pc-brand .gsw-t{display:flex;flex-direction:column;min-width:0;line-height:1.2}
   .pc-brand .gsw-t small{font-size:11px;font-weight:600;color:var(--dim)}
   /* 正式な名前は省略しない（入りきらなければ2行に） */
-  .pc-brand .gsw-t b{font-size:14px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+  .pc-brand .gsw-t b{font-size:14px;font-weight:800;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
   .pc-brand .gsw-c{display:block;flex:none;color:var(--dim)}
   .pc-brand[aria-expanded=true] .gsw-c{transform:rotate(180deg)}
 }
@@ -3642,3 +3642,19 @@ body.gkcm-on{overflow:hidden}
 .gsw-o.gsw-pc.on .psheet-p{transform:none;opacity:1}
 .gsw-o.gsw-pc h3{font-size:15px;margin:2px 8px 8px}
 @media(prefers-reduced-motion:reduce){.gsw-o.gsw-pc .psheet-p{transition:none}}
+/* ===== 2026/11/19 ホーム画面に追加したとき（iPhone など）の下の空き =====
+   原因：浮いた下のメニューを「端末の安全な余白（env(safe-area-inset-bottom)）＋8px」の高さに置き、その下を背景色の帯（余白＋12px）でふさいでいた。
+   Safari の画面では余白が 0 なので気にならないが、ホーム画面から開くと余白が約34px（ホームバーの分）になり、メニューの下に約46px の何もない帯ができていた。
+   直し方：メニューの下の高さを1つの値 --tbB＝max(8px, 余白−10px) にそろえる。余白がない端末（Safari・ホームボタンの iPhone・多くの Android）は今までどおり8px、
+   ホームバーのある端末はホームバーのすぐ上（約24px）。⚡・通知・ページの下の余白・下をふさぐ帯も同じ値から決めるので、どの機種・縦横比でも間隔が同じになる */
+@media(max-width:699px){
+  :root{--tbB:max(8px, calc(env(safe-area-inset-bottom) - 10px))}
+  .tabbar{bottom:var(--tbB)!important}
+  .app{padding-bottom:calc(var(--tbB) + 102px)!important}
+  .fabwrap{bottom:calc(var(--tbB) + 76px)!important}
+  .toast{bottom:calc(var(--tbB) + 78px)!important}
+  body::after{height:calc(var(--tbB) + 4px)!important;background:linear-gradient(to bottom,transparent,var(--bg) 70%)!important}
+  .kd-bar{bottom:calc(var(--tbB) + 84px)}
+  .tbd-bar{bottom:calc(var(--tbB) + 64px)}
+  #twp-list,.gkc-page~#twp-list{padding-bottom:calc(var(--tbB) + 88px)}
+}

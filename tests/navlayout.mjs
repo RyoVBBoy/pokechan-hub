@@ -90,5 +90,20 @@ for(const W of [390,430]){
   await pg.click('#hd-bell');await pg.waitForTimeout(600);ok(await pg.evaluate(()=>location.hash)==='#/notif',W+'：通知で #/notif');
   ok(!pg.errs.length,W+'：エラーなし '+pg.errs.join('|'));await pg.close();
 }
+/* ---- ホーム画面に追加したとき（端末の下の余白あり）も、メニューの下に何もない帯を作らない（2026/11/19） ----
+   CDP で下の余白（safe-area-inset-bottom）を作って確かめる：メニューの下＝max(8, 余白−10)、下をふさぐ帯はそれ＋4px まで、⚡とメニューの間は同じ */
+for(const [W,H,sa] of [[375,667,0],[390,844,0],[390,844,34],[430,932,34],[360,780,24]]){
+  const ctx=await b.newContext({viewport:{width:W,height:H},locale:'ja-JP',hasTouch:true,isMobile:true});
+  const pg=await ctx.newPage();await pg.route(/^https?:/,r=>r.abort());
+  const cdp=await ctx.newCDPSession(pg);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:sa?47:0,bottom:sa,left:0,right:0}});
+  await pg.goto(URL0+'#/tools');await pg.waitForTimeout(900);
+  const r=await pg.evaluate(()=>{const t=document.querySelector('.tabbar').getBoundingClientRect(),f=document.querySelector('.fabwrap .fab').getBoundingClientRect();
+    const p=document.createElement('div');p.style.cssText='position:fixed;bottom:0;height:env(safe-area-inset-bottom)';document.body.appendChild(p);const sa=p.getBoundingClientRect().height;p.remove();
+    const last=document.querySelector('.app').getBoundingClientRect(),pad=parseFloat(getComputedStyle(document.querySelector('.app')).paddingBottom);
+    return{sa,gap:Math.round(innerHeight-t.bottom),cover:parseFloat(getComputedStyle(document.body,'::after').height),fab:Math.round(t.top-f.bottom),clear:pad>=innerHeight-t.top+20}});
+  const want=Math.max(8,sa-10);
+  ok(r.sa===sa&&r.gap===want&&r.cover<=want+4&&r.fab===14&&r.clear,`${W}x${H} 下の余白${sa}px：メニューの下は${want}px（何もない帯を作らない）・下をふさぐ帯は小さく・⚡との間は同じ・ページの終わりはメニューに隠れない `+JSON.stringify(r));
+  await ctx.close();
+}
 await b.close();
 console.log(bad?`navlayout: NG（${bad}件）`:`navlayout: OK（${n}項目）`);if(bad)process.exitCode=1;

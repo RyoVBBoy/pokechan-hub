@@ -23,6 +23,10 @@ for(const [W,H] of [[1024,800],[1280,900],[1920,1080]]){
   ok(/ポケモンチャンピオンズ/.test(r.label)&&r.title==='ポケモンチャンピオンズ'&&r.pop==='dialog'&&r.inRail,W+'：正式な名前（読み上げ・マウスを乗せたとき）・左の列の中',r);
   ok(W>=1280?r.shown&&r.full&&/ポケモンチャンピオンズ/.test(r.txt):!r.shown,W+'：1280px以上は正式な名前を省略せずに出す（それより狭いと印だけ）',r);
   ok(r.w===(W>=1280?260:88),W+'：左の列の幅は前と同じ',r.w);
+  /* 文字の幅が広い端末（Windows の字・公開の機械の字など）でも、はみ出さずに2行に折り返す（2026/11/19 公開のテストで、字が広いとはみ出していた） */
+  if(W>=1280){const wide=await pg.evaluate(()=>{const g=document.getElementById('gsw'),t=g.querySelector('.gsw-t b'),rail=document.querySelector('.tabbar').getBoundingClientRect();t.style.fontSize='18px';t.style.letterSpacing='.08em';
+      const R=g.getBoundingClientRect(),tr=t.getBoundingClientRect(),out={full:t.scrollWidth<=t.clientWidth+1,inRail:R.right<=rail.right+1&&tr.right<=R.right+1,lines:Math.round(tr.height/parseFloat(getComputedStyle(t).lineHeight))};t.style.fontSize='';t.style.letterSpacing='';return out});
+    ok(wide.full&&wide.inRail&&wide.lines>=2,W+'：字の幅が広くても正式な名前を省略せず、はみ出さずに折り返す',wide)}
   await pg.click('#gsw');await pg.waitForTimeout(350);
   const o=await pg.evaluate(()=>{const p=document.querySelector('.gsw-o .psheet-p'),R=p.getBoundingClientRect(),bt=document.getElementById('gsw').getBoundingClientRect(),items=[...document.querySelectorAll('.gsw-o .gsw')];
     return{n:items.length,ready:readyGames().length,ids:items.map(x=>x.dataset.g),sel:items.filter(x=>x.getAttribute('aria-selected')==='true').map(x=>x.dataset.g),below:R.top>=bt.bottom-1&&R.top<=bt.bottom+20,inView:R.right<=innerWidth&&R.bottom<=innerHeight,
