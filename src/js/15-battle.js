@@ -440,6 +440,8 @@ function bcalc(a,mv,d,o){
   /* メテオビーム・エレクトロビームは、ためるターンに特攻が1段階上がってから攻撃する */
   if((mk==='meteorbeam'||mk==='electroshot')&&!o.roll)as=Math.min(6,as+1);
   if(crit&&as<0)as=0;
+  /* てんねん：防御側が持つ場合、攻撃側の能力ランクを無視。かたやぶりで無効化される。 */
+  if(dab==='unaware')as=0;
   const ast=a.stAtk||a.st;
   let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?ast[1]:ast[3]),as),am=4096;
   if(phys&&(a.ab==='huge-power'||a.ab==='pure-power'))am=chM(am,8192);
@@ -459,9 +461,13 @@ function bcalc(a,mv,d,o){
   /* 防御（急所のときは上がったランクを無視） */
   const useDef=phys||ee.ps,dk=useDef?'def':'spd';
   let ds=d.stg[dk];if(crit&&ds>0)ds=0;
+  /* てんねん：攻撃側が持つ場合、防御側の能力ランクを無視。 */
+  if(a.ab==='unaware')ds=0;
   let D=stgV(useDef?d.st[2]:d.st[4],ds),dm=4096;
   if(wr==='snow'&&useDef&&d.p.t.includes('こおり'))D=pR(D*1.5);
   if(wr==='sand'&&!useDef&&d.p.t.includes('いわ'))D=pR(D*1.5);
+  /* ふしぎなうろこ：状態異常なら物理防御が1.5倍。 */
+  if(useDef&&dab==='marvel-scale'&&d.status)dm=chM(dm,6144);
   if(useDef&&dab==='fur-coat')dm=chM(dm,8192);
   if(!useDef&&d.item==='assaultvest')dm=chM(dm,6144);
   D=Math.max(1,apM(D,dm));
