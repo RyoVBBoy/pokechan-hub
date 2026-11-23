@@ -47,7 +47,7 @@ function duFirst(sa,so,mt,ot,pa,po,ha,ho){
 }
 function duel(a,o){return withWx(a,o,()=>duel0(a,o))}
 /* マルチスケイル：estHit は満タンで計算するので、もう半分になっている。duTurns が初撃を半分で数えるので、ここでは2発目からのダメージを渡す（2026/11/10 二重に半分にしていた） */
-function duHit(x,y){if(y.ab==='multiscale'&&!duIg(x)){const hp=y.hp;y.hp=y.max-1;try{return estHit(x,y)}finally{y.hp=hp}}return estHit(x,y)}
+function duHit(x,y){return estHit(x,y)}
 function duel0(a,o){
   const h=duHit(a,o),r=duHit(o,a);
   let mt=duTurns(h.pct,h,a,o),ot=duTurns(r.pct,r,o,a);
@@ -58,7 +58,7 @@ function duel0(a,o){
   /* 積み技：相手の攻撃を2回以上耐えられるなら、1回積んでから */
   const tryUp=(x,y,hx,mx,my,px,first,sx,sy,dir)=>{
     const s=duSetup(x);if(!s||my<3)return null;
-    const pct=hx.pct*duStage(s.b[0]),m2=1+duTurns(pct,hx,x,y),sx2=s.b[1]?Math.floor(sx*duStage(s.b[1])):sx;
+    const boost=duStage(s.b[0]),pct=hx.pct*boost,m2=1+duTurns(pct,{...hx,f:(hx.f??hx.pct)*boost},x,y),sx2=s.b[1]?Math.floor(sx*duStage(s.b[1])):sx;
     const f2=sx2>sy?1:sx2<sy?-1:0;
     const before=(my-mx)+first*.5*dir,after=(my-m2)+f2*.5*dir;
     return after>before+.25?{m:m2,f:f2,mv:s.n}:null};
