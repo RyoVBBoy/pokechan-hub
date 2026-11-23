@@ -107,6 +107,20 @@ const mechanics=await pg.evaluate(()=>{
   const mv=mvObj(90),normal=fixedDmg({...a,ab:'pressure'},mv,d),bypass=fixedDmg(a,mv,d,true),calc=bcalc({...a,ab:'pressure'},mv,d,{}),calcBypass=bcalc(a,mv,d,{});
   return{normal,bypass,hp:d.hp,calc:calc.dmg,calcBypass:calcBypass.dmg};
 });
+const survival=await pg.evaluate(()=>{
+  const A=P.find(x=>x.n==='ガブリアス'),D=P.find(x=>x.n==='カビゴン');
+  const mkA=ab=>mkMon(A,'me',{ab,moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
+  const mkD=(ab,item=null,hp=1,max=1)=>{const d=mkMon(D,'op',{ab,item,moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});d.max=max;d.hp=hp;return d};
+  const ko=(a,d,mv)=>{const r=dmgRolls(a,mv,d,{});return koInfo(r,d.hp,d,a)};
+  const mv=mvObj(53),multi=mvObj(888);
+  return{
+    sturdy:ko(mkA('pressure'),mkD('sturdy'),mv),
+    sash:ko(mkA('pressure'),mkD('pressure','focussash'),mv),
+    bypass:ko(mkA('mold-breaker'),mkD('sturdy'),mv),
+    notFull:ko(mkA('pressure'),mkD('sturdy',null,1,2),mv),
+    multi:ko(mkA('pressure'),mkD('sturdy'),multi)
+  };
+});
 await b.close();
 
 /* ---- 照合先で計算 ---- */
@@ -134,6 +148,11 @@ function ref(c,s,curHP,crit,hits1){
 }
 let bad=0,n=0,unv=0,rule=0;const ok=(cond,name,info)=>{n++;if(!cond){bad++;console.error('NG',name,JSON.stringify(info))}};
 const report=[];
+ok(survival.sturdy.n===2&&survival.sturdy.sure===2,'HP満タンのがんじょうは単発技を1回耐える',survival.sturdy);
+ok(survival.sash.n===2&&survival.sash.sure===2,'HP満タンのきあいのタスキは単発技を1回耐える',survival.sash);
+ok(survival.bypass.n===1&&survival.bypass.sure===1,'かたやぶり系はがんじょうの生存効果を無視する',survival.bypass);
+ok(survival.notFull.n===1&&survival.notFull.sure===1,'HP満タンでなければがんじょうは発動しない',survival.notFull);
+ok(survival.multi.n===1&&survival.multi.sure===1,'連続技はタスキ・がんじょうを1発目の後に突破する',survival.multi);
 ok(mechanics.normal===0&&mechanics.bypass===mechanics.hp&&mechanics.calc===0&&mechanics.calcBypass===mechanics.hp,'かたやぶりは一撃必殺技でもがんじょうを無視する',mechanics);
 for(const c of C){
   const s=site.find(x=>x.no===c.no),o=c.o||{};
