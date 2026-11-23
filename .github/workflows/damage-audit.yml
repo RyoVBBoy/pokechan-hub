@@ -26,7 +26,8 @@ jobs:
           node tests/ability-diagnosis-selection-integration.mjs
           node tests/ability-critical-double-matrix.mjs
           node tests/ko-probability-format-regression.mjs
-      - name: Champions device evidence gate (expected to remain unverified until device fixtures exist)
+      - name: Champions device evidence gate (readiness only; never certifies accuracy)
+        id: device-evidence
         continue-on-error: true
         run: node tests/champions-evidence-gate.mjs
       - name: Audit item branches and oracle assumptions
@@ -85,7 +86,7 @@ jobs:
               }
             }catch(e){lines.push(`- \`${file}\`: **invalid JSON** (${String(e)})`)}
           }
-          lines.push('','**Reference is @smogon/calc Gen 9, not Pokémon Champions device proof.**');
+          lines.push('','**Reference is @smogon/calc Gen 9, not Pokémon Champions device proof.**','**Device-accuracy certification: BLOCKED until independent evidence replay and review.**');
           const out=lines.join('\n')+'\n';
           console.log(out);
           if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,out);
