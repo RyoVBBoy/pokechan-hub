@@ -12,12 +12,13 @@ function dmgRolls(a,mv,d,o){
   return r;
 }
 /* n回当てたときに倒せる確率（いちばん少ない回数と、その確率） */
-function koInfo(r,hp){
+function koInfo(r,hp,def=null,att=null){
   if(!r.length)return{n:0,p:0,sure:0};
   /* 1回の使用のダメージの分布：連続技は r.dist（[合計,確率]）、ほかは16段階が同じ確率 */
   const one=x=>x.dist||x.map(v=>[v,1/x.length]);
   /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss）、2回目からは はがれたあとのダメージ（r.next） */
-  const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r),bn=r.next?one(r.next):b1;
+  const survival=!!(def&&def.hp===def.max&&!r.dist&&!r.loss&&(def.item==='focussash'||(def.ab==='sturdy'&&!(att&&['mold-breaker','teravolt','turboblaze'].includes(att.ab)))));
+  const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r).map(([v,w])=>[survival&&v>=hp?Math.max(0,hp-1):v,w]),bn=r.next?one(r.next):one(r);
   if(Math.max(...b1.map(x=>x[0]))<=0&&Math.max(...bn.map(x=>x[0]))<=0)return{n:0,p:0,sure:0};
   let dist=new Map([[0,1]]),first=null;
   for(let n=1;n<=8;n++){
@@ -111,7 +112,7 @@ function calcResult(){
   const sw=B.weather;B.weather=CS.weather?{k:CS.weather,t:5}:null;
   try{
     const op=calcOpt(),r=dmgRolls(a,mv,d,op);
-    return{a,d,mv,list,r,ko:koInfo(r,d.hp),eff:bcalc(a,mv,d,{protean:op.protean}).eff,acc:accOf(a,mv,d),n:bhits(a,mv,d,{...op,r:100}).n,op};
+    return{a,d,mv,list,r,1,acc:accOf(a,mv,d),n:bhits(a,mv,d,{...op,r:100}).n,op};
   }finally{B.weather=sw}
 }
 /* 覚えさせた技（使用率の高い型）それぞれのダメージと、相手からの反撃 */
@@ -122,7 +123,7 @@ function calcOverview(R){
     const rows=ms.slice(0,6).map(m=>{const r=dmgRolls(R.a,m,R.d,{...calcOpt(),hits:m.id===R.mv.id?CS.hits||0:0});
       /* 2026/11/16 依頼主：ばけのかわが残っているときは、はがれたあと（r.next）の％を出す。倒せる回数は今までどおり1発目から数える */
       const sh=r.loss&&!r.disgFaint&&r.next&&r.next.length?r.next:r;
-      return{m,lo:Math.min(...sh)/R.d.max*100,hi:Math.max(...sh)/R.d.max*100,ls:r.loss||0,after:sh!==r,ko:koInfo(r,R.d.hp),eff:bcalc(R.a,m,R.d,{protean:CS.protean!==false}).eff}});
+      return{m,lo:Math.min(...sh)/R.d.max*100,hi:Math.max(...sh)/R.d.max*100,ls:r.loss||0,after:sh!==r,1}});
     let back=null;try{const h=estHit(R.d,R.a);if(h&&h.mv)back={mv:h.mv,pct:h.pct}}catch(e){}
     return{rows,back};
   }finally{B.weather=sw}
