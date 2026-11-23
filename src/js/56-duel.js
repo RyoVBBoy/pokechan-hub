@@ -18,11 +18,11 @@ const duStage=n=>(2+n)/2;
 /* 倒すまでの回数（命中を入れた見込み） */
 function duTurns(p,h,att,def){
   if(!p||p<=0)return 9;
-  const multi=!!(h&&h.mv&&h.mv.maxH>1),ig=duIg(att);
+  const multi=!!(h&&(h.h>1||(h.mv&&h.mv.maxH>1))),ig=duIg(att);
   let n;
   /* マルチスケイル・ファントムガード：HP満タンで受ける1回目だけ半分。連続技は1発目の最初の1回だけ半分（2回目からはHPが満タンでない）（2026/11/10） */
-  const hh=multi?(h.mv.minH===h.mv.maxH?h.mv.maxH:3):1;
-  if(!ig&&DU_HALF_AB.includes(def.ab)){const f=h&&h.f!=null?h.f:p*(1-.5/hh);n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
+  const hh=multi?(h.h|| (h.mv.minH===h.mv.maxH?h.mv.maxH:3)):1;
+  if(!ig&&DU_HALF_AB.includes(def.ab)){const f=h&&h.f!=null?h.f:h&&h.fmin!=null?h.fmin:p*(1-.5/hh);n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
   if(n===1&&!multi&&(def.item==='focussash'||(!ig&&DU_SURV_AB.includes(def.ab))))n=2;
   /* ばけのかわ（2026/11/13 見直し）：1回目の使用は、最初の当たりが0になり、かわりに最大HPの1/8が減る。連続技は残りの当たりがふつうに入る。
      前は「1回多くかかる」だけで、1/8の減少を数えていなかった */
@@ -32,22 +32,23 @@ function duTurns(p,h,att,def){
 }
 /* 先制技でいちばん強いもの（ダメージの割合） */
 function duPrio(a,d){
-  let best=0;const dg=d.disg;d.disg=false;
-  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const r=bcalc(a,mv,d,{});best=Math.max(best,r.dmg/d.max*100)})}catch(e){}
-  d.disg=dg;return best;
+  let best=null;const dg=d.disg;d.disg=false;
+  try{a.moves.forEach(mv=>{if(!mv||mv.prot||(typeof MV_NO_AUTO!=='undefined'&&MV_NO_AUTO.has(mkey(mv)))||!(mv.pri>0)||!(mv.pow>0))return;const r=bhits(a,mv,d,{r:92}),acc=accOf(a,mv,d),pct=r.total/d.max*100*acc/100;if(!best||mv.pri>best.pri||(mv.pri===best.pri&&pct>best.pct))best={pct,pri:mv.pri,mv,acc,h:r.n}})}catch(e){}
+  d.disg=dg;return best||{pct:0,pri:0,mv:null,acc:100,h:1};
 }
 function duSetup(a){const k=a.boost;if(!k||!DU_BOOST[k]||k==='bellydrum')return null;const id=Object.keys(MD).find(i=>MD[i][3]===k);return{k,b:DU_BOOST[k],n:id?mName(+id):k}}
 /* 先に倒せるのはどちらか：1＝a、−1＝o、0＝五分 */
 function duFirst(sa,so,mt,ot,pa,po,ha,ho){
   let f=sa>so?1:sa<so?-1:0;
   const fin=(p,pr,n)=>pr>0&&(Math.ceil(n)-1)*p+pr>=100;
-  const fa=fin(ha,pa,mt),fo=fin(ho,po,ot);
-  if(f<=0&&fa&&!fo)f=1;else if(f>=0&&fo&&!fa)f=-1;
+  const fa=fin(ha,pa.pct,mt),fo=fin(ho,po.pct,ot);
+  if(fa&&fo&&pa.pri!==po.pri)f=pa.pri>po.pri?1:-1;
+  else if(f<=0&&fa&&!fo)f=1;else if(f>=0&&fo&&!fa)f=-1;
   return f;
 }
 function duel(a,o){return withWx(a,o,()=>duel0(a,o))}
-/* マルチスケイル：estHit は満タンで計算するので、もう半分になっている。duTurns が初撃を半分で数えるので、ここでは2発目からのダメージを渡す（2026/11/10 二重に半分にしていた） */
-function duHit(x,y){if(y.ab==='multiscale'&&!duIg(x)){const hp=y.hp;y.hp=y.max-1;try{return estHit(x,y)}finally{y.hp=hp}}return estHit(x,y)}
+/* estHit は2回目以降のダメージ（pct）と初回の実ダメージ（f）を分けて返す。マルチスケイル等の初回補正を二重にかけない */
+function duHit(x,y){return estHit(x,y)}
 function duel0(a,o){
   const h=duHit(a,o),r=duHit(o,a);
   let mt=duTurns(h.pct,h,a,o),ot=duTurns(r.pct,r,o,a);
@@ -58,7 +59,7 @@ function duel0(a,o){
   /* 積み技：相手の攻撃を2回以上耐えられるなら、1回積んでから */
   const tryUp=(x,y,hx,mx,my,px,first,sx,sy,dir)=>{
     const s=duSetup(x);if(!s||my<3)return null;
-    const pct=hx.pct*duStage(s.b[0]),m2=1+duTurns(pct,hx,x,y),sx2=s.b[1]?Math.floor(sx*duStage(s.b[1])):sx;
+    const boost=duStage(s.b[0]),pct=hx.pct*boost,m2=1+duTurns(pct,{...hx,f:(hx.f??hx.pct)*boost},x,y),sx2=s.b[1]?Math.floor(sx*duStage(s.b[1])):sx;
     const f2=sx2>sy?1:sx2<sy?-1:0;
     const before=(my-mx)+first*.5*dir,after=(my-m2)+f2*.5*dir;
     return after>before+.25?{m:m2,f:f2,mv:s.n}:null};

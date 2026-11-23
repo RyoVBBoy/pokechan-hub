@@ -93,8 +93,8 @@ const R4=await pg.evaluate(()=>{
   r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
   r.unk=/計算に入っていない特性/.test(C.premise);
   /* ★で選出を見るとき・ダブル */
-  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);
-  setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);setFmt('single');
+  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team),S3=partyScope(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);r.selScope=S3.length===3&&dgTeam(S3,20).ms.length===3;
+  setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team),S4=partyScope(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);r.dblScope=S4.length===4&&dgTeam(S4,20).ms.length===4;setFmt('single');
   return r;
 });
 ok(R4.soleK,'攻撃役が1匹に頼っている形を見つけられません');
@@ -107,7 +107,9 @@ ok(R4.typeEv,'タイプ相性だけの気になる点に計算の根拠があり
 ok(R4.calcEv,'計算の項目に根拠・深刻度がありません');
 ok(R4.unk,'計算に入っていない特性が書かれていません');
 ok(R4.sel,'★の選出で見るとき');
+ok(R4.selScope,'シングル選出時にサマリー・詳細の診断対象が3匹に統一される');
 ok(R4.dbl,'ダブルのとき');
+ok(R4.dblScope,'ダブル選出時にサマリー・詳細の診断対象が4匹に統一される');
 /* 2026/11/10 依頼主の検証（第4段階の精度） */
 const V=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};
@@ -718,6 +720,50 @@ ok(BAS.keys.every(v=>!v),'イダイトウを受けの型にしない '+JSON.stri
 ok(BAS.cyc.every(Boolean),'サイクル・軸の型でイダイトウは攻撃に振る '+JSON.stringify(BAS.cyc));
 ok(!BAS.imp.length,'イダイトウに耐久に回す改善案を出さない '+JSON.stringify(BAS.imp));
 ok(BAS.keep.every(Boolean),'もともと受けの型のポケモンは変えない '+JSON.stringify(BAS.keep));
+const weatherScope=await pg.evaluate(()=>{
+  const old=team.slice(),weatherBefore=B.weather;B.weather=null;const setter=P.find(p=>(ABD[p.no]||[]).some(z=>z[0]==='drought'));
+  const mons=['ガブリアス','カビゴン','ルカリオ'].map(n=>P.find(p=>p.n===n));
+  if(!setter||mons.some(x=>!x))return{available:false};
+  team.length=0;team.push({no:setter.no,sel:false,set:{ab:{k:'drought'}}},...mons.map((p,i)=>({no:p.no,sel:true,set:{ab:{k:'rough-skin'}}})));TWX_K=null;
+  const excluded=teamWx();team[0].sel=true;team[2].sel=false;TWX_K=null;
+  const included=teamWx();const a=mkMon(mons[0],'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3}),d=mkMon(mons[1],'op',{ab:'thick-fat',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
+  const applied=withWx(a,d,()=>B.weather&&B.weather.k);
+  team[1].set.ab.k='drizzle';team[0].sel=true;team[1].sel=true;team[2].sel=false;team[3].sel=true;TWX_K=null;
+  const ambiguous=teamWx(),ambiguousNote=dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:[]}).includes('異なる天候始動役が複数');
+  team[1].set.ab.k='rough-skin';team[0].sel=false;team[2].sel=true;TWX_K=null;const singleNo=teamWx();
+  setFmt('double');team.forEach((x,i)=>x.sel=i>0);TWX_K=null;const formatFallback=teamWx();
+  setFmt('single');team.length=0;old.forEach(x=>team.push(x));TWX_K=null;B.weather=weatherBefore;
+  return{available:true,excluded:!!excluded,included:included&&included.k,applied,ambiguous:!!(ambiguous&&ambiguous.ambiguous),ambiguousNote,singleNo:!!singleNo,formatFallback:formatFallback&&formatFallback.k};
+});
+const battleRules=await pg.evaluate(()=>{
+  const A=P.find(x=>x.n==='ガブリアス'),D=P.find(x=>x.n==='カビゴン');
+  const a=mkMon(A,'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
+  const d=mkMon(D,'op',{ab:'thick-fat',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
+  a.moves=[{...mvObj(98),pri:1,pow:120},{...mvObj(245),pri:2,pow:1}];
+  const p=dgPrio(a,d),dp=duPrio(a,d),order=duFirst(100,200,1,1,{pct:100,pri:1},{pct:100,pri:2},100,100);
+  a.moves=[{...mvObj(126),acc:85},{...mvObj(53),acc:100}];
+  const best=dgBest(a,d),expected=duTurns(best.min,{mv:best.mv,acc:best.acc,f:best.fmin},a,d);
+  const her=mkMon(P.find(x=>x.n==='ヘラクロス'),'me',{ab:'skill-link',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
+  const kang=mkMon(P.find(x=>x.n==='ガルーラ'),'me',{ab:'parental-bond',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
+  const rock=dgMove(her,mvObj(350),d),pb=dgMove(kang,mvObj(53),d),axel=dgMove(a,mvObj(813),d);
+  const axelExpected=bhits(a,mvObj(813),d,{r:85}).total/d.max*100;
+  const sash=mkMon(P.find(x=>x.n==='カビゴン'),'op',{ab:'thick-fat',item:'focussash',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});sash.max=1;sash.hp=1;
+  const pbSash=dgMove(kang,mvObj(53),sash),pbTurns=duTurns(pbSash.min,{mv:pbSash.mv,acc:pbSash.acc,f:pbSash.fmin,h:pbSash.h},kang,sash);
+  const oneSash=dgMove(a,mvObj(53),sash),oneTurns=duTurns(oneSash.min,{mv:oneSash.mv,acc:oneSash.acc,f:oneSash.fmin,h:oneSash.h},a,sash);
+  a.moves=[mvObj(252)];const fakeoutBest=dgBest(a,d);
+  return{priority:p&&p.mv.pri,duelPriority:dp&&dp.pri,duelOrder:order,accuracy:best&&best.acc,turns:best&&best.nMin,expected,skillLinkHits:rock.h,parentalBondHits:pb.h,tripleAxelHits:axel.h,tripleAxelMin:axel.fmin,tripleAxelExpected:axelExpected,pbSashTurns:pbTurns,oneSashTurns:oneTurns,fakeoutExcluded:!fakeoutBest,unverified:dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:['メガシビルドンのうなぎのぼり']}).includes('ゲーム内で未検証の特性'),conditionalExcluded:['fakeout','firstimpression','suckerpunch','upperhand','solarbeam','meteorbeam','focuspunch','steelroller','ragefist','lastrespects'].every(k=>IMP_NOMV.has(k))};
+});
+ok(weatherScope.available&&weatherScope.excluded===false&&weatherScope.included==='sun'&&weatherScope.applied==='sun'&&weatherScope.singleNo===false&&weatherScope.formatFallback==='sun'&&weatherScope.ambiguous&&weatherScope.ambiguousNote,'天候は選出した味方の場全体に適用し、選出外の始動役を使わない '+JSON.stringify(weatherScope));
+ok(battleRules.unverified,'ゲーム内未検証の特性を未実装と区別して表示する '+JSON.stringify(battleRules));
+ok(battleRules.conditionalExcluded,'条件付き・溜め・反動・自滅技を改善候補から除外する '+JSON.stringify(battleRules));
+ok(battleRules.fakeoutExcluded,'条件付き先制技を無条件の最善技として推奨しない '+JSON.stringify(battleRules));
+ok(battleRules.skillLinkHits===5,'パーティ診断でスキルリンクを5回として計算する '+JSON.stringify(battleRules));
+ok(battleRules.parentalBondHits===2,'パーティ診断でおやこあいの追加攻撃を計算する '+JSON.stringify(battleRules));
+ok(battleRules.pbSashTurns===1&&battleRules.oneSashTurns===2,'おやこあいの2発目は同一使用中にタスキを突破し、単発技はタスキを消費させる '+JSON.stringify(battleRules));
+ok(battleRules.tripleAxelHits===3&&Math.abs(battleRules.tripleAxelMin-battleRules.tripleAxelExpected)<1e-9,'パーティ診断でトリプルアクセルの威力変化を共通連続技エンジンで計算する '+JSON.stringify(battleRules));
+ok(battleRules.priority===2&&battleRules.duelPriority===2,'診断・対面アシストとも優先技は威力より優先度の段階を先に選ぶ '+JSON.stringify(battleRules));
+ok(battleRules.duelOrder===-1,'異なる優先度の先制技は高い優先度が先に動く '+JSON.stringify(battleRules));
+ok(battleRules.turns===battleRules.expected,'パーティ診断は技の実命中率をターン数に反映する '+JSON.stringify(battleRules));
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
 console.log(`diag: OK（${n}項目）`);

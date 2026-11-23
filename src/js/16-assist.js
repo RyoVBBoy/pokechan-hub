@@ -16,28 +16,31 @@ function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return 
 const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-swim'],sand:['sand-rush','sand-force'],snow:['slush-rush']};
 let TWX_K=null,TWX_V=null;
 function teamWx(){if(typeof team==='undefined'||!team.length)return null;
-  const key=JSON.stringify(team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k]));if(key===TWX_K)return TWX_V;
-  let v=null;for(const x of team){const p=byNo[x.no];if(!p)continue;let ab=null;
+  const active=team.filter(x=>x.sel),source=active.length===PICK()?active:team;
+  const key=JSON.stringify([FMT,PICK(),team.map(x=>[x.no,!!x.sel,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
+  const found=[];for(const x of source){const p=byNo[x.no];if(!p)continue;let ab=null;
     let guess=false;
     try{const it=x.set&&x.set.it&&x.set.it.k,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||null;
       /* 特性が未登録で、天気を変える特性を持てる匹（ペリッパーのあめふらし等）は、その特性で使うと仮定する */
       if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||mySetFor(x.no).ab;guess=!!w}}catch(e){}
-    if(ab&&WSET[ab]){v={k:WSET[ab],by:formInfo(p).base,ab,guess};break}}
+    if(ab&&WSET[ab])found.push({k:WSET[ab],by:formInfo(p).base,ab,guess})}
+  const kinds=[...new Set(found.map(x=>x.k))],v=kinds.length>1?{ambiguous:true,options:kinds}:found[0]||null;
   TWX_K=key;TWX_V=v;return v}
 const inTeam=m=>typeof team!=='undefined'&&team.some(x=>{const p=byNo[x.no];return p&&(p.no===(m.p.base||m.p.no)||p.no===m.p.no)});
 function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();let k=wxPair(a,b),by=null;
-  if(!k){const tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null;if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
+  if(!k){const tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null;if(tw){k=tw.k;by=tw}}
   if(!k)return fn();B.weather={k,t:5,team:by};try{return fn()}finally{B.weather=null}}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
-  a.moves.forEach(mv=>{if(mv.prot)return;const r=bcalc(a,mv,d,{});
-    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,acc=accOf(a,mv,d);
-    /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
-    let pct=r.dmg*h/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
-    if(pct*acc>best.pct*best.acc)best={pct,mv,acc}});
+  a.moves.forEach(mv=>{if(mv.prot||MV_NO_AUTO.has(mkey(mv)))return;const hp0=d.hp,half=DU_HALF_AB.includes(d.ab)&&!duIg(a)&&hp0===d.max,acc=accOf(a,mv,d);
+    const calc=hp=>{d.hp=hp;try{return bhits(a,mv,d,{r:92})}finally{d.hp=hp0}};
+    const later=calc(half?Math.max(1,d.max-1):hp0),first=calc(hp0),h=later.n;
+    /* p は2回目以降、f は初回（マルチスケイル等を含む）。命中率は評価時に1回だけ掛ける */
+    const pct=later.total/d.max*100,f=first.total/d.max*100,score=pct*acc/100;
+    if(score>best.pct*best.acc/100)best={pct,mv,acc,h,f}});
   }finally{d.disg=dg}
   return best;
 }

@@ -26,7 +26,7 @@ const R=await pg.evaluate(()=>{
   const x0=bcalc(A,sb,d0,{r:100});out.single={dmg:x0.dmg,disg:!!x0.disg,loss:x0.loss,eff:x0.eff};
   const h0=bhits(A,sb,mimi(),{r:100});out.singleH={total:h0.total,loss:h0.loss,hpLoss:h0.hpLoss,fainted:h0.fainted,n:h0.hits.length};
   /* ②境目（1発の技） */
-  out.th=[1,0,-1].map(k=>{const d=mimi(out.loss+k),h=bhits(A,sb,d,{r:100}),r=dmgRolls(A,sb,d,{}),ko=koInfo(r,d.hp);
+  out.th=[1,0,-1].map(k=>{const d=mimi(out.loss+k),h=bhits(A,sb,d,{r:100}),r=dmgRolls(A,sb,d,{}),ko=koInfo(r,d.hp,d,A);
     return{k,hp:d.hp,left:d.hp-h.hpLoss,fainted:h.fainted,disgFaint:h.disgFaint,ko,restored:d.disg===true&&d.hp===out.loss+k}});
   /* ③2回の技（ダブルウイング）・5回（スキルリンク＋タネマシンガン） */
   const two=mv('dualwingbeat');
@@ -50,11 +50,11 @@ const R=await pg.evaluate(()=>{
   out.mold={total:hm.total,loss:hm.loss,refm,disgAfter:dm.disg,disgHit:hm.hits.some(h=>h.disg)};
   /* ⑥タイプで効かない技（ノーマル技・かくとう技はゴーストに効かない）ではがれない */
   const im=bhits(A,mv('bodyslam'),mimi(),{r:100}),im2=bhits(A,mv('closecombat'),mimi(),{r:100});
-  out.immune={eff:im.eff,loss:im.loss,eff2:im2.eff,loss2:im2.loss,ko:koInfo(dmgRolls(A,mv('bodyslam'),mimi(),{}),d0.max)};
+  out.immune={eff:im.eff,loss:im.loss,eff2:im2.eff,loss2:im2.loss,ko:koInfo(dmgRolls(A,mv('bodyslam'),mimi(),{}),d0.max,mimi(),A)};
   /* 固定ダメージの技（ナイトヘッド。ちきゅうなげはかくとう技でゴーストに効かない）も1発目は防ぐ */
   const st=bhits(A,mv('nightshade'),mimi(),{});out.fixed={total:st.total,loss:st.loss};
   /* 倒せる回数：1回目＝技のダメージ＋1/8、2回目からは はがれたあと */
-  const rr=dmgRolls(A,sb,mimi(),{});out.ko={r:[Math.min(...rr),Math.max(...rr)],loss:rr.loss,next:rr.next&&[Math.min(...rr.next),Math.max(...rr.next)],ko:koInfo(rr,d0.max)};
+  const rr=dmgRolls(A,sb,mimi(),{});out.ko={r:[Math.min(...rr),Math.max(...rr)],loss:rr.loss,next:rr.next&&[Math.min(...rr.next),Math.max(...rr.next)],ko:koInfo(rr,d0.max,mimi(),A)};
   { const dd=mimi();dd.disg=false;const nx=dmgRolls(A,sb,dd,{});
     /* 手で数える：1回目で loss、2回目から nx の16段階。n回で倒せる確率 */
     let dist=new Map([[out.loss,1]]),res=null;for(let k=2;k<=8&&!res;k++){const nd=new Map();for(const[s,c]of dist)for(const v of nx){const t=Math.min(s+v,d0.max);nd.set(t,(nd.get(t)||0)+c/16)}dist=nd;const p=dist.get(d0.max)||0;if(p>0)res={n:k,p}}

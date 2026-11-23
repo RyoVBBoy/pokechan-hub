@@ -7,7 +7,7 @@
    ・ゲームにある持ち物（CH_ITEMS）・覚える技・持てる特性だけを使う。メガストーンは変えない（メガシンカの形が変わるため） */
 const IMP_W={x:3,w:1.5,nosw:1,ohko:1,slow:.7,st:.3};
 /* 1対1の計算では正しく扱えない技は候補にしない：受けると失敗・ためる・反動で動けない・自分が倒れる・前のターンしだい・最後にしか出せない 等 */
-const IMP_NOMV=new Set(['focuspunch','solarbeam','solarblade','skyattack','meteorbeam','electroshot','hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker','explosion','selfdestruct','mistyexplosion','finalgambit','lastresort','belch','futuresight','doomdesire','counter','mirrorcoat','metalburst','spitup','fling','dig','dive','fly','bounce','phantomforce','beakblast','shellsidearm','uproar','thrash','petaldance','outrage','ragingfury','firstimpression','synchronoise','overheat','leafstorm','dracometeor','superpower','makeitrain','psychoboost','fleurcannon','hammerarm','icehammer','spinout','clangingscales','vcreate','headlongrush','armorcannon']);
+const IMP_NOMV=new Set(['focuspunch','solarbeam','solarblade','skyattack','meteorbeam','electroshot','hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker','explosion','selfdestruct','mistyexplosion','finalgambit','lastresort','belch','futuresight','doomdesire','counter','mirrorcoat','metalburst','spitup','fling','dig','dive','fly','bounce','phantomforce','beakblast','shellsidearm','uproar','thrash','petaldance','outrage','ragingfury','firstimpression','synchronoise','overheat','leafstorm','dracometeor','superpower','makeitrain','psychoboost','fleurcannon','hammerarm','icehammer','spinout','clangingscales','vcreate','headlongrush','armorcannon',...MV_NO_AUTO]);
 /* 入れかえ先にしない技（役目のある技）：ねこだまし・交代技・先制技・こうそくスピン等 */
 const IMP_KEEP=new Set(['fakeout','uturn','voltswitch','flipturn','rapidspin','mortalspin','knockoff']);
 /* 計算用の型 → 保存の形（技は番号、まもるは182） */
@@ -117,7 +117,7 @@ function dgImprove(entries){
         const stab=p.t.includes(m.t)?1.5:1,cl=m.cls===(main===1?0:1)?1:.45,se=oppT.filter(t=>mult(m.t,t)>=2).length;
         return{id,m,v:m.pow*Math.min(100,m.acc||100)/100*stab*cl*(1+.15*se)+(m.pri>0?40:0)}}).filter(Boolean).sort((a,b)=>b.v-a.v).slice(0,7);
       cands.forEach(c=>{const mv=base.mv.map((m,k)=>k===slot.k?{id:c.id,n:mName(c.id)}:m);
-        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は上位の相手にいちばん使われていない技なので、${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる`)});
+        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は診断で選ばれる回数が最も少ない技なので、${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる`)});
     }
     /* ---- 能力ポイント（合計66：32＋32＋2） ---- */
     const SPS=[[[main,5],'攻撃と素早さ'],[[0,main],'HPと攻撃'],[[0,2],'HPと防御'],[[0,4],'HPと特防'],[[0,5],'HPと素早さ']];

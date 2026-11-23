@@ -15,7 +15,7 @@ const WSPD={chlorophyll:'sun','swift-swim':'rain','sand-rush':'sand','slush-rush
 const WNAME={sun:'ひざしが つよい',rain:'あめが ふっている',sand:'すなあらし',snow:'ゆきが ふっている'};
 const ABIMPL=new Set([...Object.keys(ABSORB),...Object.keys(PINCH),...Object.keys(SKIN),...Object.keys(WSET),...Object.keys(WSPD),
  'intimidate','clear-body','white-smoke','hyper-cutter','mirror-armor','defiant','competitive','huge-power','pure-power','hustle','compound-eyes','no-guard','technician','adaptability',
- 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link']);
+ 'multiscale','shadow-shield','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link']);
 const stgM=s=>s>=0?(2+s)/2:2/(2-s);
 
 /* ---- 持ち物（対応しているもののみ） ---- */
@@ -331,6 +331,7 @@ const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
 /* 条件つきで威力2倍：計算画面のチェックで指定（模擬戦では使わない） */
 const MCOND={payback:'相手より後に動く',avalanche:'先に相手から攻撃を受けている',assurance:'このターン、相手がすでにダメージを受けている',stompingtantrum:'前のターンに自分の技が失敗した',temperflare:'前のターンに自分の技が失敗した',lashout:'このターンに能力を下げられた',boltbeak:'相手より先に動く',fishiousrend:'相手より先に動く',ficklebeam:'威力2倍が出た（30%の確率）'};
 const MCOUNT={ragefist:['攻撃を受けた回数',6],lastrespects:['倒れた味方の数',5]};
+const MV_NO_AUTO=new Set([...MCHG,...MRECH,...MSELFKO,...MFIRST,...MFAIL,...Object.keys(MCOND),...Object.keys(MCOUNT),'suckerpunch','upperhand']);
 /* 自動の型づくり・相手の技選びでの使いやすさ（ためる・反動で動けない・自分が倒れる技などは下げる） */
 function simF(b,mv){
   const k=mkey(mv);
@@ -366,7 +367,7 @@ function varPow(a,mv,d,o){
   return pw;
 }
 /* 決まったダメージを与える技（Lv50） */
-function fixedDmg(a,mv,d){
+function fixedDmg(a,mv,d,ignoreAbilities=false){
   switch(mkey(mv)){
     case 'seismictoss':case 'nightshade':return 50;
     case 'superfang':case 'ruination':return Math.max(1,Math.floor(d.hp/2));
@@ -374,7 +375,7 @@ function fixedDmg(a,mv,d){
     case 'finalgambit':return a.hp;
     /* 一撃必殺：当たれば倒す（がんじょうなら効かない、ぜったいれいどはこおりタイプに効かない。当たる確率は命中30%で別に見る） */
     case 'guillotine':case 'fissure':case 'horndrill':case 'sheercold':
-      if(d.ab==='sturdy'||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
+      if((d.ab==='sturdy'&&!ignoreAbilities)||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
   }
   return null;
 }
@@ -388,7 +389,7 @@ const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
 function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv);
-  const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
+  const ig=['mold-breaker','teravolt','turboblaze'].includes(a.ab),dab=ig?null:d.ab;
   if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
@@ -402,7 +403,7 @@ function bcalc(a,mv,d,o){
      技のダメージを0にして、はがれる。かわりに最大HPの1/8（disgLoss）が減る。この減少は技のダメージではないので dmg には入れず loss で返す。
      かたやぶりは、ばけのかわを無視してふつうにダメージを与える（はがれない） */
   if(d.disg&&!ig)return{dmg:0,eff,disg:true,loss:disgLoss(d)};
-  const fx=fixedDmg(a,mv,d);if(fx!=null)return{dmg:fx,eff,fixed:true};
+  const fx=fixedDmg(a,mv,d,ig);if(fx!=null)return{dmg:fx,eff,fixed:true};
   /* シェルアームズ：物理と特殊でダメージが大きいほうになる */
   let phys=!mv.cls;
   if(mk==='shellsidearm'){const A1=stgV(a.st[1],a.stg.atk),C1=stgV(a.st[3],a.stg.spa),B1=stgV(d.st[2],d.stg.def),D1=stgV(d.st[4],d.stg.spd);
@@ -482,8 +483,8 @@ function bcalc(a,mv,d,o){
   /* 最後の補正 */
   let fm=4096;
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
-  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,o.spread?2732:2048);
-  if(dab==='multiscale'&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
+  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,o.doubles?2732:2048);
+  if((dab==='multiscale'||dab==='shadow-shield')&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
   if((dab==='solid-rock'||dab==='filter')&&eff>=2)fm=chM(fm,3072);
   if(a.ab==='tinted-lens'&&eff<1)fm=chM(fm,8192);
   if(a.item==='expertbelt'&&eff>=2)fm=chM(fm,4915);
