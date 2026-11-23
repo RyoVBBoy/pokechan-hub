@@ -24,6 +24,7 @@ if(!existsSync(file)){
   }
   // This validates evidence metadata only. It does NOT compare production damage
   // against observations; the full oracle test must replay each fixture independently.
-  console.log('EVIDENCE METADATA ONLY: '+rows.length+' observations. NOT a Champions accuracy pass.');
+  console.error('UNVERIFIED: '+rows.length+' observation metadata rows found, but no independent replay, expected-roll comparison, or authenticity review has been performed. Device accuracy gate remains BLOCKED.');
+  process.exitCode=1;
  }catch(e){console.error('INVALID EVIDENCE:',e.message);process.exitCode=1;}
 }
