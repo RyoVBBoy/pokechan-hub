@@ -32,6 +32,7 @@ jobs:
       - name: 40 named cases
         env:
           CALC_CASES_REPORT: audit-calc-cases.json
+          CALC_CASES_SUMMARY: audit-calc-cases-summary.json
         run: node tests/calc-cases.mjs
       - name: 1500 random reference cases
         env:
@@ -46,6 +47,7 @@ jobs:
           name: damage-audit-reports
           path: |
             audit-calc-cases.json
+            audit-calc-cases-summary.json
             audit-calc-ref.json
           if-no-files-found: warn
       - name: Summarize auditable results
@@ -54,7 +56,7 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import {existsSync,readFileSync,appendFileSync} from 'node:fs';
-          const files=['audit-calc-cases.json','audit-calc-ref.json'];
+          const files=['audit-calc-cases.json','audit-calc-cases-summary.json','audit-calc-ref.json'];
           const lines=['## Damage audit evidence','',`Commit: \`${process.env.GITHUB_SHA}\``,''];
           for(const file of files){
             if(!existsSync(file)){lines.push(`- \`${file}\`: **missing** (the test may have failed before writing its report)`);continue}
@@ -63,6 +65,8 @@ jobs:
               if(Array.isArray(data)){
                 const fail=data.filter(x=>x.pass===false);
                 lines.push(`- \`${file}\`: ${data.length} recorded scenarios; ${fail.length} explicit failed scenarios`);
+              }else if(file==='audit-calc-cases-summary.json'){
+                lines.push(`- Named cases: ${data.namedCases}; assertions ${data.assertions}; failed ${data.failedAssertions}; Smogon-comparable ${data.referenceCases}; rule-based ${data.ruleBasedCases}; unverified-ability ${data.unverifiedAbilityCases}; pass ${data.pass}`);
               }else{
                 const c=data.coverage||{};
                 lines.push(`- \`${file}\`: requested ${data.requested}, generated ${data.generated}, matched ${data.matched}, mismatched ${data.mismatched}, pass ${data.pass}, seed ${data.seed}`);
