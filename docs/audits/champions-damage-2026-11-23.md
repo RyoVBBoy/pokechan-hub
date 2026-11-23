@@ -145,3 +145,13 @@ Reviewed current `tests/calc-ref.mjs` and `tests/calc-cases.mjs` source. Confirm
 Added `CALC_REF_REPORT` support to the random test, saving requested/generated/matched/mismatched counts, seed, pass status, and up to 20 mismatch details as JSON. Updated the audit workflow to save both the fixed-case report (`CALC_CASES_REPORT`) and random report as a downloadable `damage-audit-reports` artifact, including when a step fails. This makes future CI results independently inspectable rather than relying only on green job badges. **New CI run and artifacts have not yet been observed through the connected tool**; no pass is claimed for these commits.
 
 Outstanding: verify CI report contents; correct any strict-reference mismatches; distinguish Gen9 Smogon comparisons from Champions device-confirmed mechanics; cover unsupported ability/item effects and ally-dependent doubles; run full actual-party diagnosis/selection comparisons. Main and production remain unchanged.
+
+## Traceable pass/fail evidence and coverage (2026-11-24)
+
+Added coverage counters to `tests/calc-ref.mjs`'s JSON report: singles/doubles, criticals, spread, screens, attack/defense abilities and items, nonzero attack/defense ranks, and intersections (critical+screen, double+spread+screen, critical+nonzero rank). These are observed counts from the generated randomized cases, **not coverage guarantees**.
+
+Added a GitHub Actions `Summarize auditable results` step with `if: always()`, reporting the exact random reference counts, coverage and missing/invalid report warnings in both the job log and `GITHUB_STEP_SUMMARY`. Both report files are already uploaded as artifacts by an `if: always()` step. This allows evidence inspection even when a preceding test fails, provided the workflow reaches these steps.
+
+Checked the committed YAML after correcting template interpolation and newline escaping. New workflow run and report contents have **not been fetched or confirmed**. GitHub's available commit-to-run connector only returns pull-request-triggered runs, and an attempt to open the Actions page through public web retrieval was blocked. Therefore current status is **instrumented, execution unverified**. Do not infer CI success from the source edits.
+
+The benchmark remains Smogon Gen9; device-specific Champions correctness and end-to-end diagnosis/selection accuracy remain unresolved.
