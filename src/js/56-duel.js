@@ -18,10 +18,10 @@ const duStage=n=>(2+n)/2;
 /* 倒すまでの回数（命中を入れた見込み） */
 function duTurns(p,h,att,def){
   if(!p||p<=0)return 9;
-  const multi=!!(h&&h.mv&&h.mv.maxH>1),ig=duIg(att);
+  const multi=!!(h&&(h.h>1||(h.mv&&h.mv.maxH>1))),ig=duIg(att);
   let n;
   /* マルチスケイル・ファントムガード：HP満タンで受ける1回目だけ半分。連続技は1発目の最初の1回だけ半分（2回目からはHPが満タンでない）（2026/11/10） */
-  const hh=multi?(h.mv.minH===h.mv.maxH?h.mv.maxH:3):1;
+  const hh=multi?(h.h|| (h.mv.minH===h.mv.maxH?h.mv.maxH:3)):1;
   if(!ig&&DU_HALF_AB.includes(def.ab)){const f=h&&h.f!=null?h.f:p*(1-.5/hh);n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
   if(n===1&&!multi&&(def.item==='focussash'||(!ig&&DU_SURV_AB.includes(def.ab))))n=2;
   /* ばけのかわ（2026/11/13 見直し）：1回目の使用は、最初の当たりが0になり、かわりに最大HPの1/8が減る。連続技は残りの当たりがふつうに入る。
