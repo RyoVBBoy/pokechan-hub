@@ -6,6 +6,7 @@
 import {chromium} from 'playwright';
 import path from 'node:path';
 import {createRequire} from 'node:module';
+import {writeFileSync} from 'node:fs';
 const require=createRequire(import.meta.url);
 const {calculate,Pokemon,Move,Field,Generations,Side}=require('@smogon/calc');
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
@@ -171,6 +172,6 @@ for(const no of [18,26,29,35,36]){const x=g(no);ok(x.dist&&Math.abs(x.dist.sum-1
  ok(s.dist&&[...tot.keys()].length>0&&Math.min(...tot.keys())===s.dist.lo&&Math.max(...tot.keys())===s.dist.hi,'#35 ツインビーム：2発の合計の最小・最大が照合先と同じ',{lo:s.dist&&s.dist.lo,hi:s.dist&&s.dist.hi});}
 ok(site.find(x=>x.no==='sl').slHits===5,'スキルリンクは選んだ回数があっても5回（回数の選択が残っていても）',site.find(x=>x.no==='sl'));
 ok(!errs.length,'ページのエラーなし',errs);
-if(process.env.CALC_CASES_REPORT)require('fs').writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
+if(process.env.CALC_CASES_REPORT)writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
 console.log(`calc-cases: ${bad?'NG':'OK'}（${n}項目・照合先で確かめた場面 ${C.length-unv-rule}・ゲームの決まりで確かめた場面 ${rule}・照合先にない特性の場面 ${unv}）`);
 if(bad)process.exit(1);
