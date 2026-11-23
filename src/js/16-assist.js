@@ -17,7 +17,7 @@ const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-s
 let TWX_K=null,TWX_V=null;
 function teamWx(){if(typeof team==='undefined'||!team.length)return null;
   const active=team.filter(x=>x.sel),source=active.length===PICK()?active:team;
-  const key=JSON.stringify(team.map(x=>[x.no,!!x.sel,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k]));if(key===TWX_K)return TWX_V;
+  const key=JSON.stringify([FMT,PICK(),team.map(x=>[x.no,!!x.sel,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
   let v=null;for(const x of source){const p=byNo[x.no];if(!p)continue;let ab=null;
     let guess=false;
     try{const it=x.set&&x.set.it&&x.set.it.k,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||null;
