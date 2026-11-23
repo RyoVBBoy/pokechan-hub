@@ -205,7 +205,7 @@ function teamRender(){
     TEAM_DGMODE=st}
   if(TTAB==='plan'){pl.innerHTML=dgModeNote(TEAM_DGMODE)+planHTML(team);planBind(pl);dgWaitBind(pl,teamRender)}
   if(TTAB!=='check'){out.innerHTML='';return}
-  const C=partyCheck(team);
+  const C=partyCheck(team),S=partyScope(team);
   /* 操作の回数（2026/11/12）：診断を出したら数える。同じパーティ・同じデータ・同じ形式は1回（描き直し・タブの切りかえでは増えない） */
   if(typeof evCount==='function')evCount('diag_done',JSON.stringify([team.map(x=>[x.no,x.set||0,!!x.sel]),dgDataSig(),TEAM_DGMODE]));
   /* 2026/11/10 UI改善 第2段階：カードの形は 63-diag-ui.js の dguCard（重要度・起きる相手・理由・改善・計算根拠をたたむ） */
@@ -230,7 +230,7 @@ function teamRender(){
   ${adSlot('診断結果下')}`;teamStepsBind(out);dgWaitBind(out,teamRender);
   {const ad=out.querySelector('#dg-adv');if(ad)ad.addEventListener('toggle',()=>{try{sessionStorage.setItem('pcdgadv',ad.open?'1':'0')}catch(e){}})}
   if(typeof stFill==='function')setTimeout(()=>stFill(team),0);
-  if(typeof dguSumFill==='function')setTimeout(()=>dguSumFill(team,C),0);setTimeout(()=>loseFill(team),20);setTimeout(()=>dgFill(team),40);if(typeof impFill==='function')impFill(team);
+  if(typeof dguSumFill==='function')setTimeout(()=>dguSumFill(S,C),0);setTimeout(()=>loseFill(team),20);setTimeout(()=>dgFill(S),40);if(typeof impFill==='function')impFill(S);
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
   out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=async()=>{
     const [i,v]=b.dataset.psw.split(':'),o=team[+i];if(!o)return;
@@ -318,10 +318,11 @@ function planHTML0(entries){
 }
 /* ---- パーティのチェック：タイプだけでなく、組み合わせ・持ち物・技・素早さも見て、直し方を添える（点数はつけない） ---- */
 const PC_SWSET={};
+function partyScope(entries){const sel=entries.filter(x=>x.sel);return sel.length===Math.min(PICK(),entries.length)?sel:entries}
 function partyCheck(entries){
   /* 選出（★）が決まっていれば（${PICK()}匹）その匹で、決まっていなければパーティ全体で見る */
   const sel=entries.filter(x=>x.sel),full=sel.length===Math.min(PICK(),entries.length);
-  const use=full?sel:entries;
+  const use=partyScope(entries);
   const scope=full?`選出に選んだ${sel.length}匹（${FMTN()}）`:`パーティの${entries.length}匹全体（選出を${PICK()}匹選ぶと、選出の${PICK()}匹で見ます${sel.length?`。いま選出は${sel.length}匹`:''}）`;
   const allMs=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
   const ms=use.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p);
