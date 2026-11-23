@@ -34,7 +34,7 @@ function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
-  a.moves.forEach(mv=>{if(mv.prot)return;const hp0=d.hp,half=DU_HALF_AB.includes(d.ab)&&!duIg(a)&&hp0===d.max,acc=accOf(a,mv,d);
+  a.moves.forEach(mv=>{if(mv.prot||MV_NO_AUTO.has(mkey(mv)))return;const hp0=d.hp,half=DU_HALF_AB.includes(d.ab)&&!duIg(a)&&hp0===d.max,acc=accOf(a,mv,d);
     const calc=hp=>{d.hp=hp;try{return bhits(a,mv,d,{r:92})}finally{d.hp=hp0}};
     const later=calc(half?Math.max(1,d.max-1):hp0),first=calc(hp0),h=later.n;
     /* p は2回目以降、f は初回（マルチスケイル等を含む）。命中率は評価時に1回だけ掛ける */
