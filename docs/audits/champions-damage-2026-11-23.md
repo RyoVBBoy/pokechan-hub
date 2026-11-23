@@ -67,3 +67,15 @@ Scope: source review on repository main, isolated changes on audit/champions-dam
 - Committed `tests/screen-property-regression.mjs` to reproduce the above neutral-fixture invariant test under Node; added it to `tests/run.mjs`. The newly committed file itself was read back from GitHub, but **was not run in Node** here.
 - Found and fixed an independent test-harness defect in `tests/calc-cases.mjs`: when `CALC_CASES_REPORT` was set, the ESM script called `require('fs')` without declaring `require`; changed to `import {writeFileSync} from 'node:fs'` and used the import. The optional JSON report path was previously liable to fail after the assertions.
 - Still blocked: actual Playwright/@smogon/calc runs for 40 named and 1,500 randomized comparisons; exact game-specific modifier order/rounding and missing abilities/items.
+
+## Priority audit: unsupported abilities/items in current diagnosis and selection (2026-11-24)
+
+**Confirmed impact chain:** `src/js/60-diag.js` `dgMove` calls shared `bcalc` at min/max rolls; `dgBest` and `dgMatch0` derive KO, survival, switch-in, and match category; `dgTeam1` aggregates opponent categories; `src/js/61-select.js` `dgSelect` ranks selection combinations from those categories. Therefore unsupported damage abilities/items can bias both diagnosis and selection. The simpler `estHit0` path in `16-assist.js` and `duel` also uses `bcalc` and needs further review.
+
+**Confirmed warning gap:** Diagnosis previously relied on `ABIMPL` and `DG_SIMONLY` to build `T.unk`. The calculator has a separate explicit `CALC_UNIMPL` and `CALC_UNIMPL_IT` list; effects in that list were not reliably represented by the diagnosis warning. Item effects were absent from this warning altogether. The selection UI did not surface `T.unk` next to its rankings.
+
+**Branch changes:** `src/js/60-diag.js` now detects explicitly unsupported calculator abilities/items on both the user's team and opponents, incorporates them into `T.unk`, and shows a visible provisional-results caveat when present. `dgPremise` now labels these as unsupported *effects*, not only abilities. `src/js/61-select.js` now displays a caveat for selection ranking, leads, and switch-in outcomes when `S.T.unk` is nonempty. These are warning/accuracy-label fixes, **not implementations** of the missing effects.
+
+**Isolated test:** Evaluated the fetched production `dgCalcUnsupported` with the actual calculator's unsupported lists: unaware, marvel-scale, friend-guard, ironball, and a supported combination; **5/5 passed**. Added `tests/diagnosis-unsupported-regression.mjs` with further assertions and registered it in `tests/run.mjs`. The new Node test file itself is not executed here.
+
+**Remaining:** Determine whether the effects should be implemented in shared `bcalc` and whether a stronger strategy than provisional labels is needed for high-impact rankings. Validate the full site/browser UI, build, and 40/1,500 Smogon comparison. No Pokémon Champions device-accuracy claim.
