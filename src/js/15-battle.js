@@ -441,7 +441,7 @@ function bcalc(a,mv,d,o){
   if((mk==='meteorbeam'||mk==='electroshot')&&!o.roll)as=Math.min(6,as+1);
   if(crit&&as<0)as=0;
   /* てんねん：防御側が持つ場合、攻撃側の能力ランクを無視。かたやぶりで無効化される。 */
-  if(dab==='unaware')as=0;
+  if(dab==='unaware'&&!ee.fp)as=0; /* イカサマは相手自身の攻撃ランクを参照するため、ここで消さない */
   const ast=a.stAtk||a.st;
   let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?ast[1]:ast[3]),as),am=4096;
   if(phys&&(a.ab==='huge-power'||a.ab==='pure-power'))am=chM(am,8192);
