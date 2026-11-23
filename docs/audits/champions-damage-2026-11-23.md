@@ -60,3 +60,10 @@ Scope: source review on repository main, isolated changes on audit/champions-dam
 1. Run the full built-site tests on this branch: `npm ci && npm run build && node tests/screen-format-regression.mjs && node tests/screen-damage-regression.mjs && node tests/calc-cases.mjs && CALC_N=1500 CALC_SEED=20261123 node tests/calc-ref.mjs` (install Playwright Chromium as needed). Capture every mismatch and its conditions; avoid reporting a green result without logs.
 2. Audit the missing ability/item behavior and whether the party-diagnosis/selection consumers should warn or omit unsupported comparisons.
 3. Compare the order and rounding of stacked modifiers against Champions primary evidence; @smogon/calc Gen 9 is only a reference implementation, not an authoritative Champions specification.
+
+## Additional independent work without Claude (2026-11-23)
+
+- Executed the fetched production `bcalc` body in a sandbox with neutral dependency stubs for **1,500 deterministic generated conditions** (seed 20261123). Checked `screenDamage <= noScreenDamage` and `criticalScreenDamage === criticalNoScreenDamage` across varied attack/defense stats, rank stages, physical/special moves, power, formats, spread, and random rolls. **1,500/1,500 invariant checks passed; zero violations.** This is **not** the pre-existing 1,500-case @smogon/calc comparison and **not** Champions device validation.
+- Committed `tests/screen-property-regression.mjs` to reproduce the above neutral-fixture invariant test under Node; added it to `tests/run.mjs`. The newly committed file itself was read back from GitHub, but **was not run in Node** here.
+- Found and fixed an independent test-harness defect in `tests/calc-cases.mjs`: when `CALC_CASES_REPORT` was set, the ESM script called `require('fs')` without declaring `require`; changed to `import {writeFileSync} from 'node:fs'` and used the import. The optional JSON report path was previously liable to fail after the assertions.
+- Still blocked: actual Playwright/@smogon/calc runs for 40 named and 1,500 randomized comparisons; exact game-specific modifier order/rounding and missing abilities/items.
