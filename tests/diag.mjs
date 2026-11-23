@@ -93,8 +93,8 @@ const R4=await pg.evaluate(()=>{
   r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
   r.unk=/計算に入っていない特性/.test(C.premise);
   /* ★で選出を見るとき・ダブル */
-  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);
-  setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);setFmt('single');
+  team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team),S3=partyScope(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);r.selScope=S3.length===3&&dgTeam(S3,20).ms.length===3;
+  setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team),S4=partyScope(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);r.dblScope=S4.length===4&&dgTeam(S4,20).ms.length===4;setFmt('single');
   return r;
 });
 ok(R4.soleK,'攻撃役が1匹に頼っている形を見つけられません');
@@ -107,7 +107,9 @@ ok(R4.typeEv,'タイプ相性だけの気になる点に計算の根拠があり
 ok(R4.calcEv,'計算の項目に根拠・深刻度がありません');
 ok(R4.unk,'計算に入っていない特性が書かれていません');
 ok(R4.sel,'★の選出で見るとき');
+ok(R4.selScope,'シングル選出時にサマリー・詳細の診断対象が3匹に統一される');
 ok(R4.dbl,'ダブルのとき');
+ok(R4.dblScope,'ダブル選出時にサマリー・詳細の診断対象が4匹に統一される');
 /* 2026/11/10 依頼主の検証（第4段階の精度） */
 const V=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};
