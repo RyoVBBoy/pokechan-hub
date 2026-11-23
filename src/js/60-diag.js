@@ -29,7 +29,7 @@ const DG_NOTE='1対1の簡易評価です。トリックルームは条件を満
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
 const dgMvName=(a,mv)=>{try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技）`}catch(e){}return mv.n};
 /* 技の条件が分からない1対1診断では、無条件の技として選ばない */
-const DG_COND_MOVES=new Set([...MCHG,...MRECH,...MSELFKO,...MFIRST,...MFAIL,...Object.keys(MCOND),...Object.keys(MCOUNT),'suckerpunch','upperhand']);
+const DG_COND_MOVES=MV_NO_AUTO;
 const dgAutoEligible=mv=>!DG_COND_MOVES.has(mkey(mv));
 function dgMove(a,mv,d){
   const dg=d.disg,hp0=d.hp;d.disg=false;
