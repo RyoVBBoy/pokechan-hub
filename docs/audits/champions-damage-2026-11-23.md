@@ -111,3 +111,11 @@ For a single controlled fixture with Garchomp Attack +2, Skeledirge as opponent,
 A follow-up review identified a Foul Play edge case: the defender's Unaware should not zero its **own** Attack stage when the attacker uses Foul Play (`ee.fp`). The shared calculator was corrected and regression assertions added for Foul Play and negative-rank Unaware.
 
 Remaining before production completion: execute Node regression files and 40/1500 external comparisons in the full checkout; verify actual Champions battle mechanics with evidence, real move availability, full party data and distinct opponent sets; audit Friend Guard ally-dependent doubles, item effects, critical interaction, special category, and cross-feature impact. Main remains untouched.
+
+## Automated CI without Claude (2026-11-24)
+
+Created `.github/workflows/damage-audit.yml` on the isolated audit branch. It is restricted to pushes on `audit/champions-damage-format-20261123`, uses Node 22 and npm dependencies, runs focused ability/screen/diagnosis/selection regressions, installs Chromium, builds the static site, then runs the 40 named cases and the seeded 1,500-case `@smogon/calc` comparison. **It has no deployment or main-branch write steps.**
+
+GitHub accepted the workflow file and subsequent update, but **workflow run status and logs were not accessible** through the current connected GitHub tool. The combined status endpoint reported no statuses on an earlier workflow commit; this is not a pass or failure. Do not claim the 40/1500 suite passed without actual logs. CI may require GitHub Actions to be enabled and permitted for the branch.
+
+The isolated JavaScript evaluations of production source did show the expected Garchomp/Skeledirge Unaware rating, switch-in, and selection changes with both the production `duTurns` and `dgMatch0`. A reproducible Node test is committed, but its Node execution is still unverified.
