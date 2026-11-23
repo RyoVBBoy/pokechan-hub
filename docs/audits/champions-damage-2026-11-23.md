@@ -155,3 +155,9 @@ Added a GitHub Actions `Summarize auditable results` step with `if: always()`, r
 Checked the committed YAML after correcting template interpolation and newline escaping. New workflow run and report contents have **not been fetched or confirmed**. GitHub's available commit-to-run connector only returns pull-request-triggered runs, and an attempt to open the Actions page through public web retrieval was blocked. Therefore current status is **instrumented, execution unverified**. Do not infer CI success from the source edits.
 
 The benchmark remains Smogon Gen9; device-specific Champions correctness and end-to-end diagnosis/selection accuracy remain unresolved.
+
+## Fixed-case evidence completeness (2026-11-24)
+
+Inspected `tests/calc-cases.mjs`: the source contains 40 numbered named scenarios, but a green step alone did not distinguish Smogon reference comparisons from rule-based expectations and Champions-unverified abilities. Added an assertion requiring **exactly 40 distinct case numbers**, plus `CALC_CASES_SUMMARY` output with assertion total, failed assertion details, number of comparable cases, rule-based cases and unverified ability cases. Updated the branch-only Actions workflow to preserve this report and show those counts in its job summary.
+
+The changes are committed to the audit branch; **no new CI pass has been observed or independently verified**. The workflow's source now exposes evidence quality and failures, but device-level Champions correctness and full doubles/diagnosis/selection integration are still outstanding. Never conflate 40 cases with 40 independently verified Champions scenarios.
