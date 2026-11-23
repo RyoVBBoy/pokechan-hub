@@ -11,12 +11,13 @@ const fn=dg.match(/const dgCalcUnsupported=m=>\{[\s\S]*?return out\};/);
 const ab=calc.match(/const CALC_UNIMPL=\[[^\n]+\];/),uv=calc.match(/const CALC_UNVERIFIED=\{[^\n]+\};/),it=calc.match(/const CALC_UNIMPL_IT=\[[^\n]+\];/);
 assert.ok(fn&&ab&&uv&&it,'unsupported modifier source markers');
 const check=new Function('ABN','ITEMN',ab[0]+'\n'+uv[0]+'\n'+it[0]+'\nconst DG_SIMONLY=new Set([\'intimidate\']);\n'+fn[0]+'\nreturn dgCalcUnsupported;')(
- {unaware:'てんねん','marvel-scale':'ふしぎなうろこ','friend-guard':'フレンドガード',eelevate:'うなぎのぼり'},
+ {unaware:'てんねん','marvel-scale':'ふしぎなうろこ','friend-guard':'フレンドガード',eelevate:'うなぎのぼり','mega-sol':'メガソーラー',dragonize:'ドラゴンスキン'},
  {ironball:'くろいてっきゅう'});
 for(const [m,name] of [[{ab:'friend-guard'},'フレンドガード'],[{item:'ironball'},'くろいてっきゅう'],
- [{ab:'intimidate'},'特性'],[{ab:'eelevate'},'うなぎのぼり']]){
+ [{ab:'intimidate'},'特性'],[{ab:'eelevate'},'うなぎのぼり'],[{ab:'mega-sol'},'メガソーラー'],[{ab:'dragonize'},'ドラゴンスキン']]){
  assert.ok(check(m).join(' ').includes(name),name);
 }
+assert.ok(check({ab:'friend-guard',item:'ironball'}).length===2,'multiple unsupported mechanics must both be reported');
 assert.deepEqual(check({ab:'rough-skin',item:'leftovers'}),[],'supported modifiers not falsely flagged');
 assert.deepEqual(check({ab:'unaware'}),[],'Unaware now supported');
 assert.deepEqual(check({ab:'marvel-scale'}),[],'Marvel Scale now supported');
