@@ -2,9 +2,12 @@ name: 回帰テスト（PR）
 on:
   push:
     branches: ['audit/**']
-  pull_request:
-    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: battle-regression
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-24.04
