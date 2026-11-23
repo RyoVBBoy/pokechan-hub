@@ -119,3 +119,13 @@ Created `.github/workflows/damage-audit.yml` on the isolated audit branch. It is
 GitHub accepted the workflow file and subsequent update, but **workflow run status and logs were not accessible** through the current connected GitHub tool. The combined status endpoint reported no statuses on an earlier workflow commit; this is not a pass or failure. Do not claim the 40/1500 suite passed without actual logs. CI may require GitHub Actions to be enabled and permitted for the branch.
 
 The isolated JavaScript evaluations of production source did show the expected Garchomp/Skeledirge Unaware rating, switch-in, and selection changes with both the production `duTurns` and `dgMatch0`. A reproducible Node test is committed, but its Node execution is still unverified.
+
+## Additional ability/critical/doubles audit (2026-11-24)
+
+The user supplied screenshots showing the GitHub Actions `Damage audit (no deployment)` workflow succeeded at commit `5cdf080`, with green steps for focused regression, browser build, 40 named cases and 1,500 random reference cases. The logs' numeric output was not captured, so the verified fact is that each step exited successfully, not that all Champions mechanics were proven.
+
+New source inspection confirmed the selection assist explicitly models doubles as collections of 1v1 matchups (`61-select.js` header and premise); ally-dependent Friend Guard, spread mechanics in 2v2 and simultaneous moves are omitted. Added an **immediately visible** Japanese provisional-accuracy notice to doubles selection UI rather than implying those rankings are validated.
+
+Fixed `calcSig` in `21-calc.js` to include `CS.hits` and `CS.protean`, which are selectable calculation options and were omitted from the operation fingerprint. Added `tests/ability-critical-double-matrix.mjs`: source-based matrix for Unaware ranks -6..+6 with/without critical, Marvel Scale status conditions, screens in single/double spread/non-spread, and calculator fingerprint coverage. Registered it in both `tests/run.mjs` and the branch-only GitHub Actions workflow.
+
+These new changes are **not yet CI-confirmed**. The connected GitHub commit-run/status lookups for `cd12bc3` returned empty arrays; this is not a failure or success result. No Champions-device proof is available for precise damage ordering/rounding or omitted ally/item mechanics. The audit is not complete; main is unchanged.
