@@ -1,6 +1,7 @@
 // ダメージ計算の照合：対戦で広く使われている計算機（@smogon/calc）と、ランダムな組み合わせで乱数16段階を比べる
 import {chromium} from 'playwright';
 import path from 'node:path';
+import {writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {calculate,Pokemon,Move,Field,Generations,Side}=require('@smogon/calc');
@@ -62,4 +63,10 @@ for(const c of cases){
 const rate=ok/cases.length;
 console.log(`calc: ${ok}/${cases.length} 一致（${(rate*100).toFixed(2)}%・乱数の種 ${SEED}）`);
 if(bad.length)console.log('違い（参考）',JSON.stringify(bad.slice(0,2).map(x=>({ab:x.c.a.ab,mv:x.c.mv.id,ours:x.c.rolls.slice(0,3),ref:x.ref.slice(0,3)}))));
+if(process.env.CALC_REF_REPORT)writeFileSync(process.env.CALC_REF_REPORT,JSON.stringify({
+  reference:'@smogon/calc Gen 9 (comparison, not Pokémon Champions device proof)',
+  requested:N,generated:cases.length,matched:ok,mismatched:bad.length,
+  seed:SEED,pass:cases.length===N&&bad.length===0,
+  firstMismatches:bad.slice(0,20)
+},null,2));
 if(cases.length!==N||bad.length!==0){console.error('NG ダメージ計算が照合先と合いません',JSON.stringify(bad.slice(0,3)));process.exitCode=1}
