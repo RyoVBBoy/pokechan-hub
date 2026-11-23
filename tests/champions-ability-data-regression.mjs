@@ -1,0 +1,53 @@
+// Real Game Kid/s species base stats + actual bcalc source.
+// Controlled 80-power neutral physical attack; not a verified Champions battle log.
+// Run: node tests/champions-ability-data-regression.mjs
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const read=p=>readFileSync(path.join(root,p),'utf8');
+const src=read('src/js/15-battle.js'),data=read('src/js/02-data.js');
+const start=src.indexOf('function bcalc('),end=src.indexOf('/* ---- 連続技を1発ずつ',start);
+assert.ok(start>=0&&end>start);
+const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
+const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
+ disgLoss:()=>1,fixedDmg:()=>null,stgV:(v,k)=>k>=0?Math.floor(v*(2+k)/2):Math.floor(v*2/(2-k)),
+ B:{weather:null},varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
+ apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
+ pR,RES_BERRY:{},rnd:()=>0};
+const bcalc=new Function(...Object.keys(deps),src.slice(start,end)+';return bcalc;')(...Object.values(deps));
+const mon=(no,ab='',stage=0,status='')=>{
+ const line=data.split('\n').find(x=>x.startsWith(no+','));
+ assert.ok(line,'missing Pokémon '+no);
+ const row=line.split(','),base=row.slice(3,9).map(Number);
+ assert.equal(base.length,6);
+ return{ab,item:null,p:{no,n:row[1],t:['ノーマル']},
+  st:[base[0]+75,...base.slice(1,5).map(v=>v+20)],
+  stg:{atk:stage,def:stage,spa:stage,spd:stage,spe:0},
+  hp:base[0]+75,max:base[0]+75,status};
+};
+const move={id:'controlled80',t:'ノーマル',cls:0,pow:80,e:{}};
+const damage=(a,d)=>bcalc(a,move,d,{r:100}).dmg;
+const attacker=mon(445,'',2),skeledirge=mon(911);
+const unawareOff=damage(attacker,skeledirge);
+skeledirge.ab='unaware';
+const unawareOn=damage(attacker,skeledirge);
+assert.equal(unawareOff,135);
+assert.equal(unawareOn,69);
+assert.equal(Math.ceil(skeledirge.max/unawareOff),2);
+assert.equal(Math.ceil(skeledirge.max/unawareOn),3);
+const milotic=mon(350,'marvel-scale');
+const marvelOff=damage(mon(445),milotic);
+milotic.status='brn';
+const marvelOn=damage(mon(445),milotic);
+assert.equal(marvelOff,82);
+assert.equal(marvelOn,55);
+assert.equal(Math.ceil(milotic.max/marvelOff),3);
+assert.equal(Math.ceil(milotic.max/marvelOn),4);
+// Mold Breaker ignores defender's Unaware and Marvel Scale.
+const breaker=mon(445,'mold-breaker',2);
+assert.equal(damage(breaker,skeledirge),unawareOff);
+const noBoost=mon(445,'mold-breaker');
+assert.equal(damage(noBoost,milotic),marvelOff);
+console.log('PASS: repository species stats and bcalc: Unaware, Marvel Scale, Mold Breaker and KO-count changes');
