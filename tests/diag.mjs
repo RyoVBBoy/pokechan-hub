@@ -728,10 +728,12 @@ const weatherScope=await pg.evaluate(()=>{
   const excluded=teamWx();team[0].sel=true;team[2].sel=false;TWX_K=null;
   const included=teamWx();const a=mkMon(mons[0],'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3}),d=mkMon(mons[1],'op',{ab:'thick-fat',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
   const applied=withWx(a,d,()=>B.weather&&B.weather.k);
-  team[0].sel=false;team[2].sel=true;TWX_K=null;const singleNo=teamWx();
+  team[1].set.ab.k='drizzle';team[0].sel=true;team[1].sel=true;team[2].sel=false;team[3].sel=true;TWX_K=null;
+  const ambiguous=teamWx(),ambiguousNote=dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:[]}).includes('異なる天候始動役が複数');
+  team[1].set.ab.k='rough-skin';team[0].sel=false;team[2].sel=true;TWX_K=null;const singleNo=teamWx();
   setFmt('double');team.forEach((x,i)=>x.sel=i>0);TWX_K=null;const formatFallback=teamWx();
   setFmt('single');team.length=0;old.forEach(x=>team.push(x));TWX_K=null;B.weather=weatherBefore;
-  return{available:true,excluded:!!excluded,included:included&&included.k,applied,singleNo:!!singleNo,formatFallback:formatFallback&&formatFallback.k};
+  return{available:true,excluded:!!excluded,included:included&&included.k,applied,ambiguous:!!(ambiguous&&ambiguous.ambiguous),ambiguousNote,singleNo:!!singleNo,formatFallback:formatFallback&&formatFallback.k};
 });
 const battleRules=await pg.evaluate(()=>{
   const A=P.find(x=>x.n==='ガブリアス'),D=P.find(x=>x.n==='カビゴン');
@@ -751,7 +753,7 @@ const battleRules=await pg.evaluate(()=>{
   a.moves=[mvObj(252)];const fakeoutBest=dgBest(a,d);
   return{priority:p&&p.mv.pri,duelPriority:dp&&dp.pri,duelOrder:order,accuracy:best&&best.acc,turns:best&&best.nMin,expected,skillLinkHits:rock.h,parentalBondHits:pb.h,tripleAxelHits:axel.h,tripleAxelMin:axel.fmin,tripleAxelExpected:axelExpected,pbSashTurns:pbTurns,oneSashTurns:oneTurns,fakeoutExcluded:!fakeoutBest,unverified:dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:['メガシビルドンのうなぎのぼり']}).includes('ゲーム内で未検証の特性'),conditionalExcluded:['fakeout','firstimpression','suckerpunch','upperhand','solarbeam','meteorbeam','focuspunch','steelroller','ragefist','lastrespects'].every(k=>IMP_NOMV.has(k))};
 });
-ok(weatherScope.available&&weatherScope.excluded===false&&weatherScope.included==='sun'&&weatherScope.applied==='sun'&&weatherScope.singleNo===false&&weatherScope.formatFallback==='sun','天候は選出した味方の場全体に適用し、選出外の始動役を使わない '+JSON.stringify(weatherScope));
+ok(weatherScope.available&&weatherScope.excluded===false&&weatherScope.included==='sun'&&weatherScope.applied==='sun'&&weatherScope.singleNo===false&&weatherScope.formatFallback==='sun'&&weatherScope.ambiguous&&weatherScope.ambiguousNote,'天候は選出した味方の場全体に適用し、選出外の始動役を使わない '+JSON.stringify(weatherScope));
 ok(battleRules.unverified,'ゲーム内未検証の特性を未実装と区別して表示する '+JSON.stringify(battleRules));
 ok(battleRules.conditionalExcluded,'条件付き・溜め・反動・自滅技を改善候補から除外する '+JSON.stringify(battleRules));
 ok(battleRules.fakeoutExcluded,'条件付き先制技を無条件の最善技として推奨しない '+JSON.stringify(battleRules));
