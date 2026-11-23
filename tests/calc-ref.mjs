@@ -62,4 +62,4 @@ for(const c of cases){
 const rate=ok/cases.length;
 console.log(`calc: ${ok}/${cases.length} 一致（${(rate*100).toFixed(2)}%・乱数の種 ${SEED}）`);
 if(bad.length)console.log('違い（参考）',JSON.stringify(bad.slice(0,2).map(x=>({ab:x.c.a.ab,mv:x.c.mv.id,ours:x.c.rolls.slice(0,3),ref:x.ref.slice(0,3)}))));
-if(cases.length<N*.8||rate<.999){console.error('NG ダメージ計算が照合先と合いません',JSON.stringify(bad.slice(0,3)));process.exitCode=1}
+if(cases.length!==N||bad.length!==0){console.error('NG ダメージ計算が照合先と合いません',JSON.stringify(bad.slice(0,3)));process.exitCode=1}
