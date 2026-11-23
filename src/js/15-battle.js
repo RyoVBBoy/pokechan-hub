@@ -366,7 +366,7 @@ function varPow(a,mv,d,o){
   return pw;
 }
 /* 決まったダメージを与える技（Lv50） */
-function fixedDmg(a,mv,d){
+function fixedDmg(a,mv,d,ignoreAbilities=false){
   switch(mkey(mv)){
     case 'seismictoss':case 'nightshade':return 50;
     case 'superfang':case 'ruination':return Math.max(1,Math.floor(d.hp/2));
@@ -374,7 +374,7 @@ function fixedDmg(a,mv,d){
     case 'finalgambit':return a.hp;
     /* 一撃必殺：当たれば倒す（がんじょうなら効かない、ぜったいれいどはこおりタイプに効かない。当たる確率は命中30%で別に見る） */
     case 'guillotine':case 'fissure':case 'horndrill':case 'sheercold':
-      if(d.ab==='sturdy'||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
+      if((d.ab==='sturdy'&&!ignoreAbilities)||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
   }
   return null;
 }
@@ -402,7 +402,7 @@ function bcalc(a,mv,d,o){
      技のダメージを0にして、はがれる。かわりに最大HPの1/8（disgLoss）が減る。この減少は技のダメージではないので dmg には入れず loss で返す。
      かたやぶりは、ばけのかわを無視してふつうにダメージを与える（はがれない） */
   if(d.disg&&!ig)return{dmg:0,eff,disg:true,loss:disgLoss(d)};
-  const fx=fixedDmg(a,mv,d);if(fx!=null)return{dmg:fx,eff,fixed:true};
+  const fx=fixedDmg(a,mv,d,ig);if(fx!=null)return{dmg:fx,eff,fixed:true};
   /* シェルアームズ：物理と特殊でダメージが大きいほうになる */
   let phys=!mv.cls;
   if(mk==='shellsidearm'){const A1=stgV(a.st[1],a.stg.atk),C1=stgV(a.st[3],a.stg.spa),B1=stgV(d.st[2],d.stg.def),D1=stgV(d.st[4],d.stg.spd);
