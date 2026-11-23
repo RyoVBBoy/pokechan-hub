@@ -24,6 +24,10 @@ jobs:
           node tests/diagnosis-selection-impact-regression.mjs
           node tests/champions-ability-data-regression.mjs
           node tests/ability-diagnosis-selection-integration.mjs
+      - name: Build site for browser reference comparisons
+        run: |
+          npx playwright install --with-deps chromium
+          node tools/build.mjs
       - name: 40 named cases
         run: node tests/calc-cases.mjs
       - name: 1500 random reference cases
