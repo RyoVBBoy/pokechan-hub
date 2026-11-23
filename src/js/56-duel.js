@@ -32,8 +32,8 @@ function duTurns(p,h,att,def){
 }
 /* 先制技でいちばん強いもの（ダメージの割合） */
 function duPrio(a,d){
-  let best=0;const dg=d.disg;d.disg=false;
-  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const r=bcalc(a,mv,d,{});best=Math.max(best,r.dmg/d.max*100)})}catch(e){}
+  let best=0,bestTier=0;const dg=d.disg;d.disg=false;
+  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const r=bcalc(a,mv,d,{}),pct=r.dmg/d.max*100;if(mv.pri>bestTier){bestTier=mv.pri;best=pct}else if(mv.pri===bestTier)best=Math.max(best,pct)})}catch(e){}
   d.disg=dg;return best;
 }
 function duSetup(a){const k=a.boost;if(!k||!DU_BOOST[k]||k==='bellydrum')return null;const id=Object.keys(MD).find(i=>MD[i][3]===k);return{k,b:DU_BOOST[k],n:id?mName(+id):k}}
