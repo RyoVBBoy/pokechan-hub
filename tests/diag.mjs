@@ -718,6 +718,17 @@ ok(BAS.keys.every(v=>!v),'イダイトウを受けの型にしない '+JSON.stri
 ok(BAS.cyc.every(Boolean),'サイクル・軸の型でイダイトウは攻撃に振る '+JSON.stringify(BAS.cyc));
 ok(!BAS.imp.length,'イダイトウに耐久に回す改善案を出さない '+JSON.stringify(BAS.imp));
 ok(BAS.keep.every(Boolean),'もともと受けの型のポケモンは変えない '+JSON.stringify(BAS.keep));
+const weatherScope=await pg.evaluate(()=>{
+  const old=team.slice(),setter=P.find(p=>(ABD[p.no]||[]).some(z=>z[0]==='drought'));
+  const mons=['ガブリアス','カビゴン','ルカリオ'].map(n=>P.find(p=>p.n===n));
+  if(!setter||mons.some(x=>!x))return{available:false};
+  team.length=0;team.push({no:setter.no,sel:false,set:{ab:{k:'drought'}}},...mons.map((p,i)=>({no:p.no,sel:true,set:{ab:{k:'rough-skin'}}})));TWX_K=null;
+  const excluded=teamWx();team[0].sel=true;team[1].sel=false;TWX_K=null;
+  const included=teamWx();const a=mkMon(mons[0],'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3}),d=mkMon(mons[1],'op',{ab:'thick-fat',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
+  const applied=withWx(a,d,()=>B.weather&&B.weather.k);
+  team.length=0;old.forEach(x=>team.push(x));TWX_K=null;
+  return{available:true,excluded:!!excluded,included:included&&included.k,applied};
+});
 const battleRules=await pg.evaluate(()=>{
   const A=P.find(x=>x.n==='ガブリアス'),D=P.find(x=>x.n==='カビゴン');
   const a=mkMon(A,'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
