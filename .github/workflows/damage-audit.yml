@@ -24,6 +24,7 @@ jobs:
           node tests/diagnosis-selection-impact-regression.mjs
           node tests/champions-ability-data-regression.mjs
           node tests/ability-diagnosis-selection-integration.mjs
+          node tests/ability-critical-double-matrix.mjs
       - name: Build site for browser reference comparisons
         run: |
           npx playwright install --with-deps chromium
