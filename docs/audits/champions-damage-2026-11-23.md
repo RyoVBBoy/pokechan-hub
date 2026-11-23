@@ -137,3 +137,11 @@ Reviewed the actual `tests/calc-ref.mjs` source and found that the previous succ
 Executed `tests/ability-critical-double-matrix.mjs` logic in a JavaScript isolate against the fetched production `15-battle.js` and `21-calc.js` sources (Node import/read bindings replaced with equivalent source bindings). Result: **55 boundary invariants passed**, including Unaware across stat ranks/critical, Marvel Scale statuses, screen/spread/format interactions, and calcSig input coverage. The committed Node file and CI execution still need confirmation. These invariants establish internal consistency, **not** Pokémon Champions device-level truth.
 
 Further verification remains essential for actual Champions game mechanics, unimplemented abilities/items, doubles ally effects, distinct real opponent builds, and UI/browser end-to-end behavior. Do not mark complete.
+
+## Continued audit: auditable CI reference evidence (2026-11-24)
+
+Reviewed current `tests/calc-ref.mjs` and `tests/calc-cases.mjs` source. Confirmed the random test now requires `cases.length===N` and `bad.length===0` to pass. The 40 named-case runner exits nonzero when its assertion counter reports a failure, but its test suite includes cases based on rules not independently established for Champions and cases using abilities not supported by the reference; therefore a green result is not complete Champions verification.
+
+Added `CALC_REF_REPORT` support to the random test, saving requested/generated/matched/mismatched counts, seed, pass status, and up to 20 mismatch details as JSON. Updated the audit workflow to save both the fixed-case report (`CALC_CASES_REPORT`) and random report as a downloadable `damage-audit-reports` artifact, including when a step fails. This makes future CI results independently inspectable rather than relying only on green job badges. **New CI run and artifacts have not yet been observed through the connected tool**; no pass is claimed for these commits.
+
+Outstanding: verify CI report contents; correct any strict-reference mismatches; distinguish Gen9 Smogon comparisons from Champions device-confirmed mechanics; cover unsupported ability/item effects and ally-dependent doubles; run full actual-party diagnosis/selection comparisons. Main and production remain unchanged.
