@@ -26,3 +26,12 @@ Scope: source review on repository main, isolated changes on audit/champions-dam
 - Production calculations: unchanged.
 - Test execution: not yet performed.
 - Main branch: unchanged.
+
+## 2026-11-23 follow-up: real-data test harness audit
+
+- `tests/calc-ref.mjs` previously generated `spread` randomly and inferred Smogon `gameType` from `spread`. This made doubles single-target scenarios impossible. The audit branch now generates `format` independently and restricts spread attacks to doubles, while the reference `Field` uses `format`.
+- `tests/calc-cases.mjs` now has 40 named Pokémon-data cases, including #37–40 for doubles single-target physical/special attacks with screens and critical hits. Its `Field` and the site calculator receive the same explicit format.
+- The changes were read back from GitHub and checked for the intended source patterns. This is **not** a successful Playwright/@smogon/calc test execution.
+- The local runtime could not reach GitHub over the network, and no complete repository checkout or installed Playwright/Smogon environment was available to run the existing integration tests. Do not claim 40/40 or 1500/1500.
+- Required commands in a clean checkout of this branch: `npm ci`, `npm run build`, `node tests/screen-format-regression.mjs`, `node tests/screen-damage-regression.mjs`, `node tests/calc-cases.mjs`, `CALC_N=1500 CALC_SEED=20261123 node tests/calc-ref.mjs`. The browser tests require a working Playwright Chromium installation.
+- Important: @smogon/calc Gen 9 is a comparative oracle, **not** proof of Pokémon Champions game-specific mechanics. Investigate any new double single-target mismatches; do not weaken assertions or revert independent format generation merely to obtain green tests.
