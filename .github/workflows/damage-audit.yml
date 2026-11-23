@@ -29,6 +29,8 @@ jobs:
       - name: Champions device evidence gate (expected to remain unverified until device fixtures exist)
         continue-on-error: true
         run: node tests/champions-evidence-gate.mjs
+      - name: Audit item branches and oracle assumptions
+        run: node tests/item-oracle-assumptions-audit.mjs
       - name: Build site for browser reference comparisons
         run: |
           npx playwright install --with-deps chromium
