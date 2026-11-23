@@ -21,5 +21,6 @@ assert.deepEqual(check({ab:'rough-skin',item:'leftovers'}),[],'supported modifie
 assert.deepEqual(check({ab:'unaware'}),[],'Unaware now supported');
 assert.deepEqual(check({ab:'marvel-scale'}),[],'Marvel Scale now supported');
 assert.ok(dg.includes('◎〜×と後出し判定は暫定評価です'),'diagnosis visible caveat');
+assert.ok(dg.includes('ダブルの◎〜×・後出し判定は暫定評価です'),'doubles diagnosis must disclose simplified 1v1 model');
 assert.ok(sel.includes('選出順位・先発・後出しの判定は暫定評価です'),'selection visible caveat');
 console.log('PASS: unsupported and newly supported modifier checks + 2 UI caveat checks');
