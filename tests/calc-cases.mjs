@@ -55,6 +55,11 @@ const C=[
  {no:34,t:'追加：メガガブリアスZ（ふゆう）はじめん技を受けない',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ガブリアス',en:null,ab:'rough-skin',item:'garchompitez',...BULK},mv:'earthquake'},
  {no:35,t:'追加：ツインビーム（2回当たる）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK},mv:'twinbeam'},
  {no:36,t:'追加：ロックブラスト5回（HPが満タンでないカイリュー＝マルチスケイルは働かない）',A:{n:'ヘラクロス',en:'Heracross-Mega',ab:'guts',item:'heracronite',...ATK},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:197},mv:'rockblast',hits:5},
+
+ {no:37,t:'回帰：ダブル単体物理技＋リフレクター',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'outrage',o:{format:'double',screen:true}},
+ {no:38,t:'回帰：ダブル単体特殊技＋ひかりのかべ',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{format:'double',screen:true}},
+ {no:39,t:'回帰：ダブル単体物理技＋壁＋急所',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'outrage',o:{format:'double',screen:true,crit:true}},
+ {no:40,t:'回帰：ダブル単体特殊技＋壁＋急所',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{format:'double',screen:true,crit:true}},
 ];
 const EN_MV={earthquake:'Earthquake',thunderbolt:'Thunderbolt',icebeam:'Ice Beam',outrage:'Outrage',flamethrower:'Flamethrower',shadowball:'Shadow Ball',superfang:'Super Fang',lowkick:'Low Kick',eruption:'Eruption',bodypress:'Body Press',rockblast:'Rock Blast',rockslide:'Rock Slide',ragingbull:'Raging Bull',populationbomb:'Population Bomb',closecombat:'Close Combat',twinbeam:'Twin Beam'};
 const EN_AB={'rough-skin':'Rough Skin',sturdy:'Sturdy','good-as-gold':'Good as Gold',multiscale:'Multiscale','thick-fat':'Thick Fat',intimidate:'Intimidate','sand-stream':'Sand Stream','inner-focus':'Inner Focus',blaze:'Blaze','mirror-armor':'Mirror Armor','skill-link':'Skill Link','sand-force':'Sand Force',levitate:'Levitate',drought:'Drought','tough-claws':'Tough Claws','stance-change':'Stance Change','cursed-body':'Cursed Body',technician:'Technician',guts:'Guts',protean:'Protean'};
