@@ -92,12 +92,16 @@ function dgMatch0(a,o){
   /* 相手の攻撃は乱数最大（こちらにとって最悪）で数える */
   const opW=op?op.nMax:9,opB=op?op.nMin:9;
   const pr=dgPrio(a,o),opPr=dgPrio(o,a);
-  const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:pr.acc,f:pr.fmin,h:pr.h},a,o)===1;
-  /* 先に倒しきれるか：こちらが先に動けるなら myN<=opW、遅ければ myN<opW。先制技のとどめ・相手の先制技も見る */
+  const prKO0=pr&&duTurns(pr.min,{mv:pr.mv,acc:pr.acc,f:pr.fmin,h:pr.h},a,o)===1;
+  const opPrKO=opPr&&duTurns(opPr.min,{mv:opPr.mv,acc:opPr.acc,f:opPr.fmin,h:opPr.h},o,a)===1;
+  /* 先に倒しきれるか：先制技どうしなら優先度の段階を先に比較し、同じ段階だけ素早さを見る */
   const finPr=(n,x,p)=>p&&p.min>0&&(n-1)*x.min+p.min>=100;
+  const myFin=!!(me&&finPr(myN,me,pr)),opFin=!!(op&&finPr(opW,op,opPr));
   let first=spd;
-  if(first<=0&&me&&finPr(myN,me,pr)&&!(op&&finPr(opW,op,opPr)))first=1;
-  if(first>=0&&op&&finPr(opW,op,opPr)&&!(me&&finPr(myN,me,pr)))first=-1;
+  if(myFin&&opFin&&pr.mv.pri!==opPr.mv.pri)first=pr.mv.pri>opPr.mv.pri?1:-1;
+  else if(first<=0&&myFin&&!opFin)first=1;
+  else if(first>=0&&opFin&&!myFin)first=-1;
+  const prKO=!!(prKO0&&(!opPrKO||pr.mv.pri>opPr.mv.pri||(pr.mv.pri===opPr.mv.pri&&spd===1)));
   const winSafe0=myN<9&&(first===1?myN<=opW:myN<opW);
   /* こちらのきあいのタスキ・がんじょうで1回耐えるおかげで勝てるだけなら「条件つき」にする */
   const opRaw=op?duTurns(op.max,{mv:op.mv,acc:op.acc,f:op.fmax,h:op.h},o,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab}):9;
