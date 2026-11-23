@@ -26,9 +26,11 @@ const TSLUG={'ノーマル':'normal','ほのお':'fire','みず':'water','でん
 .pn{display:flex;justify-content:space-between;gap:10px;padding:16px;font-size:14px}.pn a{color:var(--acc)}.srcs{padding:6px 16px;font-size:12px;color:var(--dim);line-height:1.8}
 .radarbox.st svg{max-width:280px}.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0 12px;padding:0 4px}
 `);
- const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});const pg=await b.newPage({locale:'ja-JP'});
+ const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});const pg=await b.newPage({locale:'ja-JP'}),pageErrors=[];
+ pg.on('pageerror',e=>pageErrors.push(e.stack||e.message));
  await pg.route(/championsbattledata|googleapis|gstatic/,r=>r.abort());
  await pg.goto('file://'+SRC+'#/');await pg.waitForTimeout(400);
+ if(!await pg.evaluate(()=>typeof P!=='undefined')){console.error('サイト起動時の JavaScript エラー:',pageErrors.join('\\n')||'pageerrorなし');await b.close();throw new Error('サイトのデータ P が初期化されませんでした')}
  const D=await pg.evaluate((TSLUG)=>{
   const out={mons:[],types:[]};
   const lvRange=(p,i)=>{const b=p.s[i];if(i===0)return[b+75,b+75,b+32+75];return[Math.floor((b+20)*.9),b+20,Math.floor((b+32+20)*1.1)]};
