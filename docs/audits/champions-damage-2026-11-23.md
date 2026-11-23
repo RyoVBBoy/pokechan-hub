@@ -129,3 +129,11 @@ New source inspection confirmed the selection assist explicitly models doubles a
 Fixed `calcSig` in `21-calc.js` to include `CS.hits` and `CS.protean`, which are selectable calculation options and were omitted from the operation fingerprint. Added `tests/ability-critical-double-matrix.mjs`: source-based matrix for Unaware ranks -6..+6 with/without critical, Marvel Scale status conditions, screens in single/double spread/non-spread, and calculator fingerprint coverage. Registered it in both `tests/run.mjs` and the branch-only GitHub Actions workflow.
 
 These new changes are **not yet CI-confirmed**. The connected GitHub commit-run/status lookups for `cd12bc3` returned empty arrays; this is not a failure or success result. No Champions-device proof is available for precise damage ordering/rounding or omitted ally/item mechanics. The audit is not complete; main is unchanged.
+
+## Restarted audit: strict reference acceptance (2026-11-24)
+
+Reviewed the actual `tests/calc-ref.mjs` source and found that the previous success gate was `cases.length<N*.8||rate<.999`: it permitted as few as 80% of the requested cases and could accept a small number of mismatches. This invalidates any interpretation of a green 1,500-case step as proof of **exactly 1,500/1,500 matching**. Tightened the gate to `cases.length!==N||bad.length!==0`, requiring all requested cases and zero mismatches. The previous green run at commit `5cdf080` used the weaker gate. A new CI run is needed before claiming strict 1,500/1,500.
+
+Executed `tests/ability-critical-double-matrix.mjs` logic in a JavaScript isolate against the fetched production `15-battle.js` and `21-calc.js` sources (Node import/read bindings replaced with equivalent source bindings). Result: **55 boundary invariants passed**, including Unaware across stat ranks/critical, Marvel Scale statuses, screen/spread/format interactions, and calcSig input coverage. The committed Node file and CI execution still need confirmation. These invariants establish internal consistency, **not** Pokémon Champions device-level truth.
+
+Further verification remains essential for actual Champions game mechanics, unimplemented abilities/items, doubles ally effects, distinct real opponent builds, and UI/browser end-to-end behavior. Do not mark complete.
