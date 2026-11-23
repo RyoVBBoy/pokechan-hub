@@ -1,0 +1,30 @@
+name: 回帰テスト（PR）
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 依存関係をインストール
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: ビルド
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          node tools/build.mjs
+          python3 worker/build.py
+          node tools/gen-pages.cjs
+      - name: 全回帰テスト
+        run: node tests/run.mjs
