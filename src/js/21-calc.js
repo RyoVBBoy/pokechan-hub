@@ -112,7 +112,7 @@ function calcResult(){
   const sw=B.weather;B.weather=CS.weather?{k:CS.weather,t:5}:null;
   try{
     const op=calcOpt(),r=dmgRolls(a,mv,d,op);
-    return{a,d,mv,list,r,1,acc:accOf(a,mv,d),n:bhits(a,mv,d,{...op,r:100}).n,op};
+    return{a,d,mv,list,r,ko:koInfo(r,d.hp,d,a),eff:bcalc(a,mv,d,{protean:op.protean}).eff,acc:accOf(a,mv,d),n:bhits(a,mv,d,{...op,r:100}).n,op};
   }finally{B.weather=sw}
 }
 /* 覚えさせた技（使用率の高い型）それぞれのダメージと、相手からの反撃 */
@@ -123,7 +123,7 @@ function calcOverview(R){
     const rows=ms.slice(0,6).map(m=>{const r=dmgRolls(R.a,m,R.d,{...calcOpt(),hits:m.id===R.mv.id?CS.hits||0:0});
       /* 2026/11/16 依頼主：ばけのかわが残っているときは、はがれたあと（r.next）の％を出す。倒せる回数は今までどおり1発目から数える */
       const sh=r.loss&&!r.disgFaint&&r.next&&r.next.length?r.next:r;
-      return{m,lo:Math.min(...sh)/R.d.max*100,hi:Math.max(...sh)/R.d.max*100,ls:r.loss||0,after:sh!==r,1}});
+      return{m,lo:Math.min(...sh)/R.d.max*100,hi:Math.max(...sh)/R.d.max*100,ls:r.loss||0,after:sh!==r,ko:koInfo(r,R.d.hp,R.d,R.a),eff:bcalc(R.a,m,R.d,{protean:CS.protean!==false}).eff}});
     let back=null;try{const h=estHit(R.d,R.a);if(h&&h.mv)back={mv:h.mv,pct:h.pct}}catch(e){}
     return{rows,back};
   }finally{B.weather=sw}
