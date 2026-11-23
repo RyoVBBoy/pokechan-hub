@@ -13,12 +13,13 @@ assert.ok(fn&&ab&&it,'unsupported modifier source markers');
 const check=new Function('ABN','ITEMN',ab[0]+'\n'+it[0]+'\nconst DG_SIMONLY=new Set([\'intimidate\']);\n'+fn[0]+'\nreturn dgCalcUnsupported;')(
  {unaware:'てんねん','marvel-scale':'ふしぎなうろこ','friend-guard':'フレンドガード'},
  {ironball:'くろいてっきゅう'});
-for(const [m,name] of [[{ab:'unaware'},'てんねん'],[{ab:'marvel-scale'},'ふしぎなうろこ'],
- [{ab:'friend-guard'},'フレンドガード'],[{item:'ironball'},'くろいてっきゅう'],
+for(const [m,name] of [[{ab:'friend-guard'},'フレンドガード'],[{item:'ironball'},'くろいてっきゅう'],
  [{ab:'intimidate'},'特性']]){
  assert.ok(check(m).join(' ').includes(name),name);
 }
 assert.deepEqual(check({ab:'rough-skin',item:'leftovers'}),[],'supported modifiers not falsely flagged');
+assert.deepEqual(check({ab:'unaware'}),[],'Unaware now supported');
+assert.deepEqual(check({ab:'marvel-scale'}),[],'Marvel Scale now supported');
 assert.ok(dg.includes('◎〜×と後出し判定は暫定評価です'),'diagnosis visible caveat');
 assert.ok(sel.includes('選出順位・先発・後出しの判定は暫定評価です'),'selection visible caveat');
-console.log('PASS: 6 unsupported modifier cases + 2 UI caveat checks');
+console.log('PASS: unsupported and newly supported modifier checks + 2 UI caveat checks');
