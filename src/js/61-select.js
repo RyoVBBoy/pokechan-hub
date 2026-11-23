@@ -177,6 +177,7 @@ function dgSelHTML(S,entries){
       ${dgSelCmpHTML(S,B,R2)}</div>`}
   const mine=S.mine&&S.mine!==B?dgSelWhy(S,S.mine,B):null;
   return `<div class="pc-i pc-plan sel-box" id="sel-box"><div class="selu-head"><b>選出の比較</b><span class="dgu-fmt">${S.K}匹の選び方 ${S.list.length}通りを計算${S.K===4?'・先発2匹は選んだ4匹ごとに6通り':''}</span></div>
+    ${FMT==='double'?`<p class="dgu-note" role="status">ダブルの選出順位・先発・後出し判定は暫定評価です。現在は1対1の計算を組み合わせており、範囲技・味方の特性（フレンドガード等）・2匹同時の行動を反映していません。</p>`:""}
     ${S.T.unk&&S.T.unk.length?`<p class="dgu-note" role="status">計算に未反映の効果：${S.T.unk.slice(0,8).map(esc).join("、")}${S.T.unk.length>8?" ほか":""}。選出順位・先発・後出しの判定は暫定評価です。</p>`:""}
     <p class="dgu-note">パーティの${entries.length}匹から${S.K}匹を選ぶ組み合わせを全部、使用率の上位${N}匹との1対1の計算（相手ごとの対応力と同じ計算）で比べました。${S.excluded?`メガストーンを持つ匹を2匹以上入れる${S.excluded}通りは、1試合にメガシンカできるのが1匹なので除いています。`:''}${S.ax>=0?`軸の${nm(S.ax)}は必ず入れています。`:''}</p>
     <div class="selu-best"><p class="selu-lab">いちばん良い選出（1番＝上の基本選出）</p>${mons(B)}
