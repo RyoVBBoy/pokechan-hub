@@ -51,6 +51,18 @@ for(const format of ['single','double']){
   }
  }
 }
+// A single-target doubles move must use doubles screen strength, not singles strength.
+for(const crit of [false,true]){
+ const a=mon(),d=mon();
+ const singles=hit(a,d,{format:'single',spread:false,screen:true,crit});
+ const doubles=hit(a,d,{format:'double',spread:false,screen:true,crit});
+ const base=hit(a,d,{format:'single',spread:false,crit});
+ if(crit)assert.equal(singles,doubles,'critical hit bypasses screens regardless of format');
+ else {
+  assert.ok(singles<doubles&&doubles<base,'doubles screen is weaker than singles screen even for single-target moves');
+ }
+ checks++;
+}
 const signature=cs.match(/const calcSig=\(\)=>JSON\.stringify\(\[([^\]]+)\]\);/);
 assert.ok(signature,'calculator fingerprint definition');
 const keys=signature[1].split(',').map(x=>x.trim());
