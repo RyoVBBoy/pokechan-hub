@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(path.join(root,p),'utf8');
 const bs=read('src/js/15-battle.js'),ds=read('src/js/60-diag.js'),
-      ss=read('src/js/61-select.js'),raw=read('src/js/02-data.js');
+      ss=read('src/js/61-select.js'),raw=read('src/js/02-data.js'),du=read('src/js/56-duel.js');
 const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
 const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  disgLoss:()=>1,fixedDmg:()=>null,
@@ -25,13 +25,14 @@ const dgStubs=`
 const DG_TR=false,DG_ROLLS=[85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100];
 const DG_K={ko_fast:{r:5,t:'fast'},tank:{r:4,t:'tank'},switch:{r:4,t:'switch'},
  wall:{r:3,t:'wall'},shaky:{r:2,t:'shaky'},cond:{r:2,t:'cond'},lose:{r:1,t:'lose'}};
-const DU_HALF_AB=[],SKIN={},ABN={},LIVE={csv:{}},MVKA={};
+const SKIN={},ABN={},LIVE={csv:{}},MVKA={};
 const B={weather:null};
-const duIg=()=>false,hitType=(_a,m)=>m.t,accOf=()=>100;
-const duTurns=p=>p>0?Math.min(9,Math.ceil(100/p)):9;
+const disgLoss=d=>Math.max(1,Math.floor(d.max/8)),hitType=(_a,m)=>m.t,accOf=()=>100;
 const effSpd=a=>a.spd||100,fixedDmg=()=>null,mkey=m=>m.id,duel=()=>({});
 const nrm=x=>x,mName=x=>x;`;
-const dgMatch0=new Function('bcalc',dgStubs+ds.slice(dStart,dEnd)+'return dgMatch0;')(bcalc);
+const duStart=du.indexOf('const DU_SURV_AB='),duEnd=du.indexOf('/* 先制技でいちばん強いもの',duStart);
+assert.ok(duStart>=0&&duEnd>duStart);
+const dgMatch0=new Function('bcalc',dgStubs+du.slice(duStart,duEnd)+ds.slice(dStart,dEnd)+'return dgMatch0;')(bcalc);
 const sStart=ss.indexOf('function dgSelect(entries){'),sEnd=ss.indexOf('/* 1つの選出の説明',sStart);
 assert.ok(sStart>=0&&sEnd>sStart);
 const selStubs=`
