@@ -65,7 +65,7 @@ function dguImp(entries){
     const box=document.getElementById('imp-box');if(box&&typeof impRender==='function')impRender(box,R)};
   const c=typeof impCached==='function'&&impCached(entries);if(c){show(c);return}
   const sig=impKey(entries);
-  const go=()=>{if(!document.getElementById('dgu-imp')||impKey(team)!==sig)return;
+  const go=()=>{if(!document.getElementById('dgu-imp')||impKey(partyScope(team))!==sig)return;
     let R;try{R=impGet(entries)}catch(e){const e2=document.getElementById('dgu-imp');if(e2){e2.innerHTML=`<p class="dgu-note">改善案を計算できませんでした。</p><button class="dgu-link" id="dgu-retry">もう一度計算する</button>`;e2.querySelector('#dgu-retry').onclick=()=>{e2.innerHTML='<p class="dgu-loading">改善案を計算中…</p>';setTimeout(go,30)}}return}
     show(R)};
   /* 描画が終わってから（ブラウザが空いたとき）計算する */
