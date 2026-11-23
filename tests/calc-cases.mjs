@@ -89,7 +89,7 @@ const site=await pg.evaluate(([C,SEQ])=>{
     const sw=B.weather;B.weather=o.w?{k:o.w,t:5}:null;
     let r,seq=null,eff,n,dist,hitsMax,ko;
     try{r=dmgRolls(a,mv,d,opt);const h=bhits(a,mv,d,{...opt,r:100});eff=h.eff;n=h.n;hitsMax=h.hits.map(x=>x.dmg);
-      dist=r.dist?{sum:r.dist.reduce((s,[,w])=>s+w,0),lo:r.dist[0][0],hi:r.dist[r.dist.length-1][0]}:null;ko=koInfo(r,d.hp);
+      dist=r.dist?{sum:r.dist.reduce((s,[,w])=>s+w,0),lo:r.dist[0][0],hi:r.dist[r.dist.length-1][0]}:null;ko=koInfo(r,d.hp,d,a);
       if(c.no===29)seq=SEQ.map(q=>bhits(a,mv,d,{...opt,rolls:q.rolls,crits:q.crits.map(Boolean)}).hits.map(x=>x.dmg));
     }finally{B.weather=sw}
     const st=x=>x.st,ast=a.stAtk||a.st;
