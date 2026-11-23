@@ -27,7 +27,7 @@ const C=[
  {no:7,t:'天気（はれ・ほのお1.5倍）',A:{n:'ウインディ',en:'Arcanine',ab:'intimidate',...SPA},D:{n:'ブリジュラス',en:'Archaludon',ab:'sturdy',...SBULK},mv:'flamethrower',o:{w:'sun'}},
  {no:8,t:'天気（すなあらし・いわの特防1.5倍）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'バンギラス',en:'Tyranitar',ab:'sand-stream',...SBULK},mv:'shadowball',o:{w:'sand'}},
  {no:9,t:'壁（ひかりのかべ・マルチスケイルが働かないよう HP 196/198）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{screen:true}},
- {no:10,t:'ダブル・全体技（×0.75）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ブリジュラス',en:'Archaludon',ab:'sturdy',...SBULK,up:4,dn:1},mv:'earthquake',o:{spread:true}},
+ {no:10,t:'ダブル・全体技（×0.75）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ブリジュラス',en:'Archaludon',ab:'sturdy',...SBULK,up:4,dn:1},mv:'earthquake',o:{format:'double',spread:true}},
  {no:11,t:'持ち物：いのちのたま',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',item:'lifeorb',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'earthquake'},
  {no:12,t:'持ち物：半減きのみ（ヤチェのみ）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',item:'yacheberry',...SBULK},mv:'icebeam'},
  {no:13,t:'特性：あついしぼう',A:{n:'ウインディ',en:'Arcanine',ab:'intimidate',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...SBULK},mv:'flamethrower'},
@@ -115,7 +115,7 @@ function ref(c,s,curHP,crit,hits1){
   const gen=Generations.get(c.gen||9);
   const o=c.o||{};const a=mon(c.A,s.A,true,gen),d=mon(c.D,s.D,false,gen);if(curHP!=null)d.originalCurHP=curHP;
   const mv=new Move(gen,EN_MV[c.mv],{isCrit:crit!=null?crit:!!o.crit,...(hits1?{hits:1}:{})});
-  const f=new Field({gameType:o.spread?'Doubles':'Singles',weather:o.w?{sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'}[o.w]:undefined,
+  const f=new Field({gameType:o.format==='double'?'Doubles':'Singles',weather:o.w?{sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'}[o.w]:undefined,
     defenderSide:new Side({isReflect:!!o.screen&&mv.category==='Physical',isLightScreen:!!o.screen&&mv.category==='Special'})});
   let r=calculate(gen,a,d,mv,f).damage;if(!Array.isArray(r))r=Array(16).fill(r);
   /* 回数が決まった連続技（ツインビーム等）は1回ずつの表が並んで返る：渡したHPでの1発目の表を使う */
