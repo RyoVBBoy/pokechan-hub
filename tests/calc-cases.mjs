@@ -128,7 +128,7 @@ function ref(c,s,curHP,crit,hits1){
   if(Array.isArray(r[0]))r=r[0];
   return r;
 }
-let bad=0,n=0,unv=0,rule=0;const ok=(cond,name,info)=>{n++;if(!cond){bad++;console.error('NG',name,JSON.stringify(info))}};
+let bad=0,n=0,unv=0,rule=0;const failedAssertions=[];const ok=(cond,name,info)=>{n++;if(!cond){bad++;failedAssertions.push({name,info});console.error('NG',name,JSON.stringify(info))}};
 const report=[];
 for(const c of C){
   const s=site.find(x=>x.no===c.no),o=c.o||{};
@@ -172,6 +172,13 @@ for(const no of [18,26,29,35,36]){const x=g(no);ok(x.dist&&Math.abs(x.dist.sum-1
  ok(s.dist&&[...tot.keys()].length>0&&Math.min(...tot.keys())===s.dist.lo&&Math.max(...tot.keys())===s.dist.hi,'#35 ツインビーム：2発の合計の最小・最大が照合先と同じ',{lo:s.dist&&s.dist.lo,hi:s.dist&&s.dist.hi});}
 ok(site.find(x=>x.no==='sl').slHits===5,'スキルリンクは選んだ回数があっても5回（回数の選択が残っていても）',site.find(x=>x.no==='sl'));
 ok(!errs.length,'ページのエラーなし',errs);
+ok(C.length===40&&new Set(C.map(c=>c.no)).size===40,'40 named cases are present and uniquely numbered',{count:C.length,ids:C.map(c=>c.no)});
 if(process.env.CALC_CASES_REPORT)writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
+if(process.env.CALC_CASES_SUMMARY)writeFileSync(process.env.CALC_CASES_SUMMARY,JSON.stringify({
+ reference:'@smogon/calc Gen 9 plus explicitly labeled rule-based/unverified cases (not Champions device proof)',
+ namedCases:C.length,assertions:n,failedAssertions:bad,referenceCases:C.length-unv-rule,
+ ruleBasedCases:rule,unverifiedAbilityCases:unv,pass:bad===0,
+ failures:failedAssertions
+},null,2));
 console.log(`calc-cases: ${bad?'NG':'OK'}（${n}項目・照合先で確かめた場面 ${C.length-unv-rule}・ゲームの決まりで確かめた場面 ${rule}・照合先にない特性の場面 ${unv}）`);
 if(bad)process.exit(1);
