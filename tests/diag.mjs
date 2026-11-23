@@ -736,7 +736,7 @@ const battleRules=await pg.evaluate(()=>{
   const a=mkMon(A,'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
   const d=mkMon(D,'op',{ab:'thick-fat',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
   a.moves=[{...mvObj(98),pri:1,pow:120},{...mvObj(245),pri:2,pow:1}];
-  const p=dgPrio(a,d);
+  const p=dgPrio(a,d),dp=duPrio(a,d),order=duFirst(100,200,1,1,{pct:100,pri:1},{pct:100,pri:2},100,100);
   a.moves=[{...mvObj(126),acc:85},{...mvObj(53),acc:100}];
   const best=dgBest(a,d),expected=duTurns(best.min,{mv:best.mv,acc:best.acc,f:best.fmin},a,d);
   const her=mkMon(P.find(x=>x.n==='ヘラクロス'),'me',{ab:'skill-link',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
@@ -747,7 +747,7 @@ const battleRules=await pg.evaluate(()=>{
   const pbSash=dgMove(kang,mvObj(53),sash),pbTurns=duTurns(pbSash.min,{mv:pbSash.mv,acc:pbSash.acc,f:pbSash.fmin,h:pbSash.h},kang,sash);
   const oneSash=dgMove(a,mvObj(53),sash),oneTurns=duTurns(oneSash.min,{mv:oneSash.mv,acc:oneSash.acc,f:oneSash.fmin,h:oneSash.h},a,sash);
   a.moves=[mvObj(252)];const fakeoutBest=dgBest(a,d);
-  return{priority:p&&p.mv.pri,accuracy:best&&best.acc,turns:best&&best.nMin,expected,skillLinkHits:rock.h,parentalBondHits:pb.h,tripleAxelHits:axel.h,tripleAxelMin:axel.fmin,tripleAxelExpected:axelExpected,pbSashTurns:pbTurns,oneSashTurns:oneTurns,fakeoutExcluded:!fakeoutBest,unverified:dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:['メガシビルドンのうなぎのぼり']}).includes('ゲーム内で未検証の特性'),conditionalExcluded:['fakeout','firstimpression','suckerpunch','upperhand','solarbeam','meteorbeam','focuspunch','steelroller','ragefist','lastrespects'].every(k=>IMP_NOMV.has(k))};
+  return{priority:p&&p.mv.pri,duelPriority:dp&&dp.pri,duelOrder:order,accuracy:best&&best.acc,turns:best&&best.nMin,expected,skillLinkHits:rock.h,parentalBondHits:pb.h,tripleAxelHits:axel.h,tripleAxelMin:axel.fmin,tripleAxelExpected:axelExpected,pbSashTurns:pbTurns,oneSashTurns:oneTurns,fakeoutExcluded:!fakeoutBest,unverified:dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:['メガシビルドンのうなぎのぼり']}).includes('ゲーム内で未検証の特性'),conditionalExcluded:['fakeout','firstimpression','suckerpunch','upperhand','solarbeam','meteorbeam','focuspunch','steelroller','ragefist','lastrespects'].every(k=>IMP_NOMV.has(k))};
 });
 ok(weatherScope.available&&weatherScope.excluded===false&&weatherScope.included==='sun'&&weatherScope.applied==='sun','天候は選出した味方の場全体に適用し、選出外の始動役を使わない '+JSON.stringify(weatherScope));
 ok(battleRules.unverified,'ゲーム内未検証の特性を未実装と区別して表示する '+JSON.stringify(battleRules));
@@ -757,7 +757,8 @@ ok(battleRules.skillLinkHits===5,'パーティ診断でスキルリンクを5回
 ok(battleRules.parentalBondHits===2,'パーティ診断でおやこあいの追加攻撃を計算する '+JSON.stringify(battleRules));
 ok(battleRules.pbSashTurns===1&&battleRules.oneSashTurns===2,'おやこあいの2発目は同一使用中にタスキを突破し、単発技はタスキを消費させる '+JSON.stringify(battleRules));
 ok(battleRules.tripleAxelHits===3&&Math.abs(battleRules.tripleAxelMin-battleRules.tripleAxelExpected)<1e-9,'パーティ診断でトリプルアクセルの威力変化を共通連続技エンジンで計算する '+JSON.stringify(battleRules));
-ok(battleRules.priority===2,'優先技は威力より優先度の段階を先に選ぶ '+JSON.stringify(battleRules));
+ok(battleRules.priority===2&&battleRules.duelPriority===2,'診断・対面アシストとも優先技は威力より優先度の段階を先に選ぶ '+JSON.stringify(battleRules));
+ok(battleRules.duelOrder===-1,'異なる優先度の先制技は高い優先度が先に動く '+JSON.stringify(battleRules));
 ok(battleRules.turns===battleRules.expected,'パーティ診断は技の実命中率をターン数に反映する '+JSON.stringify(battleRules));
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
