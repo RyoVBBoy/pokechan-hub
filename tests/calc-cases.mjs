@@ -134,6 +134,7 @@ function ref(c,s,curHP,crit,hits1){
 }
 let bad=0,n=0,unv=0,rule=0;const ok=(cond,name,info)=>{n++;if(!cond){bad++;console.error('NG',name,JSON.stringify(info))}};
 const report=[];
+ok(mechanics.normal===0&&mechanics.bypass===mechanics.hp&&mechanics.calc===0&&mechanics.calcBypass===mechanics.hp,'かたやぶりは一撃必殺技でもがんじょうを無視する',mechanics);
 for(const c of C){
   const s=site.find(x=>x.no===c.no),o=c.o||{};
   let exp,how;
