@@ -60,28 +60,32 @@ for(const c of cases){
   let r=calculate(gen,mk(c.a,1),mk(c.d,0),mv,f).damage;r=Array.isArray(r)?r:[r];
   if(JSON.stringify(r)===JSON.stringify(c.rolls))ok++;else bad.push({c,ref:r});
 }
-const rate=ok/cases.length;
+const coverage={
+ format:Object.fromEntries(['single','double'].map(k=>[k,cases.filter(c=>c.o.format===k).length])),
+ critical:cases.filter(c=>c.o.crit).length,
+ spread:cases.filter(c=>c.o.spread).length,
+ screen:cases.filter(c=>c.o.screen).length,
+ abilityAttacker:cases.filter(c=>!!c.a.ab).length,
+ abilityDefender:cases.filter(c=>!!c.d.ab).length,
+ itemAttacker:cases.filter(c=>!!c.a.item).length,
+ itemDefender:cases.filter(c=>!!c.d.item).length,
+ nonzeroAttackRank:cases.filter(c=>c.a.stg.atk!==0||c.a.stg.spa!==0).length,
+ nonzeroDefenseRank:cases.filter(c=>c.d.stg.def!==0||c.d.stg.spd!==0).length,
+ criticalAndScreen:cases.filter(c=>c.o.crit&&c.o.screen).length,
+ doubleSpreadAndScreen:cases.filter(c=>c.o.format==='double'&&c.o.spread&&c.o.screen).length,
+ criticalAndNonzeroRank:cases.filter(c=>c.o.crit&&(c.a.stg.atk!==0||c.a.stg.spa!==0||c.d.stg.def!==0||c.d.stg.spd!==0)).length
+};
+const coverageMissing=Object.entries({...coverage.format,...coverage}).filter(([key,value])=>key!=='format'&&value<1).map(([key])=>key);
+const pass=cases.length===N&&bad.length===0&&coverageMissing.length===0;
+const rate=cases.length?ok/cases.length:0;
 console.log(`calc: ${ok}/${cases.length} 一致（${(rate*100).toFixed(2)}%・乱数の種 ${SEED}）`);
 if(bad.length)console.log('違い（参考）',JSON.stringify(bad.slice(0,2).map(x=>({ab:x.c.a.ab,mv:x.c.mv.id,ours:x.c.rolls.slice(0,3),ref:x.ref.slice(0,3)}))));
 if(process.env.CALC_REF_REPORT)writeFileSync(process.env.CALC_REF_REPORT,JSON.stringify({
   reference:'@smogon/calc Gen 9 (comparison, not Pokémon Champions device proof)',
   requested:N,generated:cases.length,matched:ok,mismatched:bad.length,
-  seed:SEED,pass:cases.length===N&&bad.length===0,
+  seed:SEED,pass,
   firstMismatches:bad.slice(0,20),
-  coverage:{
-    format:Object.fromEntries(['single','double'].map(k=>[k,cases.filter(c=>c.o.format===k).length])),
-    critical:cases.filter(c=>c.o.crit).length,
-    spread:cases.filter(c=>c.o.spread).length,
-    screen:cases.filter(c=>c.o.screen).length,
-    abilityAttacker:cases.filter(c=>!!c.a.ab).length,
-    abilityDefender:cases.filter(c=>!!c.d.ab).length,
-    itemAttacker:cases.filter(c=>!!c.a.item).length,
-    itemDefender:cases.filter(c=>!!c.d.item).length,
-    nonzeroAttackRank:cases.filter(c=>c.a.stg.atk!==0||c.a.stg.spa!==0).length,
-    nonzeroDefenseRank:cases.filter(c=>c.d.stg.def!==0||c.d.stg.spd!==0).length,
-    criticalAndScreen:cases.filter(c=>c.o.crit&&c.o.screen).length,
-    doubleSpreadAndScreen:cases.filter(c=>c.o.format==='double'&&c.o.spread&&c.o.screen).length,
-    criticalAndNonzeroRank:cases.filter(c=>c.o.crit&&(c.a.stg.atk!==0||c.a.stg.spa!==0||c.d.stg.def!==0||c.d.stg.spd!==0)).length
-  }
+  coverage,coverageMissing
+
 },null,2));
-if(cases.length!==N||bad.length!==0){console.error('NG ダメージ計算が照合先と合いません',JSON.stringify(bad.slice(0,3)));process.exitCode=1}
+if(!pass){console.error('NG ダメージ計算の照合・網羅条件に失敗',JSON.stringify({requested:N,generated:cases.length,mismatches:bad.slice(0,3),coverageMissing}));process.exitCode=1}
