@@ -60,7 +60,7 @@ function dgBest(a,d){
   /* みらいよち・はめつのねがいは2ターン後に当たるので、1対1の撃ち合いには入れない */
   (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv)))return;
     const x=dgMove(a,mv,d);if(!x.max)return;
-    x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax},a,d);
+    x.nMin=duTurns(x.min,{mv,acc:x.acc,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:x.acc,f:x.fmax},a,d);
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
     const key=[x.nMin,x.acc>=90?0:1,-(x.min*x.acc)];
     if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&(key[1]<best.key[1]||(key[1]===best.key[1]&&key[2]<best.key[2]))))best={...x,key}});
@@ -69,7 +69,7 @@ function dgBest(a,d){
 /* 先制技で倒しきれるか（確定の回数） */
 function dgPrio(a,d){
   let best=null;
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const x=dgMove(a,mv,d);if(!best||mv.pri>best.mv.pri||(mv.pri===best.mv.pri&&x.min>best.min))best=x});
   return best;
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
@@ -96,7 +96,7 @@ function dgMatch0(a,o){
   /* 相手の攻撃は乱数最大（こちらにとって最悪）で数える */
   const opW=op?op.nMax:9,opB=op?op.nMin:9;
   const pr=dgPrio(a,o),opPr=dgPrio(o,a);
-  const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:100,f:pr.fmin},a,o)===1;
+  const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:pr.acc,f:pr.fmin},a,o)===1;
   /* 先に倒しきれるか：こちらが先に動けるなら myN<=opW、遅ければ myN<opW。先制技のとどめ・相手の先制技も見る */
   const finPr=(n,x,p)=>p&&p.min>0&&(n-1)*x.min+p.min>=100;
   let first=spd;
@@ -104,7 +104,7 @@ function dgMatch0(a,o){
   if(first>=0&&op&&finPr(opW,op,opPr)&&!(me&&finPr(myN,me,pr)))first=-1;
   const winSafe0=myN<9&&(first===1?myN<=opW:myN<opW);
   /* こちらのきあいのタスキ・がんじょうで1回耐えるおかげで勝てるだけなら「条件つき」にする */
-  const opRaw=op?duTurns(op.max,{mv:op.mv,acc:100,f:op.fmax},o,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab}):9;
+  const opRaw=op?duTurns(op.max,{mv:op.mv,acc:op.acc,f:op.fmax},o,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab}):9;
   const winSafe=myN<9&&(first===1?myN<=opRaw:myN<opRaw);
   const sashOnly=winSafe0&&!winSafe;
   const winTie=myN<9&&first===0&&myN<=opW;
