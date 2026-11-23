@@ -30,9 +30,21 @@ jobs:
           npx playwright install --with-deps chromium
           node tools/build.mjs
       - name: 40 named cases
+        env:
+          CALC_CASES_REPORT: audit-calc-cases.json
         run: node tests/calc-cases.mjs
       - name: 1500 random reference cases
         env:
           CALC_N: '1500'
           CALC_SEED: '20261123'
+          CALC_REF_REPORT: audit-calc-ref.json
         run: node tests/calc-ref.mjs
+      - name: Preserve comparison reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: damage-audit-reports
+          path: |
+            audit-calc-cases.json
+            audit-calc-ref.json
+          if-no-files-found: warn
