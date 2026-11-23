@@ -15,7 +15,7 @@ const WSPD={chlorophyll:'sun','swift-swim':'rain','sand-rush':'sand','slush-rush
 const WNAME={sun:'ひざしが つよい',rain:'あめが ふっている',sand:'すなあらし',snow:'ゆきが ふっている'};
 const ABIMPL=new Set([...Object.keys(ABSORB),...Object.keys(PINCH),...Object.keys(SKIN),...Object.keys(WSET),...Object.keys(WSPD),
  'intimidate','clear-body','white-smoke','hyper-cutter','mirror-armor','defiant','competitive','huge-power','pure-power','hustle','compound-eyes','no-guard','technician','adaptability',
- 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link']);
+ 'multiscale','shadow-shield','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link']);
 const stgM=s=>s>=0?(2+s)/2:2/(2-s);
 
 /* ---- 持ち物（対応しているもののみ） ---- */
@@ -483,7 +483,7 @@ function bcalc(a,mv,d,o){
   let fm=4096;
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
   if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,o.doubles?2732:2048);
-  if(dab==='multiscale'&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
+  if((dab==='multiscale'||dab==='shadow-shield')&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
   if((dab==='solid-rock'||dab==='filter')&&eff>=2)fm=chM(fm,3072);
   if(a.ab==='tinted-lens'&&eff<1)fm=chM(fm,8192);
   if(a.item==='expertbelt'&&eff>=2)fm=chM(fm,4915);
