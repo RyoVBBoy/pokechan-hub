@@ -331,6 +331,7 @@ const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
 /* 条件つきで威力2倍：計算画面のチェックで指定（模擬戦では使わない） */
 const MCOND={payback:'相手より後に動く',avalanche:'先に相手から攻撃を受けている',assurance:'このターン、相手がすでにダメージを受けている',stompingtantrum:'前のターンに自分の技が失敗した',temperflare:'前のターンに自分の技が失敗した',lashout:'このターンに能力を下げられた',boltbeak:'相手より先に動く',fishiousrend:'相手より先に動く',ficklebeam:'威力2倍が出た（30%の確率）'};
 const MCOUNT={ragefist:['攻撃を受けた回数',6],lastrespects:['倒れた味方の数',5]};
+const MV_NO_AUTO=new Set([...MCHG,...MRECH,...MSELFKO,...MFIRST,...MFAIL,...Object.keys(MCOND),...Object.keys(MCOUNT),'suckerpunch','upperhand']);
 /* 自動の型づくり・相手の技選びでの使いやすさ（ためる・反動で動けない・自分が倒れる技などは下げる） */
 function simF(b,mv){
   const k=mkey(mv);
