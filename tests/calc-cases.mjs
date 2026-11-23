@@ -100,6 +100,13 @@ const site=await pg.evaluate(([C,SEQ])=>{
    out.push({no:'sl',slHits:bhits(her,mvObj(K('rockblast')),dra,{hits:2,r:100}).n});}
   return out;
 },[C,SEQ]);
+const mechanics=await pg.evaluate(()=>{
+  const A=P.find(x=>x.n==='オノノクス')||P.find(x=>x.n==='ガブリアス'),D=P.find(x=>x.n==='ブリジュラス');
+  const a=mkMon(A,'me',{ab:'mold-breaker',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
+  const d=mkMon(D,'op',{ab:'sturdy',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
+  const mv=mvObj(90),normal=fixedDmg(a,mv,d),bypass=fixedDmg(a,mv,d,true),calc=bcalc(a,mv,d,{}),calcBypass=bcalc(a,mv,d,{ignoreAbilities:true});
+  return{normal,bypass,hp:d.hp,calc:calc.dmg,calcBypass:calcBypass.dmg};
+});
 await b.close();
 
 /* ---- 照合先で計算 ---- */
