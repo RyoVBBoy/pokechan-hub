@@ -29,6 +29,7 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
         run: |
           node tools/build.mjs
+          node --check dist/assets/app.*.js
           python3 worker/build.py
           node tools/gen-pages.cjs
       - name: 全回帰テスト
