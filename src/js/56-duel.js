@@ -32,17 +32,18 @@ function duTurns(p,h,att,def){
 }
 /* 先制技でいちばん強いもの（ダメージの割合） */
 function duPrio(a,d){
-  let best=0,bestTier=0;const dg=d.disg;d.disg=false;
-  try{a.moves.forEach(mv=>{if(!mv||mv.prot||(typeof MV_NO_AUTO!=='undefined'&&MV_NO_AUTO.has(mkey(mv)))||!(mv.pri>0)||!(mv.pow>0))return;const r=bcalc(a,mv,d,{}),pct=r.dmg/d.max*100;if(mv.pri>bestTier){bestTier=mv.pri;best=pct}else if(mv.pri===bestTier)best=Math.max(best,pct)})}catch(e){}
-  d.disg=dg;return best;
+  let best=null;const dg=d.disg;d.disg=false;
+  try{a.moves.forEach(mv=>{if(!mv||mv.prot||(typeof MV_NO_AUTO!=='undefined'&&MV_NO_AUTO.has(mkey(mv)))||!(mv.pri>0)||!(mv.pow>0))return;const r=bhits(a,mv,d,{r:92}),acc=accOf(a,mv,d),pct=r.total/d.max*100*acc/100;if(!best||mv.pri>best.pri||(mv.pri===best.pri&&pct>best.pct))best={pct,pri:mv.pri,mv,acc,h:r.n}})}catch(e){}
+  d.disg=dg;return best||{pct:0,pri:0,mv:null,acc:100,h:1};
 }
 function duSetup(a){const k=a.boost;if(!k||!DU_BOOST[k]||k==='bellydrum')return null;const id=Object.keys(MD).find(i=>MD[i][3]===k);return{k,b:DU_BOOST[k],n:id?mName(+id):k}}
 /* 先に倒せるのはどちらか：1＝a、−1＝o、0＝五分 */
 function duFirst(sa,so,mt,ot,pa,po,ha,ho){
   let f=sa>so?1:sa<so?-1:0;
   const fin=(p,pr,n)=>pr>0&&(Math.ceil(n)-1)*p+pr>=100;
-  const fa=fin(ha,pa,mt),fo=fin(ho,po,ot);
-  if(f<=0&&fa&&!fo)f=1;else if(f>=0&&fo&&!fa)f=-1;
+  const fa=fin(ha,pa.pct,mt),fo=fin(ho,po.pct,ot);
+  if(fa&&fo&&pa.pri!==po.pri)f=pa.pri>po.pri?1:-1;
+  else if(f<=0&&fa&&!fo)f=1;else if(f>=0&&fo&&!fa)f=-1;
   return f;
 }
 function duel(a,o){return withWx(a,o,()=>duel0(a,o))}
