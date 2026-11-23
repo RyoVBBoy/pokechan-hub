@@ -48,3 +48,30 @@ jobs:
             audit-calc-cases.json
             audit-calc-ref.json
           if-no-files-found: warn
+      - name: Summarize auditable results
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {existsSync,readFileSync,appendFileSync} from 'node:fs';
+          const files=['audit-calc-cases.json','audit-calc-ref.json'];
+          const lines=['## Damage audit evidence','',`Commit: \`\${process.env.GITHUB_SHA}\``,''];
+          for(const file of files){
+            if(!existsSync(file)){lines.push(`- \`\${file}\`: **missing** (the test may have failed before writing its report)`);continue}
+            try{
+              const data=JSON.parse(readFileSync(file,'utf8'));
+              if(Array.isArray(data)){
+                const fail=data.filter(x=>x.pass===false);
+                lines.push(`- \`\${file}\`: \${data.length} recorded scenarios; \${fail.length} explicit failed scenarios`);
+              }else{
+                const c=data.coverage||{};
+                lines.push(`- \`\${file}\`: requested \${data.requested}, generated \${data.generated}, matched \${data.matched}, mismatched \${data.mismatched}, pass \${data.pass}, seed \${data.seed}`);
+                lines.push(`- Coverage: \${JSON.stringify(c)}`);
+              }
+            }catch(e){lines.push(`- \`\${file}\`: **invalid JSON** (\${String(e)})`)}
+          }
+          lines.push('','**Reference is @smogon/calc Gen 9, not Pokémon Champions device proof.**');
+          const out=lines.join('\\n')+'\\n';
+          console.log(out);
+          if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,out);
+          NODE
