@@ -67,6 +67,21 @@ if(process.env.CALC_REF_REPORT)writeFileSync(process.env.CALC_REF_REPORT,JSON.st
   reference:'@smogon/calc Gen 9 (comparison, not Pokémon Champions device proof)',
   requested:N,generated:cases.length,matched:ok,mismatched:bad.length,
   seed:SEED,pass:cases.length===N&&bad.length===0,
-  firstMismatches:bad.slice(0,20)
+  firstMismatches:bad.slice(0,20),
+  coverage:{
+    format:Object.fromEntries(['single','double'].map(k=>[k,cases.filter(c=>c.o.format===k).length])),
+    critical:cases.filter(c=>c.o.crit).length,
+    spread:cases.filter(c=>c.o.spread).length,
+    screen:cases.filter(c=>c.o.screen).length,
+    abilityAttacker:cases.filter(c=>!!c.a.ab).length,
+    abilityDefender:cases.filter(c=>!!c.d.ab).length,
+    itemAttacker:cases.filter(c=>!!c.a.item).length,
+    itemDefender:cases.filter(c=>!!c.d.item).length,
+    nonzeroAttackRank:cases.filter(c=>c.a.stg.atk!==0||c.a.stg.spa!==0).length,
+    nonzeroDefenseRank:cases.filter(c=>c.d.stg.def!==0||c.d.stg.spd!==0).length,
+    criticalAndScreen:cases.filter(c=>c.o.crit&&c.o.screen).length,
+    doubleSpreadAndScreen:cases.filter(c=>c.o.format==='double'&&c.o.spread&&c.o.screen).length,
+    criticalAndNonzeroRank:cases.filter(c=>c.o.crit&&(c.a.stg.atk!==0||c.a.stg.spa!==0||c.d.stg.def!==0||c.d.stg.spd!==0)).length
+  }
 },null,2));
 if(cases.length!==N||bad.length!==0){console.error('NG ダメージ計算が照合先と合いません',JSON.stringify(bad.slice(0,3)));process.exitCode=1}
