@@ -28,38 +28,33 @@ const DG_NOTE='1対1の簡易評価です。トリックルームは条件を満
 /* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
 const dgMvName=(a,mv)=>{try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技）`}catch(e){}return mv.n};
+/* 技の条件が分からない1対1診断では、無条件の技として選ばない */
+const DG_COND_MOVES=new Set([...MCHG,...MRECH,...MSELFKO,...MFIRST,...MFAIL,...Object.keys(MCOND),...Object.keys(MCOUNT),'suckerpunch','upperhand']);
+const dgAutoEligible=mv=>!DG_COND_MOVES.has(mkey(mv));
 function dgMove(a,mv,d){
-  const dg=d.disg;d.disg=false;
+  const dg=d.disg,hp0=d.hp;d.disg=false;
   try{
-    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1;
-    /* マルチスケイル・ファントムガード（2026/11/10 依頼主の検証で見つけた間違い）：bcalc は満タンのマルチスケイルを半分にし、
-       duTurns も「最初の1回は半分」として数えるので、二重に半分になっていた（げきりん 66〜79% が確定3発に見えた。正しくは確定2発）。
-       min/max は2発目から（半分にならない）のダメージにし、初撃は first（半分）として別に持つ。回数は duTurns が初撃を半分で数える */
-    const half=DU_HALF_AB.includes(d.ab)&&!duIg(a),hp0=d.hp;
-    if(half)d.hp=d.max-1;
-    let r0,r1;try{r0=bcalc(a,mv,d,{r:85});r1=r0.dmg&&r0.eff?bcalc(a,mv,d,{r:100}):null}finally{d.hp=hp0}
-    if(!r0.dmg||!r0.eff)return{mv,min:0,max:0,eff:r0.eff||0,h,acc:accOf(a,mv,d),ohko:0,absorb:r0.absorb||null};
-    const min=r0.dmg*h/d.max*100,max=r1.dmg*h/d.max*100;
-    const roll=r=>{if(half)d.hp=d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
-    /* 一撃で倒せる段階の数は初撃（マルチスケイル等なら半分）で数える */
-    /* 連続技は、マルチスケイルで半分になるのは最初の1回だけ（2回目からはHPが満タンでない）（2026/11/10 依頼主の確認で見つけた間違い：全部の回を半分にしていた） */
-    /* 2026/11/10 依頼主の確認（ドラゴンアロー）：1回目（HP満タン＝マルチスケイルで半分）と2回目から（半分にならない）を乱数16段階ずつ別々に bcalc で計算して足す。
-       fmin/fmax＝1回の技（全部の回の合計）の1発目のダメージ。一撃で倒せる乱数の数（ohko、16段階に換算）は、1回目と2回目の乱数を別々に組み合わせて数える（3回以上の連続技は2回目以降を同じ乱数と見る） */
-    if(!half){let ohko=0;if(max>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>roll(r)*h>=d.max).length;
-      return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:null,fmin:min,fmax:max}}
-    const at=(r,full)=>{d.hp=full?d.max:d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
-    const h1=DG_ROLLS.map(r=>at(r,true)),h2=DG_ROLLS.map(r=>at(r,false)),L=DG_ROLLS.length-1;
-    const tot=(i,j)=>h1[i]+(h-1)*h2[j];
-    let ko=0;h1.forEach((_,i)=>h2.forEach((_,j)=>{if(tot(i,j)>=d.max)ko++}));
-    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko:r0.fixed?16:ko/DG_ROLLS.length,fixed:!!r0.fixed,half:d.ab,
-      fmin:tot(0,0)/d.max*100,fmax:tot(L,L)/d.max*100,hit1:[h1[0],h1[L]],hitN:h>1?[h2[0],h2[L]]:null,hpMax:d.max};
-  }finally{d.disg=dg}
+    /* 連続技・おやこあい・トリプルアクセルは共通の1発ずつ計算を使う。
+       2〜5回の技は Champions 実機の回数分布が未確認のため、bhits の既定値（3回）を使う。 */
+    const half=DU_HALF_AB.includes(d.ab)&&!duIg(a)&&hp0===d.max;
+    const use=(r,hp)=>{d.hp=hp;try{return bhits(a,mv,d,{r})}finally{d.hp=hp0}};
+    const first=use(85,hp0),last=use(100,hp0),laterHp=half?Math.max(1,d.max-1):hp0;
+    const afterMin=use(85,laterHp),afterMax=use(100,laterHp);
+    const h=first.n,acc=accOf(a,mv,d),fixed=fixedDmg(a,mv,d)!=null;
+    if(!first.total||!first.eff)return{mv,min:0,max:0,eff:first.eff||0,h,acc,ohko:0,absorb:null};
+    const min=afterMin.total/d.max*100,max=afterMax.total/d.max*100;
+    const fmin=first.total/d.max*100,fmax=last.total/d.max*100;
+    const dist=hitDist(a,mv,d,{}),ohko=dist.reduce((s,[v,p])=>s+(v>=hp0?p*16:0),0);
+    if(!half)return{mv,mvn:dgMvName(a,mv),min,max,eff:first.eff,h,acc,ohko,fixed,half:null,fmin:min,fmax:max};
+    const hit1=[first.hits[0]?.dmg||0,last.hits[0]?.dmg||0],hitN=h>1?[afterMin.hits[1]?.dmg||0,afterMax.hits[1]?.dmg||0]:null;
+    return{mv,mvn:dgMvName(a,mv),min,max,eff:first.eff,h,acc,ohko,fixed,half:d.ab,fmin,fmax,hit1,hitN,hpMax:d.max};
+  }finally{d.disg=dg;d.hp=hp0}
 }
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */
 function dgBest(a,d){
   let best=null;
   /* みらいよち・はめつのねがいは2ターン後に当たるので、1対1の撃ち合いには入れない */
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv)))return;
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!dgAutoEligible(mv)||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv)))return;
     const x=dgMove(a,mv,d);if(!x.max)return;
     x.nMin=duTurns(x.min,{mv,acc:x.acc,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:x.acc,f:x.fmax},a,d);
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
@@ -70,7 +65,7 @@ function dgBest(a,d){
 /* 先制技で倒しきれるか（確定の回数） */
 function dgPrio(a,d){
   let best=null;
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const x=dgMove(a,mv,d);if(!best||mv.pri>best.mv.pri||(mv.pri===best.mv.pri&&x.min>best.min))best=x});
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!dgAutoEligible(mv)||!(mv.pri>0)||!(mv.pow>0))return;const x=dgMove(a,mv,d);if(!best||mv.pri>best.mv.pri||(mv.pri===best.mv.pri&&x.min>best.min))best=x});
   return best;
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
