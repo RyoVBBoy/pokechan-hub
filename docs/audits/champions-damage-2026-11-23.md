@@ -161,3 +161,9 @@ The benchmark remains Smogon Gen9; device-specific Champions correctness and end
 Inspected `tests/calc-cases.mjs`: the source contains 40 numbered named scenarios, but a green step alone did not distinguish Smogon reference comparisons from rule-based expectations and Champions-unverified abilities. Added an assertion requiring **exactly 40 distinct case numbers**, plus `CALC_CASES_SUMMARY` output with assertion total, failed assertion details, number of comparable cases, rule-based cases and unverified ability cases. Updated the branch-only Actions workflow to preserve this report and show those counts in its job summary.
 
 The changes are committed to the audit branch; **no new CI pass has been observed or independently verified**. The workflow's source now exposes evidence quality and failures, but device-level Champions correctness and full doubles/diagnosis/selection integration are still outstanding. Never conflate 40 cases with 40 independently verified Champions scenarios.
+
+## Coverage-gated reference verification (2026-11-24)
+
+Added a **non-vacuous coverage gate** to the 1,500-case randomized Smogon Gen9 reference comparison. The test now fails if any tracked category has zero generated examples: single/double, critical, spread, screen, attacking/defending ability and item, nonzero attack/defense ranks, critical+screen, double+spread+screen, critical+nonzero rank. The report includes `coverageMissing`, and its `pass` field requires exactly N cases, zero mismatches and nonzero counts for every tracked category. This is a minimum presence check, not statistical completeness or Pokémon Champions device proof.
+
+**No complete verdict**: latest CI run and artifacts have not been inspected, several effects are explicitly unimplemented, and exact Champions game-specific damage rounding/order and party-diagnosis/selection accuracy have not been independently established. The audit branch is not ready for main.
