@@ -1,5 +1,7 @@
 name: 回帰テスト（PR）
 on:
+  push:
+    branches: ['audit/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
