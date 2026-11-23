@@ -739,10 +739,11 @@ const battleRules=await pg.evaluate(()=>{
   const p=dgPrio(a,d);
   a.moves=[{...mvObj(126),acc:85},{...mvObj(53),acc:100}];
   const best=dgBest(a,d),expected=duTurns(best.min,{mv:best.mv,acc:best.acc,f:best.fmin},a,d);
-  return{priority:p&&p.mv.pri,accuracy:best&&best.acc,turns:best&&best.nMin,expected,unverified:dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:['メガシビルドンのうなぎのぼり']}).includes('ゲーム内で未検証の特性')};
+  return{priority:p&&p.mv.pri,accuracy:best&&best.acc,turns:best&&best.nMin,expected,unverified:dgPremise({rows:[],liveAll:false,live:false,unk:[],unverified:['メガシビルドンのうなぎのぼり']}).includes('ゲーム内で未検証の特性'),conditionalExcluded:['fakeout','firstimpression','suckerpunch','upperhand','solarbeam','meteorbeam','focuspunch','steelroller','ragefist','lastrespects'].every(k=>IMP_NOMV.has(k))};
 });
 ok(weatherScope.available&&weatherScope.excluded===false&&weatherScope.included==='sun'&&weatherScope.applied==='sun','天候は選出した味方の場全体に適用し、選出外の始動役を使わない '+JSON.stringify(weatherScope));
 ok(battleRules.unverified,'ゲーム内未検証の特性を未実装と区別して表示する '+JSON.stringify(battleRules));
+ok(battleRules.conditionalExcluded,'条件付き・溜め・反動・自滅技を改善候補から除外する '+JSON.stringify(battleRules));
 ok(battleRules.priority===2,'優先技は威力より優先度の段階を先に選ぶ '+JSON.stringify(battleRules));
 ok(battleRules.turns===battleRules.expected,'パーティ診断は技の実命中率をターン数に反映する '+JSON.stringify(battleRules));
 await b.close();
