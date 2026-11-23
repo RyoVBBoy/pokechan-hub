@@ -82,7 +82,7 @@ const site=await pg.evaluate(([C,SEQ])=>{
   const out=[];
   for(const c of C){
     const a=mk(c.A,'me'),d=mk(c.D,'op'),mv=mvObj(K(c.mv)),o=c.o||{};
-    const opt={crit:!!o.crit,spread:!!o.spread,screen:!!o.screen,protean:!!o.protean,hits:c.hits||0};
+    const opt={crit:!!o.crit,format:o.format||'single',spread:!!o.spread,screen:!!o.screen,protean:!!o.protean,hits:c.hits||0};
     const sw=B.weather;B.weather=o.w?{k:o.w,t:5}:null;
     let r,seq=null,eff,n,dist,hitsMax,ko;
     try{r=dmgRolls(a,mv,d,opt);const h=bhits(a,mv,d,{...opt,r:100});eff=h.eff;n=h.n;hitsMax=h.hits.map(x=>x.dmg);
