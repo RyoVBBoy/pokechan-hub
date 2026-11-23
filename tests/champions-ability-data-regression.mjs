@@ -50,4 +50,17 @@ const breaker=mon(445,'mold-breaker',2);
 assert.equal(damage(breaker,skeledirge),unawareOff);
 const noBoost=mon(445,'mold-breaker');
 assert.equal(damage(noBoost,milotic),marvelOff);
-console.log('PASS: repository species stats and bcalc: Unaware, Marvel Scale, Mold Breaker and KO-count changes');
+// Foul Play uses the defender's own Attack rank, even if the defender has Unaware.
+const foul={...move,id:'foulplay',e:{fp:true}};
+const target=mon(911,'unaware');target.stg.atk=3;
+const attackerFoul=mon(445);
+const fpOn=bcalc(attackerFoul,foul,target,{r:100}).dmg;
+target.ab='';
+const fpOff=bcalc(attackerFoul,foul,target,{r:100}).dmg;
+assert.equal(fpOn,fpOff,'defender Unaware must not erase its own Attack rank for Foul Play');
+// Defensive Unaware must also ignore a negative offensive rank, not just boosts.
+const debuffed=mon(445,'',-3);
+const targetUnaware=mon(911,'unaware');
+assert.ok(damage(debuffed,targetUnaware)>damage(debuffed,mon(911)),
+ 'Unaware ignores offensive debuffs too');
+console.log('PASS: repository species stats and bcalc: Unaware, Marvel Scale, Mold Breaker Foul Play and KO-count changes');
