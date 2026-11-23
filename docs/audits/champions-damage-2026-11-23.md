@@ -35,3 +35,28 @@ Scope: source review on repository main, isolated changes on audit/champions-dam
 - The local runtime could not reach GitHub over the network, and no complete repository checkout or installed Playwright/Smogon environment was available to run the existing integration tests. Do not claim 40/40 or 1500/1500.
 - Required commands in a clean checkout of this branch: `npm ci`, `npm run build`, `node tests/screen-format-regression.mjs`, `node tests/screen-damage-regression.mjs`, `node tests/calc-cases.mjs`, `CALC_N=1500 CALC_SEED=20261123 node tests/calc-ref.mjs`. The browser tests require a working Playwright Chromium installation.
 - Important: @smogon/calc Gen 9 is a comparative oracle, **not** proof of Pokémon Champions game-specific mechanics. Investigate any new double single-target mismatches; do not weaken assertions or revert independent format generation merely to obtain green tests.
+
+## 2026-11-23 full damage-pipeline static audit (first pass)
+
+**Execution status:** The existing 40-case Playwright + @smogon/calc suite and the 1,500-case randomized suite were **not run**. GitHub is reachable only via the connected GitHub tool; the local terminal cannot resolve github.com, and the required repository checkout, built dist, and browser dependencies are not present. No numerical pass rate is asserted.
+
+**Test infrastructure:** `tests/run.mjs` previously omitted both newly added wall regressions. The audit branch now includes `screen-format-regression.mjs` and `screen-damage-regression.mjs` in the default test runner, ahead of `calc-cases.mjs` and `calc-ref.mjs`.
+
+### Confirmed source observations
+
+- **Battle format / screens:** `src/js/21-calc.js` passes `format:FMT` separately from `spread`. `src/js/15-battle.js` uses the explicit format for the wall factor (with a legacy fallback). `tests/calc-cases.mjs` now has 40 named scenarios, and `tests/calc-ref.mjs` generates format independently of spread. All these are source-verified, not end-to-end executed.
+- **Abilities:** `src/js/21-calc.js` explicitly flags `unaware`, `marvel-scale`, `friend-guard`, `infiltrator`, `cloud-nine`, `sheer-force`, `sniper`, `fluffy`, `purifying-salt`, etc. as not reflected in calculation. `bcalc` has no dedicated branches for these examples. This means tests using only implemented abilities cannot establish full coverage.
+- **Items:** `src/js/21-calc.js` flags `ironball`, `metronome`, and terrain seeds as unsupported. `bcalc` does implement several attack/defense/power/final item modifiers, but its item handling is not exhaustive.
+- **Weather:** `bcalc` applies sun/rain damage factors, snow physical-defense boost, sand special-defense boost, and selected ability modifiers. There is no exhaustive Champions-device verification for combined weather, abilities, and items.
+- **Critical hits:** `bcalc` removes negative attacking ranks, positive defending ranks, and the wall factor on critical hits. The precise game-specific intermediate rounding and exceptions remain unverified.
+- **Stat ranks:** `stgV` computes floor of scaled stats. `bcalc` applies the stat ranks before attack/defense modifiers. The exact device rounding order has not been confirmed.
+- **Calculation order:** source pipeline is variable power -> chained power modifiers -> attack stat/rank/modifiers -> defense stat/rank/modifiers -> base damage -> spread -> parental-bond -> weather -> critical -> random -> STAB -> effectiveness -> burn -> chained final modifiers (screens, multiscale, filter, tinted lens, items). The order is source-confirmed; **not** confirmed as Pokémon Champions' game rule.
+- **Rounding:** `pR` uses ties-down rounding; `chM` uses `(c*m+2048)>>12`; `apM` uses `pR(v*c/4096)`; basic damage and random stages use floor. Compound intermediate rounding is not proven against the game.
+- **Actual consumers:** `src/js/16-assist.js` uses `bcalc(a,mv,d,{})` inside `estHit0`; `src/js/56-duel.js` also uses `bcalc(...,{})` for priority attacks. These calculations are not automatically protected by the calculator UI's unsupported-ability warnings. Confirm diagnosis/selection user-facing impact before release.
+- **Old simulator separation:** `src/js/15-battle.js` includes an old battle-simulator section; do not confuse it with the current party diagnosis. The `bcalc` function is shared and is called by current selection/duel code.
+
+### Risks and next action
+
+1. Run the full built-site tests on this branch: `npm ci && npm run build && node tests/screen-format-regression.mjs && node tests/screen-damage-regression.mjs && node tests/calc-cases.mjs && CALC_N=1500 CALC_SEED=20261123 node tests/calc-ref.mjs` (install Playwright Chromium as needed). Capture every mismatch and its conditions; avoid reporting a green result without logs.
+2. Audit the missing ability/item behavior and whether the party-diagnosis/selection consumers should warn or omit unsupported comparisons.
+3. Compare the order and rounding of stacked modifiers against Champions primary evidence; @smogon/calc Gen 9 is only a reference implementation, not an authoritative Champions specification.
