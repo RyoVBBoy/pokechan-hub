@@ -34,11 +34,12 @@ function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
-  a.moves.forEach(mv=>{if(mv.prot)return;const r=bhits(a,mv,d,{r:92}),h=r.n,acc=accOf(a,mv,d);
-    /* 一撃必殺は当たる確率（3割）の分だけ数える。命中率を二重に掛けない */
-    const pct=r.total/d.max*100;
-    const score=pct*acc/100;
-    if(score>best.pct*best.acc/100)best={pct,mv,acc,h}});
+  a.moves.forEach(mv=>{if(mv.prot)return;const hp0=d.hp,half=DU_HALF_AB.includes(d.ab)&&!duIg(a)&&hp0===d.max,acc=accOf(a,mv,d);
+    const calc=hp=>{d.hp=hp;try{return bhits(a,mv,d,{r:92})}finally{d.hp=hp0}};
+    const later=calc(half?Math.max(1,d.max-1):hp0),first=calc(hp0),h=later.n;
+    /* p は2回目以降、f は初回（マルチスケイル等を含む）。命中率は評価時に1回だけ掛ける */
+    const pct=later.total/d.max*100,f=first.total/d.max*100,score=pct*acc/100;
+    if(score>best.pct*best.acc/100)best={pct,mv,acc,h,f}});
   }finally{d.disg=dg}
   return best;
 }
