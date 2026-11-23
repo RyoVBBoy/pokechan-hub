@@ -739,6 +739,7 @@ const battleRules=await pg.evaluate(()=>{
   const best=dgBest(a,d),expected=duTurns(best.min,{mv:best.mv,acc:best.acc,f:best.fmin},a,d);
   return{priority:p&&p.mv.pri,accuracy:best&&best.acc,turns:best&&best.nMin,expected};
 });
+ok(weatherScope.available&&weatherScope.excluded===false&&weatherScope.included==='sun'&&weatherScope.applied==='sun','天候は選出した味方の場全体に適用し、選出外の始動役を使わない '+JSON.stringify(weatherScope));
 ok(battleRules.priority===2,'優先技は威力より優先度の段階を先に選ぶ '+JSON.stringify(battleRules));
 ok(battleRules.turns===battleRules.expected,'パーティ診断は技の実命中率をターン数に反映する '+JSON.stringify(battleRules));
 await b.close();
