@@ -76,7 +76,7 @@ function calcMoveList(X){
   return out;
 }
 /* 計算に渡す条件（2026/11/13：当たる回数・へんげんじざいを足した） */
-const calcOpt=()=>({crit:CS.crit,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
+const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
 const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
 const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','unaware','liquid-voice','marvel-scale','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina'];
