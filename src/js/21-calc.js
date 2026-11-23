@@ -40,7 +40,7 @@ const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>
    2026/11/17：前は「計算の中身の指紋」だけで同じ条件を見分けていたので、あとから届いた使用率の高い型で攻撃側・受ける側の育成が入れかわると、
    何も変えない操作（同じ天気を選び直す等）でも指紋が変わって2回目として数えていた（admhits のときどき落ちる原因）。
    操作の前の指紋（before）を受け取り、操作のあとと同じなら数えない。before が無い呼び出しは前と同じ（指紋だけで1回） */
-const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,CS.disgOff,FMT]);
+const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,CS.disgOff,CS.hits,CS.protean,FMT]);
 function calcEv(before){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
   const sig=calcSig();if(before!==undefined&&sig===before)return;
   evCount('calc_done',sig)}catch(e){}}
