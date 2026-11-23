@@ -1,0 +1,33 @@
+name: Damage audit (no deployment)
+on:
+  push:
+    branches:
+      - audit/champions-damage-format-20261123
+  workflow_dispatch:
+jobs:
+  damage-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Focused regression
+        run: |
+          node tests/screen-format-regression.mjs
+          node tests/screen-damage-regression.mjs
+          node tests/screen-property-regression.mjs
+          node tests/diagnosis-unsupported-regression.mjs
+          node tests/diagnosis-selection-impact-regression.mjs
+          node tests/champions-ability-data-regression.mjs
+          node tests/ability-diagnosis-selection-integration.mjs
+      - name: 40 named cases
+        run: node tests/calc-cases.mjs
+      - name: 1500 random reference cases
+        env:
+          CALC_N: '1500'
+          CALC_SEED: '20261123'
+        run: node tests/calc-ref.mjs
