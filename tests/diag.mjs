@@ -718,6 +718,18 @@ ok(BAS.keys.every(v=>!v),'イダイトウを受けの型にしない '+JSON.stri
 ok(BAS.cyc.every(Boolean),'サイクル・軸の型でイダイトウは攻撃に振る '+JSON.stringify(BAS.cyc));
 ok(!BAS.imp.length,'イダイトウに耐久に回す改善案を出さない '+JSON.stringify(BAS.imp));
 ok(BAS.keep.every(Boolean),'もともと受けの型のポケモンは変えない '+JSON.stringify(BAS.keep));
+const battleRules=await pg.evaluate(()=>{
+  const A=P.find(x=>x.n==='ガブリアス'),D=P.find(x=>x.n==='カビゴン');
+  const a=mkMon(A,'me',{ab:'rough-skin',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3});
+  const d=mkMon(D,'op',{ab:'thick-fat',moves:[],sp:[32,0,2,0,32,0],up:2,dn:3});
+  a.moves=[{...mvObj(98),pri:1,pow:120},{...mvObj(245),pri:2,pow:1}];
+  const p=dgPrio(a,d);
+  a.moves=[{...mvObj(126),acc:85},{...mvObj(53),acc:100}];
+  const best=dgBest(a,d),expected=duTurns(best.min,{mv:best.mv,acc:best.acc,f:best.fmin},a,d);
+  return{priority:p&&p.mv.pri,accuracy:best&&best.acc,turns:best&&best.nMin,expected};
+});
+ok(battleRules.priority===2,'優先技は威力より優先度の段階を先に選ぶ '+JSON.stringify(battleRules));
+ok(battleRules.turns===battleRules.expected,'パーティ診断は技の実命中率をターン数に反映する '+JSON.stringify(battleRules));
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
 console.log(`diag: OK（${n}項目）`);
