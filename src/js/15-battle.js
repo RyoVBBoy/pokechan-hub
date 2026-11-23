@@ -388,7 +388,7 @@ const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
 function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv);
-  const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
+  const ig=['mold-breaker','teravolt','turboblaze'].includes(a.ab),dab=ig?null:d.ab;
   if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
