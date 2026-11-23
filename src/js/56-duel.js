@@ -46,7 +46,7 @@ function duFirst(sa,so,mt,ot,pa,po,ha,ho){
   return f;
 }
 function duel(a,o){return withWx(a,o,()=>duel0(a,o))}
-/* マルチスケイル：estHit は満タンで計算するので、もう半分になっている。duTurns が初撃を半分で数えるので、ここでは2発目からのダメージを渡す（2026/11/10 二重に半分にしていた） */
+/* estHit は2回目以降のダメージ（pct）と初回の実ダメージ（f）を分けて返す。マルチスケイル等の初回補正を二重にかけない */
 function duHit(x,y){return estHit(x,y)}
 function duel0(a,o){
   const h=duHit(a,o),r=duHit(o,a);
