@@ -555,8 +555,10 @@ function dgMegaBarHTML(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';
 function dgMegaBind(root){if(!root)return;root.querySelectorAll('[data-dgm]').forEach(b=>b.onclick=()=>{const no=+b.dataset.dgm;if(no===dgMegaSel())return;dgMegaSet(no);const y=scrY();teamRender();scrTo(0,y)})}
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
 function dgPremise(T){
+  const wx=teamWx();
   return `${dgMegaTxt(T)}相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、ほかは自動で決めた型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
+    `${wx&&wx.ambiguous?`選出内に異なる天候始動役が複数いるため、天候は仮定せずに計算しています（${wx.options.join('・')}）。`:''}`+
     `${T.rows.some(r=>r.abAssume)?`集計がない相手で特性によって結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない特性：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${T.unverified&&T.unverified.length?`ゲーム内で未検証の特性：${T.unverified.slice(0,8).join('、')}${T.unverified.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }
 
