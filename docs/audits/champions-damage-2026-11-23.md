@@ -97,3 +97,17 @@ Cross-checked the Champions-specific Unaware rule against Smogon Champions abili
 Added `tests/champions-ability-data-regression.mjs` and registered in `tests/run.mjs`; Node execution of committed file and full browser/build regression remain outstanding. Prior synthetic `dgSelect` regression proved rankings can change when inputs change, but did NOT verify that these two Pokémon-specific damage changes alter a real party's ◎○△×, switch-in result, or ranking.
 
 Further checks required: crit interaction with Unaware, Foul Play/Body Press, Mold Breaker, actual damage reference comparison, real `dgMatch0` and `dgSelect` integration, supported item list, and double battle ally-dependent Friend Guard. The main branch remains unchanged.
+
+## Real-source diagnosis-to-selection integration (2026-11-24)
+
+Added `tests/ability-diagnosis-selection-integration.mjs` to the default test runner. The isolated evaluation executed the **production source** of `bcalc`, `dgMove`, `dgBest`, `dgMatch0`, `duTurns` (from `56-duel.js`), and `dgSelect`, using actual base-stat rows from `02-data.js` for Garchomp #445, Snorlax #143, Milotic #350, and Skeledirge #911. Controlled neutral physical moves and fixed speed values were used to exercise boundary behavior; ancillary dependencies (type effectiveness, accuracy, live usage, weather, selection data access) were stubbed. **Not a real battle log or a full site browser test.**
+
+For a single controlled fixture with Garchomp Attack +2, Skeledirge as opponent, and Milotic as fixed selection axis:
+- Without Skeledirge Unaware: Garchomp's `dgMatch0` returned `ko_fast` (r=5), `swIn='win'`, minimum KO turns 4; `dgSelect` ranked Garchomp + Milotic first.
+- With Skeledirge Unaware: Garchomp's `dgMatch0` returned `lose` (r=1), `swIn='survive'`, minimum KO turns 6; `dgSelect` ranked Snorlax + Milotic first.
+- The opponent rows were repeated controlled fixtures to test ranking propagation, not four distinct real opponent sets.
+- This verifies the calculation-to-diagnosis-to-selection wiring under controlled fixtures. It **does not** establish a specific Champions match's recommended selection.
+
+A follow-up review identified a Foul Play edge case: the defender's Unaware should not zero its **own** Attack stage when the attacker uses Foul Play (`ee.fp`). The shared calculator was corrected and regression assertions added for Foul Play and negative-rank Unaware.
+
+Remaining before production completion: execute Node regression files and 40/1500 external comparisons in the full checkout; verify actual Champions battle mechanics with evidence, real move availability, full party data and distinct opponent sets; audit Friend Guard ally-dependent doubles, item effects, critical interaction, special category, and cross-feature impact. Main remains untouched.
