@@ -19,7 +19,7 @@
 const DG_SIMONLY=new Set(['intimidate','speed-boost','moxie','stamina','justified','defiant','competitive']);
 /* Shared bcalc does not implement every damage-related ability/item. Keep diagnosis and selection warnings aligned with the calculator's explicit unsupported lists. */
 const dgCalcUnsupported=m=>{if(!m)return[];const out=[];
-  if(m.ab&&((typeof CALC_UNIMPL!=='undefined'&&CALC_UNIMPL.includes(m.ab))||DG_SIMONLY.has(m.ab)))out.push(`特性「${ABN[m.ab]||m.ab}」`);
+  if(m.ab&&((typeof CALC_UNIMPL!=='undefined'&&CALC_UNIMPL.includes(m.ab))||(typeof CALC_UNVERIFIED!=='undefined'&&CALC_UNVERIFIED[m.ab])||DG_SIMONLY.has(m.ab)))out.push(`特性「${ABN[m.ab]||m.ab}」`);
   if(m.item&&typeof CALC_UNIMPL_IT!=='undefined'&&CALC_UNIMPL_IT.includes(m.item))out.push(`持ち物「${(typeof ITEMN!=='undefined'&&ITEMN[m.item])||m.item}」`);
   return out};
 /* トリックルームの計算をしているあいだだけ true（dgTeam0 が切りかえる） */
