@@ -166,7 +166,7 @@ const V2=await pg.evaluate(tc=>{
   const mm=dgMatch(g,d);r.ms=mm.why.join(' ').includes('相手のHPが満タンのとき、こちらの攻撃の1発目だけ');
   /* 上から：一撃でないときは「〇発で倒しきれる」「一撃で倒せるとは限らない」 */
   const ib=mkMon(N('イダイトウ'),'me',detSet(N('イダイトウ'))),hp=mkMon(N('カバルドン'),'op',detSet(N('カバルドン')));const mh=dgMatch(ib,hp);
-  r.fast=mh.k!=='ko_fast'||(mh.myN===1?/一撃（確定）/.test(mh.t):(/発で倒しきれる/.test(mh.t)&&mh.why.some(w=>/一撃で倒せるとは限らない/.test(w))));
+  r.fast=mh.k!=='ko_fast'||(mh.myN===1?/一撃（確定）/.test(mh.t):mh.me.turnKind?/ターンで倒し切る/.test(mh.t):(/発で倒しきれる/.test(mh.t)&&mh.why.some(w=>/一撃で倒せるとは限らない/.test(w))));
   return r},TC);
 ok(V2.chart===0,'タイプ相性が @smogon/calc と '+V2.chart+'か所ちがう');
 ok(V2.psy.every(Boolean),'エスパー技：ゴーストに等倍・あくに無効 '+V2.psy);

@@ -112,7 +112,7 @@ function dguMatchHTML(z,oppName,meName){
     ['技',z.me?esc(z.me.mvn):'効く技がない'],
     ['ダメージ',z.me?esc(dgDmgTxt(z.me,'op')):'—'],
     ['1回使って倒せる確率（命中込み）',dguKoPct(z)],
-    ['倒すまでの回数（命中前提）',z.me?esc(dgKoTxt(z.me)):'—'],
+    ['倒すまでの攻撃回数・ターン（命中前提）',z.me?esc(dgKoTxt(z.me)):'—'],
     ['相手の技',z.op?`${esc(z.op.mvn)}：${esc(dgDmgTxt(z.op,'me'))}（${esc(dgKoTxt(z.op))}）`:'こちらに効く技がない'],
     ['素早さ',`${esc(meName)} ${z.sa} 対 ${esc(oppName)} ${z.so}`],
     ['行動順',order],

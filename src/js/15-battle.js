@@ -352,7 +352,7 @@ const MCHG=new Set(['solarbeam','solarblade','meteorbeam','electroshot','skyatta
 const MRECH=new Set(['hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker','meteorassault']);
 /* 1回の使用に何ターンかかる技か（2026/11/24）：'charge'＝ためるターンがある（はれのソーラービーム・あめのエレクトロビーム・メガソーラーは除く）、'recharge'＝使った次のターン動けない。
    1対1の撃ち合い（duTurns）で、相手が動けるターンとして数える。本編の決まり＝前提（パワフルハーブはゲームの持ち物に無い） */
-const mvTurnK=(a,mv)=>{const k=mkey(mv);if(MCHG.has(k)){const w=B.weather&&B.weather.k;if((k==='solarbeam'||k==='solarblade')&&(w==='sun'||(a&&a.ab==='mega-sol')))return null;if(k==='electroshot'&&w==='rain')return null;return'charge'}return MRECH.has(k)?'recharge':null};
+const mvTurnK=(a,mv,d)=>{const k=mkey(mv);if(MCHG.has(k)){const w=wxEffK(a,d);if((k==='solarbeam'||k==='solarblade')&&(w==='sun'||(a&&a.ab==='mega-sol')))return null;if(k==='electroshot'&&w==='rain')return null;return'charge'}return MRECH.has(k)?'recharge':null};
 const MSELFKO=new Set(['explosion','selfdestruct','mistyexplosion','finalgambit']);
 const MFIRST=new Set(['fakeout','firstimpression']);
 const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);

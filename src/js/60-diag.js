@@ -36,7 +36,7 @@ const DG_DOUBLE_LIMITS='範囲技も1匹に当たる場合のダメージで計�
 /* 1つの技のダメージ（最大HPに対する％）：乱数の最小・最大と、16段階のうち倒しきれる段階の数 */
 /* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
-const dgMvName=(a,mv,d)=>{let tk=null;try{tk=typeof mvTurnK==='function'?mvTurnK(a,mv):null}catch(e){}const tt=tk==='charge'?'・ためるので1回に2ターン':tk==='recharge'?'・次のターンは動けない':'';
+const dgMvName=(a,mv,d)=>{let tk=null;try{tk=typeof mvTurnK==='function'?mvTurnK(a,mv,d):null}catch(e){}const tt=tk==='charge'?'・ためるので1回に2ターン':tk==='recharge'?'・次のターンは動けない':'';
   try{const t=hitType(a,mv,d);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技${tt}）`}catch(e){}return tt?`${mv.n}（${tt.slice(1)}）`:mv.n};
 const dgAccLabel=x=>x.acc<100?`（命中${Math.round(x.acc)}%）`:'';
 function dgMove(a,mv,d){
@@ -101,7 +101,7 @@ function dgTurns(a,x,d,upper=false){
   const multi=x.nHit>1||x.hMax>1;
   if(!d.disg&&!(survival&&multi&&firstDamage>=100))return turns;
   const first=bhits(a,mv,d,{r:upper?100:85,nHits:upper?x.hMax:x.hMin,surv:true});
-  const kind=typeof mvTurnK==='function'?mvTurnK(a,mv):null;
+  const kind=typeof mvTurnK==='function'?mvTurnK(a,mv,d):null;
   if(first.fainted)return kind==='charge'?2:1;
   return Math.max(turns,kind==='charge'?4:kind==='recharge'?3:2);
 }
@@ -113,6 +113,7 @@ function dgBest(a,d){
     const x=dgMove(a,mv,d);if(!x.max)return;
     x.nMin=dgTurns(a,x,d);x.nMax=dgTurns(a,x,d,true);
     if(MFIRST.has(mkey(mv))&&x.nMin>1)return;
+    x.turnKind=typeof mvTurnK==='function'?mvTurnK(a,mv,d):null;
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
     const key=[x.nMin,x.acc>=90?0:1,-(x.min*x.acc)];
     if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&(key[1]<best.key[1]||(key[1]===best.key[1]&&key[2]<best.key[2]))))best={...x,key}});
@@ -146,6 +147,10 @@ const dgDmgTxt=(x,who)=>{if(!x)return '';const pc=v=>dgPct(v);
   return x.half?`1発目${pc(x.fmin)}〜${pc(x.fmax)}（${who==='me'?'こちら':'相手'}の${ABN[x.half]||'特性'}でHP満タンのときは半分）・2発目から${pc(x.min)}〜${pc(x.max)}`:`${pc(x.min)}〜${pc(x.max)}`};
 const dgHalfTxt=x=>x&&x.half?`（${ABN[x.half]||'特性'}で初撃は${dgPct(x.fmin)}〜${dgPct(x.fmax)}、2発目から${dgPct(x.min)}〜${dgPct(x.max)}）`:'';
 const dgKoTxt=x=>{if(!x||!x.max)return '効く技がない';
+  if(x.turnKind){
+    const describe=n=>n>=9?'9ターン以上':`技${x.turnKind==='charge'?n/2:(n+1)/2}回・${n}ターン`;
+    return x.nMin===x.nMax?describe(x.nMin):`最短 ${describe(x.nMax)}／乱数最小 ${describe(x.nMin)}`;
+  }
   if(x.nMin===1)return '確定1発';
   if(x.nMax===1)return '1回で倒せる場合あり';
   if(x.nMin===x.nMax)return x.nMin>=9?'倒しきれない':`確定${x.nMin}発`;
@@ -174,7 +179,7 @@ function dgMatch0(a,o){
   const pr=dgPrio(a,o),opPr=dgPrio(o,a);
   const prKO=pr&&dgTurns(a,pr,o)===1;
   /* 先に倒しきれるか：こちらが先に動けるなら myN<=opW、遅ければ myN<opW。先制技のとどめ・相手の先制技も見る */
-  const finPr=(n,x,p)=>p&&p.min>0&&(n===1||!MFIRST.has(mkey(p.mv)))&&(n-1)*x.min+p.min>=100;
+  const finPr=(n,x,p)=>!x.turnKind&&p&&p.min>0&&(n===1||!MFIRST.has(mkey(p.mv)))&&(n-1)*x.min+p.min>=100;
   let first=spd;
   if(first<=0&&me&&finPr(myN,me,pr)&&!(op&&finPr(opW,op,opPr)))first=1;
   if(first>=0&&op&&finPr(opW,op,opPr)&&!(me&&finPr(myN,me,pr)))first=-1;
@@ -189,7 +194,8 @@ function dgMatch0(a,o){
   /* 交代で出ると1回ぶん多く受ける */
   /* 9は打ち切り値。相手が9以上でも、こちらが先に倒し切れる根拠が必要。 */
   const swBefore=n=>first===1?n<=opW-1:n<opW-1;
-  const swOnHit=myN<9&&(op?opW>=2&&swBefore(myN):!o.uncalc?.length);
+  const swCharge=op?.turnKind==='charge';
+  const swOnHit=!swCharge&&myN<9&&(op?opW>=2&&swBefore(myN):!o.uncalc?.length);
   // 命中前提の手数ぎりぎりなら、1回の外しで崩れるので安定した交代先に数えない。
   const swAccRisk=!!op&&swOnHit&&me.acc<100&&!swBefore(myN+1);
   // 交代時に受ける攻撃と、その直後の先制技は別の技になり得る。
@@ -208,7 +214,7 @@ function dgMatch0(a,o){
   /* 後出し（2026/11/10 依頼主の検証）：交代で受ける1発目と、そのあとの撃ち合いを分ける。
      win＝1発目を耐え、そこから撃ち合っても先に倒せる／survive＝1発目は耐えるが撃ち合いでは負ける（受けてまた交代する役）／no＝1発目で倒される */
   /* 2026/11/10 依頼主の検証⑤：1発目を耐えるのがきあいのタスキ・がんじょうのおかげだけなら「タスキ頼み」＝後出しできるに数えない（1回きりで、砂嵐・連続技・設置技で崩れる） */
-  const swSash=!!op&&opW>=2&&opW<9&&opRaw<2;
+  const swSash=!swCharge&&!!op&&opW>=2&&opW<9&&opRaw<2;
   /* 2026/11/10 依頼主の確認①：タスキでHP1で耐えたあと、先に動いて一撃で倒せるなら「条件つきで後出しできる」（sashwin）。
      かるわざなら、タスキがなくなって素早さ2倍。相手の先制技・砂嵐（いわ・じめん・はがね以外）・連続技（タスキが効かない＝opW 1）では崩れる */
   const ub=a.ab==='unburden'&&a.item==='focussash',sa2=ub?sa*2:sa,fast2=tr?sa2<so:sa2>so,fast1=tr?sa<so:sa>so;
@@ -231,11 +237,12 @@ function dgMatch0(a,o){
   const sashCond=`前提：交代時にHP満タン（それまでにダメージを受けていない）・相手がいちばん痛い技（${op?op.mvn:''}）を使う。確かめたこと：この相手の型に連続技・先制技はなく、砂嵐にもならず、接触で反動を返す特性・持ち物もない${LIVE.csv[o.p.base||o.p.no]?'。ランクバトルで設置技をよく使う相手でもない':''}。それでも成り立たないとき：ほかの相手のステルスロックなどの設置技でHPが減っている／相手が積み技で素早さを上げている`;
   const blockTxt={nokill:'そのあと一撃で倒せない',acc:'倒す技の命中が不安定',slow:`${ub?'かるわざで素早さ2倍にしても':''}先に動けない（${sa2} 対 ${so}）`,unsure:`相手の1発目が乱数しだいで100%未満（${op?dgPct(op.fmin):''}〜）になり、タスキが発動しないことがある。そのときはかるわざも発動せず、素早さ ${sa} 対 ${so}で先に動けない`,
     multi:`相手が連続技（${multiMv?mName(multiMv.id):''}）を持っていて、タスキが効かない`,prio:`HP1になったあと、相手の先制技（${opPr?opPr.mvn:''}）で倒される`,sand:'砂嵐のダメージでHP1から倒れる',hazard:`相手が設置技（${hzMv}）をよく使い、出てきたときにHPが減ってタスキが効かない`,contact:`相手の${o.item==='rockyhelmet'?'ゴツゴツメット':ABN[o.ab]}で、接触技で倒したときに反動でこちらも倒れる`}[sashBlock]||'';
-  const swIn=opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':swAccRisk||swPriority||!op||opW>=9?'unproven':'survive';
+  const swIn=swCharge?'unproven':opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':swAccRisk||swPriority||!op||opW>=9?'unproven':'survive';
   const swLeft=op?Math.max(0,100-op.fmax):100;
   const swTxt=!op?(swIn==='win'
     ?`計算した相手の技ではダメージを受けず、こちらの${me.mvn}${dgAccLabel(me)}で倒せる（${dgKoTxt(me)}）`
     :`計算した相手の技によるダメージはないが、${o.uncalc?.length?'相手に計算できない攻撃技があるため':!me?'こちらも効く技がないため':'こちらが倒し切るまでの回数が計算範囲を超えるため'}、交代後の勝ちは判定できない`)
+    :swCharge?`相手の${op.mv.n}はためる必要があります。交代時にためが済んでいるかで結果が変わるため、後出しは判定保留です。`
     :opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`
     :swSash&&sashWin?`条件つきで後出しして勝てる：${sashWhy}。 ${sashCond}`
     :swSash?`交代で受ける1発目：${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}。 ${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で耐えても、${blockTxt}ので、後出しできるとは数えない`
@@ -246,6 +253,7 @@ function dgMatch0(a,o){
   const opTxt=op?`相手の${op.mvn}で${dgDmgTxt(op,'me')}（${dgKoTxt(op)}）`:'相手に効く技がない';
   if((first===1&&winSafe)||prKO){k='ko_fast';
     if(prKO&&!(first===1&&winSafe))why.push(`${spd===0?'同速だが':'遅いが'}先制技の${pr.mvn}で${dgDmgTxt(pr,'op')}（確定1発）`);
+    else if(me.turnKind&&myN>1)why.push(`${meTxt}。相手が動けるターンを含めて比較しています`);
     else if(spd===1)why.push(myN===1?`${upTxt}。${meTxt}＝先に動いて確定で一撃`:`${upTxt}が、一撃で倒せるとは限らない：${meTxt}。一撃にならなくても、相手の反撃を耐えて${myN}発目で先に倒しきれる`);
     else why.push(`${spd===0?'同速だが':'遅いが'}、最後のとどめを先制技の${pr.mvn}で先に入れられる。${meTxt}`);
     why.push(myN===1&&spd===1?'相手は動く前に倒れる':`相手の反撃：${opTxt.replace(/^相手の/,'')}`)}
@@ -270,7 +278,7 @@ function dgMatch0(a,o){
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
   /* 2026/11/10：遅い（同速）のに先制技のとどめで先に倒しきれるときは「上から」と書かない */
-  const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':spd!==1&&!tr?`先制技のとどめで${myN}発で倒しきれる`:myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
+  const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':me.turnKind&&myN>1?`${myN}ターンで倒し切る見込み`:spd!==1&&!tr?`先制技のとどめで${myN}発で倒しきれる`:myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
   return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,weatherSuppressed,me,op,koOnUse:dgKoOnUse(a,me,o),spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
 }
 /* ===================== 診断の準備（2026/11/12 依頼主：同じパーティなのに「総合評価」が開くたびに変わる） =====================

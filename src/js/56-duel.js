@@ -37,7 +37,7 @@ function duTurns(p,h,att,def){
   if(dsg){const ls=disgLoss(def)/def.max*100,f=p*(1-1/hh)+ls;n=f>=100?1:1+Math.ceil((100-f)/p)}
   }
   /* ためる技は1回の使用に2ターン、反動で動けない技は n 回で 2n−1 ターン（その間に相手が動ける）。2026/11/24：前は1ターンとして数えていた */
-  const tk=h&&h.mv&&typeof mvTurnK==='function'?mvTurnK(att,h.mv):null;
+  const tk=h&&h.mv&&typeof mvTurnK==='function'?mvTurnK(att,h.mv,def):null;
   if(tk==='charge')n*=2;else if(tk==='recharge'&&n>1)n=2*n-1;
   const acc=Math.max(30,(h&&h.acc)||100);
   return Math.min(9,acc<100?n*100/acc:n);

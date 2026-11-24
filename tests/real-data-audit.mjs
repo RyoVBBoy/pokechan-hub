@@ -325,6 +325,34 @@ try{
       const disguiseBroken=dgMatch(controlled(242),{...disguised,disg:false});
       check(disguiseIntact.me.nMin>=2&&disguiseIntact.koOnUse===0&&disguiseBroken.me.nMin===1&&disguiseBroken.koOnUse===1,
         'only an intact Disguise prevents a single-hit KO',{intact:disguiseIntact.me.nMin,broken:disguiseBroken.me.nMin});
+      // The same lethal attack can take one use but two turns.
+      const weatherBefore=B.weather;
+      let solarClear,solarSun,solarSuppressed,electroRain,electroSuppressed,chargedOpponent,hyper;
+      const target={...normal,side:'op',ab:null,moves:[]};
+      const cloud={...target,ab:'cloud-nine'};
+      const solarUser={...controlled(76),st:[...normal.st.slice(0,3),200,normal.st[4],200]};
+      try{
+        B.weather=null;
+        solarClear=dgMatch0(solarUser,target);
+        chargedOpponent=dgMatch0(normal,{...controlled(76),side:'op'});
+        const beamUser={...ghost,side:'me',moves:[{...mvObj(63),pow:250}]};
+        hyper=dgMatch0(beamUser,target);
+        B.weather={k:'sun',t:5};
+        solarSun=dgMatch0(solarUser,target);
+        solarSuppressed=dgMatch0(solarUser,cloud);
+        B.weather={k:'rain',t:5};
+        electroRain=dgMatch0(controlled(905),target);
+        electroSuppressed=dgMatch0(controlled(905),cloud);
+      }finally{B.weather=weatherBefore}
+      check(solarClear.myN===2&&solarClear.koOnUse===1&&dgKoTxt(solarClear.me)==='技1回・2ターン'
+        &&solarClear.t.includes('2ターン')&&hyper.myN===3&&dgKoTxt(hyper.me)==='技2回・3ターン',
+        'charge and recharge estimates distinguish damage-dealing uses from elapsed turns',
+        {solar:dgKoTxt(solarClear.me),recharge:dgKoTxt(hyper.me),heading:solarClear.t});
+      check(solarSun.myN===1&&solarSuppressed.myN===2&&electroRain.myN===1&&electroSuppressed.myN===2,
+        'charge is skipped only while the relevant weather has an effect',
+        [solarSun.myN,solarSuppressed.myN,electroRain.myN,electroSuppressed.myN]);
+      check(chargedOpponent.swIn==='unproven'&&chargedOpponent.swTxt.includes('ためが済んでいるか'),
+        'switch-in advice abstains when the opponent charge phase is unknown');
       const view=selPlan(team),lineups=view.DS.list;
       const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
       const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);
