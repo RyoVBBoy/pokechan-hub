@@ -234,6 +234,9 @@ try{
       const strategyMid=strategy.querySelector('.stg-flow li:nth-child(2) p')?.textContent;
       const planMid=plan.querySelector('.pc-story li:nth-child(2)')?.textContent;
       check(strategyMid===flow.steps[1][1]&&planMid.endsWith(strategyMid)&&view.lead.every(i=>strategy.querySelector('.stg-sel').textContent.includes(byNo[team[i].no].n)),'P11 strategy and detailed selection show the same evidence and leads');
+      const selectionMega=view.DS.best.megaI>=0?view.DS.megaNm(view.DS.best.megaI):'メガシンカなし';
+      check(strategy.querySelector('.stg-flow li:first-child').textContent.includes(selectionMega)
+        &&plan.querySelector('.pc-story li:first-child').textContent.includes(selectionMega),'P11 both battle plans label the Mega assumption of the actual selection');
       check(view.situ.every(s=>view.DS.list.some(x=>x.c.includes(s.in)&&!x.c.includes(s.out)&&x.c.every(i=>i===s.in||view.base.includes(i))&&s.opps.every(q=>x.rows.some((r,i)=>r.r.q.no===q.no&&r.lvl>=3&&view.DS.best.rows[i].lvl<=2)))),'P11 alternate selections are checked on the same opponents and actual field assumptions');
       const notes=partyCheck(team);
       notes.fix.filter(x=>x.k==='calc').forEach((x,i)=>x.id='pcw'+i);

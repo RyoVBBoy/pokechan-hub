@@ -62,6 +62,8 @@ function stSelectionFlow(P0,entries){
   });
   const risky=watch.filter(row=>!row.zs.some(z=>back.includes(z.i)&&z.swIn==='win')).slice(0,2).map(row=>row.r.q.n);
   const head=`先発候補は${lead.map(pn).join('・')}。${adv.length?`対面で有利な相手の例は${adv.join('・')}。`:'先発で有利と判定できた相手は見つかりませんでした。'}`;
+  const mega=B.megaI>=0?`この選出は${P0.DS.megaNm(B.megaI)}を使う場合の評価です。`
+    :P0.DS.H.length?'この選出はメガシンカなしで評価しています。':'';
   const setup=B.trUse?`${B.tr.setters.filter(s=>B.c.includes(s.i)).map(s=>pn(s.i)).join('・')}でトリックルームを張れた場合は、場が有効な間に攻めます。`
     :B.weather?`${B.weather.by}が${ARCH_BADGE[B.weather.k][0]}を作れた場合は、天候が有効な間に攻めます。`:'';
   const mid=switches.slice(0,3).map(x=>`${x.opponent.n}には${x.choices.map(pn).join('・')}が後出しして勝てる判定。`).join('')+
@@ -70,7 +72,7 @@ function stSelectionFlow(P0,entries){
   const reason=P0.finWhy&&{prio:'先制技',scarf:'持ち物',setup:'積み技'}[P0.finWhy[0]];
   const fin=reason?{n:pn(P0.finisher),t:`${reason}の${P0.finWhy[1]}`}:null;
   const end=fin?`終盤の候補は${fin.n}。 ${fin.t}を使える場面で、相手を倒せるHPまで削れているか確認します。`:'終盤の候補を決める根拠が足りません。残った相手のHPと先に動けるかを確認します。';
-  return {sel:B.c.map(pn),ld:lead.map(pn),adv,fin,switches,steps:[['序盤',head+setup],['中盤',mid],['終盤',end]]};
+  return {sel:B.c.map(pn),ld:lead.map(pn),adv,fin,switches,steps:[['序盤',head+mega+setup],['中盤',mid],['終盤',end]]};
 }
 function stFill(entries){
   const box=document.getElementById('st-box');if(!box)return;
