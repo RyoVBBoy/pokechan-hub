@@ -452,7 +452,7 @@ const V10=await pg.evaluate(()=>{
   r.premise=/こちらにいちばん不利な特性で計算/.test(dgPremise(T));
   /* ダブルの先発の比較：簡易比較で、未計算のことと「いつも最適とは限らない」を書く */
   FMT='double';const E=dgSelect(team),hd=dgLeadHTML(E,E.best);FMT='single';
-  r.dbl=[/簡易比較/.test(hd),/範囲技/.test(hd)&&/同時に攻撃/.test(hd)&&/味方のサポート/.test(hd)&&/まもる/.test(hd),/勝率や実戦での強さではなく/.test(hd),/いつも最適な先発とは限りません/.test(hd),!/最適な先発です/.test(hd),/同時に1匹を狙う場合は数えていません/.test(hd)];
+  r.dbl=[/簡易比較/.test(hd),/範囲技も1匹に当たる場合/.test(hd)&&/同時攻撃/.test(hd)&&/味方の巻き込み・支援/.test(hd)&&/まもる/.test(hd),/対面の比較に使う指標/.test(hd),/暫定評価/.test(hd),!/最適な先発です/.test(hd),/同時に1匹を狙う場合は数えていません/.test(hd)];
   /* 1発で倒しきれない連続技でない相手：マルチスケイルの数え方が前と同じ（1回の技なら初撃半分） */
   const one=dgMatch(T.M[T.ms.findIndex(m=>m.p.n==='ガブリアス')],row.o);r.single=Math.abs(one.me.fmin*2-one.me.min)<1e-9;
   return r});
@@ -602,7 +602,7 @@ const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum')
   const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(x=>cnt[x.lvl]++);
   r.bars=[4,3,2,1].every(l=>{const b=box.querySelector('.dgu-l'+l+' .dgu-bn').textContent;return b.startsWith(cnt[l]+'匹')&&b.includes('（'+Math.round(cnt[l]/T.rows.length*100)+'%）')});
   const calc=C.fix.filter(x=>x.k==='calc');
-  const provisional=T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
+  const provisional=FMT==='double'||T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
   r.areas=[...box.querySelectorAll('.dgu-area')].map(a=>{const n=a.querySelector('.dgu-an').textContent,s=Math.max(0,...calc.filter(x=>x.area===n).map(x=>x.sev));return a.querySelector('.dgu-sev').textContent.includes(!s&&provisional?'判定は暫定':DGU_SEV[s][0])}).every(Boolean);
   r.weak=[...box.querySelectorAll('.dgu-weak .dgu-wt')].map(x=>x.textContent).join('|')===calc.slice(0,3).map(x=>x.t.replace(/<[^>]+>/g,'')).join('|');
   r.order=calc.every((x,k)=>!k||calc[k-1].sev>=x.sev);

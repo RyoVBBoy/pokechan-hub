@@ -243,6 +243,22 @@ try{
       dguSumFill(team,notes);
       const priority=fixture.querySelector('.dgu-weak a');
       check(!!priority&&priority.dataset.dguGo==='pcw0'&&priority.querySelector('.dgu-wt').innerHTML===notes.fix.find(x=>x.k==='calc').t,'P11 priority summary and detailed card use the same issue and anchor');
+      // The party evaluator passes one opponent to the damage engine, even in doubles.
+      // Contrast that with the calculator's explicit multiple-target setting.
+      const attacker=mkMon(byNo[445],'me',dgCalcSet({x:team[1],p:byNo[445]}));
+      const defender=mkMon(byNo[143],'op',dgCalcSet({x:team[3],p:byNo[143]}));
+      const targetDamage=(id,spread)=>bhits(attacker,mvObj(id),defender,{r:100,spread}).total;
+      const eq=mvObj(89),singleTarget=707;
+      const one=targetDamage(89,false),many=targetDamage(89,true);
+      check(one>many&&many>0&&Math.round(dgMove(attacker,eq,defender).fmax*defender.max/100)===one
+        &&targetDamage(singleTarget,false)>0&&targetDamage(singleTarget,false)===targetDamage(singleTarget,true),'Earthquake in party diagnosis uses one target; spread reduction applies only to spread moves',{one,many});
+      dgFill(team);
+      const summary=fixture.querySelector('#dgu-sum');
+      const rendered=[strategy.textContent,plan.textContent,summary.textContent,fixture.querySelector('#dg-box').textContent,panel.textContent];
+      check(rendered.every(copy=>copy.includes(DG_DOUBLE_LIMITS)===(FMT==='double')),'all five party result views disclose the double-battle assumptions only in doubles');
+      dguSumFill(team,{diagnosis:{...notes.diagnosis,unk:[],formErr:[],mySet:team.map(()=>true),liveAll:true},analysis:{bad:[]},fix:[]});
+      const statusLabels=[...summary.querySelectorAll('.dgu-area .dgu-sev')];
+      check(statusLabels.length===4&&statusLabels.every(x=>x.textContent.includes(FMT==='double'?'判定は暫定':'問題なし')),'doubles remain provisional even with complete build and opponent data');
       team.forEach((x,i)=>x.sel=view.base.includes(i));
       const chosenScope=partyCheck(team);
       dguSumFill(team,chosenScope);

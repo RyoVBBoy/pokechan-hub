@@ -30,7 +30,9 @@ let DG_TR=false;
 const DG_ROLLS=[85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100];
 const DG_K={ko_fast:{r:5,t:'上から倒せる'},tank:{r:4,t:'耐えて倒せる'},switch:{r:4,t:'後出しできる'},wall:{r:3,t:'受けて有利に戦える'},
   shaky:{r:2,t:'勝てるが不安定'},cond:{r:2,t:'条件つき'},lose:{r:1,t:'対応できない'}};
-const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エレキフィールド等）の威力の変化、追い風・トリックルーム・ステルスロックなどの場の効果、やけど・まひ以外の状態異常、能力を下げる追加効果、急所は計算に入れていません。'+PROTEAN_ASSUME+'素早さを変える特性は、天気で速くなる特性（すいすい等）だけ入れています。';
+const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エレキフィールド等）の威力の変化、追い風・ステルスロックなどの場の効果、やけど・まひ以外の状態異常、能力を下げる追加効果、急所は計算に入れていません。'+PROTEAN_ASSUME+'トリックルーム中の行動順は、条件が成立する場合に別途計算します。';
+const DG_DOUBLE_SCOPE='ダブルは1対1の対面を組み合わせた暫定評価です。';
+const DG_DOUBLE_LIMITS='範囲技も1匹に当たる場合のダメージで計算します。味方の巻き込み・支援、相手2匹の同時攻撃、まもるや技による行動妨害は評価していません。';
 /* 1つの技のダメージ（最大HPに対する％）：乱数の最小・最大と、16段階のうち倒しきれる段階の数 */
 /* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
@@ -424,7 +426,7 @@ function dgFill(entries){
   const order=[...T.rows].sort((a,b)=>a.lvl-b.lvl);
   el.innerHTML=`<div class="sec"><h2>相手ごとの対応力（計算）</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
     <p class="note" style="padding-top:0">${esc(T.opponentSource)}${T.rows.length}匹（パーティにいる種類は除く）に、1匹ずつ実際のダメージ計算と素早さで「先に倒せるか・耐えて倒せるか・後出しできるか」を見ています。弱点を突けるだけでは「対応できる」にしません。</p>
-    ${FMT==='double'?`<p class="note" role="status">ダブルの◎〜×・後出し判定は暫定評価です。現在は1対1の計算を組み合わせており、範囲技・味方のサポート・2匹同時の行動を十分に反映していません。</p>`:''}
+    ${FMT==='double'?`<p class="note" role="status">ダブルの◎〜×・後出し判定は暫定評価です。${DG_DOUBLE_LIMITS}</p>`:''}
     ${T.unk.length?`<p class="note" role="status">計算に未反映の効果があります：${T.unk.slice(0,8).map(esc).join('、')}${T.unk.length>8?' ほか':''}。◎〜×と後出し判定は暫定評価です。</p>`:''}
     ${typeof dguBars==='function'?dguBars({4:cnt(4),3:cnt(3),2:cnt(2),1:cnt(1)},T.rows.length):`<div class="dg-sum">${[4,3,2,1].map(l=>`<div class="dg-s dg-${DG_LV[l][2]}"><span>${DG_LV[l][0]}</span><b class="num">${cnt(l)}</b></div>`).join('')}</div>`}
     ${T.tr&&T.tr.on?`<p class="note" style="padding-top:6px"><b>トリックルーム中</b>（${T.tr.setters.map(s=>nm1(s.i)).join('・')}が張ったとき・遅い方が先に動く）：${[4,3,2,1].map(l=>`${DG_LV[l][0]}${T.rows.filter(r=>r.lvlTR===l).length}`).join('　')}。上の数はトリックルームなし。</p>`:''}
@@ -632,7 +634,7 @@ function dgMegaBind(root){if(!root)return;root.querySelectorAll('[data-dgm]').fo
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
 function dgPremise(T){
   return `${T.formErr&&T.formErr.length?`計算に入れていない匹：${T.formErr.map(x=>`${(byNo[x.no]||{}).n||x.no}（${FORM_WHY[x.why]||x.why}）`).join('・')}。`:''}${dgMegaTxt(T)}${T.opponentSource}${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組み合わせた推定の型（1人が実際に使った型ではない）':T.live?'集計が読めた相手は集計から組み合わせた推定の型、ほかは当サイトの提案の型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
-    `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
+    `${FMT==='double'?DG_DOUBLE_SCOPE+DG_DOUBLE_LIMITS:''}`+
     `${T.rows.some(r=>r.abAssume)?`特性を特定できない相手で結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない効果：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }
 

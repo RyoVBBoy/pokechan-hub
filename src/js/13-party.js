@@ -312,7 +312,7 @@ function planHTML0(entries){
     ${kd?`<h4>構築のタイプ</h4><p><b>${kd.name}</b>${kd.why.length?`<br><span class="vcap">理由：${esc(kd.why.join('・'))}</span>`:''}${kd.mix&&kd.mix.length?`<br><span class="vcap">${esc(kd.mix.join('・'))}の要素も同じくらいあります。方向をそろえると、選出で迷いにくくなります。</span>`:''}</p>`:'<p class="vcap">育成（持ち物・技）を3匹以上登録すると、構築のタイプ（対面・サイクル・積み）も診断します。</p>'}
   </div>
   <!--S--><div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
-  <p class="note" style="padding-top:0">${P0.DS.list.length}通りの選出を${esc(P0.DS.T.opponentSource)}${P0.DS.N}匹との1対1で比較しました。ダブルの先発は簡易比較です。</p>
+  <p class="note" style="padding-top:0">${P0.DS.list.length}通りの選出を${esc(P0.DS.T.opponentSource)}${P0.DS.N}匹との1対1で比較しました。${FMT==='double'?DG_DOUBLE_SCOPE+DG_DOUBLE_LIMITS:''}</p>
   <div class="pc-i pc-plan" data-base="${P0.base.join(',')}"><b>基本選出</b>
     <p class="pc-mons">${P0.base.map(i=>`<span${P0.lead.includes(i)?' class="lead"':''}>${nmI(i)}${P0.lead.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
     <p>比較した${P0.DS.N}匹のうち、◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}。先発候補は${P0.lead.map(nmI).join('・')}です。</p>

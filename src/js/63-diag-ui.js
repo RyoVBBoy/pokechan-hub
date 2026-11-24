@@ -27,7 +27,7 @@ function dguSumFill(entries,C){
   try{T=C?.diagnosis||dgTeam(entries,20);A=C?.analysis||dgAnalyze(T)}catch(e){}
   const N=T?.rows.length||0;
   if(!N){box.innerHTML='<div class="dgu-head"><h2>気をつけたい相手・場面</h2></div><p class="dgu-note" role="status">比較できる相手がいないため、対面の判定を保留しています。</p>';return}
-  const provisional=!A||T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
+  const provisional=FMT==='double'||!A||T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
   const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(r=>cnt[r.lvl]++);
   /* 4分野の状態＝その分野の気になる点のいちばん重い重要度 */
   const issues=C?.fix?C.fix.filter(x=>x.k==='calc'):A?.bad||[];
@@ -38,7 +38,7 @@ function dguSumFill(entries,C){
     <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','優先ポイント'],['lose-box','苦手になりやすい場面'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
     <div class="dgu-sec"><h3>パーティの状態</h3>
       <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${!areaSev(a)&&provisional?'<span class="dgu-sev sv1">判定は暫定</span>':dguSevTag(areaSev(a))}</div>`).join('')}</div>
-      <p class="dgu-note">${esc(C?.scope||'パーティ全体')}の結果です。${provisional?'推定の型や未反映の条件が含まれます。':''}</p>
+      <p class="dgu-note">${esc(C?.scope||'パーティ全体')}の結果です。${provisional?'推定の型や未反映の条件が含まれます。':''}${FMT==='double'?DG_DOUBLE_SCOPE:''}</p>
       ${dguBars(cnt,N)}
       ${T.tr&&T.tr.on?`<p class="dgu-note">トリックルーム中：${DGU_LV.map(([l,m])=>`${m}${T.rows.filter(r=>r.lvlTR===l).length}匹`).join('・')}（上の数はトリックルームなし）</p>`:''}
       <p class="dgu-note">点数はつけていません。分野ごとの見直しの優先度です。</p></div>
@@ -46,7 +46,7 @@ function dguSumFill(entries,C){
       ${W.length?`<ol class="dgu-weak">${W.map((x,k)=>`<li><a href="#" data-dgu-go="${esc(x.id||'dg-box')}">${dguSevTag(x.sev||1)}<span class="dgu-wa">${esc(x.area||'')}</span><span class="dgu-wt">${x.t}</span></a></li>`).join('')}</ol>`:'<p class="dgu-note">計算できた範囲で、優先して見直すポイントは見つかりませんでした。</p>'}</div>
     <div class="dgu-sec"><h3>まず試したい改善</h3>
       ${W.length&&W[0].how?`<p class="dgu-how"><b>優先ポイントへの対策例 ${esc(W[0].t.replace(/<[^>]+>/g,''))}</b> ${W[0].how}</p>`:''}
-      <p class="dgu-note">下はパーティ全体で、変更の前後を再計算した改善案です。</p>
+      <p class="dgu-note">下はパーティ全体で、変更の前後を再計算した改善案です。${FMT==='double'?DG_DOUBLE_LIMITS:''}</p>
       <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>`;
   box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();dgAdvOpen(a.dataset.dguGo);const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
   /* 選出の理由へ：構築と選出タブの「選出の比較」まで送る（タブの切りかえは ttJump） */

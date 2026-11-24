@@ -181,7 +181,7 @@ function dgLeadHTML(S,x){
   if(x.pairs){
     const P0=x.pairs[0];
     return `<div class="selu-sub"><h4>先発の比較（選んだ4匹から先発2匹：6通り・簡易比較）</h4>
-      <p class="sel-lim"><b>簡易比較</b>：1対1の計算を組み合わせて並べただけです。ダブルの実際の対戦（相手2匹から同時に攻撃される・範囲技・味方のサポート・まもる・ねこだまし・このゆびとまれ・交代）は計算に入っていないので、点は勝率や実戦での強さではなく、1番が実戦でいつも最適な先発とは限りません。</p>
+      <p class="sel-lim"><b>簡易比較</b>：${DG_DOUBLE_SCOPE}${DG_DOUBLE_LIMITS}この点は対面の比較に使う指標です。</p>
       ${x.pairs.map((p,k)=>`<div class="sel-c selu-row${k===0?' sel-best':''}"><span class="sel-rk">${k+1}</span><span class="sel-m">先発 ${nm(p.pr[0])}・${nm(p.pr[1])}<small class="selu-back">後ろ ${nm(p.back[0])}・${nm(p.back[1])}</small></span><span class="selu-sts">${selStat('どちらかが有利',p.adv.length,'g')}${selStat('2匹とも先に一撃の危険',p.both.length,p.both.length?'b':'')}${selStat('後ろで補える',p.cover.length)}<span class="selu-sc">点 ${p.sc.toFixed(2)}</span></span></div>`).join('')}
       <div class="selu-why"><p><b>${nm(P0.pr[0])}・${nm(P0.pr[1])}</b>を先発にすると</p>
         <div class="dgc-row"><span class="dgc-k">どちらかが有利（上位8匹）</span>${selOpChips(P0.adv.filter(top).map(y=>y.x.r.q.n),'selu-g')}</div>
@@ -243,7 +243,7 @@ function dgSelHTML(S,entries){
       ${dgSelCmpHTML(S,B,R2)}</div>`}
   const mine=S.mine&&S.mine!==B?dgSelWhy(S,S.mine,B):null;
   return `<div class="pc-i pc-plan sel-box" id="sel-box"><div class="selu-head"><b>選出の比較</b><span class="dgu-fmt">${S.K}匹の選び方 ${S.list.length}通りを計算${S.K===4?'・先発2匹は選んだ4匹ごとに6通り':''}</span></div>
-    ${FMT==='double'?`<p class="dgu-note" role="status">ダブルの選出順位・先発・後出し判定は暫定評価です。現在は1対1の計算を組み合わせており、範囲技・味方の特性（フレンドガード等）・2匹同時の行動を反映していません。</p>`:""}
+    ${FMT==='double'?`<p class="dgu-note" role="status">ダブルの選出順位・先発・後出し判定は暫定評価です。${DG_DOUBLE_LIMITS}</p>`:""}
     ${S.excluded?formErrHTML((S.T.formErr||[]).filter(x=>x.side==='me')):''}
     ${S.T.unk&&S.T.unk.length?`<p class="dgu-note" role="status">計算に未反映の効果：${S.T.unk.slice(0,8).map(esc).join("、")}${S.T.unk.length>8?" ほか":""}。選出順位・先発・後出しの判定は暫定評価です。</p>`:""}
     <p class="dgu-note">計算できる${entries.length-S.excluded}匹から${S.K}匹を選ぶ組み合わせを、${esc(S.T.opponentSource)}${N}匹との1対1の計算（相手ごとの対応力と同じ計算）で比べました。${S.multi?`メガストーンを持つ匹が2匹以上入る選出は、1試合にメガシンカできるのが1匹なので、その中の1匹ずつを「この匹だけがメガシンカ（ほかはメガストーンの効果なし）」として計算し、いちばん良い場合で比べています。どの匹をメガシンカさせたかは選出ごとに出しています。`:''}${S.ax>=0?`軸の${nm(S.ax)}は必ず入れています。`:''}</p>
@@ -256,6 +256,6 @@ function dgSelHTML(S,entries){
     ${S.mine?`<div class="selu-sub"><h4>いま選んでいる選出</h4>${line(S.mine,S.mineRank-1)}<p class="dgu-note">${S.list.length}通りのうち<b>${S.mineRank}番目</b>${S.mine===B?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}</div>`:''}
     <details class="sel-all"><summary>${S.list.length}通りすべてを見る</summary>${S.list.map((x,k)=>line(x,k)).join('')}
       <p class="vcap">並びは点の順です（点の決め方は「1番と2番の点の内訳」）。「先発」の印は、その選出の中で比べた先発です。</p></details>
-    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`味方の天気は、選出に入る天候役のうちパーティ順で先頭の1匹が作った場合を評価しています。`:''}${S.tr&&S.tr.on?'トリックルームは、技に入れている匹を選んだ選出でだけ、選出の全員（相手も）をトリックルーム中の順番で計算しています。覚えられるだけの匹では張ったことにしません。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較では、計算対象の相手を先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
+    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${S.tw?`味方の天気は、選出に入る天候役のうちパーティ順で先頭の1匹が作った場合を評価しています。`:''}${S.tr&&S.tr.on?'トリックルームは、技に入れている匹を選んだ選出でだけ、選出の全員（相手も）をトリックルーム中の順番で計算しています。覚えられるだけの匹では張ったことにしません。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較では、計算対象の相手を先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
   </div>`;
 }

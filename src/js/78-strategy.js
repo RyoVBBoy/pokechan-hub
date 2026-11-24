@@ -90,7 +90,7 @@ function stFill(entries){
       :`<p class="stg-p">まだはっきりした型（天気・トリックルーム・対面・サイクルなど）は見つかっていません。${entries.filter(x=>x.set).length<3?'技・持ち物を3匹以上登録すると、対面・サイクル・積みも判定します。':'下の強みと選出から、戦い方を組み立ててみてください。'}</p>`}
     ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
     ${T.mega&&T.mega.holders&&T.mega.holders.length?`<details class="stg-nomega" id="stg-nomega"><summary>メガシンカしない場合と比べる</summary><div class="stg-nm-b"><p class="dgu-loading">開くと計算します</p></div></details>`:''}
-    <p class="stg-f">${FMTN()}・${N?`パーティ全体を${esc(T.opponentSource)}${N}匹と1匹ずつ比較した結果です。`:'比較できる相手がいないため、対面の判定を保留しています。'}${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?'ダブルも1対1の計算を組み合わせています（範囲技・味方のサポート・まもるなどは入っていません）。':''}</p></div>`;
+    <p class="stg-f">${FMTN()}・${N?`パーティ全体を${esc(T.opponentSource)}${N}匹と1匹ずつ比較した結果です。`:'比較できる相手がいないため、対面の判定を保留しています。'}${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?DG_DOUBLE_SCOPE+DG_DOUBLE_LIMITS:''}</p></div>`;
   /* 2. 強み */
   const G=stStrengths(T,W);
   const sec2=`<div class="stg-sec"><h3>パーティの強み</h3>${G.length?`<p class="stg-f">パーティ全体の評価です。トリックルーム中の強みは条件付きで示します。</p><ol class="stg-gl">${G.map(g=>`<li><p class="stg-gt">${g.t}</p><p class="stg-gh"><span>使い方</span>${g.how}</p></li>`).join('')}</ol>`
@@ -107,7 +107,7 @@ function stFill(entries){
     sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3>
       <ul class="stg-sel">${order.map(i=>{const l=B.lead1.find(x=>x.i===i),r=roleOf(i);
         return `<li${ld.includes(i)?' class="stg-lead"':''}><b>${nmE(i)}</b>${r.length?`<span class="stg-rl">${r.map(t=>`<i>${esc(t)}</i>`).join('')}</span>`:''}<small>${l&&l.adv.length?`有利に戦える相手 ${l.adv.length}匹（${l.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}${l.adv.length>3?' など':''}）`:'有利と判定できた相手はありません'}</small></li>`}).join('')}</ul>
-      <p class="stg-f">${esc(DS.T.opponentSource)}${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。上位${DS.N}匹のうち ◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?'先発2匹は簡易比較です。':''}</p>
+      <p class="stg-f">${esc(DS.T.opponentSource)}${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?DG_DOUBLE_SCOPE:''}</p>
       ${(()=>{const notes=[];const inC=n=>B.c.some(i=>byNo[entries[i].no].n===n);
         if(B.weather)notes.push(`${esc(ARCH_BADGE[B.weather.k][0])}は${esc(B.weather.by)}が作った場合を、該当する対面に反映しています${B.weather.guess?'（特性は推定）':''}。`);
         else if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
