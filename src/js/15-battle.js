@@ -467,7 +467,7 @@ function bcalc(a,mv,d,o){
   D=Math.max(1,apM(D,dm));
   /* 基本ダメージ */
   let x=Math.floor(Math.floor(Math.floor(22*pow*A)/D)/50)+2;
-  if(o.spread)x=apM(x,3072);
+  if(o.spread&&mv.tg)x=apM(x,3072);
   if(o.pb)x=apM(x,1024);
   if(w==='sun'&&(t==='ほのお'||t==='みず'))x=apM(x,t==='ほのお'?6144:2048);
   if(w==='rain'&&(t==='みず'||t==='ほのお'))x=apM(x,t==='みず'?6144:2048);
@@ -482,7 +482,7 @@ function bcalc(a,mv,d,o){
   /* 最後の補正 */
   let fm=4096;
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
-  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,o.spread?2732:2048);
+  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,(o.format==='double'||(o.format==null&&o.spread))?2732:2048);
   if(dab==='multiscale'&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
   if((dab==='solid-rock'||dab==='filter')&&eff>=2)fm=chM(fm,3072);
   if(a.ab==='tinted-lens'&&eff<1)fm=chM(fm,8192);
@@ -509,7 +509,7 @@ function mhCount(a,mv,o){
 }
 function bhits(a,mv,d,o){
   o=o||{};const k=mkey(mv),n=mhCount(a,mv,o);
-  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&fixedDmg(a,mv,d)==null;
+  const pb=a.ab==='parental-bond'&&n===1&&!(o.spread&&mv.tg)&&fixedDmg(a,mv,d)==null;
   const hp0=d.hp,it0=d.item,dg0=d.disg,out=[];let hp=hp0,eff=null,loss=0,fainted=false;
   try{
     for(let i=0;i<(pb?2:n);i++){

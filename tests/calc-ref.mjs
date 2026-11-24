@@ -33,10 +33,11 @@ const cases=await pg.evaluate(([N,SEED])=>{
     const sg=()=>st?R(13)-6:0;a.stg={atk:sg(),def:0,spa:sg(),spd:0,spe:0};d.stg={atk:0,def:sg(),spa:0,spd:sg(),spe:0};
     if(rand()<.1)a.status='brn';
     const o={crit:rand()<.2,spread:rand()<.15,screen:rand()<.15};
+    o.format=o.spread||rand()<.3?'double':'single';
     const wk=pick([null,null,null,'sun','rain','sand','snow']);const sw=B.weather;B.weather=wk?{k:wk,t:5}:null;
     let rolls,eff;try{rolls=[];for(let k=85;k<=100;k++)rolls.push(bcalc(a,mv,d,{...o,r:k}).dmg);eff=bcalc(a,mv,d,o).eff}finally{B.weather=sw}
     if(!eff)continue;
-    out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
+    out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id,tg:mv.tg},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
   }
   return out;
 },[N,SEED]);
@@ -53,8 +54,8 @@ const mk=(x,isA)=>{const p=new Pokemon(gen,'Mew',{level:50,ability:AB(x.ab),item
 let ok=0;const bad=[];
 for(const c of cases){
   const flags={};[...c.fl].forEach(ch=>{if(FL[ch])flags[FL[ch]]=1});
-  const mv=new Move(gen,c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread?'allAdjacentFoes':'normal',flags}});
-  const f=new Field({gameType:c.o.spread?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
+  const mv=new Move(gen,c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
+  const f=new Field({gameType:c.o.format==='double'?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
   let r=calculate(gen,mk(c.a,1),mk(c.d,0),mv,f).damage;r=Array.isArray(r)?r:[r];
   if(JSON.stringify(r)===JSON.stringify(c.rolls))ok++;else bad.push({c,ref:r});
 }

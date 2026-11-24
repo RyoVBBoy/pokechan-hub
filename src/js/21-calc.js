@@ -76,7 +76,7 @@ function calcMoveList(X){
   return out;
 }
 /* 計算に渡す条件（2026/11/13：当たる回数・へんげんじざいを足した） */
-const calcOpt=()=>({crit:CS.crit,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
+const calcOpt=()=>({format:FMT,crit:CS.crit,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
 const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
 const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','unaware','liquid-voice','marvel-scale','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina'];
@@ -235,8 +235,8 @@ function calcView(){
     <div class="sec"><h2>条件</h2></div>
     <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap">
       <button class="pill" data-t="crit" aria-pressed="${CS.crit}">急所</button>
-      ${FMT==='double'?`<button class="pill" data-t="spread" aria-pressed="${CS.spread}">全体技が2匹に当たる（×0.75）</button>`:''}
-      <button class="pill" data-t="screen" aria-pressed="${CS.screen}">${R&&R.mv.cls?'ひかりのかべ':'リフレクター'}</button>
+      ${FMT==='double'?`<button class="pill" data-t="spread" aria-pressed="${CS.spread}">全体技が複数に当たる（全体技のみ×0.75）</button>`:''}
+      <button class="pill" data-t="screen" aria-pressed="${CS.screen}">${R&&R.mv.cls?'ひかりのかべ':'リフレクター'}${FMT==='double'?'（味方2匹）':''}</button>
       <button class="pill" data-t="burn" aria-pressed="${CS.burn}">攻撃側がやけど</button>
       ${R&&MCOND[mkey(R.mv)]?`<button class="pill" data-t="cond" aria-pressed="${CS.cond}">${MCOND[mkey(R.mv)]}（威力2倍）</button>`:''}
       ${R&&(R.a.ab==='protean'||R.a.ab==='libero')?`<button class="pill" data-t="protean" aria-pressed="${CS.protean!==false}">${ABN[R.a.ab]}がこの技で発動する</button>`:''}

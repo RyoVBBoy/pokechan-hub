@@ -55,6 +55,9 @@ const C=[
  {no:34,t:'追加：メガガブリアスZ（ふゆう）はじめん技を受けない',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ガブリアス',en:null,ab:'rough-skin',item:'garchompitez',...BULK},mv:'earthquake'},
  {no:35,t:'追加：ツインビーム（2回当たる）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK},mv:'twinbeam'},
  {no:36,t:'追加：ロックブラスト5回（HPが満タンでないカイリュー＝マルチスケイルは働かない）',A:{n:'ヘラクロス',en:'Heracross-Mega',ab:'guts',item:'heracronite',...ATK},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:197},mv:'rockblast',hits:5},
+ {no:37,t:'ダブル・単体技に全体技の補正をかけない',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'outrage',o:{format:'double',spread:true}},
+ {no:38,t:'ダブル・全体技が1匹に当たる場合のリフレクター',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'earthquake',o:{format:'double',screen:true}},
+ {no:39,t:'ダブル・全体技が複数に当たる場合のリフレクター',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'earthquake',o:{format:'double',spread:true,screen:true}},
 ];
 const EN_MV={earthquake:'Earthquake',thunderbolt:'Thunderbolt',icebeam:'Ice Beam',outrage:'Outrage',flamethrower:'Flamethrower',shadowball:'Shadow Ball',superfang:'Super Fang',lowkick:'Low Kick',eruption:'Eruption',bodypress:'Body Press',rockblast:'Rock Blast',rockslide:'Rock Slide',ragingbull:'Raging Bull',populationbomb:'Population Bomb',closecombat:'Close Combat',twinbeam:'Twin Beam'};
 const EN_AB={'rough-skin':'Rough Skin',sturdy:'Sturdy','good-as-gold':'Good as Gold',multiscale:'Multiscale','thick-fat':'Thick Fat',intimidate:'Intimidate','sand-stream':'Sand Stream','inner-focus':'Inner Focus',blaze:'Blaze','mirror-armor':'Mirror Armor','skill-link':'Skill Link','sand-force':'Sand Force',levitate:'Levitate',drought:'Drought','tough-claws':'Tough Claws','stance-change':'Stance Change','cursed-body':'Cursed Body',technician:'Technician',guts:'Guts',protean:'Protean'};
@@ -82,7 +85,7 @@ const site=await pg.evaluate(([C,SEQ])=>{
   const out=[];
   for(const c of C){
     const a=mk(c.A,'me'),d=mk(c.D,'op'),mv=mvObj(K(c.mv)),o=c.o||{};
-    const opt={crit:!!o.crit,spread:!!o.spread,screen:!!o.screen,protean:!!o.protean,hits:c.hits||0};
+    const opt={format:o.format,crit:!!o.crit,spread:!!o.spread,screen:!!o.screen,protean:!!o.protean,hits:c.hits||0};
     const sw=B.weather;B.weather=o.w?{k:o.w,t:5}:null;
     let r,seq=null,eff,n,dist,hitsMax,ko;
     try{r=dmgRolls(a,mv,d,opt);const h=bhits(a,mv,d,{...opt,r:100});eff=h.eff;n=h.n;hitsMax=h.hits.map(x=>x.dmg);
@@ -95,6 +98,23 @@ const site=await pg.evaluate(([C,SEQ])=>{
   /* スキルリンクは、選んだ回数（hits）があっても最大の回数 */
   {const her=mkMon(P.find(x=>x.n==='ヘラクロス'),'me',{ab:'guts',item:'heracronite',moves:[],sp:[2,32,0,0,0,32],up:1,dn:3}),dra=mkMon(P.find(x=>x.n==='カイリュー'),'op',{ab:'multiscale',moves:[]});
    out.push({no:'sl',slHits:bhits(her,mvObj(K('rockblast')),dra,{hits:2,r:100}).n});}
+  const publicOptions=()=>{
+    const fmt=FMT,spread=CS.spread,screen=CS.screen;
+    try{
+      FMT='double';CS.screen=true;
+      const attacker=mk(C[0].A,'me'),defender=mk(C[0].D,'op');
+      const hit=(ab,mv)=>{
+        const a={...attacker,ab},tech=mvObj(K(mv));
+        return [false,true].map(on=>{CS.spread=on;return bhits(a,tech,defender,{...calcOpt(),r:100})});
+      };
+      const single=hit('rough-skin','outrage');
+      const spreadMove=hit('rough-skin','earthquake');
+      const bond=hit('parental-bond','outrage');
+      return {single:single.map(x=>x.total),spread:spreadMove.map(x=>x.total),bond:bond.map(x=>[x.n,x.total])};
+    }finally{FMT=fmt;CS.spread=spread;CS.screen=screen}
+  };
+  if(!CS)calcInit();
+  out.push({no:'public-options',...publicOptions()});
   return out;
 },[C,SEQ]);
 await b.close();
@@ -114,8 +134,8 @@ function mon(x,sx,isA,gen){
 function ref(c,s,curHP,crit,hits1){
   const gen=Generations.get(c.gen||9);
   const o=c.o||{};const a=mon(c.A,s.A,true,gen),d=mon(c.D,s.D,false,gen);if(curHP!=null)d.originalCurHP=curHP;
-  const mv=new Move(gen,EN_MV[c.mv],{isCrit:crit!=null?crit:!!o.crit,...(hits1?{hits:1}:{})});
-  const f=new Field({gameType:o.spread?'Doubles':'Singles',weather:o.w?{sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'}[o.w]:undefined,
+  const mv=new Move(gen,EN_MV[c.mv],{...(o.format==='double'&&!o.spread?{overrides:{target:'normal'}}:{}),isCrit:crit!=null?crit:!!o.crit,...(hits1?{hits:1}:{})});
+  const f=new Field({gameType:o.format==='double'||o.spread?'Doubles':'Singles',weather:o.w?{sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'}[o.w]:undefined,
     defenderSide:new Side({isReflect:!!o.screen&&mv.category==='Physical',isLightScreen:!!o.screen&&mv.category==='Special'})});
   let r=calculate(gen,a,d,mv,f).damage;if(!Array.isArray(r))r=Array(16).fill(r);
   /* 回数が決まった連続技（ツインビーム等）は1回ずつの表が並んで返る：渡したHPでの1発目の表を使う */
@@ -165,6 +185,11 @@ for(const no of [18,26,29,35,36]){const x=g(no);ok(x.dist&&Math.abs(x.dist.sum-1
  const h2=ref(c,s,s.D.hp-h1[0],null,true);for(const x of h1)for(const y of h2)tot.set(x+y,(tot.get(x+y)||0)+1/256);
  ok(s.dist&&[...tot.keys()].length>0&&Math.min(...tot.keys())===s.dist.lo&&Math.max(...tot.keys())===s.dist.hi,'#35 ツインビーム：2発の合計の最小・最大が照合先と同じ',{lo:s.dist&&s.dist.lo,hi:s.dist&&s.dist.hi});}
 ok(site.find(x=>x.no==='sl').slHits===5,'スキルリンクは選んだ回数があっても5回（回数の選択が残っていても）',site.find(x=>x.no==='sl'));
+{const x=g('public-options');
+ ok(x.single[0]===x.single[1]&&x.single[0]>0&&x.spread[0]>x.spread[1]&&x.spread[1]>0,
+   '計算画面の条件：全体技の補正とダブルの壁は独立',x);
+ ok(x.bond[0][0]===2&&JSON.stringify(x.bond[0])===JSON.stringify(x.bond[1]),
+   '計算画面の条件：単体技のおやこあいは全体技設定の影響を受けない',x);}
 ok(!errs.length,'ページのエラーなし',errs);
 if(process.env.CALC_CASES_REPORT)require('fs').writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
 console.log(`calc-cases: ${bad?'NG':'OK'}（${n}項目・照合先で確かめた場面 ${C.length-unv-rule}・ゲームの決まりで確かめた場面 ${rule}・照合先にない特性の場面 ${unv}）`);
