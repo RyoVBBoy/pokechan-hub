@@ -598,11 +598,12 @@ await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s);const sets={ドラパルト
   TWX_K=null;IMP_CACHE.clear();DG_SELC.clear();saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';teamRender()});
 const U0=await pg.evaluate(async()=>{await new Promise(r=>setTimeout(r,20));const e=document.getElementById('dgu-sum'),i=document.getElementById('dgu-imp');return [!!e,!!i&&/計算中/.test(i.textContent)]});
 await pg.waitForTimeout(4500);
-const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum'),T=dgTeam(team,20),A=dgAnalyze(T),C=partyCheck(team),S=dgSelect(team);
+const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum'),C=partyCheck(team),T=C.diagnosis,S=dgSelect(team);
   const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(x=>cnt[x.lvl]++);
   r.bars=[4,3,2,1].every(l=>{const b=box.querySelector('.dgu-l'+l+' .dgu-bn').textContent;return b.startsWith(cnt[l]+'匹')&&b.includes('（'+Math.round(cnt[l]/T.rows.length*100)+'%）')});
-  r.areas=[...box.querySelectorAll('.dgu-area')].map(a=>{const n=a.querySelector('.dgu-an').textContent,s=Math.max(0,...A.bad.filter(x=>x.area===n).map(x=>x.sev));return a.querySelector('.dgu-sev').textContent.includes(DGU_SEV[s][0])}).every(Boolean);
   const calc=C.fix.filter(x=>x.k==='calc');
+  const provisional=T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
+  r.areas=[...box.querySelectorAll('.dgu-area')].map(a=>{const n=a.querySelector('.dgu-an').textContent,s=Math.max(0,...calc.filter(x=>x.area===n).map(x=>x.sev));return a.querySelector('.dgu-sev').textContent.includes(!s&&provisional?'判定は暫定':DGU_SEV[s][0])}).every(Boolean);
   r.weak=[...box.querySelectorAll('.dgu-weak .dgu-wt')].map(x=>x.textContent).join('|')===calc.slice(0,3).map(x=>x.t.replace(/<[^>]+>/g,'')).join('|');
   r.order=calc.every((x,k)=>!k||calc[k-1].sev>=x.sev);
   r.jump=[...box.querySelectorAll('[data-dgu-go]')].every(a=>!!document.getElementById(a.dataset.dguGo));

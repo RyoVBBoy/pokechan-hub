@@ -51,26 +51,26 @@ function loseReasons(entries){
       const cov=miss.map(m=>{try{return dgMatch(a,m.o).r>=3}catch(e){return false}});return{q,a,cov,n:cov.filter(Boolean).length,topN:cov.slice(0,top.length).filter(Boolean).length}})
       .filter(c=>c&&c.n).sort((x,y)=>y.topN-x.topN||y.n-x.n).slice(0,4);
     /* 変更後の6匹でもう一度計算して比べる */
-    const cmp=T1=>{const by=new Map(DT.rows.map(r=>[r.q.no,r]));
+    const cmp=T1=>{const D=dgDiff(DT,T1),by=new Map(DT.rows.map(r=>[r.q.no,r]));
       const worse=T1.rows.filter(r=>{const b=by.get(r.q.no);return b&&b.lvl>=3&&r.lvl<=2}).map(r=>r.q.n);
       const fixed=miss.map(m=>({m,a:T1.rows.find(r=>r.q.no===m.q.no)})).filter(z=>z.a&&z.a.lvl>=2).map(z=>`${z.m.q.n}（×→${DG_LV[z.a.lvl][0]}）`);
-      const x1=T1.rows.filter(r=>r.lvl===1).length;return{worse,fixed,x1}};
+      return{worse,fixed,x0:D.b.x,x1:D.a.x,n:D.keep.size,trLoss:impTrEvaluation(DT,T1)?.loss};};
     const plans=[];
     cands.forEach(c=>{
-      if(ms.length<6){const S=mvpSwapSet(c.q,entries);if(S)try{{const es=[...entries,{no:c.q.no,set:S.sv}];plans.push({c,S,out:null,...cmp(dgTeam0(es,20,dgMegaOpt(DT,es)))})}}catch(e){}}
-      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{{const es=entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x);plans.push({c,S,out:o,i,...cmp(dgTeam0(es,20,dgMegaOpt(DT,es)))})}}catch(e){}})});
-    const good=plans.filter(p=>p.fixed.length&&!p.worse.length&&p.x1<miss.length).sort((a,b)=>a.x1-b.x1||b.fixed.length-a.fixed.length);
+      if(ms.length<6){const S=mvpSwapSet(c.q,entries);if(S)try{{const es=[...entries,{no:c.q.no,set:S.sv}];plans.push({c,S,out:null,...cmp(impRecalc(es))})}}catch(e){}}
+      else ms.forEach((o,i)=>{if(o.x.axis)return;const S=mvpSwapSet(c.q,entries.filter((_,k)=>k!==i));if(!S)return;try{{const es=entries.map((x,k)=>k===i?{no:c.q.no,set:S.sv}:x);plans.push({c,S,out:o,i,...cmp(impRecalc(es))})}}catch(e){}})});
+    const good=plans.filter(p=>p.fixed.length&&!p.worse.length&&!p.trLoss&&p.x1<p.x0).sort((a,b)=>a.x1-b.x1||b.fixed.length-a.fixed.length);
     /* 2026/11/14 第3段階 P3-02：入れかえる案は、入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は出さない */
     let GE0=null,gDrop=0;const seen=new Set(),best=[];
     for(const p of good){if(best.length>=3)break;if(seen.has(p.c.q.no))continue;
       if(p.out&&typeof mvpGate==='function'){const G=mvpGate(entries,p.i,{no:p.c.q.no,sel:!!entries[p.i].sel,set:p.S.sv},GE0);GE0=G.E0||GE0;if(!G.ok){gDrop++;continue}}
       seen.add(p.c.q.no);best.push(p)}
-    const planTxt=p=>`${p.out?`${p.out.p.n}を外して`:''}${p.c.q.n}を入れる（×の相手 ${miss.length}匹→${p.x1}匹。${p.fixed.join('・')}。◎○から△以下へ落ちる相手はなし）`;
+    const planTxt=p=>`${p.out?`${p.out.p.n}を外して`:''}${p.c.q.n}を入れる（共通の相手${p.n}匹で、×が${p.x0}匹→${p.x1}匹。${p.fixed.join('・')}。◎○から△以下へ落ちる相手はなし）`;
     const rejected=plans.length&&!good.length;
     out.push({ph:'構築',plans:best,gDrop,w:2.4+.3*top.length-DT.rows.indexOf(top[0])*.02,t:`${names}への対応がまだない`,
       d:`${top.map(m=>nmq(m.q)).join('・')}${miss.length>3?'など':''}には、パーティのだれも「上から倒す」「耐えて倒す」「後出しして勝つ」「受けて有利に戦う」ができず、乱数や同速しだいで勝てる匹もいません（相手ごとの対応力の×）。`,
-      how:(best.length?`変更後の6匹で計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
-        `${rejected?'入れかえの候補を変更後の6匹で計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`)
+      how:(best.length?`変更後のパーティで計算し直して良くなる案：${best.map(planTxt).join('／')}。または、${nmq(q0)}の攻撃を耐えられるように、だれかの能力ポイントを耐久に回します。`:
+        `${rejected?'入れかえの候補を変更後のパーティで計算し直しましたが、×が減って、ほかの相手が△以下に落ちない案は見つかりませんでした。':''}${nmq(q0)}の攻撃を耐えられる仲間か、上から倒せる仲間を「相性のいい仲間を探す」で探しましょう。`)
         +(gDrop?`（${gDrop}案は、入れかえ案の計算〔メガシンカは1匹ずつ〕で新しい大きな弱点ができるか、素早さの操作・天気を失うので出していません）`:''),
       act:[[`#/p/${q0.no}/break`,`${nmq(q0)}の対策を見る`],['#/pair','相性のいい仲間を探す']]});
   }
@@ -85,16 +85,19 @@ function loseReasons(entries){
   return out;
 }
 /* 対戦の振り返りの記録から（選出の段階） */
-async function loseFromRecords(){
+async function loseFromRecords(entries=team,fmt=FMT){
   if(typeof AUTH==='undefined'||!AUTH.user)return[];
   let bs;try{bs=(await authFetch('/api/battles')).battles||[]}catch(e){return[]}
-  const done=bs.filter(b=>b.result),out=[],pct=(w,n)=>n?Math.round(w/n*100):0;
+  const party=entries.map(x=>+x.no).sort((a,b)=>a-b).join();
+  const done=bs.filter(b=>b.result&&b.fmt===fmt&&Array.isArray(b.my)&&b.my.map(Number).sort((a,b)=>a-b).join()===party);
+  const out=[],pct=(w,n)=>n?Math.round(w/n*100):0;
+  out.count=done.length;
   if(done.length<5)return out;
   out.rec=true;
   const lead={};done.forEach(b=>{const n=b.my_sel&&b.my_sel[0];if(!n||!byNo[n])return;const o=lead[n]=lead[n]||{n,c:0,w:0};o.c++;if(b.result==='win')o.w++});
   const badLead=Object.values(lead).filter(o=>o.c>=3&&pct(o.w,o.c)<40).sort((a,b)=>pct(a.w,a.c)-pct(b.w,b.c))[0];
   if(badLead)out.push({ph:'選出',w:2.2,t:`${formInfo(byNo[badLead.n]).base}を先発にした試合の勝率が低い（${pct(badLead.w,badLead.c)}%）`,
-    d:`記録では、${formInfo(byNo[badLead.n]).base}を先発にした${badLead.c}戦の勝率が${pct(badLead.w,badLead.c)}%です。相手の先発に勝てない形で始まり、最初のターンで数が不利になっている可能性があります。`,
+    d:`記録では、${formInfo(byNo[badLead.n]).base}を先発にした${badLead.c}戦の勝率が${pct(badLead.w,badLead.c)}%です。対戦相手の型や初手も記録を見て確認してください。`,
     how:'相手の6匹を見て、相手が先発に出しやすいポケモンに勝てる匹を先発にしましょう。選出アシストの「選出の3ステップ」が使えます。',act:[['#/assist','選出アシストで確かめる']]});
   const opp={};done.forEach(b=>(b.opp||[]).forEach(n=>{if(!byNo[n])return;const o=opp[n]=opp[n]||{n,c:0,w:0};o.c++;if(b.result==='win')o.w++}));
   const hard=Object.values(opp).filter(o=>o.c>=3&&pct(o.w,o.c)<45).sort((a,b)=>pct(a.w,a.c)-pct(b.w,b.c))[0];
@@ -122,34 +125,42 @@ function loseHTML(){
 }
 async function loseFill(entries){
   const el=document.getElementById('lose-box');if(!el)return;
-  let R=[];try{R=loseReasons(entries)}catch(e){}
+  const stamp=teamActionStamp(entries),fmt=FMT;
+  let R=[],failed=false;try{R=loseReasons(entries)}catch(e){failed=true}
   /* 2026/11/10 依頼主：敗因の診断が「構築：問題なし」なのに、下のパーティのチェック（同じ dgTeam の計算）に深刻・注意がある、という食い違いをなくす。
      敗因の診断は「止める手段・だれも答えられない相手・ステルスロック」の3つだけを見るので、ほかの計算の注意点は件数と説明を出す */
-  let CB=[];try{CB=dgAnalyze(dgTeam(entries,20)).bad.filter(x=>x.sev>=2)}catch(e){}
+  let CB=[],usable=false;
+  try{const T=dgTeam(entries,20);usable=T.rows.some(r=>r.res.length);CB=dgAnalyze(T).bad.filter(x=>x.sev>=2)}catch(e){}
+  const limited=failed||!usable||entries.some(x=>!x.set?.mv?.length);
   const logged=typeof AUTH!=='undefined'&&AUTH.user;
-  const draw=(all,rec)=>{const top=all.sort((a,b)=>b.w-a.w).slice(0,3);if(!document.body.contains(el))return;
-    const n=ph=>all.filter(r=>r.ph===ph).length;
+  const draw=(fromTeam,records)=>{
+    if(!el.isConnected||teamActionStamp()!==stamp)return;
+    const top=[...fromTeam,...records].sort((a,b)=>b.w-a.w).slice(0,3);
+    const rec=records.rec;
+    const n=ph=>[...fromTeam,...records].filter(r=>r.ph===ph).length;
     const cbN=CB.length,cbS=CB.filter(x=>x.sev>=3).length;
-    const st=[['構築',n('構築')?`ヒント${n('構築')}件`:cbN?`ポイント${cbN}件`:'問題なし',n('構築')||cbS?'bad':cbN?'warn':'ok'],
-      ['選出',rec?(n('選出')?`${n('選出')}件`:'問題なし'):'記録が必要',rec?(n('選出')?'bad':'ok'):'wait'],
+    const st=[['構築',n('構築')?`ヒント${n('構築')}件`:cbN?`ポイント${cbN}件`:limited?'判定保留':'該当ヒントなし',n('構築')||cbS?'bad':cbN?'warn':'ok'],
+      ['選出',rec?(n('選出')?`${n('選出')}件`:'該当する傾向なし'):'記録が必要',rec?(n('選出')?'bad':'ok'):'wait'],
       ['プレイング','振り返りで','wait'],['情報戦','振り返りで','wait']];
     el.innerHTML=`${LS_HEAD}
       <div class="ls-st">${st.map(([p,v,c])=>`<div class="ls-s ${c}"><span>${p}</span><b>${v}</b></div>`).join('')}</div>
       <details class="ls-more"><summary>「構築」の数え方</summary>
       <p class="note" style="padding:6px 16px 0;font-size:13px">「構築」の数＝気をつけたい3つの場面（積み技を止める手段・対応がまだない相手・ステルスロック）のうち見つかった数。下の「対面のポイント」とは数え方が別です。</p>
       ${cbN?`<p class="note ls-cb">構築：気をつけたい3つの場面（積み技を止める手段・対応がまだない相手・ステルスロック）${n('構築')?'のうち上に出したもの':'は見つかりませんでした'}。ほかに、下の「対面のポイント」に${DG_SEV[3]}${cbS}件・${DG_SEV[2]}${cbN-cbS}件があります（${CB.slice(0,3).map(x=>esc(x.t)).join('／')}${cbN>3?' ほか':''}）。</p>`:''}</details>
-      ${top.length?top.map((r,i)=>`<div class="ls-i"><div class="ls-h"><span class="ls-n">${i+1}</span><span class="ls-ph">${r.ph}</span><b>${esc(r.t)}</b></div>
+      ${limited?'<p class="note">育成や対面の情報が足りない項目は、判定を保留しています。</p>':''}
+      ${rec?`<p class="note">対戦記録は同じ形式・同じパーティの${records.count}試合を集計しました。</p>`:''}
+      ${top.length?top.map((r,i)=>`<div class="ls-i"><div class="ls-h"><span class="ls-n">${i+1}</span><span class="ls-ph">${records.includes(r)?'対戦記録':'構築から推定'}</span><b>${esc(r.t)}</b></div>
         <p class="ls-k">なぜ起きるか</p><p>${esc(r.d)}</p><p class="ls-k ls-k2">次の一手</p><p>${esc(r.how)}</p>
         <div class="ls-a">${(r.act||[]).map(([h,l])=>`<a class="btn btn-s" href="${h}">${esc(l)}</a>`).join('')}<button class="btn btn-s" data-ls-memo="${i}">戦術メモに残す</button></div></div>`).join('')
-        :cbN?'':'<p class="note">パーティの形からは、特に気をつけたい場面はありません。</p>'}
-      ${rec?'':`<div class="ls-rec"><p>${logged?'対戦の振り返りで5試合以上を記録すると、「どの先発・どの相手で勝ちにくいか」の選出のヒントが出ます。':'ログインして対戦の振り返りで試合を記録すると、「どの先発・どの相手で勝ちにくいか」の選出のヒントが出ます。'}</p><a class="btn btn-s" href="#/replay">対戦を記録する</a></div>`}
+        :cbN||limited?'':'<p class="note">今回調べた範囲では、追加の注意点は見つかりませんでした。</p>'}
+      ${rec?'':`<div class="ls-rec"><p>${logged?'同じ形式・同じパーティの対戦を5試合以上記録すると、「どの先発・どの相手で勝ちにくいか」の選出のヒントが出ます。':'ログインして対戦の振り返りで試合を記録すると、「どの先発・どの相手で勝ちにくいか」の選出のヒントが出ます。'}</p><a class="btn btn-s" href="#/replay">対戦を記録する</a></div>`}
       <details class="ls-chk"><summary>試合の振り返り（選出・プレイング・情報戦）</summary><ul>${LOSE_CHECK.map(([p,t])=>`<li><span class="ls-ph">${p}</span>${t}</li>`).join('')}</ul></details>`;
     el.querySelectorAll('[data-ls-memo]').forEach(b=>b.onclick=()=>{const r=top[+b.dataset.lsMemo];if(!r||typeof MEMO==='undefined')return;
       const k=mpKey(),e=MEMO.party[k]||{s:{}},cur0=(e.s&&e.s.lose)||'';
       if(cur0.split('\n').includes(r.t)){toast('もう書いてあります');return}
       MEMO.party[k]={...e,s:{...(e.s||{}),lose:(cur0?cur0+'\n':'')+r.t},at:Date.now(),sig:mpSig()};memoSave();
       toast('戦術メモに残しました');b.textContent='書きました';b.disabled=true})};
-  draw(R.slice(),false);
-  try{const more=await loseFromRecords();if(more&&more.rec)draw([...R,...more],true)}catch(e){}
+  draw(R,[]);
+  try{const more=await loseFromRecords(entries,fmt);if(more?.rec)draw(R,more)}catch(e){}
 }
 

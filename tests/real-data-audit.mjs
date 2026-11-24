@@ -215,6 +215,75 @@ try{
       const [A,B,C]=candidates;
       const orders=[[A,B,C],[A,C,B],[B,A,C],[B,C,A],[C,A,B],[C,B,A]];
       check(orders.map(x=>x.sort(dgSelOrder).map(o=>o.c[0]).join()).every(s=>s==='0,1,2'),'P09 close scores have a deterministic ranking for all six input orders');
+
+      team=[member(6,'charizarditey'),...[445,149,143,700,279].map(no=>member(no))];
+      const view=selPlan(team),lineups=view.DS.list;
+      const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
+      const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);
+      check(unsafeLine&&unsafeFlow.switches.every(x=>x.opponent.no!==248||!x.choices.includes(3)),'P07 Snorlax cannot be suggested as a switch into Tyranitar in the known KO matchup');
+      const flow=stSelectionFlow(view,team);
+      const evidence=view.DS.best.rows.flatMap(row=>{
+        if(row.zs.some(z=>view.lead.includes(z.i)&&z.r>=4))return [];
+        const choices=row.zs.filter(z=>!view.lead.includes(z.i)&&z.swIn==='win').map(z=>z.i);
+        return choices.length?[[row.r.q.no,choices]]:[];
+      });
+      check(JSON.stringify(flow.switches.map(x=>[x.opponent.no,x.choices]))===JSON.stringify(evidence)
+        &&(evidence.length>0||/見つかりません|先発候補のいずれか/.test(flow.steps[1][1])),'P07 every switch follows the matchup evidence and empty cases explain their status',evidence.length);
+      stFill(team);plan.innerHTML=planHTML(team);
+      const strategy=fixture.querySelector('#st-box');
+      const strategyMid=strategy.querySelector('.stg-flow li:nth-child(2) p')?.textContent;
+      const planMid=plan.querySelector('.pc-story li:nth-child(2)')?.textContent;
+      check(strategyMid===flow.steps[1][1]&&planMid.endsWith(strategyMid)&&view.lead.every(i=>strategy.querySelector('.stg-sel').textContent.includes(byNo[team[i].no].n)),'P11 strategy and detailed selection show the same evidence and leads');
+      check(view.situ.every(s=>view.DS.list.some(x=>x.c.includes(s.in)&&!x.c.includes(s.out)&&x.c.every(i=>i===s.in||view.base.includes(i))&&s.opps.every(q=>x.rows.some((r,i)=>r.r.q.no===q.no&&r.lvl>=3&&view.DS.best.rows[i].lvl<=2)))),'P11 alternate selections are checked on the same opponents and actual field assumptions');
+      const notes=partyCheck(team);
+      notes.fix.filter(x=>x.k==='calc').forEach((x,i)=>x.id='pcw'+i);
+      dguSumFill(team,notes);
+      const priority=fixture.querySelector('.dgu-weak a');
+      check(!!priority&&priority.dataset.dguGo==='pcw0'&&priority.querySelector('.dgu-wt').innerHTML===notes.fix.find(x=>x.k==='calc').t,'P11 priority summary and detailed card use the same issue and anchor');
+      team.forEach((x,i)=>x.sel=view.base.includes(i));
+      const chosenScope=partyCheck(team);
+      dguSumFill(team,chosenScope);
+      const scopeCounts=[...fixture.querySelectorAll('#dgu-sum .dgu-bn b')].reduce((n,x)=>n+parseInt(x.textContent,10),0);
+      check(chosenScope.diagnosis.ms.length===PICK()&&scopeCounts===chosenScope.diagnosis.rows.length
+        &&fixture.querySelector('#dgu-sum').textContent.includes(chosenScope.scope),'P11 priority counts and scope use the selected party when a selection is set');
+      team.forEach(x=>delete x.sel);
+
+      const memoKey=mpKey(),savedMemo=MEMO.party[memoKey],memoStorage=localStorage.getItem('pcmemo');
+      const own={tp:'rain,scr',arch:'保存済みテスト',style:'自分で書いた戦い方',str:'自分で書いた強み',plan:'自分で書いた流れ'};
+      try{
+        stSaveOwn(own);
+        const state=JSON.stringify(stOwn());
+        stFill(team);
+        team[0]={...team[0],set:{...team[0].set,it:null}};
+        stFill(team);
+        stEdit(strategy);
+        check(JSON.stringify(stOwn())===state&&strategy.querySelector('#stg-style').value===own.style&&strategy.querySelector('#stg-str').value===own.str,'P13 saved strategy, strengths, battle plan and style survive recalculation and opening the editor');
+        stFill(team);
+        META.rank=Array.from({length:20},(_,i)=>({no:team[i%team.length].no}));
+        dguSumFill(team,partyCheck(team));stFill(team);
+        check(!dgSelect(team)&&/判定を保留/.test(fixture.querySelector('#dgu-sum').textContent)&&/判定を保留/.test(strategy.textContent)&&strategy.querySelector('.stg-own')?.textContent.includes(own.style),'P12 no eligible opponents results in a pending diagnosis and keeps the saved strategy');
+        META.rank=[];
+      }finally{
+        if(savedMemo===undefined)delete MEMO.party[memoKey];else MEMO.party[memoKey]=savedMemo;
+        if(memoStorage===null)localStorage.removeItem('pcmemo');else localStorage.setItem('pcmemo',memoStorage);
+      }
+      const savedAuth=AUTH.user,savedFetch=authFetch;
+      try{
+        AUTH.user={id:'fixture'};
+        const record={my:team.map(x=>x.no),my_sel:[team[0].no],opp:[248],fmt,result:'lose'};
+        authFetch=async()=>({battles:[
+          ...Array(4).fill(record),
+          ...Array(5).fill({...record,fmt:fmt==='single'?'double':'single'}),
+          ...Array(5).fill({...record,my:[445]})
+        ]});
+        const scarce=await loseFromRecords(team,fmt);
+        check(scarce.count===4&&!scarce.rec,'P12 battle history from other formats and parties does not lift the minimum sample size');
+        authFetch=async()=>({battles:Array(5).fill(record)});
+        fixture.insertAdjacentHTML('beforeend',loseHTML());
+        await loseFill(team);
+        const lost=fixture.querySelector('#lose-box').textContent;
+        check(/同じ形式・同じパーティの5試合/.test(lost)&&/対戦記録/.test(lost),'P12 battle history cards show their matching sample count and provenance');
+      }finally{AUTH.user=savedAuth;authFetch=savedFetch}
     }finally{
       fixture.remove();META.rank=saved.rank;TOPT.st=saved.top;team=saved.team;
       teamRender=saved.render;askConfirm=saved.confirm;TEAMS.cur=saved.slot;
@@ -226,7 +295,23 @@ try{
    }
    return {checks,results};
   },{fmt,mode});
-  report.checks.push(...r.checks.map(x=>({fmt,...x})));report.results.push(...r.results.map(x=>({fmt,...x})));await pg.close();
+  report.checks.push(...r.checks.map(x=>({fmt,...x})));report.results.push(...r.results.map(x=>({fmt,...x})));
+  if(mode==='integration')for(const width of [390,1280]){
+    await pg.setViewportSize({width,height:844});
+    const layout=await pg.evaluate(()=>{
+      team=[6,445,149,143,700,279].map(no=>({no,set:setToSaved(byNo[no],chooseSet(byNo[no],true))}));
+      const slot=document.createElement('div');slot.id='st-box';slot.className='stg-card';
+      document.body.append(slot);
+      try{
+        stFill(team);
+        const d=slot.querySelector('.stg-flow');
+        return !!d&&[...d.querySelectorAll('li')].every(x=>x.getBoundingClientRect().right<=innerWidth+1)
+          &&d.scrollWidth<=d.clientWidth+1;
+      }finally{slot.remove()}
+    });
+    report.checks.push({fmt,pass:layout,label:'P13 strategy flow fits '+width+'px width'});
+  }
+  await pg.close();
  }
 }catch(e){report.errors.push({error:String(e),stack:e.stack})}finally{await b.close();writeFileSync('audit-'+mode+'.json',JSON.stringify(report,null,2));}
 const failures=report.checks.filter(x=>!x.pass);console.log(JSON.stringify({mode,checks:report.checks.length,failures,errors:report.errors,timings:report.results.filter(x=>x.ms!=null)},null,2));if(!report.checks.length||failures.length||report.errors.length)process.exitCode=1;

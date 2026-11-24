@@ -162,14 +162,14 @@ const mpOf=()=>{const e=MEMO.party[mpKey()];return e&&e.s?e.s:{}};
 const mpSig=()=>team.map(x=>x.no).join('-');
 let MP_AUTO=null;
 function memoPartyAuto(){
-  const sig=mpSig()+'|'+team.map(x=>JSON.stringify(x.set||0)).join('|');
+  const sig=impKey(team);
   if(MP_AUTO&&MP_AUTO.sig===sig)return MP_AUTO.v;
   let v={};try{v=mpAutoCalc()}catch(e){v={}}
   MP_AUTO={sig,v};return v;
 }
 function mpAutoCalc(){
   if(team.length<4)return{};
-  const P=selPlan(team);if(!P)return{};
+  const P=selPlan(team);if(!P?.DS)return{};
   const n=team.length,me=P.me,S=P.S,opps=P.opps,ix=[...Array(n).keys()].filter(i=>me[i]);
   const nm=i=>formInfo(byNo[team[i].no]).base,qn=q=>formInfo(q).base;
   const item=i=>team[i].set&&team[i].set.it&&team[i].set.it.k;

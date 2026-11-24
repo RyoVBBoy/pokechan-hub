@@ -302,8 +302,7 @@ function planHTML0(entries){
   const nmI=i=>esc(byNo[entries[i].no].n),chipsOf=a=>a.slice(0,5).map(q=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}${formInfo(q).tag?'（'+esc(formInfo(q).tag)+'）':''}</a>`).join('');
   const isSel=P0.sel.length===P0.base.length&&P0.base.every(i=>P0.sel.includes(i));
   const kd=teamKind(entries),R=P0.roles,mons=a=>chipsOf(a.slice(0,4));
-  const finTxt=P0.finWhy?{prio:`先制技の${esc(P0.finWhy[1])}`,scarf:`${esc(P0.finWhy[1])}`,setup:`積み技の${esc(P0.finWhy[1])}`}[P0.finWhy[0]]:'';
-  const mid=P0.base.filter(i=>!P0.lead.includes(i)&&i!==P0.finisher);
+  const flow=stSelectionFlow(P0,entries);
   /* 読まれにくさ：ランクバトルの集計と比べて、あまり使われていない持ち物・技 */
   const zur=[];entries.forEach(x=>{const d=typeof LIVE!=='undefined'&&LIVE.csv[x.no];if(!d||!x.set)return;const p=byNo[x.no];
     const it=x.set.it&&x.set.it.k,top2=d.it.slice(0,2).map(([nn])=>nrm(nn));if(it&&!isStone(it)&&!top2.includes(it)&&d.it.length)zur.push(`${esc(p.n)}の${esc(ITEMN[it]||it)}（よく使われるのは${esc(d.it.slice(0,2).map(([nn])=>ITEMN[nrm(nn)]||nn).join('・'))}）`);
@@ -313,23 +312,21 @@ function planHTML0(entries){
     ${kd?`<h4>構築のタイプ</h4><p><b>${kd.name}</b>${kd.why.length?`<br><span class="vcap">理由：${esc(kd.why.join('・'))}</span>`:''}${kd.mix&&kd.mix.length?`<br><span class="vcap">${esc(kd.mix.join('・'))}の要素も同じくらいあります。方向をそろえると、選出で迷いにくくなります。</span>`:''}</p>`:'<p class="vcap">育成（持ち物・技）を3匹以上登録すると、構築のタイプ（対面・サイクル・積み）も診断します。</p>'}
   </div>
   <!--S--><div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
-  <p class="note" style="padding-top:0">${P0.DS?`${P0.DS.list.length}通りの選出を全部、${esc(P0.DS.T.opponentSource)}${P0.DS.N}匹との1対1の計算（ダメージ・素早さ・後出し）で比べて選びました（くわしくは下の「選出の比較」）。`:`${esc(metaOppsSource())}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました`}（育成を登録した匹はその育成で計算）。</p>
+  <p class="note" style="padding-top:0">${P0.DS.list.length}通りの選出を${esc(P0.DS.T.opponentSource)}${P0.DS.N}匹との1対1で比較しました。ダブルの先発は簡易比較です。</p>
   <div class="pc-i pc-plan" data-base="${P0.base.join(',')}"><b>基本選出</b>
     <p class="pc-mons">${P0.base.map(i=>`<span${P0.lead.includes(i)?' class="lead"':''}>${nmI(i)}${P0.lead.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
-    <p>${P0.DS?`上位${P0.DS.N}匹のうち<b>${P0.DS.best.cnt[4]+P0.DS.best.cnt[3]}匹</b>に、選出のだれかが有利に戦えます（◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}）。`:`${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。`}先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。${P0.megaI>=0&&P0.base.filter(i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return k&&isStone(k)}).length>=2?`この選出では<b>${nmI(P0.megaI)}</b>だけがメガシンカする場合で計算しています（ほかのメガストーンの匹はメガストーンの効果なし）。`:''}</p>
-    <h4>勝ち筋</h4><ol class="pc-story"><li>先発の<b>${P0.lead.map(nmI).join('・')}</b>で、相手の先発に有利をとって削る。${R[P0.lead[0]].go.length?`（有利な相手：${R[P0.lead[0]].go.slice(0,3).map(q=>esc(q.n)).join('・')}）`:''}</li>
-      ${mid.length?`<li>不利な相手が出てきたら<b>${mid.map(nmI).join('・')}</b>に任せて、数を減らす。</li>`:''}
-      <li>${P0.finWhy?`最後は<b>${nmI(P0.finisher)}</b>の${finTxt}で、削れた相手を詰める。`:`最後の詰め役がはっきりしません。いちばん速い<b>${nmI(P0.finisher)}</b>で詰めることになりますが、先制技・こだわりスカーフ・積み技のどれかを持たせると、終盤に競り負けにくくなります。`}</li></ol>
+    <p>比較した${P0.DS.N}匹のうち、◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}。先発候補は${P0.lead.map(nmI).join('・')}です。</p>
+    <h4>戦い方の流れ（目安）</h4><ol class="pc-story">${flow.steps.map(([label,tip])=>`<li><b>${label}</b> ${esc(tip)}</li>`).join('')}</ol>
     ${isSel?'<p class="vcap">いま選出に選んでいる組み合わせです。</p>':`<button class="btn btn-p pc-planbtn" data-plan="${P0.base.join(',')}">この組み合わせを選出にする</button>`}
     ${P0.situ.length?`<h4>こういう相手のときは入れかえる</h4>${P0.situ.map(x=>`<div class="pc-situ"><p>相手に ${chipsOf(x.opps)}${x.opps.length>5?` など${x.opps.length}匹`:''} がいるとき</p><div class="pc-sw"><span><b>${nmI(x.out)}</b> → <b style="color:var(--acc)">${nmI(x.in)}</b></span><button class="bback" data-plsw="${x.out}:${x.in}">この選出にする</button></div></div>`).join('')}`:''}
   </div>
   ${typeof dgSelHTML==='function'?dgSelHTML(P0.DS,entries):''}
-  <div class="pc-i pc-plan"><b>主な比較相手への答え</b><p>${esc(metaOppsSource())}のうち、先頭の8匹に、パーティのだれが有利に戦えるかです。</p>
+  <div class="pc-i pc-plan"><b>主な比較相手への答え</b><p>比較相手の先頭8匹について、この選出で有利に戦えるポケモンを表示します。</p>
     ${P0.top.map(({q,ans})=>`<div class="pc-top"><a href="#/p/${q.no}">${esc(q.n)}</a><span>${ans.length?ans.slice(0,2).map(i=>`<b>${nmI(i)}</b>`).join('・')+'が有利':'<b style="color:var(--w2)">有利に戦える匹がいない</b>'}</span></div>`).join('')}
     ${P0.top.some(x=>!x.ans.length)?'<p class="vcap">答えがいない相手には、受けられる匹か、上から倒せる匹を1匹用意すると安定します。</p>':''}
-    <p class="pc-simple">ダメージの最大と素早さだけで見た、かんたんな1対1の計算です（乱数・後出し・タスキまで入れたくわしい計算とは結果が違うことがあります）。<button class="dgu-link" data-go-check="dg-box">くわしい計算（チェックの「相手ごとの対応力」）を見る</button></p>
+    <p class="pc-simple">パーティ全体の通常時の対面結果です。おすすめ選出の場の条件が異なる場合は、選出側の結果を確認してください。<button class="dgu-link" data-go-check="dg-box">くわしい計算（チェックの「相手ごとの対応力」）を見る</button></p>
   </div>
-  <div class="pc-i pc-plan"><b>1匹ずつの役割</b><p>それぞれ「どの相手に出すか・出さないか」です。出す相手がいない匹は、役割がはっきりしていない匹です。</p><p class="pc-simple">ダメージの最大と素早さだけで見た、かんたんな1対1の計算です（乱数・後出し・タスキまで入れたくわしい計算とは結果が違うことがあります）。<button class="dgu-link" data-go-check="dg-box">くわしい計算を見る</button></p>
+  <div class="pc-i pc-plan"><b>1匹ずつの役割</b><p>それぞれ「どの相手に出すか・出さないか」です。出す相手がいない匹は、役割がはっきりしていない匹です。</p><p class="pc-simple">パーティ全体の通常時の対面結果です。おすすめ選出の場の条件が異なる場合は、選出側の結果を確認してください。<button class="dgu-link" data-go-check="dg-box">くわしい計算を見る</button></p>
     ${entries.map((x,i)=>`<div class="pc-role"><b>${nmI(i)}${i===P0.ax?'<small>軸</small>':''}</b>${R[i].go.length?`<p>出す：${mons(R[i].go)}</p>`:'<p style="color:var(--w2)">出す相手がはっきりしません（パーティのほかの匹の方が有利な相手ばかり）。</p>'}${R[i].no.length?`<p>出さない：${mons(R[i].no)}</p>`:''}</div>`).join('')}
   </div>
   <!--B-->${typeof buildDiagHTML==='function'?buildDiagHTML(entries,P0):''}
@@ -443,67 +440,51 @@ function partyCheck(entries){
       if(S.mvpDrop)tg.how+=`（ほかに${S.mvpDrop}案は、「相性のいい仲間を探す」の入れかえ案の計算〔メガシンカは1匹ずつ〕で新しい大きな弱点ができるか、素早さの操作・天気を失うので出していません）`}}
   if(DA){fix.unshift(...DA.bad.map(x=>({...x,k:'calc'})));good.unshift(...DA.good.map(x=>({...x,k:'calc'})));ref.push(...DA.ref)}
   /* 2026/11/20：持ち物が姿と合わない匹は計算から外しているので、いちばん上の気になる点として知らせる */
-  if(DT&&DT.formErr)DT.formErr.filter(x=>x.side==='me').forEach(x=>fix.unshift({t:`${esc((byNo[x.no]||{}).n||'')}：持ち物が姿と合わない`,d:`${FORM_WHY[x.why]||''}。このポケモンは診断の計算に入れていません。`,how:'育成の画面で、このポケモンが持てる持ち物を選び直してください。'}));
-  return{scope,opponentSource:DT?.opponentSource||'比較相手',good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
+  if(DT&&DT.formErr)DT.formErr.filter(x=>x.side==='me').forEach(x=>fix.unshift({k:'calc',area:'役割',sev:3,t:`${esc((byNo[x.no]||{}).n||'')}：持ち物が姿と合わない`,d:`${FORM_WHY[x.why]||''}。このポケモンは診断の計算に入れていません。`,how:'育成の画面で、このポケモンが持てる持ち物を選び直してください。'}));
+  return{scope,diagnosis:DT,analysis:DA,opponentSource:DT?.opponentSource||'比較相手',good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
 }
-/* ---- 選出の考え方：よく使われる相手40匹との1対1から、基本選出と「この相手がいるときはこう入れかえる」を出す ----
-   1対1の点：お互いの最大ダメージから、何回で倒せるか（素早さで先に動ける方が有利）。選出は「相手のだれにも、選出のだれかが有利に戦える」が多い組み合わせ */
+// 選出・先発・代替候補は同じ対面と場の条件で比較する。
 function selPlan(entries){
-  const n=entries.length,K=Math.min(PICK(),n);if(n<=K)return null;
+  const n=entries.length,K=Math.min(PICK(),n);
+  if(n<=K)return null;
   const T=dgTeam(entries,20),issue=dgSelectionIssue(T,entries,K);
   if(issue)return{issue};
-  const live=metaOppsRanked();
-  const opps=metaOpps(40);
-  const me=entries.map(x=>{try{return mkMon(byNo[x.no],'me',mySetFor(x.no))}catch(e){return null}});
-  const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
-  const S=me.map(a=>opps.map(q=>{if(!a)return -2;try{
-    const o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));
-    return duel(a,o).s}catch(e){return 0}}));
-  const w=opps.map((_,j)=>1-j/(opps.length*2));
-  /* 2026/11/24：メガシンカは1試合に1匹。メガストーンを持つ匹が選出に2匹以上いてもよいが、そのうち1匹ずつを「この匹だけがメガシンカ」にして、
-     ほかのメガストーンの匹は持ち物なし（メガストーンの効果なし）の1対1（Sn）で数え、いちばん良い場合をとる（61-select.js の dgSelect と同じ考え方） */
-  const stone=i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return !!k&&isStone(k)};
-  const Sn=me.map((a,i)=>{if(!stone(i))return null;let b=null;try{b=mkMon(byNo[entries[i].no],'me',{...mySetFor(entries[i].no),item:null})}catch(e){}
-    return opps.map(q=>{if(!b)return -2;try{const o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));return duel(b,o).s}catch(e){return 0}})});
-  const rowOf=(i,h)=>stone(i)&&i!==h&&Sn[i]?Sn[i]:S[i];
-  const val1=(sub,h)=>opps.reduce((t,_,j)=>t+w[j]*(Math.max(...sub.map(i=>rowOf(i,h)[j]))+.15*sub.reduce((u,i)=>u+rowOf(i,h)[j],0)/sub.length),0);
-  const megaPick=sub=>{const hs=sub.filter(stone);if(hs.length<=1)return{h:hs.length?hs[0]:-1,v:val1(sub,hs.length?hs[0]:-1)};return hs.map(h=>({h,v:val1(sub,h)})).sort((a,b)=>b.v-a.v||a.h-b.h)[0]};
-  const val=sub=>megaPick(sub).v;
-  const okSub=()=>true;
-  /* 軸（利用者が決めた、外さない1匹）は必ず選出に入れる */
-  const ax=entries.findIndex(x=>x.axis);
-  const eligible=T.M.flatMap((m,i)=>m?[i]:[]);
-  const all=combos(eligible,K).filter(c=>ax<0||c.includes(ax));if(!all.length)return null;
-  /* 第5段階（2026/11/10）：基本選出と先発は、全部の組み合わせを相手ごとの対応力と同じ計算で比べた dgSelect（61-select.js）から。使えないときは前の方法 */
-  let DS=null;try{DS=typeof dgSelect==='function'?dgSelect(entries):null}catch(e){DS=null}
-  const base=DS&&DS.best?[...DS.best.c]:all.reduce((b,c)=>{const v=val(c);return !b||v>b.v?{c,v}:b},null).c;
-  const megaI=DS&&DS.best?DS.best.megaI:megaPick(base).h;
-  const avg=i=>S[i].reduce((t,v,j)=>t+v*w[j],0);
-  const lead=DS&&DS.best?DS.best.leads.slice(0,LEADN()):[...base].sort((a,b)=>avg(b)-avg(a)).slice(0,LEADN());
-  const good=sub=>opps.filter((_,j)=>Math.max(...sub.map(i=>S[i][j]))>=1).length;
-  /* 入れかえ：控えの1匹が、基本選出が苦手な相手に強いとき */
-  const bm=j=>Math.max(...base.map(i=>S[i][j])),weakJ=opps.map((_,j)=>j).filter(j=>bm(j)<1);
-  const situ=[];
-  eligible.filter(i=>!base.includes(i)).forEach(b=>{
-    const js=weakJ.filter(j=>S[b][j]>=1&&S[b][j]>=bm(j)+1);if(!js.length)return;
-    const out=[...base].filter(x=>x!==ax&&okSub([...base.filter(y=>y!==x),b])).sort((x,y)=>js.reduce((t,j)=>t+S[x][j],0)-js.reduce((t,j)=>t+S[y][j],0)||avg(x)-avg(y))[0];if(out==null)return;
-    situ.push({out,in:b,opps:js.map(j=>opps[j])})});
-  situ.sort((a,b)=>b.opps.length-a.opps.length);
-  /* ★で選んでいる選出が苦手な相手 */
+  const DS=dgSelect(entries);
+  if(!DS?.best)return{issue:'比較できる相手がいないため、選出の判定を保留しています。'};
+  const best=DS.best,base=best.c,lead=best.leads.slice(0,LEADN());
+  const opps=T.rows.map(r=>r.q);
+  const S=T.M.map((_,i)=>T.rows.map(r=>{
+    const z=r.res.find(x=>x.i===i);
+    return !z||z.r===1?-2:z.r===2?0:z.r===3?1:2;
+  }));
+  const roles=S.map(row=>({
+    go:opps.filter((_,j)=>row[j]>=1&&row[j]===Math.max(...S.map(scores=>scores[j]))),
+    no:opps.filter((_,j)=>row[j]<0)
+  }));
+  const seen=new Set(),situ=[];
+  for(const alternative of DS.list){
+    const out=base.find(i=>!alternative.c.includes(i)),incoming=alternative.c.filter(i=>!base.includes(i));
+    if(incoming.length!==1||seen.has(incoming[0]))continue;
+    const improved=alternative.rows.filter((r,j)=>best.rows[j].lvl<=2&&r.lvl>=3).map(r=>r.r.q);
+    if(improved.length){
+      seen.add(incoming[0]);
+      situ.push({out,in:incoming[0],opps:improved});
+      if(situ.length===3)break;
+    }
+  }
+  const me=best.X.T.M;
+  // 終盤候補は、実際の選出条件で有利な対面があり、根拠になる技や持ち物がある匹。
+  const finish=base.map(i=>{
+    const rows=best.rows.flatMap(r=>r.zs.filter(z=>z.i===i&&z.r>=4));
+    const pr=rows.find(z=>z.pr&&z.pr.min>0)?.pr;
+    const setup=best.ace.includes(i)&&entries[i].set?.mv?.find(m=>MD[m?.id]?.[3]===me[i]?.boost);
+    const why=pr?['prio',pr.mvn]:rows.some(z=>z.spd===1)&&me[i]?.item==='choicescarf'?['scarf',ITEMN.choicescarf]:rows.length&&setup?['setup',mName(setup.id)]:null;
+    return{i,why,n:rows.length};
+  }).filter(x=>x.why).sort((a,b)=>b.n-a.n||a.i-b.i)[0];
   const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);
-  const selWeak=sel.length===K?opps.map((q,j)=>({q,j})).filter(({j})=>Math.max(...sel.map(i=>S[i][j]))<.5).slice(0,6):[];
-  /* 1匹ずつの役割：出す相手（パーティでいちばん有利に戦える相手）・出さない相手（不利な相手） */
-  const roles=[...Array(n).keys()].map(i=>{
-    const go=opps.map((q,j)=>({q,j})).filter(({j})=>S[i][j]>=1&&S[i][j]>=Math.max(...S.map(r=>r[j]))).map(x=>x.q);
-    const no=opps.map((q,j)=>({q,j})).filter(({j})=>S[i][j]<=-1).map(x=>x.q);return{go,no}});
-  /* 詰め役：先制技・こだわりスカーフ・積み技、なければいちばん速い匹 */
-  const fin=i=>{const a=me[i];if(!a)return null;const pr=a.moves.find(m=>m&&m.pri>0&&m.pow>0);if(pr)return['prio',pr.n];if(a.item==='choicescarf')return['scarf',ITEMN.choicescarf];
-    const k=((entries[i].set&&entries[i].set.mv)||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).find(z=>[...GM_PSET,...GM_SSET,...GM_BSET].includes(z));if(k){const id=Object.keys(MD).find(x=>MD[x][3]===k);return['setup',mName(+id)]}return null};
-  const fins=base.filter(i=>fin(i));
-  const finisher=fins.length?fins.sort((a,b)=>spd(me[b])-spd(me[a]))[0]:[...base].sort((a,b)=>spd(me[b])-spd(me[a]))[0];
-  /* 環境の上位8匹に、だれが有利に戦えるか */
-  const top=opps.slice(0,8).map((q,j)=>({q,ans:[...Array(n).keys()].filter(i=>S[i][j]>=1).sort((a,b)=>S[b][j]-S[a][j])}));
-  return{DS,base,megaI,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps,roles,finisher,finWhy:fin(finisher),top,ax,me};
+  const selWeak=DS.mine?DS.mine.rows.filter(r=>r.lvl<=2).slice(0,6).map(r=>({q:r.r.q,j:r.j})):[];
+  const top=best.rows.slice(0,8).map(r=>({q:r.r.q,ans:r.zs.filter(z=>z.r>=4).sort((a,b)=>b.r-a.r).map(z=>z.i)}));
+  return{DS,base,lead,megaI:best.megaI,situ,sel,selWeak,S,opps,roles,finisher:finish?.i??base[0],finWhy:finish?.why??null,top,ax:DS.ax,me};
 }
 /* 構築のタイプ（対面・攻めサイクル・受けサイクル・積み）：登録した育成の持ち物・技・特性から数える */
 function teamKind(entries){

@@ -403,7 +403,7 @@ function dgTeam2(n,ms,CS,mi,H,mode,opponents){
     /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
     const unk=new Map();const addU=(m,who)=>{if(!m)return;const notes=dgCalcUnsupported(m);if(m.ab&&ABN[m.ab]&&typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab)&&!notes.length)notes.push(`特性「${ABN[m.ab]}」`);if(notes.length)unk.set(who+m.p.n,`${m.p.n}の${notes.join('・')}`)};
     M.forEach(m=>addU(m,'me'));rows.forEach(r=>{addU(r.o,'op');if(r.oTR&&r.oTR.ab!==r.o.ab)addU(r.oTR,'op TR')});
-    return{ms,M,rows,opponentSource:metaOppsSource(),live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
+    return{ms,M,rows,weather:appliedTeamWx(),opponentSource:metaOppsSource(),live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
       mega:{i:mi,no:mi>=0?ms[mi].x.no:null,mode,holders:H.map(i=>({i,no:ms[i].x.no,stone:dgStoneOf(ms[i].x.no,CS[i])})),alts:null}};
   }finally{WX_TEAM=prevWeather}
 }
@@ -643,15 +643,18 @@ function dgPremise(T){
    ・対面／サイクル／積み：teamKind（登録した持ち物・技から。3匹以上の育成が要る）
    押すとその型の解説（#/arch/ID）。決まらないときは灰色の「型：判定中」 */
 const ARCH_BADGE={sun:['晴れ','sun'],rain:['雨','rain'],sand:['砂嵐','sand'],snow:['雪','snow'],tr:['トリックルーム','tr'],tailwind:['おいかぜ','tailwind'],tm:['対面','taimen'],ac:['攻めサイクル','cycle'],dc:['受けサイクル','cycle'],su:['積み','setup']};
-function teamArch(entries){
+function teamArch(entries,T=null){
   const out=[];if(!entries||!entries.length)return out;
-  /* トリックルームを先に出す（晴れトリルのように天気と重なるときも、トリックルームが主な戦い方なので） */
-  if(entries.length>=3){try{const T=dgTeam(entries,20);if(T.tr&&(T.tr.on||T.tr.unset))out.push({k:'tr',unset:!T.tr.on,why:`${(T.tr.on?T.tr.setters:T.tr.cand).map(s=>formInfo(T.ms[s.i].p).base).join('・')}が${T.tr.on?'張れて':'覚えられて（いまの技には未登録。計算ではトリックルームを張っていない）'}、${T.tr.slow.length}匹が遅い`})}catch(e){}}
-  try{const w=teamWx();if(w){const gain=entries.filter(x=>{try{const m=mkMon(byNo[x.no],'me',mySetFor(x.no));return (WX_GAIN[w.k]||[]).includes(m.ab)}catch(e){return false}}).map(x=>formInfo(byNo[x.no]).base);
-    out.push({k:w.k,why:`${w.by}の${ABN[w.ab]||'特性'}で天気を変える${w.guess?'（特性が未登録なので、この特性と仮定）':''}${gain.length?`（${gain.join('・')}が得をする）`:''}`})}}catch(e){}
-
+  try{T=T||dgTeam(entries,20)}catch(e){}
+  if(entries.length>=3&&T?.tr&&(T.tr.on||T.tr.unset))out.push({k:'tr',unset:!T.tr.on,
+    why:`${(T.tr.on?T.tr.setters:T.tr.cand).map(s=>formInfo(T.ms[s.i].p).base).join('・')}が${T.tr.on?'張れて':'覚えられて（いまの技には未登録。計算ではトリックルームを張っていない）'}、${T.tr.slow.length}匹が遅い`});
+  const w=T?.weather;
+  if(w){
+    const gain=T.M.filter(m=>m&&(WX_GAIN[w.k]||[]).includes(m.ab));
+    out.push({k:w.k,why:`${w.by}の${ABN[w.ab]||'特性'}で天気を変える${w.guess?'（特性が未登録なので、この特性と仮定）':''}${gain.length?`（${gain.map(m=>formInfo(m.p).base).join('・')}が得をする）`:''}`});
+  }
   const TW=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
-  const tw=entries.filter(x=>x.set&&(x.set.mv||[]).some(m=>m&&m.id===TW));if(tw.length)out.push({k:'tailwind',why:`${tw.map(x=>formInfo(byNo[x.no]).base).join('・')}がおいかぜを使う`});
+  const tw=(T?.ms||[]).filter(({x,p},i)=>T.M[i]&&canLearn(p,TW)&&(x.set?.mv||[]).some(m=>m&&+m.id===TW)).map(o=>o.x);if(tw.length)out.push({k:'tailwind',why:`${tw.map(x=>formInfo(byNo[x.no]).base).join('・')}がおいかぜを使う`});
   try{const K=teamKind(entries);if(K&&K.k&&ARCH_BADGE[K.k])out.push({k:K.k,why:K.why.length?K.why.join('・'):K.name})}catch(e){}
   return out.slice(0,3);
 }
