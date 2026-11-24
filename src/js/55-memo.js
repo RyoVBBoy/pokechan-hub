@@ -16,7 +16,7 @@ function memoAuto(q){
   if(!q||!team.length)return '';
   let op;try{op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return ''}
   const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
-  const rows=team.map(x=>{const p=byNo[x.no];if(!p)return null;try{const a=mkMon(p,'me',mySetFor(x.no)),d=duel(a,op);
+  const rows=team.map(x=>{const p=byNo[x.no];if(!p)return null;try{const a=mkMon(p,'me',mySetFor(x.no));if(a.formErr)return null;/* 持ち物が姿と合わない型は下書きに使わない（2026/11/20） */const d=duel(a,op);
     return{p,h:d.h,r:d.r,f:d.f>0,tie:d.f===0&&withWx(a,op,()=>effSpd(a)===effSpd(op)),sc:d.s,up:d.up}}catch(e){return null}}).filter(Boolean);
   if(!rows.length)return '';
   const nm=p=>formInfo(p).base,mv=d=>d&&d.mv?d.mv.n:'';

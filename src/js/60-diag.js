@@ -27,7 +27,7 @@ let DG_TR=false;
 const DG_ROLLS=[85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100];
 const DG_K={ko_fast:{r:5,t:'上から倒せる'},tank:{r:4,t:'耐えて倒せる'},switch:{r:4,t:'後出しできる'},wall:{r:3,t:'受けて有利に戦える'},
   shaky:{r:2,t:'勝てるが不安定'},cond:{r:2,t:'条件つき'},lose:{r:1,t:'対応できない'}};
-const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エレキフィールド等）の威力の変化、追い風・トリックルーム・ステルスロックなどの場の効果、やけど・まひ以外の状態異常、能力を下げる追加効果、急所は計算に入れていません。素早さを変える特性は、天気で速くなる特性（すいすい等）だけ入れています。';
+const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エレキフィールド等）の威力の変化、追い風・トリックルーム・ステルスロックなどの場の効果、やけど・まひ以外の状態異常、能力を下げる追加効果、急所は計算に入れていません。'+PROTEAN_ASSUME+'素早さを変える特性は、天気で速くなる特性（すいすい等）だけ入れています。';
 /* 1つの技のダメージ（最大HPに対する％）：乱数の最小・最大と、16段階のうち倒しきれる段階の数 */
 /* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
@@ -63,7 +63,7 @@ function dgMove(a,mv,d){
 function dgBest(a,d){
   let best=null;
   /* みらいよち・はめつのねがいは2ターン後に当たるので、1対1の撃ち合いには入れない */
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv)))return;
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv))||!moveUsable(mv).ok)return;
     const x=dgMove(a,mv,d);if(!x.max)return;
     x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax},a,d);
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
@@ -74,7 +74,7 @@ function dgBest(a,d){
 /* 先制技で倒しきれるか（確定の回数） */
 function dgPrio(a,d){
   let best=null;
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0)||!moveUsable(mv).ok)return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
   return best;
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
@@ -301,12 +301,15 @@ function dgTeam0(entries,n,opt){
   return best;
 }
 function dgTeam1(n,ms,CS,mi,H,mode){
-  const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{return mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs)}catch(e){return null}});
+  /* 2026/11/20：持ち物が姿と合わない型（formErr）の匹は計算に入れない（null＝いない匹と同じ扱い）。外した匹は formErr で返し、前提に書く */
+  const FE=[];
+  const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{const m=mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs);if(m.formErr){FE.push({side:'me',no:o.p.no,why:m.formErr});return null}return m}catch(e){return null}});
   const fam=q=>q.base||q.no;
   const opps=metaOpps(n).filter(q=>!ms.some(o=>fam(o.p)===fam(q)));
   const rows=opps.map(q=>{
     const live=!!(LIVE.csv[q.base||q.no]);
     let o;try{o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return null}
+    if(o.formErr){FE.push({side:'op',no:q.no,why:o.formErr});return null}
     const run=oo=>M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,oo)}}catch(e){return null}}).filter(Boolean);
     let res=run(o),abAssume=null;
     /* 2026/11/10 依頼主の確認（カイリューのマルチスケイル）：集計がない相手は特性が分からない。自動の型は隠れ特性でない最初の特性（カイリューならせいしんりょく）を選ぶので、
@@ -321,7 +324,8 @@ function dgTeam1(n,ms,CS,mi,H,mode){
         o=V[0].oo;res=V[0].rs}}
     const stable=res.filter(r=>r.r>=4),ok=res.filter(r=>r.r>=3),weak=res.filter(r=>r.r===2);
     const lvl=stable.length>=2?4:stable.length===1?3:ok.length||weak.length?2:1;
-    return{q,o,live,res,stable,ok,weak,lvl,abAssume};
+    /* 2026/11/20：相手の型がメガストーンを持つと、メガシンカの姿で計算している。名前・リンクも計算した姿にする（もとの候補は from） */
+    return{q:o.p!==q&&o.p.mega?o.p:q,from:q,o,live,res,stable,ok,weak,lvl,abAssume};
   }).filter(Boolean);
   /* トリックルーム構築（2026/11/10 依頼主）：トリックルームを張れる匹（登録した技。技が未登録なら覚えられる匹）がいて、
      パーティの半分より多くが、上位の相手の7割以上より遅いとき。そのときは全部の対面をトリックルーム中（遅い方が先）でも計算する */
@@ -338,7 +342,7 @@ function dgTeam1(n,ms,CS,mi,H,mode){
   /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
   const unk=new Map();const addU=(m,who)=>{if(!m)return;const notes=dgCalcUnsupported(m);if(m.ab&&ABN[m.ab]&&typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab)&&!notes.length)notes.push(`特性「${ABN[m.ab]}」`);if(notes.length)unk.set(who+m.p.n,`${m.p.n}の${notes.join('・')}`)};
   M.forEach(m=>addU(m,'me'));rows.forEach(r=>addU(r.o,'op'));
-  return{ms,M,rows,live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,
+  return{ms,M,rows,live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
     mega:{i:mi,no:mi>=0?ms[mi].x.no:null,mode,holders:H.map(i=>({i,no:ms[i].x.no,stone:dgStoneOf(ms[i].x.no,CS[i])})),alts:null}};
 }
 const DG_LV={4:['◎','2匹以上で安定して対応できる','ok'],3:['○','1匹だけで対応（その匹に頼っている）','mid'],2:['△','対応が不安定（乱数・同速・条件しだい）','warn'],1:['×','パーティ全体で対応が難しい','bad']};
@@ -364,7 +368,7 @@ function dgFill(entries){
     ${T.tr&&T.tr.on?`<p class="note" style="padding-top:6px"><b>トリックルーム中</b>（${T.tr.setters.map(s=>nm1(s.i)).join('・')}が張ったとき・遅い方が先に動く）：${[4,3,2,1].map(l=>`${DG_LV[l][0]}${T.rows.filter(r=>r.lvlTR===l).length}`).join('　')}。上の数はトリックルームなし。</p>`:''}
     <p class="note" style="padding-top:4px">◎ 2匹以上で安定　○ 1匹に頼っている　△ 不安定　× 答えなし（押すと計算の中身）。◎〜×は先に場にいるとき（対面）の評価で、交代で出したときに勝てる匹は「後出し」に書いています（後出しして勝てる匹がいる相手：${T.rows.filter(r=>r.res.some(x=>x.swIn==='win')).length}／${T.rows.length}匹、条件つき〔きあいのタスキ・かるわざ頼み〕だけの相手：${T.rows.filter(r=>!r.res.some(x=>x.swIn==='win')&&r.res.some(x=>x.swIn==='sashwin')).length}匹）。</p>
     <details class="dgc-ev dg-list"><summary>相手ごとの詳細を見る（${T.rows.length}匹：×${cnt(1)}・△${cnt(2)}・○${cnt(3)}・◎${cnt(4)}の順）</summary>${order.map(rowHTML).join('')}</details>
-    <details class="dg-pre"><summary>計算の前提</summary><p class="note">相手は${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、読めなかった相手は自動で決めた型':'自動で決めた型（ランクバトルの集計を読めていません）'}、こちらは${T.mySet.every(Boolean)?'登録した育成':T.mySet.some(Boolean)?'登録した育成（未登録の匹は使用率の高い型）':'使用率の高い型（育成が未登録）'}です。こちらのダメージは乱数のいちばん低い値で「確定で倒せるか」、相手のダメージは乱数のいちばん高い値で「必ず耐えられるか」を見ています。きあいのタスキ・がんじょう・マルチスケイル・ばけのかわ・命中・先制技・こだわりスカーフ・天気を入れています。${DG_NOTE}</p></details>`;
+    <details class="dg-pre"><summary>計算の前提</summary><p class="note">相手は${T.liveAll?'ランクバトルの集計から組み合わせた推定の型（1人が実際に使った型ではない）':T.live?'集計が読めた相手は集計から組み合わせた推定の型、読めなかった相手は自動で決めた型':'自動で決めた型（ランクバトルの集計を読めていません）'}、こちらは${T.mySet.every(Boolean)?'登録した育成':T.mySet.some(Boolean)?'登録した育成（未登録の匹は推定の型か当サイトの提案の型）':'推定の型か当サイトの提案の型（育成が未登録）'}です。こちらのダメージは乱数のいちばん低い値で「確定で倒せるか」、相手のダメージは乱数のいちばん高い値で「必ず耐えられるか」を見ています。きあいのタスキ・がんじょう・マルチスケイル・ばけのかわ・命中・先制技・こだわりスカーフ・天気を入れています。${DG_NOTE}</p></details>`;
 }
 
 /* ===================== 第4段階：パーティ全体の分析（2026/11/10） =====================
@@ -495,7 +499,7 @@ function dgSwapSet(c,rest){
   if(typeof mvpSwapSet==='function')return mvpSwapSet(c,rest);
   const used=new Set(rest.map(x=>{const s=(x.set&&x.set.it&&x.set.it.k)||((mySetFor(x.no)||{}).item);return s}).filter(Boolean));
   let s=null,src='型の例';
-  if(LIVE.csv[c.no]){try{s=detSet(c);src='使用率の高い型'}catch(e){s=null}}
+  if(LIVE.csv[c.no]){try{s=detSet(c);src='集計から組み合わせた推定の型'}catch(e){s=null}}
   if(s&&s.item&&used.has(s.item)){s=null}
   if(!s){try{s=archSet(['axis'],c,null,new Set(used));src='型の例'}catch(e){s=null}}
   if(!s)return null;
@@ -562,7 +566,7 @@ function dgMegaBarHTML(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';
 function dgMegaBind(root){if(!root)return;root.querySelectorAll('[data-dgm]').forEach(b=>b.onclick=()=>{const no=+b.dataset.dgm;if(no===dgMegaSel())return;dgMegaSet(no);const y=scrY();teamRender();scrTo(0,y)})}
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
 function dgPremise(T){
-  return `${dgMegaTxt(T)}相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組んだ使用率の高い型':T.live?'集計が読めた相手は使用率の高い型、ほかは自動で決めた型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
+  return `${T.formErr&&T.formErr.length?`計算に入れていない匹：${T.formErr.map(x=>`${(byNo[x.no]||{}).n||x.no}（${FORM_WHY[x.why]||x.why}）`).join('・')}。`:''}${dgMegaTxt(T)}相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組み合わせた推定の型（1人が実際に使った型ではない）':T.live?'集計が読めた相手は集計から組み合わせた推定の型、ほかは当サイトの提案の型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
     `${T.rows.some(r=>r.abAssume)?`集計がない相手で特性によって結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない効果：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }

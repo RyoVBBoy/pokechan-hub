@@ -358,6 +358,23 @@ const isStone=k=>!!MEGA[k];
 const megaOf=(no,item)=>item&&MEGA[item]&&MEGA[item][no]?byNo[MEGA[item][no]]:null;
 const megasOf=no=>MEGAP.filter(m=>m.base===no);
 const itemFor=(no,k)=>!isStone(k)||!!(MEGA[k]&&MEGA[k][no]);
+/* 姿を決める入口（2026/11/20 データの正しさの直し 段階1）：サイトの番号＋持ち物 → 姿。
+   no は元の姿・地方の姿・性別の姿の番号（図鑑の番号ではない）。メガの番号が来ても読める（保存データ・手で作った共有リンク）。
+   決められないときは元の姿として計算しない＝{ok:false,why}：
+   'invalid-item'＝持ち物が姿と合わない（ほかの種族のメガストーン、メガの姿にそのストーン以外）
+   'insufficient-data'＝サイトに姿のデータが無い（知らない番号、ストーンの行き先の姿が無い） */
+const FORM_WHY={'invalid-item':'持ち物がこのポケモンの姿と合わない（ほかのポケモンのメガストーン等）ため、計算していません','insufficient-data':'このポケモンの姿のデータが足りないため、計算していません'};
+const resolveForm=(no,item)=>{
+  const p=byNo[no];if(!p)return{ok:false,why:'insufficient-data',no,item:item||null};
+  if(p.mega){const b=byNo[p.base];if(!b||!MEGA[p.stone]||MEGA[p.stone][p.base]!==p.no)return{ok:false,why:'insufficient-data',no,item:item||null};
+    if(item&&item!==p.stone)return{ok:false,why:'invalid-item',no,item};
+    return{ok:true,form:p,base:b,stone:p.stone,mega:true,fixed:!item}}
+  if(item&&isStone(item)){if(!MEGA[item][no])return{ok:false,why:'invalid-item',no,item};
+    const m=byNo[MEGA[item][no]];if(!m)return{ok:false,why:'insufficient-data',no,item};
+    return{ok:true,form:m,base:p,stone:item,mega:true}}
+  return{ok:true,form:p,base:p,stone:null,mega:false}};
+/* 覚える技・持てる特性はいつも元の姿で探す（メガの番号で LSD を探さない） */
+const learnBase=p=>p&&p.mega&&byNo[p.base]?byNo[p.base]:p;
 /* 技の性質（c接触・pパンチ・bかみつき・l波動・s切る） */
 const MFL={"1":"c","5":"cp","7":"cp","8":"cp","9":"cp","10":"c","20":"c","21":"c","24":"c","25":"c","29":"c","31":"c","33":"c","34":"c","35":"c","36":"c","38":"c","44":"cb","64":"c","65":"c","66":"c","70":"c","75":"s","98":"c","127":"c","136":"c","141":"c","152":"c","163":"cs","183":"cp","206":"c","209":"c","211":"c","223":"cp","224":"c","229":"c","231":"c","232":"c","238":"c","242":"cb","245":"c","249":"c","263":"c","276":"c","280":"c","282":"c","292":"c","299":"c","305":"cb","306":"c","309":"cp","314":"s","325":"cp","332":"cs","337":"c","342":"c","344":"c","348":"cs","352":"l","359":"cp","365":"c","369":"c","370":"c","394":"c","396":"l","398":"c","399":"l","400":"cs","401":"c","403":"s","404":"cs","406":"l","407":"c","409":"cp","413":"c","418":"cp","421":"c","422":"cb","423":"cb","424":"cb","425":"c","427":"s","428":"c","438":"c","440":"cs","442":"c","450":"c","452":"c","453":"c","457":"c","458":"c","480":"c","488":"c","490":"c","492":"c","509":"c","525":"c","528":"c","529":"c","532":"c","533":"cs","534":"cs","541":"c","560":"c","565":"c","577":"c","583":"c","609":"c","611":"c","663":"c","665":"cp","667":"c","679":"c","680":"c","684":"c","688":"c","693":"c","706":"cb","707":"c","709":"c","710":"c","716":"c","776":"c","784":"c","785":"c","789":"c","803":"c","806":"c","808":"c","812":"c","813":"c","814":"c","827":"c","828":"c","830":"cs","834":"c","838":"cp","845":"cs","857":"cp","860":"cs","866":"c","869":"cs","872":"c","873":"c","884":"c","885":"c","891":"cs","892":"c","895":"s"};
 const mfl=(mv,f)=>(MDK[mv.id]?MDK[mv.id].split('|')[1]:(MFL[mv.id]||'')).includes(f);

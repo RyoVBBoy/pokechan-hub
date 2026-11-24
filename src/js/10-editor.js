@@ -94,8 +94,8 @@ function editView(a){
     return h+abl.map(([k,hid])=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ABN[k]||k}${hid?'（隠れ特性）':''}${ABIMPL.has(k)?'':'　※計算では効果なし'}</option>`).join('')};
   V.innerHTML=`<div id="ed-root">
   <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div><span class="ed-save" id="ed-save" role="status" aria-live="polite"></span></div></div>
-  ${fresh?`<details class="ed-intro"><summary><span>${LD?'使用率の高い型':'自動で決めた型'}で計算中です。値を変えると、あなたの育成になります。</span></summary><p>いまは${LD?'ランクバトルの集計から組んだ<b>使用率の高い型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として自動で保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</p></details>`:''}
-  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}使用率の高い型を入れる</button></div>
+  ${fresh?`<details class="ed-intro"><summary><span>${LD?'集計から組み合わせた推定の型':'当サイトの提案の型'}で計算中です。値を変えると、あなたの育成になります。</span></summary><p>いまは${LD?'ランクバトルの集計から組んだ<b>推定の型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として自動で保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</p></details>`:''}
+  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}推定の型を入れる</button></div>
   <div class="sec"><h2>特性・持ち物</h2></div>
   <div class="natr"><span style="width:56px">特性</span><select class="sel" id="ed-ab">${abOpts()}</select></div>
   <p class="note" id="ed-abd" style="padding:0 16px 6px">${ED.s.ab&&ABDS[ED.s.ab.k]?esc(ABDS[ED.s.ab.k]):''}</p>

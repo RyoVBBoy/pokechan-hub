@@ -242,9 +242,12 @@ function genTeam(){
 /* 技構成と特性を自動で決める（使用率データがないため、威力・タイプ一致・攻め範囲から選びます） */
 function chooseSet(p,det){
   const nz=()=>det?1:(.85+Math.random()*.3);
-  const ab=ABD[p.no]||[];const ab0=ab.filter(a=>!a[1]);const abk=(ab0.length?ab0:ab).length?(ab0.length?ab0:ab)[det?0:rnd((ab0.length?ab0:ab).length)][0]:null;
-  const ls=LSD[p.no];
-  if(!ls){const phys=p.s[1]>=p.s[3];return{ab:abk,moves:p.t.map(t=>({id:-1,n:t+'わざ',t,pow:90,acc:100,cls:phys?0:1,pri:0,tg:0,minH:1,maxH:1,drain:0}))}}
+  /* メガシンカの姿は、元の姿の覚える技＋メガシンカ後の特性＋そのメガストーン（2026/11/20：前はメガの番号で技を探して見つからず、タイプの名前の仮の技「〇〇わざ」で計算していた） */
+  const lb=learnBase(p),mg=lb!==p;
+  const ab=mg?[[p.ab,0]]:(ABD[p.no]||[]);const ab0=ab.filter(a=>!a[1]);const abk=(ab0.length?ab0:ab).length?(ab0.length?ab0:ab)[det?0:rnd((ab0.length?ab0:ab).length)][0]:null;
+  const ls=LSD[lb.no];
+  /* 覚える技が分からない姿は型を作らない（仮の技で計算しない）。呼ぶ側が理由を出す */
+  if(!ls)return null;
   const A=p.s[1],C=p.s[3],mx=Math.max(A,C);
   const pool=ls[1].filter(id=>MV[id]).map(mvObj).filter(m=>!(m.id===0));
   const sc=m=>{let v=(m.pow||60)*(m.acc||100)/100*Math.pow((m.cls?C:A)/mx,2)*simF(null,m);
@@ -261,7 +264,7 @@ function chooseSet(p,det){
   }
   if(ls[0])chosen.push(PROT);
   else{let best=null;pool.forEach(m=>{if(chosen.includes(m))return;const v=sc(m)*nz();if(!best||v>best.v)best={m,v}});if(best)chosen.push(best.m)}
-  return{ab:abk,moves:chosen};
+  return mg?{ab:abk,item:p.stone,moves:chosen}:{ab:abk,moves:chosen};
 }
 /* 戦闘中にだけ変わる姿の能力（種族値） */
 const BATTLE_FORM={'zero-to-hero':{no:964,s:[100,160,97,106,87,100],always:true,name:'マイティフォルム'},'stance-change':{no:681,s:[60,140,50,140,50,60],name:'ブレードフォルム'}};
@@ -274,15 +277,18 @@ function battleFormHTML(p){const b=BATTLE_FORMS[p.no];if(!b)return '';
   ${b.forms.map(([n,t,w,s])=>`<div class="row" style="cursor:default"><div class="row-m"><div class="row-t">${p.n.replace(/（.*$/,'')}（${n}）</div><div class="chips">${(t?[t]:p.t).map(chip).join('')}${w?`<span class="rt">${w}のとき</span>`:''}</div>${s?`<div class="row-s">${SN.map((x,i)=>`${x}${s[i]}`).join('・')}（合計${s.reduce((a,c)=>a+c,0)}）</div>`:''}</div></div>`).join('')}`}
 function mkMon(p,side,set){
   set=set||chooseSet(p);
-  /* メガストーンを持っていれば、メガシンカ後の姿で計算する（1回の対戦でメガシンカできるのは1匹だけ） */
-  const mg=megaOf(p.no,set.item);
-  if(mg){p=mg;set={...set,ab:mg.ab}}
+  if(!set)throw new Error('form:insufficient-data');
+  /* 姿は resolveForm で決める（2026/11/20）。メガストーンを持っていれば、メガシンカ後の姿で計算する（1回の対戦でメガシンカできるのは1匹だけ）。
+     持ち物が姿と合わないときは formErr に理由を残す（計算の結果を出す画面は、これを見て結果を出さない） */
+  const R=resolveForm(p.no,set.item);let formErr=null;
+  if(R.ok&&R.mega){if(R.form!==p||set.ab!==R.form.ab)set={...set,ab:R.form.ab};p=R.form}
+  else if(!R.ok)formErr=R.why;
   const stOf=q=>{if(set.sp)return calcStats(q,set.sp,set.up??-1,set.dn??-1);const phys=p.s[1]>=p.s[3],ai=phys?1:3,sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;return calcStats(q,sp,ai,phys?3:1)};
   let st=stOf(p),stAtk=null;
   /* 戦闘中に変わる姿（2026/11/04 データの見直し）：イルカマンは一度交代するとマイティフォルムになるので、その能力で計算。
      ギルガルドは攻撃するときだけブレードフォルム（攻撃・特攻140／防御・特防50）になるので、攻撃側の能力を別に持つ（受けるときはシールドフォルム） */
   const bf=BATTLE_FORM[set.ab];if(bf&&bf.no===p.no){const q={...p,s:bf.s};if(bf.always)st=stOf(q);else stAtk=stOf(q)}
-  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise'};
+  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise',formErr};
 }
 let B={phase:'menu'};
 const alive=S=>S.act.filter(i=>i!=null).map(i=>S.mons[i]).filter(m=>!m.fainted);
@@ -328,6 +334,16 @@ const MRECH=new Set(['hyperbeam','gigaimpact','blastburn','frenzyplant','hydroca
 const MSELFKO=new Set(['explosion','selfdestruct','mistyexplosion','finalgambit']);
 const MFIRST=new Set(['fakeout','firstimpression']);
 const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
+/* 計算に入れてよい技か（2026/11/20 1か所にまとめる。対策・1対1・診断・ランキング・選出・メモが使う）。
+   決まりはサイトの対戦の計算と同じ＝本編の決まり（チャンピオンズのゲーム内では未確認＝mechanics:'main-series-assumed'、Q8）。
+   フィールドは計算に入れないので、アイアンローラーはいつも失敗。ねこだまし・であいがしら（ctx.turn）は依頼主の判断 D8 の待ちなので、turn を渡さない限り数える（前と同じ） */
+/* へんげんじざい・リベロの前提（2026/11/20 RC5。画面ごとに違うので、前提として書く。どれが正しいかはゲーム内で未確認＝Q2、依頼主の判断 D6 待ち）：
+   ダメージ計算の画面＝はじめは発動する（切りかえあり）、対策・診断・1対1・ランキング・選出・メモ＝発動しない（bcalc に protean を渡さない） */
+const PROTEAN_ASSUME='へんげんじざい・リベロは発動しない前提で計算しています（技と同じタイプにならず、タイプ一致の1.5倍は入れていません。ゲーム内での発動のしかたは未確認）。';
+const moveUsable=(mv,ctx)=>{const k=mkey(mv);
+  if(MFAIL.has(k))return{ok:false,why:k==='steelroller'?'fails-without-terrain':'needs-condition',mechanics:'main-series-assumed'};
+  if(MFIRST.has(k)&&ctx&&ctx.turn==='later')return{ok:false,why:'first-turn-only',mechanics:'main-series-assumed'};
+  return{ok:true}};
 /* 条件つきで威力2倍：計算画面のチェックで指定（模擬戦では使わない） */
 const MCOND={payback:'相手より後に動く',avalanche:'先に相手から攻撃を受けている',assurance:'このターン、相手がすでにダメージを受けている',stompingtantrum:'前のターンに自分の技が失敗した',temperflare:'前のターンに自分の技が失敗した',lashout:'このターンに能力を下げられた',boltbeak:'相手より先に動く',fishiousrend:'相手より先に動く',ficklebeam:'威力2倍が出た（30%の確率）'};
 const MCOUNT={ragefist:['攻撃を受けた回数',6],lastrespects:['倒れた味方の数',5]};

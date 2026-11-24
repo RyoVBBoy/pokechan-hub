@@ -25,7 +25,7 @@ const prBulk=p=>p.s[0]*(p.s[2]+p.s[4])/2;
 const prFrailAce=p=>prAtk(p)>=115&&prBulk(p)<80*80;
 const prSlowWall=p=>prBulk(p)>=95*95&&p.s[5]<=75;
 let PR_CT={};
-const prThreats=p=>PR_CT[p.no]||(PR_CT[p.no]=(()=>{try{const c=monCounters(p);return[...c.ohko,...c.strong].slice(0,4).map(r=>r.q)}catch(e){return[]}})());
+const prThreats=p=>PR_CT[p.no]||(PR_CT[p.no]=(()=>{try{const c=monCounters(p);return[...c.ohko,...c.strong].slice(0,4).map(r=>r.from||r.q)}catch(e){return[]}})());
 /* 1匹の候補の点数と理由 */
 function prScore(c,mem){
   const R=[],add=(k,pts,txt)=>R.push({k,pts,txt});
@@ -200,7 +200,7 @@ function prDraw(){
         <ul class="pr-why">${rs.map(r=>`<li><span class="pr-tag pr-${r.k}">${PR_TAG[r.k]}</span>${esc(r.txt)}</li>`).join('')}${bad.map(r=>`<li><span class="pr-tag pr-bad">${PR_TAG.bad}</span>${esc(r.txt)}</li>`).join('')}${!rs.length?'<li>能力の高さで選んだ候補です</li>':''}</ul>
         <div class="btns" style="padding:0 16px 12px"><button class="btn btn-s" data-add="${c.no}">${SVG(I.plus,16)}${full?`${esc(outN[0]||'')}と入れかえる`:'パーティに入れる'}</button></div></div>`}).join('')
       +`<div class="btns"><button class="btn btn-s" id="pr-more">もっと見る</button></div>
-      <p class="note" style="color:var(--mute)">ここは「相性のいい仲間」（パーティを埋めるための候補）で、6匹全体が良くなるかの計算ではありません（6匹そろうと、入れかえ前後を計算し直した入れかえ案が出ます）。点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、使用率の高い型どうしのダメージ計算です。</p>`;
+      <p class="note" style="color:var(--mute)">ここは「相性のいい仲間」（パーティを埋めるための候補）で、6匹全体が良くなるかの計算ではありません（6匹そろうと、入れかえ前後を計算し直した入れかえ案が出ます）。点数は、タイプの受け合い（無効は半減より高く）・同じ受け役を2匹で崩す並び・交代技で仲間を無傷で出す流れ・場づくりから積みエースへのリレー・天気・仲間が苦手な相手への強さから計算しています。苦手な相手は、推定の型どうしのダメージ計算です。</p>`;
     el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const no=+b.dataset.add;
       if(full){const i=team.findIndex(x=>PR_OUT.has(x.no));if(i<0)return;const old=byNo[team[i].no].n;prReplace(i,no);toast(`${old}を外して${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).catch(()=>{});return}
       if(team.length<6&&!team.some(x=>x.no===no)){team.push({no,sel:team.filter(x=>x.sel).length<PICK()});saveTeam();toast(`${byNo[no].n}を入れました`);PR_N=8;prDraw();scrTo(0,0);if(LIVE.files)liveMon(no).then(()=>{if(keyOf(cur)==='pair')prDraw()}).catch(()=>{})}});

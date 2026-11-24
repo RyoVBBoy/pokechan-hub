@@ -66,7 +66,7 @@ function stFill(entries){
       :`<p class="stg-p">まだはっきりした型（天気・トリックルーム・対面・サイクルなど）は見つかっていません。${entries.filter(x=>x.set).length<3?'技・持ち物を3匹以上登録すると、対面・サイクル・積みも判定します。':'下の強みと選出から、戦い方を組み立ててみてください。'}</p>`}
     ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
     ${T.mega&&T.mega.holders&&T.mega.holders.length?`<details class="stg-nomega" id="stg-nomega"><summary>メガシンカしない場合と比べる</summary><div class="stg-nm-b"><p class="dgu-loading">開くと計算します</p></div></details>`:''}
-    <p class="stg-f">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算した結果です。${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、使用率の高い型で計算した<b>推定</b>です。`:''}${FMT==='double'?'ダブルも1対1の計算を組み合わせています（範囲技・味方のサポート・まもるなどは入っていません）。':''}</p></div>`;
+    <p class="stg-f">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算した結果です。${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?'ダブルも1対1の計算を組み合わせています（範囲技・味方のサポート・まもるなどは入っていません）。':''}</p></div>`;
   /* 2. 強み */
   const G=stStrengths(entries,T,C,W,arch);
   const sec2=`<div class="stg-sec"><h3>パーティの強み</h3>${G.length?`<ol class="stg-gl">${G.map(g=>`<li><p class="stg-gt">${g.t}</p><p class="stg-gh"><span>使い方</span>${g.how}</p></li>`).join('')}</ol>`

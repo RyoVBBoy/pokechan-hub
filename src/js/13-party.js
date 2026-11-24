@@ -170,7 +170,7 @@ function teamRender(){
     :`<button class="tile empty tadd" data-add="1">${SVG(I.plus,22)}<span>追加する</span></button>`}).join('');
   document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
-      :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（使用率の高い型で計算中）</div>${tsLiveLine(x)}`;
+      :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（${byNo[x.no]?detSetKind(byNo[x.no]).s:'推定の型'}で計算中）</div>${tsLiveLine(x)}`;
     return `<a class="row" href="#/edit/${i}" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
   document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=()=>teamPickMany());
   /* 空のパーティ（2026/11/12）：6つの「追加する」の代わりに、はじめ方を3つ出す。パーティが要る「診断」「選出」のボタンは隠す（ダメージ計算はパーティなしでも使えるので残す） */
@@ -421,6 +421,8 @@ function partyCheck(entries){
       if(!S.length)tg.how+='（入れかえ候補を計算し直しましたが、後出しできない相手を減らせて、ほかが悪くならない1匹の入れかえは見つかりませんでした。技・持ち物・能力ポイントを耐久に回すことを考えてください）';
       if(S.mvpDrop)tg.how+=`（ほかに${S.mvpDrop}案は、「相性のいい仲間を探す」の入れかえ案の計算〔メガシンカは1匹ずつ〕で新しい大きな弱点ができるか、素早さの操作・天気を失うので出していません）`}}
   if(DA){fix.unshift(...DA.bad.map(x=>({...x,k:'calc'})));good.unshift(...DA.good.map(x=>({...x,k:'calc'})));ref.push(...DA.ref)}
+  /* 2026/11/20：持ち物が姿と合わない匹は計算から外しているので、いちばん上の気になる点として知らせる */
+  if(DT&&DT.formErr)DT.formErr.filter(x=>x.side==='me').forEach(x=>fix.unshift({t:`${esc((byNo[x.no]||{}).n||'')}：持ち物が姿と合わない`,d:`${FORM_WHY[x.why]||''}。このポケモンは診断の計算に入れていません。`,how:'育成の画面で、このポケモンが持てる持ち物を選び直してください。'}));
   return{scope,good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
 }
 /* ---- 選出の考え方：よく使われる相手40匹との1対1から、基本選出と「この相手がいるときはこう入れかえる」を出す ----

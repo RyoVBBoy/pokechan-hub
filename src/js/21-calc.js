@@ -98,8 +98,11 @@ function calcNotes(R){
   for(const m of [a,d]){if(CALC_UNVERIFIED[m.ab])o.push(CALC_UNVERIFIED[m.ab]);if(CALC_UNIMPL.includes(m.ab))o.push(`特性「${ABN[m.ab]||m.ab}」の効果は計算に入っていません`);if(m.item&&CALC_UNIMPL_IT.includes(m.item))o.push(`持ち物「${ITEMN[m.item]||m.item}」の効果は計算に入っていません`)}
   return o;
 }
+let CALC_FE=null;
 function calcResult(){
   const a=calcMon('me',CS.a),d=calcMon('op',CS.d);
+  /* 2026/11/20：持ち物が姿と合わない型は計算しない（理由を出す） */
+  CALC_FE=[a.formErr&&{side:'me',no:CS.a.no,why:a.formErr},d.formErr&&{side:'op',no:CS.d.no,why:d.formErr}].filter(Boolean);if(!CALC_FE.length)CALC_FE=null;else return null;
   /* ばけのかわ：はじめは残っている。条件の「ばけのかわがはがれている」で外せる（2026/11/13） */
   if(d.ab==='disguise')d.disg=!CS.disgOff;
   const list=calcMoveList(CS.a);
@@ -137,7 +140,7 @@ function calcSide(key,X,isAtk){
   const st=bf&&bf.no===q.no&&(bf.always||isAtk)?calcStats({...q,s:bf.s},X.sp,X.up,X.dn):calcStats(q,X.sp,X.up,X.dn);
   const ks=[...Object.keys(MEGA).filter(k=>itemFor(X.no,k)),...Object.keys(ITEMN).filter(k=>!isStone(k))];
   return `<div class="cside">
-  <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">使用率の高い型</button></div>
+  <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">${byNo[X.no]?detSetKind(byNo[X.no]).s:'推定の型'}</button></div>
   <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
   <div class="natr"><span style="width:62px">持ち物</span><select class="sel" data-c="${key}.item"><option value="">（なし）</option>${ks.map(k=>`<option value="${k}"${k===X.item?' selected':''}>${ITEMN[k]}</option>`).join('')}</select></div>
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
@@ -184,7 +187,8 @@ function calcView(){
     const pct=v=>(v/R.d.max*100).toFixed(1);
     const lo=R?Math.min(...R.r):0,hi=R?Math.max(...R.r):0;
     const O=R?calcOverview(R):null;
-    const nmA=esc(formInfo(byNo[CS.a.no]).base),nmD=esc(formInfo(byNo[CS.d.no]).base);
+    /* 名前は計算した姿（メガストーンを持てばメガシンカの姿。2026/11/20 RC3c） */
+    const nmA=esc(R?R.a.p.n:byNo[CS.a.no].n),nmD=esc(R?R.d.p.n:byNo[CS.d.no].n);
     const sum=X=>{const parts=[X.ab&&ABN[X.ab],X.item&&ITEMN[X.item],(NATS.find(([n,u,d])=>u===X.up&&d===X.dn)||[''])[0]].filter(Boolean);return esc(parts.join('・')||'特性・持ち物なし')};
     const effTag=e=>e>=4?'<span class="cv-e good">ばつぐん×4</span>':e>=2?'<span class="cv-e good">ばつぐん</span>':e===0?'<span class="cv-e none">こうかなし</span>':e<1?'<span class="cv-e weak">いまひとつ</span>':'';
     /* 受けたあとの残りHP（多く残る〜少なく残る） */
@@ -211,11 +215,11 @@ function calcView(){
     const hpCol=v=>v>50?'#00ba7c':v>20?'#ffb020':'#f4212e';
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
     <div class="cv-vs">
-      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.a)}</span></div>
+      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):(byNo[CS.a.no]?detSetKind(byNo[CS.a.no]).s:'推定の型')}: ${sum(CS.a)}</span></div>
       <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える"><span class="cv-swi" style="transform:rotate(${CALC_ROT}deg)">${SVG(I.cycle,22)}</span></button>
-      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.d)}</span></div>
+      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):(byNo[CS.d.no]?detSetKind(byNo[CS.d.no]).s:'推定の型')}: ${sum(CS.d)}</span></div>
     </div>
-    ${R?`<div class="cres cv-res">
+    ${CALC_FE?formErrHTML(CALC_FE):''}${R?`<div class="cres cv-res">
       <div class="cres-h" data-notr>${L(`${nmA}の<b>${esc(mvNm(R.mv))}</b> → ${nmD}`,`${nmA}'s <b>${esc(mvNm(R.mv))}</b> → ${nmD}`)} ${effTag(R.eff)}${R.acc<100?`<span class="cv-e">命中${Math.round(R.acc)}</span>`:''}</div>
       ${R.eff===0?`<div class="cres-big">0%</div><div class="cv-ko">${L('こうかがありません（タイプか特性で防がれます）','No effect (blocked by type or ability)')}</div>`:`
       <div class="cv-main"><div class="cres-big">${dAfter?`<small class="cv-aft">${L('はがれたあと','After Disguise')}</small>${pct(Math.min(...R.r.next))}<small>%</small> 〜 ${pct(Math.max(...R.r.next))}<small>%</small>`:`${ls?`<small>${L('技のダメージ','Move damage')} </small>`:''}${pct(lo)}<small>%</small> 〜 ${pct(hi)}<small>%</small>`}</div>${koBadge(R.ko)}</div>

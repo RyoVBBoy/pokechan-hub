@@ -29,7 +29,8 @@ const SKIN={},ABN={},LIVE={csv:{}},MVKA={};
 const B={weather:null};
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8)),hitType=(_a,m)=>m.t,accOf=()=>100;
 const effSpd=a=>a.spd||100,fixedDmg=()=>null,mkey=m=>m.id,duel=()=>({});
-const nrm=x=>x,mName=x=>x;`;
+const nrm=x=>x,mName=x=>x;
+`+(()=>{const a=bs.indexOf('const MFIRST='),b=bs.indexOf('const MCOND=',a);if(a<0||b<a)throw new Error('moveUsable source not found');return bs.slice(a,b)})();/* 2026/11/24：dgBest が moveUsable（失敗する技を除く）を通すので、本物の定義を取り出して使う */
 const duStart=du.indexOf('const DU_SURV_AB='),duEnd=du.indexOf('/* 先制技でいちばん強いもの',duStart);
 assert.ok(duStart>=0&&duEnd>duStart);
 const dgMatch0=new Function('bcalc',dgStubs+du.slice(duStart,duEnd)+ds.slice(dStart,dEnd)+'return dgMatch0;')(bcalc);
