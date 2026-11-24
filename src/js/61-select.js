@@ -21,8 +21,8 @@ function dgSelect(entries){
      （ほかのメガストーンの匹は持ち物なし＝メガストーンの効果なし、dgTeam1）、いちばん良い場合をその選出の値にする。相手（上位の匹）はどの場合も同じ。 */
   const H=(T.mega&&T.mega.holders)||[],multi=H.length>=2;
   const mkCtx=T1=>{
-    const byFrom=new Map(T1.rows.map(r=>[r.from.no,r]));
-    const rows=T1===T?R:R.map(r=>byFrom.get(r.from.no)||null);
+    const fk=r=>(r.from||r.q).no,byFrom=new Map(T1.rows.map(r=>[fk(r),r]));
+    const rows=T1===T?R:R.map(r=>byFrom.get(fk(r))||null);
     /* パーティの天気：天気を作る匹（名前で探す）と、天気の中で計算した匹。メガシンカで天気を作る匹は、その場合にメガシンカしているときだけ */
     let tw=null;const wm=typeof WX_MEGA!=='undefined'?WX_MEGA:undefined;
     try{if(multi)WX_MEGA=T1.mega.i>=0?T1.mega.no:null;tw=teamWx()}catch(e){}finally{if(multi)WX_MEGA=wm}

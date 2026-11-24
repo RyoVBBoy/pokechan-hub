@@ -15,7 +15,7 @@ const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  stgV:(v,k)=>k>=0?Math.floor(v*(2+k)/2):Math.floor(v*2/(2-k)),
  B:{weather:null},varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
  apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
- pR,RES_BERRY:{},rnd:()=>0};
+ pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot'])};
 const bStart=bs.indexOf('function bcalc('),bEnd=bs.indexOf('/* ---- 連続技を1発ずつ',bStart);
 assert.ok(bStart>=0&&bEnd>bStart);
 const bcalc=new Function(...Object.keys(deps),bs.slice(bStart,bEnd)+';return bcalc;')(...Object.values(deps));
@@ -29,7 +29,7 @@ const SKIN={},ABN={},LIVE={csv:{}},MVKA={};
 const B={weather:null};
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8)),hitType=(_a,m)=>m.t,accOf=()=>100;
 const effSpd=a=>a.spd||100,fixedDmg=()=>null,mkey=m=>m.id,duel=()=>({});
-const nrm=x=>x,mName=x=>x;
+const nrm=x=>x,mName=x=>x,mbSeq=()=>null;/* 中立の技だけ：メテオビームの使うごとのダメージは使わない */
 `+(()=>{const a=bs.indexOf('const MFIRST='),b=bs.indexOf('const MCOND=',a);if(a<0||b<a)throw new Error('moveUsable source not found');return bs.slice(a,b)})();/* 2026/11/24：dgBest が moveUsable（失敗する技を除く）を通すので、本物の定義を取り出して使う */
 const duStart=du.indexOf('const DU_SURV_AB='),duEnd=du.indexOf('/* 先制技でいちばん強いもの',duStart);
 assert.ok(duStart>=0&&duEnd>duStart);

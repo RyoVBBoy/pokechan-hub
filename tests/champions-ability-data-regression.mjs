@@ -15,7 +15,7 @@ const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  disgLoss:()=>1,fixedDmg:()=>null,stgV:(v,k)=>k>=0?Math.floor(v*(2+k)/2):Math.floor(v*2/(2-k)),
  B:{weather:null},varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
  apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
- pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false};
+ pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot'])};
 const bcalc=new Function(...Object.keys(deps),src.slice(start,end)+';return bcalc;')(...Object.values(deps));
 const mon=(no,ab='',stage=0,status='')=>{
  const line=data.split('\n').find(x=>x.startsWith(no+','));

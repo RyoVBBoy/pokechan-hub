@@ -14,7 +14,7 @@ const deps={
  disgLoss:()=>1, fixedDmg:()=>null, stgV:v=>v, B:{weather:null},
  varPow:(_a,m)=>m.pow, chM:(c,m)=>Math.floor((c*m+2048)/4096),
  apM:(v,m)=>Math.floor(v*m/4096+0.5), SKIN:{}, ITEMT:{},
- mfl:()=>false, PINCH:{}, pR:Math.round, RES_BERRY:{}, rnd:()=>0
+ mfl:()=>false, PINCH:{}, pR:Math.round, RES_BERRY:{}, rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot'])
 };
 const bcalc=new Function(...Object.keys(deps),source.slice(start,end)+';return bcalc;')(...Object.values(deps));
 const mon=()=>({ab:'',item:null,p:{t:['ノーマル'],no:1},st:[200,120,100,120,100],stg:{atk:0,def:0,spa:0,spd:0,spe:0},hp:200,max:200,status:''});
