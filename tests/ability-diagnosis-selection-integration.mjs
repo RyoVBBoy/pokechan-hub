@@ -10,12 +10,13 @@ const read=p=>readFileSync(path.join(root,p),'utf8');
 const bs=read('src/js/15-battle.js'),ds=read('src/js/60-diag.js'),
       ss=read('src/js/61-select.js'),raw=read('src/js/02-data.js'),du=read('src/js/56-duel.js');
 const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
+const __B={weather:null};/* 2026-11-24: shared weather state for the new wxEffK/effPri helpers */
 const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  disgLoss:()=>1,fixedDmg:()=>null,
  stgV:(v,k)=>k>=0?Math.floor(v*(2+k)/2):Math.floor(v*2/(2-k)),
- B:{weather:null},varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
+ B:__B,varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
  apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
- pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot'])};
+ pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot']),wxEffK:(a,d)=>(__B.weather&&__B.weather.k&&!['cloud-nine','air-lock'].includes(a&&a.ab)&&!['cloud-nine','air-lock'].includes(d&&d.ab))?__B.weather.k:null,effPri:(a,mv)=>(mv&&mv.pri)||0};
 const bStart=bs.indexOf('function bcalc('),bEnd=bs.indexOf('/* ---- 連続技を1発ずつ',bStart);
 assert.ok(bStart>=0&&bEnd>bStart);
 const bcalc=new Function(...Object.keys(deps),bs.slice(bStart,bEnd)+';return bcalc;')(...Object.values(deps));
@@ -29,7 +30,7 @@ const SKIN={},ABN={},LIVE={csv:{}},MVKA={};
 const B={weather:null};
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8)),hitType=(_a,m)=>m.t,accOf=()=>100;
 const effSpd=a=>a.spd||100,fixedDmg=()=>null,mkey=m=>m.id,duel=()=>({});
-const nrm=x=>x,mName=x=>x,mbSeq=()=>null;/* 中立の技だけ：メテオビームの使うごとのダメージは使わない */
+const nrm=x=>x,mName=x=>x,mbSeq=()=>null,effPri=(a,mv)=>(mv&&mv.pri)||0,useSeq=()=>null,hitCountDist=()=>[[1,1]],nextUse=(a,mv,d)=>({a,d,changed:false}),bhits=(a,mv,d,o)=>{const x=bcalc(a,mv,d,o||{});return{hits:[{dmg:x.dmg}],total:x.dmg,eff:x.eff,n:1}},hitDist=()=>[];/* 2026-11-24: neutral single-hit stand-ins for the shared multi-hit helpers *//* 中立の技だけ：メテオビームの使うごとのダメージは使わない */
 `+(()=>{const a=bs.indexOf('const MFIRST='),b=bs.indexOf('const MCOND=',a);if(a<0||b<a)throw new Error('moveUsable source not found');return bs.slice(a,b)})();/* 2026/11/24：dgBest が moveUsable（失敗する技を除く）を通すので、本物の定義を取り出して使う */
 const duStart=du.indexOf('const DU_SURV_AB='),duEnd=du.indexOf('/* 先制技でいちばん強いもの',duStart);
 assert.ok(duStart>=0&&duEnd>duStart);

@@ -27,7 +27,8 @@ for(const [spread,expected] of [[false,2048],[true,2732]]){
   assert.equal(modifier({spread}),expected,`legacy caller, spread=${spread}`);
   count++;
 }
-assert.match(battle,/if\(o\.screen&&!crit&&!\['brickbreak','psychicfangs','ragingbull'\]\.includes\(mk\)\)/);
+/* 2026-11-24: Infiltrator also bypasses screens (Pokémon Showdown e7f50cd); the crit and wall-breaker exemptions are still required. */
+assert.match(battle,/if\(o\.screen&&!crit&&a\.ab!=='infiltrator'&&!\['brickbreak','psychicfangs','ragingbull'\]\.includes\(mk\)\)/);
 assert.match(calc,/format:FMT,spread:FMT==='double'&&CS\.spread/);
 assert.match(reference,/gameType:o\.format==='double'\?'Doubles':'Singles'/);
 assert.match(reference,/format:o\.format\|\|'single'/);

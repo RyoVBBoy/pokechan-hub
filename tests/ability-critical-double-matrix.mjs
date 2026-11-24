@@ -8,11 +8,12 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(path.join(root,p),'utf8');
 const bs=read('src/js/15-battle.js'),cs=read('src/js/21-calc.js');
 const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
+const __B={weather:null};/* 2026-11-24: shared weather state for the new wxEffK/effPri helpers */
 const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  disgLoss:()=>1,fixedDmg:()=>null,stgV:(v,k)=>k>=0?Math.floor(v*(2+k)/2):Math.floor(v*2/(2-k)),
- B:{weather:null},varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
+ B:__B,varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
  apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
- pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot'])};
+ pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot']),wxEffK:(a,d)=>(__B.weather&&__B.weather.k&&!['cloud-nine','air-lock'].includes(a&&a.ab)&&!['cloud-nine','air-lock'].includes(d&&d.ab))?__B.weather.k:null,effPri:(a,mv)=>(mv&&mv.pri)||0};
 const start=bs.indexOf('function bcalc('),end=bs.indexOf('/* ---- 連続技を1発ずつ',start);
 assert.ok(start>=0&&end>start);
 const bcalc=new Function(...Object.keys(deps),bs.slice(start,end)+';return bcalc;')(...Object.values(deps));

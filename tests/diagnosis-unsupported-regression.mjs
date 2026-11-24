@@ -13,12 +13,12 @@ const ab=calc.match(/const CALC_UNIMPL=\[[^\n]+\];/),uv=calc.match(/const CALC_U
 assert.ok(fn&&ab&&uv&&it&&sim,'unsupported modifier source markers');
 const check=new Function('ABN','ITEMN',ab[0]+'\n'+uv[0]+'\n'+it[0]+'\n'+sim[0]+'\n'+fn[0]+'\nreturn dgCalcUnsupported;')(
  {unaware:'てんねん','marvel-scale':'ふしぎなうろこ','friend-guard':'フレンドガード',eelevate:'うなぎのぼり','mega-sol':'メガソーラー',dragonize:'ドラゴンスキン'},
- {ironball:'くろいてっきゅう'});
-for(const [m,name] of [[{ab:'friend-guard'},'フレンドガード'],[{item:'ironball'},'くろいてっきゅう'],
+ {metronome:'メトロノーム'});/* 2026-11-24: Iron Ball (Speed, grounding) is now calculated, so the unsupported-item example is Metronome */
+for(const [m,name] of [[{ab:'friend-guard'},'フレンドガード'],[{item:'metronome'},'メトロノーム'],
  [{ab:'intimidate'},'特性'],[{ab:'eelevate'},'うなぎのぼり'],[{ab:'mega-sol'},'メガソーラー'],[{ab:'dragonize'},'ドラゴンスキン']]){
  assert.ok(check(m).join(' ').includes(name),name);
 }
-assert.ok(check({ab:'friend-guard',item:'ironball'}).length===2,'multiple unsupported mechanics must both be reported');
+assert.ok(check({ab:'friend-guard',item:'metronome'}).length===2,'multiple unsupported mechanics must both be reported');
 // Exercise the actual declared unsupported sets rather than a handful of examples.
 const parseList=source=>JSON.parse(source.slice(source.indexOf('['),source.lastIndexOf(']')+1).replaceAll("'",'"'));
 const unimpl=parseList(ab[0]),items=parseList(it[0]),simonly=parseList(sim[0]);

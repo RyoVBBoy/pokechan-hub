@@ -9,12 +9,13 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const source=readFileSync(path.join(root,'src/js/15-battle.js'),'utf8');
 const start=source.indexOf('function bcalc('),end=source.indexOf('/* ---- 連続技を1発ずつ',start);
 assert.ok(start>=0&&end>start,'bcalc source boundary');
+const __B={weather:null};/* 2026-11-24: shared weather state for the new wxEffK/effPri helpers */
 const deps={
  hitType:(_a,m)=>m.t, ABSORB:{}, mult:()=>1, mkey:m=>m.id,
- disgLoss:()=>1, fixedDmg:()=>null, stgV:v=>v, B:{weather:null},
+ disgLoss:()=>1, fixedDmg:()=>null, stgV:v=>v, B:__B,
  varPow:(_a,m)=>m.pow, chM:(c,m)=>Math.floor((c*m+2048)/4096),
  apM:(v,m)=>Math.floor(v*m/4096+0.5), SKIN:{}, ITEMT:{},
- mfl:()=>false, PINCH:{}, pR:Math.round, RES_BERRY:{}, rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot'])
+ mfl:()=>false, PINCH:{}, pR:Math.round, RES_BERRY:{}, rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot']),wxEffK:(a,d)=>(__B.weather&&__B.weather.k&&!['cloud-nine','air-lock'].includes(a&&a.ab)&&!['cloud-nine','air-lock'].includes(d&&d.ab))?__B.weather.k:null,effPri:(a,mv)=>(mv&&mv.pri)||0
 };
 const bcalc=new Function(...Object.keys(deps),source.slice(start,end)+';return bcalc;')(...Object.values(deps));
 const mon=()=>({ab:'',item:null,p:{t:['ノーマル'],no:1},st:[200,120,100,120,100],stg:{atk:0,def:0,spa:0,spd:0,spe:0},hp:200,max:200,status:''});
@@ -34,7 +35,10 @@ for(const c of cases){
 const damage=(format,spread,screen)=>bcalc(a,move(),d,{format,spread,screen,r:100}).dmg;
 assert.deepEqual([damage('single',false,false),damage('single',false,true)],[66,33]);
 assert.deepEqual([damage('double',false,false),damage('double',false,true)],[66,44]);
-assert.deepEqual([damage('double',true,false),damage('double',true,true)],[50,33]);
+/* 2026-11-24: spread 0.75x applies only to spread-target moves (mv.tg); a single-target move with the spread flag is not reduced */
+const spreadMv={...move(),tg:1};
+assert.deepEqual([bcalc(a,spreadMv,d,{format:'double',spread:true,screen:false,r:100}).dmg,bcalc(a,spreadMv,d,{format:'double',spread:true,screen:true,r:100}).dmg],[50,33]);
+assert.deepEqual([damage('double',true,false),damage('double',true,true)],[66,44],'single-target move ignores spread reduction');
 for(const id of ['brickbreak','psychicfangs','ragingbull'])
  assert.equal(bcalc(a,move(id),d,{format:'double',screen:true,r:100}).dmg,bcalc(a,move(id),d,{format:'double',screen:false,r:100}).dmg,id+' bypasses wall');
 console.log('PASS: 32 bcalc scenarios, 3 numerical checks, 3 wall-breaking move checks');
