@@ -105,7 +105,7 @@ const dgMonSig=m=>JSON.stringify(m,(k,v)=>k==='p'?(v&&v.no):v);
 function dgMatch(a,o){
   if(!DG_MEMO||DG_MEMO_OFF)return withWx(a,o,()=>dgMatch0(a,o));
   let k;try{let tw=null;try{tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null}catch(e){}
-    k=dgMonSig(a)+'|'+dgMonSig(o)+'|'+JSON.stringify([DG_TR,typeof WX_OFF!=='undefined'&&WX_OFF,B.weather||null,tw,inTeam(a),inTeam(o)])}catch(e){return withWx(a,o,()=>dgMatch0(a,o))}
+    k=dgMonSig(a)+'|'+dgMonSig(o)+'|'+JSON.stringify([DG_TR,typeof WX_OFF!=='undefined'&&WX_OFF,FMT,B.weather||null,tw,inTeam(a),inTeam(o),LIVE.csv[o.p.base||o.p.no]?.mv])}catch(e){return withWx(a,o,()=>dgMatch0(a,o))}
   if(DG_MEMO.has(k))return DG_MEMO.get(k);
   const v=withWx(a,o,()=>dgMatch0(a,o));DG_MEMO.set(k,v);return v}
 function dgMatch0(a,o){
@@ -275,9 +275,9 @@ function dgWaitBind(root,redraw){if(!root)return;
 /* 診断に使ったデータの中身（使い回しの鍵）：形式・相手の候補の並び・集計のある匹・上位パーティ・計算の方法 */
 function dgDataSig(){
   const rk=typeof META!=='undefined'&&META.rank?META.rank.map(x=>x.no).join('.'):'';
-  const have=Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).sort((a,b)=>a-b).join('.');
+  const csv=Object.entries(LIVE.csv).filter(([,row])=>row);
   const tp=typeof TOPT!=='undefined'&&typeof topReady==='function'&&topReady()?TOPT.at+':'+TOPT.n:'0';
-  return [FMT,rk,have,tp,'m'+dgMegaSel()].join('|');
+  return JSON.stringify([FMT,rk,csv,tp,'m'+dgMegaSel(),DGD.allow,B.weather||null]);
 }
 /* ---- メガシンカは1回の対戦で1匹だけ（2026/11/14 依頼主の判断：診断は「選んだメガだけを見せる」） ----
    メガストーンを持つ匹が2匹以上いれば、1匹だけをメガの姿で計算し、ほかは持ち物なしで計算する（同時に2匹をメガの姿で数えない）。
@@ -296,7 +296,7 @@ function dgTeam(entries,n){
   n=n||20;
   const key=JSON.stringify([n,dgDataSig(),entries.map(x=>[x.no,x.set||0])]);
   if(DG_CACHE.k===key)return DG_CACHE.v;
-  const v=dgTeam0(entries,n);DG_CACHE.k=key;DG_CACHE.v=v;return v;
+  const v=impWith(entries,()=>dgTeam0(entries,n));DG_CACHE.k=key;DG_CACHE.v=v;return v;
 }
 /* 変更前（T0）と比べるときのメガシンカ（2026/11/24）：メガストーンを持つ匹（計算に使う育成で）が変わらないなら、変更前と同じ匹をメガシンカさせる。
    増えた・減った・持ちかえたなら、変更後のパーティの実際の条件（利用者の選び→自動でいちばん良いメガ）。entries を計算するとき（impWith の中）に呼ぶ */
@@ -311,6 +311,7 @@ function dgTeam0(entries,n,opt){
   /* 入れかえ案の匹は、その匹のために組んだ育成（x.set）で計算する（パーティにいない匹は teamSet で引けないため） */
   const CS=ms.map(o=>{try{return dgCalcSet(o)}catch(e){return null}});
   const H=ms.map((o,i)=>dgStoneOf(o.x.no,CS[i])?i:-1).filter(i=>i>=0);
+  if(opt.noMega)return dgTeam1(n,ms,CS,-1,H,'none');
   if(H.length<2)return dgTeam1(n,ms,CS,H.length?H[0]:-1,H,'one');
   const pick=no=>no?H.find(i=>ms[i].x.no===+no):undefined;
   let wi=pick(opt.megaNo),mode='fixed';
@@ -369,8 +370,8 @@ function dgTeam2(n,ms,CS,mi,H,mode){
   const slow=M.map((a,i)=>i).filter(i=>rows.length&&rows.filter(r=>{const z=r.res.find(x=>x.i===i);return z&&z.sa<z.so}).length>=rows.length*.7);
   const many=slow.length*2>ms.length;
   const tr={on:!!setters.length&&many,setters,cand,slow,suit:!!all.length&&many,unset:!setters.length&&!!cand.length&&many};
-  if(tr.on){DG_TR=true;try{rows.forEach(r=>{r.resTR=M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,r.o)}}catch(e){return null}}).filter(Boolean);
-    const st=r.resTR.filter(x=>x.r>=4),okk=r.resTR.filter(x=>x.r>=3),wk=r.resTR.filter(x=>x.r===2);r.lvlTR=st.length>=2?4:st.length===1?3:okk.length||wk.length?2:1})}finally{DG_TR=false}}
+  if(tr.on){const prevTR=DG_TR;DG_TR=true;try{rows.forEach(r=>{r.resTR=M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,r.o)}}catch(e){return null}}).filter(Boolean);
+    const st=r.resTR.filter(x=>x.r>=4),okk=r.resTR.filter(x=>x.r>=3),wk=r.resTR.filter(x=>x.r===2);r.lvlTR=st.length>=2?4:st.length===1?3:okk.length||wk.length?2:1})}finally{DG_TR=prevTR}}
   /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
   const unk=new Map();const addU=(m,who)=>{if(!m)return;const notes=dgCalcUnsupported(m);if(m.ab&&ABN[m.ab]&&typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab)&&!notes.length)notes.push(`特性「${ABN[m.ab]}」`);if(notes.length)unk.set(who+m.p.n,`${m.p.n}の${notes.join('・')}`)};
   M.forEach(m=>addU(m,'me'));rows.forEach(r=>addU(r.o,'op'));
@@ -563,7 +564,7 @@ const DG_FIX=new Map();
 function dgDefSwaps(entries,T){
   T=T||dgTeam(entries,20);const noSw=T.rows.filter(r=>!r.res.some(z=>z.swIn==='win'));
   if(noSw.length<2||entries.length<2)return[];
-  const key=JSON.stringify([FMT,entries.map(x=>[x.no,x.set||0,!!x.axis]),Object.keys(LIVE.csv).length]);
+  const key=JSON.stringify([dgDataSig(),entries.map(x=>[x.no,x.set||0,!!x.axis])]);
   if(DG_FIX.has(key))return DG_FIX.get(key);
   const fam=q=>q.base||q.no,inT=new Set(entries.map(x=>fam(byNo[x.no]||{no:x.no})));
   const pool=[];const seen=new Set();
@@ -575,9 +576,9 @@ function dgDefSwaps(entries,T){
   outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
     const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
       const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>=2).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
-    sc.forEach(({c,S,won})=>{let T1;try{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x);T1=dgTeam0(es,20,dgMegaOpt(T,es))}catch(e){return}
+    sc.forEach(({c,S})=>{let T1;try{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x);T1=impRecalc(es)}catch(e){return}
       const D=dgDiff(T,T1),b=D.b,a=D.a;
-      if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,won:won.map(r=>r.q.n),b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
+      if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
   res.sort((x,y)=>y.gain-x.gain);
   /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（76-mvp.js、メガは1匹ずつ）でも確かめ、新しい大きな弱点ができる・素早さの操作か天気を失う案は出さない（数は mvpDrop） */
   const used=new Set(),out=[];let drop=0,E0=null;

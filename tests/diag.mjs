@@ -313,7 +313,7 @@ const V7=await pg.evaluate(()=>{
   r.notCounted=T.rows.every(row=>row.stable.every(z=>z.r>=4)&&row.res.filter(z=>z.me&&z.k==='lose').every(z=>!row.stable.includes(z)&&!row.ok.includes(z)));
   r.hasLoseWithMove=all.some(z=>z.me&&z.me.max>0&&z.k==='lose');
   /* 入れかえ案は変更後の6匹で計算し直して良くなる */
-  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam0(team.map((y,k)=>k===x.i?{no:x.c.no,set:x.S.sv}:y),20);const m=dgMetric(T1,x.D.keep);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko&&m.slow===x.a.slow});
+  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam(team.map((y,k)=>k===x.i?{no:x.c.no,set:x.S.sv}:y),20);const m=dgMetric(T1,x.D.keep);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko&&m.slow===x.a.slow});
   /* 入れる匹の育成：外す匹の技・持ち物を引きつがない。技は覚えるもの、特性は持てるもの、持ち物はゲームにあって残る5匹と重ならない */
   r.swSet=S.every(x=>{const sv=x.S.sv,out=team[x.i].set,ls=(LSD[x.c.no]||[0,[]])[1],rest=team.filter((_,k)=>k!==x.i).map(y=>y.set.it.k);
     return sv.mv.length>=3&&sv.mv.every(m=>m.id===182||ls.includes(m.id))&&!sv.mv.some(m=>out.mv.some(o=>o.id===m.id)&&!ls.includes(m.id))&&(ABD[x.c.no]||[]).some(a=>a[0]===sv.ab.k)&&sv.it&&(CH_ITEMS.has(sv.it.k)||isStone(sv.it.k))&&!rest.includes(sv.it.k)&&sv.sp.reduce((a,b)=>a+b,0)>=60&&sv.up>=0});
@@ -514,7 +514,7 @@ const V12=await pg.evaluate(()=>{
   /* 攻撃役のガブリアスには耐久の型を出さない（2026/11/16）。役目を大きく失う変更を見分ける決まり（impRoleLoss）は、その型を手で作って確かめる */
   const gi=team.findIndex(x=>x.no===N('ガブリアス').no),gb=impSaved(team[gi].no,monGuide(N('ガブリアス'),{raw:true,}).make('bulky')||monGuide(N('カバルドン'),{raw:true}).make('bulky'));
   gb.it=team[gi].set.it;const es=team.map((x,k)=>k===gi?{...x,set:{...gb,sp:[32,0,32,0,2,0],up:2,dn:3,src:'manual'}}:x);
-  const loss=impRoleLoss(R.T0,impRecalc(R.T0,es,gi),gi);window.__drop=[String(loss)];
+  const loss=impRoleLoss(R.T0,impRecalc(es),gi);window.__drop=[String(loss)];
   r.dropped=![...R.list,...R.dropped].some(o=>/ガブリアスを耐久の型に/.test(o.title))&&/上から倒せる相手が\d+→0匹/.test(loss||'');
   /* ゲームにある持ち物・覚える技だけ・持ち物が重ならない・メガストーンは変えない */
   r.valid=L.every(o=>{const it=o.entries.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean);

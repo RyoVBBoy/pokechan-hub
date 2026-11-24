@@ -11,6 +11,7 @@ const fn=src.slice(src.indexOf('function dgSelect(entries){'),src.indexOf('/* 1ã
 assert.ok(fn.startsWith('function dgSelect(entries){')&&fn.includes('return out;'),'real selection function extracted');
 const setup=`
 const DG_SELC=new Map(),SEL_LV={4:1,3:.7,2:.25,1:0};
+const impWith=(_,fn)=>fn();
 const PICK=()=>2,dgDataSig=()=> 'impact-fixture';
 const formInfo=p=>({base:p.n}),teamWx=()=>null,isStone=()=>false;
 const combos=(arr,k)=>k===0?[[]]:arr.flatMap((x,i)=>combos(arr.slice(i+1),k-1).map(z=>[x,...z]));

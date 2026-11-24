@@ -39,6 +39,7 @@ const sStart=ss.indexOf('function dgSelect(entries){'),sEnd=ss.indexOf('/* 1ã¤ã
 assert.ok(sStart>=0&&sEnd>sStart);
 const selStubs=`
 const DG_SELC=new Map(),SEL_LV={4:1,3:.7,2:.25,1:0};
+const impWith=(_,fn)=>fn();
 const PICK=()=>2,dgDataSig=()=> 'ability-integration-fixture';
 const formInfo=p=>({base:p.n}),teamWx=()=>null,isStone=()=>false;
 const combos=(arr,k)=>k===0?[[]]:arr.flatMap((x,i)=>combos(arr.slice(i+1),k-1).map(z=>[x,...z]));

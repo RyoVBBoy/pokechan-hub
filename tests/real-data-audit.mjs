@@ -91,13 +91,13 @@ try{
       check(S?.list.every(x=>x.rows.length===S.N),'same opponent population for every selection',null);
       const I2=timed('two Mega improvements',()=>dgImprove(team));check(I2&&Array.isArray(I2.list),'two Mega improvements computed');
       if(I2)for(const [i,o] of I2.list.entries()){auditTeam('two Mega improvement '+i,o.entries);
-        const F=impWith(o.entries,()=>dgTeam0(o.entries,20,dgMegaOpt(I2.T0,o.entries)));
+        const F=dgTeam(o.entries,20);
         check(JSON.stringify(dgMetric(F))===JSON.stringify(dgMetric(o.T1))&&F.mega.no===o.T1.mega.no,'improvement '+i+' after-values equal full recomputation',{shown:dgMetric(o.T1),full:dgMetric(F)});
         check(JSON.stringify(impMetric(I2.T0,o.J.D.keep))===JSON.stringify(o.J.b)&&JSON.stringify(impMetric(F,o.J.D.keep))===JSON.stringify(o.J.a),'improvement '+i+' displayed before/after match evaluated builds')}}
     const id=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
     const slow=pool.filter(s=>byNo[s.no].s[5]<=70);const setter=slow.find(s=>(LSD[s.no]||[0,[]])[1].includes(id));
     check(setter&&slow.length>=6,'real slow Trick Room fixture');
-    if(setter&&slow.length>=6){const base=[setter,...slow.filter(s=>s.no!==setter.no)].slice(0,6).map(s=>({no:s.no,set:{...s.sv,it:null,mv:s.sv.mv.filter(m=>m.id!==id)}}));team.length=0;team.push(...base);const D=dgTeam0(team,20);const after=base.map((x,i)=>i?x:{...x,set:{...x.set,mv:[{id,n:mName(id)},...x.set.mv].slice(0,4)}});const R=timed('Trick Room change',()=>impRecalc(D,after,0));const F=impWith(after,()=>dgTeam0(after,20,{megaNo:D.mega?.no}));check(R&&JSON.stringify(R.tr)===JSON.stringify(F.tr)&&JSON.stringify(dgMetric(R))===JSON.stringify(dgMetric(F)),'Trick Room change equals full recomputation');DG_SELC.clear();const no=dgSelect(team);check(no&&!no.list.some(x=>x.trUse),'unregistered Trick Room not used');}
+    if(setter&&slow.length>=6){const base=[setter,...slow.filter(s=>s.no!==setter.no)].slice(0,6).map(s=>({no:s.no,set:{...s.sv,it:null,mv:s.sv.mv.filter(m=>m.id!==id)}}));team.length=0;team.push(...base);const D=dgTeam0(team,20);const after=base.map((x,i)=>i?x:{...x,set:{...x.set,mv:[{id,n:mName(id)},...x.set.mv].slice(0,4)}});const R=timed('Trick Room change',()=>impRecalc(after));const F=dgTeam(after,20);check(R&&JSON.stringify(R.tr)===JSON.stringify(F.tr)&&JSON.stringify(dgMetric(R))===JSON.stringify(dgMetric(F)),'Trick Room change equals full recomputation');DG_SELC.clear();const no=dgSelect(team);check(no&&!no.list.some(x=>x.trUse),'unregistered Trick Room not used');}
    }
    return {checks,results};
   },{fmt,mode});

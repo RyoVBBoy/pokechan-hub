@@ -50,9 +50,13 @@ function teamWx(){if(typeof team==='undefined'||!team.length)return null;
   const key=JSON.stringify([WX_MEGA===undefined?'u':WX_MEGA,team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
   let v=null;for(const x of team){const p=byNo[x.no];if(!p)continue;let ab=null;
     let guess=false;
-    try{const it0=x.set&&x.set.it&&x.set.it.k,it=it0&&isStone(it0)&&WX_MEGA!==undefined&&WX_MEGA!==x.no?null:it0,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||null;
+    try{const it0=x.set&&x.set.it&&x.set.it.k,mega=it0&&megaOf(p.no,it0);
+      const active=mega&&(WX_MEGA===undefined||WX_MEGA===x.no);
+      const saved=x.set&&x.set.ab&&x.set.ab.k;
+      const baseSaved=!mega||active||(ABD[p.no]||[]).some(([k])=>k===saved)?saved:null;
+      ab=active?mega.ab:baseSaved;
       /* 特性が未登録で、天気を変える特性を持てる匹（ペリッパーのあめふらし等）は、その特性で使うと仮定する */
-      if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||mySetFor(x.no).ab;guess=!!w}}catch(e){}
+      if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||(mega&&!active?(ABD[p.no]||[])[0]?.[0]:mySetFor(x.no).ab);guess=!!w}}catch(e){}
     if(ab&&WSET[ab]){v={k:WSET[ab],by:formInfo(p).base,ab,guess};break}}
   TWX_K=key;TWX_V=v;return v}
 const inTeam=m=>typeof team!=='undefined'&&team.some(x=>{const p=byNo[x.no];return p&&(p.no===(m.p.base||m.p.no)||p.no===m.p.no)});

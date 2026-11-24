@@ -3,7 +3,7 @@
    ・比べる数：× の相手・△以下・後出しして勝てる匹がいない相手・半分以上を一撃で倒される相手・だれも先に動けない相手・◎
    ・大事な役目を失わせない：変更前に ◎○ だった相手が △以下に落ちる案、× が増える案は出さない
    ・良くなる相手と悪くなる相手（◎→○など、落ちても○以上のもの）を名前と計算で出す
-   ・育成の変更は、変えた1匹の分だけ計算し直す（天気・トリックルームの形が変わるときは全部を計算し直す）
+   ・育成の変更後は全体を組み直し、同じ入力の対面の結果を使い回す
    ・ゲームにある持ち物（CH_ITEMS）・覚える技・持てる特性だけを使う。メガストーンは変えない（メガシンカの形が変わるため） */
 const IMP_W={x:3,w:1.5,nosw:1,ohko:1,slow:.7,st:.3};
 /* 1対1の計算では正しく扱えない技は候補にしない：受けると失敗・ためる・反動で動けない・自分が倒れる・前のターンしだい・最後にしか出せない 等 */
@@ -23,22 +23,19 @@ function impBase(x){
 }
 /* パーティを一時的に入れかえて計算する（mySetFor・teamWx はいまのパーティ team を見るため）。必ず元に戻す */
 function impWith(entries,fn){
-  const keep=team.slice(),keepSel=team.map(x=>x.sel);
-  team.length=0;entries.forEach(x=>team.push(x));TWX_K=null;
+  if(entries.length===team.length&&entries.every((x,i)=>x===team[i]))return fn();
+  const keep=team.slice(),keepSel=team.map(x=>x.sel),next=[...entries];
+  team.length=0;team.push(...next);TWX_K=null;
   try{return fn()}finally{team.length=0;keep.forEach((x,k)=>{x.sel=keepSel[k];team.push(x)});TWX_K=null}
 }
 const impLv=rs=>{const st=rs.filter(r=>r.r>=4).length,ok=rs.filter(r=>r.r>=3).length,wk=rs.filter(r=>r.r===2).length;return st>=2?4:st===1?3:ok||wk?2:1};
 /* 変更後の全体を再計算する。素早さ・技・メガ・天気・相手の特性推定は他の列にも影響するため、古い列を流用しない。 */
-function impRecalc(T0,entries,i){
-  return impWith(entries,()=>dgTeam0(entries,20,impMegaOpt(T0,entries)));
+function impRecalc(entries){
+  return impWith(entries,()=>dgTeam0(entries,20));
 }
-/* 2026/11/24：メガシンカの候補が変わらないなら、変更前と同じ匹をメガシンカさせて比べる（前と同じ）。
-   変更でメガストーンを持つ匹が増えた・減った・持ちかえたときは、変更後のパーティの実際の条件（利用者が選んだメガ→なければ自動でいちばん良いメガ）で計算し直す
-   （前は変更前のメガに固定していたので、入れかえで入ったメガストーンの匹をメガシンカさせずに数えていた） */
-const impMegaOpt=(T0,entries)=>dgMegaOpt(T0,entries);
 /* 計算したメガシンカ（変更前→変更後）。変わったときだけ文にする */
 function impMegaChg(T0,T1){const n=T=>T&&T.mega&&T.mega.i>=0?((T.M[T.mega.i]&&T.M[T.mega.i].p)||T.ms[T.mega.i].p).n:'メガシンカなし';
-  const a=n(T0),b=n(T1);return a===b?'':`計算したメガシンカ：${a} → ${b}（メガストーンを持つ匹が変わるので、変更後のパーティの条件で計算し直しました）`}
+  const a=n(T0),b=n(T1);return a===b?'':`計算したメガシンカ：${a} → ${b}（変更後のパーティの条件で計算し直しました）`}
 function impMetric(T,keep){const m=dgMetric(T,keep);m.st=(keep?T.rows.filter(r=>keep.has(r.q.no)):T.rows).filter(r=>r.lvl===4).length;return m}
 function impGain(b,a){return IMP_W.x*(b.x-a.x)+IMP_W.w*(b.w-a.w)+IMP_W.nosw*(b.nosw-a.nosw)+IMP_W.ohko*(b.ohko-a.ohko)+IMP_W.slow*(b.slow-a.slow)+IMP_W.st*(a.st-b.st)}
 /* 変更前→変更後の比べ方（dgDiff）と、大事な役目を失うか（◎○→△以下・×が増える） */
@@ -84,7 +81,7 @@ function impUsePct(no,stone){const out={};const put=(id,pc)=>{if(id&&pc!=null&&!
   try{const d=typeof LIVE!=='undefined'&&LIVE.csv[no];if(d&&d.mv)d.mv.forEach(([n,pc])=>put(MVKA[nrm(n)],pc))}catch(e){}
   try{if(typeof mvpRowOf==='function'){const r=mvpRowOf(typeof FMT!=='undefined'?FMT:'single',no,stone);if(r&&r.mv)r.mv.forEach(([k,pc])=>put(MVKA[nrm(k)],pc))}}catch(e){}
   return out}
-function dgImprove(entries){const prev=DG_MEMO;DG_MEMO=prev||new Map();try{return dgImprove0(entries)}finally{DG_MEMO=prev}}
+function dgImprove(entries){const prev=DG_MEMO;DG_MEMO=prev||new Map();try{return impWith(entries,()=>dgImprove0(entries))}finally{DG_MEMO=prev}}
 function dgImprove0(entries){
   if(!entries||entries.length<3)return{list:[],note:'3匹以上入れると改善案を計算できます。'};
   const T0=dgTeam0(entries,20);try{const w=teamWx();T0.wxKey=w?[w.k,w.by]:null}catch(e){T0.wxKey=null}
@@ -96,7 +93,7 @@ function dgImprove0(entries){
   const out=[],dropped=[],nm=i=>((T0.M[i]&&T0.M[i].p)||T0.ms[i].p).n;
   const used=i=>new Set(entries.filter((_,k)=>k!==i).map(x=>{const s=impBase(x);return s.it&&s.it.k}).filter(Boolean));
   const problem=T0.rows.filter(r=>r.lvl<=2||!r.res.some(z=>z.swIn==='win'));
-  const tryEntry=(kind,i,nx,title,why,badMv)=>{const es=entries.map((x,k)=>k===i?nx:x);let T1;try{T1=impRecalc(T0,es,i)}catch(e){return}
+  const tryEntry=(kind,i,nx,title,why,badMv)=>{const es=entries.map((x,k)=>k===i?nx:x);let T1;try{T1=impRecalc(es)}catch(e){return}
     if(feT1(T1))return;/* 変えたあとに合わない持ち物の匹ができる案は出さない */
     const J=impJudge(T0,T1);if(!J.ok)return;const loss=impRoleLoss(T0,T1,i);if(loss){dropped.push({title,loss});return}
     if(badMv&&badMv.length){dropped.push({title,loss:`1対1で正しく計算できない技（${badMv.map(m=>m.n).join('・')}）を含む型なので、数を信用できない`});return}
@@ -161,7 +158,7 @@ function dgImprove0(entries){
     outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
       const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}if(a.formErr)return null;
         const v=problem.reduce((t,r)=>{try{const z=dgMatch(a,r.o);return t+(z.r>=4?1:0)+(z.swIn==='win'?.6:0)}catch(e){return t}},0);return{c,S,v}}).filter(z=>z&&z.v>=1.5).sort((a,b)=>b.v-a.v).slice(0,4);
-      sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impWith(es,()=>dgTeam0(es,20,dgMegaOpt(T0,es)))}catch(e){return}if(feT1(T1))return;
+      sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impRecalc(es)}catch(e){return}if(feT1(T1))return;
         const J=impJudge(T0,T1);if(!J.ok)return;
         /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は理由つきで「出さなかった案」へ */
         const G=typeof mvpGate==='function'?mvpGate(entries,i,es[i],GE0):{ok:true};GE0=G.E0||GE0;
@@ -175,7 +172,7 @@ function dgImprove0(entries){
   const top=list.slice(0,8);top.forEach(o=>{try{o.mem=impMember(T0,o.T1,o)}catch(e){o.mem=[]}});
   /* 選出への影響（選出の比較の1番の ◎○△×） */
   let S0=null;try{S0=dgSelect(entries)}catch(e){}
-  top.forEach(o=>{try{const S1=impWith(o.entries,()=>{DG_SELC.clear();return dgSelect(o.entries)});o.sel=S0&&S1?{b:S0.best,a:S1.best,nm:S1.nm}:null}catch(e){o.sel=null}});
+  top.forEach(o=>{try{const S1=impWith(o.entries,()=>{DG_SELC.clear();return dgSelect(o.entries)});o.sel=S0&&S1?{b:S0.best,a:S1.best,beforeNm:S0.nm,afterNm:S1.nm}:null}catch(e){o.sel=null}});
   DG_SELC.clear();
   /* 選出の変え方：★の選出が1番でないとき */
   if(S0&&S0.mine&&S0.mine!==S0.best){const b=S0.mine,a=S0.best,W=dgSelWhy(S0,a,b);
@@ -202,7 +199,7 @@ function impCard(o,k){
     <div class="imp-ud imp-d"><p class="sel-wh">悪くなるところ（相手ごと）</p><ul class="sel-why sel-warn">${dn.map(t=>`<li>${esc(t)}</li>`).join('')||'<li style="color:var(--dim)">計算した範囲ではなし</li>'}</ul></div>
     ${more?`<details class="dgc-ev"><summary>${o.mem&&o.mem.length?'変える匹の変化':''}${o.mem&&o.mem.length&&o.sel?'と':''}${o.sel?'選出への影響':''}${!(o.mem&&o.mem.length)&&!o.sel?'くわしく':''}を見る</summary>
       ${o.mem&&o.mem.length?`<p class="sel-wh">変える匹の変化</p><ul class="sel-why">${o.mem.map(m=>`<li${m.bad?' class="sel-w"':''}>${esc(m.t)}</li>`).join('')}</ul>`:''}
-      ${o.sel?`<p class="sel-wh">選出の比較の1番</p><p class="vcap">${o.sel.b.c.map(o.sel.nm).join('・')}（◎${o.sel.b.cnt[4]}○${o.sel.b.cnt[3]}△${o.sel.b.cnt[2]}×${o.sel.b.cnt[1]}）→ ${o.sel.a.c.map(o.sel.nm).join('・')}（◎${o.sel.a.cnt[4]}○${o.sel.a.cnt[3]}△${o.sel.a.cnt[2]}×${o.sel.a.cnt[1]}）</p>`:''}
+      ${o.sel?`<p class="sel-wh">選出の比較の1番</p><p class="vcap">${o.sel.b.c.map(o.sel.beforeNm).join('・')}（◎${o.sel.b.cnt[4]}○${o.sel.b.cnt[3]}△${o.sel.b.cnt[2]}×${o.sel.b.cnt[1]}）→ ${o.sel.a.c.map(o.sel.afterNm).join('・')}（◎${o.sel.a.cnt[4]}○${o.sel.a.cnt[3]}△${o.sel.a.cnt[2]}×${o.sel.a.cnt[1]}）</p>`:''}
       ${o.J.D&&o.J.D.note?`<p class="vcap">${esc(o.J.D.note)}</p>`:''}</details>`:''}
     <button class="btn ${k===0?'btn-p':'btn-s'} imp-go" data-imp="${k}">${o.kind==='sel'?'この組み合わせを選出にする':'この変更をする'}</button></div>`;
 }

@@ -85,14 +85,75 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
     const pool=rows.rows.filter(r=>!r.stone&&mvpLegal(r.no).st==='ok').map(r=>mvpSet(fmt,r.no,{anyMv:true})).filter(x=>x.st==='ok');
     const used=new Set(),es=[];for(const q of pool){if(es.some(x=>tbFam(x.no)===tbFam(q.no)))continue;const s=mvpSet(fmt,q.no,{anyMv:true,used});if(s.st!=='ok')continue;if(s.sv.it)used.add(s.sv.it.k);es.push({no:q.no,set:s.sv,axis:es.length===0});if(es.length===6)break}
     team.length=0;team.push(...es);
-    const sig=I=>JSON.stringify({l:I.list.map(x=>[x.kind,x.i,x.title,x.why,x.J.b,x.J.a,x.J.D.up,x.J.D.dn,x.megaChg,dgMetric(x.T1),x.T1.mega.no]),d:(I.dropped||[]).map(x=>x.title+'|'+x.loss),t:I.tried});
-    DG_MEMO_OFF=true;let t=performance.now();const A=dgImprove(team);const tA=performance.now()-t;DG_MEMO_OFF=false;
-    t=performance.now();const B2=dgImprove(team);const tB=performance.now()-t;
-    o.memo[fmt]={eq:sig(A)===sig(B2),n:A.list.length,tA:Math.round(tA),tB:Math.round(tB)}}}
+    const grid=T=>T?.rows.map(r=>[r.q.no,r.o.ab,r.lvl,r.lvlTR,r.res,r.resTR]);
+    const rank=S=>S?S.list.map(x=>[x.c,x.sc,x.cnt,x.sw,x.swc,x.fast,x.megaI,x.trUse,x.wxOk,x.rows.map(r=>[r.r.q.no,r.r.o.ab,r.lvl,r.zs]),x.leads]):null;
+    const sig=I=>JSON.stringify({grid:grid(I.T0),l:I.list.map(x=>[x.kind,x.i,x.title,x.why,x.J.b,x.J.a,x.J.gain,x.J.D.up,x.J.D.dn,x.megaChg,grid(x.T1),x.T1?.mega.no,
+      x.sel&&[x.sel.b.c.map(x.sel.beforeNm),x.sel.a.c.map(x.sel.afterNm),x.sel.b.sc,x.sel.a.sc,x.sel.b.cnt,x.sel.a.cnt,x.sel.b.sw,x.sel.a.sw]]),d:I.dropped,t:I.tried});
+    const cold=fn=>{DG_CACHE.k=null;DG_SELC.clear();IMP_CACHE.clear();return fn()};
+    DG_MEMO_OFF=true;let t=performance.now();const A=cold(()=>dgImprove(team));const tA=performance.now()-t;
+    const all=team.map(x=>({...x,axis:false}));
+    const SA=cold(()=>rank(dgSelect(all)));
+    DG_MEMO_OFF=false;
+    t=performance.now();const B2=cold(()=>dgImprove(team));const tB=performance.now()-t;
+    const SB=cold(()=>rank(dgSelect(all))),warm=rank(dgSelect(all));
+    const proposals=B2.list.filter(x=>x.T1);
+    const independent=proposals.every(x=>impWith(x.entries,()=>{
+      const full=cold(()=>dgTeam(x.entries,20));
+      return full.mega.no===x.T1.mega.no&&JSON.stringify(grid(full))===JSON.stringify(grid(x.T1))
+        && (!x.sel||JSON.stringify(rank(cold(()=>dgSelect(x.entries)))[0].slice(0,9))
+                  ===JSON.stringify([x.sel.a.c,x.sel.a.sc,x.sel.a.cnt,x.sel.a.sw,x.sel.a.swc,x.sel.a.fast,x.sel.a.megaI,x.sel.a.trUse,x.sel.a.wxOk]));
+    }));
+    o.memo[fmt]={eq:sig(A)===sig(B2),selection:JSON.stringify(SA)===JSON.stringify(SB)&&JSON.stringify(SB)===JSON.stringify(warm),
+      independent,proposals:proposals.length,n:B2.list.length,ranked:SB?.length,tA:Math.round(tA),tB:Math.round(tB)};}}
   finally{DG_MEMO_OFF=false;FMT=fmt0;team.length=0;keepT2.forEach(x=>team.push(x))}
+  /* ⑬ メガリザードンYを外した選出は、メガなし・晴れなしの独立した診断と、各対面まで同じ。 */
+  o.recalc=impWith([6,3,445,143,700,149].map((no,i)=>({no,set:{...setToSaved(byNo[no],mySetFor(no)),
+    ...(i===0?{it:{k:'charizarditey'},ab:{k:'drought'}}:i===1?{it:null,ab:{k:'chlorophyll'}}:{it:null})}})),()=>{
+    const selection=dgSelect(team);
+    const without=selection.list.filter(x=>!x.c.includes(0)&&x.c.includes(1));
+    const withSun=selection.list.filter(x=>x.c.includes(0)&&x.c.includes(1));
+    const zero=dgTeam0(team,20,{noMega:true});
+    const dry=new Map(zero.rows.map(r=>[(r.from||r.q).no,r]));
+    const same=without.every(x=>x.megaI===-1&&x.rows.every(y=>{
+      const z=dry.get((y.r.from||y.r.q).no);
+      return y.r.o.ab===z.o.ab&&JSON.stringify(y.zs)===JSON.stringify(x.c.map(i=>(x.trUse?z.resTR:z.res).find(v=>i===v.i)).filter(Boolean));
+    }));
+    team[0]={no:324,set:{...setToSaved(byNo[324],mySetFor(324)),it:null,ab:{k:'drought'}}};
+    const noSetter=dgSelect(team).list.filter(x=>!x.c.includes(0)&&x.c.includes(1));
+    const savedOff=WX_OFF;
+    let fromScratch;
+    try{WX_OFF=true;fromScratch=dgTeam0(team,20)}finally{WX_OFF=savedOff}
+    const clean=new Map(fromScratch.rows.map(r=>[(r.from||r.q).no,r]));
+    const drySame=noSetter.length>0&&noSetter.every(x=>!x.wxOk&&x.rows.every(y=>{
+      const z=clean.get((y.r.from||y.r.q).no);
+      return y.r.o.ab===z.o.ab&&JSON.stringify(y.zs)===JSON.stringify(x.c.map(i=>(x.trUse?z.resTR:z.res).find(v=>i===v.i)).filter(Boolean));
+    }));
+    const target=zero.rows[0].from.no,prev=LIVE.csv[target];
+    let changed;
+    try{
+      LIVE.csv[target]={mv:[]};
+      const first=dgTeam(team,20);
+      LIVE.csv[target]={mv:[['ステルスロック',100]]};
+      changed=dgTeam(team,20)!==first;
+    }finally{if(prev===undefined)delete LIVE.csv[target];else LIVE.csv[target]=prev}
+    return{without:without.length,withSun:withSun.length,same,drySame,changed,
+      sun:withSun.some(x=>x.rows.some(r=>r.zs.some(z=>z.i===1&&z.wxTeam)))};
+  });
+  const result={c:[0],cnt:{1:0,2:0,3:1,4:0}};
+  const card=impCard({kind:'swap',J:{b:{},a:{}},sel:{b:result,a:result,beforeNm:()=>'コータス',afterNm:()=>'ペリッパー'}},0);
+  o.swapNames=/コータス（[^）]+）→ ペリッパー（/.test(card);
   return o});
 await b.close();
-for(const f of ['single','double'])ok(R.memo[f]&&R.memo[f].eq&&R.memo[f].n>=0,`改善案（${f}）：1対1の使い回しありとなしで結果が同じ`,R.memo[f]);
+for(const f of ['single','double']){
+  const m=R.memo[f];
+  ok(m?.eq&&m.proposals>0,`改善案（${f}）：使い回しありとなしで各対面・改善提案の順位・前後の値が同じ`,m);
+  ok(m?.selection&&m.ranked===(f==='single'?20:15),`選出（${f}）：キャッシュありとなしで全順位・後出し・先発の順が同じ`,m);
+  ok(m?.independent&&m.proposals>0,`改善案（${f}）：各提案を独立して全体計算しても各対面と最上位選出が同じ`,m);
+}
+ok(R.recalc.without>0&&R.recalc.withSun>0&&R.recalc.sun&&R.recalc.same,'メガリザードンYを選ばない場合は、メガなしで全体を計算した対面と一致する',R.recalc);
+ok(R.recalc.drySame,'コータスを選ばない場合は、天候役の補正なしで全体を計算した対面と一致する',R.recalc);
+ok(R.swapNames,'入れかえ案の選出比較では変更前と変更後それぞれの名前を表示する');
+ok(R.recalc.changed,'同じ相手の使用データが更新されたら診断キャッシュを更新する',R.recalc);
 console.log('改善案の時間（使い回しなし→あり）',JSON.stringify(R.memo));
 const S=R.sf;
 ok(S.ice[0]>S.ice[1]&&Math.abs(S.ice[0]/S.ice[1]-1.3)<.03,'ちからずく：れいとうパンチは1.3倍',S.ice);

@@ -139,7 +139,7 @@ const R2=await pg.evaluate(async()=>{
   const good=[{no:445,set:{ab:{k:'roughskin',n:'さめはだ'},it:{k:'leftovers',n:'たべのこし'},mv:[{id:id('earthquake'),n:'じしん'}],sp:null}},{no:143},{no:130}].filter(x=>byNo[x.no]);
   team=good;try{DG_CACHE&&DG_CACHE.clear&&DG_CACHE.clear()}catch(e){}
   try{const T0=dgTeam0(good,20);const es=good.map((x,k)=>k===0?{...x,set:{...x.set,it:{k:'charizarditex',n:'x'}}}:x);
-    const T1=impWith(es,()=>impRecalc(T0,es,0));o.rec={t0:(T0.formErr||[]).length,fe:T1.formErr&&T1.formErr[0]&&T1.formErr[0].no,m0:T1.M[0]};
+    const T1=impRecalc(es);o.rec={t0:(T0.formErr||[]).length,fe:T1.formErr&&T1.formErr[0]&&T1.formErr[0].no,m0:T1.M[0]};
     const Rg=dgImprove(good);o.impOk={fe:!!Rg.formErr,note:Rg.note||null,list:Array.isArray(Rg.list)}}catch(e){o.rec={x:e.message}}
   team=sv;
   /* ダメージ計算 */
