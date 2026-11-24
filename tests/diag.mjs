@@ -91,7 +91,7 @@ const R4=await pg.evaluate(()=>{
   r.match=[noSw?!!f1&&f1.t.includes(noSw+'匹'):!f1,noK?!!f2&&f2.t.includes(noK+'匹'):!f2];
   r.typeEv=C.fix.filter(x=>x.k==='type').every(x=>x.ev&&x.ev.length&&!/参考/.test(x.ev[0]));
   r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
-  r.unk=/計算に入っていない特性/.test(C.premise);
+  r.unk=/計算に入っていない(特性|効果)/.test(C.premise);/* 2026/11/24 監査ブランチで「効果」（特性と持ち物）に言い方を変えた */
   /* ★で選出を見るとき・ダブル */
   team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);
   setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);setFmt('single');
