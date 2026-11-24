@@ -11,8 +11,8 @@ const PROT={id:0,n:'まもる',t:null,prot:true,pri:4,pow:0,acc:0,cls:2,tg:0,min
 const PROT_IDS=new Set([182,197]);
 const protMv=id=>{const sid=PROT_IDS.has(+id)?+id:182;return{...PROT,sid,n:(typeof MD!=='undefined'&&MD[sid]&&MD[sid][0])||PROT.n}};
 const protSaved=m=>{const id=(m&&m.sid)||182;return{n:(typeof MD!=='undefined'&&MD[id]&&MD[id][0])||'まもる',id}};
-/* eelevate（うなぎのぼり・メガシビルドン）は当サイトの特性の説明（ABDS）に合わせてじめん無効。ゲームでの確認はまだ（2026/11/13） */
-const ABSORB={'levitate':['じめん',0],'eelevate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
+/* eelevate（うなぎのぼり・メガシビルドン）：2026/11/24 Pokémon Showdown e7f50cd の champions の実装（倒したあといちばん高い能力が上がる）に合わせ、じめん無効をやめた（前は当サイトの説明でじめん無効にしていた。どちらもゲーム内では未確認） */
+const ABSORB={'levitate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
 const PINCH={blaze:'ほのお',torrent:'みず',overgrow:'くさ',swarm:'むし'};
 const SKIN={pixilate:['フェアリー'],refrigerate:['こおり'],aerilate:['ひこう'],dragonize:['ドラゴン'],galvanize:['でんき']};
 const WSET={drought:'sun',drizzle:'rain','sand-stream':'sand','snow-warning':'snow'};
@@ -20,7 +20,7 @@ const WSPD={chlorophyll:'sun','swift-swim':'rain','sand-rush':'sand','slush-rush
 const WNAME={sun:'ひざしが つよい',rain:'あめが ふっている',sand:'すなあらし',snow:'ゆきが ふっている'};
 const ABIMPL=new Set([...Object.keys(ABSORB),...Object.keys(PINCH),...Object.keys(SKIN),...Object.keys(WSET),...Object.keys(WSPD),
  'intimidate','clear-body','white-smoke','hyper-cutter','mirror-armor','defiant','competitive','huge-power','pure-power','hustle','compound-eyes','no-guard','technician','adaptability',
- 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link','unaware','marvel-scale','sheer-force']);
+ 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link','unaware','marvel-scale','sheer-force','compound-eyes','hustle','cloud-nine','air-lock','bulletproof','soundproof','shell-armor','battle-armor','reckless','punk-rock','steely-spirit','fire-mane','purifying-salt','infiltrator','sniper','fluffy','ice-scales','aura-guard','liquid-voice','quick-feet','gale-wings','sand-veil','snow-cloak','long-reach']);
 const stgM=s=>s>=0?(2+s)/2:2/(2-s);
 /* ちからずく（2026/11/24）：追加効果のある技の威力が1.3倍（5325/4096）になり、その追加効果（相手の状態異常・ひるみ・能力の変化・自分の能力が上がる効果など）は起きない。
    自分の能力が下がる効果（インファイト等）・反動・吸い取る回復・急所に当たりやすい性質は追加効果ではないので残る。いのちのたまの反動は、ちからずくが働いた技のときだけ受けない。
@@ -314,7 +314,8 @@ const bn=b=>(b.side==='op'?'相手の':'')+b.p.n;
 const abn=b=>ABN[b.ab]||'';
 const sideDead=S=>S.mons.every(m=>m.fainted);
 const foesOf=b=>b.side==='me'?B.op:B.me, ownOf=b=>b.side==='me'?B.me:B.op;
-const effSpd=b=>Math.floor(b.st[5]*stgM(b.stg.spe)*(B.weather&&WSPD[b.ab]===B.weather.k?2:1)*(b.item==='choicescarf'?1.5:1)*(b.status==='par'?.5:1));
+/* はやあし：状態異常のとき1.5倍で、まひで遅くならない（2026/11/24） */
+const effSpd=b=>Math.floor(b.st[5]*stgM(b.stg.spe)*(B.weather&&WSPD[b.ab]===B.weather.k?2:1)*(b.item==='choicescarf'?1.5:1)*(b.ab==='quick-feet'&&b.status?1.5:1)*(b.status==='par'&&b.ab!=='quick-feet'?.5:1));
 function chg(b,k,n,log,why){
   const o=b.stg[k];b.stg[k]=Math.max(-6,Math.min(6,o+n));
   const nm={atk:'攻撃',def:'防御',spa:'特攻',spd:'特防',spe:'素早さ'}[k];
@@ -340,7 +341,7 @@ function refill(S,log){
     if(j>=0){S.act[k]=j;log(`<span class="ko">${bn(S.mons[j])}が 出てきた！</span>`);enter(S.mons[j],log)}
   }
 }
-function hitType(a,mv){if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
+function hitType(a,mv){if(a&&a.ab==='liquid-voice'&&mv&&mfl(mv,'o'))return 'みず';if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
 /* ---- 条件で威力が変わる技 ---- */
 const WT={"3":100,"6":90.5,"9":85.5,"15":29.5,"18":39.5,"24":65,"25":6,"26":30,"10100":21,"36":40,"38":19.9,"10104":19.9,"40":12,"45":18.6,"53":32,"10108":33,"863":28,"59":155,"10230":168,"186":33.9,"65":48,"68":130,"71":15.5,"80":78.5,"10165":70.5,"199":79.5,"10172":79.5,"83":15,"865":117,"94":40.5,"208":400,"464":282.8,"115":80,"121":80,"122":54.5,"866":58.2,"212":118,"900":89,"127":55,"128":88.4,"10250":115,"10251":85,"10252":110,"130":235,"132":4,"134":29,"135":24.5,"136":25,"196":26.5,"197":27,"470":25.5,"471":25.9,"700":23.5,"142":59,"143":460,"149":210,"154":100.5,"157":79.5,"10233":69.8,"160":88.8,"168":33.5,"181":61.5,"184":28.5,"981":160,"205":125.8,"472":42.5,"211":3.9,"904":60.5,"214":54,"461":34,"903":43,"473":291,"227":50.5,"229":35,"899":95.1,"248":202,"254":52.2,"257":52,"260":81.9,"279":28,"282":48.4,"475":52,"302":11,"303":11.5,"306":360,"308":31.5,"310":40.2,"407":14.5,"317":80,"319":88.8,"323":220,"324":80.4,"334":20.6,"350":162,"351":0.8,"354":12.5,"358":1,"359":47,"362":256.5,"478":26.6,"373":102.6,"376":550,"389":310,"392":55,"395":84.5,"398":24.9,"405":42,"409":102.5,"411":149.5,"428":33.3,"442":108,"445":95,"448":54,"450":300,"454":44.4,"460":135.5,"479":0.3,"10008":0.3,"10009":0.3,"10010":0.3,"10011":0.3,"10012":0.3,"497":63,"500":150,"503":94.6,"10236":58.2,"505":27,"510":37.5,"512":30.5,"514":28,"516":29,"518":60.5,"530":40.4,"531":31,"534":87,"545":200.5,"547":6.6,"902":110,"10248":110,"553":96.3,"560":30,"563":76.5,"867":66.6,"569":107.3,"571":81.1,"10239":73,"579":20.1,"584":57.5,"587":5,"604":80.5,"609":34.3,"614":260,"618":11,"10180":20.5,"623":330,"635":160,"637":46,"652":90,"655":39,"658":40,"660":42.4,"663":24.5,"666":17,"668":81.5,"10061":0.9,"671":10,"673":91,"675":136,"676":28,"678":8.5,"681":53,"683":15.5,"685":5,"687":47,"689":96,"691":81.5,"693":35.3,"695":21,"697":270,"699":225,"701":21.5,"702":2.2,"706":150.5,"10242":334.1,"707":3,"709":71,"711":12.5,"10030":9.5,"10031":14,"10032":39,"713":505,"10243":262.4,"715":85,"724":36.6,"10244":37,"727":83,"730":44,"733":26,"740":180,"745":25,"10126":25,"10152":25,"748":14.5,"750":920,"752":82,"758":22.2,"763":21.4,"765":76,"766":82.8,"768":108,"778":0.7,"780":185,"784":78.2,"812":90,"815":33,"818":45.2,"823":75,"828":19.9,"841":1,"842":13,"844":65.5,"849":40,"10184":40,"853":39,"855":0.4,"858":5.1,"861":61,"869":0.5,"870":62,"871":1,"876":28,"10186":28,"877":3,"887":50,"908":31.2,"911":326.5,"914":61.9,"972":15,"956":90,"964":60.2,"930":48.2,"952":15,"939":113,"968":310,"925":2.3,"998":210,"923":41,"931":2.4,"10260":2.4,"10261":2.4,"10262":2.4,"934":240,"970":45,"943":61,"1000":30,"959":112.8,"936":85,"937":62,"983":120,"979":56,"1013":2.2,"1018":60,"1019":93,"10025":8.5,"10033":155.5,"10034":110.5,"10035":100.5,"10036":101.1,"10037":48,"10038":40.5,"10039":100,"10040":59,"10041":305,"10042":79,"10045":61.5,"10046":125,"10047":62.5,"10048":49.5,"10049":255,"10050":52,"10051":48.4,"10052":23.5,"10053":395,"10054":31.5,"10055":44,"10056":13,"10057":49,"10058":95,"10059":57.5,"10060":185,"10064":102,"10065":55.2,"10066":161,"10067":20.6,"10068":56.4,"10069":32,"10070":130.3,"10071":120,"10072":740,"10073":50.5,"10074":350.2,"10076":942.9,"10087":320.5,"10088":28.3,"10089":112.6,"10090":40.5,"10278":42.3,"10279":125.5,"10280":80,"10281":290,"10282":201,"10283":108.8,"10284":40.4,"10285":29.6,"10286":180.3,"10287":60,"10288":230.5,"10289":31,"10290":180,"10291":69.6,"10292":90,"10293":39,"10294":40,"10295":93.3,"10296":100.8,"10297":69.8,"10298":100,"10299":100.3,"10300":25,"10302":240.5,"10303":99,"10304":38,"10305":26,"10306":8,"10307":49,"10308":50,"10309":99,"10310":49.4,"10313":330,"10314":10.1,"10315":252.8,"10316":148,"10320":22,"10321":77,"10325":315,"10326":10.1};
 /* 技の英語ID｜性質（c接触 pパンチ bかみつき l波動 s切る o音 w風 x弾 dおどり） */
@@ -364,7 +365,7 @@ const PROTEAN_ASSUME='へんげんじざい・リベロは発動しない前提�
 /* 先制技を受けない特性（2026/11/24）：テイルアーマー（リキキリン）・じょおうのいげん（アマージョ）。本編（第9世代）の決まり＝前提、かたやぶりは無視できる */
 const PRIO_BLOCK=new Set(['armor-tail','queenly-majesty','dazzling']);
 const moveUsable=(mv,ctx)=>{const k=mkey(mv);
-  if(ctx&&ctx.d&&mv&&mv.pri>0&&PRIO_BLOCK.has(ctx.d.ab)&&!(ctx.a&&ctx.a.ab==='mold-breaker'))return{ok:false,why:'blocked-priority',mechanics:'main-series-assumed'};
+  if(ctx&&ctx.d&&mv&&effPri(ctx.a,mv)>0&&PRIO_BLOCK.has(ctx.d.ab)&&!(ctx.a&&ctx.a.ab==='mold-breaker'))return{ok:false,why:'blocked-priority',mechanics:'main-series-assumed'};
   if(MFAIL.has(k))return{ok:false,why:k==='steelroller'?'fails-without-terrain':'needs-condition',mechanics:'main-series-assumed'};
   if(MFIRST.has(k)&&ctx&&ctx.turn==='later')return{ok:false,why:'first-turn-only',mechanics:'main-series-assumed'};
   return{ok:true}};
@@ -433,6 +434,8 @@ function bcalc(a,mv,d,o){
   if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
+  /* ぼうだん・ぼうおん：弾・音の技を受けない（かたやぶりで消える。2026/11/24） */
+  if((dab==='bulletproof'&&mfl(mv,'x'))||(dab==='soundproof'&&mfl(mv,'o')))return{dmg:0,eff:0,immune:dab};
   const mk=mkey(mv);
   let eff=mult(t,d.p.t);
   if(mk==='freezedry'&&d.p.t.includes('みず'))eff=mult(t,d.p.t.filter(x=>x!=='みず'))*2;
@@ -448,9 +451,10 @@ function bcalc(a,mv,d,o){
   let phys=!mv.cls;
   if(mk==='shellsidearm'){const A1=stgV(a.st[1],a.stg.atk),C1=stgV(a.st[3],a.stg.spa),B1=stgV(d.st[2],d.stg.def),D1=stgV(d.st[4],d.stg.spd);
     phys=Math.floor(Math.floor(22*90*A1)/B1)>Math.floor(Math.floor(22*90*C1)/D1)}
-  const ee=mv.e||{},crit=!!o.crit||['flowertrick','frostbreath','stormthrow'].includes(mk);
+  /* シェルアーマー・カブトアーマー：急所に当たらない（かたやぶりで消える） */
+  const ee=mv.e||{},crit=(!!o.crit||['flowertrick','frostbreath','stormthrow'].includes(mk))&&dab!=='shell-armor'&&dab!=='battle-armor';
   /* メガソーラー：自分の技は天気が「はれ」として扱われる */
-  const wr=B.weather&&B.weather.k,w=a.ab==='mega-sol'?'sun':wr;
+  const wr=wxEffK(a,d),w=a.ab==='mega-sol'?'sun':wr;
   /* 威力の補正 */
   const pow0=varPow(a,mv,d,o);
   let bm=4096;
@@ -465,12 +469,18 @@ function bcalc(a,mv,d,o){
   if(!phys&&a.item==='wiseglasses')bm=chM(bm,4505);
   if(a.ab==='tough-claws'&&mfl(mv,'c'))bm=chM(bm,5325);
   if(sfOn(a,mv))bm=chM(bm,5325);
+  /* すてみ：反動・失敗で自分が傷つく技 1.2倍／パンクロック：音の技 1.3倍／はがねのせいしん：自分のはがね技 1.5倍（味方の分はダブルの未対応）／かんそうはだ：受けるほのお技 1.25倍（2026/11/24、参照の onBasePower） */
+  if(a.ab==='reckless'&&(ee.rc||ee.cx))bm=chM(bm,4915);
+  if(a.ab==='punk-rock'&&mfl(mv,'o'))bm=chM(bm,5325);
+  if(a.ab==='steely-spirit'&&t==='はがね')bm=chM(bm,6144);
+  if(dab==='dry-skin'&&t==='ほのお')bm=chM(bm,5120);
   if(a.ab==='iron-fist'&&mfl(mv,'p'))bm=chM(bm,4915);
   if(a.ab==='strong-jaw'&&mfl(mv,'b'))bm=chM(bm,6144);
   if(a.ab==='mega-launcher'&&mfl(mv,'l'))bm=chM(bm,6144);
   if(a.ab==='sharpness'&&mfl(mv,'s'))bm=chM(bm,6144);
   if(a.ab==='sand-force'&&wr==='sand'&&['いわ','じめん','はがね'].includes(t))bm=chM(bm,5325);
-  if(t==='フェアリー'&&(a.ab==='fairy-aura'||dab==='fairy-aura'))bm=chM(bm,5448);
+  /* フェアリーオーラは場全体の効果で、かたやぶりで消えない（参照の breakable が無い。2026/11/24：前は受ける側のフェアリーオーラをかたやぶりで消していた） */
+  if(t==='フェアリー'&&(a.ab==='fairy-aura'||d.ab==='fairy-aura'))bm=chM(bm,5448);
   const facade=mv.id===263&&['brn','psn','tox','par'].includes(a.status);
   if(facade)bm=chM(bm,8192);
   if((mk==='solarbeam'||mk==='solarblade')&&w&&w!=='sun')bm=chM(bm,2048);
@@ -500,6 +510,9 @@ function bcalc(a,mv,d,o){
   if(a.item==='lightball'&&a.p.no===25)am=chM(am,8192);
   if(!phys&&a.item==='choicespecs')am=chM(am,6144);
   if(dab==='thick-fat'&&(t==='ほのお'||t==='こおり'))am=chM(am,2048);
+  /* ほのおのたてがみ：ほのお技の攻撃・特攻1.5倍／きよめのしお：受けるゴースト技の攻撃・特攻半分（2026/11/24） */
+  if(a.ab==='fire-mane'&&t==='ほのお')am=chM(am,6144);
+  if(dab==='purifying-salt'&&t==='ゴースト')am=chM(am,2048);
   if((dab==='heatproof'||dab==='water-bubble')&&t==='ほのお')am=chM(am,2048);
   if(bp)am=4096;
   else if(phys&&a.ab==='hustle')A=pR(A*3/2);
@@ -536,9 +549,16 @@ function bcalc(a,mv,d,o){
   /* 最後の補正 */
   let fm=4096;
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
-  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))/* Wall strength follows battle format, not the number of targets. Legacy callers without format retain the old fallback. Champions-specific multipliers still require device verification. */
+  if(o.screen&&!crit&&a.ab!=='infiltrator'&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))/* Wall strength follows battle format, not the number of targets. Legacy callers without format retain the old fallback. Champions-specific multipliers still require device verification. */
   fm=chM(fm,(o.format==='double'||(o.format==null&&o.spread))?2732:2048);
+  /* スナイパー：急所のダメージがさらに1.5倍 */
+  if(a.ab==='sniper'&&crit)fm=chM(fm,6144);
   if(dab==='multiscale'&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
+  /* もふもふ（ほのお2倍・接触半分を1つの倍率で）・パンクロック（受ける音の技半分）・こおりのりんぷん（特殊半分）・はどうのぼうご（接触半分）。かたやぶりで消える */
+  if(dab==='fluffy'){const fl=(t==='ほのお'?2:1)*(mfl(mv,'c')&&a.ab!=='long-reach'?.5:1);if(fl!==1)fm=chM(fm,fl*4096)}
+  if(dab==='punk-rock'&&mfl(mv,'o'))fm=chM(fm,2048);
+  if(dab==='ice-scales'&&mv.cls===1)fm=chM(fm,2048);
+  if(dab==='aura-guard'&&mfl(mv,'c')&&a.ab!=='long-reach')fm=chM(fm,2048);
   if((dab==='solid-rock'||dab==='filter')&&eff>=2)fm=chM(fm,3072);
   if(a.ab==='tinted-lens'&&eff<1)fm=chM(fm,8192);
   if(a.item==='expertbelt'&&eff>=2)fm=chM(fm,4915);
@@ -597,7 +617,35 @@ function hitDist(a,mv,d,o){
   for(let i=0;i<n;i++){const nd=new Map();for(const[s,c]of dist)for(let r=0;r<16;r++){const v=s+per[r][i];nd.set(v,(nd.get(v)||0)+c/16)}dist=nd}
   return [...dist.entries()].sort((x,y)=>x[0]-y[0]);
 }
-const accOf=(a,mv,d)=>{if(!mv.acc||a.ab==='no-guard'||d.ab==='no-guard')return 100;let v=mv.acc;if(a.ab==='compound-eyes')v*=1.3;if(a.ab==='hustle'&&!mv.cls)v*=.8;return v};
+/* 天気の効果を消す特性（ノーてんき・エアロック）：天気はあるが、効果は出ない（2026/11/24） */
+const WX_SUPP=new Set(['cloud-nine','air-lock']);
+const wxEffK=(a,d)=>{const k=B.weather&&B.weather.k;if(!k)return null;if((a&&WX_SUPP.has(a.ab))||(d&&WX_SUPP.has(d.ab)))return null;return k};
+const MOHKO=new Set(['guillotine','fissure','horndrill','sheercold']);
+/* 命中（2026/11/24、Pokémon Showdown e7f50cd の hitStepAccuracy と同じ順）：
+   一撃必殺＝30（ぜったいれいどはこおりタイプ以外20、ほかの補正なし）→ 天気（かみなり・ぼうふう：あめで必中・はれで50、ふぶき：ゆきで必中）→ ノーガード →
+   命中の補正（ふくがん1.3・はりきり0.8〔物理〕・すながくれ/ゆきがくれ0.8 → こうかくレンズ1.1・ひかりのこな0.9。4096分の1の鎖で掛けて、最後に1回丸める）→
+   命中・回避のランク（てんねんで消える）→ 100を超えたら100（必ず当たる＝100%） */
+/* 実際の優先度（2026/11/24）：はやてのつばさ＝HP満タンのひこう技+1。いたずらごころは変化技だけ（ダメージの計算には関係しない） */
+const effPri=(a,mv)=>{let p=(mv&&mv.pri)||0;if(a&&a.ab==='gale-wings'&&hitType(a,mv)==='ひこう'&&a.hp===a.max)p++;return p};
+const accOf=(a,mv,d,o)=>{
+  const mk=mkey(mv),ig=a.ab==='mold-breaker',dab=ig?null:d.ab,wx=wxEffK(a,d);
+  if(MOHKO.has(mk))return mk==='sheercold'&&!(a.p&&a.p.t.includes('こおり'))?20:30;
+  if(!mv.acc)return 100;
+  let acc=mv.acc;
+  if(mk==='thunder'||mk==='hurricane'){if(wx==='rain')return 100;if(wx==='sun')acc=50}
+  if(mk==='blizzard'&&wx==='snow')return 100;
+  if(a.ab==='no-guard'||d.ab==='no-guard')return 100;
+  let m=4096;
+  if(a.ab==='compound-eyes')m=chM(m,5325);
+  if(a.ab==='hustle'&&mv.cls===0)m=chM(m,3277);
+  if((dab==='sand-veil'&&wx==='sand')||(dab==='snow-cloak'&&wx==='snow'))m=chM(m,3277);
+  if(a.item==='widelens')m=chM(m,4505);
+  if(d.item==='brightpowder')m=chM(m,3686);
+  if(m!==4096)acc=Math.trunc((Math.trunc(acc*m)+2047)/4096);
+  const st=x=>Math.max(-6,Math.min(6,x||0));
+  const ba=dab==='unaware'?0:st(a.stg&&a.stg.acc),be=a.ab==='unaware'?0:st(d.stg&&d.stg.eva),bo=st(ba-be);
+  if(bo>0)acc=Math.trunc(acc*(3+bo)/3);else if(bo<0)acc=Math.trunc(acc*3/(3-bo));
+  return Math.max(0,Math.min(100,acc))};
 function aiChoose(b,foes,ally){
   if(!b.lastProt&&Math.random()<.12&&b.moves.some(m=>m.prot))return{b,mv:b.moves.find(m=>m.prot)};
   let best=null;

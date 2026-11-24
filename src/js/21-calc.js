@@ -33,22 +33,27 @@ function koInfo(r,hp){
   const f1=sv?b1.map(([v,w])=>[Math.min(v,hp-1),w]):b1;
   let dist=new Map([[0,1]]),first=null;
   const out=o=>{if(r.assumedHits)o={...o,assumed:r.assumedHits};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
+  /* 2026/11/24：「必ず倒せる」は確率の数（.9999 以上）ではなく、いちばん小さいダメージの道すじ（lo）が HP 以上になったかで決める。
+     確率は、倒せる道すじが1つでもあれば 0 より大きい（first）。必ず倒せる回数（sure）では p を 1 にする */
+  let lo=0;
   for(let n=1;n<=8;n++){
     const nd=new Map(),base=n===1?f1:r.nexts?one(r.nexts[Math.min(n-2,r.nexts.length-1)]):bn;
     for(const[s,c]of dist)for(const[v,w]of base){const t=Math.min(s+v,hp);nd.set(t,(nd.get(t)||0)+c*w)}
-    dist=nd;const ko=Math.min(1,dist.get(hp)||0);
-    if(ko>1e-12&&!first)first={n,p:ko};
-    if(ko>=.9999)return out({...(first||{n,p:ko}),sure:n});
+    dist=nd;lo+=Math.min(...base.map(x=>x[0]));const sure=lo>=hp,ko=sure?1:Math.min(1,dist.get(hp)||0);
+    if(sure&&ko<1)throw new Error('koInfo: guaranteed path without full mass');
+    if(ko>0&&!first)first={n,p:ko};
+    if(sure)return out({...(first||{n,p:1}),...(first&&first.n===n?{p:1}:{}),sure:n});
   }
   return out(first?{...first,sure:0}:{n:9,p:0,sure:0});
 }
 /* 確率の書き方。必ずではないのに四捨五入で「100%」と出さない（2026/11/13：ネズミざん10回などで 99.95% が 100% に見えた） */
-const pctTxt=p=>p<=0?'0%':p<.001?'0.1%未満':p<.9999&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
+const pctTxt=p=>p<=0?'0%':p<.001?'0.1%未満':p<1&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
 const koAsm=k=>k&&k.assumed?`（1回の使用で${k.assumed.n}回当たると仮定）`:'';
-const koLabel=k=>(!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`)+(k.n&&k.n<=8?koAsm(k):'');
+const koSure=k=>!!k&&k.sure===k.n&&k.n>0;
+const koLabel=k=>(!k.n?'ダメージなし':k.n>8?'8発以上':koSure(k)?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`)+(k.n&&k.n<=8?koAsm(k):'');
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
 const koPlain=k=>koPlain0(k)+(k&&k.assumed&&k.n&&k.n<=8?L(`（1回の使用で${k.assumed.n}回当たると仮定した場合。この技は${k.assumed.min}〜${k.assumed.max}回で変わるので、実際に倒せる確率ではありません。「当たる回数」で選べます）`,` (assuming ${k.assumed.n} hits per use; actual hit count varies)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'');
-const koPlain0=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
+const koPlain0=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):koSure(k)?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
 /* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
 /* 操作の回数（calc_done）：利用者の操作で計算の条件が変わったときだけ数える。
@@ -59,9 +64,9 @@ const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS
 function calcEv(before){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
   const sig=calcSig();if(before!==undefined&&sig===before)return;
   evCount('calc_done',sig)}catch(e){}}
-const koBadge=k=>!k||!k.n||k.n>8?'':k.assumed?`<span class="cv-kb rand" data-notr title="${L(`当たる回数は${k.assumed.min}〜${k.assumed.max}回で変わります`,`Hit count varies`)}">${L(`${k.assumed.n}回当たると仮定：${k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発`}`,`Assuming ${k.assumed.n} hits: ${k.n}HKO`)}${k.p>=.9999?'':`<small>${pctTxt(k.p)}</small>`}</span>`:k.p>=.9999?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
+const koBadge=k=>!k||!k.n||k.n>8?'':k.assumed?`<span class="cv-kb rand" data-notr title="${L(`当たる回数は${k.assumed.min}〜${k.assumed.max}回で変わります`,`Hit count varies`)}">${L(`${k.assumed.n}回当たると仮定：${koSure(k)?`確定${k.n}発`:`乱数${k.n}発`}`,`Assuming ${k.assumed.n} hits: ${k.n}HKO`)}${koSure(k)?'':`<small>${pctTxt(k.p)}</small>`}</span>`:koSure(k)?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
 const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
-const koShort=k=>!k.n||k.n>8?'—':(k.p>=.9999?'確':'乱')+k.n;
+const koShort=k=>!k.n||k.n>8?'—':(koSure(k)?'確':'乱')+k.n;
 
 let CS=null;const CALC_OPEN={};
 function calcX(no,src){
@@ -93,8 +98,8 @@ function calcMoveList(X){
 /* 計算に渡す条件（2026/11/13：当たる回数・へんげんじざいを足した） */
 const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
-const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
-const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','liquid-voice','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','gale-wings','quick-feet','trace','rivalry','sand-veil','snow-cloak'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
+const CALC_UNVERIFIED={'mega-sol':'メガソーラー（自分の技は天気が「はれ」と同じ）は Pokémon Showdown の champions の実装と同じ計算です。ゲーム内ではまだ確かめていません',dragonize:'ドラゴンスキン（ノーマル技がドラゴン技・1.2倍）は Pokémon Showdown の champions の実装と同じ計算です。ゲーム内ではまだ確かめていません'};
+const CALC_UNIMPL=['piercing-drill','spicy-spray','analytic','supreme-overlord','stakeout','friend-guard','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','trace','rivalry','eelevate'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
 const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','focusband'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
 function calcNotes(R){
   const o=[],a=R.a,d=R.d,n=R.n||1,mv=R.mv;
@@ -246,7 +251,7 @@ function calcView(){
       ${R.eff===0?`<div class="cres-big">0%</div><div class="cv-ko">${L('こうかがありません（タイプか特性で防がれます）','No effect (blocked by type or ability)')}</div>`:`
       <div class="cv-main"><div class="cres-big">${dAfter?`<small class="cv-aft">${L('はがれたあと','After Disguise')}</small>${pct(Math.min(...R.r.next))}<small>%</small> 〜 ${pct(Math.max(...R.r.next))}<small>%</small>`:`${ls?`<small>${L('技のダメージ','Move damage')} </small>`:''}${pct(lo)}<small>%</small> 〜 ${pct(hi)}<small>%</small>`}</div>${koBadge(R.ko)}</div>
       ${disgHTML()}
-      ${ls&&R.ko&&R.ko.n&&R.ko.n<=8&&R.ko.p>=.9999?'':`<div class="cv-ko" data-notr>${koPlain(R.ko)}</div>`}
+      ${ls&&R.ko&&R.ko.n&&R.ko.n<=8&&koSure(R.ko)?'':`<div class="cv-ko" data-notr>${koPlain(R.ko)}</div>`}
       <div class="cv-hp" aria-label="受けたあとの残りHP"><i class="cv-hp-rem" style="width:${remLo}%;background:${hpCol(remLo)}"></i><i class="cv-hp-rng" style="left:${remLo}%;width:${Math.max(.6,remHi-remLo)}%"></i><i class="cv-hp-lost" style="left:${remHi}%;width:${Math.max(0,cur0-remHi)}%"></i></div>
       <div class="cres-s" data-notr>${ls?L('1発目のあとの残りHP','HP left after the 1st hit'):L('残りHP','HP left')}: ${remHi<=0?L('0%（倒れます）','0% (KO)'):Math.round(remLo)===Math.round(remHi)?Math.round(remHi)+'%':`${Math.round(remLo)}〜${Math.round(remHi)}%`}</div>
       <div class="cv-raw num" data-notr>${ls?L('技のダメージ','Move damage'):L('ダメージ','Damage')} ${lo}–${hi}${ls?`<span aria-hidden="true">／</span>${L('ばけのかわ','Disguise')} −${ls}`:''}<span aria-hidden="true">／</span>HP ${R.d.max}${R.d.hp<R.d.max?`<span aria-hidden="true">／</span>${L('いまのHP','current HP')} ${R.d.hp}`:''}</div>`}
@@ -255,7 +260,7 @@ function calcView(){
     ${O&&O.rows.length?`<div class="sec"><h2>技ごとのダメージ</h2><span style="font-size:12px;color:var(--dim)">押すと上に出ます</span></div>
     <div class="cv-mvs">${O.rows.map(x=>`<button class="cv-mv${x.m.id===R.mv.id?' on':''}" data-mvpick="${x.m.id}"><span class="cv-mn" data-notr>${esc(mvNm(x.m))}<small>${x.m.t}・${['物理','特殊','変化'][x.m.cls]}</small></span>
       <span class="cv-mb"><i style="width:${Math.min(100,x.hi)}%;background:${x.eff===0?'var(--line)':x.hi>=100?'#f4212e':x.hi>=50?'#ffb020':'var(--acc)'}"></i></span>
-      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%${x.ls?`<small>${x.after?L('はがれたあと','after Disguise'):'＋'+L('ばけのかわ','Disguise')}</small>`:''}`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':x.ko.p>=.9999?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
+      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%${x.ls?`<small>${x.after?L('はがれたあと','after Disguise'):'＋'+L('ばけのかわ','Disguise')}</small>`:''}`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':koSure(x.ko)?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
     <div class="natr" style="padding-top:8px"><span style="width:62px;font-size:13px;color:var(--dim)">ほかの技</span><select class="sel" data-c="mv" data-notr>${R.list.map(m=>`<option value="${m.id}"${m.id===R.mv.id?' selected':''}>${mvNm(m)}（${m.t}・${['物理','特殊','変化'][m.cls]}・${['seismictoss','nightshade','superfang','endeavor','finalgambit'].includes(mkey(m))?'固定ダメージ':'威力'+(m.pow||'変動')}${m.maxH>1?(m.minH===m.maxH?'×'+m.maxH:`×${m.minH}〜${m.maxH}`):''}）</option>`).join('')}</select></div>`:''}
     ${O&&O.back?`<div class="cv-back" data-notr>${L(`反撃されると：${nmD}の<b>${esc(mvNm(O.back.mv))}</b>で、${nmA}は約<b>${Math.round(O.back.pct)}%</b>受けます${O.back.pct>=100?'（一撃で倒されます）':''}`,`If ${nmD} hits back with <b>${esc(mvNm(O.back.mv))}</b>, ${nmA} takes about <b>${Math.round(O.back.pct)}%</b>${O.back.pct>=100?' (OHKO)':''}`)}</div>`:''}`:'<p class="empty">この組み合わせでは計算できる技がありません。</p>'}
     <div class="sec"><h2>条件</h2></div>

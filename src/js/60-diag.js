@@ -79,7 +79,7 @@ function dgBest(a,d){
 /* 先制技で倒しきれるか（確定の回数） */
 function dgPrio(a,d){
   let best=null;
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0)||!moveUsable(mv,{a,d}).ok)return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(effPri(a,mv)>0)||!(mv.pow>0)||!moveUsable(mv,{a,d}).ok)return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
   return best;
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
