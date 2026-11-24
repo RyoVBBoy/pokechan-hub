@@ -1,0 +1,21 @@
+name: Calc doubles release preflight
+on:
+  push:
+    branches: [release/calc-doubles-preflight-20261125]
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install chromium
+      - run: node tools/build.mjs
+      - run: node tests/calc-cases.mjs
+      - run: CALC_SEED=20261123 node tests/calc-ref.mjs
+      - run: CALC_SEED=391784404 node tests/calc-ref.mjs
