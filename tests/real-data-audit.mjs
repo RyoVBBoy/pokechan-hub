@@ -281,6 +281,20 @@ try{
       check(withMargin.opW>=3&&withMargin.swIn==='win'&&withMargin.swTxt.includes('命中85%'),
         'a switch-in with room for a miss keeps its effective accuracy in the explanation',
         {oppTurns:withMargin.opW,verdict:withMargin.swIn});
+      // A stronger ordinary hit on the switch can be followed by a weaker priority hit.
+      const finisher=(pri,speed=200)=>({...fastCrunch(100),st:[...normal.st.slice(0,5),speed],moves:[{...mvObj(242),pow:300,pri}]});
+      const priorityOpponent=mv=>({...slowPsychic,st:[...slowPsychic.st.slice(0,1),200,...slowPsychic.st.slice(2)],moves:[...slowPsychic.moves,mv]});
+      const fastStrike=priorityOpponent({...mvObj(245),pow:110});
+      const priorityLoss=dgMatch(finisher(1),fastStrike);
+      const equalPriority=dgMatch(finisher(2),fastStrike);
+      const tiedPriority=dgMatch(finisher(2,50),fastStrike);
+      const firstOnly=dgMatch(finisher(0),priorityOpponent({...mvObj(252),pow:110}));
+      check(priorityLoss.opW===2&&priorityLoss.op.mv.id===94&&priorityLoss.swIn==='unproven'&&priorityLoss.swTxt.includes('しんそく'),
+        'a weaker higher-priority finisher after the first hit downgrades a switch-in',
+        {turns:priorityLoss.opW,openingMove:priorityLoss.op.mv.id,verdict:priorityLoss.swIn,reason:priorityLoss.swTxt});
+      check(equalPriority.swIn==='win'&&tiedPriority.swIn!=='win'&&firstOnly.swIn==='win',
+        'equal priority follows speed order and a first-turn-only move cannot be used after the opening hit',
+        {faster:equalPriority.swIn,tied:tiedPriority.swIn,firstTurnOnly:firstOnly.swIn});
       const view=selPlan(team),lineups=view.DS.list;
       const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
       const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);

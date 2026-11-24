@@ -80,9 +80,22 @@ function dgBest(a,d){
   return best;
 }
 /* 先制技で倒しきれるか（確定の回数） */
-function dgPrio(a,d){
+function dgPrio(a,d,afterSwitch){
   let best=null;
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(effPri(a,mv)>0)||!(mv.pow>0)||!moveUsable(mv,{a,d}).ok)return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
+  for(const mv of a.moves||[]){
+    if(!mv||mv.prot||!(mv.pow>0))continue;
+    const pri=effPri(a,mv);
+    if(pri<=0||!moveUsable(mv,{a,d,turn:afterSwitch?'later':undefined}).ok)continue;
+    if(afterSwitch){
+      const {ourPri,spd,previousMove}=afterSwitch;
+      if(pri<ourPri||(pri===ourPri&&spd>0))continue;
+      if(previousMove&&previousMove.id!==mv.id)continue;
+      if(mkey(mv)==='upperhand'&&ourPri<=0)continue;
+    }
+    const x=dgMove(a,mv,d);
+    const damage=afterSwitch?'max':'min';
+    if(!best||x[damage]>best[damage])best=x;
+  }
   return best;
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';
@@ -140,7 +153,16 @@ function dgMatch0(a,o){
   const swOnHit=myN<9&&(op?opW>=2&&swBefore(myN):!o.uncalc?.length);
   // 命中前提の手数ぎりぎりなら、1回の外しで崩れるので安定した交代先に数えない。
   const swAccRisk=!!op&&swOnHit&&me.acc<100&&!swBefore(myN+1);
-  const swOk=swOnHit&&!swAccRisk;
+  // 交代時に受ける攻撃と、その直後の先制技は別の技になり得る。
+  let swPriority=null;
+  if(swOnHit&&op?.fmax>0&&op.fmax<100&&opPr?.max>0){
+    const hpAfter=Math.max(1,Math.round(a.max*(100-op.fmax)/100));
+    const after=a.ab==='gale-wings'?{...a,hp:hpAfter}:a;
+    const previousMove=['choiceband','choicespecs','choicescarf'].includes(o.item)?op.mv:null;
+    const reply=dgPrio(o,a,{ourPri:effPri(after,me.mv),spd,previousMove});
+    if(reply&&Math.round(reply.max*a.max/100)>=hpAfter)swPriority=reply;
+  }
+  const swOk=swOnHit&&!swAccRisk&&!swPriority;
   const resist=op&&op.eff<=.5;
   /* 素早さの関係は3つに分けて書く（2026/11/10 依頼主：同速を「上を取れる」と言わない） */
   const spdTxt=spd===1?`${upTxt}`:spd===0?`同速（${sa} 対 ${so}。どちらが先に動くかは五分）`:tr?`トリックルーム中でも相手が先（${sa} 対 ${so}。相手の方が遅い）`:`素早さで下になる（${sa} 対 ${so}）`;
@@ -170,7 +192,7 @@ function dgMatch0(a,o){
   const sashCond=`前提：交代時にHP満タン（それまでにダメージを受けていない）・相手がいちばん痛い技（${op?op.mvn:''}）を使う。確かめたこと：この相手の型に連続技・先制技はなく、砂嵐にもならず、接触で反動を返す特性・持ち物もない${LIVE.csv[o.p.base||o.p.no]?'。ランクバトルで設置技をよく使う相手でもない':''}。それでも成り立たないとき：ほかの相手のステルスロックなどの設置技でHPが減っている／相手が積み技で素早さを上げている`;
   const blockTxt={nokill:'そのあと一撃で倒せない',acc:'倒す技の命中が不安定',slow:`${ub?'かるわざで素早さ2倍にしても':''}先に動けない（${sa2} 対 ${so}）`,unsure:`相手の1発目が乱数しだいで100%未満（${op?dgPct(op.fmin):''}〜）になり、タスキが発動しないことがある。そのときはかるわざも発動せず、素早さ ${sa} 対 ${so}で先に動けない`,
     multi:`相手が連続技（${multiMv?mName(multiMv.id):''}）を持っていて、タスキが効かない`,prio:`HP1になったあと、相手の先制技（${opPr?opPr.mvn:''}）で倒される`,sand:'砂嵐のダメージでHP1から倒れる',hazard:`相手が設置技（${hzMv}）をよく使い、出てきたときにHPが減ってタスキが効かない`,contact:`相手の${o.item==='rockyhelmet'?'ゴツゴツメット':ABN[o.ab]}で、接触技で倒したときに反動でこちらも倒れる`}[sashBlock]||'';
-  const swIn=opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':swAccRisk||!op||opW>=9?'unproven':'survive';
+  const swIn=opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':swAccRisk||swPriority||!op||opW>=9?'unproven':'survive';
   const swLeft=op?Math.max(0,100-op.fmax):100;
   const swTxt=!op?(swIn==='win'
     ?`計算した相手の技ではダメージを受けず、こちらの${me.mvn}${dgAccLabel(me)}で倒せる（${dgKoTxt(me)}）`
@@ -178,7 +200,7 @@ function dgMatch0(a,o){
     :opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`
     :swSash&&sashWin?`条件つきで後出しして勝てる：${sashWhy}。 ${sashCond}`
     :swSash?`交代で受ける1発目：${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}。 ${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で耐えても、${blockTxt}ので、後出しできるとは数えない`
-    :`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ ${swIn==='win'?`そのあと、こちらの${me.mvn}${dgAccLabel(me)}で先に倒せる（${dgKoTxt(me)}）`:swAccRisk?`${me.mvn}${dgAccLabel(me)}が1回外れると、計算上は先に倒し切れない`:swIn==='unproven'?'そのあとの撃ち合いで先に倒せる根拠が足りない':'そのあとの撃ち合いでは先に倒される'}`;
+    :`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ ${swIn==='win'?`そのあと、こちらの${me.mvn}${dgAccLabel(me)}で先に倒せる（${dgKoTxt(me)}）`:swPriority?`相手の先制技「${swPriority.mvn}」で、こちらが動く前に倒される可能性がある`:swAccRisk?`${me.mvn}${dgAccLabel(me)}が1回外れると、計算上は先に倒し切れない`:swIn==='unproven'?'そのあとの撃ち合いで先に倒せる根拠が足りない':'そのあとの撃ち合いでは先に倒される'}`;
   let k='lose',why=[];
   const wxT=weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
   const meTxt=me?`${me.mvn}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
