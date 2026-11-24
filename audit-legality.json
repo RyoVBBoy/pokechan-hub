@@ -1,0 +1,9268 @@
+{
+  "mode": "legality",
+  "sha": null,
+  "checks": [
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "real dataset present",
+      "detail": 149
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet primarina",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gholdengo",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet hippowdon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet garchomp",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet archaludon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet golisopodmega",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet mimikyu",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet salamencemega",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet basculegion",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet garchompmegaz",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet meowscarada",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet corviknight",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet floettemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "unverified: フラエッテ：公式は 0670-005「フラエッテ」、サイトは えいえんのはな"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet metagrossmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet indeedee",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet lucariomegaz",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet charizardmegay",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet dragonitemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gengarmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet sneasler",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gyaradosmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet baxcalibur",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet clefablemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet samurotthisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet aegislash",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet rillaboom",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet umbreon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet glimmora",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet toxapex",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet blazikenmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet raichumegay",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet charizardmegax",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet dragapult",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet pawmot",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet kingambit",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet blastoisemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet cinderace",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet dragonite",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet hydreigon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet rotomwash",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet pelipper",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet scizor",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet greninja",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet grimmsnarl",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet rotomheat",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet banettemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet scolipede",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet starmiemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet baxcaliburmega",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet ninetalesalola",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet delphoxmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet volcarona",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet glimmoramega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gyarados",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet ditto",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet meganiummega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet ceruledge",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet slowkinggalar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet swampertmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet swampert",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet absolmegaz",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet hatterene",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet lopunnymega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet lucariomega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet mamoswine",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet tyranitar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet zoroarkhisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet espathra",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet skeledirge",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gardevoirmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet greninjamega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet bellibolt",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet vanilluxe",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gengar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet snorlax",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet dragalgemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet arcaninehisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet empoleon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet goodrahisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet clefable",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet toxtricity",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet pyroarmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet scovillain",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet blaziken",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet scizormega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet polteageist",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet arboliva",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet floetteeternal",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "unverified: フラエッテ：公式は 0670-005「フラエッテ」、サイトは えいえんのはな"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet excadrill",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet kleavor",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet kangaskhanmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet armarouge",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet orthworm",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet staraptormega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet mawilemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet gallade",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet venusaurmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet whimsicott",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet victreebelmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet araquanid",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet sylveon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet venusaur",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet tyranitarmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet espeon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet palafin",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet tinkaton",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet overqwil",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet abomasnowmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet roserade",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet skarmory",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet toucannon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet slurpuff",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet beartic",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet milotic",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet persianalola",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet annihilape",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet torkoal",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet basculegionf",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet azumarill",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet alakazammega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet sirfetchd",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet diggersby",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet froslassmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet metagross",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet staraptor",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet hawlucha",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet spiritomb",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet incineroar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet scovillainmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet beedrillmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet leafeon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet feraligatrmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet infernape",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet weavile",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet eelektrossmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet serperior",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet indeedeef",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet altariamega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet aggronmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet sceptilemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet sinistcha",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet malamar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet garchompmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet krookodile",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet pidgeotmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet lycanrocdusk",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet heracrossmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet sableye",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "mvpSet slowking",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "nonempty generated sets"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "six real registered sets available",
+      "detail": 95
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "six distinct sets with unique items"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "sitrusberry",
+        "focussash",
+        "airballoon",
+        "choicescarf",
+        "lifeorb",
+        "rockyhelmet"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A メタグロス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "sitrusberry",
+        "blackglasses",
+        "lifeorb",
+        "focussash",
+        "airballoon",
+        "rockyhelmet"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B バンギラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 7
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "choicescarf",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "choicescarf",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "sitrusberry",
+        "choicescarf",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 6 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "real dataset present",
+      "detail": 147
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet sneasler",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet kingambit",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet basculegion",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet charizardmegay",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet rillaboom",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet incineroar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet garchomp",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet farigiraf",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet archaludon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet indeedeef",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet floettemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "unverified: フラエッテ：公式は 0670-005「フラエッテ」、サイトは えいえんのはな"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet dragonitemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gardevoirmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet pelipper",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet sylveon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet froslassmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet raichumegay",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gholdengo",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet whimsicott",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet salamencemega",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet garchompmegaz",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet golisopodmega",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet kommoo",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet volcarona",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet venusaur",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet armarouge",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet staraptormega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet garchompmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet grimmsnarl",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet ninetalesalola",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gengarmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet milotic",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet basculegionf",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet sinistcha",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet metagrossmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet politoed",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet arcaninehisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet raichumegax",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet primarina",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet tyranitarmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet delphoxmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet indeedee",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet swampertmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet torkoal",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet aerodactylmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet excadrill",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet annihilape",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet hydreigon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet blastoisemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet glimmora",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet cameruptmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet snorlax",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet glimmoramega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet pyroarmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet espathra",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet scovillainmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet dragapult",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet corviknight",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet lucariomegaz",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet talonflame",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet toxapex",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet hatterene",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet blazikenmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet ninetales",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet lycanrocdusk",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet tyranitar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet hippowdon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet mawilemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet absolmegaz",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet pawmot",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet ceruledge",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet aerodactyl",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet mimikyu",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet sableye",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet aegislash",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet dragonite",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet typhlosionhisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet rotomwash",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet baxcaliburmega",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet meganiummega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet grapploct",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet sceptilemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gallade",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet kangaskhanmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet rotomheat",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet hawluchamega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet baxcalibur",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet lopunnymega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet kleavor",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet clefable",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet goodrahisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet zoroarkhisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet altaria",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet charizardmegax",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet mamoswine",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet raichu",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet tsareena",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gliscor",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet venusaurmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet manectricmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet houndstone",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet blaziken",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet starmiemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet overqwil",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet meowscarada",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet empoleon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet alakazammega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet toxtricity",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet araquanid",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet staraptor",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet drampa",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet samurotthisui",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet altariamega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet chesnaughtmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet klefki",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet rhyperior",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet umbreon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet tinkaton",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet vanilluxe",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet kangaskhan",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet dragalgemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gyaradosmega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet slowbromega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet salamence",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet chandelure",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet greninjamega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet oranguru",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet sirfetchd",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet pincurchin",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet skarmorymega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet audino",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet bellibolt",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet palafin",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet chandeluremega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet azumarill",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet skeledirge",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet inteleon",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet swampert",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet slowkinggalar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet vileplume",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet weavile",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet scraftymega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet arcanine",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet clefablemega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet audinomega",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "insufficient: 覚える攻撃技が集計に無い"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet gengar",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "mvpSet alcremie",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "nonempty generated sets"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "six real registered sets available",
+      "detail": 95
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "six distinct sets with unique items"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "choicescarf",
+        "lifeorb",
+        "expertbelt"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A マフォクシー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "whiteherb",
+        "choicescarf",
+        "lifeorb",
+        "focussash",
+        "spelltag",
+        "sitrusberry"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B イルカマン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ギルガルド",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "lifeorb",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 セグレイブ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "lifeorb",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ウインディ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    }
+  ],
+  "errors": [],
+  "results": [
+    {
+      "fmt": "single",
+      "no": 730,
+      "name": "アシレーヌ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 1000,
+      "name": "サーフゴー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 450,
+      "name": "カバルドン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 445,
+      "name": "ガブリアス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 1018,
+      "name": "ブリジュラス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 768,
+      "name": "グソクムシャ",
+      "stone": "golisopite",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "no": 778,
+      "name": "ミミッキュ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 373,
+      "name": "ボーマンダ",
+      "stone": "salamencite",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "no": 902,
+      "name": "イダイトウ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 445,
+      "name": "ガブリアス",
+      "stone": "garchompitez",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "no": 908,
+      "name": "マスカーニャ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 823,
+      "name": "アーマーガア",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10061,
+      "name": "フラエッテ（えいえんのはな）",
+      "stone": "floettite",
+      "status": "unverified",
+      "bad": [],
+      "unknown": [
+        "unverified: フラエッテ：公式は 0670-005「フラエッテ」、サイトは えいえんのはな"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 376,
+      "name": "メタグロス",
+      "stone": "metagrossite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 876,
+      "name": "イエッサン（オス）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 448,
+      "name": "ルカリオ",
+      "stone": "lucarionitez",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "no": 6,
+      "name": "リザードン",
+      "stone": "charizarditey",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 149,
+      "name": "カイリュー",
+      "stone": "dragoninite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 94,
+      "name": "ゲンガー",
+      "stone": "gengarite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 903,
+      "name": "オオニューラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 130,
+      "name": "ギャラドス",
+      "stone": "gyaradosite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 998,
+      "name": "セグレイブ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 36,
+      "name": "ピクシー",
+      "stone": "clefablite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10236,
+      "name": "ダイケンキ（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 681,
+      "name": "ギルガルド",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 812,
+      "name": "ゴリランダー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 197,
+      "name": "ブラッキー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 970,
+      "name": "キラフロル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 748,
+      "name": "ドヒドイデ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 257,
+      "name": "バシャーモ",
+      "stone": "blazikenite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 26,
+      "name": "ライチュウ",
+      "stone": "raichunitey",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 6,
+      "name": "リザードン",
+      "stone": "charizarditex",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 887,
+      "name": "ドラパルト",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 923,
+      "name": "パーモット",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 983,
+      "name": "ドドゲザン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 9,
+      "name": "カメックス",
+      "stone": "blastoisinite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 815,
+      "name": "エースバーン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 149,
+      "name": "カイリュー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 635,
+      "name": "サザンドラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10009,
+      "name": "ウォッシュロトム",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 279,
+      "name": "ペリッパー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 212,
+      "name": "ハッサム",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 658,
+      "name": "ゲッコウガ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 861,
+      "name": "オーロンゲ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10008,
+      "name": "ヒートロトム",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 354,
+      "name": "ジュペッタ",
+      "stone": "banettite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 545,
+      "name": "ペンドラー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 121,
+      "name": "スターミー",
+      "stone": "starminite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 998,
+      "name": "セグレイブ",
+      "stone": "baxcalibrite",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "no": 10104,
+      "name": "キュウコン（アローラ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 655,
+      "name": "マフォクシー",
+      "stone": "delphoxite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 637,
+      "name": "ウルガモス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 970,
+      "name": "キラフロル",
+      "stone": "glimmoranite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 130,
+      "name": "ギャラドス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 132,
+      "name": "メタモン",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 154,
+      "name": "メガニウム",
+      "stone": "meganiumite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 937,
+      "name": "ソウブレイズ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10172,
+      "name": "ヤドキング（ガラル）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 260,
+      "name": "ラグラージ",
+      "stone": "swampertite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 260,
+      "name": "ラグラージ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 359,
+      "name": "アブソル",
+      "stone": "absolitez",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "no": 858,
+      "name": "ブリムオン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 428,
+      "name": "ミミロップ",
+      "stone": "lopunnite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 448,
+      "name": "ルカリオ",
+      "stone": "lucarionite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 473,
+      "name": "マンムー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 248,
+      "name": "バンギラス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10239,
+      "name": "ゾロアーク（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 956,
+      "name": "クエスパトラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 911,
+      "name": "ラウドボーン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 282,
+      "name": "サーナイト",
+      "stone": "gardevoirite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 658,
+      "name": "ゲッコウガ",
+      "stone": "greninjite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 939,
+      "name": "ハラバリー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 584,
+      "name": "バイバニラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 94,
+      "name": "ゲンガー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 143,
+      "name": "カビゴン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 691,
+      "name": "ドラミドロ",
+      "stone": "dragalgite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10230,
+      "name": "ウインディ（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 395,
+      "name": "エンペルト",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10242,
+      "name": "ヌメルゴン（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 36,
+      "name": "ピクシー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 849,
+      "name": "ストリンダー（ハイなすがた）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 668,
+      "name": "カエンジシ",
+      "stone": "pyroarite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 952,
+      "name": "スコヴィラン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 257,
+      "name": "バシャーモ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 212,
+      "name": "ハッサム",
+      "stone": "scizorite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 855,
+      "name": "ポットデス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 930,
+      "name": "オリーヴァ",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10061,
+      "name": "フラエッテ（えいえんのはな）",
+      "stone": null,
+      "status": "unverified",
+      "bad": [],
+      "unknown": [
+        "unverified: フラエッテ：公式は 0670-005「フラエッテ」、サイトは えいえんのはな"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 530,
+      "name": "ドリュウズ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 900,
+      "name": "バサギリ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 115,
+      "name": "ガルーラ",
+      "stone": "kangaskhanite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 936,
+      "name": "グレンアルマ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 968,
+      "name": "ミミズズ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 398,
+      "name": "ムクホーク",
+      "stone": "staraptite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 303,
+      "name": "クチート",
+      "stone": "mawilite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 475,
+      "name": "エルレイド",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 3,
+      "name": "フシギバナ",
+      "stone": "venusaurite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 547,
+      "name": "エルフーン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 71,
+      "name": "ウツボット",
+      "stone": "victreebelite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 752,
+      "name": "オニシズクモ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 700,
+      "name": "ニンフィア",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 3,
+      "name": "フシギバナ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 248,
+      "name": "バンギラス",
+      "stone": "tyranitarite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 196,
+      "name": "エーフィ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 964,
+      "name": "イルカマン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 959,
+      "name": "デカヌチャン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 904,
+      "name": "ハリーマン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 460,
+      "name": "ユキノオー",
+      "stone": "abomasite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 407,
+      "name": "ロズレイド",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 227,
+      "name": "エアームド",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 733,
+      "name": "ドデカバシ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 685,
+      "name": "ペロリーム",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 614,
+      "name": "ツンベアー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 350,
+      "name": "ミロカロス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10108,
+      "name": "ペルシアン（アローラ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 979,
+      "name": "コノヨザル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 324,
+      "name": "コータス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10248,
+      "name": "イダイトウ（メス）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 184,
+      "name": "マリルリ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 65,
+      "name": "フーディン",
+      "stone": "alakazite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 865,
+      "name": "ネギガナイト",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 660,
+      "name": "ホルード",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 478,
+      "name": "ユキメノコ",
+      "stone": "froslassite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 376,
+      "name": "メタグロス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 398,
+      "name": "ムクホーク",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 701,
+      "name": "ルチャブル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 442,
+      "name": "ミカルゲ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 727,
+      "name": "ガオガエン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 952,
+      "name": "スコヴィラン",
+      "stone": "scovillainite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 15,
+      "name": "スピアー",
+      "stone": "beedrillite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 470,
+      "name": "リーフィア",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 160,
+      "name": "オーダイル",
+      "stone": "feraligite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 392,
+      "name": "ゴウカザル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 461,
+      "name": "マニューラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 604,
+      "name": "シビルドン",
+      "stone": "eelektrossite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 497,
+      "name": "ジャローダ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10186,
+      "name": "イエッサン（メス）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 334,
+      "name": "チルタリス",
+      "stone": "altarianite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 306,
+      "name": "ボスゴドラ",
+      "stone": "aggronite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 254,
+      "name": "ジュカイン",
+      "stone": "sceptilite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 1013,
+      "name": "ヤバソチャ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 687,
+      "name": "カラマネロ",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 445,
+      "name": "ガブリアス",
+      "stone": "garchompite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 553,
+      "name": "ワルビアル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 18,
+      "name": "ピジョット",
+      "stone": "pidgeotite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 10152,
+      "name": "ルガルガン（たそがれのすがた）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 214,
+      "name": "ヘラクロス",
+      "stone": "heracronite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 302,
+      "name": "ヤミラミ",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "single",
+      "no": 199,
+      "name": "ヤドキング",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "unmapped": [
+        "vivillon"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis",
+      "ms": 36.79999999998836
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis analysis",
+      "ms": 1.8000000000174623
+    },
+    {
+      "fmt": "single",
+      "label": "selection",
+      "ms": 18.89999999999418
+    },
+    {
+      "fmt": "single",
+      "label": "construction A/B",
+      "ms": 878.1999999999825
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 376,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 248,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvements",
+      "ms": 899.1000000000058
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 6",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 6",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 6",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 6",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 6",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 6",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 903,
+      "name": "オオニューラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 983,
+      "name": "ドドゲザン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 902,
+      "name": "イダイトウ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 6,
+      "name": "リザードン",
+      "stone": "charizarditey",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 812,
+      "name": "ゴリランダー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 727,
+      "name": "ガオガエン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 445,
+      "name": "ガブリアス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 981,
+      "name": "リキキリン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 1018,
+      "name": "ブリジュラス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10186,
+      "name": "イエッサン（メス）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10061,
+      "name": "フラエッテ（えいえんのはな）",
+      "stone": "floettite",
+      "status": "unverified",
+      "bad": [],
+      "unknown": [
+        "unverified: フラエッテ：公式は 0670-005「フラエッテ」、サイトは えいえんのはな"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 149,
+      "name": "カイリュー",
+      "stone": "dragoninite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 282,
+      "name": "サーナイト",
+      "stone": "gardevoirite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 279,
+      "name": "ペリッパー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 700,
+      "name": "ニンフィア",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 478,
+      "name": "ユキメノコ",
+      "stone": "froslassite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 26,
+      "name": "ライチュウ",
+      "stone": "raichunitey",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 1000,
+      "name": "サーフゴー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 547,
+      "name": "エルフーン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 373,
+      "name": "ボーマンダ",
+      "stone": "salamencite",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "no": 445,
+      "name": "ガブリアス",
+      "stone": "garchompitez",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "no": 768,
+      "name": "グソクムシャ",
+      "stone": "golisopite",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "no": 784,
+      "name": "ジャラランガ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 637,
+      "name": "ウルガモス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 3,
+      "name": "フシギバナ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 936,
+      "name": "グレンアルマ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 398,
+      "name": "ムクホーク",
+      "stone": "staraptite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 445,
+      "name": "ガブリアス",
+      "stone": "garchompite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 861,
+      "name": "オーロンゲ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10104,
+      "name": "キュウコン（アローラ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 94,
+      "name": "ゲンガー",
+      "stone": "gengarite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 350,
+      "name": "ミロカロス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10248,
+      "name": "イダイトウ（メス）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 1013,
+      "name": "ヤバソチャ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 376,
+      "name": "メタグロス",
+      "stone": "metagrossite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 186,
+      "name": "ニョロトノ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10230,
+      "name": "ウインディ（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 26,
+      "name": "ライチュウ",
+      "stone": "raichunitex",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 730,
+      "name": "アシレーヌ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 248,
+      "name": "バンギラス",
+      "stone": "tyranitarite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 655,
+      "name": "マフォクシー",
+      "stone": "delphoxite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 876,
+      "name": "イエッサン（オス）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 260,
+      "name": "ラグラージ",
+      "stone": "swampertite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 324,
+      "name": "コータス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 142,
+      "name": "プテラ",
+      "stone": "aerodactylite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 530,
+      "name": "ドリュウズ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 979,
+      "name": "コノヨザル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 635,
+      "name": "サザンドラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 9,
+      "name": "カメックス",
+      "stone": "blastoisinite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 970,
+      "name": "キラフロル",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 323,
+      "name": "バクーダ",
+      "stone": "cameruptite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 143,
+      "name": "カビゴン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 970,
+      "name": "キラフロル",
+      "stone": "glimmoranite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 668,
+      "name": "カエンジシ",
+      "stone": "pyroarite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 956,
+      "name": "クエスパトラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 952,
+      "name": "スコヴィラン",
+      "stone": "scovillainite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 887,
+      "name": "ドラパルト",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 823,
+      "name": "アーマーガア",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 448,
+      "name": "ルカリオ",
+      "stone": "lucarionitez",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "no": 663,
+      "name": "ファイアロー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 748,
+      "name": "ドヒドイデ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 858,
+      "name": "ブリムオン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 257,
+      "name": "バシャーモ",
+      "stone": "blazikenite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 38,
+      "name": "キュウコン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10152,
+      "name": "ルガルガン（たそがれのすがた）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 248,
+      "name": "バンギラス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 450,
+      "name": "カバルドン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 303,
+      "name": "クチート",
+      "stone": "mawilite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 359,
+      "name": "アブソル",
+      "stone": "absolitez",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "no": 923,
+      "name": "パーモット",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 937,
+      "name": "ソウブレイズ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 142,
+      "name": "プテラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 778,
+      "name": "ミミッキュ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 302,
+      "name": "ヤミラミ",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 681,
+      "name": "ギルガルド",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 149,
+      "name": "カイリュー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10233,
+      "name": "バクフーン（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10009,
+      "name": "ウォッシュロトム",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 998,
+      "name": "セグレイブ",
+      "stone": "baxcalibrite",
+      "status": "ok",
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "no": 154,
+      "name": "メガニウム",
+      "stone": "meganiumite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 853,
+      "name": "オトスパス",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 254,
+      "name": "ジュカイン",
+      "stone": "sceptilite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 475,
+      "name": "エルレイド",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 115,
+      "name": "ガルーラ",
+      "stone": "kangaskhanite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10008,
+      "name": "ヒートロトム",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 701,
+      "name": "ルチャブル",
+      "stone": "hawluchanite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 998,
+      "name": "セグレイブ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 428,
+      "name": "ミミロップ",
+      "stone": "lopunnite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 900,
+      "name": "バサギリ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 36,
+      "name": "ピクシー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10242,
+      "name": "ヌメルゴン（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10239,
+      "name": "ゾロアーク（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 334,
+      "name": "チルタリス",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 6,
+      "name": "リザードン",
+      "stone": "charizarditex",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 473,
+      "name": "マンムー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 26,
+      "name": "ライチュウ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 763,
+      "name": "アマージョ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 472,
+      "name": "グライオン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 3,
+      "name": "フシギバナ",
+      "stone": "venusaurite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 310,
+      "name": "ライボルト",
+      "stone": "manectite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 972,
+      "name": "ハカドッグ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 257,
+      "name": "バシャーモ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 121,
+      "name": "スターミー",
+      "stone": "starminite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 904,
+      "name": "ハリーマン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 908,
+      "name": "マスカーニャ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 395,
+      "name": "エンペルト",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 65,
+      "name": "フーディン",
+      "stone": "alakazite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 849,
+      "name": "ストリンダー（ハイなすがた）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 752,
+      "name": "オニシズクモ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 398,
+      "name": "ムクホーク",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 780,
+      "name": "ジジーロン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10236,
+      "name": "ダイケンキ（ヒスイ）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 334,
+      "name": "チルタリス",
+      "stone": "altarianite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 652,
+      "name": "ブリガロン",
+      "stone": "chesnaughtite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 707,
+      "name": "クレッフィ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 464,
+      "name": "ドサイドン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 197,
+      "name": "ブラッキー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 959,
+      "name": "デカヌチャン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 584,
+      "name": "バイバニラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 115,
+      "name": "ガルーラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 691,
+      "name": "ドラミドロ",
+      "stone": "dragalgite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 130,
+      "name": "ギャラドス",
+      "stone": "gyaradosite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 80,
+      "name": "ヤドラン",
+      "stone": "slowbronite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 373,
+      "name": "ボーマンダ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 609,
+      "name": "シャンデラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 658,
+      "name": "ゲッコウガ",
+      "stone": "greninjite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 765,
+      "name": "ヤレユータン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 865,
+      "name": "ネギガナイト",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 871,
+      "name": "バチンウニ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 227,
+      "name": "エアームド",
+      "stone": "skarmorite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 531,
+      "name": "タブンネ",
+      "stone": null,
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 939,
+      "name": "ハラバリー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 964,
+      "name": "イルカマン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 609,
+      "name": "シャンデラ",
+      "stone": "chandelurite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 184,
+      "name": "マリルリ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 911,
+      "name": "ラウドボーン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 818,
+      "name": "インテレオン",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 260,
+      "name": "ラグラージ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 10172,
+      "name": "ヤドキング（ガラル）",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 45,
+      "name": "ラフレシア",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 461,
+      "name": "マニューラ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 560,
+      "name": "ズルズキン",
+      "stone": "scraftinite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 59,
+      "name": "ウインディ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 36,
+      "name": "ピクシー",
+      "stone": "clefablite",
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 531,
+      "name": "タブンネ",
+      "stone": "audinite",
+      "status": "insufficient",
+      "bad": [],
+      "unknown": [
+        "insufficient: 覚える攻撃技が集計に無い"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 94,
+      "name": "ゲンガー",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "no": 869,
+      "name": "マホイップ",
+      "stone": null,
+      "status": "ok",
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "unmapped": [
+        "vivillon",
+        "maushold",
+        "meowsticfmega"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis",
+      "ms": 40.19999999998254
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis analysis",
+      "ms": 3.2000000000116415
+    },
+    {
+      "fmt": "double",
+      "label": "selection",
+      "ms": 26.89999999999418
+    },
+    {
+      "fmt": "double",
+      "label": "construction A/B",
+      "ms": 908.1999999999825
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 655,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 964,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 681,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvements",
+      "ms": 1285.7000000000116
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 998,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 59,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    }
+  ]
+}

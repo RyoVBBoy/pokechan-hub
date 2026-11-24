@@ -79,7 +79,7 @@ function calcMoveList(X){
 const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
 const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
-const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','liquid-voice','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','gale-wings','quick-feet','trace','rivalry','sand-veil','snow-cloak'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
+const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','liquid-voice','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','gale-wings','quick-feet','trace','rivalry','sand-veil','snow-cloak'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
 const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','focusband'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
 function calcNotes(R){
   const o=[],a=R.a,d=R.d,n=R.n||1,mv=R.mv;
@@ -91,6 +91,8 @@ function calcNotes(R){
     if(mkey(mv)==='populationbomb')o.push('ネズミざんは1回ごとに命中の判定があり、外れたところで止まります。いつも10回当たるわけではありません');
     if(d.ab==='multiscale'&&d.hp===d.max&&a.ab!=='mold-breaker')o.push('マルチスケイルで半分になるのは、HPが満タンのときに受ける1発目だけです');
   }
+  if(a.ab==='sheer-force'&&mv){if(sfOn(a,mv))o.push(`ちからずく：この技は追加効果のある技なので威力1.3倍で計算し、追加効果は起きないとしています${sfSup(a,mv)&&a.item==='lifeorb'?'。いのちのたまの反動も受けません（ダメージの1.3倍はそのまま）':''}（追加効果のある技の一覧は第9世代の参照データ。ゲーム内では未確認）`);
+    else o.push(`ちからずく：この技は追加効果のある技の一覧に入っていないので、威力はそのままです${a.item==='lifeorb'?'（いのちのたまの反動も受けます）':''}`)}
   if(a.ab==='protean'||a.ab==='libero')o.push(R.op&&R.op.protean?`${ABN[a.ab]}で技と同じタイプになったとして計算しています（場に出て最初の技のとき）`:`${ABN[a.ab]}がすでに発動していて、もとのタイプのまま攻撃するとして計算しています`);
   if(d.ab==='disguise'){
     if(a.ab==='mold-breaker')o.push('かたやぶりは、ばけのかわを無視してふつうにダメージを与えます（ばけのかわは、はがれません）');

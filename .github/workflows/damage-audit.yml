@@ -47,7 +47,7 @@ jobs:
       - name: Real data performance (4x CPU slowdown)
         if: ${{ !cancelled() }}
         run: node tests/real-data-audit.mjs performance
-      - name: 40 named cases
+      - name: 45 named cases
         env:
           CALC_CASES_REPORT: audit-calc-cases.json
           CALC_CASES_SUMMARY: audit-calc-cases-summary.json

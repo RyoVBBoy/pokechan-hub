@@ -295,7 +295,7 @@ function planHTML0(entries){
   <p class="note" style="padding-top:0">${P0.DS?`${P0.DS.list.length}通りの選出を全部、使用率の上位${P0.DS.N}匹との1対1の計算（ダメージ・素早さ・後出し）で比べて選びました（くわしくは下の「選出の比較」）。`:`${P0.live?'ランクバトルの使用率の上位':'種族値の高い'}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました`}（育成を登録した匹はその育成で計算）。</p>
   <div class="pc-i pc-plan" data-base="${P0.base.join(',')}"><b>基本選出</b>
     <p class="pc-mons">${P0.base.map(i=>`<span${P0.lead.includes(i)?' class="lead"':''}>${nmI(i)}${P0.lead.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
-    <p>${P0.DS?`上位${P0.DS.N}匹のうち<b>${P0.DS.best.cnt[4]+P0.DS.best.cnt[3]}匹</b>に、選出のだれかが有利に戦えます（◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}）。`:`${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。`}先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。</p>
+    <p>${P0.DS?`上位${P0.DS.N}匹のうち<b>${P0.DS.best.cnt[4]+P0.DS.best.cnt[3]}匹</b>に、選出のだれかが有利に戦えます（◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}）。`:`${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。`}先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。${P0.megaI>=0&&P0.base.filter(i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return k&&isStone(k)}).length>=2?`この選出では<b>${nmI(P0.megaI)}</b>だけがメガシンカする場合で計算しています（ほかのメガストーンの匹はメガストーンの効果なし）。`:''}</p>
     <h4>勝ち筋</h4><ol class="pc-story"><li>先発の<b>${P0.lead.map(nmI).join('・')}</b>で、相手の先発に有利をとって削る。${R[P0.lead[0]].go.length?`（有利な相手：${R[P0.lead[0]].go.slice(0,3).map(q=>esc(q.n)).join('・')}）`:''}</li>
       ${mid.length?`<li>不利な相手が出てきたら<b>${mid.map(nmI).join('・')}</b>に任せて、数を減らす。</li>`:''}
       <li>${P0.finWhy?`最後は<b>${nmI(P0.finisher)}</b>の${finTxt}で、削れた相手を詰める。`:`最後の詰め役がはっきりしません。いちばん速い<b>${nmI(P0.finisher)}</b>で詰めることになりますが、先制技・こだわりスカーフ・積み技のどれかを持たせると、終盤に競り負けにくくなります。`}</li></ol>
@@ -393,7 +393,7 @@ function partyCheck(entries){
      「選出（★）に2匹以上」と「パーティに3匹以上」のときだけ */
   const allMegas=allMs.filter(o=>it(o)&&isStone(it(o)));
   if(full&&megas.length>=2){const keep=[...megas].sort((a,b)=>(megaOf(b.p.no,it(b))||b.p).bst-(megaOf(a.p.no,it(a))||a.p).bst)[0],out=megas.find(o=>o!==keep);
-    fix.push({t:'選出にメガストーンが2匹',d:`メガシンカできるのは1試合に1匹だけなので、選出の${names(megas)}のうち1匹はメガシンカできません。`,how:`${esc(keep.p.n)}をメガシンカさせるなら、${esc(out.p.n)}をメガストーンを持たない匹と入れかえます。`,
+    fix.push({t:'選出にメガストーンが2匹',d:`メガシンカできるのは1試合に1匹だけなので、選出の${names(megas)}のうち1匹はメガシンカせず、メガストーンの効果なし（持ち物なしと同じ）で戦うことになります。`,how:`${esc(keep.p.n)}をメガシンカさせるなら、${esc(out.p.n)}をメガストーンを持たない匹と入れかえます。`,
       sw:swaps(out,q=>{const o=allMs.find(z=>z.p===q);return o&&!stoneOf(o)},[])})}
   else if(!full&&allMegas.length>=3)fix.push({t:`メガストーンが${allMegas.length}匹`,d:`メガシンカできるのは1試合に1匹だけで、選出（${PICK()}匹）に入れられるメガストーンもふつう1匹です。${names(allMegas)}のうち、選ばれない匹の持ち物がむだになりやすい形です。`,how:`メガシンカの候補は2匹までにして、残りには別の持ち物を持たせます。例：${esc([...allMegas].sort((a,b)=>a.p.bst-b.p.bst)[0].p.n)}の持ち物：${esc(ITEMN[it([...allMegas].sort((a,b)=>a.p.bst-b.p.bst)[0])]||'メガストーン')} → いのちのたま・こだわりスカーフ など。`});
   else if(!full&&allMegas.length===2)good.push({t:'メガシンカの候補が2匹',d:`${names(allMegas)}。相手のパーティを見て、どちらをメガシンカさせるか選べます（選出に入れるのはどちらか1匹）。`});
@@ -437,16 +437,23 @@ function selPlan(entries){
     const o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));
     return duel(a,o).s}catch(e){return 0}}));
   const w=opps.map((_,j)=>1-j/(opps.length*2));
-  const val=sub=>opps.reduce((t,_,j)=>t+w[j]*(Math.max(...sub.map(i=>S[i][j]))+.15*sub.reduce((u,i)=>u+S[i][j],0)/sub.length),0);
-  /* メガシンカは1試合に1匹なので、メガストーンを持つ匹は選出に1匹まで */
+  /* 2026/11/24：メガシンカは1試合に1匹。メガストーンを持つ匹が選出に2匹以上いてもよいが、そのうち1匹ずつを「この匹だけがメガシンカ」にして、
+     ほかのメガストーンの匹は持ち物なし（メガストーンの効果なし）の1対1（Sn）で数え、いちばん良い場合をとる（61-select.js の dgSelect と同じ考え方） */
   const stone=i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return !!k&&isStone(k)};
-  const okSub=c=>c.filter(stone).length<=1;
+  const Sn=me.map((a,i)=>{if(!stone(i))return null;let b=null;try{b=mkMon(byNo[entries[i].no],'me',{...mySetFor(entries[i].no),item:null})}catch(e){}
+    return opps.map(q=>{if(!b)return -2;try{const o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));return duel(b,o).s}catch(e){return 0}})});
+  const rowOf=(i,h)=>stone(i)&&i!==h&&Sn[i]?Sn[i]:S[i];
+  const val1=(sub,h)=>opps.reduce((t,_,j)=>t+w[j]*(Math.max(...sub.map(i=>rowOf(i,h)[j]))+.15*sub.reduce((u,i)=>u+rowOf(i,h)[j],0)/sub.length),0);
+  const megaPick=sub=>{const hs=sub.filter(stone);if(hs.length<=1)return{h:hs.length?hs[0]:-1,v:val1(sub,hs.length?hs[0]:-1)};return hs.map(h=>({h,v:val1(sub,h)})).sort((a,b)=>b.v-a.v||a.h-b.h)[0]};
+  const val=sub=>megaPick(sub).v;
+  const okSub=()=>true;
   /* 軸（利用者が決めた、外さない1匹）は必ず選出に入れる */
   const ax=entries.findIndex(x=>x.axis);
-  const all=combos([...Array(n).keys()],K).filter(c=>okSub(c)&&(ax<0||c.includes(ax)));if(!all.length)return null;
+  const all=combos([...Array(n).keys()],K).filter(c=>ax<0||c.includes(ax));if(!all.length)return null;
   /* 第5段階（2026/11/10）：基本選出と先発は、全部の組み合わせを相手ごとの対応力と同じ計算で比べた dgSelect（61-select.js）から。使えないときは前の方法 */
   let DS=null;try{DS=typeof dgSelect==='function'?dgSelect(entries):null}catch(e){DS=null}
   const base=DS&&DS.best?[...DS.best.c]:all.reduce((b,c)=>{const v=val(c);return !b||v>b.v?{c,v}:b},null).c;
+  const megaI=DS&&DS.best?DS.best.megaI:megaPick(base).h;
   const avg=i=>S[i].reduce((t,v,j)=>t+v*w[j],0);
   const lead=DS&&DS.best?DS.best.leads.slice(0,LEADN()):[...base].sort((a,b)=>avg(b)-avg(a)).slice(0,LEADN());
   const good=sub=>opps.filter((_,j)=>Math.max(...sub.map(i=>S[i][j]))>=1).length;
@@ -472,7 +479,7 @@ function selPlan(entries){
   const finisher=fins.length?fins.sort((a,b)=>spd(me[b])-spd(me[a]))[0]:[...base].sort((a,b)=>spd(me[b])-spd(me[a]))[0];
   /* 環境の上位8匹に、だれが有利に戦えるか */
   const top=opps.slice(0,8).map((q,j)=>({q,ans:[...Array(n).keys()].filter(i=>S[i][j]>=1).sort((a,b)=>S[b][j]-S[a][j])}));
-  return{DS,base,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps,roles,finisher,finWhy:fin(finisher),top,ax,me};
+  return{DS,base,megaI,lead,situ:situ.slice(0,3),good:good(base),total:opps.length,live,sel,selWeak,S,opps,roles,finisher,finWhy:fin(finisher),top,ax,me};
 }
 /* 構築のタイプ（対面・攻めサイクル・受けサイクル・積み）：登録した育成の持ち物・技・特性から数える */
 function teamKind(entries){

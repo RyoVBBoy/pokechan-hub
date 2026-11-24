@@ -8,7 +8,7 @@ const mode=process.argv[2];
 if(!['integration','legality','performance'].includes(mode))throw Error('Specify audit mode');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const report={mode,sha:process.env.GITHUB_SHA||null,checks:[],errors:[],results:[]};
-const b=await chromium.launch();
+const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
 try{
  for(const fmt of ['single','double']){
   const pg=await b.newPage({viewport:{width:390,height:844},locale:'ja-JP'});

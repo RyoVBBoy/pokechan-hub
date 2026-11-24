@@ -302,6 +302,11 @@ function dgTeam0(entries,n,opt){
   return best;
 }
 function dgTeam1(n,ms,CS,mi,H,mode){
+  /* メガストーンの匹が2匹以上なら、天気（パーティの天気を作る特性）もこの場合のメガシンカだけで決める */
+  if(!H.length||(H.length<2&&mi>=0))return dgTeam2(n,ms,CS,mi,H,mode);
+  const wm=WX_MEGA;WX_MEGA=mi>=0?ms[mi].x.no:null;try{return dgTeam2(n,ms,CS,mi,H,mode)}finally{WX_MEGA=wm}
+}
+function dgTeam2(n,ms,CS,mi,H,mode){
   /* 2026/11/20：持ち物が姿と合わない型（formErr）の匹は計算に入れない（null＝いない匹と同じ扱い）。外した匹は formErr で返し、前提に書く */
   const FE=[];
   const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{const m=mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs);if(m.formErr){FE.push({side:'me',no:o.p.no,why:m.formErr});return null}return m}catch(e){return null}});
@@ -333,11 +338,15 @@ function dgTeam1(n,ms,CS,mi,H,mode){
   const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
   /* 2026/11/10 依頼主の指摘（ブリムオン・リキキリン・コータス…が「晴れ・対面」になった）：技を登録していても、その中にトリックルームが無いと
      張れる匹に数えていなかった。覚えられる匹は「張れる候補」（reg:false）として数え、技に入っていないことは別に知らせる */
-  const setters=ms.map((o,i)=>{const mv=o.x.set&&o.x.set.mv&&o.x.set.mv.length?o.x.set.mv:null;
+  /* 2026/11/24：張れる匹（setters）は、計算に使う育成の技に実際にトリックルームが入っている匹だけ。覚えられるだけの匹は「張れる候補」（cand）として別に持ち、
+     トリックルームが張られたことにはしない（tr.on にしない・遅さの弱点を消さない）。cand は「トリックルーム向きの形か」（suit）の判定と、技に入れる提案だけに使う */
+  const all=ms.map((o,i)=>{const mv=o.x.set&&o.x.set.mv&&o.x.set.mv.length?o.x.set.mv:null;
     const reg=!!mv&&mv.some(m=>m&&m.id===TRID),can=(LSD[o.p.no]||LSD[o.p.base]||[0,[]])[1].includes(TRID);
     return reg||can?{i,reg,mv:!!mv}:null}).filter(Boolean);
+  const setters=all.filter(s=>s.reg),cand=all.filter(s=>!s.reg);
   const slow=M.map((a,i)=>i).filter(i=>rows.length&&rows.filter(r=>{const z=r.res.find(x=>x.i===i);return z&&z.sa<z.so}).length>=rows.length*.7);
-  const tr={on:!!setters.length&&slow.length*2>ms.length,setters,slow,unset:!setters.some(s=>s.reg)};
+  const many=slow.length*2>ms.length;
+  const tr={on:!!setters.length&&many,setters,cand,slow,suit:!!all.length&&many,unset:!setters.length&&!!cand.length&&many};
   if(tr.on){DG_TR=true;try{rows.forEach(r=>{r.resTR=M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,r.o)}}catch(e){return null}}).filter(Boolean);
     const st=r.resTR.filter(x=>x.r>=4),okk=r.resTR.filter(x=>x.r>=3),wk=r.resTR.filter(x=>x.r===2);r.lvlTR=st.length>=2?4:st.length===1?3:okk.length||wk.length?2:1})}finally{DG_TR=false}}
   /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
@@ -431,12 +440,14 @@ function dgAnalyze(T){
     ref.push({area:'素早さ',opps:slowAll.map(qn),t:`トリックルームを張る前・切れたあとは、だれよりも速い相手が${slowAll.length}匹`,d:'トリックルーム構築なので、遅いことは弱点として数えていません。張る前と切れたあとの対面の参考です。',ev:list(slowAll,r=>{const f=[...r.res].sort((a,b)=>b.sa-a.sa)[0];return `${qn(r)}（素早さ${f.so}）：いちばん速い${nm(f.i)}は${f.sa}`})});
     if(trF.length)bad.push({area:'素早さ',sev:trF.some(top)?2:1,opps:trF.map(qn),t:`トリックルーム中でも先に動かれる相手が${trF.length}匹`,d:'相手のほうがさらに遅いため、トリックルーム中でもこちらのだれも先に動けません（先制技は入れて計算）。',
       ev:list(trF,r=>{const f=[...r.resTR].sort((a,b)=>a.sa-b.sa)[0];return `${qn(r)}（素早さ${f.so}）：いちばん遅い${nm(f.i)}でも${f.sa}`}),how:'この相手には、トリックルームを張らずに戦う匹を用意するか、さらに遅い匹を入れます。'});
-    if(T.tr.unset&&T.tr.setters.some(x=>x.mv))bad.push({area:'素早さ',sev:2,t:'遅い匹が多いのに、トリックルームの技が入っていない',d:'パーティの半分より多くが遅いトリックルーム向きの形ですが、登録した技にトリックルームがありません。いまのままだと、遅いまま上から攻撃されます。',
-      ev:T.tr.setters.map(x=>`${nm(x.i)}はトリックルームを覚えられる`),how:`${T.tr.setters.map(x=>nm(x.i)).slice(0,2).join('か')}の技にトリックルームを入れると、下の「トリックルーム中」の計算どおりに戦えます（パーティの画面の「おすすめの型でまとめて埋める」もトリックルーム入りで組みます）。`});
     const sN=T.tr.setters.length;
     (sN<=1?bad:good).push({area:'素早さ',sev:sN<=1?2:0,t:sN<=1?`トリックルームを張れるのが${nm(T.tr.setters[0].i)}だけ`:`トリックルームを張れる匹が${sN}匹（${T.tr.setters.map(s=>nm(s.i)).join('・')}）`,
-      d:sN<=1?'張る役が先に倒されると、遅い匹がそのまま上から攻撃されます。':'',ev:T.tr.setters.filter(s=>!s.reg).map(s=>s.mv?`${nm(s.i)}は覚えられるが、いまの技にトリックルームが入っていない`:`${nm(s.i)}は技が未登録のため「覚えられる」で数えています`),how:sN<=1?'トリックルームを張れる2匹目を入れると安定します。':''});
-  }else if(slowAll.length){const pr=r=>r.res.filter(z=>z.pr&&z.pr.min>0).sort((a,b)=>b.pr.min-a.pr.min)[0];
+      d:sN<=1?'張る役が先に倒されると、遅い匹がそのまま上から攻撃されます。':'',ev:T.tr.cand.map(s=>s.mv?`${nm(s.i)}は覚えられるが、いまの技にトリックルームが入っていない（張れる匹に数えていない）`:`${nm(s.i)}は技が未登録のため、張れる匹に数えていない（覚えられる）`),how:sN<=1?'トリックルームを張れる2匹目を入れると安定します。':''});
+  }else if(slowAll.length){
+    /* 覚えられるだけのトリックルームでは、遅さの弱点を消さない（下の「だれよりも速い相手」はそのまま出す） */
+    if(T.tr&&T.tr.unset)bad.push({area:'素早さ',sev:2,t:'遅い匹が多いのに、トリックルームの技が入っていない',d:'パーティの半分より多くが遅いトリックルーム向きの形ですが、計算に使った技にトリックルームがありません。トリックルームは張らない前提で計算しています。',
+      ev:T.tr.cand.map(x=>x.mv?`${nm(x.i)}はトリックルームを覚えられるが、いまの技に入っていない`:`${nm(x.i)}はトリックルームを覚えられる（技が未登録）`),how:`${T.tr.cand.map(x=>nm(x.i)).slice(0,2).join('か')}の技にトリックルームを入れると、トリックルーム中の計算もします（パーティの画面の「おすすめの型でまとめて埋める」もトリックルーム入りで組みます）。`});
+    const pr=r=>r.res.filter(z=>z.pr&&z.pr.min>0).sort((a,b)=>b.pr.min-a.pr.min)[0];
     const cov=slowAll.filter(r=>{const p=pr(r);return p&&p.pr.min>=100});
     bad.push({area:'素早さ',opps:slowAll.map(qn),sev:Math.max(1,sevOf(slowAll)-(cov.length===slowAll.length?1:0)),t:`パーティのだれよりも速い相手が${slowAll.length}匹`,
       d:'素早さ（こだわりスカーフ・天気で速くなる特性・まひも入れて計算）で、だれも先に動けない相手です。'+(cov.length?`このうち${cov.length}匹は先制技で確定で倒せます。`:''),
@@ -582,7 +593,7 @@ const ARCH_BADGE={sun:['晴れ','sun'],rain:['雨','rain'],sand:['砂嵐','sand'
 function teamArch(entries){
   const out=[];if(!entries||!entries.length)return out;
   /* トリックルームを先に出す（晴れトリルのように天気と重なるときも、トリックルームが主な戦い方なので） */
-  if(entries.length>=3){try{const T=dgTeam(entries,20);if(T.tr&&T.tr.on)out.push({k:'tr',unset:T.tr.unset,why:`${T.tr.setters.map(s=>formInfo(T.ms[s.i].p).base).join('・')}が${T.tr.unset?'覚えられて（いまの技には未登録）':'張れて'}、${T.tr.slow.length}匹が遅い`})}catch(e){}}
+  if(entries.length>=3){try{const T=dgTeam(entries,20);if(T.tr&&(T.tr.on||T.tr.unset))out.push({k:'tr',unset:!T.tr.on,why:`${(T.tr.on?T.tr.setters:T.tr.cand).map(s=>formInfo(T.ms[s.i].p).base).join('・')}が${T.tr.on?'張れて':'覚えられて（いまの技には未登録。計算ではトリックルームを張っていない）'}、${T.tr.slow.length}匹が遅い`})}catch(e){}}
   try{const w=teamWx();if(w){const gain=entries.filter(x=>{try{const m=mkMon(byNo[x.no],'me',mySetFor(x.no));return (WX_GAIN[w.k]||[]).includes(m.ab)}catch(e){return false}}).map(x=>formInfo(byNo[x.no]).base);
     out.push({k:w.k,why:`${w.by}の${ABN[w.ab]||'特性'}で天気を変える${w.guess?'（特性が未登録なので、この特性と仮定）':''}${gain.length?`（${gain.join('・')}が得をする）`:''}`})}}catch(e){}
 

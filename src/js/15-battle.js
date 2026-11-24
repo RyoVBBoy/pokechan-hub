@@ -15,8 +15,17 @@ const WSPD={chlorophyll:'sun','swift-swim':'rain','sand-rush':'sand','slush-rush
 const WNAME={sun:'ひざしが つよい',rain:'あめが ふっている',sand:'すなあらし',snow:'ゆきが ふっている'};
 const ABIMPL=new Set([...Object.keys(ABSORB),...Object.keys(PINCH),...Object.keys(SKIN),...Object.keys(WSET),...Object.keys(WSPD),
  'intimidate','clear-body','white-smoke','hyper-cutter','mirror-armor','defiant','competitive','huge-power','pure-power','hustle','compound-eyes','no-guard','technician','adaptability',
- 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link','unaware','marvel-scale']);
+ 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link','unaware','marvel-scale','sheer-force']);
 const stgM=s=>s>=0?(2+s)/2:2/(2-s);
+/* ちからずく（2026/11/24）：追加効果のある技の威力が1.3倍（5325/4096）になり、その追加効果（相手の状態異常・ひるみ・能力の変化・自分の能力が上がる効果など）は起きない。
+   自分の能力が下がる効果（インファイト等）・反動・吸い取る回復・急所に当たりやすい性質は追加効果ではないので残る。いのちのたまの反動は、ちからずくが働いた技のときだけ受けない。
+   どの技が「追加効果のある技」かは、技ごとに書いた表（SF_SEC。一般的な「効果あり」の印 MVE の o は使わない）。
+   出典：@smogon/calc 0.12.0 の Pokémon Champions の技データの secondaries（Pokémon Showdown と同じ。こおりにする効果のないチャンピオンズのフリーズドライは入らない）＋
+   同じ計算の Electro Shot（エレクトロビーム：威力だけ上がり、ためる効果は残る）。第9世代の参照データであり、チャンピオンズの実機では確かめていない */
+const SF_SEC=new Set(["acidspray","airslash","alluringvoice","ancientpower","appleacid","aquastep","aurawheel","axekick","barbbarrage","bite","bittermalice","blazekick","blizzard","bodyslam","bounce","breakingswipe","bugbuzz","bulldoze","burningjealousy","ceaselessedge","chargebeam","chillingwater","crosspoison","crunch","crushclaw","darkpulse","direclaw","discharge","dragonrush","drumbeating","dynamicpunch","earthpower","eeriespell","electroweb","energyball","extrasensory","fakeout","fierydance","fireblast","firefang","firelash","firepunch","flamecharge","flamethrower","flareblitz","flashcannon","focusblast","gravapple","gunkshot","heatwave","hurricane","icebeam","icefang","icepunch","iciclecrash","icywind","infernalparade","inferno","ironhead","irontail","lavaplume","liquidation","lowsweep","luminacrash","lunge","matchagotcha","meteormash","moonblast","mortalspin","mountaingale","muddywater","mudshot","mudslap","mysticalfire","nightdaze","nuzzle","playrough","poisonfang","poisonjab","pounce","psychic","psychicnoise","psyshieldbash","pyroball","rapidspin","razorshell","rockslide","rocktomb","saltcure","scald","scorchingsands","shadowball","shellsidearm","skittersmack","skyattack","sludgebomb","sludgewave","snarl","snore","sparklingaria","spiritbreak","spiritshackle","steelwing","stoneaxe","strugglebug","syrupbomb","throatchop","thunder","thunderbolt","thunderfang","thunderpunch","torchsong","trailblaze","triattack","triplearrows","tropkick","upperhand","volttackle","waterfall","waterpulse","zapcannon","zenheadbutt","zingzap"]);
+const SF_POW_ONLY=new Set(['electroshot']);
+const sfOn=(a,mv)=>!!(a&&mv&&a.ab==='sheer-force'&&(SF_SEC.has(mkey(mv))||SF_POW_ONLY.has(mkey(mv))));
+const sfSup=(a,mv)=>!!(a&&mv&&a.ab==='sheer-force'&&SF_SEC.has(mkey(mv)));
 
 /* ---- 持ち物（対応しているもののみ） ---- */
 /* ゲームにある持ち物（メガストーン以外）。2026/11/04 依頼主の完全なリスト。こだわりハチマキ・こだわりメガネ・とつげきチョッキ・あつぞこブーツ等はゲームにない */
@@ -445,6 +454,7 @@ function bcalc(a,mv,d,o){
   if(phys&&a.item==='muscleband')bm=chM(bm,4505);
   if(!phys&&a.item==='wiseglasses')bm=chM(bm,4505);
   if(a.ab==='tough-claws'&&mfl(mv,'c'))bm=chM(bm,5325);
+  if(sfOn(a,mv))bm=chM(bm,5325);
   if(a.ab==='iron-fist'&&mfl(mv,'p'))bm=chM(bm,4915);
   if(a.ab==='strong-jaw'&&mfl(mv,'b'))bm=chM(bm,6144);
   if(a.ab==='mega-launcher'&&mfl(mv,'l'))bm=chM(bm,6144);
@@ -677,7 +687,7 @@ function runTurn(){
       if(mv.drain>0){const hv=Math.floor(tot*mv.drain/100);b.hp=Math.min(b.max,b.hp+hv)}
       if(mv.drain<0&&!b.fainted){b.hp=Math.max(0,b.hp-Math.floor(tot*-mv.drain/100));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は 反動で たおれた！</span>`)}}
       if(t.fainted){log(`<span class="ko">${bn(t)}は たおれた！</span>`);if(b.ab==='moxie'&&!b.fainted)chg(b,'atk',1,log,'じしんかじょう')}
-      else if(mv.e&&b.ab!=='sheer-force'){const e=mv.e;
+      else if(mv.e&&!sfSup(b,mv)){const e=mv.e;
         if(e.a&&Math.random()*100<e.a[1])inflict(t,e.a[0],log);
         if(e.f&&Math.random()*100<e.f)t.flinch=true;
         (e.t||[]).forEach(([k,n,c])=>{if(Math.random()*100>=c)return;if(['clear-body','white-smoke'].includes(t.ab)||(k==='atk'&&t.ab==='hyper-cutter')){log(`${bn(t)}の ${abn(t)}で 能力は 下がらない！`);return}
@@ -686,8 +696,8 @@ function runTurn(){
     }
     if(MSELFKO.has(mk)&&!b.fainted){b.hp=0;b.fainted=true;log(`<span class="ko">${bn(b)}は たおれた！</span>`)}
     if(didHit&&MRECH.has(mk)&&!b.fainted)b.recharge=true;
-    if(didHit&&!b.fainted&&mv.e&&mv.e.s)mv.e.s.forEach(([k,n,c])=>{if(Math.random()*100<c)chg(b,k,n,log)});
-    if(b.item==='lifeorb'&&!b.fainted&&b.hp>0&&didHit){b.hp=Math.max(0,b.hp-Math.max(1,Math.floor(b.max/10)));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は いのちのたまで たおれた！</span>`)}}
+    if(didHit&&!b.fainted&&mv.e&&mv.e.s)mv.e.s.forEach(([k,n,c])=>{if(n>0&&sfSup(b,mv))return;if(Math.random()*100<c)chg(b,k,n,log)});
+    if(b.item==='lifeorb'&&!b.fainted&&b.hp>0&&didHit&&!sfSup(b,mv)){b.hp=Math.max(0,b.hp-Math.max(1,Math.floor(b.max/10)));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は いのちのたまで たおれた！</span>`)}}
     if(sideDead(B.me)||sideDead(B.op))break;
   }
   const over=sideDead(B.me)||sideDead(B.op);

@@ -43,11 +43,14 @@ function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return 
    こちら側で戦うときは、その天気で計算する（相手が天気を変える特性なら、あとから出る相手の天気が優先＝wxPair）。 */
 const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-swim'],sand:['sand-rush','sand-force'],snow:['slush-rush']};
 let TWX_K=null,TWX_V=null;
+/* 2026/11/24：メガシンカの場合（診断・選出で「この匹だけがメガシンカ」）。undefined＝決めていない（前と同じ：メガストーンの匹はメガ後の特性）、
+   null＝だれもメガシンカしない、番号＝その匹だけがメガシンカ（ほかのメガストーンの匹は持ち物なしで、もとの特性） */
+let WX_MEGA;
 function teamWx(){if(typeof team==='undefined'||!team.length)return null;
-  const key=JSON.stringify(team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k]));if(key===TWX_K)return TWX_V;
+  const key=JSON.stringify([WX_MEGA===undefined?'u':WX_MEGA,team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
   let v=null;for(const x of team){const p=byNo[x.no];if(!p)continue;let ab=null;
     let guess=false;
-    try{const it=x.set&&x.set.it&&x.set.it.k,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||null;
+    try{const it0=x.set&&x.set.it&&x.set.it.k,it=it0&&isStone(it0)&&WX_MEGA!==undefined&&WX_MEGA!==x.no?null:it0,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||null;
       /* 特性が未登録で、天気を変える特性を持てる匹（ペリッパーのあめふらし等）は、その特性で使うと仮定する */
       if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||mySetFor(x.no).ab;guess=!!w}}catch(e){}
     if(ab&&WSET[ab]){v={k:WSET[ab],by:formInfo(p).base,ab,guess};break}}

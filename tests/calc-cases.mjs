@@ -61,9 +61,15 @@ const C=[
  {no:38,t:'回帰：ダブル単体特殊技＋ひかりのかべ',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{format:'double',screen:true}},
  {no:39,t:'回帰：ダブル単体物理技＋壁＋急所',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'outrage',o:{format:'double',screen:true,crit:true}},
  {no:40,t:'回帰：ダブル単体特殊技＋壁＋急所',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{format:'double',screen:true,crit:true}},
+ /* 2026/11/24：ちからずく（追加効果のある技の一覧 SF_SEC。照合先は第9世代の secondaries） */
+ {no:41,t:'ちからずく：追加効果のある技（れいとうパンチ）は1.3倍',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'icepunch'},
+ {no:42,t:'ちからずく：自分の能力が下がるだけの技（インファイト）は上がらない',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'closecombat'},
+ {no:43,t:'ちからずく＋いのちのたま（アクアブレイク）：1.3倍と5324/4096の両方',A:{n:'オーダイル',en:'Feraligatr',ab:'sheer-force',item:'lifeorb',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'liquidation'},
+ {no:44,t:'ちからずく：エレクトロビームは威力だけ上がる（照合先と同じ特例）',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...SBULK},mv:'electroshot'},
+ {no:45,t:'ちからずく：追加効果のない技（マッハパンチ）は上がらない',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'machpunch'},
 ];
-const EN_MV={earthquake:'Earthquake',thunderbolt:'Thunderbolt',icebeam:'Ice Beam',outrage:'Outrage',flamethrower:'Flamethrower',shadowball:'Shadow Ball',superfang:'Super Fang',lowkick:'Low Kick',eruption:'Eruption',bodypress:'Body Press',rockblast:'Rock Blast',rockslide:'Rock Slide',ragingbull:'Raging Bull',populationbomb:'Population Bomb',closecombat:'Close Combat',twinbeam:'Twin Beam'};
-const EN_AB={'rough-skin':'Rough Skin',sturdy:'Sturdy','good-as-gold':'Good as Gold',multiscale:'Multiscale','thick-fat':'Thick Fat',intimidate:'Intimidate','sand-stream':'Sand Stream','inner-focus':'Inner Focus',blaze:'Blaze','mirror-armor':'Mirror Armor','skill-link':'Skill Link','sand-force':'Sand Force',levitate:'Levitate',drought:'Drought','tough-claws':'Tough Claws','stance-change':'Stance Change','cursed-body':'Cursed Body',technician:'Technician',guts:'Guts',protean:'Protean'};
+const EN_MV={icepunch:'Ice Punch',liquidation:'Liquidation',electroshot:'Electro Shot',machpunch:'Mach Punch',earthquake:'Earthquake',thunderbolt:'Thunderbolt',icebeam:'Ice Beam',outrage:'Outrage',flamethrower:'Flamethrower',shadowball:'Shadow Ball',superfang:'Super Fang',lowkick:'Low Kick',eruption:'Eruption',bodypress:'Body Press',rockblast:'Rock Blast',rockslide:'Rock Slide',ragingbull:'Raging Bull',populationbomb:'Population Bomb',closecombat:'Close Combat',twinbeam:'Twin Beam'};
+const EN_AB={'sheer-force':'Sheer Force','rough-skin':'Rough Skin',sturdy:'Sturdy','good-as-gold':'Good as Gold',multiscale:'Multiscale','thick-fat':'Thick Fat',intimidate:'Intimidate','sand-stream':'Sand Stream','inner-focus':'Inner Focus',blaze:'Blaze','mirror-armor':'Mirror Armor','skill-link':'Skill Link','sand-force':'Sand Force',levitate:'Levitate',drought:'Drought','tough-claws':'Tough Claws','stance-change':'Stance Change','cursed-body':'Cursed Body',technician:'Technician',guts:'Guts',protean:'Protean'};
 const EN_IT={lifeorb:'Life Orb',yacheberry:'Yache Berry',airballoon:'Air Balloon'};
 const TY={ノーマル:'Normal',ほのお:'Fire',みず:'Water',でんき:'Electric',くさ:'Grass',こおり:'Ice',かくとう:'Fighting',どく:'Poison',じめん:'Ground',ひこう:'Flying',エスパー:'Psychic',むし:'Bug',いわ:'Rock',ゴースト:'Ghost',ドラゴン:'Dragon',あく:'Dark',はがね:'Steel',フェアリー:'Fairy'};
 
@@ -172,7 +178,7 @@ for(const no of [18,26,29,35,36]){const x=g(no);ok(x.dist&&Math.abs(x.dist.sum-1
  ok(s.dist&&[...tot.keys()].length>0&&Math.min(...tot.keys())===s.dist.lo&&Math.max(...tot.keys())===s.dist.hi,'#35 ツインビーム：2発の合計の最小・最大が照合先と同じ',{lo:s.dist&&s.dist.lo,hi:s.dist&&s.dist.hi});}
 ok(site.find(x=>x.no==='sl').slHits===5,'スキルリンクは選んだ回数があっても5回（回数の選択が残っていても）',site.find(x=>x.no==='sl'));
 ok(!errs.length,'ページのエラーなし',errs);
-ok(C.length===40&&new Set(C.map(c=>c.no)).size===40,'40 named cases are present and uniquely numbered',{count:C.length,ids:C.map(c=>c.no)});
+ok(C.length===45&&new Set(C.map(c=>c.no)).size===45,'45 named cases are present and uniquely numbered',{count:C.length,ids:C.map(c=>c.no)});
 if(process.env.CALC_CASES_REPORT)writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
 if(process.env.CALC_CASES_SUMMARY)writeFileSync(process.env.CALC_CASES_SUMMARY,JSON.stringify({
  reference:'@smogon/calc Gen 9 plus explicitly labeled rule-based/unverified cases (not Champions device proof)',
