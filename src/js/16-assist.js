@@ -64,11 +64,13 @@ function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
-  a.moves.forEach(mv=>{if(mv.prot||!moveUsable(mv,{a,d}).ok)return;const r=bcalc(a,mv,d,{});
-    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,acc=accOf(a,mv,d);
+  /* 2026/11/24：1回の使用を bhits（当たりごとの状態・トリプルアクセル・おやこあい）で。回数が変わる技はいつもの回数（mhCount）。
+     かんたんな見積もり（乱数92%）なので、診断の「確定」とは別の数（意図して違う数）。使うごとに変われば seq（useSeq） */
+  a.moves.forEach(mv=>{if(mv.prot||!moveUsable(mv,{a,d}).ok)return;const b=bhits(a,mv,d,{});
+    const acc=accOf(a,mv,d);
     /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
-    let pct=r.dmg*h/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
-    if(pct*acc>best.pct*best.acc)best={pct,mv,acc,seq:typeof mbSeq==='function'?mbSeq(a,mv,d):null}});
+    let pct=b.total/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
+    if(pct*acc>best.pct*best.acc)best={pct,mv,acc,seq:typeof useSeq==='function'?useSeq(a,mv,d):(typeof mbSeq==='function'?mbSeq(a,mv,d):null)}});
   }finally{d.disg=dg}
   return best;
 }

@@ -534,7 +534,8 @@ function bcalc(a,mv,d,o){
   D=Math.max(1,apM(D,dm));
   /* 基本ダメージ */
   let x=Math.floor(Math.floor(Math.floor(22*pow*A)/D)/50)+2;
-  if(o.spread)x=apM(x,3072);
+  /* 範囲技の0.75倍は、範囲の技（mv.tg＝相手全体・自分以外全体）のときだけ。1匹を狙う技には掛けない（2026/11/24） */
+  if(o.spread&&mv.tg)x=apM(x,3072);
   if(o.pb)x=apM(x,1024);
   if(w==='sun'&&(t==='ほのお'||t==='みず'))x=apM(x,t==='ほのお'?6144:2048);
   if(w==='rain'&&(t==='みず'||t==='ほのお'))x=apM(x,t==='みず'?6144:2048);
@@ -582,40 +583,107 @@ function mhCount(a,mv,o){
   if(o&&o.hits>0)return Math.max(mv.minH||1,Math.min(o.hits,mv.maxH));
   return mkey(mv)==='populationbomb'?10:3;
 }
+/* ---- 1発ずつの状態の変化（2026/11/24、Pokémon Showdown e7f50cd に合わせた共通の部品） ----
+   当たるたびに：ばけのかわ（1発目を防いで1/8）・半減きのみ（効いた当たりで使う）・ふうせん（当たると割れる）・
+   じきゅうりょく（当たるたび防御+1）・くだけるよろい（物理で防御−1）・きあいのタスキ／がんじょう（o.surv のときだけ。HP満タンから倒れる当たりを1残す。タスキは使う）。
+   相手が倒れたら、そのあとの当たりは状態を変えない（after。合計 total は全部の当たりの「計算上の」ダメージ、dealt は倒れるまでに実際に与えたダメージ） */
+function hitStep(a,mv,d,i,r,cr,o,st){
+  const k=mkey(mv),m=k==='tripleaxel'?{...mv,pow:[20,40,60][i]||60}:mv;
+  const hp0=d.hp,it0=d.item,dg0=d.disg,stg0=d.stg;
+  d.hp=Math.max(0,st.hp);d.item=st.item;d.disg=st.disg;d.stg=st.stg;
+  try{
+    const x=bcalc(a,m,d,{...o,r,crit:cr,pb:st.pb&&i===1});
+    const ns={...st};let h;
+    if(x.disg){ns.disg=false;ns.hp=st.hp-x.loss;h={dmg:0,disg:true,loss:x.loss,crit:false,r:r||null,hp:st.hp};if(ns.hp<=0)ns.dead=true;return{x,h,ns}}
+    let dmg=x.dmg;
+    if(o.surv&&x.eff&&st.hp===d.max&&dmg>=st.hp&&!st.dead){
+      if(st.item==='focussash'){dmg=st.hp-1;ns.item=null;ns.surv='focussash'}
+      else if(d.ab==='sturdy'&&a.ab!=='mold-breaker'){dmg=st.hp-1;ns.surv='sturdy'}}
+    h={dmg,crit:cr,r:r||null,hp:st.hp};
+    if(!x.eff)return{x,h,ns:{...ns,stop:true}};
+    if(st.item&&RES_BERRY[st.item]&&RES_BERRY[st.item]===hitType(a,m)&&(x.eff>=2||st.item==='chilanberry'))ns.item=null;
+    if(st.item==='airballoon')ns.item=null;
+    ns.hp=st.hp-dmg;
+    if(ns.hp>0){
+      if(d.ab==='stamina')ns.stg={...ns.stg,def:Math.min(6,(ns.stg.def||0)+1)};
+      if(d.ab==='weak-armor'&&m.cls===0)ns.stg={...ns.stg,def:Math.max(-6,(ns.stg.def||0)-1),spe:Math.min(6,(ns.stg.spe||0)+2)};
+    }else ns.dead=true;
+    return{x,h,ns};
+  }finally{d.hp=hp0;d.item=it0;d.disg=dg0;d.stg=stg0}
+}
+const hsInit=(d,pb)=>({hp:d.hp,item:d.item,disg:d.disg,stg:{...d.stg},pb});
+/* 1回の使用。当たる回数は n（o.hits・決まった回数・スキルリンク・mhCount） */
 function bhits(a,mv,d,o){
-  o=o||{};const k=mkey(mv),n=mhCount(a,mv,o);
+  o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
   /* おやこあい：2回目は1/4。範囲技・連続技・ためる技（ソーラービーム等）・決まったダメージの技には働かない（本編の決まり＝前提。2026/11/24 ためる技を足した） */
   const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
-  const hp0=d.hp,it0=d.item,dg0=d.disg,out=[];let hp=hp0,eff=null,loss=0,fainted=false;
-  try{
-    for(let i=0;i<(pb?2:n);i++){
-      d.hp=Math.max(0,hp);
-      const r=Array.isArray(o.rolls)?o.rolls[i]:o.r,cr=Array.isArray(o.crits)?!!o.crits[i]:!!o.crit;
-      const m=k==='tripleaxel'?{...mv,pow:[20,40,60][i]||60}:mv;
-      const x=bcalc(a,m,d,{...o,r,crit:cr,pb:pb&&i===1});
-      if(eff==null)eff=x.eff;
-      if(x.disg){
-        /* ばけのかわ：この当たりは技のダメージ0・急所にもならない。最大HPの1/8が減り、はがれる */
-        loss=x.loss;out.push({dmg:0,disg:true,loss,crit:false,r:r||null,hp:d.hp});
-        d.disg=false;hp-=loss;
-        if(hp<=0){fainted=true;break}
-        continue;
-      }
-      out.push({dmg:x.dmg,crit:cr,r:r||null,hp:d.hp});
-      if(!x.eff)break;
-      if(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,m)&&(x.eff>=2||d.item==='chilanberry'))d.item=null;
-      hp-=x.dmg;
-    }
-  }finally{d.hp=hp0;d.item=it0;d.disg=dg0}
+  const out=[];let st=hsInit(d,pb),eff=null,loss=0,fainted=false,disgFaint=false,dealt=0,surv=null;
+  for(let i=0;i<(pb?2:n);i++){
+    const r=Array.isArray(o.rolls)?o.rolls[i]:o.r,cr=Array.isArray(o.crits)?!!o.crits[i]:!!o.crit;
+    if(st.dead){/* 倒れたあと：計算上のダメージだけ（状態は変えない） */const y=hitStep(a,mv,d,i,r,cr,{...o,surv:false},{...st,hp:Math.max(1,st.hp)});if(y.h.disg)break;out.push({...y.h,after:true});continue}
+    const {x,h,ns}=hitStep(a,mv,d,i,r,cr,o,st);
+    if(eff==null)eff=x.eff;
+    if(h.disg){loss=h.loss;out.push(h);st=ns;if(ns.dead){fainted=true;disgFaint=true;break}continue}
+    out.push(h);if(ns.stop)break;dealt+=Math.min(h.dmg,Math.max(0,st.hp));if(ns.surv)surv=ns.surv;st=ns;
+    if(ns.dead)fainted=true;
+  }
   const total=out.reduce((s,h)=>s+h.dmg,0);
-  return{hits:out,total,eff,n:pb?2:n,loss,hpLoss:total+loss,fainted:fainted||hp<=0,disgFaint:fainted};
+  return{hits:out,total,dealt,eff,n:pb?2:n,loss,hpLoss:total+loss,fainted,disgFaint,surv,state:st};
 }
-/* 1回の使用の合計ダメージの分布（当たりごとに乱数は別々）。[[合計,確率],…]。1発ごとの値は乱数によらず状態が同じ（2発目からは満タンでない等）なので、乱数ごとの値を畳み込む */
+/* 1回の使用で当たる回数の分布 [[回数,確率],…]（2026/11/24、Showdown e7f50cd）：
+   o.hits・決まった回数・スキルリンク＝その回数／2〜5回の技＝2回35%・3回35%・4回15%・5回15%／ネズミざん・トリプルアクセル＝2発目から毎回命中の判定、外れたら止まる
+   （1発目が当たったときの分布。1発目の命中はダメージ計算の画面で別に出す） */
+const MACC=new Set(['populationbomb','tripleaxel','triplekick']);
+function hitCountDist(a,mv,d,o){
+  if(!(mv.maxH>1))return[[1,1]];
+  if(o&&o.hits>0)return[[mhCount(a,mv,o),1]];
+  if(a.ab==='skill-link')return[[mv.maxH,1]];
+  const k=mkey(mv);
+  if(MACC.has(k)){const p=Math.min(1,accOf(a,mv,d)/100),N=mv.maxH,out=[];for(let c=1;c<N;c++)out.push([c,Math.pow(p,c-1)*(1-p)]);out.push([N,Math.pow(p,N-1)]);return out.filter(x=>x[1]>0)}
+  if(mv.minH===mv.maxH)return[[mv.maxH,1]];
+  if(mv.minH===2&&mv.maxH===5)return[[2,.35],[3,.35],[4,.15],[5,.15]];
+  const c=mv.maxH-mv.minH+1;return Array.from({length:c},(_,i)=>[mv.minH+i,1/c]);
+}
+/* 1回の使用の合計ダメージの分布（当たりごとに乱数は別々・状態は当たりごとに変わる）。[[合計,確率],…]
+   2026/11/24：前は「1発ごとの値は乱数によらない」として畳み込んでいた（じきゅうりょく・タスキ等で前の当たりによって次が変わると違っていた）。
+   同じ状態（防御のランク・持ち物・ばけのかわ・HP満タンか・倒れたか）と同じ合計はまとめて数える。o.nHits があればその回数だけ */
 function hitDist(a,mv,d,o){
-  const per=[];for(let r=85;r<=100;r++)per.push(bhits(a,mv,d,{...o,r}).hits.map(h=>h.dmg));
-  const n=per[0].length;let dist=new Map([[0,1]]);
-  for(let i=0;i<n;i++){const nd=new Map();for(const[s,c]of dist)for(let r=0;r<16;r++){const v=s+per[r][i];nd.set(v,(nd.get(v)||0)+c/16)}dist=nd}
-  return [...dist.entries()].sort((x,y)=>x[0]-y[0]);
+  o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
+  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
+  const N=pb?2:n,cache=new Map();
+  let S=new Map();const s0=hsInit(d,pb);S.set(JSON.stringify([0,s0]),{t:0,st:s0,p:1});
+  for(let i=0;i<N;i++){const nx=new Map();
+    for(const v of S.values()){
+      if(v.st.dead||v.st.stop){/* 倒れたあとの当たりは計算上の値（状態は変えない・乱数は別々） */
+        for(let r=85;r<=100;r++){const y=hitStep(a,mv,d,i,r,!!o.crit,{...o,surv:false},{...v.st,hp:Math.max(1,v.st.hp),dead:false});const t=v.t+(v.st.stop?0:y.h.dmg),key=JSON.stringify([t,v.st]);const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:v.st,p:v.p/16})}continue}
+      for(let r=85;r<=100;r++){
+        const ck=JSON.stringify([i,r,v.st.hp===d.max,v.st.hp,v.st.item,v.st.disg,v.st.stg]);
+        let y=cache.get(ck);if(!y){y=hitStep(a,mv,d,i,r,!!o.crit,o,v.st);cache.set(ck,y)}
+        const ns=y.ns,t=v.t+(y.h.disg?0:y.h.dmg);
+        const sk={...ns};const key=JSON.stringify([t,sk]);const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:ns,p:v.p/16})}}
+    S=nx}
+  const out=new Map();for(const v of S.values())out.set(v.t,(out.get(v.t)||0)+v.p);
+  return [...out.entries()].sort((x,y)=>x[0]-y[0]);
+}
+/* 1回使ったあとの状態（2026/11/24）：次の使用のダメージを出すため、こちら・相手の写しを作る（もとのものは変えない）。
+   こちら：必ず起きる自分の能力の変化（りゅうせいぐん 特攻−2・インファイトは攻撃に関係しない…技の効果の表 MVE.s の確率100%）・メテオビーム/エレクトロビームの特攻+1・使ったノーマルジュエル。
+   相手：bhits の終わりの状態（持ち物・ばけのかわ・ランク）とHP（満タンでない＝マルチスケイル等は働かない） */
+function nextUse(a,mv,d,o){
+  const b=bhits(a,mv,d,{...o,r:o&&o.r||100});const st=b.state,k=mkey(mv);
+  const a2={...a,stg:{...a.stg}};
+  if(MB_REP.has(k))a2.stg.spa=Math.min(6,(a2.stg.spa||0)+1);
+  if(!sfSup(a,mv))((mv.e&&mv.e.s)||[]).forEach(([s,n,c])=>{if(c>=100&&a2.stg[s]!=null)a2.stg[s]=Math.max(-6,Math.min(6,a2.stg[s]+n))});
+  if(a.item==='normalgem'&&hitType(a,mv)==='ノーマル')a2.item=null;
+  const d2={...d,stg:{...st.stg},item:st.item,disg:st.disg,hp:Math.min(d.hp,Math.max(1,d.max-1))};
+  const changed=JSON.stringify([a2.stg,a2.item])!==JSON.stringify([a.stg,a.item])||JSON.stringify([d2.stg,d2.item,d2.disg])!==JSON.stringify([d.stg,d.item,d.disg])||(d.hp===d.max&&(d.ab==='multiscale'||d.item==='focussash'||d.ab==='sturdy'));
+  return{a:a2,d:d2,changed};
+}
+/* 使うごとの1回のダメージ（％）の並び：1回目・2回目…（6回まで）。状態が変わらないなら null（呼ぶ側は同じ値を使う） */
+function useSeq(a,mv,d,r,o){
+  o=o||{};if(!nextUse(a,mv,d,{...o,r,nHits:o.nHits}).changed)return null;
+  let A=a,D=d,out=[],any=false;
+  for(let k=0;k<6;k++){const b=bhits(A,mv,D,{...o,r,nHits:o.nHits});out.push(b.total/d.max*100);const nx=nextUse(A,mv,D,{...o,r,nHits:o.nHits});if(nx.changed)any=true;A=nx.a;D=nx.d}
+  return any?out:null;
 }
 /* 天気の効果を消す特性（ノーてんき・エアロック）：天気はあるが、効果は出ない（2026/11/24） */
 const WX_SUPP=new Set(['cloud-nine','air-lock']);

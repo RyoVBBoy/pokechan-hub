@@ -36,32 +36,31 @@ const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エ
 const dgMvName=(a,mv)=>{let tk=null;try{tk=typeof mvTurnK==='function'?mvTurnK(a,mv):null}catch(e){}const tt=tk==='charge'?'・ためるので1回に2ターン':tk==='recharge'?'・次のターンは動けない':'';
   try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技${tt}）`}catch(e){}return tt?`${mv.n}（${tt.slice(1)}）`:mv.n};
 function dgMove(a,mv,d){
+  /* 2026/11/24：ダメージ計算の画面と同じ部品（bhits・hitCountDist・hitDist・nextUse・useSeq）で数える。
+     前は bcalc×回数で、トリプルアクセルの威力の上がり方・おやこあいの2発目・当たりごとの状態を入れていなかった（マニューラのトリプルアクセルが計算の画面の約半分）。
+     当たる回数が変わる技は、こちらの「確定」は少ない回数（2〜5回なら2回）、相手の「最大」は多い回数（5回）で数える（前はどちらも3回）。
+     min/max＝2回目からの使用（相手はHP満タンでない・使った持ち物・ランクの変化）、fmin/fmax＝1回目の使用。使うごとに変わるなら seqMin/seqMax（duTurns が足して数える） */
   const dg=d.disg;d.disg=false;
   try{
-    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1;
-    /* マルチスケイル・ファントムガード（2026/11/10 依頼主の検証で見つけた間違い）：bcalc は満タンのマルチスケイルを半分にし、
-       duTurns も「最初の1回は半分」として数えるので、二重に半分になっていた（げきりん 66〜79% が確定3発に見えた。正しくは確定2発）。
-       min/max は2発目から（半分にならない）のダメージにし、初撃は first（半分）として別に持つ。回数は duTurns が初撃を半分で数える */
-    const half=DU_HALF_AB.includes(d.ab)&&!duIg(a),hp0=d.hp;
-    if(half)d.hp=d.max-1;
-    let r0,r1;try{r0=bcalc(a,mv,d,{r:85});r1=r0.dmg&&r0.eff?bcalc(a,mv,d,{r:100}):null}finally{d.hp=hp0}
-    if(!r0.dmg||!r0.eff)return{mv,min:0,max:0,eff:r0.eff||0,h,acc:accOf(a,mv,d),ohko:0,absorb:r0.absorb||null};
-    const min=r0.dmg*h/d.max*100,max=r1.dmg*h/d.max*100;
-    const roll=r=>{if(half)d.hp=d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
-    /* 一撃で倒せる段階の数は初撃（マルチスケイル等なら半分）で数える */
-    /* 連続技は、マルチスケイルで半分になるのは最初の1回だけ（2回目からはHPが満タンでない）（2026/11/10 依頼主の確認で見つけた間違い：全部の回を半分にしていた） */
-    /* 2026/11/10 依頼主の確認（ドラゴンアロー）：1回目（HP満タン＝マルチスケイルで半分）と2回目から（半分にならない）を乱数16段階ずつ別々に bcalc で計算して足す。
-       fmin/fmax＝1回の技（全部の回の合計）の1発目のダメージ。一撃で倒せる乱数の数（ohko、16段階に換算）は、1回目と2回目の乱数を別々に組み合わせて数える（3回以上の連続技は2回目以降を同じ乱数と見る） */
-    /* メテオビーム・エレクトロビーム：使うごとのダメージ（2回目から特攻がさらに上がる。マルチスケイルは2発目からの値＝HPが満タンでない） */
-    const sqHp=half?()=>{d.hp=d.max-1}:null,seqMin=mbSeq(a,mv,d,85,sqHp),seqMax=mbSeq(a,mv,d,100,sqHp);
-    if(!half){let ohko=0;if(max>=100)ohko=r0.fixed?16:DG_ROLLS.filter(r=>roll(r)*h>=d.max).length;
-      return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko,fixed:!!r0.fixed,half:null,fmin:min,fmax:max,seqMin,seqMax}}
-    const at=(r,full)=>{d.hp=full?d.max:d.max-1;try{return bcalc(a,mv,d,{r}).dmg}finally{d.hp=hp0}};
-    const h1=DG_ROLLS.map(r=>at(r,true)),h2=DG_ROLLS.map(r=>at(r,false)),L=DG_ROLLS.length-1;
-    const tot=(i,j)=>h1[i]+(h-1)*h2[j];
-    let ko=0;h1.forEach((_,i)=>h2.forEach((_,j)=>{if(tot(i,j)>=d.max)ko++}));
-    return{mv,mvn:dgMvName(a,mv),min,max,eff:r0.eff,h,acc:accOf(a,mv,d),ohko:r0.fixed?16:ko/DG_ROLLS.length,fixed:!!r0.fixed,half:d.ab,
-      fmin:tot(0,0)/d.max*100,fmax:tot(L,L)/d.max*100,hit1:[h1[0],h1[L]],hitN:h>1?[h2[0],h2[L]]:null,hpMax:d.max,seqMin,seqMax};
+    const cd=hitCountDist(a,mv,d,{}),cs=cd.map(x=>x[0]),cMin=Math.min(...cs),cMax=Math.max(...cs);
+    const cMain=cd.reduce((b,x)=>x[1]>b[1]+1e-9?x:b,cd[0])[0];
+    const f=(r,c)=>bhits(a,mv,d,{r,nHits:c});
+    const lo1=f(85,cMin),hi1=f(100,cMax);
+    if(!lo1.total&&!hi1.total||!lo1.eff){const r0=bcalc(a,mv,d,{r:85});return{mv,min:0,max:0,eff:lo1.eff||r0.eff||0,h:cMain,acc:accOf(a,mv,d),ohko:0,absorb:r0.absorb||null}}
+    const fixed=fixedDmg(a,mv,d)!=null;
+    const u=nextUse(a,mv,d,{nHits:cMain});
+    const g=(r,c)=>u.changed?bhits(u.a,mv,u.d,{r,nHits:c}).total:f(r,c).total;
+    const P=v=>v/d.max*100;
+    const fmin=P(lo1.total),fmax=P(hi1.total),min=P(g(85,cMin)),max=P(g(100,cMax));
+    let seqMin=null,seqMax=null;if(u.changed){seqMin=useSeq(a,mv,d,85,{nHits:cMin});seqMax=useSeq(a,mv,d,100,{nHits:cMax})}
+    /* 一撃で倒せる乱数の数（16段階に換算）：1回目の使用の分布（当たる回数の分布・当たりごとの乱数と状態）で HP 以上になる確率×16 */
+    let ohko=0;if(fmax>=100){if(fixed)ohko=16;
+      else if(lo1.n===1&&cd.length===1)ohko=DG_ROLLS.filter(r=>f(r,1).total>=d.max).length;
+      else{let pk=0;for(const [c,w] of cd)for(const [v,q] of hitDist(a,mv,d,{nHits:c}))if(v>=d.max)pk+=w*q;ohko=pk*16}}
+    const half=DU_HALF_AB.includes(d.ab)&&!duIg(a);
+    const hit1=[lo1.hits[0]?lo1.hits[0].dmg:0,hi1.hits[0]?hi1.hits[0].dmg:0],hitN=lo1.hits.length>1?[lo1.hits[1].dmg,hi1.hits[1].dmg]:null;
+    return{mv,mvn:dgMvName(a,mv),min,max,eff:lo1.eff,h:cMain,hMin:cMin,hMax:cMax,acc:accOf(a,mv,d),ohko,fixed,half:half?d.ab:null,fmin,fmax,
+      hit1,hitN,hpMax:d.max,seqMin,seqMax,nHit:lo1.n};
   }finally{d.disg=dg}
 }
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */

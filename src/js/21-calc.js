@@ -6,53 +6,64 @@
    r.loss＝はがれて減るHP（最大HPの1/8、技のダメージではない）・r.disgFaint＝その減少で倒れる（連続技の残りの当たりはない）・
    r.next＝はがれたあと（2回目の使用から）の16段階。倒せる回数は koInfo が「1回目＝技のダメージ＋loss、2回目から＝r.next」で数える */
 function dmgRolls(a,mv,d,o){
-  const r=[];let x=null;for(let k=85;k<=100;k++){x=bhits(a,mv,d,{...o,r:k});r.push(x.total)}
-  if(x.hits.length>1)r.dist=hitDist(a,mv,d,o);
-  /* 2026/11/24：当たる回数が決まらない技（2〜5回・ネズミざん等）で回数を選んでいない・スキルリンクでないときは、当サイトが決めた回数（mhCount）での計算。
-     倒せる確率はその回数と仮定したものなので、実際の確率としては出さない（koInfo の assumed） */
-  if(mv.maxH>1&&mv.minH!==mv.maxH&&a.ab!=='skill-link'&&!(o&&o.hits>0))r.assumedHits={n:x.hits.length,min:mv.minH,max:mv.maxH};
-  /* メテオビーム・エレクトロビーム（2026/11/24）：2回目からの使用は特攻がさらに上がっている（o.useN）。倒せる確率は使うごとのダメージ（r.nexts＝2回目・3回目…）で数える */
-  const rep=MB_REP.has(mkey(mv))&&!o.useN;
-  if(x.loss){r.loss=x.loss;r.disgFaint=x.disgFaint;const dg=d.disg;d.disg=false;try{r.next=dmgRolls(a,mv,d,{...o,useN:(o.useN||0)+(MB_REP.has(mkey(mv))?1:0)})}finally{d.disg=dg}}
-  if(rep){const dg=d.disg;d.disg=false;try{r.nexts=[1,2,3,4,5].map(k=>dmgRolls(a,mv,d,{...o,useN:k}))}finally{d.disg=dg}}
-  /* 2026/11/24：きあいのタスキ・がんじょう（かたやぶりでは働かない）は、HPが満タンで受ける1発だけの技なら1残して耐える。
-     連続技は2発目以降で倒れるので入れない。倒せる確率（koInfo）は、1回目はこの耐える前提で数え、条件つきであることを r.surv で知らせる */
-  if(x.hits.length===1&&!x.loss&&d.hp===d.max&&(d.item==='focussash'||(d.ab==='sturdy'&&a.ab!=='mold-breaker')))r.surv={k:d.item==='focussash'?'focussash':'sturdy',max:d.max};
+  o=o||{};
+  /* 2026/11/24：共通の部品（15-battle.js の bhits・hitCountDist・hitDist・nextUse）で作る。
+     ①16の値＝いちばんありそうな回数で、全部の当たりが同じ乱数の段階のときの合計（画面の％の幅は、回数が変わる技なら r.dist の最小〜最大）
+     ②r.dist＝当たる回数の分布（2〜5回は35/35/15/15%、ネズミざん・トリプルアクセルは2発目からの命中）× 当たりごとに別々の乱数 × 当たりごとの状態の変化
+     ③r.nexts＝2回目・3回目…の使用（自分の能力の変化・使った持ち物・相手のランク・ばけのかわ・HPが満タンでない）。変わらなければ無し
+     ④連続技・おやこあいの きあいのタスキ／がんじょうは当たりごとに入れる（r.survMulti）。1発だけの技は r.surv（下）で倒せる回数だけに入れる */
+  const cd=hitCountDist(a,mv,d,o),cMain=cd.reduce((b,x)=>x[1]>b[1]+1e-9?x:b,cd[0])[0];
+  const r=[];let x=null;for(let k=85;k<=100;k++){x=bhits(a,mv,d,{...o,r:k,nHits:cMain});r.push(x.total)}
+  const multi=x.hits.length>1||cd.length>1;
+  const survOn=d.hp===d.max&&(d.item==='focussash'||(d.ab==='sturdy'&&a.ab!=='mold-breaker'));
+  if(multi){const mix=new Map();for(const [c,w] of cd)for(const [v,q] of hitDist(a,mv,d,{...o,nHits:c,surv:survOn}))mix.set(v,(mix.get(v)||0)+w*q);
+    r.dist=[...mix.entries()].sort((p,q)=>p[0]-q[0]);if(survOn)r.survMulti=true}
+  if(cd.length>1)r.hitCounts=cd;
+  if(x.loss){r.loss=x.loss;r.disgFaint=x.disgFaint}
+  /* 2回目からの使用：状態を1回ずつ進める（もとのこちら・相手は変えない） */
+  if(!o.noNext){let A=a,D=d,any=false;const nx=[];
+    for(let k=0;k<5;k++){const u=nextUse(A,mv,D,{...o,nHits:cMain});if(u.changed)any=true;A=u.a;D=u.d;nx.push(dmgRolls(A,mv,D,{...o,noNext:true}))}
+    if(any){r.nexts=nx;if(x.loss)r.next=nx[0]}}
+  if(!multi&&!x.loss&&survOn)r.surv={k:d.item==='focussash'?'focussash':'sturdy',max:d.max};
+  /* オボンのみ・オレンのみ：HPが半分以下になったら1回だけ回復（使うごとのあとで見る。連続技の途中で食べる分は使うごとのあととして数える＝近い値） */
+  if((d.item==='sitrusberry'||d.item==='oranberry')&&a.ab!=='unnerve'&&d.hp>d.max/2)r.berry={k:d.item,heal:d.item==='sitrusberry'?Math.floor(d.max/4)*(d.ab==='ripen'?2:1):10*(d.ab==='ripen'?2:1),at:Math.floor(d.max/2),max:d.max,inMove:multi};
   return r;
 }
 /* n回当てたときに倒せる確率（いちばん少ない回数と、その確率） */
 function koInfo(r,hp){
   if(!r.length)return{n:0,p:0,sure:0};
-  /* 1回の使用のダメージの分布：連続技は r.dist（[合計,確率]）、ほかは16段階が同じ確率 */
   const one=x=>x.dist||x.map(v=>[v,1/x.length]);
-  /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss）、2回目からは はがれたあとのダメージ（r.next） */
-  const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r),bn=r.next?one(r.next):b1;
-  if(Math.max(...b1.map(x=>x[0]))<=0&&Math.max(...bn.map(x=>x[0]))<=0)return{n:0,p:0,sure:0};
-  /* きあいのタスキ・がんじょう：HP満タンからの1回目は、倒せるダメージでも1残る（条件つき。持ち物がない・HPが満タンでないなら倒れる） */
+  /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss） */
+  const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r);
+  const nx=k=>r.nexts&&r.nexts.length?one(r.nexts[Math.min(k,r.nexts.length-1)]):b1;
+  if(Math.max(...b1.map(x=>x[0]))<=0&&Math.max(...nx(0).map(x=>x[0]))<=0)return{n:0,p:0,sure:0};
+  /* きあいのタスキ・がんじょう（1発だけの技）：HP満タンからの1回目は、倒せるダメージでも1残る（条件つき） */
   const sv=r.surv&&hp===r.surv.max,raw1=sv?b1.filter(x=>x[0]>=hp).reduce((t,x)=>t+x[1],0):0;
   const f1=sv?b1.map(([v,w])=>[Math.min(v,hp-1),w]):b1;
-  let dist=new Map([[0,1]]),first=null;
-  const out=o=>{if(r.assumedHits)o={...o,assumed:r.assumedHits};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
-  /* 2026/11/24：「必ず倒せる」は確率の数（.9999 以上）ではなく、いちばん小さいダメージの道すじ（lo）が HP 以上になったかで決める。
-     確率は、倒せる道すじが1つでもあれば 0 より大きい（first）。必ず倒せる回数（sure）では p を 1 にする */
-  let lo=0;
+  const B=r.berry;
+  const out=o=>{if(r.hitCounts)o={...o,hitCounts:r.hitCounts};if(B)o={...o,berry:B.k};if(r.survMulti)o={...o,survMulti:true};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
+  /* 2026/11/24：残りHPと「きのみを食べたか」の状態で数える。「必ず倒せる」＝倒れていない状態が1つも残らないとき（確率の数で決めない） */
+  let S=new Map([[hp+'|0',{rem:hp,u:0,p:1}]]),ko=0,first=null;
   for(let n=1;n<=8;n++){
-    const nd=new Map(),base=n===1?f1:r.nexts?one(r.nexts[Math.min(n-2,r.nexts.length-1)]):bn;
-    for(const[s,c]of dist)for(const[v,w]of base){const t=Math.min(s+v,hp);nd.set(t,(nd.get(t)||0)+c*w)}
-    dist=nd;lo+=Math.min(...base.map(x=>x[0]));const sure=lo>=hp,ko=sure?1:Math.min(1,dist.get(hp)||0);
-    if(sure&&ko<1)throw new Error('koInfo: guaranteed path without full mass');
-    if(ko>0&&!first)first={n,p:ko};
-    if(sure)return out({...(first||{n,p:1}),...(first&&first.n===n?{p:1}:{}),sure:n});
+    const base=n===1?f1:nx(n-2),nS=new Map();
+    for(const st of S.values())for(const[v,w]of base){let rem=st.rem-v,u=st.u;const q=st.p*w;
+      if(rem<=0){ko+=q;continue}
+      if(B&&!u&&rem<=B.at){rem=Math.min(B.max,rem+B.heal);u=1}
+      const k=rem+'|'+u,e=nS.get(k);if(e)e.p+=q;else nS.set(k,{rem,u,p:q})}
+    S=nS;const sure=S.size===0,p=sure?1:Math.min(1,ko);
+    if(p>0&&!first)first={n,p};
+    if(sure)return out({...first,...(first.n===n?{p:1}:{}),sure:n});
   }
   return out(first?{...first,sure:0}:{n:9,p:0,sure:0});
 }
 /* 確率の書き方。必ずではないのに四捨五入で「100%」と出さない（2026/11/13：ネズミざん10回などで 99.95% が 100% に見えた） */
 const pctTxt=p=>p<=0?'0%':p<.001?'0.1%未満':p<1&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
-const koAsm=k=>k&&k.assumed?`（1回の使用で${k.assumed.n}回当たると仮定）`:'';
+const koAsm=k=>k&&k.hitCounts?`（当たる回数の分布を入れた確率）`:'';
 const koSure=k=>!!k&&k.sure===k.n&&k.n>0;
 const koLabel=k=>(!k.n?'ダメージなし':k.n>8?'8発以上':koSure(k)?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`)+(k.n&&k.n<=8?koAsm(k):'');
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
-const koPlain=k=>koPlain0(k)+(k&&k.assumed&&k.n&&k.n<=8?L(`（1回の使用で${k.assumed.n}回当たると仮定した場合。この技は${k.assumed.min}〜${k.assumed.max}回で変わるので、実際に倒せる確率ではありません。「当たる回数」で選べます）`,` (assuming ${k.assumed.n} hits per use; actual hit count varies)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'');
+const hcTxt=k=>k&&k.hitCounts?k.hitCounts.map(([c,w])=>`${c}回${(w*100).toFixed(w<.01?2:w<.1?1:0)}%`).join('・'):'';
+const koPlain=k=>koPlain0(k)+(k&&k.hitCounts&&k.n&&k.n<=8?L(`（当たる回数の分布〔${hcTxt(k)}〕を入れた確率。「当たる回数」で回数を決めて見ることもできます）`,` (includes hit-count distribution)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'')+(k&&k.survMulti?L('（きあいのタスキ・がんじょうは当たりごとに入れて計算）',' (Sash/Sturdy applied per hit)'):'')+(k&&k.berry?L(`（${ITEMN[k.berry]||k.berry}の回復を入れた回数）`,' (includes berry healing)'):'');
 const koPlain0=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):koSure(k)?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
 /* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
@@ -64,7 +75,7 @@ const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS
 function calcEv(before){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
   const sig=calcSig();if(before!==undefined&&sig===before)return;
   evCount('calc_done',sig)}catch(e){}}
-const koBadge=k=>!k||!k.n||k.n>8?'':k.assumed?`<span class="cv-kb rand" data-notr title="${L(`当たる回数は${k.assumed.min}〜${k.assumed.max}回で変わります`,`Hit count varies`)}">${L(`${k.assumed.n}回当たると仮定：${koSure(k)?`確定${k.n}発`:`乱数${k.n}発`}`,`Assuming ${k.assumed.n} hits: ${k.n}HKO`)}${koSure(k)?'':`<small>${pctTxt(k.p)}</small>`}</span>`:koSure(k)?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
+const koBadge=k=>!k||!k.n||k.n>8?'':koSure(k)?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr${k.hitCounts?` title="${L(`当たる回数の分布：${hcTxt(k)}`,'Hit-count distribution included')}"`:''}>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
 const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
 const koShort=k=>!k.n||k.n>8?'—':(koSure(k)?'確':'乱')+k.n;
 
@@ -212,7 +223,8 @@ function calcView(){
   const draw=()=>{
     const R=calcResult();
     const pct=v=>(v/R.d.max*100).toFixed(1);
-    const lo=R?Math.min(...R.r):0,hi=R?Math.max(...R.r):0;
+    /* 当たる回数が変わる技（2〜5回等）は、回数の分布を入れた r.dist の最小〜最大（2026/11/24） */
+    const lo=R?(R.r.hitCounts&&R.r.dist?R.r.dist[0][0]:Math.min(...R.r)):0,hi=R?(R.r.hitCounts&&R.r.dist?R.r.dist[R.r.dist.length-1][0]:Math.max(...R.r)):0;
     const O=R?calcOverview(R):null;
     /* 名前は計算した姿（メガストーンを持てばメガシンカの姿。2026/11/20 RC3c） */
     const nmA=esc(R?R.a.p.n:byNo[CS.a.no].n),nmD=esc(R?R.d.p.n:byNo[CS.d.no].n);
@@ -222,7 +234,7 @@ function calcView(){
     /* 2026/11/13：いまのHP（残りHPの条件）から引く。ばけのかわの減少（R.r.loss）も引く（技のダメージとは別） */
     const ls=R&&R.r.loss||0,cur0=R?R.d.hp/R.d.max*100:100;
     const dAfter=!!(ls&&!R.r.disgFaint&&R.r.next&&R.r.next.length);
-    const remHi=R?Math.max(0,(R.d.hp-Math.min(...R.r)-ls)/R.d.max*100):0,remLo=R?Math.max(0,(R.d.hp-Math.max(...R.r)-ls)/R.d.max*100):0;
+    const remHi=R?Math.max(0,(R.d.hp-lo-ls)/R.d.max*100):0,remLo=R?Math.max(0,(R.d.hp-hi-ls)/R.d.max*100):0;
     /* ばけのかわ（2026/11/16 依頼主「結果をすぐ読めるように」）：いつも見えるのは2行だけ。
        1行目＝1発目（技のダメージ0%・はがれて減るHP）、2行目＝2発目以降（はがれたあとのダメージと、倒せる回数の札と同じ数）。
        1/8・端数・急所・％に入れない理由などの決まりは「ばけのかわの計算仕様」にたたむ。計算（R.r.loss・R.r.next・R.ko）は変えない */

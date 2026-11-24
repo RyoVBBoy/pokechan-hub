@@ -33,11 +33,11 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
   /* ④ 回数が決まらない連続技（ロックブラスト）は、回数を選ばなければ仮定の印 */
   const rb=mvObj(id('rockblast'));const ra=dmgRolls(big,rb,sn,{}),rs=dmgRolls(big,rb,sn,{hits:5});
   const sl=mon(214,'me','skill-link');
-  o.mh={assumed:koInfo(ra,sn.hp).assumed,chosen:koInfo(rs,sn.hp).assumed||null,skill:koInfo(dmgRolls(sl,rb,sn,{}),sn.hp).assumed||null,label:koLabel(koInfo(ra,sn.hp)),badge:koBadge(koInfo(ra,sn.hp))};
+  o.mh={hc:koInfo(ra,sn.hp).hitCounts,chosen:koInfo(rs,sn.hp).hitCounts||null,skill:koInfo(dmgRolls(sl,rb,sn,{}),sn.hp).hitCounts||null,label:koLabel(koInfo(ra,sn.hp)),plain:koPlain(koInfo(ra,sn.hp)),distSum:ra.dist.reduce((t,x)=>t+x[1],0),lo:ra.dist[0][0],hi:ra.dist[ra.dist.length-1][0],two:bhits(big,rb,sn,{r:85,nHits:2}).total,five:bhits(big,rb,sn,{r:100,nHits:5}).total};
   /* ⑤ メテオビーム：2回目は特攻+2 */
   const mb=mvObj(id('meteorbeam')),sa=mon(143,'me','thick-fat',{sp:[2,0,0,32,0,32],up:3,dn:1}),sd=mon(143,'op','thick-fat',{sp:[0,0,0,0,0,0],up:-1,dn:-1});
   const m0=bcalc(sa,mb,sd,{r:100,useN:0}).dmg,m1=bcalc(sa,mb,sd,{r:100,useN:1}).dmg,dmr=dgMove(sa,mb,sd);
-  o.mb={m0,m1,seqUp:dmr.seqMin[1]>dmr.seqMin[0],nNew:duTurns(dmr.min,{mv:mb,acc:100,f:dmr.fmin,seq:dmr.seqMin},sa,sd),nOld:duTurns(dmr.min,{mv:mb,acc:100,f:dmr.fmin},sa,sd),
+  o.mb={m0,m1,seqUp:dmr.seqMin[1]>dmr.seqMin[0],nNew:duTurns(dmr.min,{mv:mb,acc:100,f:dmr.fmin,seq:dmr.seqMin},sa,sd),manual:(()=>{let t=0,k=0;while(t<100&&k<9){t+=dmr.seqMin[Math.min(k,5)];k++}return k*2})(),first:dmr.fmin,s0:dmr.seqMin[0],
     calcNext:dmgRolls(sa,mb,sd,{}).nexts[0][15]===m1};
   /* ⑥ 能力補正の印 */
   const pp=byNo[445];/* base atk 130: 130+0+20=150 → 10で割り切れる */
@@ -108,9 +108,11 @@ ok(R.ohko&&R.ohko[0]===0&&R.ohko[1],'がんじょうは一撃必殺を防ぐが�
 ok(R.sash.raw&&R.sash.without.n===1&&R.sash.withSash.n===2&&R.sash.withSash.surv&&R.sash.withSash.surv.raw>0,'タスキ：HP満タンなら1回目は耐える前提（条件つき）・ないときの確率も残す',R.sash);
 ok(R.sash.notFull.n===1&&!R.sash.notFull.surv,'タスキ：HPが満タンでなければ耐えない',R.sash.notFull);
 ok(R.sash.note,'タスキの条件つきの説明が出る');
-ok(R.mh.assumed&&R.mh.assumed.n===3&&!R.mh.chosen&&!R.mh.skill,'ロックブラスト：回数を選ばなければ「3回と仮定」の印、選んだ・スキルリンクなら印なし',R.mh);
-ok(/仮定/.test(R.mh.label)&&/仮定/.test(R.mh.badge),'仮定の印が札と文に出る',R.mh);
-ok(R.mb.m1>R.mb.m0&&R.mb.seqUp&&R.mb.nNew<R.mb.nOld&&R.mb.calcNext,'メテオビーム：2回目は+2で、回数は使うごとのダメージで数える',R.mb);
+/* 2026/11/24（2回目）：「3回と仮定」をやめ、参照どおりの回数の分布（2回35%・3回35%・4回15%・5回15%）で確率を出す */
+ok(JSON.stringify(R.mh.hc)==='[[2,0.35],[3,0.35],[4,0.15],[5,0.15]]'&&!R.mh.chosen&&!R.mh.skill,'ロックブラスト：回数を選ばなければ回数の分布、選んだ・スキルリンクなら分布なし',R.mh);
+ok(Math.abs(R.mh.distSum-1)<1e-9&&R.mh.lo===R.mh.two&&R.mh.hi===R.mh.five,'分布の合計1・最小＝2回の最小・最大＝5回の最大',R.mh);
+ok(/分布/.test(R.mh.label)&&/2回35%/.test(R.mh.plain),'札と文に分布を入れたことが出る',R.mh);
+ok(R.mb.m1>R.mb.m0&&R.mb.seqUp&&R.mb.nNew===R.mb.manual&&Math.abs(R.mb.first-R.mb.s0)<1e-9&&R.mb.calcNext,'メテオビーム：2回目は+2で、回数は使うごとのダメージを足して数える（ためるので1回2ターン）',R.mb);
 ok(R.mark.red==='red'&&R.mark.noRed===''&&R.mark.hp===''&&R.mark.blueOk==='blue'&&R.mark.noBlue===''&&R.mark.neutral===''&&R.mark.vp===500,'能力補正の印（赤＝10で割り切れる・青＝一の位が1・HPなし）と500VP',R.mark);
 ok(R.mark.stats[0]===R.mark.exp[0]&&R.mark.stats[1]===R.mark.exp[1]&&R.mark.stats[3]===R.mark.exp[2]&&R.mark.stats[5]===R.mark.exp[3],'能力の式は前のまま（HP＝種族値＋ポイント＋75・ほか floor((種族値＋ポイント＋20)×補正)）',R.mark);
 ok(R.ta[0]==='3ぼんのや'&&R.ta[1]==='3ぼんのや'&&R.ta[2]===843,'3ぼんのや の名前',R.ta);
