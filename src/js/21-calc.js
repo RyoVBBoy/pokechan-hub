@@ -80,9 +80,11 @@ const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,scr
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
 const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
 const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','liquid-voice','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina'];
-const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed'];
+const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','focusband'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
 function calcNotes(R){
   const o=[],a=R.a,d=R.d,n=R.n||1,mv=R.mv;
+  /* 2026/11/24：先制技を受けない特性。ダメージの数は出すが、当たらないことを書く */
+  if(mv&&mv.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')o.push(`${ABN[d.ab]||d.ab}の相手には先制技が当たりません（本編の決まり。ゲーム内では未確認）。上の数は当たったとしたときのダメージです`);
   if(n>1){
     const vr=mv.maxH>1&&mv.minH!==mv.maxH;
     o.push(`${n}回当たったときの合計です${vr?(a.ab==='skill-link'?'（スキルリンクで最大の回数）':`（この技は${mv.minH}〜${mv.maxH}回で変わります。下の「条件」の「当たる回数」で選べます）`):''}。1発ずつ順番に計算し、当たりごとに乱数は別々として倒せる確率を出しています`);

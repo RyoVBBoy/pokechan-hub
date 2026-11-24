@@ -31,7 +31,8 @@ const DG_NOTE='技の反動・自分のHPが減る効果、フィールド（エ
 /* 1つの技のダメージ（最大HPに対する％）：乱数の最小・最大と、16段階のうち倒しきれる段階の数 */
 /* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
-const dgMvName=(a,mv)=>{try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技）`}catch(e){}return mv.n};
+const dgMvName=(a,mv)=>{let tk=null;try{tk=typeof mvTurnK==='function'?mvTurnK(a,mv):null}catch(e){}const tt=tk==='charge'?'・ためるので1回に2ターン':tk==='recharge'?'・次のターンは動けない':'';
+  try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技${tt}）`}catch(e){}return tt?`${mv.n}（${tt.slice(1)}）`:mv.n};
 function dgMove(a,mv,d){
   const dg=d.disg;d.disg=false;
   try{
@@ -63,7 +64,7 @@ function dgMove(a,mv,d){
 function dgBest(a,d){
   let best=null;
   /* みらいよち・はめつのねがいは2ターン後に当たるので、1対1の撃ち合いには入れない */
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv))||!moveUsable(mv).ok)return;
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv))||!moveUsable(mv,{a,d}).ok)return;
     const x=dgMove(a,mv,d);if(!x.max)return;
     x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax},a,d);
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
@@ -74,7 +75,7 @@ function dgBest(a,d){
 /* 先制技で倒しきれるか（確定の回数） */
 function dgPrio(a,d){
   let best=null;
-  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0)||!moveUsable(mv).ok)return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
+  (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0)||!moveUsable(mv,{a,d}).ok)return;const x=dgMove(a,mv,d);if(!best||x.min>best.min)best=x});
   return best;
 }
 const dgPct=v=>v>=999?'—':Math.round(v)+'%';

@@ -27,13 +27,16 @@ function duTurns(p,h,att,def){
   /* ばけのかわ（2026/11/13 見直し）：1回目の使用は、最初の当たりが0になり、かわりに最大HPの1/8が減る。連続技は残りの当たりがふつうに入る。
      前は「1回多くかかる」だけで、1/8の減少を数えていなかった */
   if(!ig&&def.ab==='disguise'&&def.max){const ls=disgLoss(def)/def.max*100,f=p*(1-1/hh)+ls;n=f>=100?1:1+Math.ceil((100-f)/p)}
+  /* ためる技は1回の使用に2ターン、反動で動けない技は n 回で 2n−1 ターン（その間に相手が動ける）。2026/11/24：前は1ターンとして数えていた */
+  const tk=h&&h.mv&&typeof mvTurnK==='function'?mvTurnK(att,h.mv):null;
+  if(tk==='charge')n*=2;else if(tk==='recharge'&&n>1)n=2*n-1;
   const acc=Math.max(30,(h&&h.acc)||100);
   return Math.min(9,acc<100?n*100/acc:n);
 }
 /* 先制技でいちばん強いもの（ダメージの割合） */
 function duPrio(a,d){
   let best=0;const dg=d.disg;d.disg=false;
-  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0)||!moveUsable(mv).ok)return;const r=bcalc(a,mv,d,{});best=Math.max(best,r.dmg/d.max*100)})}catch(e){}
+  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0)||!moveUsable(mv,{a,d}).ok)return;const r=bcalc(a,mv,d,{});best=Math.max(best,r.dmg/d.max*100)})}catch(e){}
   d.disg=dg;return best;
 }
 function duSetup(a){const k=a.boost;if(!k||!DU_BOOST[k]||k==='bellydrum')return null;const id=Object.keys(MD).find(i=>MD[i][3]===k);return{k,b:DU_BOOST[k],n:id?mName(+id):k}}

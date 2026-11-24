@@ -331,6 +331,9 @@ const mkey=mv=>(MDK[mv.id]||'').split('|')[0];
 const wtOf=m=>{let w=WT[m.p.no]||WT[m.p.base]||50;if(m.ab==='heavy-metal')w*=2;if(m.ab==='light-metal')w/=2;return w};
 const MCHG=new Set(['solarbeam','solarblade','meteorbeam','electroshot','skyattack','fly','dig','dive','bounce','phantomforce']);
 const MRECH=new Set(['hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker','meteorassault']);
+/* 1回の使用に何ターンかかる技か（2026/11/24）：'charge'＝ためるターンがある（はれのソーラービーム・あめのエレクトロビーム・メガソーラーは除く）、'recharge'＝使った次のターン動けない。
+   1対1の撃ち合い（duTurns）で、相手が動けるターンとして数える。本編の決まり＝前提（パワフルハーブはゲームの持ち物に無い） */
+const mvTurnK=(a,mv)=>{const k=mkey(mv);if(MCHG.has(k)){const w=B.weather&&B.weather.k;if((k==='solarbeam'||k==='solarblade')&&(w==='sun'||(a&&a.ab==='mega-sol')))return null;if(k==='electroshot'&&w==='rain')return null;return'charge'}return MRECH.has(k)?'recharge':null};
 const MSELFKO=new Set(['explosion','selfdestruct','mistyexplosion','finalgambit']);
 const MFIRST=new Set(['fakeout','firstimpression']);
 const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
@@ -340,7 +343,10 @@ const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
 /* へんげんじざい・リベロの前提（2026/11/20 RC5。画面ごとに違うので、前提として書く。どれが正しいかはゲーム内で未確認＝Q2、依頼主の判断 D6 待ち）：
    ダメージ計算の画面＝はじめは発動する（切りかえあり）、対策・診断・1対1・ランキング・選出・メモ＝発動しない（bcalc に protean を渡さない） */
 const PROTEAN_ASSUME='へんげんじざい・リベロは発動しない前提で計算しています（技と同じタイプにならず、タイプ一致の1.5倍は入れていません。ゲーム内での発動のしかたは未確認）。';
+/* 先制技を受けない特性（2026/11/24）：テイルアーマー（リキキリン）・じょおうのいげん（アマージョ）。本編（第9世代）の決まり＝前提、かたやぶりは無視できる */
+const PRIO_BLOCK=new Set(['armor-tail','queenly-majesty','dazzling']);
 const moveUsable=(mv,ctx)=>{const k=mkey(mv);
+  if(ctx&&ctx.d&&mv&&mv.pri>0&&PRIO_BLOCK.has(ctx.d.ab)&&!(ctx.a&&ctx.a.ab==='mold-breaker'))return{ok:false,why:'blocked-priority',mechanics:'main-series-assumed'};
   if(MFAIL.has(k))return{ok:false,why:k==='steelroller'?'fails-without-terrain':'needs-condition',mechanics:'main-series-assumed'};
   if(MFIRST.has(k)&&ctx&&ctx.turn==='later')return{ok:false,why:'first-turn-only',mechanics:'main-series-assumed'};
   return{ok:true}};
@@ -532,7 +538,8 @@ function mhCount(a,mv,o){
 }
 function bhits(a,mv,d,o){
   o=o||{};const k=mkey(mv),n=mhCount(a,mv,o);
-  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&fixedDmg(a,mv,d)==null;
+  /* おやこあい：2回目は1/4。範囲技・連続技・ためる技（ソーラービーム等）・決まったダメージの技には働かない（本編の決まり＝前提。2026/11/24 ためる技を足した） */
+  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
   const hp0=d.hp,it0=d.item,dg0=d.disg,out=[];let hp=hp0,eff=null,loss=0,fainted=false;
   try{
     for(let i=0;i<(pb?2:n);i++){

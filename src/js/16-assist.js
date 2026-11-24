@@ -61,7 +61,7 @@ function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
-  a.moves.forEach(mv=>{if(mv.prot||!moveUsable(mv).ok)return;const r=bcalc(a,mv,d,{});
+  a.moves.forEach(mv=>{if(mv.prot||!moveUsable(mv,{a,d}).ok)return;const r=bcalc(a,mv,d,{});
     const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,acc=accOf(a,mv,d);
     /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
     let pct=r.dmg*h/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;

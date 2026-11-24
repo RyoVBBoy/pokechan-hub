@@ -90,6 +90,13 @@ function impRoleLoss(T0,T1,i){
 }
 const IMP_KIND={swap:'入れかえ',move:'技',sp:'能力ポイント',nat:'性格',item:'持ち物',role:'型（役割）',sel:'選出'};
 /* 改善案を作る。戻り値：[{kind,i,title,why,entries（変更後）,J（比べた結果）,apply}] */
+/* 入れかえ先にしない採用率（%）。使用データで多く使われている技は、1対1のダメージだけで「いらない」とは言えない */
+const IMP_USED=30;
+/* その匹の技の採用率（%）：ランクバトルの集計（種族ごと）と PokéKit（姿・メガストーンごと）の高い方 */
+function impUsePct(no,stone){const out={};const put=(id,pc)=>{if(id&&pc!=null&&!(out[id]>=pc))out[id]=pc};
+  try{const d=typeof LIVE!=='undefined'&&LIVE.csv[no];if(d&&d.mv)d.mv.forEach(([n,pc])=>put(MVKA[nrm(n)],pc))}catch(e){}
+  try{if(typeof mvpRowOf==='function'){const r=mvpRowOf(typeof FMT!=='undefined'?FMT:'single',no,stone);if(r&&r.mv)r.mv.forEach(([k,pc])=>put(MVKA[nrm(k)],pc))}}catch(e){}
+  return out}
 function dgImprove(entries){
   if(!entries||entries.length<3)return{list:[],note:'3匹以上入れると改善案を計算できます。'};
   const T0=dgTeam0(entries,20);try{const w=teamWx();T0.wxKey=w?[w.k,w.by]:null}catch(e){T0.wxKey=null}
@@ -97,7 +104,8 @@ function dgImprove(entries){
   const feMe=(T0.formErr||[]).filter(z=>z.side==='me');
   if(feMe.length)return{list:[],tried:0,dropped:[],T0,formErr:feMe,note:`持ち物がポケモンの姿と合わない匹（${feMe.map(z=>(byNo[z.no]||{}).n||z.no).join('・')}）がいるので、改善案は計算していません。先にその匹の持ち物を選び直してください。`};
   const feT1=T1=>(T1&&T1.formErr||[]).some(z=>z.side==='me');
-  const out=[],dropped=[],nm=i=>formInfo(T0.ms[i].p).base;
+  /* 名前は計算した姿（メガストーンを持てばメガシンカの姿。2026/11/24：メガグソクムシャが「グソクムシャ」と出ていた） */
+  const out=[],dropped=[],nm=i=>((T0.M[i]&&T0.M[i].p)||T0.ms[i].p).n;
   const used=i=>new Set(entries.filter((_,k)=>k!==i).map(x=>{const s=impBase(x);return s.it&&s.it.k}).filter(Boolean));
   const problem=T0.rows.filter(r=>r.lvl<=2||!r.res.some(z=>z.swIn==='win'));
   const tryEntry=(kind,i,nx,title,why,badMv)=>{const es=entries.map((x,k)=>k===i?nx:x);let T1;try{T1=impRecalc(T0,es,i)}catch(e){return}
@@ -118,15 +126,21 @@ function dgImprove(entries){
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));
     if(atkIdx.length){
-      const slot=atkIdx.sort((a,b)=>(bestUse[a.m.id]||0)-(bestUse[b.m.id]||0))[0];
+      /* 2026/11/24 依頼主の指摘（メガグソクムシャのきゅうけつ＝使用データでは71.8%〔シングル〕・98.3%〔ダブル〕なのに「いちばん使われていない」）：
+         bestUse は使用率ではなく「上位の相手との1対1で、いちばんダメージの大きい技に選ばれた相手の数」。吸い取って回復する分なども数えない。
+         なので、使用データ（ランクバトルの集計・PokéKit のその姿の行）で IMP_USED 以上使われている技は入れかえ先にしない */
+      const stK=base.it&&isStone(base.it.k)?base.it.k:null,use=impUsePct(x.no,stK);
+      const slot=atkIdx.filter(o=>!((use[o.m.id]||0)>=IMP_USED)).sort((a,b)=>(bestUse[a.m.id]||0)-(bestUse[b.m.id]||0))[0];
+      if(slot){
       const have=new Set(base.mv.map(m=>m.id)),ls=((LSD[p.no]||LSD[p.base]||[0,[]])[1]||[]);
       const oppT=problem.map(r=>r.q.t||byNo[r.q.no].t);
       const cands=ls.filter(id=>!have.has(id)&&MV[id]&&!IMP_NOMV.has(MD[id]&&MD[id][3])).map(id=>{const m=mvObj(id);if(!(m.pow>0))return null;
         const stab=p.t.includes(m.t)?1.5:1,cl=m.cls===(main===1?0:1)?1:.45,se=oppT.filter(t=>mult(m.t,t)>=2).length;
         return{id,m,v:m.pow*Math.min(100,m.acc||100)/100*stab*cl*(1+.15*se)+(m.pri>0?40:0)}}).filter(Boolean).sort((a,b)=>b.v-a.v).slice(0,7);
       cands.forEach(c=>{const mv=base.mv.map((m,k)=>k===slot.k?{id:c.id,n:mName(c.id)}:m);
-        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は上位の相手にいちばん使われていない技なので、${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる`)});
-    }
+        const nUse=bestUse[slot.m.id]||0,pu=use[slot.m.id];
+        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は、上位${T0.rows.length}匹との1対1でいちばんダメージの大きい技になる相手が${nUse}匹といちばん少ない技です${pu!=null?`（使用データでの採用率${pu}%）`:''}。${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる案です（回復・追加効果などダメージ以外の働きは比べていません）`)});
+    }}
     /* ---- 能力ポイント（合計66：32＋32＋2） ---- */
     const SPS=[[[main,5],'攻撃と素早さ'],[[0,main],'HPと攻撃'],[[0,2],'HPと防御'],[[0,4],'HPと特防'],[[0,5],'HPと素早さ']];
     SPS.forEach(([[a,b],lab])=>{if(atkRole&&a!==main&&b!==main)return;const sp=[0,0,0,0,0,0];sp[a]=32;sp[b]=32;const rest=[0,2,4,main].find(k=>!sp[k]);sp[rest]=2;
