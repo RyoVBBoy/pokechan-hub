@@ -200,10 +200,12 @@ function mvpCompare(E0,E1,outNo,inNo,i){
   /* 役わり（P3-04）：外すポケモンだけが持っていた役わりと、入れるポケモンが新しく加える役わり */
   let roles=null;
   if(E0.roles&&E1.roles&&ix0>=0&&ix1>=0){
-    const has=(R,skip,k)=>R.some((rs,j)=>j!==skip&&rs.some(r=>r.k===k));
+    /* 天気は種類も同じときだけ「残る」（2026/11/24：ひでり→あめふらしの入れかえで、晴れを失うのに失わない扱いだった） */
+    const same=(r,q)=>q.k===r.k&&(r.k!=='weather'||q.w===r.w);
+    const has=(R,skip,r)=>R.some((rs,j)=>j!==skip&&rs.some(q=>same(r,q)));
     /* 天気は、その天気で得をする特性（WX_GAIN）の仲間が残るときだけ大事な役わり（天気の効果そのものは1対1の計算に入っている） */
     const wxNeed=r=>r.k!=='weather'||(E1.abs||[]).some((a,j)=>j!==ix1&&(WX_GAIN[r.w]||[]).includes(a));
-    roles={lost:E0.roles[ix0].filter(r=>!has(E1.roles,-1,r.k)).map(r=>({...r,sc:r.sc&&wxNeed(r)})),added:E1.roles[ix1].filter(r=>!has(E0.roles,-1,r.k))}}
+    roles={lost:E0.roles[ix0].filter(r=>!has(E1.roles,-1,r)).map(r=>({...r,sc:r.sc&&wxNeed(r)})),added:E1.roles[ix1].filter(r=>!has(E0.roles,-1,r))}}
   const roleLoss=!!(roles&&roles.lost.some(r=>r.sc));
   const cf=P.reduce((t,p)=>t+p.cf,0),cm=P.reduce((t,p)=>t+p.cm,0);
   /* おすすめ（better）にしない条件は足し算にしない：大きな弱点を増やす・弱点の数が増える・素早さの操作か天気を失う、のどれか1つでも tradeoff */
