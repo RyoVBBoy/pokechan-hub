@@ -68,7 +68,7 @@ function estHit0(a,d){
     const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,acc=accOf(a,mv,d);
     /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
     let pct=r.dmg*h/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
-    if(pct*acc>best.pct*best.acc)best={pct,mv,acc}});
+    if(pct*acc>best.pct*best.acc)best={pct,mv,acc,seq:typeof mbSeq==='function'?mbSeq(a,mv,d):null}});
   }finally{d.disg=dg}
   return best;
 }

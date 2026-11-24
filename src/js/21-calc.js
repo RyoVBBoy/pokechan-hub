@@ -8,7 +8,16 @@
 function dmgRolls(a,mv,d,o){
   const r=[];let x=null;for(let k=85;k<=100;k++){x=bhits(a,mv,d,{...o,r:k});r.push(x.total)}
   if(x.hits.length>1)r.dist=hitDist(a,mv,d,o);
-  if(x.loss){r.loss=x.loss;r.disgFaint=x.disgFaint;const dg=d.disg;d.disg=false;try{r.next=dmgRolls(a,mv,d,o)}finally{d.disg=dg}}
+  /* 2026/11/24：当たる回数が決まらない技（2〜5回・ネズミざん等）で回数を選んでいない・スキルリンクでないときは、当サイトが決めた回数（mhCount）での計算。
+     倒せる確率はその回数と仮定したものなので、実際の確率としては出さない（koInfo の assumed） */
+  if(mv.maxH>1&&mv.minH!==mv.maxH&&a.ab!=='skill-link'&&!(o&&o.hits>0))r.assumedHits={n:x.hits.length,min:mv.minH,max:mv.maxH};
+  /* メテオビーム・エレクトロビーム（2026/11/24）：2回目からの使用は特攻がさらに上がっている（o.useN）。倒せる確率は使うごとのダメージ（r.nexts＝2回目・3回目…）で数える */
+  const rep=MB_REP.has(mkey(mv))&&!o.useN;
+  if(x.loss){r.loss=x.loss;r.disgFaint=x.disgFaint;const dg=d.disg;d.disg=false;try{r.next=dmgRolls(a,mv,d,{...o,useN:(o.useN||0)+(MB_REP.has(mkey(mv))?1:0)})}finally{d.disg=dg}}
+  if(rep){const dg=d.disg;d.disg=false;try{r.nexts=[1,2,3,4,5].map(k=>dmgRolls(a,mv,d,{...o,useN:k}))}finally{d.disg=dg}}
+  /* 2026/11/24：きあいのタスキ・がんじょう（かたやぶりでは働かない）は、HPが満タンで受ける1発だけの技なら1残して耐える。
+     連続技は2発目以降で倒れるので入れない。倒せる確率（koInfo）は、1回目はこの耐える前提で数え、条件つきであることを r.surv で知らせる */
+  if(x.hits.length===1&&!x.loss&&d.hp===d.max&&(d.item==='focussash'||(d.ab==='sturdy'&&a.ab!=='mold-breaker')))r.surv={k:d.item==='focussash'?'focussash':'sturdy',max:d.max};
   return r;
 }
 /* n回当てたときに倒せる確率（いちばん少ない回数と、その確率） */
@@ -19,21 +28,27 @@ function koInfo(r,hp){
   /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss）、2回目からは はがれたあとのダメージ（r.next） */
   const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r),bn=r.next?one(r.next):b1;
   if(Math.max(...b1.map(x=>x[0]))<=0&&Math.max(...bn.map(x=>x[0]))<=0)return{n:0,p:0,sure:0};
+  /* きあいのタスキ・がんじょう：HP満タンからの1回目は、倒せるダメージでも1残る（条件つき。持ち物がない・HPが満タンでないなら倒れる） */
+  const sv=r.surv&&hp===r.surv.max,raw1=sv?b1.filter(x=>x[0]>=hp).reduce((t,x)=>t+x[1],0):0;
+  const f1=sv?b1.map(([v,w])=>[Math.min(v,hp-1),w]):b1;
   let dist=new Map([[0,1]]),first=null;
+  const out=o=>{if(r.assumedHits)o={...o,assumed:r.assumedHits};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
   for(let n=1;n<=8;n++){
-    const nd=new Map(),base=n===1?b1:bn;
+    const nd=new Map(),base=n===1?f1:r.nexts?one(r.nexts[Math.min(n-2,r.nexts.length-1)]):bn;
     for(const[s,c]of dist)for(const[v,w]of base){const t=Math.min(s+v,hp);nd.set(t,(nd.get(t)||0)+c*w)}
     dist=nd;const ko=Math.min(1,dist.get(hp)||0);
     if(ko>1e-12&&!first)first={n,p:ko};
-    if(ko>=.9999)return{...(first||{n,p:ko}),sure:n};
+    if(ko>=.9999)return out({...(first||{n,p:ko}),sure:n});
   }
-  return first?{...first,sure:0}:{n:9,p:0,sure:0};
+  return out(first?{...first,sure:0}:{n:9,p:0,sure:0});
 }
 /* 確率の書き方。必ずではないのに四捨五入で「100%」と出さない（2026/11/13：ネズミざん10回などで 99.95% が 100% に見えた） */
 const pctTxt=p=>p<=0?'0%':p<.001?'0.1%未満':p<.9999&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
-const koLabel=k=>!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`;
+const koAsm=k=>k&&k.assumed?`（1回の使用で${k.assumed.n}回当たると仮定）`:'';
+const koLabel=k=>(!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`)+(k.n&&k.n<=8?koAsm(k):'');
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
-const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
+const koPlain=k=>koPlain0(k)+(k&&k.assumed&&k.n&&k.n<=8?L(`（1回の使用で${k.assumed.n}回当たると仮定した場合。この技は${k.assumed.min}〜${k.assumed.max}回で変わるので、実際に倒せる確率ではありません。「当たる回数」で選べます）`,` (assuming ${k.assumed.n} hits per use; actual hit count varies)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'');
+const koPlain0=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
 /* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
 /* 操作の回数（calc_done）：利用者の操作で計算の条件が変わったときだけ数える。
@@ -44,7 +59,7 @@ const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS
 function calcEv(before){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
   const sig=calcSig();if(before!==undefined&&sig===before)return;
   evCount('calc_done',sig)}catch(e){}}
-const koBadge=k=>!k||!k.n||k.n>8?'':k.p>=.9999?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
+const koBadge=k=>!k||!k.n||k.n>8?'':k.assumed?`<span class="cv-kb rand" data-notr title="${L(`当たる回数は${k.assumed.min}〜${k.assumed.max}回で変わります`,`Hit count varies`)}">${L(`${k.assumed.n}回当たると仮定：${k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発`}`,`Assuming ${k.assumed.n} hits: ${k.n}HKO`)}${k.p>=.9999?'':`<small>${pctTxt(k.p)}</small>`}</span>`:k.p>=.9999?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
 const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
 const koShort=k=>!k.n||k.n>8?'—':(k.p>=.9999?'確':'乱')+k.n;
 
@@ -91,6 +106,9 @@ function calcNotes(R){
     if(mkey(mv)==='populationbomb')o.push('ネズミざんは1回ごとに命中の判定があり、外れたところで止まります。いつも10回当たるわけではありません');
     if(d.ab==='multiscale'&&d.hp===d.max&&a.ab!=='mold-breaker')o.push('マルチスケイルで半分になるのは、HPが満タンのときに受ける1発目だけです');
   }
+  if(mv&&MB_REP.has(mkey(mv)))o.push(`${mName(mv.id)}は使うたびに特攻が1段階上がります。上のダメージは1回目（特攻+1）で、倒せる回数は2回目（+2）・3回目（+3）…のダメージを足して数えています（最大+6）`);
+  if(R.ko&&R.ko.surv){const nm=R.ko.surv.k==='focussash'?'きあいのタスキ':'がんじょう';
+    o.push(`${nm}：受ける側のHPが満タンなので、1回目で倒せるダメージでも1残して耐える前提で倒せる回数を数えています（条件つき：${R.ko.surv.k==='focussash'?'タスキを持っていて、まだ使っていない':'特性ががんじょうで、かたやぶりではない'}・HPが満タン・1発だけの技のとき）。この前提がなければ、1回で倒せる確率は ${pctTxt(R.ko.surv.raw)}です`)}
   if(a.ab==='sheer-force'&&mv){if(sfOn(a,mv))o.push(`ちからずく：この技は追加効果のある技なので威力1.3倍で計算し、追加効果は起きないとしています${sfSup(a,mv)&&a.item==='lifeorb'?'。いのちのたまの反動も受けません（ダメージの1.3倍はそのまま）':''}（追加効果のある技の一覧は第9世代の参照データ。ゲーム内では未確認）`);
     else o.push(`ちからずく：この技は追加効果のある技の一覧に入っていないので、威力はそのままです${a.item==='lifeorb'?'（いのちのたまの反動も受けます）':''}`)}
   if(a.ab==='protean'||a.ab==='libero')o.push(R.op&&R.op.protean?`${ABN[a.ab]}で技と同じタイプになったとして計算しています（場に出て最初の技のとき）`:`${ABN[a.ab]}がすでに発動していて、もとのタイプのまま攻撃するとして計算しています`);

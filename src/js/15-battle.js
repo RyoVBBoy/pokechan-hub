@@ -25,6 +25,10 @@ const stgM=s=>s>=0?(2+s)/2:2/(2-s);
 const SF_SEC=new Set(["acidspray","airslash","alluringvoice","ancientpower","appleacid","aquastep","aurawheel","axekick","barbbarrage","bite","bittermalice","blazekick","blizzard","bodyslam","bounce","breakingswipe","bugbuzz","bulldoze","burningjealousy","ceaselessedge","chargebeam","chillingwater","crosspoison","crunch","crushclaw","darkpulse","direclaw","discharge","dragonrush","drumbeating","dynamicpunch","earthpower","eeriespell","electroweb","energyball","extrasensory","fakeout","fierydance","fireblast","firefang","firelash","firepunch","flamecharge","flamethrower","flareblitz","flashcannon","focusblast","gravapple","gunkshot","heatwave","hurricane","icebeam","icefang","icepunch","iciclecrash","icywind","infernalparade","inferno","ironhead","irontail","lavaplume","liquidation","lowsweep","luminacrash","lunge","matchagotcha","meteormash","moonblast","mortalspin","mountaingale","muddywater","mudshot","mudslap","mysticalfire","nightdaze","nuzzle","playrough","poisonfang","poisonjab","pounce","psychic","psychicnoise","psyshieldbash","pyroball","rapidspin","razorshell","rockslide","rocktomb","saltcure","scald","scorchingsands","shadowball","shellsidearm","skittersmack","skyattack","sludgebomb","sludgewave","snarl","snore","sparklingaria","spiritbreak","spiritshackle","steelwing","stoneaxe","strugglebug","syrupbomb","throatchop","thunder","thunderbolt","thunderfang","thunderpunch","torchsong","trailblaze","triattack","triplearrows","tropkick","upperhand","volttackle","waterfall","waterpulse","zapcannon","zenheadbutt","zingzap"]);
 const SF_POW_ONLY=new Set(['electroshot']);
 const sfOn=(a,mv)=>!!(a&&mv&&a.ab==='sheer-force'&&(SF_SEC.has(mkey(mv))||SF_POW_ONLY.has(mkey(mv))));
+/* メテオビーム・エレクトロビーム：使うたびに特攻が1段階上がる。1対1で何回で倒せるかは、使うごとのダメージ（mbSeq）で数える */
+const MB_REP=new Set(['meteorbeam','electroshot']);
+function mbSeq(a,mv,d,r,hpFn){if(!mv||!MB_REP.has(mkey(mv)))return null;const out=[];
+  for(let k=0;k<6;k++){const hp0=d.hp;if(hpFn)hpFn();try{out.push(bcalc(a,mv,d,{r,useN:k}).dmg/d.max*100)}finally{d.hp=hp0}}return out}
 const sfSup=(a,mv)=>!!(a&&mv&&a.ab==='sheer-force'&&SF_SEC.has(mkey(mv)));
 
 /* ---- 持ち物（対応しているもののみ） ---- */
@@ -405,7 +409,8 @@ function fixedDmg(a,mv,d){
     case 'finalgambit':return a.hp;
     /* 一撃必殺：当たれば倒す（がんじょうなら効かない、ぜったいれいどはこおりタイプに効かない。当たる確率は命中30%で別に見る） */
     case 'guillotine':case 'fissure':case 'horndrill':case 'sheercold':
-      if(d.ab==='sturdy'||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
+      /* がんじょうは、かたやぶりの攻撃では働かない（2026/11/24） */
+      if((d.ab==='sturdy'&&!(a&&a.ab==='mold-breaker'))||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
   }
   return null;
 }
@@ -470,10 +475,14 @@ function bcalc(a,mv,d,o){
   const bp=mv.id===776;
   let as=ee.fp?d.stg.atk:bp?a.stg.def:a.stg[ak];
   /* メテオビーム・エレクトロビームは、ためるターンに特攻が1段階上がってから攻撃する */
-  if((mk==='meteorbeam'||mk==='electroshot')&&!o.roll)as=Math.min(6,as+1);
+  /* 2026/11/24：2回目からの使用では、前の使用で上がった分も残る（o.useN＝この対面で前に使った回数。1回目＋1、2回目＋2…最大＋6） */
+  if(MB_REP.has(mk)&&!o.roll)as=Math.min(6,as+1+(o.useN||0));
   if(crit&&as<0)as=0;
   /* てんねん：防御側が持つ場合、攻撃側の能力ランクを無視。かたやぶりで無効化される。 */
-  if(dab==='unaware'&&!ee.fp)as=0; /* イカサマは相手自身の攻撃ランクを参照するため、ここで消さない */
+  /* 2026/11/24：イカサマも、受ける側（攻撃の値を使われる側）がてんねんなら、その攻撃ランクを無視する（Pokémon Showdown・@smogon/calc と同じ：
+     てんねんは「てんねんの相手と戦っている側の攻めの能力ランク」を消し、イカサマで使うランクも攻める技のランクとして扱われる）。
+     攻める側のてんねんは、イカサマで使う相手の攻撃ランクを消さない */
+  if(dab==='unaware')as=0;
   const ast=a.stAtk||a.st;
   let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?ast[1]:ast[3]),as),am=4096;
   if(phys&&(a.ab==='huge-power'||a.ab==='pure-power'))am=chM(am,8192);
@@ -495,6 +504,8 @@ function bcalc(a,mv,d,o){
   let ds=d.stg[dk];if(crit&&ds>0)ds=0;
   /* てんねん：攻撃側が持つ場合、防御側の能力ランクを無視。 */
   if(a.ab==='unaware')ds=0;
+  /* せいなるつるぎ・ＤＤラリアット：相手の防御のランク（上がっていても下がっていても）を無視する（2026/11/24） */
+  if(mk==='sacredsword'||mk==='darkestlariat')ds=0;
   let D=stgV(useDef?d.st[2]:d.st[4],ds),dm=4096;
   if(wr==='snow'&&useDef&&d.p.t.includes('こおり'))D=pR(D*1.5);
   if(wr==='sand'&&!useDef&&d.p.t.includes('いわ'))D=pR(D*1.5);

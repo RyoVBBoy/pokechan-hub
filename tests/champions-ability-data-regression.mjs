@@ -15,7 +15,7 @@ const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  disgLoss:()=>1,fixedDmg:()=>null,stgV:(v,k)=>k>=0?Math.floor(v*(2+k)/2):Math.floor(v*2/(2-k)),
  B:{weather:null},varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
  apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
- pR,RES_BERRY:{},rnd:()=>0};
+ pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false};
 const bcalc=new Function(...Object.keys(deps),src.slice(start,end)+';return bcalc;')(...Object.values(deps));
 const mon=(no,ab='',stage=0,status='')=>{
  const line=data.split('\n').find(x=>x.startsWith(no+','));
@@ -50,17 +50,38 @@ const breaker=mon(445,'mold-breaker',2);
 assert.equal(damage(breaker,skeledirge),unawareOff);
 const noBoost=mon(445,'mold-breaker');
 assert.equal(damage(noBoost,milotic),marvelOff);
-// Foul Play uses the defender's own Attack rank, even if the defender has Unaware.
+// Foul Play uses the defender's own Attack stat. 2026-11-24 correction: when that defender has Unaware, its Attack rank is ignored
+// (Pokémon Showdown ModifyBoost / @smogon/calc 0.12.0 gen 9: Garchomp Foul Play vs Skeledirge +3 Atk = 128 with Unaware, 318 without, 128 at +0).
+// The earlier assertion here expected the opposite. This is Gen 9 reference agreement, not Champions device verification.
 const foul={...move,id:'foulplay',e:{fp:true}};
 const target=mon(911,'unaware');target.stg.atk=3;
 const attackerFoul=mon(445);
-const fpOn=bcalc(attackerFoul,foul,target,{r:100}).dmg;
+const fpUnaware=bcalc(attackerFoul,foul,target,{r:100}).dmg;
 target.ab='';
-const fpOff=bcalc(attackerFoul,foul,target,{r:100}).dmg;
-assert.equal(fpOn,fpOff,'defender Unaware must not erase its own Attack rank for Foul Play');
+const fpBoosted=bcalc(attackerFoul,foul,target,{r:100}).dmg;
+target.stg.atk=0;
+const fpZero=bcalc(attackerFoul,foul,target,{r:100}).dmg;
+assert.equal(fpUnaware,fpZero,'defender Unaware ignores its own Attack rank used by Foul Play');
+assert.ok(fpBoosted>fpZero,'without Unaware the +3 rank is used');
+// Attacker Unaware does not erase the target's Attack rank used by Foul Play.
+target.stg.atk=3;const unawareAtk=mon(445,'unaware');
+assert.equal(bcalc(unawareAtk,foul,target,{r:100}).dmg,bcalc(mon(445),foul,target,{r:100}).dmg,'attacker Unaware keeps Foul Play target rank');
+target.stg.atk=0;
 // Defensive Unaware must also ignore a negative offensive rank, not just boosts.
 const debuffed=mon(445,'',-3);
 const targetUnaware=mon(911,'unaware');
 assert.ok(damage(debuffed,targetUnaware)>damage(debuffed,mon(911)),
  'Unaware ignores offensive debuffs too');
+// Sacred Sword / Darkest Lariat ignore the target's Defense rank (both directions); a normal move does not.
+const wall=mon(911);wall.stg.def=2;
+const ss={...move,id:'sacredsword'},plain=mon(911);
+assert.equal(bcalc(mon(445),ss,wall,{r:100}).dmg,bcalc(mon(445),ss,plain,{r:100}).dmg,'Sacred Sword ignores +2 Defense');
+const soft=mon(911);soft.stg.def=-2;
+assert.equal(bcalc(mon(445),{...move,id:'darkestlariat'},soft,{r:100}).dmg,bcalc(mon(445),{...move,id:'darkestlariat'},plain,{r:100}).dmg,'Darkest Lariat ignores -2 Defense');
+assert.ok(damage(mon(445),wall)<damage(mon(445),plain),'ordinary move uses +2 Defense');
+// Body Press uses the attacker's own Defense rank; defender Unaware erases it.
+const bpA=mon(445);bpA.stg.def=2;const bpMv={...move,id:776};bpMv.id=776;
+const bpU=mon(911,'unaware');
+assert.equal(bcalc(bpA,{...move,id:776},bpU,{r:100}).dmg,bcalc(mon(445),{...move,id:776},mon(911),{r:100}).dmg,'Body Press +2 Def ignored by defender Unaware');
+assert.ok(bcalc(bpA,{...move,id:776},mon(911),{r:100}).dmg>bcalc(mon(445),{...move,id:776},mon(911),{r:100}).dmg,'Body Press uses own +2 Def');
 console.log('PASS: repository species stats and bcalc: Unaware, Marvel Scale, Mold Breaker Foul Play and KO-count changes');
