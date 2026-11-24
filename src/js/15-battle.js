@@ -315,7 +315,7 @@ const abn=b=>ABN[b.ab]||'';
 const sideDead=S=>S.mons.every(m=>m.fainted);
 const foesOf=b=>b.side==='me'?B.op:B.me, ownOf=b=>b.side==='me'?B.me:B.op;
 /* はやあし：状態異常のとき1.5倍で、まひで遅くならない（2026/11/24） */
-const effSpd=b=>Math.floor(b.st[5]*stgM(b.stg.spe)*(B.weather&&WSPD[b.ab]===B.weather.k?2:1)*(b.item==='choicescarf'?1.5:1)*(b.ab==='quick-feet'&&b.status?1.5:1)*(b.status==='par'&&b.ab!=='quick-feet'?.5:1));
+const effSpd=b=>Math.floor(b.st[5]*stgM(b.stg.spe)*(B.weather&&WSPD[b.ab]===B.weather.k?2:1)*(b.item==='choicescarf'?1.5:1)*(b.item==='ironball'?.5:1)*(b.ab==='quick-feet'&&b.status?1.5:1)*(b.status==='par'&&b.ab!=='quick-feet'?.5:1));
 function chg(b,k,n,log,why){
   const o=b.stg[k];b.stg[k]=Math.max(-6,Math.min(6,o+n));
   const nm={atk:'攻撃',def:'防御',spa:'特攻',spd:'特防',spe:'素早さ'}[k];
@@ -431,13 +431,15 @@ const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
 function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
-  if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
+  /* くろいてっきゅう：持つと地面に着く（じめん技が ふゆう・ひこうタイプにも当たる。2026/11/24） */
+  const grounded=d.item==='ironball'&&t==='じめん';
+  if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t&&!(grounded&&dab==='levitate'))return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
   /* ぼうだん・ぼうおん：弾・音の技を受けない（かたやぶりで消える。2026/11/24） */
   if((dab==='bulletproof'&&mfl(mv,'x'))||(dab==='soundproof'&&mfl(mv,'o')))return{dmg:0,eff:0,immune:dab};
   const mk=mkey(mv);
-  let eff=mult(t,d.p.t);
+  let eff=grounded?mult(t,d.p.t.filter(x=>x!=='ひこう')):mult(t,d.p.t);
   if(mk==='freezedry'&&d.p.t.includes('みず'))eff=mult(t,d.p.t.filter(x=>x!=='みず'))*2;
   if(mk==='flyingpress')eff=mult('かくとう',d.p.t)*mult('ひこう',d.p.t);
   if(!eff&&a.ab==='scrappy'&&(t==='ノーマル'||t==='かくとう')&&d.p.t.includes('ゴースト'))eff=mult(t,d.p.t.filter(x=>x!=='ゴースト'));

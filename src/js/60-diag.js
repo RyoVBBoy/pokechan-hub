@@ -22,6 +22,7 @@ const dgCalcUnsupported=m=>{if(!m)return[];const out=[];
   if(m.ab&&((typeof CALC_UNIMPL!=='undefined'&&CALC_UNIMPL.includes(m.ab))||(typeof CALC_UNVERIFIED!=='undefined'&&CALC_UNVERIFIED[m.ab])||DG_SIMONLY.has(m.ab)))out.push(`特性「${ABN[m.ab]||m.ab}」`);
   if(m.item&&typeof CALC_UNIMPL_IT!=='undefined'&&CALC_UNIMPL_IT.includes(m.item))out.push(`持ち物「${(typeof ITEMN!=='undefined'&&ITEMN[m.item])||m.item}」`);
   /* 2026/11/24：登録した攻撃技のうち計算に入らない技（カウンター等）。その技のダメージは数えていない */
+  if(m.item==='focusband')out.push('持ち物「きあいのハチマキ」（10%の確率で1残して耐える。診断の回数には入れていません）');
   if(m.uncalc&&m.uncalc.length)out.push(`技「${m.uncalc.join('・')}」（計算に入っていない攻撃技。この技のダメージは数えていません）`);
   return out};
 /* トリックルームの計算をしているあいだだけ true（dgTeam0 が切りかえる） */
@@ -149,7 +150,8 @@ function dgMatch0(a,o){
   const sandChip=!!(B.weather&&B.weather.k==='sand'&&!a.p.t.some(x=>['いわ','じめん','はがね'].includes(x)));
   const opPrHit=!!(opPr&&opPr.max>0);
   const multiMv=(o.moves||[]).find(m=>m&&m.maxH>1&&(()=>{try{return bcalc(o,m,a,{r:100}).dmg>0}catch(e){return false}})());
-  const cntRisk=['rough-skin','iron-barbs'].includes(o.ab)||o.item==='rockyhelmet';
+  /* さめはだ・てつのトゲ・ゴツゴツメットは、こちらの技が実際に接触するときだけ（えんかく・マジックガードなら受けない。2026/11/24：前は接触しない技でも危ないとしていた） */
+  const cntRisk=(['rough-skin','iron-barbs'].includes(o.ab)||o.item==='rockyhelmet')&&!!me&&!!me.mv&&mfl(me.mv,'c')&&a.ab!=='long-reach'&&a.ab!=='magic-guard';
   const hzMv=(()=>{const d=LIVE.csv[o.p.base||o.p.no];if(!d||!d.mv)return null;const h=d.mv.find(([n,pc])=>{const id=MVKA[nrm(n)];return pc>=10&&(id===446||id===191||(id===390&&!a.p.t.some(x=>['どく','はがね'].includes(x))))});return h?mName(MVKA[nrm(h[0])]):null})();
   const sashSure=!!op&&op.fmin>=100,needUb=ub&&!fast1&&fast2;
   /* タスキが発動しなくても先に動けるなら、最小で100%未満でも同じ結果（HPが残るか1か）。かるわざが要るときは発動が確実なことが必要 */

@@ -26,6 +26,8 @@ function dmgRolls(a,mv,d,o){
     if(any){r.nexts=nx;if(x.loss)r.next=nx[0]}}
   if(!multi&&!x.loss&&survOn)r.surv={k:d.item==='focussash'?'focussash':'sturdy',max:d.max};
   /* オボンのみ・オレンのみ：HPが半分以下になったら1回だけ回復（使うごとのあとで見る。連続技の途中で食べる分は使うごとのあととして数える＝近い値） */
+  /* きあいのハチマキ：倒れるダメージを受けても10%で1残る（使ってもなくならない。2026/11/24） */
+  if(d.item==='focusband')r.fband=true;
   if((d.item==='sitrusberry'||d.item==='oranberry')&&a.ab!=='unnerve'&&d.hp>d.max/2)r.berry={k:d.item,heal:d.item==='sitrusberry'?Math.floor(d.max/4)*(d.ab==='ripen'?2:1):10*(d.ab==='ripen'?2:1),at:Math.floor(d.max/2),max:d.max,inMove:multi};
   return r;
 }
@@ -41,13 +43,13 @@ function koInfo(r,hp){
   const sv=r.surv&&hp===r.surv.max,raw1=sv?b1.filter(x=>x[0]>=hp).reduce((t,x)=>t+x[1],0):0;
   const f1=sv?b1.map(([v,w])=>[Math.min(v,hp-1),w]):b1;
   const B=r.berry;
-  const out=o=>{if(r.hitCounts)o={...o,hitCounts:r.hitCounts};if(B)o={...o,berry:B.k};if(r.survMulti)o={...o,survMulti:true};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
+  const out=o=>{if(r.fband)o={...o,fband:true};if(r.hitCounts)o={...o,hitCounts:r.hitCounts};if(B)o={...o,berry:B.k};if(r.survMulti)o={...o,survMulti:true};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
   /* 2026/11/24：残りHPと「きのみを食べたか」の状態で数える。「必ず倒せる」＝倒れていない状態が1つも残らないとき（確率の数で決めない） */
   let S=new Map([[hp+'|0',{rem:hp,u:0,p:1}]]),ko=0,first=null;
   for(let n=1;n<=8;n++){
     const base=n===1?f1:nx(n-2),nS=new Map();
     for(const st of S.values())for(const[v,w]of base){let rem=st.rem-v,u=st.u;const q=st.p*w;
-      if(rem<=0){ko+=q;continue}
+      if(rem<=0){if(r.fband){ko+=q*.9;const k='1|'+u,e=nS.get(k);if(e)e.p+=q*.1;else nS.set(k,{rem:1,u,p:q*.1});continue}ko+=q;continue}
       if(B&&!u&&rem<=B.at){rem=Math.min(B.max,rem+B.heal);u=1}
       const k=rem+'|'+u,e=nS.get(k);if(e)e.p+=q;else nS.set(k,{rem,u,p:q})}
     S=nS;const sure=S.size===0,p=sure?1:Math.min(1,ko);
@@ -63,7 +65,7 @@ const koSure=k=>!!k&&k.sure===k.n&&k.n>0;
 const koLabel=k=>(!k.n?'ダメージなし':k.n>8?'8発以上':koSure(k)?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`)+(k.n&&k.n<=8?koAsm(k):'');
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
 const hcTxt=k=>k&&k.hitCounts?k.hitCounts.map(([c,w])=>`${c}回${(w*100).toFixed(w<.01?2:w<.1?1:0)}%`).join('・'):'';
-const koPlain=k=>koPlain0(k)+(k&&k.hitCounts&&k.n&&k.n<=8?L(`（当たる回数の分布〔${hcTxt(k)}〕を入れた確率。「当たる回数」で回数を決めて見ることもできます）`,` (includes hit-count distribution)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'')+(k&&k.survMulti?L('（きあいのタスキ・がんじょうは当たりごとに入れて計算）',' (Sash/Sturdy applied per hit)'):'')+(k&&k.berry?L(`（${ITEMN[k.berry]||k.berry}の回復を入れた回数）`,' (includes berry healing)'):'');
+const koPlain=k=>koPlain0(k)+(k&&k.hitCounts&&k.n&&k.n<=8?L(`（当たる回数の分布〔${hcTxt(k)}〕を入れた確率。「当たる回数」で回数を決めて見ることもできます）`,` (includes hit-count distribution)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'')+(k&&k.survMulti?L('（きあいのタスキ・がんじょうは当たりごとに入れて計算）',' (Sash/Sturdy applied per hit)'):'')+(k&&k.berry?L(`（${ITEMN[k.berry]||k.berry}の回復を入れた回数）`,' (includes berry healing)'):'')+(k&&k.fband?L('（きあいのハチマキで10%の確率で耐えるのを入れた確率。必ず倒せることはありません）',' (includes Focus Band 10% survival)'):'');
 const koPlain0=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):koSure(k)?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
 /* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
@@ -111,7 +113,7 @@ const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,scr
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
 const CALC_UNVERIFIED={'mega-sol':'メガソーラー（自分の技は天気が「はれ」と同じ）は Pokémon Showdown の champions の実装と同じ計算です。ゲーム内ではまだ確かめていません',dragonize:'ドラゴンスキン（ノーマル技がドラゴン技・1.2倍）は Pokémon Showdown の champions の実装と同じ計算です。ゲーム内ではまだ確かめていません'};
 const CALC_UNIMPL=['piercing-drill','spicy-spray','analytic','supreme-overlord','stakeout','friend-guard','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','trace','rivalry','eelevate'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
-const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','focusband'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
+const CALC_UNIMPL_IT=['metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','kingsrock','quickclaw'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
 function calcNotes(R){
   const o=[],a=R.a,d=R.d,n=R.n||1,mv=R.mv;
   /* 2026/11/24：先制技を受けない特性。ダメージの数は出すが、当たらないことを書く */

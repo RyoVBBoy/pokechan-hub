@@ -2,7 +2,7 @@
 const LV={official:['公式','#1d9bf0','公式サイト・公式発表で確認したもの'],ingame:['ゲーム内で確認','#00ba7c','実際のゲーム画面で値を確かめたもの'],multi:['複数の出典で一致','#7856ff','互いに独立した出典で同じ値だったもの'],single:['出典1つ','#8b98a5','1か所の出典（またはそれをもとにしたデータ）だけのもの'],unverified:['未確認・推定','#ff7a00','まとめ記事の情報や、このサイトの計算による目安']};
 const SRC={
  stats:{name:'種族値・タイプ',lv:'single',date:'2026/10/18',per:['t','s'],src:[['PokeTools（Champions図鑑）',null],['PokeAPI','https://pokeapi.co/']],
-  note:'208匹すべてで2つの値が一致しましたが、PokeToolsはPokeAPIのデータをもとにしているため、独立した確認にはなりません。Champions独自の調整があっても反映されていない可能性があります。'},
+  note:'2026/10/18 の照合（そのときの収録208匹）ですべての値が一致しましたが、PokeToolsはPokeAPIのデータをもとにしているため、独立した確認にはなりません。Champions独自の調整があっても反映されていない可能性があります。'},
  learn:{name:'覚える技・特性',lv:'multi',date:'2026/10/28',per:['a','m'],src:[['Pokémon Showdown（Champions用データ）','https://github.com/smogon/pokemon-showdown'],['PokeAPI（日本語名）','https://pokeapi.co/']],
   note:'Pokémon ShowdownのChampions用の習得技リスト（変化技を含む全技）と、収録ポケモン264匹の一覧を使っています。技の性能はゲーム内で書き写した510技と照らし合わせ、504技が一致しました（PPなどが違った5技はゲーム内の値を採用）。効果の説明は当サイトがデータからまとめた文章です。'},
  movedata:{name:'技のタイプ・分類・威力・命中・PP',lv:'ingame',date:'2026/10/19',src:[['ゲーム内の技の説明（510技を書き写し）',null],['PokeAPI（510技に含まれない技のみ）','https://pokeapi.co/']],
