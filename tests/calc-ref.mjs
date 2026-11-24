@@ -36,7 +36,9 @@ const cases=await pg.evaluate(([N,SEED])=>{
     const format=rand()<.5?'double':'single';
     const o={crit:rand()<.2,format,spread:format==='double'&&rand()<.15,screen:rand()<.15};
     const wk=pick([null,null,null,'sun','rain','sand','snow']);const sw=B.weather;B.weather=wk?{k:wk,t:5}:null;
-    let rolls,eff;try{rolls=[];for(let k=85;k<=100;k++)rolls.push(bcalc(a,mv,d,{...o,r:k}).dmg);eff=bcalc(a,mv,d,o).eff}finally{B.weather=sw}
+    /* 2026-11-24: spread cases model a spread-target move on both sides (the reference move gets target allAdjacentFoes); the site applies 0.75x only to spread-target moves (mv.tg) */
+    const m2=o.spread?{...mv,tg:1}:mv;
+    let rolls,eff;try{rolls=[];for(let k=85;k<=100;k++)rolls.push(bcalc(a,m2,d,{...o,r:k}).dmg);eff=bcalc(a,m2,d,o).eff}finally{B.weather=sw}
     if(!eff)continue;
     out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
   }
