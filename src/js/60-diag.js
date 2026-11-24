@@ -284,6 +284,12 @@ function dgTeam(entries,n){
   if(DG_CACHE.k===key)return DG_CACHE.v;
   const v=dgTeam0(entries,n);DG_CACHE.k=key;DG_CACHE.v=v;return v;
 }
+/* 変更前（T0）と比べるときのメガシンカ（2026/11/24）：メガストーンを持つ匹（計算に使う育成で）が変わらないなら、変更前と同じ匹をメガシンカさせる。
+   増えた・減った・持ちかえたなら、変更後のパーティの実際の条件（利用者の選び→自動でいちばん良いメガ）。entries を計算するとき（impWith の中）に呼ぶ */
+function dgMegaHolders(entries){return entries.map(x=>{const p=byNo[x.no];if(!p)return null;let cs=null;try{cs=dgCalcSet({x,p})}catch(e){}const k=dgStoneOf(x.no,cs);return k?x.no+':'+k:null}).filter(Boolean).sort().join(',')}
+function dgMegaOpt(T0,entries){const M=T0&&T0.mega;if(!M||!M.no)return{};
+  const h0=(M.holders||[]).map(h=>h.no+':'+h.stone).sort().join(',');
+  return dgMegaHolders(entries)===h0?{megaNo:M.no}:{}}
 /* opt.megaNo＝メガシンカさせる匹の番号（変更前と同じメガのまま比べるとき）。無ければ利用者の選び→自動 */
 function dgTeam0(entries,n,opt){
   opt=opt||{};
@@ -555,7 +561,7 @@ function dgDefSwaps(entries,T){
   outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
     const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
       const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>=2).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
-    sc.forEach(({c,S,won})=>{let T1;try{T1=dgTeam0(entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x),20,{megaNo:T.mega&&T.mega.no})}catch(e){return}
+    sc.forEach(({c,S,won})=>{let T1;try{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x);T1=dgTeam0(es,20,dgMegaOpt(T,es))}catch(e){return}
       const D=dgDiff(T,T1),b=D.b,a=D.a;
       if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,won:won.map(r=>r.q.n),b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
   res.sort((x,y)=>y.gain-x.gain);

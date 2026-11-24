@@ -118,14 +118,15 @@ function editView(a){
     <div class="btns"><button class="btn btn-p" id="ed-solve">能力ポイントを計算</button></div>
   </details>
   <div class="btns" style="flex-wrap:wrap"><a class="btn btn-p" href="#/team">完了</a><button class="btn btn-s" id="ed-clear" style="flex:none;padding:0 18px">未設定に戻す</button></div>
-  <p class="note" style="color:var(--mute)">入力した内容は自動で保存されます（ログイン中は、ほかの端末とも同じになります）。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
+  <p class="note" style="color:var(--mute)">入力した内容は自動で保存されます（ログイン中は、ほかの端末とも同じになります）。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×能力補正（1.1／1.0／0.9、端数切り捨て。HPには能力補正なし）（Lv50）。色の印：赤＝上がる能力で補正前の値が10で割り切れる、青＝下がる能力で補正前の値の一の位が1。能力補正を変えるには ${NAT_VP} VP かかります。</p>
   </div>`;
   const save=()=>{const cur=team[ED.idx];if(!cur||cur.no!==ED.no)return;
     const o=ED.s;cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual'};edSaved(saveTeam()!==false)};
   const upd=()=>{const o=ED.s,r=calcStats(p,o.sp,o.up,o.dn);
-    r.forEach((v,i)=>{document.getElementById('ed-o'+i).textContent=v;document.getElementById('ed-v'+i).textContent=o.sp[i];
+    r.forEach((v,i)=>{const dir=i&&o.up!==o.dn?(o.up===i?'↑':o.dn===i?'↓':''):'';document.getElementById('ed-o'+i).textContent=v+dir;document.getElementById('ed-v'+i).textContent=o.sp[i];
       const el=document.getElementById('ed-sp'+i);el.value=o.sp[i];el.style.setProperty('--p',(o.sp[i]/SP_CAP*100)+'%');
-      const o2=document.getElementById('ed-o'+i);o2.style.color=o.up===i?'#ff8a7a':o.dn===i?'#7ab8ff':''});
+      /* 2026/11/24：色は能力補正の印の決まり（natMark）のときだけ。上がる・下がるは ↑↓ で出す（前は上がる能力をいつも赤、下がる能力をいつも青にしていた） */
+      const o2=document.getElementById('ed-o'+i),mk=natMark(p,o.sp,o.up,o.dn,i);o2.style.color=mk?NAT_MARK_COL[mk]:'';o2.dataset.mark=mk;o2.title=mk==='red'?'赤い印：補正前の値が10で割り切れる':mk==='blue'?'青い印：補正前の値の一の位が1':''});
     document.getElementById('ed-left').textContent=SP_TOTAL-o.sp.reduce((a,b)=>a+b,0);
     const sp=r[5],sc=o.it&&o.it.k==='choicescarf'?Math.floor(sp*1.5):0,eff=sc||sp;
     document.getElementById('ed-spd').innerHTML=L(`素早さ <b>${sp}</b>${sc?`（スカーフ込み <b>${sc}</b>）`:''}は、`,`Speed <b>${sp}</b>${sc?` (with Choice Scarf <b>${sc}</b>)`:''}: `)+spdRankHTML(eff,p.no)};

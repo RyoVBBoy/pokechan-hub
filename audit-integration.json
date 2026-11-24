@@ -969,6 +969,507 @@
     {
       "fmt": "single",
       "pass": true,
+      "label": "two-holder selection records chosen Mega and the alternative",
+      "detail": {
+        "megaI": 0,
+        "alt": [
+          {
+            "i": 1,
+            "sc": 0.8190476190476187,
+            "cnt": {
+              "1": 0,
+              "2": 2,
+              "3": 7,
+              "4": 8
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "non-evolving holder uses normal form without stone",
+      "detail": null
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "same opponent population for every selection",
+      "detail": null
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvements computed"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 unique items",
+      "detail": [
+        "golisopite",
+        "salamencite",
+        "sitrusberry",
+        "choicescarf",
+        "rockyhelmet",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 グソクムシャ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 ボーマンダ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 17,
+          "nosw": 2,
+          "ohko": 3,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        },
+        "full": {
+          "n": 17,
+          "nosw": 2,
+          "ohko": 3,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        }
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 unique items",
+      "detail": [
+        "golisopite",
+        "salamencite",
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 グソクムシャ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 ボーマンダ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 17,
+          "nosw": 2,
+          "ohko": 3,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        },
+        "full": {
+          "n": 17,
+          "nosw": 2,
+          "ohko": 3,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        }
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 unique items",
+      "detail": [
+        "golisopite",
+        "salamencite",
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 グソクムシャ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 ボーマンダ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 17,
+          "nosw": 2,
+          "ohko": 3,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        },
+        "full": {
+          "n": 17,
+          "nosw": 2,
+          "ohko": 3,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        }
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 unique items",
+      "detail": [
+        "golisopite",
+        "salamencite",
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 グソクムシャ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 ボーマンダ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "two Mega improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 17,
+          "nosw": 3,
+          "ohko": 2,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        },
+        "full": {
+          "n": 17,
+          "nosw": 3,
+          "ohko": 2,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 15
+        }
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
       "label": "real slow Trick Room fixture"
     },
     {
@@ -1853,6 +2354,1003 @@
     {
       "fmt": "double",
       "pass": true,
+      "label": "two-holder selection records chosen Mega and the alternative",
+      "detail": {
+        "megaI": 1,
+        "alt": [
+          {
+            "i": 0,
+            "sc": 0.9886363636363635,
+            "cnt": {
+              "1": 0,
+              "2": 1,
+              "3": 7,
+              "4": 10
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "non-evolving holder uses normal form without stone",
+      "detail": null
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "same opponent population for every selection",
+      "detail": null
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvements computed"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 17,
+          "nosw": 5,
+          "ohko": 4,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 16
+        },
+        "full": {
+          "n": 17,
+          "nosw": 5,
+          "ohko": 4,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 16
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 1 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 9,
+          "ohko": 5,
+          "slow": 2,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 9,
+          "ohko": 5,
+          "slow": 2,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 unique items",
+      "detail": [
+        "leftovers",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 ラグラージ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 2 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 8,
+          "ohko": 6,
+          "slow": 2,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 8,
+          "ohko": 6,
+          "slow": 2,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 3 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 8,
+          "ohko": 7,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 8,
+          "ohko": 7,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 4 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 8,
+          "ohko": 7,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 8,
+          "ohko": 7,
+          "slow": 1,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "choicescarf",
+        "chopleberry",
+        "focussash",
+        "miracleseed"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 5 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 9,
+          "ohko": 7,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 9,
+          "ohko": 7,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "choicescarf",
+        "miracleseed"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 6 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 7,
+          "ohko": 9,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 7,
+          "ohko": 9,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 unique items",
+      "detail": [
+        "charizarditey",
+        "dragoninite",
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 リザードン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "Mega regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "two Mega improvement 7 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 7 after-values equal full recomputation",
+      "detail": {
+        "shown": {
+          "n": 18,
+          "nosw": 9,
+          "ohko": 7,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        },
+        "full": {
+          "n": 18,
+          "nosw": 9,
+          "ohko": 7,
+          "slow": 0,
+          "x": 0,
+          "w": 0,
+          "st": 17
+        }
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 7 displayed before/after match evaluated builds"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
       "label": "real slow Trick Room fixture"
     },
     {
@@ -1871,22 +3369,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 37.20000000001164
+      "ms": 54.89999999990687
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 1.7000000000116415
+      "ms": 2.300000000046566
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 19.899999999965075
+      "ms": 32.5999999998603
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 992.5999999999767
+      "ms": 1093.1000000000931
     },
     {
       "fmt": "single",
@@ -1999,7 +3497,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 918.2999999999884
+      "ms": 1040.3999999999069
     },
     {
       "fmt": "single",
@@ -2382,32 +3880,237 @@
     {
       "fmt": "single",
       "label": "two Mega selection",
-      "ms": 44.09999999997672
+      "ms": 46.60000000009313
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvements",
+      "ms": 1386.7999999998137
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 0",
+      "no": 768,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 0",
+      "no": 373,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 0",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 0",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 1",
+      "no": 768,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 1",
+      "no": 373,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 1",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 1",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 1",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 2",
+      "no": 768,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 2",
+      "no": 373,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 2",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 2",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 2",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 3",
+      "no": 768,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 3",
+      "no": 373,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 3",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 3",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 3",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "two Mega improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
     },
     {
       "fmt": "single",
       "label": "Trick Room change",
-      "ms": 17.20000000001164
+      "ms": 31.300000000046566
     },
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 46.29999999998836
+      "ms": 47.5999999998603
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 1.7999999999883585
+      "ms": 2.7000000001862645
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 25.70000000001164
+      "ms": 28.299999999813735
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 883.6999999999534
+      "ms": 1044.8000000000466
     },
     {
       "fmt": "double",
@@ -2520,7 +4223,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 1383.100000000035
+      "ms": 1600.5999999998603
     },
     {
       "fmt": "double",
@@ -2849,12 +4552,449 @@
     {
       "fmt": "double",
       "label": "two Mega selection",
-      "ms": 52.5
+      "ms": 106.69999999995343
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvements",
+      "ms": 1931
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 0",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 0",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 0",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 0",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 0",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 1",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 1",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 1",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 2",
+      "no": 260,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 2",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 2",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 2",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 2",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 2",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 3",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 3",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 3",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 3",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 3",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 3",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 4",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 4",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 4",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 4",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 4",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 4",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 5",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 5",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 5",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 5",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 5",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 5",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 6",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 6",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 6",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 6",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 6",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 6",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 7",
+      "no": 6,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 7",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "Mega regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 7",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 7",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 7",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "two Mega improvement 7",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
     },
     {
       "fmt": "double",
       "label": "Trick Room change",
-      "ms": 17.20000000001164
+      "ms": 17.800000000046566
     }
   ]
 }

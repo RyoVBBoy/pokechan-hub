@@ -48,6 +48,20 @@ try{
    if(mode==='legality'){
     for(const row of rows.rows){const s=mvpSet(fmt,row.no,{stone:row.stone,anyMv:true});const v=s.st==='ok'?legal(row.no,s.sv,row.stone):{bad:[],unknown:[s.st+': '+s.why]};results.push({no:row.no,name:byNo[row.no]?.n,stone:row.stone,status:s.st,...v});check(!v.bad.length,'mvpSet '+row.id,v)}
     results.push({unmapped:rows.unmapped});check(results.some(x=>x.status==='ok'),'nonempty generated sets');
+    /* 2026-11-24: construction A/B with Mega conditions (the earlier audit only used mega='none').
+       Every start that has a verified Mega Stone row is built with mega='must:<start>' and 'auto'. */
+    const starts=[...new Set(rows.rows.filter(r=>r.stone&&mvpStoneSt(r.stone,r.no)==='ok'&&mvpLegal(r.no).st==='ok').map(r=>r.no))].slice(0,6);
+    check(starts.length>0,'verified Mega starts available',starts.length);
+    for(const no of starts){for(const mode of ['must','auto']){
+      TB=tbNew(no);TB.cond.mega=mode==='must'?'must:'+no:'auto';let P=null;try{P=tbProps()}catch(e){check(false,'tbProps '+mode+' '+no,String(e));continue}
+      for(const k of ['A','B']){const X=P[k];auditTeam(k+' '+mode+' '+byNo[no].n,X.mem);
+        const st=X.mem.find(x=>x.no===no);
+        if(mode==='must')check(st&&st.set&&st.set.it&&megaOf(no,st.set.it.k),k+' '+mode+' start holds its matching Mega Stone',st&&st.set&&st.set.it);
+        for(const x of X.mem){const it=x.set&&x.set.it&&x.set.it.k,ab=x.set&&x.set.ab&&x.set.ab.k;
+          const megaAb=Object.keys(MEGA).some(s=>{const m=megaOf(x.no,s);return m&&m.ab===ab})&&!(ABD[x.no]||[]).some(z=>z[0]===ab);
+          check(!megaAb||(it&&megaOf(x.no,it)&&megaOf(x.no,it).ab===ab),k+' '+mode+' Mega ability only with matching stone '+byNo[x.no].n,{it,ab})}
+        check(X.req.every(q=>q.ok),k+' '+mode+' required conditions '+byNo[no].n,X.req.filter(q=>!q.ok));
+        check(X.E.st==='ok',k+' '+mode+' evaluated '+byNo[no].n,X.E.st)}}}
    }
    check(pool.length>=6,'six real registered sets available',pool.length);
    if(pool.length<6)return {checks,results};
@@ -69,7 +83,17 @@ try{
     const mega=rows.rows.filter(r=>r.stone).map(r=>mvpSet(fmt,r.no,{stone:r.stone,anyMv:true})).filter(s=>s.st==='ok'&&s.sv.it?.k===s.stone);
     const a=mega[0],z=mega.find(s=>a&&tbFam(s.no)!==tbFam(a.no)&&s.stone!==a.stone);
     check(a&&z,'two actual Mega builds available');
-    if(a&&z){const es=[{no:a.no,set:a.sv},{no:z.no,set:z.sv},...entries.filter(x=>![tbFam(a.no),tbFam(z.no)].includes(tbFam(x.no)))].slice(0,6).map(x=>({...x,axis:false}));team.length=0;team.push(...es);DG_SELC.clear();const S=timed('two Mega selection',()=>dgSelect(team));check(S?.list.some(x=>x.c.includes(0)&&x.c.includes(1)),'both Mega holders selectable');check(S?.list.some(x=>!x.c.includes(0)&&x.c.includes(1)&&x.megaI===1),'second holder evaluated as Mega');}
+    if(a&&z){const es=[{no:a.no,set:a.sv},{no:z.no,set:z.sv},...entries.filter(x=>![tbFam(a.no),tbFam(z.no)].includes(tbFam(x.no)))].slice(0,6).map(x=>({...x,axis:false}));team.length=0;team.push(...es);DG_SELC.clear();const S=timed('two Mega selection',()=>dgSelect(team));check(S?.list.some(x=>x.c.includes(0)&&x.c.includes(1)),'both Mega holders selectable');check(S?.list.some(x=>!x.c.includes(0)&&x.c.includes(1)&&x.megaI===1),'second holder evaluated as Mega');
+      /* 2026-11-24: one Mega per scenario; a selection with both holders evaluates each holder separately with the other in normal form */
+      const both=S?.list.find(x=>x.c.includes(0)&&x.c.includes(1));
+      check(both&&both.megaI>=0&&both.megaHold?.length===2&&both.megaAlt?.length===1,'two-holder selection records chosen Mega and the alternative',both&&{megaI:both.megaI,alt:both.megaAlt});
+      if(both){const T1=dgTeam0(team,20,{megaNo:es[both.megaI].no});check(T1.mega.i===both.megaI&&T1.M.filter((m,i)=>m&&i!==both.megaI&&es[i].set?.it&&isStone(es[i].set.it.k)).every(m=>!m.p.mega&&!m.item),'non-evolving holder uses normal form without stone',null)}
+      check(S?.list.every(x=>x.rows.length===S.N),'same opponent population for every selection',null);
+      const I2=timed('two Mega improvements',()=>dgImprove(team));check(I2&&Array.isArray(I2.list),'two Mega improvements computed');
+      if(I2)for(const [i,o] of I2.list.entries()){auditTeam('two Mega improvement '+i,o.entries);
+        const F=impWith(o.entries,()=>dgTeam0(o.entries,20,dgMegaOpt(I2.T0,o.entries)));
+        check(JSON.stringify(dgMetric(F))===JSON.stringify(dgMetric(o.T1))&&F.mega.no===o.T1.mega.no,'improvement '+i+' after-values equal full recomputation',{shown:dgMetric(o.T1),full:dgMetric(F)});
+        check(JSON.stringify(impMetric(I2.T0,o.J.D.keep))===JSON.stringify(o.J.b)&&JSON.stringify(impMetric(F,o.J.D.keep))===JSON.stringify(o.J.a),'improvement '+i+' displayed before/after match evaluated builds')}}
     const id=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
     const slow=pool.filter(s=>byNo[s.no].s[5]<=70);const setter=slow.find(s=>(LSD[s.no]||[0,[]])[1].includes(id));
     check(setter&&slow.length>=6,'real slow Trick Room fixture');

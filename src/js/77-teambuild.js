@@ -50,9 +50,14 @@ const tbTyB=p=>p?`<span class="tbd-tys">${p.t.map(chip).join('')}</span>`:'';
 const tbFmtN=f=>f==='double'?'ダブル':'シングル';
 
 /* ---- 型の確かめ（すべての案と追加で使う）：使えるか・メガストーン・持ち物の重なり・覚える技・能力ポイント（合計66・1つ32まで） ---- */
+/* その特性が、この匹のメガシンカ後の姿だけの特性か */
+const MEGA_AB_OF=(no,ab)=>Object.keys(MEGA).some(k=>{const m=megaOf(no,k);return !!m&&m.ab===ab});
 function tbValidate(mem){
   const notes=[],used=new Set(),out=[];
+  const fams=new Set();
   mem.forEach(x=>{const p=byNo[x.no];if(!p){notes.push('図鑑に無いポケモンを外しました');return}
+    /* 2026/11/24：同じ種類（メガ・姿違いも同じ種類）は1匹だけ */
+    if(fams.has(tbFam(x.no))){notes.push(`${p.n}：同じ種類のポケモンがすでにいるので外しました`);return}fams.add(tbFam(x.no));
     const lg=mvpLegal(x.no);if(lg.st!=='ok')notes.push(`${p.n}：${lg.st==='unverified'?'M-C で使えるか未確認':'公式の M-C の一覧に無い'}（${lg.why||''}）`);
     let s=x.set?JSON.parse(JSON.stringify(x.set)):null;
     if(s){const it=s.it&&s.it.k;
@@ -61,8 +66,14 @@ function tbValidate(mem){
       else if(it&&!CH_ITEMS.has(it)){notes.push(`${p.n}：ゲームに無い持ち物（${ITEMN[it]||it}）を外しました`);s.it=null}
       if(s.it&&used.has(s.it.k)){notes.push(`${p.n}：${s.it.n||ITEMN[s.it.k]}はほかのポケモンと重なるので外しました（同じ持ち物は2匹に持たせられません）`);s.it=null}
       if(s.it)used.add(s.it.k);
+      /* 2026/11/24：特性はそのポケモンが持てるもの（メガストーンを持つならメガシンカ後の特性も）だけ。メガストーンを外したのにメガシンカ後の特性が残る型は、もとの姿の特性に戻す */
+      const mg=s.it&&isStone(s.it.k)?megaOf(x.no,s.it.k):null,abs=(ABD[x.no]||[]).map(z=>z[0]);
+      if(s.ab&&s.ab.k&&!abs.includes(s.ab.k)&&!(mg&&mg.ab===s.ab.k)){const was=ABN[s.ab.k]||s.ab.k,nk=abs[0]||null;
+        notes.push(`${p.n}：持てない特性（${was}${MEGA_AB_OF(x.no,s.ab.k)?'＝メガシンカ後の特性。メガストーンを持たないので使えない':''}）を${nk?`${ABN[nk]||nk}に直しました`:'外しました'}`);s.ab=nk?{k:nk,n:ABN[nk]||nk}:null}
+      if(!((s.up===-1&&s.dn===-1)||(s.up==null&&s.dn==null)||(Number.isInteger(s.up)&&Number.isInteger(s.dn)&&s.up>=1&&s.up<=5&&s.dn>=1&&s.dn<=5))){notes.push(`${p.n}：能力補正の形がおかしいので、補正なしにしました`);s.up=-1;s.dn=-1}
       const ls=(LSD[x.no]||[0,[]])[1],bad=(s.mv||[]).filter(m=>!(m.id===182||ls.includes(m.id)));
       if(bad.length){notes.push(`${p.n}：覚えない技（${bad.map(m=>m.n||mName(m.id)).join('・')}）を外しました`);s.mv=s.mv.filter(m=>!bad.includes(m))}
+      if(s.mv){const seen=new Set(),dup=s.mv.filter(m=>m&&(seen.has(m.id)||!seen.add(m.id)));if(dup.length){notes.push(`${p.n}：同じ技を2回入れていたので1つにしました`);s.mv=s.mv.filter((m,k)=>s.mv.findIndex(z=>z&&z.id===m.id)===k)}if(s.mv.length>4){notes.push(`${p.n}：技が5つ以上あったので4つにしました`);s.mv=s.mv.slice(0,4)}}
       if(Array.isArray(s.sp)&&(s.sp.some(v=>v>SP_CAP||v<0)||s.sp.reduce((a,b)=>a+b,0)>SP_TOTAL)){notes.push(`${p.n}：能力ポイントが決まり（合計${SP_TOTAL}・1つ${SP_CAP}まで）を超えるので外しました`);s.sp=null}}
     out.push({...x,set:s})});
   return{mem:out,notes};

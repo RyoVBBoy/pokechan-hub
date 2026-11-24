@@ -1237,6 +1237,12 @@ const SP_TOTAL=66,SP_CAP=32;
 /* 計算：Lv50・個体値31固定・能力ポイント */
 const natM=(i,up,dn)=>up===dn?1:i===up?1.1:i===dn?.9:1;
 const calcStats=(p,sp,up,dn)=>p.s.map((b,i)=>i===0?b+sp[i]+75:Math.floor((b+sp[i]+20)*natM(i,up,dn)));
+/* 能力補正の印（2026/11/24、依頼主がゲーム内で確かめた決まり。式は上の calcStats のまま）：HPには能力補正も印もない。
+   赤＝上がる能力で、補正前の値（種族値＋ポイント＋20）が10で割り切れるとき。青＝下がる能力で、補正前の値の一の位が1のとき。それ以外は印なし */
+const natMark=(p,sp,up,dn,i)=>{if(!i||up===dn||!p)return '';const raw=p.s[i]+((sp&&sp[i])||0)+20;return i===up&&raw%10===0?'red':i===dn&&raw%10===1?'blue':''};
+const NAT_MARK_COL={red:'#ff8a7a',blue:'#7ab8ff'};
+/* 能力補正の変更にかかる VP（依頼主がゲーム内で確かめた値） */
+const NAT_VP=500;
 const maxSpe=p=>Math.floor((p.s[5]+SP_CAP+20)*1.1);
 /* 弱点の数（特性で無効になるものは数えない。monDef は 39-guide-mons.js） */
 const weakCount=p=>(typeof monDef==='function'?monDef(p).map(x=>x.m):defTable(p.t).map(x=>x[1])).filter(v=>v>=2).length;

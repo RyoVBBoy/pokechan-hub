@@ -30,8 +30,15 @@ function impWith(entries,fn){
 const impLv=rs=>{const st=rs.filter(r=>r.r>=4).length,ok=rs.filter(r=>r.r>=3).length,wk=rs.filter(r=>r.r===2).length;return st>=2?4:st===1?3:ok||wk?2:1};
 /* 変更後の全体を再計算する。素早さ・技・メガ・天気・相手の特性推定は他の列にも影響するため、古い列を流用しない。 */
 function impRecalc(T0,entries,i){
-  return impWith(entries,()=>dgTeam0(entries,20,{megaNo:T0.mega&&T0.mega.no}));
+  return impWith(entries,()=>dgTeam0(entries,20,impMegaOpt(T0,entries)));
 }
+/* 2026/11/24：メガシンカの候補が変わらないなら、変更前と同じ匹をメガシンカさせて比べる（前と同じ）。
+   変更でメガストーンを持つ匹が増えた・減った・持ちかえたときは、変更後のパーティの実際の条件（利用者が選んだメガ→なければ自動でいちばん良いメガ）で計算し直す
+   （前は変更前のメガに固定していたので、入れかえで入ったメガストーンの匹をメガシンカさせずに数えていた） */
+const impMegaOpt=(T0,entries)=>dgMegaOpt(T0,entries);
+/* 計算したメガシンカ（変更前→変更後）。変わったときだけ文にする */
+function impMegaChg(T0,T1){const n=T=>T&&T.mega&&T.mega.i>=0?((T.M[T.mega.i]&&T.M[T.mega.i].p)||T.ms[T.mega.i].p).n:'メガシンカなし';
+  const a=n(T0),b=n(T1);return a===b?'':`計算したメガシンカ：${a} → ${b}（メガストーンを持つ匹が変わるので、変更後のパーティの条件で計算し直しました）`}
 function impMetric(T,keep){const m=dgMetric(T,keep);m.st=(keep?T.rows.filter(r=>keep.has(r.q.no)):T.rows).filter(r=>r.lvl===4).length;return m}
 function impGain(b,a){return IMP_W.x*(b.x-a.x)+IMP_W.w*(b.w-a.w)+IMP_W.nosw*(b.nosw-a.nosw)+IMP_W.ohko*(b.ohko-a.ohko)+IMP_W.slow*(b.slow-a.slow)+IMP_W.st*(a.st-b.st)}
 /* 変更前→変更後の比べ方（dgDiff）と、大事な役目を失うか（◎○→△以下・×が増える） */
@@ -92,7 +99,7 @@ function dgImprove(entries){
     if(feT1(T1))return;/* 変えたあとに合わない持ち物の匹ができる案は出さない */
     const J=impJudge(T0,T1);if(!J.ok)return;const loss=impRoleLoss(T0,T1,i);if(loss){dropped.push({title,loss});return}
     if(badMv&&badMv.length){dropped.push({title,loss:`1対1で正しく計算できない技（${badMv.map(m=>m.n).join('・')}）を含む型なので、数を信用できない`});return}
-    out.push({kind,i,title,why,entries:es,J,T1,base:impBase(entries[i])})};
+    out.push({kind,i,title,why,entries:es,J,T1,base:impBase(entries[i]),megaChg:impMegaChg(T0,T1)})};
   entries.forEach((x,i)=>{
     const p=byNo[x.no];if(!p)return;const base=impBase(x),M=T0.M[i];if(!M)return;
     const stone=base.it&&isStone(base.it.k);
@@ -153,12 +160,12 @@ function dgImprove(entries){
     outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
       const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}if(a.formErr)return null;
         const v=problem.reduce((t,r)=>{try{const z=dgMatch(a,r.o);return t+(z.r>=4?1:0)+(z.swIn==='win'?.6:0)}catch(e){return t}},0);return{c,S,v}}).filter(z=>z&&z.v>=1.5).sort((a,b)=>b.v-a.v).slice(0,4);
-      sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impWith(es,()=>dgTeam0(es,20,{megaNo:T0.mega&&T0.mega.no}))}catch(e){return}if(feT1(T1))return;
+      sc.forEach(({c,S})=>{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:{...S.sv,src:'copy'}}:x);let T1;try{T1=impWith(es,()=>dgTeam0(es,20,dgMegaOpt(T0,es)))}catch(e){return}if(feT1(T1))return;
         const J=impJudge(T0,T1);if(!J.ok)return;
         /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（メガは1匹ずつ）でも確かめる。悪くなる案は理由つきで「出さなかった案」へ */
         const G=typeof mvpGate==='function'?mvpGate(entries,i,es[i],GE0):{ok:true};GE0=G.E0||GE0;
         if(!G.ok){dropped.push({title:`${nm(i)} → ${c.n}`,loss:mvpGateWhy(G.C)});return}
-        out.push({kind:'swap',base:null,i,title:`${nm(i)} → ${c.n}`,why:`${S.txt}（${nm(i)}の持ち物・技は引きつがない）`,entries:es,J,T1})})});
+        out.push({kind:'swap',base:null,i,title:`${nm(i)} → ${c.n}`,why:`${S.txt}（${nm(i)}の持ち物・技は引きつがない）`,entries:es,J,T1,megaChg:impMegaChg(T0,T1)})})});
   }catch(e){}
   /* 種類ごとに良い順に2つまで、全体で8つまで。同じ匹・同じ種類の案は良い方だけ */
   out.sort((a,b)=>b.J.gain-a.J.gain);
@@ -188,7 +195,7 @@ function impCard(o,k){
   const up=o.J.D?o.J.D.up:[],dn=o.J.D?o.J.D.dn:[];
   const more=(o.mem&&o.mem.length)||o.sel||(o.J.D&&o.J.D.note);
   return `<div class="pc-i imp-c${k===0?' imp-top':''}"><div class="imp-h"><span class="imp-no">${k+1}</span><span class="pc-area">${IMP_KIND[o.kind]}</span>${k===0?'<span class="imp-best">いちばん効果が大きい案</span>':''}</div>
-    <b class="imp-t">${esc(o.title)}</b>${o.why?`<p class="vcap">${esc(o.why)}</p>`:''}
+    <b class="imp-t">${esc(o.title)}</b>${o.why?`<p class="vcap">${esc(o.why)}</p>`:''}${o.megaChg?`<p class="vcap">${esc(o.megaChg)}</p>`:''}
     ${met}
     <div class="imp-ud imp-u"><p class="sel-wh">良くなるところ</p>${up.length?`<ul class="sel-why">${up.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p class="selu-none">相手ごとの変化はなし（数の変化だけ）</p>'}</div>
     <div class="imp-ud imp-d"><p class="sel-wh">悪くなるところ（相手ごと）</p><ul class="sel-why sel-warn">${dn.map(t=>`<li>${esc(t)}</li>`).join('')||'<li style="color:var(--dim)">計算した範囲ではなし</li>'}</ul></div>

@@ -48,7 +48,7 @@ const EN={
 '六角形は上から右回りに HP・攻撃・防御・素早さ・特防・特攻。いちばん外側の線が種族値150です。':'Clockwise from the top: HP, Atk, Def, Spe, SpD, SpA. The outer line is base 150.',
 '（このポケモンの最も高い能力）。':' (this Pokémon\'s highest stat).',
 'パーティに追加':'Add to team','相手として調べる':'Check as opponent','他のポケモンと比較':'Compare with another Pokémon',
-'能力ポイント 残り':'Stat points left','性格で上がる':'Raised by nature','性格補正':'Nature','性格で下がる':'Lowered by nature','いまの素早さ':'Current Speed',
+'能力ポイント 残り':'Stat points left','性格で上がる':'Raised by nature','性格補正':'Nature','能力補正':'Nature modifier','性格で下がる':'Lowered by nature','いまの素早さ':'Current Speed',
 'HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正。個体値31・Lv50で計算しています。':'HP = base + points + 75; other stats = (base + points + 20) × nature. Calculated at Lv. 50 with 31 IVs.',
 '大弱点':'4× weak','半減':'Resists','無効':'Immune','4分の1':'¼','相手のタイプ一致技を受けたときの倍率です。':'Damage multiplier when hit by a same-type (STAB) move.',
 'タイプ一致で抜群':'super-effectively with STAB','特性':'Ability','隠れ特性':'Hidden ability',
