@@ -100,7 +100,7 @@ try{
     if(setter&&slow.length>=6){const base=[setter,...slow.filter(s=>s.no!==setter.no)].slice(0,6).map(s=>({no:s.no,set:{...s.sv,it:null,mv:s.sv.mv.filter(m=>m.id!==id)}}));team.length=0;team.push(...base);const D=dgTeam0(team,20);const after=base.map((x,i)=>i?x:{...x,set:{...x.set,mv:[{id,n:mName(id)},...x.set.mv].slice(0,4)}});const R=timed('Trick Room change',()=>impRecalc(after));const F=dgTeam(after,20);check(R&&JSON.stringify(R.tr)===JSON.stringify(F.tr)&&JSON.stringify(dgMetric(R))===JSON.stringify(dgMetric(F)),'Trick Room change equals full recomputation');DG_SELC.clear();const no=dgSelect(team);check(no&&!no.list.some(x=>x.trUse),'unregistered Trick Room not used');}
 
     // Phase one acceptance cases run through the shipped calculation and display code.
-    const saved={rank:META.rank,top:TOPT.st,team,render:teamRender,confirm:askConfirm,slot:TEAMS.cur,slots:TEAMS.list,updated:TEAMS.updated,teamSignatures:TEAM_SIG};
+    const saved={rank:META.rank,top:TOPT.st,team,render:teamRender,confirm:askConfirm,slot:TEAMS.cur,slots:TEAMS.list,updated:TEAMS.updated,teamSignatures:TEAM_SIG,localSlots:localStorage.getItem('pcteams'),localTeam:localStorage.getItem('pcteam')};
     const fixture=document.createElement('div');
     fixture.innerHTML='<div id="st-box"></div><div id="dg-box"></div><div id="dgu-sum"></div><div class="stg-nm-b"></div><div class="test-imp"></div>';
     document.body.appendChild(fixture);
@@ -140,6 +140,13 @@ try{
       teamsFromStore(JSON.stringify(external));
       resolve(true);await pending;
       check(team[0].no===248,'P10 confirmation cannot overwrite a party edited while the dialog is open');
+      renderPlan(proposal);
+      const queued=panel.querySelector('[data-imp]').onclick();
+      external.list[saved.slot].team[0]=member(334);
+      localStorage.setItem('pcteams',JSON.stringify(external));
+      resolve(true);await queued;
+      check(team[0].no===248&&JSON.parse(localStorage.getItem('pcteams')).list[saved.slot].team[0].no===334,'P10 saved edits are detected before their storage event is delivered');
+      teamsFromStore(localStorage.getItem('pcteams'));
       renderPlan({kind:'sel',title:'選出',selFix:[0,1,2,3].slice(0,PICK()),J:{b:{},a:{}}});
       TEAMS.cur=(saved.slot+1)%TEAMS.list.length;
       await panel.querySelector('[data-imp]').onclick();
@@ -153,6 +160,9 @@ try{
       fixture.remove();META.rank=saved.rank;TOPT.st=saved.top;team=saved.team;
       teamRender=saved.render;askConfirm=saved.confirm;TEAMS.cur=saved.slot;
       TEAMS.list=saved.slots;TEAMS.updated=saved.updated;TEAM_SIG=saved.teamSignatures;
+      for(const [key,value] of [['pcteams',saved.localSlots],['pcteam',saved.localTeam]]){
+        if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);
+      }
     }
    }
    return {checks,results};

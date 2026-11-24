@@ -251,7 +251,12 @@ function ttJump(k,id){const b=document.querySelector(`#tt-seg [data-tt="${k}"]`)
   prep();
   let n=0;const go=()=>{prep();const t=document.getElementById(id);if(t&&t.offsetParent){t.scrollIntoView({block:'start'});/* 上の中身があとから描かれて位置がずれたら、もう一度合わせる */setTimeout(()=>{const y=t.getBoundingClientRect().top;if(Math.abs(y-72)>40)t.scrollIntoView({block:'start'})},700);t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}else if(n++<40)setTimeout(go,100)};setTimeout(go,80)}
 // 評価を表示した時の形式・データ・パーティ枠と、保存前の状態を照合する。
-const teamActionStamp=(entries=team)=>JSON.stringify([TEAMS.cur,impKey(entries)]);
+function teamActionStamp(entries=team){
+  let stored=null;
+  // 別タブの保存が済んでいて、storage イベントがまだ届いていない場合も検出する。
+  try{stored=JSON.parse(localStorage.getItem('pcteams'))?.list?.map(slotSig)||null}catch(e){}
+  return JSON.stringify([TEAMS.cur,impKey(entries),stored]);
+}
 function teamActionCurrent(stamp){
   if(teamActionStamp()===stamp)return true;
   toast('パーティや計算条件が更新されました。新しい結果を確認してください');
