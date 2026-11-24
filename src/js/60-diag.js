@@ -113,7 +113,7 @@ function dgMatch(a,o){
 function dgMatch0(a,o){
   const me=dgBest(a,o),op=dgBest(o,a);
   /* トリックルーム中（DG_TR）は遅い方が先に動く（先制技はトリックルームでも先） */
-  const tr=DG_TR,sa=effSpd(a),so=effSpd(o),spd=tr?(sa<so?1:sa>so?-1:0):(sa>so?1:sa<so?-1:0);
+  const weather=wxEffK(a,o),tr=DG_TR,sa=effSpd(a,o),so=effSpd(o,a),spd=tr?(sa<so?1:sa>so?-1:0):(sa>so?1:sa<so?-1:0);
   const upTxt=tr?`トリックルーム中は遅い方が先に動く（${sa} 対 ${so}）`:`素早さで上を取れる（${sa} 対 ${so}）`;
   const myN=me?me.nMin:9,myNb=me?me.nMax:9,acc=me?me.acc:100;
   /* 相手の攻撃は乱数最大（こちらにとって最悪）で数える */
@@ -149,7 +149,7 @@ function dgMatch0(a,o){
      ①交代時はHP満タン（前提）②1発目は相手の乱数最小でも100%以上＝きあいのタスキが必ず発動してHP1（最大だけ100%以上なら、発動しないことがある）
      ③かるわざが要るなら、タスキが必ず発動するときだけ素早さ2倍（同速は不可）④こちらの乱数最小で確定1発（相手のタスキ・がんじょう・マルチスケイルも入れた回数）
      ⑤成り立たない：相手の連続技（どれか1つでも持っていればタスキが効かない）・ダメージを与える先制技・砂嵐（いわ・じめん・はがね以外）・設置技（集計で10%以上使う）・接触で反動を返す特性や持ち物 */
-  const sandChip=!!(B.weather&&B.weather.k==='sand'&&!a.p.t.some(x=>['いわ','じめん','はがね'].includes(x)));
+  const sandChip=!!(weather==='sand'&&!a.p.t.some(x=>['いわ','じめん','はがね'].includes(x)));
   const opPrHit=!!(opPr&&opPr.max>0);
   const multiMv=(o.moves||[]).find(m=>m&&m.maxH>1&&(()=>{try{return bcalc(o,m,a,{r:100}).dmg>0}catch(e){return false}})());
   /* さめはだ・てつのトゲ・ゴツゴツメットは、こちらの技が実際に接触するときだけ（えんかく・マジックガードなら受けない。2026/11/24：前は接触しない技でも危ないとしていた） */
@@ -168,7 +168,7 @@ function dgMatch0(a,o){
   const swLeft=op?Math.max(0,100-op.fmax):100;
   const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:swSash&&sashWin?`条件つきで後出しして勝てる：${sashWhy}。${sashCond}`:swSash?`交代で受ける1発目：${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}。${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で耐えても、${blockTxt}ので、後出しできるとは数えない`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
   let k='lose',why=[];
-  const wxT=B.weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
+  const wxT=weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
   const meTxt=me?`${me.mvn}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
   const opTxt=op?`相手の${op.mvn}で${dgDmgTxt(op,'me')}（${dgKoTxt(op)}）`:'相手に効く技がない';
   if((first===1&&winSafe)||prKO){k='ko_fast';
@@ -190,13 +190,15 @@ function dgMatch0(a,o){
   if(me&&me.acc<100&&DG_K[k].r>=3&&!(k==='ko_fast'&&prKO)){if(me.acc<90){k='shaky';why.unshift(`${me.mvn}の命中が${Math.round(me.acc)}%なので外れると負ける`)}else why.push(`${me.mvn}の命中は${Math.round(me.acc)}%`)}
   if(spd===0&&!why.some(w=>/同速/.test(w)))why.push(spdTxt);
   if(wxT)why.push(wxT);
+  const weatherSuppressed=!!B.weather&&!weather;
+  if(weatherSuppressed)why.push('天気を無効にする特性が場にいるため、天気の効果なしで計算しています。');
   if(me&&me.half)why.push(me.h>1?`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの${me.mvn}（1回で${me.h}回当たる）は最初の当たりだけ半分、2回目の当たりからは半分にならない（1回目と2回目の当たりを乱数ごとに別々に計算して足し、倒すまでの回数を数えています）`:`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの攻撃の1発目だけダメージが半分になる（倒すまでの回数はこれを入れて数えています）`);
   if(op&&op.half)why.push(`こちらの${ABN[op.half]||'特性'}：こちらのHPが満タンのとき、相手の攻撃の1発目だけダメージが半分になる`);
   if(sash&&me&&me.max>=100)why.push(`相手は${o.item==='focussash'?'きあいのタスキ':'がんじょう'}なので満タンからは一撃で倒せない（計算に入れています）`);
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
   /* 2026/11/10：遅い（同速）のに先制技のとどめで先に倒しきれるときは「上から」と書かない */
   const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':spd!==1&&!tr?`先制技のとどめで${myN}発で倒しきれる`:myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
-  return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
+  return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,weatherSuppressed,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
 }
 /* ===================== 診断の準備（2026/11/12 依頼主：同じパーティなのに「総合評価」が開くたびに変わる） =====================
    原因：①使用率の集計・各ポケモンの集計・上位パーティのデータが届く前に、手元のデータ（なければ種族値の上位）で計算して出していた

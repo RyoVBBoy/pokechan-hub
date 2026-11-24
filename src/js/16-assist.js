@@ -91,7 +91,7 @@ function analyze(myNos,opNos,mySF,opSF,W){
       const R=mn.length&&on.length?analyze(mn,on,mySF,opSF,W?W.filter((_,j)=>!O[j].formErr):W):null;if(R)R.formErr=bad;return R||{formErr:bad,none:true}}
     const w=O.map((_,j)=>W?W[j]:1),wt=w.reduce((a,b)=>a+b,0)||1;
     const D=M.map(m=>O.map(o=>estHit(m,o))),R=O.map(o=>M.map(m=>estHit(o,m)));
-    const fast=M.map(m=>O.map(o=>withWx(m,o,()=>effSpd(m)>effSpd(o))));/* 天気（パーティの天気も）で速くなる特性を入れて比べる（2026/11/10） */
+    const fast=M.map(m=>O.map(o=>withWx(m,o,()=>effSpd(m,o)>effSpd(o,m))));/* 天気（パーティの天気も）で速くなる特性を入れて比べる（2026/11/10） */
     const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
     const defV=i=>O.reduce((a,_,j)=>a+w[j]*Math.min(R[j][i].pct*R[j][i].acc/100,100)/100,0)/wt;
     /* 1対1の判定（56-duel.js：タスキ・先制技・積み技・命中なども入る）を足す。相手のだれにも、選出のだれかが有利に戦えるほど高い（2026/11/06） */

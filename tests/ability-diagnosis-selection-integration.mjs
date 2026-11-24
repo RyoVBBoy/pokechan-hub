@@ -28,6 +28,7 @@ const DG_K={ko_fast:{r:5,t:'fast'},tank:{r:4,t:'tank'},switch:{r:4,t:'switch'},
  wall:{r:3,t:'wall'},shaky:{r:2,t:'shaky'},cond:{r:2,t:'cond'},lose:{r:1,t:'lose'}};
 const SKIN={},ABN={},LIVE={csv:{}},MVKA={};
 const B={weather:null};
+const wxEffK=()=>null; // These synthetic diagnosis fixtures use no weather.
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8)),hitType=(_a,m)=>m.t,accOf=()=>100;
 const effSpd=a=>a.spd||100,fixedDmg=()=>null,mkey=m=>m.id,duel=()=>({});
 const nrm=x=>x,mName=x=>x,mbSeq=()=>null,effPri=(a,mv)=>(mv&&mv.pri)||0,useSeq=()=>null,hitCountDist=()=>[[1,1]],nextUse=(a,mv,d)=>({a,d,changed:false}),bhits=(a,mv,d,o)=>{const x=bcalc(a,mv,d,o||{});return{hits:[{dmg:x.dmg}],total:x.dmg,eff:x.eff,n:1}},hitDist=()=>[];/* 2026-11-24: neutral single-hit stand-ins for the shared multi-hit helpers *//* 中立の技だけ：メテオビームの使うごとのダメージは使わない */

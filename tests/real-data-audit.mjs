@@ -169,6 +169,25 @@ try{
       check(rain.weather?.no===279&&!clear.weather&&rainy.sa===260&&dry.sa===130&&rainy.swIn==='win'&&dry.swIn!=='win','P01 selected Pelipper and no-setter matchups use the correct conditions',[rainy.sa,dry.sa,rainy.swIn,dry.swIn]);
       check(dgSelWhy(weather,rain).good.some(t=>/ペリッパー.*雨/.test(t)),'P01 selection explanation names the weather actually evaluated');
 
+      // Keep Pelipper's rain active as a scenario, then vary only the opponent's ability.
+      const waterAttacker=mkMon(byNo[swift.no],'me',mySetFor(swift.no));
+      const opponent=ab=>mkMon(byNo[55],'op',{...chooseSet(byNo[55],true),ab});
+      const rainState=WX_TEAM;
+      let damp,nine,lock;
+      try{
+        WX_TEAM=rain.weather;
+        damp=dgMatch(waterAttacker,opponent('damp'));
+        nine=dgMatch(waterAttacker,opponent('cloud-nine'));
+        lock=dgMatch(waterAttacker,opponent('air-lock'));
+      }finally{WX_TEAM=rainState}
+      check(damp.sa===260&&damp.wxTeam&&nine.sa===130&&!nine.wxTeam&&nine.weatherSuppressed
+        &&lock.sa===130&&!lock.wxTeam&&lock.weatherSuppressed,'Cloud Nine and Air Lock suppress rain speed and exclude the party weather benefit',
+        {rain:damp.sa,cloudNine:nine.sa,airLock:lock.sa});
+      const suppressedRow={...rain.rows[0],r:{...rain.rows[0].r,q:byNo[55]},zs:[nine]};
+      const weatherWarning=dgSelWhy(weather,{...rain,rows:[suppressedRow,...rain.rows.slice(1)]}).warn;
+      check(nine.why.some(t=>t.includes('天気の効果なし'))&&weatherWarning.some(t=>t.includes('天気の効果が無効')&&t.includes(byNo[55].n)),
+        'matchup and selection explain that an opponent can suppress party weather');
+
       const slowTeam=physical=>[981,324,143,450,534,306].map((no,i)=>{
         const x=member(no),phys=physical&&x.no!==981&&byNo[no].s[1]>=byNo[no].s[3];
         x.set.sp=phys?[32,32,0,0,2,0]:[32,0,0,32,2,0];

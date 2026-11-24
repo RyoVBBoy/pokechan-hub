@@ -315,7 +315,7 @@ const abn=b=>ABN[b.ab]||'';
 const sideDead=S=>S.mons.every(m=>m.fainted);
 const foesOf=b=>b.side==='me'?B.op:B.me, ownOf=b=>b.side==='me'?B.me:B.op;
 /* はやあし：状態異常のとき1.5倍で、まひで遅くならない（2026/11/24） */
-const effSpd=b=>Math.floor(b.st[5]*stgM(b.stg.spe)*(B.weather&&WSPD[b.ab]===B.weather.k?2:1)*(b.item==='choicescarf'?1.5:1)*(b.item==='ironball'?.5:1)*(b.ab==='quick-feet'&&b.status?1.5:1)*(b.status==='par'&&b.ab!=='quick-feet'?.5:1));
+const effSpd=(b,opp)=>Math.floor(b.st[5]*stgM(b.stg.spe)*(WSPD[b.ab]&&WSPD[b.ab]===wxEffK(b,opp)?2:1)*(b.item==='choicescarf'?1.5:1)*(b.item==='ironball'?.5:1)*(b.ab==='quick-feet'&&b.status?1.5:1)*(b.status==='par'&&b.ab!=='quick-feet'?.5:1));
 function chg(b,k,n,log,why){
   const o=b.stg[k];b.stg[k]=Math.max(-6,Math.min(6,o+n));
   const nm={atk:'攻撃',def:'防御',spa:'特攻',spd:'特防',spe:'素早さ'}[k];
@@ -391,8 +391,8 @@ function varPow(a,mv,d,o){
   switch(k){
     case 'lowkick':case 'grassknot':{const w=wtOf(d);return w>=200?120:w>=100?100:w>=50?80:w>=25?60:w>=10?40:20}
     case 'heavyslam':case 'heatcrash':{const r=wtOf(a)/wtOf(d);return r>=5?120:r>=4?100:r>=3?80:r>=2?60:40}
-    case 'gyroball':{const sa=effSpd(a);return sa?Math.min(150,Math.floor(25*effSpd(d)/sa)+1):1}
-    case 'electroball':{const sd=effSpd(d),r=sd?Math.floor(effSpd(a)/sd):4;return r>=4?150:r>=3?120:r>=2?80:r>=1?60:40}
+    case 'gyroball':{const sa=effSpd(a,d);return sa?Math.min(150,Math.floor(25*effSpd(d,a)/sa)+1):1}
+    case 'electroball':{const sd=effSpd(d,a),r=sd?Math.floor(effSpd(a,d)/sd):4;return r>=4?150:r>=3?120:r>=2?80:r>=1?60:40}
     case 'eruption':case 'waterspout':case 'dragonenergy':return Math.max(1,Math.floor(150*a.hp/a.max));
     case 'flail':case 'reversal':{const r=Math.floor(a.hp*48/a.max);return r<=1?200:r<=4?150:r<=9?100:r<=16?80:r<=32?40:20}
     case 'hardpress':return Math.floor(Math.floor((100*(100*Math.floor(d.hp*4096/d.max))+2047)/4096)/100)||1;

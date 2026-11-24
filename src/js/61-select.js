@@ -144,7 +144,7 @@ function dgSelect0(entries){
 /* 1つの選出の説明（なぜよいか・気をつけること）。数はすべて上の計算から */
 function dgSelWhy(S,x,ref){
   const nm=S.nm,L=l=>DG_LV[l][0],good=[],warn=[];
-  good.push(`上位${S.N}匹のうち ${L(4)}${x.cnt[4]}・${L(3)}${x.cnt[3]}・${L(2)}${x.cnt[2]}・${L(1)}${x.cnt[1]}（◎＝選出の2匹以上が有利に戦える）`);
+  good.push(`比較した${S.N}匹のうち ${L(4)}${x.cnt[4]}・${L(3)}${x.cnt[3]}・${L(2)}${x.cnt[2]}・${L(1)}${x.cnt[1]}（◎＝選出の2匹以上が有利に戦える）`);
   if(ref&&ref!==x){const d4=x.cnt[4]+x.cnt[3]-(ref.cnt[4]+ref.cnt[3]);
     const better=x.rows.filter((y,j)=>y.lvl>ref.rows[j].lvl).map(y=>y.r.q.n),worse=x.rows.filter((y,j)=>y.lvl<ref.rows[j].lvl).map(y=>y.r.q.n);
     if(better.length||worse.length)good.push(`2番目の選出（${ref.c.map(nm).join('・')}）と比べて、良い相手：${better.slice(0,5).join('・')||'なし'}${better.length>5?` など${better.length}匹`:''}／悪い相手：${worse.slice(0,5).join('・')||'なし'}${worse.length>5?` など${worse.length}匹`:''}${d4?`（◎○の数 ${d4>0?'+':''}${d4}）`:''}`)}
@@ -163,6 +163,8 @@ function dgSelWhy(S,x,ref){
   else if(x.megaI>=0)good.push(`メガシンカ：${S.megaNm(x.megaI)}`);
   if(x.weather)good.push(`${x.weather.by}の${ABN[x.weather.ab]||'特性'}で${({sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'})[x.weather.k]}になった場合を、対応する対面に反映しています${x.weather.guess?'（特性は推定）':''}`);
   else if(X.tw&&X.wxBy>=0&&X.gain.length&&!x.wxOk)warn.push(`パーティの天気を作る${nm(X.wxBy)}がこの選出にいないため、味方の天気補正を入れていません`);
+  const suppressed=x.rows.filter(y=>y.zs.some(z=>z.weatherSuppressed));
+  if(suppressed.length)warn.push(`天気の効果が無効になる対面あり（例 ${suppressed.slice(0,3).map(y=>y.r.q.n).join('・')}）`);
   const assumed=x.rows.filter(y=>y.r.abAssume);
   if(assumed.length)warn.push(`相手の特性はこの選出で比較して推定：${assumed.slice(0,3).map(y=>`${y.r.q.n}（${ABN[y.r.abAssume.ab]||y.r.abAssume.ab}）`).join('・')}${assumed.length>3?' ほか':''}`);
   const tr=x.tr||X.T&&X.T.tr;

@@ -64,7 +64,7 @@ function duel0(a,o){
   const h=duHit(a,o),r=duHit(o,a);
   let mt=duTurns(h.pct,h,a,o),ot=duTurns(r.pct,r,o,a);
   const pa=duPrio(a,o),po=duPrio(o,a);
-  const sa=effSpd(a),so=effSpd(o);
+  const sa=effSpd(a,o),so=effSpd(o,a);
   let f=duFirst(sa,so,mt,ot,h.pct,r.pct,pa,po);
   let up=null;
   /* 積み技：相手の攻撃を2回以上耐えられるなら、1回積んでから */
