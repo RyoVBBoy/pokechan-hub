@@ -102,17 +102,17 @@ function dguCard(x,bad,swHTML,chips){
 }
 /* ===================== 第3段階：相手ごとの対応力とダメージの表（2026/11/10） =====================
    1匹の対面＝結論（〇〇（こちら）は 上から一撃（確定））＋表：技・ダメージ・一撃で倒せる確率・確定何発・相手の技・素早さ・行動順・後出し。
-   数はすべて dgMatch の結果そのまま（me・op・sa・so・spd・swIn）。一撃で倒せる確率＝乱数16段階のうち倒せる数（dgMove の ohko）。
+   数はすべて dgMatch の結果そのまま（me・op・sa・so・spd・swIn）。最初の1回で倒す確率は命中込み（dgMatch の koOnUse）。
    もとの理由の文（why・swTxt）は「計算根拠を見る」に全部残す */
 const DGU_SW={win:'後出しして勝てる',sashwin:'条件つきで後出しできる（きあいのタスキ頼み）',sash:'後出しできない（タスキで1だけ残るだけ）',survive:'1発目は耐えるが、撃ち合いで負ける',unproven:'交代後の勝ちは判定保留',no:'交代で受ける1発目で倒される'};
-function dguKoPct(x){if(!x||!x.max)return '—';if(x.nMin===1)return '100%（確定）';if(x.nMax===1)return `${Math.round(x.ohko/16*100)}%`;return '0%（一撃では倒せない）'}
+function dguKoPct(z){return Number.isFinite(z.koOnUse)?pctTxt(z.koOnUse):'—'}
 function dguMatchHTML(z,oppName,meName){
   const order=z.spd===1?(z.tr?'こちらが先（トリックルーム中）':'こちらが先'):z.spd===0?'同速（どちらが先かは五分）':(z.tr?'相手が先（トリックルーム中）':'相手が先');
   const rows=[
     ['技',z.me?esc(z.me.mvn):'効く技がない'],
     ['ダメージ',z.me?esc(dgDmgTxt(z.me,'op')):'—'],
-    ['一撃で倒せる確率',z.me?dguKoPct(z.me):'—'],
-    ['確定何発',z.me?esc(dgKoTxt(z.me)):'—'],
+    ['1回使って倒せる確率（命中込み）',dguKoPct(z)],
+    ['倒すまでの回数（命中前提）',z.me?esc(dgKoTxt(z.me)):'—'],
     ['相手の技',z.op?`${esc(z.op.mvn)}：${esc(dgDmgTxt(z.op,'me'))}（${esc(dgKoTxt(z.op))}）`:'こちらに効く技がない'],
     ['素早さ',`${esc(meName)} ${z.sa} 対 ${esc(oppName)} ${z.so}`],
     ['行動順',order],

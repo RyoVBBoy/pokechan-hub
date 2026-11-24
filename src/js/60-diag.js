@@ -67,6 +67,22 @@ function dgMove(a,mv,d){
       hit1,hitN,hpMax:d.max,seqMin,seqMax,nHit:lo1.n};
   }finally{d.disg=dg}
 }
+/* 最初の1回で倒せる確率。2発目以降の命中は、連続技の回数の分布に含まれる。 */
+function dgKoOnUse(a,x,d){
+  if(!x)return null;
+  const acc=x.acc/100;
+  const special=d.disg||d.hp!==d.max||d.item==='focussash'||d.item==='focusband'||d.ab==='sturdy';
+  if(!special)return Math.min(1,x.ohko/16)*acc;
+  if(!d.disg&&d.hp===d.max){
+    if(x.fmax<100)return 0;
+    if(x.nHit===1&&x.hMax===1){
+      if(d.item==='focussash'||(d.ab==='sturdy'&&!duIg(a)))return 0;
+      return Math.min(1,x.ohko/16)*acc*(d.item==='focusband'?.9:1);
+    }
+  }
+  const ko=koInfo(dmgRolls(a,x.mv,d,{noNext:true}),d.hp,1);
+  return ko.n===1?ko.p*acc:0;
+}
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */
 function dgBest(a,d){
   let best=null;
@@ -74,6 +90,7 @@ function dgBest(a,d){
   (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv))||!moveUsable(mv,{a,d}).ok)return;
     const x=dgMove(a,mv,d);if(!x.max)return;
     x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin,seq:x.seqMin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax,seq:x.seqMax},a,d);
+    if(MFIRST.has(mkey(mv))&&x.nMin>1)return;
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
     const key=[x.nMin,x.acc>=90?0:1,-(x.min*x.acc)];
     if(!best||key[0]<best.key[0]||(key[0]===best.key[0]&&(key[1]<best.key[1]||(key[1]===best.key[1]&&key[2]<best.key[2]))))best={...x,key}});
@@ -135,7 +152,7 @@ function dgMatch0(a,o){
   const pr=dgPrio(a,o),opPr=dgPrio(o,a);
   const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:100,f:pr.fmin,seq:pr.seqMin},a,o)===1;
   /* 先に倒しきれるか：こちらが先に動けるなら myN<=opW、遅ければ myN<opW。先制技のとどめ・相手の先制技も見る */
-  const finPr=(n,x,p)=>p&&p.min>0&&(n-1)*x.min+p.min>=100;
+  const finPr=(n,x,p)=>p&&p.min>0&&(n===1||!MFIRST.has(mkey(p.mv)))&&(n-1)*x.min+p.min>=100;
   let first=spd;
   if(first<=0&&me&&finPr(myN,me,pr)&&!(op&&finPr(opW,op,opPr)))first=1;
   if(first>=0&&op&&finPr(opW,op,opPr)&&!(me&&finPr(myN,me,pr)))first=-1;
@@ -232,7 +249,7 @@ function dgMatch0(a,o){
   /* 見出し：上から一撃（確定）と、上から2発以上で倒しきる を分ける */
   /* 2026/11/10：遅い（同速）のに先制技のとどめで先に倒しきれるときは「上から」と書かない */
   const t=k==='ko_fast'?(prKO&&!(first===1&&winSafe)?'先制技で倒せる':spd!==1&&!tr?`先制技のとどめで${myN}発で倒しきれる`:myN===1?'上から一撃（確定）':`上から${myN}発で倒しきれる`):DG_K[k].t;
-  return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,weatherSuppressed,me,op,spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
+  return{k,r:DG_K[k].r,t:tr&&k==='ko_fast'?t.replace(/^上から/,'トリル中に先に動いて'):t,why,tr,wxTeam:!!wxT,weatherSuppressed,me,op,koOnUse:dgKoOnUse(a,me,o),spd,first,sa,so,myN,opW,pr,spdTxt,swIn,swTxt,swLeft,sa2,sashBlock,sashSure};
 }
 /* ===================== 診断の準備（2026/11/12 依頼主：同じパーティなのに「総合評価」が開くたびに変わる） =====================
    原因：①使用率の集計・各ポケモンの集計・上位パーティのデータが届く前に、手元のデータ（なければ種族値の上位）で計算して出していた

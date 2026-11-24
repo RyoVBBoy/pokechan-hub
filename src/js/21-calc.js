@@ -32,7 +32,7 @@ function dmgRolls(a,mv,d,o){
   return r;
 }
 /* n回当てたときに倒せる確率（いちばん少ない回数と、その確率） */
-function koInfo(r,hp){
+function koInfo(r,hp,maxUses=8){
   if(!r.length)return{n:0,p:0,sure:0};
   const one=x=>x.dist||x.map(v=>[v,1/x.length]);
   /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss） */
@@ -46,7 +46,7 @@ function koInfo(r,hp){
   const out=o=>{if(r.fband)o={...o,fband:true};if(r.hitCounts)o={...o,hitCounts:r.hitCounts};if(B)o={...o,berry:B.k};if(r.survMulti)o={...o,survMulti:true};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
   /* 2026/11/24：残りHPと「きのみを食べたか」の状態で数える。「必ず倒せる」＝倒れていない状態が1つも残らないとき（確率の数で決めない） */
   let S=new Map([[hp+'|0',{rem:hp,u:0,p:1}]]),ko=0,first=null;
-  for(let n=1;n<=8;n++){
+  for(let n=1;n<=maxUses;n++){
     const base=n===1?f1:nx(n-2),nS=new Map();
     for(const st of S.values())for(const[v,w]of base){let rem=st.rem-v,u=st.u;const q=st.p*w;
       if(rem<=0){if(r.fband){ko+=q*.9;const k='1|'+u,e=nS.get(k);if(e)e.p+=q*.1;else nS.set(k,{rem:1,u,p:q*.1});continue}ko+=q;continue}

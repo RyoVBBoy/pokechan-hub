@@ -295,6 +295,17 @@ try{
       check(equalPriority.swIn==='win'&&tiedPriority.swIn!=='win'&&firstOnly.swIn==='win',
         'equal priority follows speed order and a first-turn-only move cannot be used after the opening hit',
         {faster:equalPriority.swIn,tied:tiedPriority.swIn,firstTurnOnly:firstOnly.swIn});
+      const koSash=dgMatch(fastCrunch(85),{...slowPsychic,item:'focussash'});
+      const koBand=dgMatch(fastCrunch(85),{...slowPsychic,item:'focusband'});
+      check(riskyMiss.koOnUse===.85&&koSash.koOnUse===0&&Math.abs(koBand.koOnUse-.765)<1e-10
+        &&dguMatchHTML(riskyMiss,slowPsychic.p.n,normal.p.n).includes('1回使って倒せる確率（命中込み）')
+        &&dguKoPct(riskyMiss)==='85%','first-use KO odds include accuracy, Focus Sash and Focus Band',
+        [riskyMiss.koOnUse,koSash.koOnUse,koBand.koOnUse]);
+      const firstTurn={...normal,moves:[mvObj(252)]};
+      const firstTurnTarget={...normal,side:'op'};
+      const openingKO={...firstTurn,moves:[{...mvObj(252),pow:1000}]};
+      check(dgBest(firstTurn,firstTurnTarget)===null&&dgBest(openingKO,firstTurnTarget)?.nMin===1,
+        'first-turn-only moves are not treated as repeatedly usable attacks');
       const view=selPlan(team),lineups=view.DS.list;
       const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
       const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);
@@ -373,11 +384,20 @@ try{
         authFetch=async()=>({battles:[
           ...Array(4).fill(record),
           ...Array(5).fill({...record,fmt:fmt==='single'?'double':'single'}),
-          ...Array(5).fill({...record,my:[445]})
+          ...Array(5).fill({...record,my:[445]}),
+          ...Array(5).fill({...record,result:'unknown'})
         ]});
         const scarce=await loseFromRecords(team,fmt);
         check(scarce.count===4&&!scarce.rec,'P12 battle history from other formats and parties does not lift the minimum sample size');
-        authFetch=async()=>({battles:Array(5).fill(record)});
+        const picked=team[1].no,pickedName=formInfo(byNo[picked]).base;
+        const used=[[team[0].no,picked,picked],[team[2].no,picked],[team[3].no,picked],[team[4].no],[team[5].no]];
+        authFetch=async()=>({battles:used.map(my_sel=>({...record,my_sel,opp:[248,248]}))});
+        const history=await loseFromRecords(team,fmt);
+        check(history.count===5&&history.some(x=>x.t.includes(pickedName+'を出した試合')&&x.t.includes('3戦'))
+          &&history.some(x=>x.t.includes('相手の6匹に')&&x.t.includes('5戦'))
+          &&history.every(x=>!x.t.includes('を先発にした')),
+          'records count later appearances once per match and never infer the lead from appearance order');
+
         fixture.insertAdjacentHTML('beforeend',loseHTML());
         await loseFill(team);
         const lost=fixture.querySelector('#lose-box').textContent;
