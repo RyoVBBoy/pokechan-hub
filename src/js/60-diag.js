@@ -134,7 +134,8 @@ function dgMatch0(a,o){
   const winBest=myNb<9&&(first>=0?myNb<=opB:myNb<opB);
   const sash=o.item==='focussash'||o.ab==='sturdy',mySash=a.item==='focussash'||a.ab==='sturdy';
   /* 交代で出ると1回ぶん多く受ける */
-  const swOk=opW>=2&&myN<9&&(first===1?myN<=opW-1:myN<opW-1);
+  /* 9は打ち切り値。相手が9以上でも、こちらが先に倒し切れる根拠が必要。 */
+  const swOk=myN<9&&(op?opW>=2&&(first===1?myN<=opW-1:myN<opW-1):!o.uncalc?.length);
   const resist=op&&op.eff<=.5;
   /* 素早さの関係は3つに分けて書く（2026/11/10 依頼主：同速を「上を取れる」と言わない） */
   const spdTxt=spd===1?`${upTxt}`:spd===0?`同速（${sa} 対 ${so}。どちらが先に動くかは五分）`:tr?`トリックルーム中でも相手が先（${sa} 対 ${so}。相手の方が遅い）`:`素早さで下になる（${sa} 対 ${so}）`;
@@ -164,9 +165,15 @@ function dgMatch0(a,o){
   const sashCond=`前提：交代時にHP満タン（それまでにダメージを受けていない）・相手がいちばん痛い技（${op?op.mvn:''}）を使う。確かめたこと：この相手の型に連続技・先制技はなく、砂嵐にもならず、接触で反動を返す特性・持ち物もない${LIVE.csv[o.p.base||o.p.no]?'。ランクバトルで設置技をよく使う相手でもない':''}。それでも成り立たないとき：ほかの相手のステルスロックなどの設置技でHPが減っている／相手が積み技で素早さを上げている`;
   const blockTxt={nokill:'そのあと一撃で倒せない',acc:'倒す技の命中が不安定',slow:`${ub?'かるわざで素早さ2倍にしても':''}先に動けない（${sa2} 対 ${so}）`,unsure:`相手の1発目が乱数しだいで100%未満（${op?dgPct(op.fmin):''}〜）になり、タスキが発動しないことがある。そのときはかるわざも発動せず、素早さ ${sa} 対 ${so}で先に動けない`,
     multi:`相手が連続技（${multiMv?mName(multiMv.id):''}）を持っていて、タスキが効かない`,prio:`HP1になったあと、相手の先制技（${opPr?opPr.mvn:''}）で倒される`,sand:'砂嵐のダメージでHP1から倒れる',hazard:`相手が設置技（${hzMv}）をよく使い、出てきたときにHPが減ってタスキが効かない`,contact:`相手の${o.item==='rockyhelmet'?'ゴツゴツメット':ABN[o.ab]}で、接触技で倒したときに反動でこちらも倒れる`}[sashBlock]||'';
-  const swIn=!op||opW>=9?'win':opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':'survive';
+  const swIn=opW<2?'no':swSash?(sashWin?'sashwin':'sash'):swOk?'win':!op||opW>=9?'unproven':'survive';
   const swLeft=op?Math.max(0,100-op.fmax):100;
-  const swTxt=!op?'相手に効く技がないので交代で受けられる':opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`:swSash&&sashWin?`条件つきで後出しして勝てる：${sashWhy}。${sashCond}`:swSash?`交代で受ける1発目：${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}。${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で耐えても、${blockTxt}ので、後出しできるとは数えない`:`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ そのあと${swIn==='win'?`撃ち合っても先に倒せる（こちら${dgKoTxt(me)}、相手はあと${opW-1}発必要）`:'撃ち合いでは先に倒される（受けてもう一度交代する役なら可）'}`;
+  const swTxt=!op?(swIn==='win'
+    ?`計算した相手の技ではダメージを受けず、こちらの${me.mvn}で倒せる（${dgKoTxt(me)}）`
+    :`計算した相手の技によるダメージはないが、${o.uncalc?.length?'相手に計算できない攻撃技があるため':!me?'こちらも効く技がないため':'こちらが倒し切るまでの回数が計算範囲を超えるため'}、交代後の勝ちは判定できない`)
+    :opW<2?`交代で受ける1発目（${op.mvn} 最大${dgPct(op.fmax)}）で倒される`
+    :swSash&&sashWin?`条件つきで後出しして勝てる：${sashWhy}。 ${sashCond}`
+    :swSash?`交代で受ける1発目：${op.mvn}で${dgPct(op.fmin)}〜${dgPct(op.fmax)}。 ${a.item==='focussash'?'きあいのタスキ':'がんじょう'}で耐えても、${blockTxt}ので、後出しできるとは数えない`
+    :`交代で受ける1発目：${op.mvn}で最大${dgPct(op.fmax)}（残りHPは少なくとも${Math.round(swLeft)}%）→ ${swIn==='win'?`そのあと、こちらの${me.mvn}で先に倒せる（${dgKoTxt(me)}）`:swIn==='unproven'?'そのあとの撃ち合いで先に倒せる根拠が足りない':'そのあとの撃ち合いでは先に倒される'}`;
   let k='lose',why=[];
   const wxT=weather&&B.weather.team?`${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}の中で計算（パーティの${B.weather.team.by}の${ABN[B.weather.team.ab]||'特性'}で${{sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'}[B.weather.k]}にしてから戦う前提）`:'';
   const meTxt=me?`${me.mvn}で${dgDmgTxt(me,'op')}（${dgKoTxt(me)}）`:'効く技がない';
@@ -479,8 +486,8 @@ function dgAnalyze(T){
   const sw=r=>r.res.filter(z=>z.swIn==='win'),swSurv=r=>r.res.filter(z=>z.swIn==='survive'||z.swIn==='sash'),swC=r=>r.res.filter(z=>z.swIn==='sashwin');
   const noSw=R.filter(r=>!sw(r).length),noSwC=noSw.filter(r=>swC(r).length);
   if(noSw.length)bad.push({area:'防御',opps:[...noSwC,...noSw.filter(r=>!swC(r).length)].map(qn),sev:sevOf(noSw.filter(r=>!swC(r).length))===3?3:Math.max(1,sevOf(noSw)-(noSwC.length===noSw.length?1:0)),t:`安定して後出しして勝てる匹がいない相手が${noSw.length}匹${noSwC.length?`（うち${noSwC.length}匹は条件つきなら後出しできる）`:''}`,
-    d:'交代で出たときに受ける1発目（相手のいちばん痛い技・乱数最大）を耐え、そのあとの撃ち合いでも先に倒せる匹がいません。1発目を耐えられる匹がいれば「受けてもう一度交代する」ことはできますが、その匹だけでは倒しきれません。きあいのタスキ・がんじょうで1だけ残ってから先に一撃で倒せる場合は「条件つき」として分けています（タスキは1回きりで、先制技・連続技・砂嵐・設置技で崩れるので安定とは数えません）。対面で先に場にいれば勝てる匹がいても、交代で出すと負けます。',
-    ev:list([...noSwC,...noSw.filter(r=>!swC(r).length)],r=>{const c=swC(r)[0];if(c)return `${qn(r)}：【条件つき】${nm(c.i)}は${c.swTxt}`;const s=swSurv(r).sort((a,b)=>a.op.max-b.op.max)[0]||r.res.filter(z=>z.op).sort((a,b)=>a.op.max-b.op.max)[0];return s?`${qn(r)}：${nm(s.i)}は${s.swTxt}`:qn(r)}),
+    d:'交代で出たときに受ける1発目（相手のいちばん痛い技・乱数最大）を耐え、そのあとの撃ち合いでも先に倒せる匹がいません。1発目を耐えられる匹がいれば「受けてもう一度交代する」ことはできますが、勝つには交代後に相手を倒し切る手段も必要です。きあいのタスキ・がんじょうで1だけ残ってから先に一撃で倒せる場合は「条件つき」として分けています（タスキは1回きりで、先制技・連続技・砂嵐・設置技で崩れるので安定とは数えません）。先に場にいる対面と、1発受けてから動く後出しでは結果が変わることがあります。',
+    ev:list([...noSwC,...noSw.filter(r=>!swC(r).length)],r=>{const c=swC(r)[0];if(c)return `${qn(r)}：【条件つき】${nm(c.i)}は${c.swTxt}`;const s=swSurv(r).sort((a,b)=>a.op.max-b.op.max)[0]||r.res.find(z=>z.swIn==='unproven')||r.res.filter(z=>z.op).sort((a,b)=>a.op.max-b.op.max)[0];return s?`${qn(r)}：${nm(s.i)}は${s.swTxt}`:qn(r)}),
     how:'相手のいちばん痛い技を半減以下にできるタイプ・特性の匹か、耐久に能力ポイントを回した匹を入れると、交代で受けられるようになります。'});
   const soleS={};R.forEach(r=>{const k=sw(r);if(k.length===1)(soleS[k[0].i]=soleS[k[0].i]||[]).push(r)});
   Object.entries(soleS).filter(([,rs])=>rs.length>=3).forEach(([i,rs])=>bad.push({area:'防御',sev:1,opps:rs.map(qn),t:`後出しできるのが${nm(+i)}だけの相手が${rs.length}匹`,

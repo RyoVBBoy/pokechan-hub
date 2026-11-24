@@ -104,7 +104,7 @@ function dguCard(x,bad,swHTML,chips){
    1匹の対面＝結論（〇〇（こちら）は 上から一撃（確定））＋表：技・ダメージ・一撃で倒せる確率・確定何発・相手の技・素早さ・行動順・後出し。
    数はすべて dgMatch の結果そのまま（me・op・sa・so・spd・swIn）。一撃で倒せる確率＝乱数16段階のうち倒せる数（dgMove の ohko）。
    もとの理由の文（why・swTxt）は「計算根拠を見る」に全部残す */
-const DGU_SW={win:'後出しして勝てる',sashwin:'条件つきで後出しできる（きあいのタスキ頼み）',sash:'後出しできない（タスキで1だけ残るだけ）',survive:'1発目は耐えるが、撃ち合いで負ける',no:'交代で受ける1発目で倒される'};
+const DGU_SW={win:'後出しして勝てる',sashwin:'条件つきで後出しできる（きあいのタスキ頼み）',sash:'後出しできない（タスキで1だけ残るだけ）',survive:'1発目は耐えるが、撃ち合いで負ける',unproven:'交代後の勝ちは判定保留',no:'交代で受ける1発目で倒される'};
 function dguKoPct(x){if(!x||!x.max)return '—';if(x.nMin===1)return '100%（確定）';if(x.nMax===1)return `${Math.round(x.ohko/16*100)}%`;return '0%（一撃では倒せない）'}
 function dguMatchHTML(z,oppName,meName){
   const order=z.spd===1?(z.tr?'こちらが先（トリックルーム中）':'こちらが先'):z.spd===0?'同速（どちらが先かは五分）':(z.tr?'相手が先（トリックルーム中）':'相手が先');

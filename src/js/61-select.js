@@ -173,7 +173,7 @@ function dgSelWhy(S,x,ref){
 }
 /* 1匹の対面を短く：「ガブリアス：上から一撃（確定）／じしん 107〜127%・素早さ 158 対 122」 */
 function dgZTxt(S,z,opts){if(!z)return '';const nm=S.nm(z.i);
-  return `${nm}：${z.t||DG_K[z.k].t||''}／${z.me?`${z.me.mvn} ${dgDmgTxt(z.me,'op')}`:'効く技なし'}・相手の${z.op?`${z.op.mvn} 最大${dgPct(z.op.fmax)}${z.op.half?`（こちらの${ABN[z.op.half]||'特性'}でHP満タンのとき。2発目から最大${dgPct(z.op.max)}）`:''}`:'効く技なし'}・素早さ ${z.sa} 対 ${z.so}${opts&&opts.sw?`・後出し：${{win:'勝てる',sashwin:'条件つき',sash:'タスキ頼みで不可',survive:'耐えるが撃ち合いで負ける',no:'1発目で倒される'}[z.swIn]}`:''}`}
+  return `${nm}：${z.t||DG_K[z.k].t||''}／${z.me?`${z.me.mvn} ${dgDmgTxt(z.me,'op')}`:'効く技なし'}・相手の${z.op?`${z.op.mvn} 最大${dgPct(z.op.fmax)}${z.op.half?`（こちらの${ABN[z.op.half]||'特性'}でHP満タンのとき。2発目から最大${dgPct(z.op.max)}）`:''}`:'効く技なし'}・素早さ ${z.sa} 対 ${z.so}${opts&&opts.sw?`・後出し：${{win:'勝てる',sashwin:'条件つき',sash:'タスキ頼みで不可',survive:'耐えるが撃ち合いで負ける',unproven:'交代後の勝ちは判定保留',no:'1発目で倒される'}[z.swIn]}`:''}`}
 /* 先発の比較：シングル＝3匹それぞれ、ダブル＝2匹の6通り。上位8匹（相手の先発になりやすい相手）との対面を根拠に出す。
    2026/11/10 UI改善 第4段階：1行ずつ「有利・やや有利・先に一撃で倒される・先に動ける」の数を札で、1番の理由は相手の名前の札、計算の文はたたむ */
 const selOpChips=(a,cls)=>a.length?`<span class="selu-ops">${a.map(n=>`<span class="dgc-op${cls?' '+cls:''}">${esc(n)}</span>`).join('')}</span>`:'<span class="selu-none">なし</span>';

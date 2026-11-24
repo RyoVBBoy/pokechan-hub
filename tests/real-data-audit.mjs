@@ -248,6 +248,23 @@ try{
       check(orders.map(x=>x.sort(dgSelOrder).map(o=>o.c[0]).join()).every(s=>s==='0,1,2'),'P09 close scores have a deterministic ranking for all six input orders');
 
       team=[member(6,'charizarditey'),...[445,149,143,700,279].map(no=>member(no))];
+      // One-hit immunity is useful only if the switch-in can also finish the matchup.
+      const switchMon=(no,side,id)=>mkMon(byNo[no],side,{...chooseSet(byNo[no],true),item:null,moves:[mvObj(id)]});
+      const normal=switchMon(143,'me',34),ghost=switchMon(94,'op',247);
+      const mutual=dgMatch(normal,ghost);
+      const crunch=dgMatch(switchMon(143,'me',242),ghost);
+      const unknown=dgMatch(switchMon(143,'me',242),{...ghost,uncalc:['計算対象外の攻撃技']});
+      const weak={...normal,moves:[{...mvObj(242),pow:1}]};
+      const slow=switchMon(94,'op',247);
+      slow.moves=[{...mvObj(94),pow:1}];
+      const capped=dgMatch(weak,slow);
+      check(!mutual.op&&!mutual.me&&mutual.swIn==='unproven'&&dguMatchHTML(mutual,ghost.p.n,normal.p.n).includes('交代後の勝ちは判定保留'),
+        'mutual immunity does not count as a switch-in win');
+      check(crunch.swIn==='win'&&crunch.me.mv.id===242&&crunch.swTxt.includes(crunch.me.mvn),
+        'one-sided immunity with a finishing move is still a switch-in win');
+      check(unknown.swIn==='unproven'&&capped.opW===9&&capped.myN===9&&capped.swIn==='unproven',
+        'unsupported attacks and both sides beyond the calculation limit leave the switch-in win unproven',
+        {unknown:unknown.swIn,opponentTurns:capped.opW,ownTurns:capped.myN});
       const view=selPlan(team),lineups=view.DS.list;
       const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
       const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);
@@ -265,6 +282,8 @@ try{
       const strategyMid=strategy.querySelector('.stg-flow li:nth-child(2) p')?.textContent;
       const planMid=plan.querySelector('.pc-story li:nth-child(2)')?.textContent;
       check(strategyMid===flow.steps[1][1]&&planMid.endsWith(strategyMid)&&view.lead.every(i=>strategy.querySelector('.stg-sel').textContent.includes(byNo[team[i].no].n)),'P11 strategy and detailed selection show the same evidence and leads');
+      check(flow.switches.slice(0,3).every(x=>x.matchups.every(z=>strategyMid.includes(z.me.mvn))),
+        'battle plan gives the move that corroborates each displayed switch-in win');
       const selectionMega=view.DS.best.megaI>=0?view.DS.megaNm(view.DS.best.megaI):'メガシンカなし';
       check(strategy.querySelector('.stg-flow li:first-child').textContent.includes(selectionMega)
         &&plan.querySelector('.pc-story li:first-child').textContent.includes(selectionMega),'P11 both battle plans label the Mega assumption of the actual selection');

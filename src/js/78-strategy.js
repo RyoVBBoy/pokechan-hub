@@ -57,8 +57,8 @@ function stSelectionFlow(P0,entries){
   const adv=B.rows.filter(row=>row.zs.some(z=>lead.includes(z.i)&&z.r>=4)).slice(0,3).map(row=>row.r.q.n);
   const watch=B.rows.filter(row=>!row.zs.some(z=>lead.includes(z.i)&&z.r>=4));
   const switches=watch.flatMap(row=>{
-    const choices=row.zs.filter(z=>back.includes(z.i)&&z.swIn==='win');
-    return choices.length?[{opponent:row.r.q,choices:choices.map(z=>z.i)}]:[];
+    const matchups=row.zs.filter(z=>back.includes(z.i)&&z.swIn==='win');
+    return matchups.length?[{opponent:row.r.q,choices:matchups.map(z=>z.i),matchups}]:[];
   });
   const risky=watch.filter(row=>!row.zs.some(z=>back.includes(z.i)&&z.swIn==='win')).slice(0,2).map(row=>row.r.q.n);
   const head=`先発候補は${lead.map(pn).join('・')}。${adv.length?`対面で有利な相手の例は${adv.join('・')}。`:'先発で有利と判定できた相手は見つかりませんでした。'}`;
@@ -66,7 +66,7 @@ function stSelectionFlow(P0,entries){
     :P0.DS.H.length?'この選出はメガシンカなしで評価しています。':'';
   const setup=B.trUse?`${B.tr.setters.filter(s=>B.c.includes(s.i)).map(s=>pn(s.i)).join('・')}でトリックルームを張れた場合は、場が有効な間に攻めます。`
     :B.weather?`${B.weather.by}が${ARCH_BADGE[B.weather.k][0]}を作れた場合は、天候が有効な間に攻めます。`:'';
-  const mid=switches.slice(0,3).map(x=>`${x.opponent.n}には${x.choices.map(pn).join('・')}が後出しして勝てる判定。`).join('')+
+  const mid=switches.slice(0,3).map(x=>`${x.opponent.n}には${x.matchups.map(z=>pn(z.i)+'の'+z.me.mvn).join('／')}が後出しから倒し切る候補。`).join('')+
     (switches.length?'計算と同じHP・場の条件が前提です。':watch.length?'先発が有利を取れない相手への、後出しで勝てる控えは見つかりませんでした。':'比較した相手には、先発候補のいずれかが対面で有利です。')+
     (risky.length?`${risky.join('・')}は後出しで勝てる控えがいないため、選出や先発を見直す候補です。`:'');
   const reason=P0.finWhy&&{prio:'先制技',scarf:'持ち物',setup:'積み技'}[P0.finWhy[0]];
