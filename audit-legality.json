@@ -15513,22 +15513,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 23.699999999953434
+      "ms": 14.200000000186265
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 2.3999999999068677
+      "ms": 1.5
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 27.199999999953434
+      "ms": 15.599999999627471
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 577.3999999999069
+      "ms": 323.09999999962747
     },
     {
       "fmt": "single",
@@ -15641,7 +15641,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 1275.5
+      "ms": 820.7999999998137
     },
     {
       "fmt": "single",
@@ -18885,22 +18885,22 @@
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 18.100000000093132
+      "ms": 19.100000000558794
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 1.8999999999068677
+      "ms": 2
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 24
+      "ms": 23.200000000186265
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 491.30000000004657
+      "ms": 639.5
     },
     {
       "fmt": "double",
@@ -19013,7 +19013,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 1387.5
+      "ms": 1152.1000000005588
     },
     {
       "fmt": "double",

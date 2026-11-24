@@ -5349,22 +5349,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 142.5
+      "ms": 152.6000000005588
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 7.399999999994179
+      "ms": 6.699999999254942
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 97.89999999999418
+      "ms": 91
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 4427.599999999977
+      "ms": 4999.0999999996275
     },
     {
       "fmt": "single",
@@ -5477,7 +5477,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 4901.399999999994
+      "ms": 4468.100000000559
     },
     {
       "fmt": "single",
@@ -5860,22 +5860,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 74.60000000000582
+      "ms": 52.60000000055879
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 1.2999999999883585
+      "ms": 1.8999999994412065
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 72.60000000000582
+      "ms": 60.10000000055879
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 1200.6999999999825
+      "ms": 1250.5
     },
     {
       "fmt": "single",
@@ -5988,7 +5988,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 4210.5
+      "ms": 3675.4000000003725
     },
     {
       "fmt": "single",
@@ -6371,22 +6371,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 49.70000000001164
+      "ms": 78.3999999994412
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 3.3999999999941792
+      "ms": 2.1000000005587935
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 58.5
+      "ms": 54.200000000186265
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 1299.5
+      "ms": 1379.2000000001863
     },
     {
       "fmt": "single",
@@ -6499,7 +6499,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 4132.5
+      "ms": 3966.7000000001863
     },
     {
       "fmt": "single",
@@ -6888,22 +6888,22 @@
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 184
+      "ms": 199.59999999962747
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 9.200000000011642
+      "ms": 8
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 118.89999999999418
+      "ms": 121.40000000037253
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 4475
+      "ms": 5531.4000000003725
     },
     {
       "fmt": "double",
@@ -7016,7 +7016,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 6211.100000000006
+      "ms": 5374.199999999255
     },
     {
       "fmt": "double",
@@ -7345,22 +7345,22 @@
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 71.60000000000582
+      "ms": 75
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 2.8999999999941792
+      "ms": 2.2000000001862645
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 73.10000000000582
+      "ms": 75.20000000018626
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 1486
+      "ms": 1496.6000000005588
     },
     {
       "fmt": "double",
@@ -7473,7 +7473,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 5942.600000000006
+      "ms": 5549.0999999996275
     },
     {
       "fmt": "double",
@@ -7802,22 +7802,22 @@
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 87.70000000001164
+      "ms": 66.40000000037253
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 3.1000000000058208
+      "ms": 1.7999999998137355
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 91
+      "ms": 70.1000000005588
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 1364.5
+      "ms": 1437.6000000005588
     },
     {
       "fmt": "double",
@@ -7930,7 +7930,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 5724.600000000006
+      "ms": 5355.200000000186
     },
     {
       "fmt": "double",
