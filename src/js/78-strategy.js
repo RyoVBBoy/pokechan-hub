@@ -187,7 +187,7 @@ function stTpEv(id,entries){
   const t=ST_TYPE[id],reg=[],can=[],regN=[],canN=[];if(!t||(!t.mv&&!t.ab))return null;
   const abOf=set=>set&&set.ab?(set.ab.k||(typeof set.ab==='string'?set.ab:null)):null;
   entries.forEach(x=>{const p=byNo[x.no];if(!p)return;const nm=formInfo(p).base,set=x.set||{},r=[],c=[];
-    const mv=(set.mv||[]).filter(m=>m&&m.id).map(m=>m.id),ls=(LSD[p.no]||LSD[p.base]||[0,[]])[1];
+    const mv=(set.mv||[]).filter(m=>m&&m.id).map(m=>m.id),ls=lsOf(p);
     /* 技を4つ登録していれば、その中にない技は「使わない」とわかる（覚えられても未確認にしない）。特性も登録していれば同じ */
     const mvFull=mv.length>=4,abSet=!!abOf(set);
     (t.mv||[]).forEach(k=>{const id2=ST_MVID(k);if(!id2)return;if(mv.includes(id2))r.push(mName(id2));else if(!mvFull&&ls.includes(id2))c.push(mName(id2))});

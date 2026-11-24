@@ -6,6 +6,11 @@ const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j
 /* 当たる回数：データ（MV）で1回になっていた連続技を直す（2026/11/13 ダメージ計算の点検）。860 ネズミざん＝1〜10回（1回ごとに命中判定）、888 ツインビーム＝2回 */
 const mvObj=id=>{const a=MV[id],e=(typeof MVE!=='undefined'&&MVE[id])||{},hh={860:[1,10],888:[2,2]}[id];let drain=a[9];if(e.dr)drain=e.dr;if(e.rc)drain=-e.rc;return{id,n:a[0],t:a[1],pow:a[2],acc:a[3],cls:a[4],pri:a[5],tg:a[6],minH:hh?hh[0]:a[7],maxH:hh?hh[1]:a[8],drain,e}};
 const PROT={id:0,n:'まもる',t:null,prot:true,pri:4,pow:0,acc:0,cls:2,tg:0,minH:1,maxH:1,drain:0};
+/* 2026/11/24：まもる（182）とみきり（197）は計算では同じ「守る」働きだが、別の技として残す（名前・タイプ・PP・採用率・保存）。
+   計算用の技は PROT の働き＋もとの技の番号 sid。保存の形に戻すときは sid を使う（前はみきりを「まもる」182 に書きかえていた） */
+const PROT_IDS=new Set([182,197]);
+const protMv=id=>{const sid=PROT_IDS.has(+id)?+id:182;return{...PROT,sid,n:(typeof MD!=='undefined'&&MD[sid]&&MD[sid][0])||PROT.n}};
+const protSaved=m=>{const id=(m&&m.sid)||182;return{n:(typeof MD!=='undefined'&&MD[id]&&MD[id][0])||'まもる',id}};
 /* eelevate（うなぎのぼり・メガシビルドン）は当サイトの特性の説明（ABDS）に合わせてじめん無効。ゲームでの確認はまだ（2026/11/13） */
 const ABSORB={'levitate':['じめん',0],'eelevate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
 const PINCH={blaze:'ほのお',torrent:'みず',overgrow:'くさ',swarm:'むし'};
@@ -301,7 +306,7 @@ function mkMon(p,side,set){
   /* 戦闘中に変わる姿（2026/11/04 データの見直し）：イルカマンは一度交代するとマイティフォルムになるので、その能力で計算。
      ギルガルドは攻撃するときだけブレードフォルム（攻撃・特攻140／防御・特防50）になるので、攻撃側の能力を別に持つ（受けるときはシールドフォルム） */
   const bf=BATTLE_FORM[set.ab];if(bf&&bf.no===p.no){const q={...p,s:bf.s};if(bf.always)st=stOf(q);else stAtk=stOf(q)}
-  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise',formErr};
+  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,uncalc:set.uncalc||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise',formErr};
 }
 let B={phase:'menu'};
 const alive=S=>S.act.filter(i=>i!=null).map(i=>S.mons[i]).filter(m=>!m.fainted);

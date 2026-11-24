@@ -71,7 +71,7 @@ function tbValidate(mem){
       if(s.ab&&s.ab.k&&!abs.includes(s.ab.k)&&!(mg&&mg.ab===s.ab.k)){const was=ABN[s.ab.k]||s.ab.k,nk=abs[0]||null;
         notes.push(`${p.n}：持てない特性（${was}${MEGA_AB_OF(x.no,s.ab.k)?'＝メガシンカ後の特性。メガストーンを持たないので使えない':''}）を${nk?`${ABN[nk]||nk}に直しました`:'外しました'}`);s.ab=nk?{k:nk,n:ABN[nk]||nk}:null}
       if(!((s.up===-1&&s.dn===-1)||(s.up==null&&s.dn==null)||(Number.isInteger(s.up)&&Number.isInteger(s.dn)&&s.up>=1&&s.up<=5&&s.dn>=1&&s.dn<=5))){notes.push(`${p.n}：能力補正の形がおかしいので、補正なしにしました`);s.up=-1;s.dn=-1}
-      const ls=(LSD[x.no]||[0,[]])[1],bad=(s.mv||[]).filter(m=>!(m.id===182||ls.includes(m.id)));
+      const ls=lsOf(x.no),bad=(s.mv||[]).filter(m=>!ls.includes(m.id));
       if(bad.length){notes.push(`${p.n}：覚えない技（${bad.map(m=>m.n||mName(m.id)).join('・')}）を外しました`);s.mv=s.mv.filter(m=>!bad.includes(m))}
       if(s.mv){const seen=new Set(),dup=s.mv.filter(m=>m&&(seen.has(m.id)||!seen.add(m.id)));if(dup.length){notes.push(`${p.n}：同じ技を2回入れていたので1つにしました`);s.mv=s.mv.filter((m,k)=>s.mv.findIndex(z=>z&&z.id===m.id)===k)}if(s.mv.length>4){notes.push(`${p.n}：技が5つ以上あったので4つにしました`);s.mv=s.mv.slice(0,4)}}
       if(Array.isArray(s.sp)&&(s.sp.some(v=>v>SP_CAP||v<0)||s.sp.reduce((a,b)=>a+b,0)>SP_TOTAL)){notes.push(`${p.n}：能力ポイントが決まり（合計${SP_TOTAL}・1つ${SP_CAP}まで）を超えるので外しました`);s.sp=null}}

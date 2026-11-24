@@ -21,6 +21,8 @@ const DG_SIMONLY=new Set(['intimidate','speed-boost','moxie','stamina','justifie
 const dgCalcUnsupported=m=>{if(!m)return[];const out=[];
   if(m.ab&&((typeof CALC_UNIMPL!=='undefined'&&CALC_UNIMPL.includes(m.ab))||(typeof CALC_UNVERIFIED!=='undefined'&&CALC_UNVERIFIED[m.ab])||DG_SIMONLY.has(m.ab)))out.push(`特性「${ABN[m.ab]||m.ab}」`);
   if(m.item&&typeof CALC_UNIMPL_IT!=='undefined'&&CALC_UNIMPL_IT.includes(m.item))out.push(`持ち物「${(typeof ITEMN!=='undefined'&&ITEMN[m.item])||m.item}」`);
+  /* 2026/11/24：登録した攻撃技のうち計算に入らない技（カウンター等）。その技のダメージは数えていない */
+  if(m.uncalc&&m.uncalc.length)out.push(`技「${m.uncalc.join('・')}」（計算に入っていない攻撃技。この技のダメージは数えていません）`);
   return out};
 /* トリックルームの計算をしているあいだだけ true（dgTeam0 が切りかえる） */
 let DG_TR=false;
@@ -360,7 +362,7 @@ function dgTeam2(n,ms,CS,mi,H,mode){
   /* 2026/11/24：張れる匹（setters）は、計算に使う育成の技に実際にトリックルームが入っている匹だけ。覚えられるだけの匹は「張れる候補」（cand）として別に持ち、
      トリックルームが張られたことにはしない（tr.on にしない・遅さの弱点を消さない）。cand は「トリックルーム向きの形か」（suit）の判定と、技に入れる提案だけに使う */
   const all=ms.map((o,i)=>{const mv=o.x.set&&o.x.set.mv&&o.x.set.mv.length?o.x.set.mv:null;
-    const reg=!!mv&&mv.some(m=>m&&m.id===TRID),can=(LSD[o.p.no]||LSD[o.p.base]||[0,[]])[1].includes(TRID);
+    const reg=!!mv&&mv.some(m=>m&&m.id===TRID),can=lsOf(o.p).includes(TRID);
     return reg||can?{i,reg,mv:!!mv}:null}).filter(Boolean);
   const setters=all.filter(s=>s.reg),cand=all.filter(s=>!s.reg);
   const slow=M.map((a,i)=>i).filter(i=>rows.length&&rows.filter(r=>{const z=r.res.find(x=>x.i===i);return z&&z.sa<z.so}).length>=rows.length*.7);
@@ -534,7 +536,7 @@ function dgSwapSet(c,rest){
   if(s&&s.item&&used.has(s.item)){s=null}
   if(!s){try{s=archSet(['axis'],c,null,new Set(used));src='型の例'}catch(e){s=null}}
   if(!s)return null;
-  const mv=(s.moves||[]).map(m=>typeof m==='number'?{id:m,n:mName(m)}:m&&m.prot?{id:182,n:'まもる'}:m&&m.id>0?{id:m.id,n:mName(m.id)}:null).filter(Boolean);
+  const mv=(s.moves||[]).map(m=>typeof m==='number'?{id:m,n:mName(m)}:m&&m.prot?protSaved(m):m&&m.id>0?{id:m.id,n:mName(m.id)}:null).filter(Boolean);
   const sv={ab:s.ab?{k:s.ab,n:ABN[s.ab]||s.ab}:null,it:s.item?{k:s.item,n:ITEMN[s.item]||s.item}:null,mv,sp:s.sp?[...s.sp]:[2,32,0,0,0,32],up:s.up??1,dn:s.dn??3,src:'copy'};
   return{sv,src,txt:`${src}：特性 ${sv.ab?sv.ab.n:'―'}／持ち物 ${sv.it?sv.it.n:'なし'}／性格 ${natName(sv.up,sv.dn)||'補正なし'}／能力ポイント ${SN.map((n,i)=>sv.sp[i]?`${n}${sv.sp[i]}`:'').filter(Boolean).join('・')}／技 ${mv.map(m=>m.n).join('・')}`};
 }

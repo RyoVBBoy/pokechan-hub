@@ -36,7 +36,7 @@ try{
     if(s.ab?.k&&!abs.includes(s.ab.k))bad.push('ability '+s.ab.k);
     if(!s.ab?.k)unknown.push('ability unspecified');
     const ids=(s.mv||[]).map(x=>x?.id),ls=(LSD[no]||[0,[]])[1];
-    if(ids.length>4||new Set(ids).size!==ids.length||ids.some(i=>!MD[i]||!(ls.includes(i)||i===182)))bad.push('moves '+ids.join(','));
+    if(ids.length>4||new Set(ids).size!==ids.length||ids.some(i=>!MD[i]||!ls.includes(i)))bad.push('moves '+ids.join(','));
     if(!ids.length)unknown.push('moves unspecified');
     if(s.sp!=null&&(!Array.isArray(s.sp)||s.sp.length!==6||s.sp.some(v=>!Number.isInteger(v)||v<0||v>32)||s.sp.reduce((a,b)=>a+b,0)>66))bad.push('stat points');
     if(s.sp==null)unknown.push('stat points unspecified');

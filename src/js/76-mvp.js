@@ -89,8 +89,8 @@ function mvpSet(fmt,no,opt){
   if(!itR)return{st:'item_conflict',no,why:`持ち物（${ITEMN[first[0]]||first[0]}）がパーティのほかのポケモンと重なり、集計にほかの持ち物も無い`};
   if(itR!==first&&itR[0]!==first[0])notes.push(`持ち物：いちばん多い${ITEMN[first[0]]||first[0]}（${first[1]}%）はパーティのほかのポケモンと重なるので、同じ集計の${ITEMN[itR[0]]||'持ち物なし'}（${itR[1]}%）`);
   /* 技：覚える技だけ、割合の高い順に4つ。攻撃技が1つも無ければ組めない */
-  const ls=(LSD[no]||[0,[]])[1];const mv=[];
-  for(const [k] of r.mv){if(mv.length>=4)break;const id=MVKA[nrm(k)];if(!id||!(ls.includes(id)||id===182))continue;mv.push({id,n:mName(id)})}
+  const ls=lsOf(no);const mv=[];
+  for(const [k] of r.mv){if(mv.length>=4)break;const id=MVKA[nrm(k)];if(!id||!ls.includes(id))continue;mv.push({id,n:mName(id)})}
   if(!mv.some(m=>MV[m.id]&&MV[m.id][2]>0))return{st:'insufficient',no,why:'覚える攻撃技が集計に無い'};
   /* 1対1の計算で正しく扱えない技（自分の能力が下がる・ためる・反動で動けない等、62-improve.js の IMP_NOMV）を含む型は、候補として比べない（型は変えない）。
      パーティのポケモン・相手の型（opt.anyMv）はそのまま使う */

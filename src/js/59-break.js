@@ -83,7 +83,7 @@ function breakSteps(p,c){
   /* ④技 */
   const mv=[],atk=(s.moves||[]).filter(m=>m&&m.pow>0);
   const boost=[...new Set([...(s.boost?[s.boost].flat():[]),...(M.boost?[M.boost].flat():[])].map(b=>typeof b==='string'?b:b&&(b.n||b.k)).filter(Boolean))];
-  const ls=(LSD[p.base||p.no]||LSD[p.no]||[0,[]])[1]||[];
+  const ls=lsOf(p);
   const boostN=boost.length?boost.map(b=>{const id=Object.keys(MD).find(i=>MD[i][3]===b);return id?mName(+id):b}):ls.filter(id=>MD[id]&&DU_BOOST[MD[id][3]]).map(id=>mName(id)).slice(0,2);
   if(boostN.length)mv.push(`${boost.length?'積み技':'覚える積み技'}${brNames(boostN)}で能力を上げて${boost.length?'くる':'くることがある'}。積まれる前に倒すか、ちょうはつ・あくび・ほえる・ドラゴンテール・くろいきりで止める。`);
   const heal=ls.filter(id=>MD[id]&&MD[id][3]!=='rest'&&brRole(id,'heal')).map(id=>mName(id)).slice(0,2);

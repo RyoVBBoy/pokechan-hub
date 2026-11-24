@@ -27,7 +27,7 @@ function setToSaved(p,c){
   let sp=c.sp,up=c.up??-1,dn=c.dn??-1;
   if(!sp){const phys=p.s[1]>=p.s[3],ai=phys?1:3;sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;up=ai;dn=phys?3:1}
   return{ab:c.ab?{n:ABN[c.ab]||c.ab,k:c.ab}:null,it:c.item?{n:ITEMN[c.item]||c.item,k:c.item}:null,
-    mv:(c.moves||[]).slice(0,4).map(m=>m.prot?{n:'まもる',id:182}:m.id>0?{n:m.n,id:m.id}:null).filter(Boolean),sp:[...sp],up,dn};
+    mv:(c.moves||[]).slice(0,4).map(m=>m.prot?protSaved(m):m.id>0?{n:m.n,id:m.id}:null).filter(Boolean),sp:[...sp],up,dn};
 }
 let ED=null;
 /* 自動保存の表示（2026/11/12）：保存中… → 自動保存済み ✓／保存できませんでした。
@@ -63,7 +63,7 @@ function editView(a){
   while(base.mv.length<4)base.mv.push(null);
   ED={idx,no:p.no,s:base,dirty:false};
   if(EDS.idx!==idx||EDS.no!==p.no){clearTimeout(EDS.t);EDS.st='';EDS.idx=idx;EDS.no=p.no}
-  const ls=LSD[p.no],abl=ABD[p.no]||[];
+  const ls=lsOf(p).length?[0,lsOf(p)]:null,abl=ABD[p.no]||[];
   const mvIds=ls?ls[1].filter(id=>MV[id]):[];
   /* ランクバトルの採用率（2026/11/09 依頼主：持ち物の採用率もきちんと反映）。読めていれば持ち物・技の横に％を出し、持ち物は使われている順に上へ */
   const LD=LIVE.csv[p.no]||null,itPct={},mvPct={};
@@ -72,8 +72,9 @@ function editView(a){
   const byT={};mvIds.forEach(id=>{const t=MV[id][1];(byT[t]=byT[t]||[]).push(id)});
   const mvOpts=(cur)=>{
     let h=`<option value="">（なし）</option>`;
-    if(!ls||ls[0])h+=`<option value="182"${cur&&(cur.id===182||cur.id===197)?' selected':''}>まもる${pctT(mvPct[182])}</option>`;
-    if(cur&&cur.id!==182&&cur.id!==197&&!mvIds.includes(cur.id)&&!(ls&&ls[1].includes(cur.id)))h+=`<option value="x" selected>${cur.n}（計算には使いません）</option>`;
+    /* まもる・みきりは別々の技として、覚えるものだけ出す（2026/11/24。前はみきりを出さず、みきりの型を「まもる」と表示していた） */
+    [182,197].forEach(id=>{if(ls?ls[1].includes(id):id===182)h+=`<option value="${id}"${cur&&cur.id===id?' selected':''}>${mName(id)}　${MVU[id]?MVU[id][0]+'・':''}変化${pctT(mvPct[id])}</option>`});
+    if(cur&&!(ls&&ls[1].includes(cur.id))&&!(!ls&&(mvIds.includes(cur.id)||cur.id===182)))h+=`<option value="x" selected>${esc(cur.n||mName(cur.id)||'')}（このポケモンは覚えません）</option>`;
     const ord=[...p.t,...T.filter(t=>!p.t.includes(t))];
     ord.forEach(t=>{if(!byT[t])return;h+=`<optgroup label="${t}">`+byT[t].sort((a,b)=>MV[b][2]-MV[a][2]).map(id=>{const m=MV[id];
       return `<option value="${id}"${cur&&cur.id===id?' selected':''}>${m[0]}　${['物理','特殊','変化'][m[4]]||''}${m[2]?' 威力'+m[2]:''}${pctT(mvPct[id])}</option>`}).join('')+'</optgroup>'});
@@ -139,7 +140,7 @@ function editView(a){
   document.getElementById('ed-it').onchange=e=>{const k=e.target.value;if(k==='x')return;ED.s.it=k?{n:ITEMN[k],k}:null;touch()};
   document.querySelectorAll('[data-mv]').forEach(el=>el.onchange=e=>{const k=+el.dataset.mv,v=e.target.value;if(v==='x')return;
     const id=+v;if(id&&ED.s.mv.some((m,j)=>j!==k&&m&&m.id===id)){toast('同じ技はえらべません');el.value=ED.s.mv[k]?String(ED.s.mv[k].id):'';return}
-    ED.s.mv[k]=!v?null:id===182?{n:'まもる',id:182}:{n:mName(id),id};touch()});
+    ED.s.mv[k]=!v?null:{n:mName(id),id};touch()});
   document.getElementById('ed-solve').onclick=()=>{const vals=SN.map((_,i)=>+document.getElementById('ed-r'+i).value);
     if(vals.some(v=>!(v>0))){toast('6つの数値をすべて入れてください');return}
     const r=solveStats(p,vals,null);if(!r){toast('この実数値になる配分が見つかりませんでした。数値を確かめてください');return}

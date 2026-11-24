@@ -143,7 +143,7 @@ function imGuess(sl){
   const mvs=(sl.mv||[]).filter(m=>m&&m.id),it=sl.it&&sl.it.k,abT=sl.abRaw&&kkey(sl.abRaw)?sl.abRaw:null,nmT=kkey(sl.nameRaw)?sl.nameRaw:null;
   const sc=P.map(p=>{let s=0;const why=[];
     const st=imCanSolve(p,sl);if(st===true){s+=6;why.push('実数値')}else if(st===false)s-=6;
-    const ls=LSD[p.no];if(ls&&mvs.length){let ok=0;mvs.forEach(m=>{if(m.id===182||m.id===197||ls[1].includes(m.id)){s+=1.5;ok++}else s-=2});if(ok)why.push(`技${ok}つ`)}
+    const ls=lsOf(p);if(ls.length&&mvs.length){let ok=0;mvs.forEach(m=>{if(ls.includes(m.id)){s+=1.5;ok++}else s-=2});if(ok)why.push(`技${ok}つ`)}
     if(abT&&ABD[p.no]){const own=ABD[p.no].map(([k])=>[Object.keys(ABJ).find(n=>ABJ[n]===k)||ABN[k],k]).filter(x=>x[0]);const a=own.length?mvOwn(abT,own):null;
       if(a&&a.sc>=.6){s+=2.5*a.sc;why.push('特性')}else s-=1}
     if(it&&isStone(it)){if(itemFor(p.no,it)){s+=4;why.push('メガストーン')}else s-=4}
@@ -168,13 +168,14 @@ function imResolve(sl){
   const p=sl.no?ensureMon(sl.no):null;
   /* 技は、ポケモンが決まったら「そのポケモンが覚える技」の中から選び直す（2026/11/03 依頼主の指摘：どくどく が「とこぐとこぐぐく」と読まれて当たらなかった。
      ゲームの文字の濁点が別の文字に読まれやすいので、覚える技の中では「読めた文字の中に技名の文字が順番どおりに入っているか」でも比べる） */
-  if(p&&sl.mvRaw&&sl.mv&&LSD[p.no]){const own=mvC().filter(([,id])=>id===182||id===197||LSD[p.no][1].includes(id));
+  if(p&&sl.mvRaw&&sl.mv&&lsOf(p).length){const own=mvC().filter(([,id])=>canLearn(p,id));
     sl.mvRaw.forEach((t,i)=>{const cur=sl.mv[i];if(!own.length||(cur&&cur.id&&cur.c>=.75&&own.some(x=>x[1]===cur.id)))return;
       const a=mvOwn(t,own);if(a&&a.sc>=.5&&(!cur||!cur.id||a.sc>cur.c||!own.some(x=>x[1]===cur.id)))sl.mv[i]={n:a.name,id:a.val,c:Math.min(.9,a.sc)}})}
   /* 覚えない技・読めなかった技は出さない（2026/11/05 依頼主：ない技が出るのはまずい）。
      ポケモンが決まっていれば、そのポケモンが覚える技のいちばん近いもの（低い確かさ）か、空欄（「読めませんでした」）にする。同じ技は2回選ばない */
-  if(sl.mv){const own=p&&LSD[p.no]?mvC().filter(([,id])=>id===182||id===197||LSD[p.no][1].includes(id)):null,used=new Set();
-    sl.mv=sl.mv.map((m,i)=>{if(m&&m.hand)return m;
+  if(sl.mv){const own=p&&lsOf(p).length?mvC().filter(([,id])=>canLearn(p,id)):null,used=new Set();
+    sl.mv=sl.mv.map((m,i)=>{/* 手で選んだ技も、覚えない技なら空欄に戻す（ほかの技に読みかえない。2026/11/24） */
+      if(m&&m.hand){if(!own||!m.id||own.some(x=>x[1]===m.id)){if(m.id)used.add(m.id);return m}return{n:'',id:null,c:0,bad:m.n||mName(m.id)}}
       const ok=m&&m.id&&(!own||own.some(x=>x[1]===m.id))&&!used.has(m.id);
       if(ok){used.add(m.id);return m}
       if(own&&sl.mvRaw&&kkey(sl.mvRaw[i]).length>=2){const a=mvOwn(sl.mvRaw[i],own.filter(x=>!used.has(x[1])));if(a&&a.sc>=.3){used.add(a.val);return{n:a.name,id:a.val,c:Math.min(.6,a.sc)}}}
@@ -195,7 +196,7 @@ function imResolve(sl){
 function imCard(sl,i){
   const p=sl.no?byNo[sl.no]:null,w=c=>c<.75?' warn':'';
   const st=sl.vals?(sl.solve?(sl.fixed!=null?`<span class="imng">1か所を計算で補正</span>`:`<span class="imok">種族値と一致</span>`):`<span class="imng">数値が合いません</span>`):'<span class="imng">ステータス画面なし</span>';
-  const sup=m=>m&&m.id?(m.id===182||m.id===197||MV[m.id]||MVX[m.id]?'':'<em>ダメージ計算では使いません</em>'):'';
+  const sup=m=>m&&m.id?(PROT_IDS.has(m.id)||MV[m.id]||MVX[m.id]?'':'<em>ダメージ計算では使いません</em>'):'';
   return `<div class="imc" data-i="${i}">
    <div class="imh"><span class="av">${p?stamp(p):''}</span><div style="flex:1;min-width:0"><input class="imi${p?w(sl.nameConf):' bad'}" data-f="name" list="dl-mon" value="${p?p.n:sl.nameRaw.replace(/\s/g,'')}" aria-label="ポケモン名">
    <div class="chips">${p?p.t.map(chip).join(''):''}${p&&p.ext?'<span class="rt">図鑑に未収録（取り込みのみ対応）</span>':''}</div></div>${st}</div>
@@ -288,11 +289,16 @@ function teamSet(no){
 function savedToCalc(no,s){
   const p=byNo[no];if(!p||!s)return null;
   const base=chooseSet(p,true);let moves=[];
-  (s.mv||[]).forEach(m=>{if(!m||!m.id)return;if(m.id===182||m.id===197){if(!moves.some(x=>x.prot))moves.push(PROT)}else if(MV[m.id])moves.push(mvObj(m.id))});
-  if(!moves.some(x=>!x.prot))moves=base.moves;
+  (s.mv||[]).forEach(m=>{if(!m||!m.id)return;if(PROT_IDS.has(m.id)){if(!moves.some(x=>x.prot&&x.sid===m.id))moves.push(protMv(m.id))}else if(MV[m.id])moves.push(mvObj(m.id))});
+  /* 2026/11/24：技を1つも登録していない型だけ、当サイトの提案の技で計算する（推定）。技を登録しているのに計算できる攻撃技が無い型は、
+     ほかの技に置きかえない（前は置きかえていた）。計算に入らない攻撃技（カウンター等）は uncalc に名前を残し、診断の前提に出す */
+  const reg=(s.mv||[]).filter(m=>m&&m.id);
+  const uncalc=reg.filter(m=>!PROT_IDS.has(m.id)&&!MV[m.id]&&!(MVU[m.id]&&MVU[m.id][1]===2)).map(m=>mName(m.id)||m.n).filter(Boolean);
+  const estMv=!reg.length;if(estMv)moves=base.moves;
   const ab=s.ab&&s.ab.k?s.ab.k:base.ab,item=s.it&&s.it.k&&ITEMN[s.it.k]?s.it.k:null;
   const boost=typeof DU_BOOST!=='undefined'?((s.mv||[]).map(m=>m&&MD[m.id]&&MD[m.id][3]).find(k=>k&&DU_BOOST[k])||null):null;
-  return s.sp?{ab,item,moves,sp:s.sp,up:s.up,dn:s.dn,imported:true,boost}:{ab,item,moves,imported:true,boost};
+  const o={ab,item,moves,imported:true,boost,estMv,uncalc:uncalc.length?uncalc:null};
+  return s.sp?{...o,sp:s.sp,up:s.up,dn:s.dn}:o;
 }
 const mySetFor=n=>teamSet(n)||detSet(byNo[n]);
 

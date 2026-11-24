@@ -13,7 +13,7 @@ const IMP_KEEP=new Set(['fakeout','uturn','voltswitch','flipturn','rapidspin','m
 /* 計算用の型 → 保存の形（技は番号、まもるは182） */
 function impSaved(no,s){
   const p=byNo[no],phys=p.s[1]>=p.s[3];
-  const mv=(s.moves||[]).map(m=>typeof m==='number'?{id:m,n:mName(m)}:m&&m.prot?{id:182,n:'まもる'}:m&&m.id>0?{id:m.id,n:mName(m.id)}:null).filter(Boolean);
+  const mv=(s.moves||[]).map(m=>typeof m==='number'?{id:m,n:mName(m)}:m&&m.prot?protSaved(m):m&&m.id>0?{id:m.id,n:mName(m.id)}:null).filter(Boolean);
   return{ab:s.ab?{k:s.ab,n:ABN[s.ab]||s.ab}:null,it:s.item?{k:s.item,n:ITEMN[s.item]||s.item}:null,mv,sp:s.sp?[...s.sp]:(phys?[2,32,0,0,0,32]:[2,0,0,32,0,32]),up:s.up??(phys?1:3),dn:s.dn??(phys?3:1)};
 }
 /* いまの育成（未登録の部分は計算に使っている型で埋める）。登録した変化技（つるぎのまい等）はそのまま残す */
@@ -120,7 +120,7 @@ function dgImprove0(entries){
       const stK=base.it&&isStone(base.it.k)?base.it.k:null,use=impUsePct(x.no,stK);
       const slot=atkIdx.filter(o=>!((use[o.m.id]||0)>=IMP_USED)).sort((a,b)=>(bestUse[a.m.id]||0)-(bestUse[b.m.id]||0))[0];
       if(slot){
-      const have=new Set(base.mv.map(m=>m.id)),ls=((LSD[p.no]||LSD[p.base]||[0,[]])[1]||[]);
+      const have=new Set(base.mv.map(m=>m.id)),ls=(lsOf(p)||[]);
       const oppT=problem.map(r=>r.q.t||byNo[r.q.no].t);
       const cands=ls.filter(id=>!have.has(id)&&MV[id]&&!IMP_NOMV.has(MD[id]&&MD[id][3])).map(id=>{const m=mvObj(id);if(!(m.pow>0))return null;
         const stab=p.t.includes(m.t)?1.5:1,cl=m.cls===(main===1?0:1)?1:.45,se=oppT.filter(t=>mult(m.t,t)>=2).length;
@@ -149,7 +149,7 @@ function dgImprove0(entries){
         if(stone)s.item=base.it.k;else if(s.item&&(u.has(s.item)||!(CH_ITEMS.has(s.item))))return;
         const sv=impSaved(x.no,s);
         /* 2026/11/14：技の案と同じく、覚えない技・1対1で正しく扱えない技（IMP_NOMV）を含む型は出さない（計算したうえで、理由つきで「出さなかった案」へ） */
-        const ls=(LSD[x.no]||[0,[]])[1],badMv=sv.mv.filter(m=>!(m.id===182||ls.includes(m.id))||IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
+        const ls=lsOf(x.no),badMv=sv.mv.filter(m=>!ls.includes(m.id)||IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
         tryEntry('role',i,{...x,set:{...sv,src:'manual'}},`${nm(i)}を${{attacker:'攻撃',bulky:'耐久',support:'サポート',setup:'積み'}[k]}の型に`,`特性 ${sv.ab?sv.ab.n:'―'}・持ち物 ${sv.it?sv.it.n:'なし'}・${natName(sv.up,sv.dn)||'補正なし'}・${SN.map((n,q)=>sv.sp[q]?`${n}${sv.sp[q]}`:'').filter(Boolean).join('・')}・技 ${sv.mv.map(m=>m.n).join('・')}`,badMv)})}catch(e){}
   });
   /* ---- 入れかえ：問題の相手に強い候補を先に1対1でしぼり、役目の少ない2匹と入れかえて全部を計算し直す ---- */
