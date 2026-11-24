@@ -311,30 +311,31 @@ function dgTeam0(entries,n,opt){
   /* 入れかえ案の匹は、その匹のために組んだ育成（x.set）で計算する（パーティにいない匹は teamSet で引けないため） */
   const CS=ms.map(o=>{try{return dgCalcSet(o)}catch(e){return null}});
   const H=ms.map((o,i)=>dgStoneOf(o.x.no,CS[i])?i:-1).filter(i=>i>=0);
-  if(opt.noMega)return dgTeam1(n,ms,CS,-1,H,'none');
-  if(H.length<2)return dgTeam1(n,ms,CS,H.length?H[0]:-1,H,'one');
+  const evaluate=(i,mode)=>dgTeam1(n,ms,CS,i,H,mode,opt.opponents);
+  if(opt.noMega)return evaluate(-1,'none');
+  if(H.length<2)return evaluate(H.length?H[0]:-1,'one');
   const pick=no=>no?H.find(i=>ms[i].x.no===+no):undefined;
   let wi=pick(opt.megaNo),mode='fixed';
   if(wi==null){wi=pick(dgMegaSel());mode='user'}
-  if(wi!=null)return dgTeam1(n,ms,CS,wi,H,mode);
-  const all=H.map(i=>dgTeam1(n,ms,CS,i,H,'auto'));
+  if(wi!=null)return evaluate(wi,mode);
+  const all=H.map(i=>evaluate(i,'auto'));
   const key=T=>{const m=dgMetric(T);return [m.x,m.w,m.nosw,m.ohko,-T.rows.filter(r=>r.lvl===4).length]};
   const cmp=(a,b)=>{const x=key(a),y=key(b);for(let k=0;k<x.length;k++)if(x[k]!==y[k])return x[k]-y[k];return 0};
   const best=[...all].sort(cmp)[0];
   best.mega.alts=all.map(T=>{const m=dgMetric(T);return{i:T.mega.i,no:T.mega.no,x:m.x,w:m.w,nosw:m.nosw,ohko:m.ohko,st:T.rows.filter(r=>r.lvl===4).length}});
   return best;
 }
-function dgTeam1(n,ms,CS,mi,H,mode){
+function dgTeam1(n,ms,CS,mi,H,mode,opponents){
   /* メガストーンの匹が2匹以上なら、天気（パーティの天気を作る特性）もこの場合のメガシンカだけで決める */
-  if(!H.length||(H.length<2&&mi>=0))return dgTeam2(n,ms,CS,mi,H,mode);
-  const wm=WX_MEGA;WX_MEGA=mi>=0?ms[mi].x.no:null;try{return dgTeam2(n,ms,CS,mi,H,mode)}finally{WX_MEGA=wm}
+  if(!H.length||(H.length<2&&mi>=0))return dgTeam2(n,ms,CS,mi,H,mode,opponents);
+  const wm=WX_MEGA;WX_MEGA=mi>=0?ms[mi].x.no:null;try{return dgTeam2(n,ms,CS,mi,H,mode,opponents)}finally{WX_MEGA=wm}
 }
-function dgTeam2(n,ms,CS,mi,H,mode){
+function dgTeam2(n,ms,CS,mi,H,mode,opponents){
   /* 2026/11/20：持ち物が姿と合わない型（formErr）の匹は計算に入れない（null＝いない匹と同じ扱い）。外した匹は formErr で返し、前提に書く */
   const FE=[];
   const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{const m=mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs);if(m.formErr){FE.push({side:'me',no:o.p.no,why:m.formErr});return null}return m}catch(e){return null}});
   const fam=q=>q.base||q.no;
-  const opps=metaOpps(n).filter(q=>!ms.some(o=>fam(o.p)===fam(q)));
+  const opps=opponents||metaOpps(n).filter(q=>!ms.some(o=>fam(o.p)===fam(q)));
   const rows=opps.map(q=>{
     const live=!!(LIVE.csv[q.base||q.no]);
     let o;try{o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return null}
@@ -375,7 +376,7 @@ function dgTeam2(n,ms,CS,mi,H,mode){
   /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
   const unk=new Map();const addU=(m,who)=>{if(!m)return;const notes=dgCalcUnsupported(m);if(m.ab&&ABN[m.ab]&&typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab)&&!notes.length)notes.push(`特性「${ABN[m.ab]}」`);if(notes.length)unk.set(who+m.p.n,`${m.p.n}の${notes.join('・')}`)};
   M.forEach(m=>addU(m,'me'));rows.forEach(r=>addU(r.o,'op'));
-  return{ms,M,rows,live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
+  return{ms,M,rows,opponentSource:metaOppsSource(),live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
     mega:{i:mi,no:mi>=0?ms[mi].x.no:null,mode,holders:H.map(i=>({i,no:ms[i].x.no,stone:dgStoneOf(ms[i].x.no,CS[i])})),alts:null}};
 }
 const DG_LV={4:['◎','2匹以上で安定して対応できる','ok'],3:['○','1匹だけで対応（その匹に頼っている）','mid'],2:['△','対応が不安定（乱数・同速・条件しだい）','warn'],1:['×','パーティ全体で対応が難しい','bad']};
@@ -394,7 +395,7 @@ function dgFill(entries){
       :`<ul>${best.map(x=>`<li><b>${nm1(x.i)}</b>（こちら）は <span class="dg-k dg-k${x.r}">${x.t}</span>：${x.why.map(esc).join('／')}<small>素早さ：${nm1(x.i)} ${x.sa} 対 ${esc(r.q.n)} ${x.so}（${x.spd===1?'こちらが先':x.spd===0?'同速':'相手が先'}）</small></li>`).join('')}</ul>`}</details>`};
   const order=[...T.rows].sort((a,b)=>a.lvl-b.lvl);
   el.innerHTML=`<div class="sec"><h2>相手ごとの対応力（計算）</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
-    <p class="note" style="padding-top:0">使用率の上位${T.rows.length}匹（パーティにいる種類は除く）に、1匹ずつ実際のダメージ計算と素早さで「先に倒せるか・耐えて倒せるか・後出しできるか」を見ています。弱点を突けるだけでは「対応できる」にしません。</p>
+    <p class="note" style="padding-top:0">${esc(T.opponentSource)}${T.rows.length}匹（パーティにいる種類は除く）に、1匹ずつ実際のダメージ計算と素早さで「先に倒せるか・耐えて倒せるか・後出しできるか」を見ています。弱点を突けるだけでは「対応できる」にしません。</p>
     ${FMT==='double'?`<p class="note" role="status">ダブルの◎〜×・後出し判定は暫定評価です。現在は1対1の計算を組み合わせており、範囲技・味方のサポート・2匹同時の行動を十分に反映していません。</p>`:''}
     ${T.unk.length?`<p class="note" role="status">計算に未反映の効果があります：${T.unk.slice(0,8).map(esc).join('、')}${T.unk.length>8?' ほか':''}。◎〜×と後出し判定は暫定評価です。</p>`:''}
     ${typeof dguBars==='function'?dguBars({4:cnt(4),3:cnt(3),2:cnt(2),1:cnt(1)},T.rows.length):`<div class="dg-sum">${[4,3,2,1].map(l=>`<div class="dg-s dg-${DG_LV[l][2]}"><span>${DG_LV[l][0]}</span><b class="num">${cnt(l)}</b></div>`).join('')}</div>`}
@@ -601,7 +602,7 @@ function dgMegaBarHTML(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';
 function dgMegaBind(root){if(!root)return;root.querySelectorAll('[data-dgm]').forEach(b=>b.onclick=()=>{const no=+b.dataset.dgm;if(no===dgMegaSel())return;dgMegaSet(no);const y=scrY();teamRender();scrTo(0,y)})}
 /* パーティのチェックの「計算の前提」に足す文（未対応のこと） */
 function dgPremise(T){
-  return `${T.formErr&&T.formErr.length?`計算に入れていない匹：${T.formErr.map(x=>`${(byNo[x.no]||{}).n||x.no}（${FORM_WHY[x.why]||x.why}）`).join('・')}。`:''}${dgMegaTxt(T)}相手は使用率の上位${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組み合わせた推定の型（1人が実際に使った型ではない）':T.live?'集計が読めた相手は集計から組み合わせた推定の型、ほかは当サイトの提案の型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
+  return `${T.formErr&&T.formErr.length?`計算に入れていない匹：${T.formErr.map(x=>`${(byNo[x.no]||{}).n||x.no}（${FORM_WHY[x.why]||x.why}）`).join('・')}。`:''}${dgMegaTxt(T)}${T.opponentSource}${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組み合わせた推定の型（1人が実際に使った型ではない）':T.live?'集計が読めた相手は集計から組み合わせた推定の型、ほかは当サイトの提案の型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
     `${T.rows.some(r=>r.abAssume)?`集計がない相手で特性によって結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない効果：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }

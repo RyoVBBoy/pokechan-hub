@@ -150,7 +150,7 @@ let TEAM_RT=0;
 /* 計算中の表示：動く線と、出てくる中身の形（灰色の帯）。すぐ中身に置きかわる */
 let TT_DEFER=false;
 function ttLoadHTML(k){return `<div class="tt-load" role="status" aria-live="polite"><div class="tt-load-bar"><i></i></div>
-  <p class="tt-load-t">${k==='check'?'パーティを使用率の上位の相手と計算しています…':'選出と構築を計算しています…'}</p>
+  <p class="tt-load-t">${k==='check'?'パーティの対面を計算しています…':'選出と構築を計算しています…'}</p>
   <div class="tt-sk tt-sk-h"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div></div>`}
 function teamRenderSoon(){clearTimeout(TEAM_RT);['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('t-busy')});
   TEAM_RT=setTimeout(()=>requestAnimationFrame(()=>{TEAM_RT=0;if(document.getElementById('tout'))teamRender()}),160)}
@@ -218,11 +218,11 @@ function teamRender(){
   <details id="dg-adv" class="dg-adv"${advOpen?' open':''}><summary><b>くわしい分析</b><small>相手ごとの対応力・改善案・パーティのチェックの全項目</small></summary>
   ${dgHTML()}${typeof impHTML==='function'&&team.length>=3?impHTML():''}
   <div class="sec"><h2>パーティのチェック</h2></div>
-  <p class="note" style="padding-top:0">${C.scope}を、使用率の上位の相手との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
+  <p class="note" style="padding-top:0">${C.scope}を、${esc(C.opponentSource)}との実際のダメージ計算と素早さ（攻撃・防御・素早さ・役割）、組み合わせ・持ち物の面から見ています。タイプ相性だけで分かることは、計算で裏付けがあるときだけ「気になる点」にし、それ以外は下の参考にまとめています。</p>
   ${C.good.length?`<h3 class="pc-h">よいところ</h3>${C.good.map(x=>item(x,false)).join('')}`:''}
   ${(()=>{const fc=C.fix.filter(x=>x.k==='calc'),fo=C.fix.filter(x=>x.k!=='calc'),sv=v=>fc.filter(x=>x.sev===v).length;
     /* 2026/11/10 依頼主：件数の意味を分ける。上＝相手との1対1の計算で見つかった弱点、下＝組み合わせ・タイプ・持ち物の点検 */
-    return (fc.length?`<h3 class="pc-h">対面のポイント（${fc.length}件）</h3><p class="note pc-sevn">優先度 高${sv(3)}・中${sv(2)}・低${sv(1)}</p><p class="note" style="padding-top:0">使用率の上位の相手と1匹ずつダメージ・素早さを計算した結果です。</p>${fc.map(x=>item(x,true)).join('')}`:'')+
+    return (fc.length?`<h3 class="pc-h">対面のポイント（${fc.length}件）</h3><p class="note pc-sevn">優先度 高${sv(3)}・中${sv(2)}・低${sv(1)}</p><p class="note" style="padding-top:0">${esc(C.opponentSource)}と1匹ずつダメージ・素早さを計算した結果です。</p>${fc.map(x=>item(x,true)).join('')}`:'')+
       (fo.length?`<h3 class="pc-h">組み合わせのポイント（${fo.length}件）</h3><p class="note" style="padding-top:0">パーティの形（タイプの重なり・持ち物・技の組み合わせ）の点検です。</p>${fo.map(x=>item(x,true)).join('')}`:'')})()}${C.fix.length?'':'<p class="note">いまのところ、大きく気になる点はありません。</p>'}
   ${C.ref&&C.ref.length?`<details class="pc-ref"><summary>参考（タイプ相性の上で・役割の重なり）${C.ref.length}件</summary>${C.ref.map(x=>item(x,'ref')).join('')}</details>`:''}
   ${C.premise?`<details class="pc-ref"><summary>計算の前提</summary><p class="note">${esc(C.premise)}</p></details>`:''}
@@ -232,11 +232,14 @@ function teamRender(){
   if(typeof stFill==='function')setTimeout(()=>stFill(team),0);
   if(typeof dguSumFill==='function')setTimeout(()=>dguSumFill(team,C),0);setTimeout(()=>loseFill(team),20);setTimeout(()=>dgFill(team),40);if(typeof impFill==='function')impFill(team);
   /* 入れかえ：パーティの中の匹なら★を付けかえ、新しいポケモンならその枠を置きかえる（育成は消える） */
+  const swapStamp=teamActionStamp();
   out.querySelectorAll('[data-psw]').forEach(b=>b.onclick=async()=>{
+    if(!b.isConnected||!teamActionCurrent(swapStamp))return;
     const [i,v]=b.dataset.psw.split(':'),o=team[+i];if(!o)return;
     if(v[0]==='x'){const n=team[+v.slice(1)];if(!n)return;n.sel=o.sel;o.sel=false;saveTeam();toast(`${byNo[o.no].n} → ${byNo[n.no].n}（選出を付けかえました）`);teamRender();return}
-    const q=byNo[+v];if(!q||!await askConfirm({title:`${byNo[o.no].n}を${q.n}に入れかえますか？`,text:`${byNo[o.no].n}の育成は消えます。${PC_SWSET[q.no]?`${q.n}は、計算に使った育成で入ります（あとで変えられます）。`:''}`,ok:'入れかえる',danger:false}))return;
-    const st=PC_SWSET[q.no];team[+i]={no:q.no,sel:o.sel,...(st?{set:JSON.parse(JSON.stringify(st))}:{})};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
+    const q=byNo[+v],st=PC_SWSET[+v];if(!q||!await askConfirm({title:`${byNo[o.no].n}を${q.n}に入れかえますか？`,text:`${byNo[o.no].n}の育成は消えます。${st?`${q.n}は、計算に使った育成で入ります（あとで変えられます）。`:''}`,ok:'入れかえる',danger:false}))return;
+    if(!teamActionCurrent(swapStamp)||!b.isConnected)return;
+    team[+i]={no:q.no,sel:o.sel,...(st?{set:JSON.parse(JSON.stringify(st))}:{})};saveTeam();toast(`${byNo[o.no].n} → ${q.n}に入れかえました`);teamRender()});
 }
 /* パーティの画面のタブを切りかえて、中の場所（id）まで送る（2026/11/10 UI改善 第7段階：TTAB を変えて描き直すだけでは中身が隠れたままだったので、タブのボタンと同じ切りかえを使う） */
 /* くわしい分析（たたんだ枠）の中へ移動するときは開く */
@@ -247,14 +250,23 @@ function ttJump(k,id){const b=document.querySelector(`#tt-seg [data-tt="${k}"]`)
   const prep=()=>{dgAdvOpen(id);const t=document.getElementById(id),pp=t&&t.closest('[data-psub-p]');if(pp&&pp.hidden)psubGo(document.getElementById('tplan'),pp.dataset.psubP)};
   prep();
   let n=0;const go=()=>{prep();const t=document.getElementById(id);if(t&&t.offsetParent){t.scrollIntoView({block:'start'});/* 上の中身があとから描かれて位置がずれたら、もう一度合わせる */setTimeout(()=>{const y=t.getBoundingClientRect().top;if(Math.abs(y-72)>40)t.scrollIntoView({block:'start'})},700);t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}else if(n++<40)setTimeout(go,100)};setTimeout(go,80)}
+// 評価を表示した時の形式・データ・パーティ枠と、保存前の状態を照合する。
+const teamActionStamp=(entries=team)=>JSON.stringify([TEAMS.cur,impKey(entries)]);
+function teamActionCurrent(stamp){
+  if(teamActionStamp()===stamp)return true;
+  toast('パーティや計算条件が更新されました。新しい結果を確認してください');
+  if(keyOf(cur)==='team')teamRender();
+  return false;
+}
 function planBind(pl){
   pl.querySelectorAll('[data-psub]').forEach(b=>b.onclick=()=>psubGo(pl,b.dataset.psub));
   const fb=pl.querySelector('[data-bdfill]');if(fb)fb.onclick=()=>bdFill();
   pl.querySelectorAll('[data-axis-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.axisPick,on=!team[i].axis;team.forEach(x=>delete x.axis);if(on)team[i].axis=true;saveTeam();toast(on?`${byNo[team[i].no].n}を軸にしました`:'軸を外しました');teamRender()});
-  const pb=pl.querySelector('[data-plan]');if(pb)pb.onclick=()=>{const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出を選出にしました');teamRender()};
+  const stamp=teamActionStamp();
+  const pb=pl.querySelector('[data-plan]');if(pb)pb.onclick=()=>{if(!pb.isConnected||!teamActionCurrent(stamp))return;const b=pb.dataset.plan.split(',').map(Number);team.forEach((x,i)=>x.sel=b.includes(i));saveTeam();toast('基本選出を選出にしました');teamRender()};
   /* 関連画面（2026/11/10 UI改善 第7段階）：かんたんな計算の注意から、チェックタブのくわしい計算へ */
   pl.querySelectorAll('[data-go-check]').forEach(b=>b.onclick=()=>ttJump('check',b.dataset.goCheck));
-  pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}を選出に入れました`);teamRender()});
+  pl.querySelectorAll('[data-plsw]').forEach(b=>b.onclick=()=>{if(!b.isConnected||!teamActionCurrent(stamp))return;const [o,i]=b.dataset.plsw.split(':').map(Number);const base=b.closest('[data-base]').dataset.base.split(',').map(Number);team.forEach((x,k)=>x.sel=base.includes(k)&&k!==o||k===i);saveTeam();toast(`${byNo[team[o].no].n} → ${byNo[team[i].no].n}を選出に入れました`);teamRender()});
 }
 /* 「構築」タブ（2026/11/12）：中を「構築｜選出アシスト」の小さなタブに分ける。中身は planHTML0 のまま（<!--B--> と <!--S--> で分けるだけ） */
 function planHTML(entries){
@@ -275,9 +287,13 @@ function planHTML0(entries){
   if(typeof topLoad==='function'&&!topReady()&&TOPT.st!=='busy'&&TOPT.st!=='err'&&location.protocol!=='file:')topLoad().then(()=>{if(topReady()&&typeof keyOf==='function'&&keyOf(cur)==='team')teamRender()}).catch(()=>{});
   let P0;try{P0=selPlan(entries)}catch(e){return ''}
   const axCard=`<div class="pc-i pc-plan"><b>軸のポケモン</b><p>いちばん使いたい1匹を選ぶと、基本選出に必ず入れ、入れかえ案でも外しません。</p>
-    <div class="pills gchips" style="padding:4px 0 0">${entries.map((x,i)=>`<button class="pill" data-axis-pick="${i}" aria-pressed="${!!x.axis}">${esc(byNo[x.no].n)}</button>`).join('')}</div>
+    <div class="pills gchips" style="padding:4px 0 0">${entries.map((x,i)=>`<button class="pill" data-axis-pick="${i}" aria-pressed="${!!x.axis}">${esc(byNo[x.no]?.n||String(x.no))}</button>`).join('')}</div>
     ${entries.some(x=>x.axis)&&entries.length<6?`<button class="btn btn-s" data-bdfill style="margin-top:10px;width:100%">軸に合わせて、空いている${6-entries.length}枠を埋める</button><p class="vcap">軸の弱点を受けられる・まだ突けないタイプを突ける匹を選び、育成も計算で組みます（実際の型とは違うことがあります）。</p>`:''}</div>`;
   if(!P0)return entries.length?`<!--B--><div class="sec"><h2>構築の診断</h2></div>${axCard}<p class="empty">選出を考えるには、選出する数（${PICK()}匹）より多くポケモンを入れてください。</p>`:'';
+  if(P0.issue){
+    const note=`<p class="dgu-note" role="status">${esc(P0.issue)}</p>`;
+    return `<!--B--><div class="sec"><h2>構築の診断</h2></div>${axCard}${note}<!--S-->${note}`;
+  }
   const nmI=i=>esc(byNo[entries[i].no].n),chipsOf=a=>a.slice(0,5).map(q=>`<a class="pill gchip" href="#/p/${q.no}">${esc(formInfo(q).base)}${formInfo(q).tag?'（'+esc(formInfo(q).tag)+'）':''}</a>`).join('');
   const isSel=P0.sel.length===P0.base.length&&P0.base.every(i=>P0.sel.includes(i));
   const kd=teamKind(entries),R=P0.roles,mons=a=>chipsOf(a.slice(0,4));
@@ -292,7 +308,7 @@ function planHTML0(entries){
     ${kd?`<h4>構築のタイプ</h4><p><b>${kd.name}</b>${kd.why.length?`<br><span class="vcap">理由：${esc(kd.why.join('・'))}</span>`:''}${kd.mix&&kd.mix.length?`<br><span class="vcap">${esc(kd.mix.join('・'))}の要素も同じくらいあります。方向をそろえると、選出で迷いにくくなります。</span>`:''}</p>`:'<p class="vcap">育成（持ち物・技）を3匹以上登録すると、構築のタイプ（対面・サイクル・積み）も診断します。</p>'}
   </div>
   <!--S--><div class="sec"><h2>選出の考え方</h2><span style="font-size:12px;color:var(--dim)">${FMTN()}</span></div>
-  <p class="note" style="padding-top:0">${P0.DS?`${P0.DS.list.length}通りの選出を全部、使用率の上位${P0.DS.N}匹との1対1の計算（ダメージ・素早さ・後出し）で比べて選びました（くわしくは下の「選出の比較」）。`:`${P0.live?'ランクバトルの使用率の上位':'種族値の高い'}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました`}（育成を登録した匹はその育成で計算）。</p>
+  <p class="note" style="padding-top:0">${P0.DS?`${P0.DS.list.length}通りの選出を全部、${esc(P0.DS.T.opponentSource)}${P0.DS.N}匹との1対1の計算（ダメージ・素早さ・後出し）で比べて選びました（くわしくは下の「選出の比較」）。`:`${esc(metaOppsSource())}${P0.total}匹を相手に、1対1でどちらが有利かを計算して選びました`}（育成を登録した匹はその育成で計算）。</p>
   <div class="pc-i pc-plan" data-base="${P0.base.join(',')}"><b>基本選出</b>
     <p class="pc-mons">${P0.base.map(i=>`<span${P0.lead.includes(i)?' class="lead"':''}>${nmI(i)}${P0.lead.includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>
     <p>${P0.DS?`上位${P0.DS.N}匹のうち<b>${P0.DS.best.cnt[4]+P0.DS.best.cnt[3]}匹</b>に、選出のだれかが有利に戦えます（◎${P0.DS.best.cnt[4]}・○${P0.DS.best.cnt[3]}）。`:`${P0.total}匹のうち<b>${P0.good}匹</b>に、選出のだれかが有利に戦えます。`}先発は、多くの相手に有利な${P0.lead.map(nmI).join('・')}。${P0.megaI>=0&&P0.base.filter(i=>{const k=entries[i].set&&entries[i].set.it&&entries[i].set.it.k;return k&&isStone(k)}).length>=2?`この選出では<b>${nmI(P0.megaI)}</b>だけがメガシンカする場合で計算しています（ほかのメガストーンの匹はメガストーンの効果なし）。`:''}</p>
@@ -303,7 +319,7 @@ function planHTML0(entries){
     ${P0.situ.length?`<h4>こういう相手のときは入れかえる</h4>${P0.situ.map(x=>`<div class="pc-situ"><p>相手に ${chipsOf(x.opps)}${x.opps.length>5?` など${x.opps.length}匹`:''} がいるとき</p><div class="pc-sw"><span><b>${nmI(x.out)}</b> → <b style="color:var(--acc)">${nmI(x.in)}</b></span><button class="bback" data-plsw="${x.out}:${x.in}">この選出にする</button></div></div>`).join('')}`:''}
   </div>
   ${typeof dgSelHTML==='function'?dgSelHTML(P0.DS,entries):''}
-  <div class="pc-i pc-plan"><b>よく使われる相手への答え</b><p>${P0.live?'ランクバトルの使用率':'種族値'}${typeof topReady==='function'&&topReady()?'と上位構築':''}の上位8匹に、パーティのだれが有利に戦えるかです。</p>
+  <div class="pc-i pc-plan"><b>主な比較相手への答え</b><p>${esc(metaOppsSource())}のうち、先頭の8匹に、パーティのだれが有利に戦えるかです。</p>
     ${P0.top.map(({q,ans})=>`<div class="pc-top"><a href="#/p/${q.no}">${esc(q.n)}</a><span>${ans.length?ans.slice(0,2).map(i=>`<b>${nmI(i)}</b>`).join('・')+'が有利':'<b style="color:var(--w2)">有利に戦える匹がいない</b>'}</span></div>`).join('')}
     ${P0.top.some(x=>!x.ans.length)?'<p class="vcap">答えがいない相手には、受けられる匹か、上から倒せる匹を1匹用意すると安定します。</p>':''}
     <p class="pc-simple">ダメージの最大と素早さだけで見た、かんたんな1対1の計算です（乱数・後出し・タスキまで入れたくわしい計算とは結果が違うことがあります）。<button class="dgu-link" data-go-check="dg-box">くわしい計算（チェックの「相手ごとの対応力」）を見る</button></p>
@@ -353,7 +369,7 @@ function partyCheck(entries){
     (news||[]).slice(0,3-r.length).forEach(p=>r.push({out,inP:p}));return r};
   /* 計算で、上位の相手が実際にこのタイプの技で弱点の匹を押し込んでくるか（その相手への対応が不安定以下） */
   const typeHit=t=>DT?DT.rows.filter(row=>row.lvl<=2&&row.res.some(z=>z.op&&hitType(row.o,z.op.mv)===t&&z.op.eff>=2)):null;
-  if(danger.length)danger.slice(0,2).forEach(r=>{const th=typeHit(r.t);(th&&!th.length?ref:fix).push({k:'type',ev:th&&th.length?th.slice(0,4).map(row=>{const z=row.res.filter(z=>z.op&&hitType(row.o,z.op.mv)===r.t).sort((a,b)=>b.op.max-a.op.max)[0];return `${row.q.n}${SKIN[row.o.ab]?'（'+(ABN[row.o.ab]||'')+'）':''}：${formInfo(T_MS(z.i)).base}に${z.op.mvn}で最大${dgPct(z.op.max)}`}):th?['計算では、使用率の上位の相手にこのタイプで押し込まれる相手は見つかりませんでした（タイプ相性の上での参考）']:[],t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
+  if(danger.length)danger.slice(0,2).forEach(r=>{const th=typeHit(r.t);(th&&!th.length?ref:fix).push({k:'type',ev:th&&th.length?th.slice(0,4).map(row=>{const z=row.res.filter(z=>z.op&&hitType(row.o,z.op.mv)===r.t).sort((a,b)=>b.op.max-a.op.max)[0];return `${row.q.n}${SKIN[row.o.ab]?'（'+(ABN[row.o.ab]||'')+'）':''}：${formInfo(T_MS(z.i)).base}に${z.op.mvn}で最大${dgPct(z.op.max)}`}):th?['計算では、このタイプで押し込まれる相手は見つかりませんでした（タイプ相性の上での参考）']:[],t:`${r.t}技を受けられるポケモンがいない`,d:`${names(r.w)}の${r.w.length}匹が${r.t}技を弱点で受け、半減以下で受けられる味方がいません。${r.t}技を持つ相手に続けて押し込まれやすい形です。`,
     how:`${r.t}技を半減以下で受けられるポケモンと入れかえるか、${r.t}技を使う相手を先に倒せる味方を用意します。`,sw:swaps(outOf(o=>r.w.includes(o)),q=>monDef(q).find(z=>z.t===r.t).m<1,cands([r.t]))})});
   else if(ms.length>=3)good.push({t:'弱点が大きく重なっていない',d:`${need}匹以上が同じ弱点で、受けられる味方もいない、というタイプはありません。`});
   /* 2. 攻撃の範囲：登録した技があればその技、なければタイプ一致技で */
@@ -423,13 +439,15 @@ function partyCheck(entries){
   if(DA){fix.unshift(...DA.bad.map(x=>({...x,k:'calc'})));good.unshift(...DA.good.map(x=>({...x,k:'calc'})));ref.push(...DA.ref)}
   /* 2026/11/20：持ち物が姿と合わない匹は計算から外しているので、いちばん上の気になる点として知らせる */
   if(DT&&DT.formErr)DT.formErr.filter(x=>x.side==='me').forEach(x=>fix.unshift({t:`${esc((byNo[x.no]||{}).n||'')}：持ち物が姿と合わない`,d:`${FORM_WHY[x.why]||''}。このポケモンは診断の計算に入れていません。`,how:'育成の画面で、このポケモンが持てる持ち物を選び直してください。'}));
-  return{scope,good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
+  return{scope,opponentSource:DT?.opponentSource||'比較相手',good,fix:full?fix.filter(x=>x.k!=='type'):fix,ref:full?ref.filter(x=>x.k!=='type'):ref,premise:DT?dgPremise(DT):''};
 }
 /* ---- 選出の考え方：よく使われる相手40匹との1対1から、基本選出と「この相手がいるときはこう入れかえる」を出す ----
    1対1の点：お互いの最大ダメージから、何回で倒せるか（素早さで先に動ける方が有利）。選出は「相手のだれにも、選出のだれかが有利に戦える」が多い組み合わせ */
 function selPlan(entries){
   const n=entries.length,K=Math.min(PICK(),n);if(n<=K)return null;
-  const live=typeof META!=='undefined'&&META.rank&&META.rank.length>=20;
+  const T=dgTeam(entries,20),issue=dgSelectionIssue(T,entries,K);
+  if(issue)return{issue};
+  const live=metaOppsRanked();
   const opps=metaOpps(40);
   const me=entries.map(x=>{try{return mkMon(byNo[x.no],'me',mySetFor(x.no))}catch(e){return null}});
   const spd=b=>b.st[5]*(b.item==='choicescarf'?1.5:1);
@@ -449,7 +467,8 @@ function selPlan(entries){
   const okSub=()=>true;
   /* 軸（利用者が決めた、外さない1匹）は必ず選出に入れる */
   const ax=entries.findIndex(x=>x.axis);
-  const all=combos([...Array(n).keys()],K).filter(c=>ax<0||c.includes(ax));if(!all.length)return null;
+  const eligible=T.M.flatMap((m,i)=>m?[i]:[]);
+  const all=combos(eligible,K).filter(c=>ax<0||c.includes(ax));if(!all.length)return null;
   /* 第5段階（2026/11/10）：基本選出と先発は、全部の組み合わせを相手ごとの対応力と同じ計算で比べた dgSelect（61-select.js）から。使えないときは前の方法 */
   let DS=null;try{DS=typeof dgSelect==='function'?dgSelect(entries):null}catch(e){DS=null}
   const base=DS&&DS.best?[...DS.best.c]:all.reduce((b,c)=>{const v=val(c);return !b||v>b.v?{c,v}:b},null).c;
@@ -460,7 +479,7 @@ function selPlan(entries){
   /* 入れかえ：控えの1匹が、基本選出が苦手な相手に強いとき */
   const bm=j=>Math.max(...base.map(i=>S[i][j])),weakJ=opps.map((_,j)=>j).filter(j=>bm(j)<1);
   const situ=[];
-  [...Array(n).keys()].filter(i=>!base.includes(i)).forEach(b=>{
+  eligible.filter(i=>!base.includes(i)).forEach(b=>{
     const js=weakJ.filter(j=>S[b][j]>=1&&S[b][j]>=bm(j)+1);if(!js.length)return;
     const out=[...base].filter(x=>x!==ax&&okSub([...base.filter(y=>y!==x),b])).sort((x,y)=>js.reduce((t,j)=>t+S[x][j],0)-js.reduce((t,j)=>t+S[y][j],0)||avg(x)-avg(y))[0];if(out==null)return;
     situ.push({out,in:b,opps:js.map(j=>opps[j])})});

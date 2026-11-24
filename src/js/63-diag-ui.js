@@ -31,7 +31,7 @@ function dguSumFill(entries,C){
   /* 最も深刻な弱点：パーティのチェックの計算の弱点と同じ並び（partyCheck の fix のうち計算のもの＝重い順）の先頭3つ */
   const W=(C&&C.fix?C.fix.filter(x=>x.k==='calc'):A.bad).slice(0,3);
   const nBad=(C&&C.fix?C.fix.filter(x=>x.k==='calc'):A.bad).length;
-  box.innerHTML=`<div class="dgu-head"><h2>気をつけたい相手・場面</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
+  box.innerHTML=`<div class="dgu-head"><h2>気をつけたい相手・場面</h2><span class="dgu-fmt">${FMTN()}・${esc(T.opponentSource)}${N}匹と1匹ずつ計算</span></div>
     <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','優先ポイント'],['lose-box','苦手になりやすい場面'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
     <div class="dgu-sec"><h3>パーティの状態</h3>
       <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${dguSevTag(areaSev(a))}</div>`).join('')}</div>
@@ -60,12 +60,12 @@ function dguImpHTML(R){
 }
 function dguImp(entries){
   const el=document.getElementById('dgu-imp');if(!el)return;
-  const show=R=>{const e=document.getElementById('dgu-imp');if(!e)return;e.innerHTML=dguImpHTML(R);
+  const stamp=teamActionStamp(entries);
+  const show=R=>{if(!el.isConnected||teamActionStamp()!==stamp)return;const e=el;e.innerHTML=dguImpHTML(R);
     e.querySelectorAll('[data-dgu-go2]').forEach(b=>b.onclick=()=>{dgAdvOpen(b.dataset.dguGo2);const t=document.getElementById(b.dataset.dguGo2);if(t)t.scrollIntoView({behavior:'smooth',block:'start'})});
-    const box=document.getElementById('imp-box');if(box&&typeof impRender==='function')impRender(box,R)};
+    const box=document.getElementById('imp-box');if(box&&typeof impRender==='function')impRender(box,R,stamp)};
   const c=typeof impCached==='function'&&impCached(entries);if(c){show(c);return}
-  const sig=impKey(entries);
-  const go=()=>{if(!document.getElementById('dgu-imp')||impKey(team)!==sig)return;
+  const go=()=>{if(!el.isConnected||teamActionStamp()!==stamp)return;
     let R;try{R=impGet(entries)}catch(e){const e2=document.getElementById('dgu-imp');if(e2){e2.innerHTML=`<p class="dgu-note">改善案を計算できませんでした。</p><button class="dgu-link" id="dgu-retry">もう一度計算する</button>`;e2.querySelector('#dgu-retry').onclick=()=>{e2.innerHTML='<p class="dgu-loading">改善案を計算中…</p>';setTimeout(go,30)}}return}
     show(R)};
   /* 描画が終わってから（ブラウザが空いたとき）計算する */

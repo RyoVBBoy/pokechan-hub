@@ -17,7 +17,7 @@ try{
   await pg.goto(pathToFileURL(path.join(root,'dist/index.html')).href+'#/'); 
   await pg.waitForFunction(()=>typeof tbProps==='function'&&typeof mvpRows==='function');
   if(mode==='performance'){const c=await pg.context().newCDPSession(pg);await c.send('Emulation.setCPUThrottlingRate',{rate:4});}
-  const r=await pg.evaluate(({fmt,mode})=>{
+  const r=await pg.evaluate(async ({fmt,mode})=>{
    FMT=fmt;
    const checks=[],results=[],check=(ok,label,detail)=>checks.push({pass:!!ok,label,detail});
    const timed=(label,fn)=>{const t=performance.now();try{const value=fn();results.push({label,ms:performance.now()-t});return value}catch(e){checks.push({pass:false,label,detail:String(e)});return null}};
@@ -98,6 +98,62 @@ try{
     const slow=pool.filter(s=>byNo[s.no].s[5]<=70);const setter=slow.find(s=>(LSD[s.no]||[0,[]])[1].includes(id));
     check(setter&&slow.length>=6,'real slow Trick Room fixture');
     if(setter&&slow.length>=6){const base=[setter,...slow.filter(s=>s.no!==setter.no)].slice(0,6).map(s=>({no:s.no,set:{...s.sv,it:null,mv:s.sv.mv.filter(m=>m.id!==id)}}));team.length=0;team.push(...base);const D=dgTeam0(team,20);const after=base.map((x,i)=>i?x:{...x,set:{...x.set,mv:[{id,n:mName(id)},...x.set.mv].slice(0,4)}});const R=timed('Trick Room change',()=>impRecalc(after));const F=dgTeam(after,20);check(R&&JSON.stringify(R.tr)===JSON.stringify(F.tr)&&JSON.stringify(dgMetric(R))===JSON.stringify(dgMetric(F)),'Trick Room change equals full recomputation');DG_SELC.clear();const no=dgSelect(team);check(no&&!no.list.some(x=>x.trUse),'unregistered Trick Room not used');}
+
+    // Phase one acceptance cases run through the shipped calculation and display code.
+    const saved={rank:META.rank,top:TOPT.st,team,render:teamRender,confirm:askConfirm,slot:TEAMS.cur,slots:TEAMS.list,updated:TEAMS.updated,teamSignatures:TEAM_SIG};
+    const fixture=document.createElement('div');
+    fixture.innerHTML='<div id="st-box"></div><div id="dg-box"></div><div id="dgu-sum"></div><div class="stg-nm-b"></div><div class="test-imp"></div>';
+    document.body.appendChild(fixture);
+    const member=(no,it=null)=>({no,set:{...setToSaved(byNo[no],chooseSet(byNo[no],true)),it:it?{k:it}:null}});
+    try{
+      META.rank=[];TOPT.st='idle';
+      team=[member(6,'charizarditey'),...([445,149,143,700,279].map(no=>member(no)))];
+      const base=dgTeam(team,20),opponents=base.rows.map(r=>r.from);
+      const noMega=dgTeam0(team,opponents.length,{noMega:true,opponents});
+      stNoMegaFill(team,base,fixture);
+      check(base.rows.length===18&&noMega.rows.length===18&&noMega.rows.every((r,i)=>r.from===opponents[i])&&/同じ相手18匹/.test(fixture.querySelector('.stg-nm-b').textContent),'P05 Mega comparison uses the same 18 opponents in the same order');
+      stFill(team);dgFill(team);
+      dguSumFill(team,{fix:[]});
+      const selection=dgSelect(team);
+      const html=[fixture.querySelector('#st-box').textContent,fixture.querySelector('#dg-box').textContent,fixture.querySelector('#dgu-sum').textContent,dgSelHTML(selection,team)];
+      check(html.every(t=>t.includes('種族値などから選んだ相手')&&!t.includes('使用率の上位')),'P06 fallback source is displayed in strategy, matchup, summary and selection');
+      check(base.opponentSource==='種族値などから選んだ相手','P06 fallback provenance comes from the opponent data');
+      team[1]={...member(445,'charizarditey'),axis:true};
+      stFill(team);
+      const blocked=fixture.querySelector('#st-box'),plan=document.createElement('div');
+      plan.innerHTML=planHTML(team);
+      check(!dgSelect(team)&&!blocked.querySelector('[data-stg-sel]')&&/軸のガブリアスは計算できません/.test(blocked.textContent)&&/軸のガブリアスは計算できません/.test(plan.querySelector('[data-psub-p="sel"]').textContent),'P08 invalid axis blocks both selection entry points and explains why');
+      delete team[1].axis;
+      const eligible=dgSelect(team);
+      check(eligible?.list.length===(fmt==='single'?10:5)&&eligible.excluded===1&&eligible.list.every(x=>!x.c.includes(1)),'P08 invalid non-axis slot is excluded without blocking legal combinations');
+      team[1]=member(445);
+      teamRender=()=>{};
+      const panel=fixture.querySelector('.test-imp');
+      const proposal={kind:'swap',i:0,title:'リザードン → コータス',entries:[member(324),...team.slice(1)],J:{b:{},a:{}}};
+      const renderPlan=o=>impRender(panel,{list:[o],tried:1});
+      let resolve;
+      askConfirm=()=>new Promise(r=>{resolve=r});
+      renderPlan(proposal);
+      const pending=panel.querySelector('[data-imp]').onclick();
+      const external=JSON.parse(JSON.stringify(TEAMS));
+      external.list[saved.slot].team=[member(248),...team.slice(1)];
+      teamsFromStore(JSON.stringify(external));
+      resolve(true);await pending;
+      check(team[0].no===248,'P10 confirmation cannot overwrite a party edited while the dialog is open');
+      renderPlan({kind:'sel',title:'選出',selFix:[0,1,2,3].slice(0,PICK()),J:{b:{},a:{}}});
+      TEAMS.cur=(saved.slot+1)%TEAMS.list.length;
+      await panel.querySelector('[data-imp]').onclick();
+      check(team.every(x=>!x.sel),'P10 selection button cannot apply to a different slot with identical contents');
+      TEAMS.cur=saved.slot;
+      askConfirm=async()=>true;
+      renderPlan(proposal);
+      await panel.querySelector('[data-imp]').onclick();
+      check(team[0].no===324,'P10 current improvement remains applicable');
+    }finally{
+      fixture.remove();META.rank=saved.rank;TOPT.st=saved.top;team=saved.team;
+      teamRender=saved.render;askConfirm=saved.confirm;TEAMS.cur=saved.slot;
+      TEAMS.list=saved.slots;TEAMS.updated=saved.updated;TEAM_SIG=saved.teamSignatures;
+    }
    }
    return {checks,results};
   },{fmt,mode});

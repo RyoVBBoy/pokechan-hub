@@ -66,7 +66,7 @@ function stFill(entries){
       :`<p class="stg-p">まだはっきりした型（天気・トリックルーム・対面・サイクルなど）は見つかっていません。${entries.filter(x=>x.set).length<3?'技・持ち物を3匹以上登録すると、対面・サイクル・積みも判定します。':'下の強みと選出から、戦い方を組み立ててみてください。'}</p>`}
     ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
     ${T.mega&&T.mega.holders&&T.mega.holders.length?`<details class="stg-nomega" id="stg-nomega"><summary>メガシンカしない場合と比べる</summary><div class="stg-nm-b"><p class="dgu-loading">開くと計算します</p></div></details>`:''}
-    <p class="stg-f">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算した結果です。${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?'ダブルも1対1の計算を組み合わせています（範囲技・味方のサポート・まもるなどは入っていません）。':''}</p></div>`;
+    <p class="stg-f">${FMTN()}・${esc(T.opponentSource)}${N}匹と1匹ずつ計算した結果です。${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?'ダブルも1対1の計算を組み合わせています（範囲技・味方のサポート・まもるなどは入っていません）。':''}</p></div>`;
   /* 2. 強み */
   const G=stStrengths(entries,T,C,W,arch);
   const sec2=`<div class="stg-sec"><h3>パーティの強み</h3>${G.length?`<ol class="stg-gl">${G.map(g=>`<li><p class="stg-gt">${g.t}</p><p class="stg-gh"><span>使い方</span>${g.how}</p></li>`).join('')}</ol>`
@@ -82,14 +82,14 @@ function stFill(entries){
     sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3>
       <ul class="stg-sel">${order.map(i=>{const l=B.lead1.find(x=>x.i===i),r=roleOf(i);
         return `<li${ld.includes(i)?' class="stg-lead"':''}><b>${nmE(i)}</b>${r.length?`<span class="stg-rl">${r.map(t=>`<i>${esc(t)}</i>`).join('')}</span>`:''}<small>${l&&l.adv.length?`有利に戦える相手 ${l.adv.length}匹（${l.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}${l.adv.length>3?' など':''}）`:'はっきり有利な相手は少なめ。ほかの匹の補助に回る'}</small></li>`}).join('')}</ul>
-      <p class="stg-f">使用率の上位${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。上位${DS.N}匹のうち ◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?'先発2匹は簡易比較です。':''}</p>
+      <p class="stg-f">${esc(DS.T.opponentSource)}${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。上位${DS.N}匹のうち ◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?'先発2匹は簡易比較です。':''}</p>
       ${(()=>{const notes=[];const inC=n=>B.c.some(i=>byNo[entries[i].no].n===n);
         if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
         if(T.tr&&T.tr.on&&!T.tr.setters.some(t=>B.c.includes(t.i)))notes.push(`この選出にはトリックルームを張れるポケモン（${T.tr.setters.map(t=>esc(T.ms[t.i].p.n)).join('・')}）が入っていません。トリックルームで戦うなら、張る役を入れた選出も比べてください。`);
         return notes.map(t=>`<p class="stg-warn">${t}</p>`).join('')})()}
       <div class="stg-btns">${(()=>{const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);return sel.length===B.c.length&&B.c.every(i=>sel.includes(i))?'<span class="stg-done">✓ いま選出にしている組み合わせです</span>':`<button class="btn btn-p" data-stg-sel="${B.c.join(',')}">この組み合わせを選出にする</button>`})()}
         <button class="dgu-link" data-dgu-tab="plan">選出の理由・ほかの選出と比べる</button></div></div>`;
-  }else sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3><p class="stg-p">選出を比べるには、選出する数（${PICK()}匹）より多くポケモンを入れてください。</p></div>`;
+  }else sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3><p class="stg-p">${P0?.issue?esc(P0.issue):`選出を比べるには、選出する数（${PICK()}匹）より多くポケモンを入れてください。`}</p></div>`;
   /* 4. 戦い方の流れ */
   let sec4='',steps=[],flow=null;
   if(P0&&B){
@@ -124,17 +124,20 @@ function stFill(entries){
   stBind(box);
   if(typeof dgMegaBind==='function')dgMegaBind(box);
   box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>ttJump(b.dataset.dguTab,'sel-box'));
-  const sb=box.querySelector('[data-stg-sel]');if(sb)sb.onclick=()=>{const c=sb.dataset.stgSel.split(',').map(Number);entries.forEach((x,i)=>x.sel=c.includes(i));saveTeam();toast('この組み合わせを選出にしました');const y=scrY();teamRender();scrTo(0,y)};
-  const nmD=box.querySelector('#stg-nomega');if(nmD)nmD.addEventListener('toggle',()=>{if(!nmD.open||nmD.dataset.done)return;nmD.dataset.done=1;setTimeout(()=>stNoMegaFill(entries,T,nmD),20)});
+  const stamp=teamActionStamp(entries);
+  const sb=box.querySelector('[data-stg-sel]');if(sb)sb.onclick=()=>{if(!sb.isConnected||!teamActionCurrent(stamp))return;const c=sb.dataset.stgSel.split(',').map(Number);entries.forEach((x,i)=>x.sel=c.includes(i));saveTeam();toast('この組み合わせを選出にしました');const y=scrY();teamRender();scrTo(0,y)};
+  const nmD=box.querySelector('#stg-nomega');if(nmD)nmD.addEventListener('toggle',()=>{if(!nmD.open||nmD.dataset.done)return;nmD.dataset.done=1;setTimeout(()=>{if(nmD.isConnected&&teamActionStamp()===stamp)stNoMegaFill(entries,T,nmD)},20)});
 }
 /* メガシンカしない場合：メガストーンを持つ匹は全員メガシンカしない姿（持ち物なし）で、同じ相手と計算し直す。上の結果とは別に並べるだけ */
 function stNoMegaFill(entries,T,el){
   const b=el.querySelector('.stg-nm-b');
-  try{const ms=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p),CS=ms.map(o=>{try{return dgCalcSet(o)}catch(e){return null}});
-    const H=ms.map((o,i)=>dgStoneOf(o.x.no,CS[i])?i:-1).filter(i=>i>=0);
-    const T0=dgTeam1(T.rows.length,ms,CS,-1,H,'none'),a=dgMetric(T),z=dgMetric(T0);
+  try{
+    const opponents=T.rows.map(r=>r.from);
+    const T0=impWith(entries,()=>dgTeam0(entries,opponents.length,{noMega:true,opponents}));
+    if(T0.rows.length!==opponents.length||T0.rows.some((r,i)=>r.from!==opponents[i]))throw Error('opponents changed');
+    const a=dgMetric(T),z=dgMetric(T0);
     const row=(l,x,y,low)=>`<tr><th>${l}</th><td>${x}匹</td><td>${y}匹</td><td>${x===y?'同じ':((low?y<x:y>x)?'メガなしの方が良い':'メガありの方が良い')}</td></tr>`;
-    b.innerHTML=`<table class="stg-nmt"><thead><tr><th></th><th>メガシンカあり</th><th>なし</th><th></th></tr></thead><tbody>${row('◎ 安定して対応',a.st,z.st,false)}${row('答えがない相手',a.x,z.x,true)}${row('△以下の相手',a.w,z.w,true)}${row('後出しできない相手',a.nosw,z.nosw,true)}</tbody></table><p class="stg-f">メガストーンを持つポケモンを、メガシンカしない姿（持ち物なし）で同じ相手と計算しました。上の戦い方・選出は「メガシンカあり」の計算です。</p>`}
+    b.innerHTML=`<table class="stg-nmt"><thead><tr><th></th><th>メガシンカあり</th><th>なし</th><th></th></tr></thead><tbody>${row('◎ 安定して対応',a.st,z.st,false)}${row('答えがない相手',a.x,z.x,true)}${row('△以下の相手',a.w,z.w,true)}${row('後出しできない相手',a.nosw,z.nosw,true)}</tbody></table><p class="stg-f">メガストーンを持つポケモンを、メガシンカしない姿（持ち物なし）で同じ相手${opponents.length}匹と計算しました。「メガシンカあり」はパーティ全体の診断で選んだメガシンカです。</p>`}
   catch(e){b.innerHTML='<p class="stg-p">計算できませんでした。</p>'}
 }
 
@@ -375,7 +378,7 @@ async function strategyCard(d){
   if(d.arch){g.font=`800 26px ${FF}`;const w=g.measureText(d.arch).width+40;rrect(g,56,y,Math.min(w,W-112),48,24);g.fillStyle='rgba(124,92,255,.35)';g.fill();g.fillStyle='#fff';g.fillText(fitText(g,d.arch,W-152),76,y+33);y+=70}
   L.forEach(([h,ls])=>{g.fillStyle='#ffd400';g.font=`800 28px ${FF}`;g.fillText(h,56,y+30);y+=52;g.fillStyle='rgba(255,255,255,.9)';g.font=`500 26px ${FF}`;ls.forEach(l=>{g.fillText(l,70,y+26);y+=38});y+=18});
   g.fillStyle='rgba(255,255,255,.5)';g.font=`600 18px ${FF}`;
-  g.fillText(d.own.length?'自動の診断（使用率の上位の相手との計算）に、トレーナーが書き加えた戦い方です':'使用率の上位の相手との計算から作った自動の診断です（目安）',56,H-30);
+  g.fillText(d.own.length?'自動の診断に、トレーナーが書き加えた戦い方です':'対面計算から作った自動の診断です（目安）',56,H-30);
   try{return await new Promise((r,j)=>{try{c.toBlob(r,'image/png')}catch(e){j(e)}})}catch(e){return null}
 }
 let TWC_PRE=null;

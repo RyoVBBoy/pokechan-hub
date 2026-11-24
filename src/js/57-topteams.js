@@ -71,8 +71,14 @@ function topSetCalc(p){
   TOPT.SC[no]=r;return r;
 }
 /* 相手の候補：使用率（なければ合計種族値）の順に、上位構築で多いポケモンを足して並べかえる */
+const metaOppsRanked=()=>typeof META!=='undefined'&&META.rank&&META.rank.length>=20;
+function metaOppsSource(){
+  const ranked=metaOppsRanked();
+  if(topReady())return ranked?'使用率と上位構築から選んだ相手':'種族値などと上位構築から選んだ相手';
+  return ranked?'ランクバトルの使用率から選んだ相手':'種族値などから選んだ相手';
+}
 function metaOpps(n){
-  const live=typeof META!=='undefined'&&META.rank&&META.rank.length>=20;
+  const live=metaOppsRanked();
   const base=(live?META.rank.map(x=>byNo[x.no]):gmOpps()).filter(Boolean);
   if(!topReady())return base.slice(0,n);
   const L=base.length,sc=new Map();

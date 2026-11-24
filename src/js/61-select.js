@@ -9,10 +9,21 @@ let WX_OFF=false;
 const SEL_LV={4:1,3:.7,2:.25,1:0};
 const DG_SELC=new Map();
 function dgSelect(entries){return impWith(entries,()=>dgSelect0(entries))}
+function dgSelectionIssue(T,entries,K){
+  if(T.ms.length!==entries.length)return '図鑑で確認できないポケモンがいます。パーティを見直してください。';
+  const ax=entries.findIndex(x=>x.axis);
+  if(ax>=0&&!T.M[ax]){
+    const err=(T.formErr||[]).find(x=>x.side==='me'&&x.no===entries[ax].no);
+    const why=err?FORM_WHY[err.why]:'';
+    return `軸の${T.ms[ax].p.n}は計算できません。${why?why+'。':''}育成を修正するか、軸を選び直してください。`;
+  }
+  const available=T.M.filter(Boolean).length;
+  return available<K?`計算できるポケモンは${available}匹です。選出に必要な${K}匹の育成を確認してください。`:'';
+}
 function dgSelect0(entries){
   const n=entries.length,K=Math.min(PICK(),n);if(n<=K)return null;
   let T;try{T=dgTeam(entries,20)}catch(e){return null}
-  const R=T.rows;if(!R.length)return null;
+  const R=T.rows;if(!R.length||dgSelectionIssue(T,entries,K))return null;
   const key=JSON.stringify([K,entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),R.length,dgDataSig(),'mega-per-sel']);
   if(DG_SELC.has(key))return DG_SELC.get(key);
   const nm=i=>formInfo(T.ms[i].p).base;
@@ -94,7 +105,8 @@ function dgSelect0(entries){
     const ace=c.filter(i=>T1.M[i]&&T1.M[i].boost);
     return{c,sc,P,cnt,rows,atk,def,over,lost,leads,lead1,pairs,trUse,wxOk,megaI:X.mi>=0&&c.includes(X.mi)?X.mi:-1,X,tr,sw:rows.filter(x=>x.sw).length,swc:rows.filter(x=>x.swc).length,fast:rows.filter(x=>x.fast).length,danger:rows.filter(x=>x.danger),sup,ace};
   };
-  const all=combos([...Array(n).keys()],K).filter(c=>ax<0||c.includes(ax));
+  const eligible=T.M.flatMap((m,i)=>m?[i]:[]),groups=combos(eligible,K);
+  const all=groups.filter(c=>ax<0||c.includes(ax));
   const tie=(a,b)=>a.cnt[1]-b.cnt[1]||a.danger.length-b.danger.length||(b.cnt[4]+b.cnt[3])-(a.cnt[4]+a.cnt[3])||b.sw-a.sw||b.fast-a.fast||(a.c.join()<b.c.join()?-1:1);
   const better=(a,b)=>Math.abs(b.sc-a.sc)>=.001?b.sc-a.sc:tie(a,b);
   /* 選出ごとの評価：メガストーンの匹が選出に0匹＝メガシンカなしで計算、1匹以上＝その匹ごとに「この匹だけがメガシンカ」で計算し、いちばん良い場合 */
@@ -111,7 +123,7 @@ function dgSelect0(entries){
   list.forEach((x,k)=>x.tie=k>0&&Math.abs(list[k-1].sc-x.sc)<.001);
   const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);
   const mine=sel.length===K?list.find(x=>x.c.length===K&&x.c.every(i=>sel.includes(i))):null;
-  const out={K,N:R.length,list,best:list[0],mine,mineRank:mine?list.indexOf(mine)+1:0,total:combos([...Array(n).keys()],K).length,excluded:0,
+  const out={K,N:R.length,list,best:list[0],mine,mineRank:mine?list.indexOf(mine)+1:0,total:groups.length,excluded:n-eligible.length,
     nm,tw:base.tw,wxBy:base.wxBy,gain:base.gain,tr:T.tr,ax,T,multi,H,megaNm:i=>{const h=H.find(z=>z.i===i);return h?dgMegaNm(h):nm(i)}};
   DG_SELC.set(key,out);return out;
 }
@@ -215,8 +227,9 @@ function dgSelHTML(S,entries){
   const mine=S.mine&&S.mine!==B?dgSelWhy(S,S.mine,B):null;
   return `<div class="pc-i pc-plan sel-box" id="sel-box"><div class="selu-head"><b>選出の比較</b><span class="dgu-fmt">${S.K}匹の選び方 ${S.list.length}通りを計算${S.K===4?'・先発2匹は選んだ4匹ごとに6通り':''}</span></div>
     ${FMT==='double'?`<p class="dgu-note" role="status">ダブルの選出順位・先発・後出し判定は暫定評価です。現在は1対1の計算を組み合わせており、範囲技・味方の特性（フレンドガード等）・2匹同時の行動を反映していません。</p>`:""}
+    ${S.excluded?formErrHTML((S.T.formErr||[]).filter(x=>x.side==='me')):''}
     ${S.T.unk&&S.T.unk.length?`<p class="dgu-note" role="status">計算に未反映の効果：${S.T.unk.slice(0,8).map(esc).join("、")}${S.T.unk.length>8?" ほか":""}。選出順位・先発・後出しの判定は暫定評価です。</p>`:""}
-    <p class="dgu-note">パーティの${entries.length}匹から${S.K}匹を選ぶ組み合わせを全部、使用率の上位${N}匹との1対1の計算（相手ごとの対応力と同じ計算）で比べました。${S.multi?`メガストーンを持つ匹が2匹以上入る選出は、1試合にメガシンカできるのが1匹なので、その中の1匹ずつを「この匹だけがメガシンカ（ほかはメガストーンの効果なし）」として計算し、いちばん良い場合で比べています。どの匹をメガシンカさせたかは選出ごとに出しています。`:''}${S.ax>=0?`軸の${nm(S.ax)}は必ず入れています。`:''}</p>
+    <p class="dgu-note">計算できる${entries.length-S.excluded}匹から${S.K}匹を選ぶ組み合わせを、${esc(S.T.opponentSource)}${N}匹との1対1の計算（相手ごとの対応力と同じ計算）で比べました。${S.multi?`メガストーンを持つ匹が2匹以上入る選出は、1試合にメガシンカできるのが1匹なので、その中の1匹ずつを「この匹だけがメガシンカ（ほかはメガストーンの効果なし）」として計算し、いちばん良い場合で比べています。どの匹をメガシンカさせたかは選出ごとに出しています。`:''}${S.ax>=0?`軸の${nm(S.ax)}は必ず入れています。`:''}</p>
     <div class="selu-best"><p class="selu-lab">いちばん良い選出（1番＝上の基本選出）</p>${mons(B)}
       ${dguBars(B.cnt,N)}${kpi}
       ${good.length?`<p class="sel-wh">この選出のよいところ</p><ul class="sel-why">${good.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
@@ -226,6 +239,6 @@ function dgSelHTML(S,entries){
     ${S.mine?`<div class="selu-sub"><h4>いま選んでいる選出</h4>${line(S.mine,S.mineRank-1)}<p class="dgu-note">${S.list.length}通りのうち<b>${S.mineRank}番目</b>${S.mine===B?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}</div>`:''}
     <details class="sel-all"><summary>${S.list.length}通りすべてを見る</summary>${S.list.map((x,k)=>line(x,k)).join('')}
       <p class="vcap">並びは点の順です（点の決め方は「1番と2番の点の内訳」）。「先発」の印は、その選出の中で比べた先発です。</p></details>
-    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`パーティの天気（${esc(S.tw.by)}の特性）は、その匹を選んだ選出でだけ入れています。`:''}${S.tr&&S.tr.on?'トリックルームは、技に入れている匹を選んだ選出でだけ、選出の全員（相手も）をトリックルーム中の順番で計算しています。覚えられるだけの匹では張ったことにしません。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較は、使用率の上位を相手の先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
+    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`パーティの天気（${esc(S.tw.by)}の特性）は、その匹を選んだ選出でだけ入れています。`:''}${S.tr&&S.tr.on?'トリックルームは、技に入れている匹を選んだ選出でだけ、選出の全員（相手も）をトリックルーム中の順番で計算しています。覚えられるだけの匹では張ったことにしません。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較では、計算対象の相手を先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
   </div>`;
 }
