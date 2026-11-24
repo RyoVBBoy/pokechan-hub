@@ -265,6 +265,19 @@ try{
       check(unknown.swIn==='unproven'&&capped.opW===9&&capped.myN===9&&capped.swIn==='unproven',
         'unsupported attacks and both sides beyond the calculation limit leave the switch-in win unproven',
         {unknown:unknown.swIn,opponentTurns:capped.opW,ownTurns:capped.myN});
+      // Control HP, speed and damage so only the accuracy changes the recommendation.
+      const fastCrunch=acc=>({...normal,st:[...normal.st.slice(0,5),200],moves:[{...mvObj(242),pow:300,acc}]});
+      const slowPsychic={...ghost,st:[...ghost.st.slice(0,5),50],moves:[{...mvObj(94),pow:200}]};
+      const cannotMiss=dgMatch(fastCrunch(100),slowPsychic);
+      const riskyMiss=dgMatch(fastCrunch(85),slowPsychic);
+      const withMargin=dgMatch(fastCrunch(85),{...slowPsychic,moves:[{...mvObj(94),pow:90}]});
+      check(cannotMiss.myN===1&&cannotMiss.opW===2&&cannotMiss.swIn==='win'
+        &&riskyMiss.swIn==='unproven'&&riskyMiss.swTxt.includes('命中85%')&&riskyMiss.swTxt.includes('1回外れる'),
+        'a switch-in that loses its finishing window after one miss is not a stable recommendation',
+        {accurate:cannotMiss.swIn,risky:riskyMiss.swIn,ownTurns:cannotMiss.myN,oppTurns:cannotMiss.opW});
+      check(withMargin.opW>=3&&withMargin.swIn==='win'&&withMargin.swTxt.includes('命中85%'),
+        'a switch-in with room for a miss keeps its effective accuracy in the explanation',
+        {oppTurns:withMargin.opW,verdict:withMargin.swIn});
       const view=selPlan(team),lineups=view.DS.list;
       const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
       const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);
