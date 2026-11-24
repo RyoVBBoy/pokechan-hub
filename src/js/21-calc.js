@@ -235,8 +235,8 @@ function calcView(){
     <div class="sec"><h2>条件</h2></div>
     <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap">
       <button class="pill" data-t="crit" aria-pressed="${CS.crit}">急所</button>
-      ${FMT==='double'?`<button class="pill" data-t="spread" aria-pressed="${CS.spread}">全体技が複数に当たる（全体技のみ×0.75）</button>`:''}
-      <button class="pill" data-t="screen" aria-pressed="${CS.screen}">${R&&R.mv.cls?'ひかりのかべ':'リフレクター'}${FMT==='double'?'（味方2匹）':''}</button>
+      ${FMT==='double'?`<button class="pill" data-t="spread" aria-pressed="${CS.spread}">${L('全体技が複数に当たる（×0.75）','Spread move hits multiple targets (×0.75)')}</button>`:''}
+      <button class="pill" data-t="screen" aria-pressed="${CS.screen}">${R&&R.mv.cls?L('ひかりのかべ','Light Screen'):L('リフレクター','Reflect')}${FMT==='double'?L('（受ける側2匹）',' (two on defending side)'):''}</button>
       <button class="pill" data-t="burn" aria-pressed="${CS.burn}">攻撃側がやけど</button>
       ${R&&MCOND[mkey(R.mv)]?`<button class="pill" data-t="cond" aria-pressed="${CS.cond}">${MCOND[mkey(R.mv)]}（威力2倍）</button>`:''}
       ${R&&(R.a.ab==='protean'||R.a.ab==='libero')?`<button class="pill" data-t="protean" aria-pressed="${CS.protean!==false}">${ABN[R.a.ab]}がこの技で発動する</button>`:''}
