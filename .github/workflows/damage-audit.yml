@@ -7,7 +7,7 @@ on:
 jobs:
   damage-audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,6 +38,15 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           node tools/build.mjs
+      - name: Real data integration
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs integration
+      - name: Generated build legality
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs legality
+      - name: Real data performance (4x CPU slowdown)
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs performance
       - name: 40 named cases
         env:
           CALC_CASES_REPORT: audit-calc-cases.json
@@ -59,6 +68,9 @@ jobs:
             audit-calc-cases-summary.json
             audit-calc-ref.json
             audit-item-oracle.json
+            audit-integration.json
+            audit-legality.json
+            audit-performance.json
           if-no-files-found: warn
       - name: Summarize auditable results
         if: always()
