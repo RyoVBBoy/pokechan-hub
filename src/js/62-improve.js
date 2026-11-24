@@ -28,29 +28,9 @@ function impWith(entries,fn){
   try{return fn()}finally{team.length=0;keep.forEach((x,k)=>{x.sel=keepSel[k];team.push(x)});TWX_K=null}
 }
 const impLv=rs=>{const st=rs.filter(r=>r.r>=4).length,ok=rs.filter(r=>r.r>=3).length,wk=rs.filter(r=>r.r===2).length;return st>=2?4:st===1?3:ok||wk?2:1};
-/* 1匹だけ変えたときの計算（変えた匹の列だけ dgMatch し直す）。天気・トリックルームの形が変わるなら全部 */
+/* 変更後の全体を再計算する。素早さ・技・メガ・天気・相手の特性推定は他の列にも影響するため、古い列を流用しない。 */
 function impRecalc(T0,entries,i){
-  return impWith(entries,()=>{
-    let wx0=null,wx1=null;
-    /* 変更前と同じ匹をメガシンカさせて比べる（メガストーンを持つ匹が2匹以上なら、部分的な計算し直しはせず全部） */
-    const full=()=>dgTeam0(entries,20,{megaNo:T0.mega&&T0.mega.no});
-    if(T0.mega&&T0.mega.holders.length>=2)return full();
-    try{wx1=teamWx()}catch(e){}
-    wx0=T0.wxKey;
-    if(JSON.stringify(wx1&&[wx1.k,wx1.by])!==JSON.stringify(wx0||null))return full();
-    /* 2026/11/20：持ち物が姿と合わない匹がいれば、部分的に計算し直さず全部（dgTeam1 と同じ決まりで外して数える） */
-    if(T0.formErr&&T0.formErr.some(z=>z.side==='me'))return full();
-    const x=entries[i],p=byNo[x.no];let a;try{const cs=mySetFor(x.no);if(dgStoneOf(x.no,cs)&&T0.mega&&T0.mega.holders.some(h=>h.i!==i))return full();a=mkMon(p,'me',cs)}catch(e){return full()}
-    if(a.formErr)return full();
-    const col=T0.rows.map(r=>{try{return{i,...dgMatch(a,r.o)}}catch(e){return null}});
-    const rows=T0.rows.map((r,j)=>{const res=r.res.map(z=>z.i===i?col[j]:z).filter(Boolean);
-      const stable=res.filter(z=>z.r>=4),ok=res.filter(z=>z.r>=3),weak=res.filter(z=>z.r===2);return{...r,res,stable,ok,weak,lvl:impLv(res),resTR:null,lvlTR:null}});
-    const M=T0.M.slice();M[i]=a;
-    const T1={...T0,M,rows};
-    /* トリックルーム構築か、変えた匹がトリックルームにかかわるときは全部 */
-    if(T0.tr&&T0.tr.on)return full();
-    return T1;
-  });
+  return impWith(entries,()=>dgTeam0(entries,20,{megaNo:T0.mega&&T0.mega.no}));
 }
 function impMetric(T,keep){const m=dgMetric(T,keep);m.st=(keep?T.rows.filter(r=>keep.has(r.q.no)):T.rows).filter(r=>r.lvl===4).length;return m}
 function impGain(b,a){return IMP_W.x*(b.x-a.x)+IMP_W.w*(b.w-a.w)+IMP_W.nosw*(b.nosw-a.nosw)+IMP_W.ohko*(b.ohko-a.ohko)+IMP_W.slow*(b.slow-a.slow)+IMP_W.st*(a.st-b.st)}
