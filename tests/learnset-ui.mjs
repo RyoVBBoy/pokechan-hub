@@ -52,6 +52,13 @@ const R=await pg.evaluate(()=>{const o={ed:[],dex:[],det:{}};const keep=team.sli
     const cs0=savedToCalc(cnt.no,{mv:[]});o.uncalc.empty=[cs0.moves.length>0,cs0.estMv];
   }finally{team.length=0;keep.forEach(x=>team.push(x))}
   return o});
+await pg.goto('file://'+path.join(ROOT,'dist/index.html')+'#/move/197');
+const more=pg.locator('.move-learners-more');
+const blaziken=more.getByText('バシャーモ',{exact:true});
+ok(await more.locator('summary').innerText()==='残り19匹を表示','みきりの詳細で残りの習得ポケモンを表示できる');
+ok(!(await blaziken.isVisible()),'展開前は残りの習得ポケモンを折りたたむ');
+await more.locator('summary').click();
+ok(await more.locator('a.row').count()===19&&await blaziken.isVisible(),'展開するとバシャーモを含む残り19匹が表示される');
 await b.close();
 ok(R.edN===264&&!R.ed.length,`育成の編集：264の元の姿の技の欄＝覚える技（違う姿 ${R.ed.length}）`,R.ed.slice(0,5));
 ok(R.dexN===346&&!R.dex.length,`図鑑の技の一覧：346の姿＝覚える技（違う姿 ${R.dex.length}）`,R.dex.slice(0,5));

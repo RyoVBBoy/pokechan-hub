@@ -41,7 +41,7 @@ const ABILITY_ROLES=[
 const mvRoles=id=>{const k=MD[id]&&MD[id][3];return MOVE_ROLES.filter(r=>r[4]?r[4](id):r[3].includes(k))};
 const roleMoves=r=>Object.keys(MD).map(Number).filter(id=>r[4]?r[4](id):r[3].includes(MD[id][3]));
 const abRoles=k=>ABILITY_ROLES.filter(r=>r[3].includes(k));
-const learners=id=>P.filter(p=>LSD[p.no]&&LSD[p.no][1].includes(id));
+const learners=id=>P.filter(p=>canLearn(p,id));
 /* メガシンカの姿の特性も入れる（2026/11/08：メガゲンガーの かげふみ が0匹と出ていた） */
 const abHolders=k=>[...P.filter(p=>(ABD[p.no]||[]).some(([a])=>a===k)),...(typeof MEGAP!=='undefined'?MEGAP.filter(m=>m.ab===k):[])];
 const mvChip=id=>`<a class="pill gchip" href="#/move/${id}">${esc(mName(id))}</a>`;
@@ -107,14 +107,15 @@ function moveView(id){
   setHeader(esc(mName(id)),'#/learn/move');
   const rs=mvRoles(id),ls=learners(id).sort((a,b)=>offense(b)-offense(a));
   const cls=['物理','特殊','変化'][i.cls]||'';
+  const preview=ls.slice(0,10),rest=ls.slice(10);
   V.innerHTML=`<div class="gdoc"><span class="atag">技</span><h2>${esc(mName(id))}</h2>
     <div class="chips" style="margin:6px 0 4px">${chip(i.t)}<span class="atag">${cls}</span>${i.pow?`<span class="atag">威力 ${i.pow}</span>`:''}${i.acc?`<span class="atag">命中 ${i.acc}</span>`:'<span class="atag">必ず当たる</span>'}${i.pp?`<span class="atag">PP ${i.pp}</span>`:''}${i.pri?`<span class="atag">優先度 ${i.pri>0?'+':''}${i.pri}</span>`:''}</div>
     <h3>効果</h3><p>${esc(MD[id][1])}</p>
     ${(()=>{const tp=moveTips(id);return tp.length?`<h3>使いどころ</h3><ul class="gtips">${tp.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''})()}
     ${rs.length?`<h3>分類</h3><div class="gtags">${rs.map(r=>`<a href="#/learn/move" class="gtag"><b>${esc(r[1])}</b><small>${esc(ROLE_TIP[r[0]]||'')}</small></a>`).join('')}</div>`:''}</div>
     <div class="sec"><h2>覚えるポケモン</h2><span style="font-size:12px;color:var(--dim)">${ls.length}匹（攻撃・特攻の高い順）</span></div>
-    ${ls.slice(0,10).map(p=>rowP(p)).join('')||'<p class="empty" style="padding:16px">収録ポケモンでは覚えません。</p>'}
-    ${ls.length>10?`<p class="note">ほか${ls.length-10}匹が覚えます。</p>`:''}
+    ${preview.map(p=>rowP(p)).join('')||'<p class="empty" style="padding:16px">収録ポケモンでは覚えません。</p>'}
+    ${rest.length?`<details class="as-ty move-learners-more"><summary>残り${rest.length}匹を表示</summary>${rest.map(p=>rowP(p)).join('')}</details>`:''}
     <div class="btns"><a class="btn btn-s" href="#/calc">ダメージ計算で試す</a></div>
     <p class="note" style="color:var(--mute)">技の効果と使いどころは当サイトが書いた説明です（ゲーム内の文章ではありません）。</p>`;
 }
