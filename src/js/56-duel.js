@@ -22,7 +22,7 @@ function duTurns(p,h,att,def){
   let n;
   /* マルチスケイル・ファントムガード：HP満タンで受ける1回目だけ半分。連続技は1発目の最初の1回だけ半分（2回目からはHPが満タンでない）（2026/11/10） */
   const hh=multi?(h.mv.minH===h.mv.maxH?h.mv.maxH:3):1;
-  const sq=h&&Array.isArray(h.seq)&&h.seq.length?h.seq:null,half=!ig&&DU_HALF_AB.includes(def.ab),dsg=!ig&&def.ab==='disguise'&&def.max;
+  const sq=h&&Array.isArray(h.seq)&&h.seq.length?h.seq:null,half=!ig&&DU_HALF_AB.includes(def.ab),dsg=!ig&&def.ab==='disguise'&&def.disg!==false&&def.max;
   if(sq){
     /* 2026/11/24：メテオビーム・エレクトロビームは使うたびに特攻が上がるので、使うごとのダメージ（h.seq＝1回目・2回目…）を足して数える
        （前は1回目のダメージのまま n 回と数えていた）。マルチスケイルは1回目だけ半分（h.f）、ばけのかわは1回目が防がれて1/8が減る */

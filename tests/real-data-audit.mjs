@@ -306,6 +306,25 @@ try{
       const openingKO={...firstTurn,moves:[{...mvObj(252),pow:1000}]};
       check(dgBest(firstTurn,firstTurnTarget)===null&&dgBest(openingKO,firstTurnTarget)?.nMin===1,
         'first-turn-only moves are not treated as repeatedly usable attacks');
+      // Force enough damage for a single hit to trigger survival, then vary the hit count.
+      const controlled=(id,ab=null)=>({...fastCrunch(100),ab,moves:[{...mvObj(id),pow:1000}]});
+      const sashTarget={...normal,side:'op',item:'focussash'};
+      const sturdyTarget={...sashTarget,item:null,ab:'sturdy'};
+      for(const target of [sashTarget,sturdyTarget]){
+        const bomb=dgMatch(controlled(860),target);
+        const bond=dgMatch(controlled(34,'parental-bond'),target);
+        check(bomb.me.hMin===1&&bomb.me.nMin>=2&&bomb.me.nMax===1&&Math.abs(bomb.koOnUse-.81)<1e-9
+          &&dgKoTxt(bomb.me)==='1回で倒せる場合あり'&&dguKoPct(bomb)==='81%',
+          'Population Bomb needs its second hit to KO through survival',
+          {survival:target.item||target.ab,minTurns:bomb.me.nMin,maxTurns:bomb.me.nMax,probability:bomb.koOnUse});
+        check(bond.me.nHit===2&&bond.me.nMin===1&&bond.koOnUse===1,
+          'Parental Bond breaks survival and finishes in the same use',{minTurns:bond.me.nMin,probability:bond.koOnUse});
+      }
+      const disguised=mkMon(byNo[778],'op',{...chooseSet(byNo[778],true),ab:'disguise'});
+      const disguiseIntact=dgMatch(controlled(242),disguised);
+      const disguiseBroken=dgMatch(controlled(242),{...disguised,disg:false});
+      check(disguiseIntact.me.nMin>=2&&disguiseIntact.koOnUse===0&&disguiseBroken.me.nMin===1&&disguiseBroken.koOnUse===1,
+        'only an intact Disguise prevents a single-hit KO',{intact:disguiseIntact.me.nMin,broken:disguiseBroken.me.nMin});
       const view=selPlan(team),lineups=view.DS.list;
       const unsafeLine=lineups.find(x=>x.c.includes(3)&&!x.leads.slice(0,LEADN()).includes(3)&&x.rows.find(r=>r.r.q.no===248)?.zs.some(z=>z.i===3&&z.swIn==='no'));
       const unsafeFlow=stSelectionFlow({...view,DS:{...view.DS,best:unsafeLine},lead:unsafeLine.leads.slice(0,LEADN())},team);

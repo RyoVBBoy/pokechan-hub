@@ -80,8 +80,30 @@ function dgKoOnUse(a,x,d){
       return Math.min(1,x.ohko/16)*acc*(d.item==='focusband'?.9:1);
     }
   }
+  if(!d.disg){
+    const hp=d.hp;
+    let ko=0;
+    for(const [count,weight] of hitCountDist(a,x.mv,d,{})){
+      for(const [damage,probability] of hitDist(a,x.mv,d,{nHits:count,surv:true,cap:hp})){
+        if(damage>=hp)ko+=probability*weight;
+      }
+    }
+    return Math.min(1,ko)*acc*(d.item==='focusband'?.9:1);
+  }
   const ko=koInfo(dmgRolls(a,x.mv,d,{noNext:true}),d.hp,1);
   return ko.n===1?ko.p*acc:0;
+}
+/* 初回の撃破判定は、タスキ・がんじょう・ばけのかわを当たりごとに処理する。 */
+function dgTurns(a,x,d,upper=false){
+  const {mv}=x,damage=upper?x.max:x.min,firstDamage=upper?x.fmax:x.fmin;
+  const turns=duTurns(damage,{mv,acc:100,f:firstDamage,seq:upper?x.seqMax:x.seqMin},a,d);
+  const survival=d.hp===d.max&&(d.item==='focussash'||(d.ab==='sturdy'&&a.ab!=='mold-breaker'));
+  const multi=x.nHit>1||x.hMax>1;
+  if(!d.disg&&!(survival&&multi&&firstDamage>=100))return turns;
+  const first=bhits(a,mv,d,{r:upper?100:85,nHits:upper?x.hMax:x.hMin,surv:true});
+  const kind=typeof mvTurnK==='function'?mvTurnK(a,mv):null;
+  if(first.fainted)return kind==='charge'?2:1;
+  return Math.max(turns,kind==='charge'?4:kind==='recharge'?3:2);
 }
 /* いちばん頼れる技：確定で倒せる回数が少ない順 → 最小ダメージ×命中の大きい順 */
 function dgBest(a,d){
@@ -89,7 +111,7 @@ function dgBest(a,d){
   /* みらいよち・はめつのねがいは2ターン後に当たるので、1対1の撃ち合いには入れない */
   (a.moves||[]).forEach(mv=>{if(!mv||mv.prot||!(mv.pow>0||mv.fixed||fixedDmg(a,mv,d)!=null))return;if(['futuresight','doomdesire'].includes(mkey(mv))||!moveUsable(mv,{a,d}).ok)return;
     const x=dgMove(a,mv,d);if(!x.max)return;
-    x.nMin=duTurns(x.min,{mv,acc:100,f:x.fmin,seq:x.seqMin},a,d);x.nMax=duTurns(x.max,{mv,acc:100,f:x.fmax,seq:x.seqMax},a,d);
+    x.nMin=dgTurns(a,x,d);x.nMax=dgTurns(a,x,d,true);
     if(MFIRST.has(mkey(mv))&&x.nMin>1)return;
     /* 同じ回数で倒せるなら、命中90以上の技を先に（2026/11/10：だいもんじ〔命中85〕を選んで「不安定」になっていた） */
     const key=[x.nMin,x.acc>=90?0:1,-(x.min*x.acc)];
@@ -125,7 +147,7 @@ const dgDmgTxt=(x,who)=>{if(!x)return '';const pc=v=>dgPct(v);
 const dgHalfTxt=x=>x&&x.half?`（${ABN[x.half]||'特性'}で初撃は${dgPct(x.fmin)}〜${dgPct(x.fmax)}、2発目から${dgPct(x.min)}〜${dgPct(x.max)}）`:'';
 const dgKoTxt=x=>{if(!x||!x.max)return '効く技がない';
   if(x.nMin===1)return '確定1発';
-  if(x.nMax===1)return `乱数1発（${Math.round(x.ohko/16*100)}%）`;
+  if(x.nMax===1)return '1回で倒せる場合あり';
   if(x.nMin===x.nMax)return x.nMin>=9?'倒しきれない':`確定${x.nMin}発`;
   return `乱数${x.nMax}発（確定${x.nMin>=9?'なし':x.nMin+'発'}）`};
 /* 1対1：a（こちら）と o（相手）。どちらの技も「確定（乱数最小）」と「最悪の場合（相手は乱数最大）」で見る */
@@ -150,7 +172,7 @@ function dgMatch0(a,o){
   /* 相手の攻撃は乱数最大（こちらにとって最悪）で数える */
   const opW=op?op.nMax:9,opB=op?op.nMin:9;
   const pr=dgPrio(a,o),opPr=dgPrio(o,a);
-  const prKO=pr&&duTurns(pr.min,{mv:pr.mv,acc:100,f:pr.fmin,seq:pr.seqMin},a,o)===1;
+  const prKO=pr&&dgTurns(a,pr,o)===1;
   /* 先に倒しきれるか：こちらが先に動けるなら myN<=opW、遅ければ myN<opW。先制技のとどめ・相手の先制技も見る */
   const finPr=(n,x,p)=>p&&p.min>0&&(n===1||!MFIRST.has(mkey(p.mv)))&&(n-1)*x.min+p.min>=100;
   let first=spd;
@@ -158,7 +180,7 @@ function dgMatch0(a,o){
   if(first>=0&&op&&finPr(opW,op,opPr)&&!(me&&finPr(myN,me,pr)))first=-1;
   const winSafe0=myN<9&&(first===1?myN<=opW:myN<opW);
   /* こちらのきあいのタスキ・がんじょうで1回耐えるおかげで勝てるだけなら「条件つき」にする */
-  const opRaw=op?duTurns(op.max,{mv:op.mv,acc:100,f:op.fmax,seq:op.seqMax},o,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab}):9;
+  const opRaw=op?dgTurns(o,op,{...a,item:a.item==='focussash'?null:a.item,ab:a.ab==='sturdy'?'':a.ab},true):9;
   const winSafe=myN<9&&(first===1?myN<=opRaw:myN<opRaw);
   const sashOnly=winSafe0&&!winSafe;
   const winTie=myN<9&&first===0&&myN<=opW;
