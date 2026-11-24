@@ -246,8 +246,8 @@ try{
       check(improvements.list.filter(x=>x.T1).every(x=>x.J.tr&&x.J.tr.gain>=0&&!x.J.tr.loss),'P04 recommended changes preserve Trick Room and show both scenarios');
 
       const candidates=[1.00150,1.00075,1.00000].map((sc,i)=>({sc,c:[i],cnt:{1:3-i,3:0,4:0},danger:[],sw:0,fast:0}));
-      const [A,B,C]=candidates;
-      const orders=[[A,B,C],[A,C,B],[B,A,C],[B,C,A],[C,A,B],[C,B,A]];
+      const [high,mid,low]=candidates;
+      const orders=[[high,mid,low],[high,low,mid],[mid,high,low],[mid,low,high],[low,high,mid],[low,mid,high]];
       check(orders.map(x=>x.sort(dgSelOrder).map(o=>o.c[0]).join()).every(s=>s==='0,1,2'),'P09 close scores have a deterministic ranking for all six input orders');
 
       team=[member(6,'charizarditey'),...[445,149,143,700,279].map(no=>member(no))];
