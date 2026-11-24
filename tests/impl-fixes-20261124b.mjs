@@ -94,7 +94,8 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
     const all=team.map(x=>({...x,axis:false}));
     const SA=cold(()=>rank(dgSelect(all)));
     DG_MEMO_OFF=false;
-    t=performance.now();const B2=cold(()=>dgImprove(team));const tB=performance.now()-t;
+    t=performance.now();const B2=cold(()=>impGet(team));const tB=performance.now()-t;
+    const cached=impGet(team);
     const SB=cold(()=>rank(dgSelect(all))),warm=rank(dgSelect(all));
     const proposals=B2.list.filter(x=>x.T1);
     const independent=proposals.every(x=>impWith(x.entries,()=>{
@@ -104,7 +105,7 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
                   ===JSON.stringify([x.sel.a.c,x.sel.a.sc,x.sel.a.cnt,x.sel.a.sw,x.sel.a.swc,x.sel.a.fast,x.sel.a.megaI,x.sel.a.trUse,x.sel.a.wxOk]));
     }));
     o.memo[fmt]={eq:sig(A)===sig(B2),selection:JSON.stringify(SA)===JSON.stringify(SB)&&JSON.stringify(SB)===JSON.stringify(warm),
-      independent,proposals:proposals.length,n:B2.list.length,ranked:SB?.length,tA:Math.round(tA),tB:Math.round(tB)};}}
+      cached:cached===B2,independent,proposals:proposals.length,n:B2.list.length,ranked:SB?.length,tA:Math.round(tA),tB:Math.round(tB)};}}
   finally{DG_MEMO_OFF=false;FMT=fmt0;team.length=0;keepT2.forEach(x=>team.push(x))}
   /* ⑬ メガリザードンYを外した選出は、メガなし・晴れなしの独立した診断と、各対面まで同じ。 */
   o.recalc=impWith([6,3,445,143,700,149].map((no,i)=>({no,set:{...setToSaved(byNo[no],mySetFor(no)),
@@ -157,6 +158,7 @@ await b.close();
 for(const f of ['single','double']){
   const m=R.memo[f];
   ok(m?.eq&&m.proposals>0,`改善案（${f}）：使い回しありとなしで各対面・改善提案の順位・前後の値が同じ`,m);
+  ok(m?.cached,`改善案（${f}）：同じ条件で開き直すと検証済みの改善案を再利用する`,m);
   ok(m?.selection&&m.ranked===(f==='single'?20:15),`選出（${f}）：キャッシュありとなしで全順位・後出し・先発の順が同じ`,m);
   ok(m?.independent&&m.proposals>0,`改善案（${f}）：各提案を独立して全体計算しても各対面と最上位選出が同じ`,m);
 }

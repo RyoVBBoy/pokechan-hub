@@ -41,6 +41,9 @@ jobs:
       - name: Real data integration
         if: ${{ !cancelled() }}
         run: node tests/real-data-audit.mjs integration
+      - name: Reused and full party recalculation parity
+        if: ${{ !cancelled() }}
+        run: node tests/impl-fixes-20261124b.mjs
       - name: Generated build legality
         if: ${{ !cancelled() }}
         run: node tests/real-data-audit.mjs legality
