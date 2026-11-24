@@ -134,7 +134,7 @@ const mvpSetRaw=(fmt,r)=>{const m=mvpSet(fmt,r.no,{stone:r.stone,anyLegal:true,a
 /* 1対1の結果を覚える（同じポケモン・同じ型・同じメガの状態・同じ天気・同じ相手なら同じ） */
 const MVP_MC=new Map();
 function mvpMatch(a,aSig,op,wx){
-  const k=aSig+'|'+op.sig+'|'+wx;if(MVP_MC.has(k))return MVP_MC.get(k);
+  const k=aSig+'|'+op.sig+'|'+wx+'|'+inTeam(a);if(MVP_MC.has(k))return MVP_MC.get(k);
   let z=null;try{const m=dgMatch(a,op.o);z={r:m.r,k:m.k,sw:m.swIn==='win',recv:!m.op||m.op.fmax<50,oh:!!(m.op&&m.op.nMax===1),hit:!!(m.me&&m.me.max>=50),fast:m.spd===1,t:m.t}}catch(e){z=null}
   MVP_MC.set(k,z);return z;
 }
@@ -155,19 +155,24 @@ function mvpEvalTeam(entries,fmt,opt){
   const scen=(users.length?(opt&&opt.none?[-1,...users]:users):[-1]).map(u=>({u,key:u<0?'none':'mega:'+mem[u].x.no,label:u<0?'メガシンカなし':`${byNo[megaOf(mem[u].x.no,mem[u].stone).no].n}（${formInfo(mem[u].p).base}がメガシンカ）`,
     stoneSt:u<0?null:mvpStoneSt(mem[u].stone,mem[u].x.no)}));
   return mvpCtx(entries,()=>{
-    let wx='';try{const w=teamWx();wx=w?w.k+':'+w.by:''}catch(e){}
-      scen.forEach(sc=>{
+    const weatherKey=()=>{const w=teamWx();return w?w.k+':'+w.by:''};
+    const wx=weatherKey();
+    const prevMega=WX_MEGA;
+    try{scen.forEach(sc=>{
+        WX_MEGA=sc.u<0?null:mem[sc.u].x.no;
+        const scenarioWx=weatherKey();
         const mons=mem.map((m,i)=>{const mega=i===sc.u;const set=m.stone&&!mega?{...m.S.calc,item:null}:m.S.calc;
           const sig=m.x.no+':'+JSON.stringify([set.ab,set.item,(set.moves||[]).map(v=>v.id+(v.prot?'p':'')),set.sp,set.up,set.dn]);
           return{a:mkMon(m.p,'me',set),sig}});
         /* 確かめ用：この場合でメガの姿で計算したポケモン（いつも0匹か1匹） */
         sc.megaIdx=mons.map((m,i)=>m.a.p.base?i:-1).filter(i=>i>=0);
-        sc.rows=O.list.map(op=>{const z=mons.map(m=>mvpMatch(m.a,m.sig,op,wx));
+        sc.rows=O.list.map(op=>{const z=mons.map(m=>mvpMatch(m.a,m.sig,op,scenarioWx));
           const ok=z.filter(Boolean);const n=mons.length,adv=ok.filter(v=>v.r>=4).length,sw=ok.filter(v=>v.sw).length,recv=ok.filter(v=>v.recv).length,oh=ok.filter(v=>v.oh).length,hit=ok.filter(v=>v.hit).length,any3=ok.filter(v=>v.r>=3).length;
           const wk=[];if(!any3)wk.push('none');if(!sw&&!recv)wk.push('nosw');if(n>=2&&oh>=Math.ceil(n/2))wk.push('ohko');if(!hit)wk.push('nohit');
           const top=op.rank<=MVP_TOPN;
           return{op,z,adv,sw,recv,oh,hit,wk:wk.map(k=>({k,crit:k==='ohko'||top}))}});
         sc.weak=[];sc.rows.forEach(r=>r.wk.forEach(w=>sc.weak.push({key:r.op.key+'|'+w.k,op:r.op,k:w.k,crit:w.crit})))});
+    }finally{WX_MEGA=prevMega}
       return{st:'ok',fmt,ver:MVP_DATA.version,meta:mvpMeta(fmt),mem:mem.map(m=>({no:m.x.no,src:m.S.src,item:m.S.calc.item||null,stone:m.stone,noItem:!!m.S.noItem,lg:mvpLegal(m.x.no)})),scen,wx,oppSkip:O.skip,unmapped:O.unmapped,
         /* 自動の型（推定）は攻撃技しか分からないので、役わりは攻撃技と特性だけ */
         abs:mem.map(m=>m.S.calc.ab||null),

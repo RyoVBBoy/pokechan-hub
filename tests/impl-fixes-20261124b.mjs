@@ -89,7 +89,7 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
     const rank=S=>S?S.list.map(x=>[x.c,x.sc,x.cnt,x.sw,x.swc,x.fast,x.megaI,x.trUse,x.wxOk,x.rows.map(r=>[r.r.q.no,r.r.o.ab,r.lvl,r.zs]),x.leads]):null;
     const sig=I=>JSON.stringify({grid:grid(I.T0),l:I.list.map(x=>[x.kind,x.i,x.title,x.why,x.J.b,x.J.a,x.J.gain,x.J.D.up,x.J.D.dn,x.megaChg,grid(x.T1),x.T1?.mega.no,
       x.sel&&[x.sel.b.c.map(x.sel.beforeNm),x.sel.a.c.map(x.sel.afterNm),x.sel.b.sc,x.sel.a.sc,x.sel.b.cnt,x.sel.a.cnt,x.sel.b.sw,x.sel.a.sw]]),d:I.dropped,t:I.tried});
-    const cold=fn=>{DG_CACHE.k=null;DG_SELC.clear();IMP_CACHE.clear();return fn()};
+    const cold=fn=>{DG_CACHE.k=null;DG_SELC.clear();IMP_CACHE.clear();MVP_MC.clear();return fn()};
     DG_MEMO_OFF=true;let t=performance.now();const A=cold(()=>dgImprove(team));const tA=performance.now()-t;
     const all=team.map(x=>({...x,axis:false}));
     const SA=cold(()=>rank(dgSelect(all)));
@@ -118,6 +118,10 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
       const z=dry.get((y.r.from||y.r.q).no);
       return y.r.o.ab===z.o.ab&&JSON.stringify(y.zs)===JSON.stringify(x.c.map(i=>(x.trUse?z.resTR:z.res).find(v=>i===v.i)).filter(Boolean));
     }));
+    const swapGate=mvpEvalTeam(team,FMT,{none:true});
+    const gateDry=swapGate.scen.find(s=>s.u<0);
+    const gateWet=swapGate.scen.find(s=>s.u===0);
+    const weatherChangesMvp=!!gateDry&&!!gateWet&&gateWet.rows.some((r,j)=>r.z[1]?.fast!==gateDry.rows[j].z[1]?.fast);
     team[0]={no:324,set:{...setToSaved(byNo[324],mySetFor(324)),it:null,ab:{k:'drought'}}};
     const noSetter=dgSelect(team).list.filter(x=>!x.c.includes(0)&&x.c.includes(1));
     const savedOff=WX_OFF;
@@ -136,7 +140,7 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
       LIVE.csv[target]={mv:[['ステルスロック',100]]};
       changed=dgTeam(team,20)!==first;
     }finally{if(prev===undefined)delete LIVE.csv[target];else LIVE.csv[target]=prev}
-    return{without:without.length,withSun:withSun.length,same,drySame,changed,
+    return{without:without.length,withSun:withSun.length,same,drySame,changed,weatherChangesMvp,
       sun:withSun.some(x=>x.rows.some(r=>r.zs.some(z=>z.i===1&&z.wxTeam)))};
   });
   const result={c:[0],cnt:{1:0,2:0,3:1,4:0}};
@@ -153,6 +157,7 @@ for(const f of ['single','double']){
 ok(R.recalc.without>0&&R.recalc.withSun>0&&R.recalc.sun&&R.recalc.same,'メガリザードンYを選ばない場合は、メガなしで全体を計算した対面と一致する',R.recalc);
 ok(R.recalc.drySame,'コータスを選ばない場合は、天候役の補正なしで全体を計算した対面と一致する',R.recalc);
 ok(R.swapNames,'入れかえ案の選出比較では変更前と変更後それぞれの名前を表示する');
+ok(R.recalc.weatherChangesMvp,'入れかえ案の判定でメガリザードンYの有無に応じてフシギバナの行動順が変わる',R.recalc);
 ok(R.recalc.changed,'同じ相手の使用データが更新されたら診断キャッシュを更新する',R.recalc);
 console.log('改善案の時間（使い回しなし→あり）',JSON.stringify(R.memo));
 const S=R.sf;
