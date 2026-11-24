@@ -166,7 +166,10 @@ try{
       const clear=weather.list.find(x=>x.c.includes(2)&&!x.c.includes(0)&&!x.c.includes(1));
       const salamence=x=>x.rows.find(y=>y.r.q.no===373).zs.find(z=>z.i===2);
       const rainy=salamence(rain),dry=salamence(clear);
-      check(rain.weather?.no===279&&!clear.weather&&rainy.sa===260&&dry.sa===130&&rainy.swIn==='win'&&dry.swIn!=='win','P01 selected Pelipper and no-setter matchups use the correct conditions',[rainy.sa,dry.sa,rainy.swIn,dry.swIn]);
+      check(rain.weather?.no===279&&!clear.weather&&rainy.sa===260&&dry.sa===130
+        &&rainy.swIn==='unproven'&&rainy.me.acc<100&&rainy.swTxt.includes('1回外れる')&&dry.swIn==='survive',
+        'P01 rain changes speed and creates a finishing window that still depends on accuracy',
+        {rainSpeed:rainy.sa,clearSpeed:dry.sa,move:rainy.me.mvn,accuracy:rainy.me.acc,rain:rainy.swIn,clear:dry.swIn});
       check(dgSelWhy(weather,rain).good.some(t=>/ペリッパー.*雨/.test(t)),'P01 selection explanation names the weather actually evaluated');
 
       // Keep Pelipper's rain active as a scenario, then vary only the opponent's ability.
