@@ -79,7 +79,7 @@ function calcMoveList(X){
 const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
 const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
-const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','liquid-voice','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina'];
+const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','liquid-voice','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','gale-wings','quick-feet','trace','rivalry','sand-veil','snow-cloak'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
 const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','focusband'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
 function calcNotes(R){
   const o=[],a=R.a,d=R.d,n=R.n||1,mv=R.mv;

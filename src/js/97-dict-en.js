@@ -155,6 +155,8 @@ const EN={
 /* 数字や名前が入る文 */
 const enT=s=>EN[s]!=null?EN[s]:s;
 const EN_RE=[
+ [/^特性「(.+)」の効果は計算に入っていません$/,'The effect of the ability $1 is not included in the calculation'],
+ [/^持ち物「(.+)」の効果は計算に入っていません$/,'The effect of the item $1 is not included in the calculation'],
   [/^「(.+)」はまだ空です$/,(m,a)=>`“${a}” is empty`],
   [/^集計の提供元に今つながらないため、(\d+\/\d+) ?(\d+:\d+)?に読めた集計を表示しています。$/,(m,a,b)=>`The usage data source is unreachable; showing data loaded on ${a}${b?' '+b:''}.`],
   [/^集計の提供元に今つながらないため、(\d+\/\d+)に集計ありで計算したランキングを表示しています。$/,'The usage data source is unreachable; showing the ranking computed with usage data on $1.'],
