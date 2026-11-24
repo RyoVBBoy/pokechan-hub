@@ -341,7 +341,7 @@ function refill(S,log){
     if(j>=0){S.act[k]=j;log(`<span class="ko">${bn(S.mons[j])}が 出てきた！</span>`);enter(S.mons[j],log)}
   }
 }
-function hitType(a,mv){if(a&&a.ab==='liquid-voice'&&mv&&mfl(mv,'o'))return 'みず';if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
+function hitType(a,mv,d){if(a&&a.ab==='liquid-voice'&&mv&&mfl(mv,'o'))return 'みず';if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':wxEffK(a,d);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
 /* ---- 条件で威力が変わる技 ---- */
 const WT={"3":100,"6":90.5,"9":85.5,"15":29.5,"18":39.5,"24":65,"25":6,"26":30,"10100":21,"36":40,"38":19.9,"10104":19.9,"40":12,"45":18.6,"53":32,"10108":33,"863":28,"59":155,"10230":168,"186":33.9,"65":48,"68":130,"71":15.5,"80":78.5,"10165":70.5,"199":79.5,"10172":79.5,"83":15,"865":117,"94":40.5,"208":400,"464":282.8,"115":80,"121":80,"122":54.5,"866":58.2,"212":118,"900":89,"127":55,"128":88.4,"10250":115,"10251":85,"10252":110,"130":235,"132":4,"134":29,"135":24.5,"136":25,"196":26.5,"197":27,"470":25.5,"471":25.9,"700":23.5,"142":59,"143":460,"149":210,"154":100.5,"157":79.5,"10233":69.8,"160":88.8,"168":33.5,"181":61.5,"184":28.5,"981":160,"205":125.8,"472":42.5,"211":3.9,"904":60.5,"214":54,"461":34,"903":43,"473":291,"227":50.5,"229":35,"899":95.1,"248":202,"254":52.2,"257":52,"260":81.9,"279":28,"282":48.4,"475":52,"302":11,"303":11.5,"306":360,"308":31.5,"310":40.2,"407":14.5,"317":80,"319":88.8,"323":220,"324":80.4,"334":20.6,"350":162,"351":0.8,"354":12.5,"358":1,"359":47,"362":256.5,"478":26.6,"373":102.6,"376":550,"389":310,"392":55,"395":84.5,"398":24.9,"405":42,"409":102.5,"411":149.5,"428":33.3,"442":108,"445":95,"448":54,"450":300,"454":44.4,"460":135.5,"479":0.3,"10008":0.3,"10009":0.3,"10010":0.3,"10011":0.3,"10012":0.3,"497":63,"500":150,"503":94.6,"10236":58.2,"505":27,"510":37.5,"512":30.5,"514":28,"516":29,"518":60.5,"530":40.4,"531":31,"534":87,"545":200.5,"547":6.6,"902":110,"10248":110,"553":96.3,"560":30,"563":76.5,"867":66.6,"569":107.3,"571":81.1,"10239":73,"579":20.1,"584":57.5,"587":5,"604":80.5,"609":34.3,"614":260,"618":11,"10180":20.5,"623":330,"635":160,"637":46,"652":90,"655":39,"658":40,"660":42.4,"663":24.5,"666":17,"668":81.5,"10061":0.9,"671":10,"673":91,"675":136,"676":28,"678":8.5,"681":53,"683":15.5,"685":5,"687":47,"689":96,"691":81.5,"693":35.3,"695":21,"697":270,"699":225,"701":21.5,"702":2.2,"706":150.5,"10242":334.1,"707":3,"709":71,"711":12.5,"10030":9.5,"10031":14,"10032":39,"713":505,"10243":262.4,"715":85,"724":36.6,"10244":37,"727":83,"730":44,"733":26,"740":180,"745":25,"10126":25,"10152":25,"748":14.5,"750":920,"752":82,"758":22.2,"763":21.4,"765":76,"766":82.8,"768":108,"778":0.7,"780":185,"784":78.2,"812":90,"815":33,"818":45.2,"823":75,"828":19.9,"841":1,"842":13,"844":65.5,"849":40,"10184":40,"853":39,"855":0.4,"858":5.1,"861":61,"869":0.5,"870":62,"871":1,"876":28,"10186":28,"877":3,"887":50,"908":31.2,"911":326.5,"914":61.9,"972":15,"956":90,"964":60.2,"930":48.2,"952":15,"939":113,"968":310,"925":2.3,"998":210,"923":41,"931":2.4,"10260":2.4,"10261":2.4,"10262":2.4,"934":240,"970":45,"943":61,"1000":30,"959":112.8,"936":85,"937":62,"983":120,"979":56,"1013":2.2,"1018":60,"1019":93,"10025":8.5,"10033":155.5,"10034":110.5,"10035":100.5,"10036":101.1,"10037":48,"10038":40.5,"10039":100,"10040":59,"10041":305,"10042":79,"10045":61.5,"10046":125,"10047":62.5,"10048":49.5,"10049":255,"10050":52,"10051":48.4,"10052":23.5,"10053":395,"10054":31.5,"10055":44,"10056":13,"10057":49,"10058":95,"10059":57.5,"10060":185,"10064":102,"10065":55.2,"10066":161,"10067":20.6,"10068":56.4,"10069":32,"10070":130.3,"10071":120,"10072":740,"10073":50.5,"10074":350.2,"10076":942.9,"10087":320.5,"10088":28.3,"10089":112.6,"10090":40.5,"10278":42.3,"10279":125.5,"10280":80,"10281":290,"10282":201,"10283":108.8,"10284":40.4,"10285":29.6,"10286":180.3,"10287":60,"10288":230.5,"10289":31,"10290":180,"10291":69.6,"10292":90,"10293":39,"10294":40,"10295":93.3,"10296":100.8,"10297":69.8,"10298":100,"10299":100.3,"10300":25,"10302":240.5,"10303":99,"10304":38,"10305":26,"10306":8,"10307":49,"10308":50,"10309":99,"10310":49.4,"10313":330,"10314":10.1,"10315":252.8,"10316":148,"10320":22,"10321":77,"10325":315,"10326":10.1};
 /* 技の英語ID｜性質（c接触 pパンチ bかみつき l波動 s切る o音 w風 x弾 dおどり） */
@@ -399,7 +399,7 @@ function varPow(a,mv,d,o){
     case 'acrobatics':return a.item?pw:pw*2;
     case 'hex':case 'infernalparade':return d.status?pw*2:pw;
     case 'storedpower':case 'powertrip':return pw+20*Object.values(a.stg).reduce((x,v)=>x+(v>0?v:0),0);
-    case 'weatherball':{const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);return w?pw*2:pw}
+    case 'weatherball':{const w=a.ab==='mega-sol'?'sun':wxEffK(a,d);return w?pw*2:pw}
     case 'payback':case 'avalanche':case 'assurance':case 'stompingtantrum':case 'temperflare':case 'boltbeak':case 'fishiousrend':return o.cond?pw*2:pw;
     case 'ragefist':return Math.min(350,pw+50*(o.cnt||0));
     case 'lastrespects':return Math.min(300,pw+50*(o.cnt||0));
@@ -429,7 +429,7 @@ const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
    （ポケモン対戦シミュレーター Showdown の処理と同じ：this.damage(baseMaxhp/8) → 1未満は1にし、小数を切り捨てる。チャンピオンズ用の変更もない） */
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
 function bcalc(a,mv,d,o){
-  o=o||{};const t=hitType(a,mv);
+  o=o||{};const t=hitType(a,mv,d);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
   /* くろいてっきゅう：持つと地面に着く（じめん技が ふゆう・ひこうタイプにも当たる。2026/11/24） */
   const grounded=d.item==='ironball'&&t==='じめん';
@@ -603,7 +603,7 @@ function hitStep(a,mv,d,i,r,cr,o,st){
       else if(d.ab==='sturdy'&&a.ab!=='mold-breaker'){dmg=st.hp-1;ns.surv='sturdy'}}
     h={dmg,crit:cr,r:r||null,hp:st.hp};
     if(!x.eff)return{x,h,ns:{...ns,stop:true}};
-    if(st.item&&RES_BERRY[st.item]&&RES_BERRY[st.item]===hitType(a,m)&&(x.eff>=2||st.item==='chilanberry'))ns.item=null;
+    if(st.item&&RES_BERRY[st.item]&&RES_BERRY[st.item]===hitType(a,m,d)&&(x.eff>=2||st.item==='chilanberry'))ns.item=null;
     if(st.item==='airballoon')ns.item=null;
     ns.hp=st.hp-dmg;
     if(ns.hp>0){
@@ -679,10 +679,10 @@ function hitDist(a,mv,d,o){
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
-  if(a.item==='normalgem'&&hitType(a,mv)==='ノーマル')return true;
+  if(a.item==='normalgem'&&hitType(a,mv,d)==='ノーマル')return true;
   if((d.ab==='stamina'||d.ab==='weak-armor')&&mv.cls===0&&mv.id!==776)return true;
   if(d.disg)return true;
-  if(d.item&&RES_BERRY[d.item]&&(RES_BERRY[d.item]===hitType(a,mv)))return true;
+  if(d.item&&RES_BERRY[d.item]&&(RES_BERRY[d.item]===hitType(a,mv,d)))return true;
   if(d.hp===d.max&&d.ab==='multiscale')return true;
   return false}
 function nextUse(a,mv,d,o){
@@ -691,11 +691,11 @@ function nextUse(a,mv,d,o){
   const a2={...a,stg:{...a.stg}};
   if(MB_REP.has(k))a2.stg.spa=Math.min(6,(a2.stg.spa||0)+1);
   if(!sfSup(a,mv))((mv.e&&mv.e.s)||[]).forEach(([s,n,c])=>{if(c>=100&&a2.stg[s]!=null)a2.stg[s]=Math.max(-6,Math.min(6,a2.stg[s]+n))});
-  if(a.item==='normalgem'&&hitType(a,mv)==='ノーマル')a2.item=null;
+  if(a.item==='normalgem'&&hitType(a,mv,d)==='ノーマル')a2.item=null;
   const d2={...d,stg:{...st.stg},item:st.item,disg:st.disg,hp:Math.min(d.hp,Math.max(1,d.max-1))};
   /* changed は次の使用のダメージに効く変化だけ（ほかの変化も写しには入れておく） */
   const ok=nuOffK(mv),dk=mv.id===776||mv.cls===0||(mv.e&&mv.e.ps)?'def':'spd';
-  const berryRel=!!(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,mv));
+  const berryRel=!!(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,mv,d));
   const changed=(a2.stg[ok]||0)!==(a.stg[ok]||0)||(MB_REP.has(k)&&(a2.stg.spa||0)!==(a.stg.spa||0))||a2.item!==a.item||(d2.stg[dk]||0)!==(d.stg[dk]||0)||(berryRel&&d2.item!==d.item)||d2.disg!==d.disg||(d.hp===d.max&&d.ab==='multiscale');
   return{a:a2,d:d2,changed};
 }

@@ -36,8 +36,8 @@ const DG_DOUBLE_LIMITS='範囲技も1匹に当たる場合のダメージで計�
 /* 1つの技のダメージ（最大HPに対する％）：乱数の最小・最大と、16段階のうち倒しきれる段階の数 */
 /* 技の名前：特性で技のタイプが変わるとき（スカイスキン・フェアリースキン等、ウェザーボール）は、それを書く（2026/11/10 依頼主：
    メガボーマンダの すてみタックル がひこう技として計算されているのに、画面では ノーマル技に見えた） */
-const dgMvName=(a,mv)=>{let tk=null;try{tk=typeof mvTurnK==='function'?mvTurnK(a,mv):null}catch(e){}const tt=tk==='charge'?'・ためるので1回に2ターン':tk==='recharge'?'・次のターンは動けない':'';
-  try{const t=hitType(a,mv);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技${tt}）`}catch(e){}return tt?`${mv.n}（${tt.slice(1)}）`:mv.n};
+const dgMvName=(a,mv,d)=>{let tk=null;try{tk=typeof mvTurnK==='function'?mvTurnK(a,mv):null}catch(e){}const tt=tk==='charge'?'・ためるので1回に2ターン':tk==='recharge'?'・次のターンは動けない':'';
+  try{const t=hitType(a,mv,d);if(t&&mv.t&&t!==mv.t)return `${mv.n}（${SKIN[a.ab]?(ABN[a.ab]||'特性')+'で':'天気で'}${t}技${tt}）`}catch(e){}return tt?`${mv.n}（${tt.slice(1)}）`:mv.n};
 function dgMove(a,mv,d){
   /* 2026/11/24：ダメージ計算の画面と同じ部品（bhits・hitCountDist・hitDist・nextUse・useSeq）で数える。
      前は bcalc×回数で、トリプルアクセルの威力の上がり方・おやこあいの2発目・当たりごとの状態を入れていなかった（マニューラのトリプルアクセルが計算の画面の約半分）。
@@ -62,7 +62,7 @@ function dgMove(a,mv,d){
       else{let pk=0;for(const [c,w] of cd)for(const [v,q] of hitDist(a,mv,d,{nHits:c,cap:d.max}))if(v>=d.max)pk+=w*q;ohko=pk*16}}
     const half=DU_HALF_AB.includes(d.ab)&&!duIg(a);
     const hit1=[lo1.hits[0]?lo1.hits[0].dmg:0,hi1.hits[0]?hi1.hits[0].dmg:0],hitN=lo1.hits.length>1?[lo1.hits[1].dmg,hi1.hits[1].dmg]:null;
-    return{mv,mvn:dgMvName(a,mv),min,max,eff:lo1.eff,h:cMain,hMin:cMin,hMax:cMax,acc:accOf(a,mv,d),ohko,fixed,half:half?d.ab:null,fmin,fmax,
+    return{mv,mvn:dgMvName(a,mv,d),min,max,eff:lo1.eff,h:cMain,hMin:cMin,hMax:cMax,acc:accOf(a,mv,d),ohko,fixed,half:half?d.ab:null,fmin,fmax,
       hit1,hitN,hpMax:d.max,seqMin,seqMax,nHit:lo1.n};
   }finally{d.disg=dg}
 }

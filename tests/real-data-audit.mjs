@@ -173,16 +173,28 @@ try{
       const waterAttacker=mkMon(byNo[swift.no],'me',mySetFor(swift.no));
       const opponent=ab=>mkMon(byNo[55],'op',{...chooseSet(byNo[55],true),ab});
       const rainState=WX_TEAM;
-      let damp,nine,lock;
+      let damp,nine,lock,activeBall,suppressedBall,clearBall;
       try{
         WX_TEAM=rain.weather;
         damp=dgMatch(waterAttacker,opponent('damp'));
         nine=dgMatch(waterAttacker,opponent('cloud-nine'));
         lock=dgMatch(waterAttacker,opponent('air-lock'));
+        const ball=mvObj(311);
+        const getBall=target=>withWx(waterAttacker,target,()=>[
+          hitType(waterAttacker,ball,target),varPow(waterAttacker,ball,target,{}),
+          bcalc(waterAttacker,ball,target,{r:100}).dmg,
+        ]);
+        activeBall=getBall(opponent('damp'));
+        suppressedBall=getBall(opponent('cloud-nine'));
+        WX_TEAM=null;
+        clearBall=getBall(opponent('cloud-nine'));
       }finally{WX_TEAM=rainState}
       check(damp.sa===260&&damp.wxTeam&&nine.sa===130&&!nine.wxTeam&&nine.weatherSuppressed
         &&lock.sa===130&&!lock.wxTeam&&lock.weatherSuppressed,'Cloud Nine and Air Lock suppress rain speed and exclude the party weather benefit',
         {rain:damp.sa,cloudNine:nine.sa,airLock:lock.sa});
+      check(activeBall[0]==='みず'&&activeBall[1]===100&&suppressedBall[0]==='ノーマル'&&suppressedBall[1]===50
+        &&suppressedBall[2]>0&&JSON.stringify(suppressedBall)===JSON.stringify(clearBall),
+        'Weather Ball type, power and damage use effective weather',[activeBall,suppressedBall,clearBall]);
       const suppressedRow={...rain.rows[0],r:{...rain.rows[0].r,q:byNo[55]},zs:[nine]};
       const weatherWarning=dgSelWhy(weather,{...rain,rows:[suppressedRow,...rain.rows.slice(1)]}).warn;
       check(nine.why.some(t=>t.includes('天気の効果なし'))&&weatherWarning.some(t=>t.includes('天気の効果が無効')&&t.includes(byNo[55].n)),
