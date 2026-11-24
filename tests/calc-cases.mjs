@@ -6,6 +6,7 @@
 import {chromium} from 'playwright';
 import path from 'node:path';
 import {createRequire} from 'node:module';
+import {writeFileSync} from 'node:fs';
 const require=createRequire(import.meta.url);
 const {calculate,Pokemon,Move,Field,Generations,Side}=require('@smogon/calc');
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
@@ -27,7 +28,7 @@ const C=[
  {no:7,t:'天気（はれ・ほのお1.5倍）',A:{n:'ウインディ',en:'Arcanine',ab:'intimidate',...SPA},D:{n:'ブリジュラス',en:'Archaludon',ab:'sturdy',...SBULK},mv:'flamethrower',o:{w:'sun'}},
  {no:8,t:'天気（すなあらし・いわの特防1.5倍）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'バンギラス',en:'Tyranitar',ab:'sand-stream',...SBULK},mv:'shadowball',o:{w:'sand'}},
  {no:9,t:'壁（ひかりのかべ・マルチスケイルが働かないよう HP 196/198）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{screen:true}},
- {no:10,t:'ダブル・全体技（×0.75）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ブリジュラス',en:'Archaludon',ab:'sturdy',...SBULK,up:4,dn:1},mv:'earthquake',o:{spread:true}},
+ {no:10,t:'ダブル・全体技（×0.75）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ブリジュラス',en:'Archaludon',ab:'sturdy',...SBULK,up:4,dn:1},mv:'earthquake',o:{format:'double',spread:true}},
  {no:11,t:'持ち物：いのちのたま',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',item:'lifeorb',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'earthquake'},
  {no:12,t:'持ち物：半減きのみ（ヤチェのみ）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',item:'yacheberry',...SBULK},mv:'icebeam'},
  {no:13,t:'特性：あついしぼう',A:{n:'ウインディ',en:'Arcanine',ab:'intimidate',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...SBULK},mv:'flamethrower'},
@@ -48,16 +49,46 @@ const C=[
  {no:28,t:'ふうせんにじめん技（0）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',item:'airballoon',...BULK},mv:'earthquake'},
  {no:29,t:'連続技＋マルチスケイル（スキルリンクのロックブラスト5回→HP満タンのカイリュー）',A:{n:'ヘラクロス',en:'Heracross-Mega',ab:'guts',item:'heracronite',...ATK},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK},mv:'rockblast',hits:5},
  {no:30,t:'メガゲッコウガ：へんげんじざいがこの技で発動（タイプ一致になる）',A:{n:'ゲッコウガ',en:null,ab:'protean',item:'greninjite',...SPA},D:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...SBULK},mv:'icebeam',o:{protean:true}},
- {no:31,t:'メガシビルドン（うなぎのぼり）にじめん技（当サイトの説明どおり0。ゲームで未確認）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'シビルドン',en:null,ab:'levitate',item:'eelektrossite',...BULK},mv:'earthquake',expect:'zero',unverified:'うなぎのぼり'},
+ /* 2026/11/24：うなぎのぼりは Pokémon Showdown e7f50cd の champions の実装で「倒したあと能力が上がる」特性（じめん無効ではない）。期待値を「じめん技がふつうに当たる」に変えた（前は当サイトの説明で0）。照合先にない姿なので当サイトのタイプを入れた Mew・ダメージに関係のない特性で比べる */
+ {no:31,t:'メガシビルドン（うなぎのぼり）にじめん技（参照の実装どおり、じめん技はふつうに当たる。ゲームで未確認）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'シビルドン',en:null,refAb:'Pressure',ab:'levitate',item:'eelektrossite',...BULK},mv:'earthquake'},
  /* ここから追加の場面 */
  {no:32,t:'追加：レイジングブルは壁を壊す（リフレクターがあっても半分にならない）',A:{n:'ケンタロス（パルデア・ブレイズ種）',en:'Tauros-Paldea-Blaze',ab:'intimidate',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'ragingbull',o:{screen:true}},
  {no:33,t:'追加：メガゲッコウガ：へんげんじざいが発動済み（もとのタイプ＝タイプ一致なし）',A:{n:'ゲッコウガ',en:null,refAb:'Pressure',ab:'protean',item:'greninjite',...SPA},D:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...SBULK},mv:'icebeam',o:{protean:false}},
  {no:34,t:'追加：メガガブリアスZ（ふゆう）はじめん技を受けない',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'ガブリアス',en:null,ab:'rough-skin',item:'garchompitez',...BULK},mv:'earthquake'},
  {no:35,t:'追加：ツインビーム（2回当たる）',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK},mv:'twinbeam'},
  {no:36,t:'追加：ロックブラスト5回（HPが満タンでないカイリュー＝マルチスケイルは働かない）',A:{n:'ヘラクロス',en:'Heracross-Mega',ab:'guts',item:'heracronite',...ATK},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:197},mv:'rockblast',hits:5},
+
+ {no:37,t:'回帰：ダブル単体物理技＋リフレクター',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'outrage',o:{format:'double',screen:true}},
+ {no:38,t:'回帰：ダブル単体特殊技＋ひかりのかべ',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{format:'double',screen:true}},
+ {no:39,t:'回帰：ダブル単体物理技＋壁＋急所',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'outrage',o:{format:'double',screen:true,crit:true}},
+ {no:40,t:'回帰：ダブル単体特殊技＋壁＋急所',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK,hp:196},mv:'shadowball',o:{format:'double',screen:true,crit:true}},
+ /* 2026/11/24：ちからずく（追加効果のある技の一覧 SF_SEC。照合先は第9世代の secondaries） */
+ {no:41,t:'ちからずく：追加効果のある技（れいとうパンチ）は1.3倍',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'icepunch'},
+ {no:42,t:'ちからずく：自分の能力が下がるだけの技（インファイト）は上がらない',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'closecombat'},
+ {no:43,t:'ちからずく＋いのちのたま（アクアブレイク）：1.3倍と5324/4096の両方',A:{n:'オーダイル',en:'Feraligatr',ab:'sheer-force',item:'lifeorb',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'liquidation'},
+ {no:44,t:'ちからずく：エレクトロビームは威力だけ上がる（照合先と同じ特例）',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...SBULK},mv:'electroshot'},
+ {no:45,t:'ちからずく：追加効果のない技（マッハパンチ）は上がらない',A:{n:'ローブシン',en:'Conkeldurr',ab:'sheer-force',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'machpunch'},
+ /* 2026/11/24：特性の照合（照合先は @smogon/calc 0.12.0 の Champions〔gen 0〕のデータと計算） */
+ /* 46〜48：@smogon/calc は かたやぶり×フェアリーオーラ（breakable でないのに消す）・ほのおのたてがみ・はどうのぼうご を計算しないので、Pokémon Showdown e7f50cd の実装と同じ段階の同じ倍率になる照合先の特性で比べる
+    （46＝かたやぶりでない攻撃側〔フェアリーオーラは残る〕、47＝発動したもらいび〔攻撃・特攻の段階で1.5倍〕、48＝もふもふ〔接触の最後の補正0.5倍・ほのお技ではない〕） */
+ {no:46,gen:0,t:'かたやぶりでもフェアリーオーラは消えない（デカヌチャンのじゃれつく→メガフラエッテ）',A:{n:'デカヌチャン',en:'Tinkaton',refAb:'Own Tempo',ab:'mold-breaker',...ATK},D:{n:'フラエッテ（えいえんのはな）',en:'Floette-Mega',ab:'flower-veil',item:'floettite',...BULK},mv:'playrough'},
+ {no:47,gen:0,t:'ほのおのたてがみ：ほのお技の特攻1.5倍（メガカエンジシ）',A:{n:'カエンジシ',en:'Pyroar-Mega',refAb:'Flash Fire',refOn:true,ab:'unnerve',item:'pyroarite',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'immunity',...SBULK},mv:'flamethrower'},
+ {no:48,gen:0,t:'はどうのぼうご：接触技を半分（メガルカリオZ が受ける）',A:{n:'カイリキー',en:'Machamp',ab:'guts',...ATK},D:{n:'ルカリオ',en:'Lucario-Mega-Z',refAb:'Fluffy',ab:'inner-focus',item:'lucarionitez',...BULK},mv:'closecombat'},
+ {no:49,gen:0,t:'きよめのしお：ゴースト技を半分',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'キョジオーン',en:'Garganacl',ab:'purifying-salt',...SBULK},mv:'shadowball'},
+ {no:50,gen:0,t:'ぼうだん：弾の技を受けない',A:{n:'サーフゴー',en:'Gholdengo',ab:'good-as-gold',...SPA},D:{n:'ブリガロン',en:'Chesnaught',ab:'bulletproof',...SBULK},mv:'shadowball'},
+ {no:51,gen:0,t:'ぼうおん：音の技を受けない',A:{n:'アシレーヌ',en:'Primarina',ab:'torrent',...SPA},D:{n:'バリヤード',en:'Mr. Mime',ab:'soundproof',...SBULK},mv:'hypervoice'},
+ {no:52,gen:0,t:'うるおいボイス：音の技がみずタイプ',A:{n:'アシレーヌ',en:'Primarina',ab:'liquid-voice',...SPA},D:{n:'ウインディ',en:'Arcanine',ab:'intimidate',...SBULK},mv:'hypervoice'},
+ {no:53,gen:0,t:'パンクロック：音の技1.3倍',A:{n:'ストリンダー（ハイなすがた）',en:'Toxtricity',ab:'punk-rock',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'immunity',...SBULK},mv:'hypervoice'},
+ {no:54,gen:0,t:'パンクロック：受ける音の技を半分',A:{n:'アシレーヌ',en:'Primarina',ab:'torrent',...SPA},D:{n:'ストリンダー（ハイなすがた）',en:'Toxtricity',ab:'punk-rock',...SBULK},mv:'hypervoice'},
+ {no:55,gen:0,t:'かんそうはだ：ほのお技1.25倍',A:{n:'ウインディ',en:'Arcanine',ab:'intimidate',...SPA},D:{n:'ドクロッグ',en:'Toxicroak',ab:'dry-skin',...SBULK},mv:'flamethrower'},
+ {no:56,gen:0,t:'かんそうはだ：みず技を受けない',A:{n:'アシレーヌ',en:'Primarina',ab:'torrent',...SPA},D:{n:'ドクロッグ',en:'Toxicroak',ab:'dry-skin',...SBULK},mv:'hydropump'},
+ {no:57,gen:0,t:'スナイパー：急所でさらに1.5倍',A:{n:'インテレオン',en:'Inteleon',ab:'sniper',...SPA},D:{n:'カビゴン',en:'Snorlax',ab:'immunity',...SBULK},mv:'hydropump',o:{crit:true}},
+ {no:58,gen:0,t:'シェルアーマー：急所に当たらない',A:{n:'インテレオン',en:'Inteleon',ab:'torrent',...SPA},D:{n:'コータス',en:'Torkoal',ab:'shell-armor',...SBULK},mv:'hydropump',o:{crit:true}},
+ {no:59,gen:0,t:'すてみ：反動のある技1.2倍',A:{n:'ムクホーク',en:'Staraptor',ab:'reckless',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'immunity',...BULK},mv:'bravebird'},
+ {no:60,gen:0,t:'はがねのせいしん：自分のはがね技1.5倍',A:{n:'ニャイキング',en:'Perrserker',ab:'steely-spirit',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'immunity',...BULK},mv:'ironhead'},
 ];
-const EN_MV={earthquake:'Earthquake',thunderbolt:'Thunderbolt',icebeam:'Ice Beam',outrage:'Outrage',flamethrower:'Flamethrower',shadowball:'Shadow Ball',superfang:'Super Fang',lowkick:'Low Kick',eruption:'Eruption',bodypress:'Body Press',rockblast:'Rock Blast',rockslide:'Rock Slide',ragingbull:'Raging Bull',populationbomb:'Population Bomb',closecombat:'Close Combat',twinbeam:'Twin Beam'};
-const EN_AB={'rough-skin':'Rough Skin',sturdy:'Sturdy','good-as-gold':'Good as Gold',multiscale:'Multiscale','thick-fat':'Thick Fat',intimidate:'Intimidate','sand-stream':'Sand Stream','inner-focus':'Inner Focus',blaze:'Blaze','mirror-armor':'Mirror Armor','skill-link':'Skill Link','sand-force':'Sand Force',levitate:'Levitate',drought:'Drought','tough-claws':'Tough Claws','stance-change':'Stance Change','cursed-body':'Cursed Body',technician:'Technician',guts:'Guts',protean:'Protean'};
+const EN_MV={playrough:'Play Rough',hypervoice:'Hyper Voice',hydropump:'Hydro Pump',bravebird:'Brave Bird',ironhead:'Iron Head',icepunch:'Ice Punch',liquidation:'Liquidation',electroshot:'Electro Shot',machpunch:'Mach Punch',earthquake:'Earthquake',thunderbolt:'Thunderbolt',icebeam:'Ice Beam',outrage:'Outrage',flamethrower:'Flamethrower',shadowball:'Shadow Ball',superfang:'Super Fang',lowkick:'Low Kick',eruption:'Eruption',bodypress:'Body Press',rockblast:'Rock Blast',rockslide:'Rock Slide',ragingbull:'Raging Bull',populationbomb:'Population Bomb',closecombat:'Close Combat',twinbeam:'Twin Beam'};
+const EN_AB={'fairy-aura':'Fairy Aura','mold-breaker':'Mold Breaker','flower-veil':'Flower Veil',unnerve:'Unnerve','inner-focus':'Inner Focus',guts:'Guts','purifying-salt':'Purifying Salt',bulletproof:'Bulletproof',soundproof:'Soundproof',torrent:'Torrent','liquid-voice':'Liquid Voice','punk-rock':'Punk Rock','dry-skin':'Dry Skin',sniper:'Sniper','shell-armor':'Shell Armor',reckless:'Reckless','steely-spirit':'Steely Spirit',immunity:'Immunity','sheer-force':'Sheer Force','rough-skin':'Rough Skin',sturdy:'Sturdy','good-as-gold':'Good as Gold',multiscale:'Multiscale','thick-fat':'Thick Fat',intimidate:'Intimidate','sand-stream':'Sand Stream','inner-focus':'Inner Focus',blaze:'Blaze','mirror-armor':'Mirror Armor','skill-link':'Skill Link','sand-force':'Sand Force',levitate:'Levitate',drought:'Drought','tough-claws':'Tough Claws','stance-change':'Stance Change','cursed-body':'Cursed Body',technician:'Technician',guts:'Guts',protean:'Protean'};
 const EN_IT={lifeorb:'Life Orb',yacheberry:'Yache Berry',airballoon:'Air Balloon'};
 const TY={ノーマル:'Normal',ほのお:'Fire',みず:'Water',でんき:'Electric',くさ:'Grass',こおり:'Ice',かくとう:'Fighting',どく:'Poison',じめん:'Ground',ひこう:'Flying',エスパー:'Psychic',むし:'Bug',いわ:'Rock',ゴースト:'Ghost',ドラゴン:'Dragon',あく:'Dark',はがね:'Steel',フェアリー:'Fairy'};
 
@@ -82,7 +113,7 @@ const site=await pg.evaluate(([C,SEQ])=>{
   const out=[];
   for(const c of C){
     const a=mk(c.A,'me'),d=mk(c.D,'op'),mv=mvObj(K(c.mv)),o=c.o||{};
-    const opt={crit:!!o.crit,spread:!!o.spread,screen:!!o.screen,protean:!!o.protean,hits:c.hits||0};
+    const opt={crit:!!o.crit,format:o.format||'single',spread:!!o.spread,screen:!!o.screen,protean:!!o.protean,hits:c.hits||0};
     const sw=B.weather;B.weather=o.w?{k:o.w,t:5}:null;
     let r,seq=null,eff,n,dist,hitsMax,ko;
     try{r=dmgRolls(a,mv,d,opt);const h=bhits(a,mv,d,{...opt,r:100});eff=h.eff;n=h.n;hitsMax=h.hits.map(x=>x.dmg);
@@ -108,21 +139,22 @@ function mon(x,sx,isA,gen){
     boosts:x.stg?{...x.stg}:{}});
   /* 照合先にない姿は、当サイトのタイプ・重さを入れる（そのぶん独立した確かめではない）。refAb：照合先で使う特性（発動しない へんげんじざい＝何もしない特性） */
   if(!x.en){p.types=sx.t.map(t=>TY[t]);p.weightkg=sx.wt}
+  if(x.refOn)p.abilityOn=true;
   p.rawStats={...st};p.stats={...st};p.originalCurHP=sx.hp;return p;
 }
 /* gen：照合先のデータの世代（はじめは第9世代） */
 function ref(c,s,curHP,crit,hits1){
-  const gen=Generations.get(c.gen||9);
+  const gen=Generations.get(c.gen!=null?c.gen:9);
   const o=c.o||{};const a=mon(c.A,s.A,true,gen),d=mon(c.D,s.D,false,gen);if(curHP!=null)d.originalCurHP=curHP;
   const mv=new Move(gen,EN_MV[c.mv],{isCrit:crit!=null?crit:!!o.crit,...(hits1?{hits:1}:{})});
-  const f=new Field({gameType:o.spread?'Doubles':'Singles',weather:o.w?{sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'}[o.w]:undefined,
+  const f=new Field({gameType:o.format==='double'?'Doubles':'Singles',weather:o.w?{sun:'Sun',rain:'Rain',sand:'Sand',snow:'Snow'}[o.w]:undefined,
     defenderSide:new Side({isReflect:!!o.screen&&mv.category==='Physical',isLightScreen:!!o.screen&&mv.category==='Special'})});
   let r=calculate(gen,a,d,mv,f).damage;if(!Array.isArray(r))r=Array(16).fill(r);
   /* 回数が決まった連続技（ツインビーム等）は1回ずつの表が並んで返る：渡したHPでの1発目の表を使う */
   if(Array.isArray(r[0]))r=r[0];
   return r;
 }
-let bad=0,n=0,unv=0,rule=0;const ok=(cond,name,info)=>{n++;if(!cond){bad++;console.error('NG',name,JSON.stringify(info))}};
+let bad=0,n=0,unv=0,rule=0;const failedAssertions=[];const ok=(cond,name,info)=>{n++;if(!cond){bad++;failedAssertions.push({name,info});console.error('NG',name,JSON.stringify(info))}};
 const report=[];
 for(const c of C){
   const s=site.find(x=>x.no===c.no),o=c.o||{};
@@ -166,6 +198,13 @@ for(const no of [18,26,29,35,36]){const x=g(no);ok(x.dist&&Math.abs(x.dist.sum-1
  ok(s.dist&&[...tot.keys()].length>0&&Math.min(...tot.keys())===s.dist.lo&&Math.max(...tot.keys())===s.dist.hi,'#35 ツインビーム：2発の合計の最小・最大が照合先と同じ',{lo:s.dist&&s.dist.lo,hi:s.dist&&s.dist.hi});}
 ok(site.find(x=>x.no==='sl').slHits===5,'スキルリンクは選んだ回数があっても5回（回数の選択が残っていても）',site.find(x=>x.no==='sl'));
 ok(!errs.length,'ページのエラーなし',errs);
-if(process.env.CALC_CASES_REPORT)require('fs').writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
+ok(C.length===60&&new Set(C.map(c=>c.no)).size===60,'60 named cases are present and uniquely numbered',{count:C.length,ids:C.map(c=>c.no)});
+if(process.env.CALC_CASES_REPORT)writeFileSync(process.env.CALC_CASES_REPORT,JSON.stringify(report,null,1));
+if(process.env.CALC_CASES_SUMMARY)writeFileSync(process.env.CALC_CASES_SUMMARY,JSON.stringify({
+ reference:'@smogon/calc Gen 9 plus explicitly labeled rule-based/unverified cases (not Champions device proof)',
+ namedCases:C.length,assertions:n,failedAssertions:bad,referenceCases:C.length-unv-rule,
+ ruleBasedCases:rule,unverifiedAbilityCases:unv,pass:bad===0,
+ failures:failedAssertions
+},null,2));
 console.log(`calc-cases: ${bad?'NG':'OK'}（${n}項目・照合先で確かめた場面 ${C.length-unv-rule}・ゲームの決まりで確かめた場面 ${rule}・照合先にない特性の場面 ${unv}）`);
 if(bad)process.exit(1);

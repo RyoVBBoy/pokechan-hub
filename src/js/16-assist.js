@@ -3,7 +3,35 @@ let opp6=(()=>{try{return JSON.parse(localStorage.getItem('pcopp6')||'[]').map(n
 const saveOpp6=()=>{try{localStorage.setItem('pcopp6',JSON.stringify(opp6))}catch(e){}};
 let asMode='atk';
 /* 計算用の型：ラダー集計があれば最頻の型、なければ自動で決めた型（乱数なし） */
-const detSet=p=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):((typeof topSetCalc==='function'&&topSetCalc(p))||chooseSet(p,true));
+/* 型の出どころごとに組む（2026/11/20）。持ち物が姿と合わない型（上位パーティの登録などに混ざりうる）は使わず、次の出どころへ。
+   どこからも組めなければ set:null（呼ぶ側は計算しない） */
+const detSetInfo=p=>{const tries=[['live',()=>LIVE.csv[p.no]?buildSet(p,LIVE.csv[p.no],true):null],['top',()=>(typeof topSetCalc==='function'&&topSetCalc(p))||null],['theory',()=>chooseSet(p,true)]];
+  const skip=[];
+  for(const [k,f] of tries){const s=f();if(!s)continue;const R=resolveForm(p.no,s.item);
+    if(!R.ok){skip.push({k,why:R.why,item:s.item});continue}
+    return{set:s,kind:SET_KIND[k],src:k,form:R.form,skip}}
+  return{set:null,kind:SET_KIND.theory,src:null,form:null,skip,why:'insufficient-data'}};
+const detSet=p=>detSetInfo(p).set;
+/* 計算から外した匹の知らせ（持ち物が姿と合わない等） */
+const formErrHTML=L=>L&&L.length?`<p class="bnote" role="status">${L.map(x=>`${esc((byNo[x.no]||{}).n||String(x.no))}：${esc(FORM_WHY[x.why]||x.why)}`).join('<br>')}（この${L.length}匹は計算に入れていません）</p>`:'';
+/* detSet の型の出どころ（2026/11/20 表示の正直さ）：どれも1人が実際に使った型ではない。
+   live＝ランクバトルの集計の項目ごとの割合を組み合わせた推定／top＝上位パーティの登録を項目ごとに数えて組み合わせた推定／theory＝当サイトが計算で組んだ提案 */
+const SET_KIND={live:{k:'synthetic',t:'ランクバトルの集計から組み合わせた推定の型',s:'推定の型（集計）'},top:{k:'synthetic',t:'上位パーティの登録から組み合わせた推定の型',s:'推定の型（上位パーティ）'},theory:{k:'theory',t:'当サイトが計算で組んだ型（提案）',s:'当サイトの提案の型'}};
+/* 相手が何匹もいる画面の言い方（相手ごとに出どころが違う） */
+const SET_MIX='集計があれば集計から組み合わせた推定の型、なければ当サイトの提案の型（どれも1人が実際に使った型ではありません）';
+const detSetKind=p=>detSetInfo(p).kind;
+/* その姿として計算する型（2026/11/20 RC2）：集計は種族ごとなので、元の姿の型がメガストーンを持つ（＝メガシンカの型の印）ことがある。
+   ・元の姿のページ・対象：メガストーンの型は元の姿の型ではないので使わず、当サイトの提案の型（元の姿）で計算する（集計からメガストーンを除いて組み直すかは依頼主の判断 D1 待ち）
+   ・メガシンカの姿のページ・対象：元の姿の集計の型がこのメガストーンを持つなら、それをこの姿の推定の型にする（ほかのストーンなら当サイトの提案の型）
+   戻り値 {set,kind,form,note,why}。set が null なら計算しない */
+const formSet=p=>{
+  if(p.mega){const b=byNo[p.base],bi=b?detSetInfo(b):null;
+    if(bi&&bi.set&&bi.src!=='theory'&&bi.set.item===p.stone)return{set:{...bi.set,ab:p.ab},kind:bi.kind,form:p,note:`${b.n}の${bi.kind.t}が${ITEMN[p.stone]||p.stone}を持つので、それをこの姿の型として使っています。`};
+    const i=detSetInfo(p);return{...i,note:null}}
+  const i=detSetInfo(p);if(!i.set)return{...i,note:null};
+  if(i.form&&i.form!==p){const t=chooseSet(p,true);
+    return{set:t,kind:SET_KIND.theory,form:p,megaSet:i.set,megaForm:i.form,note:`${i.kind.t}は${ITEMN[i.set.item]||i.set.item}を持つ（${i.form.n}の型）ので、${p.n}は当サイトの提案の型で計算しています。`}}
+  return{...i,note:null}};
 /* 1対1のときの天気（2026/11/08 依頼主の指摘：バンギラスの砂嵐でいわタイプの特防が1.5倍になるのを入れていなかった）。
    場に出ると天気を変える特性（WSET）の匹がいれば、その天気で計算する。両方なら遅い方（あとから出る特性）の天気。
    対戦の画面など、すでに天気が決まっているとき（B.weather）はそのまま */
@@ -15,29 +43,39 @@ function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return 
    こちら側で戦うときは、その天気で計算する（相手が天気を変える特性なら、あとから出る相手の天気が優先＝wxPair）。 */
 const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-swim'],sand:['sand-rush','sand-force'],snow:['slush-rush']};
 let TWX_K=null,TWX_V=null;
-function teamWx(){if(typeof team==='undefined'||!team.length)return null;
-  const key=JSON.stringify(team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k]));if(key===TWX_K)return TWX_V;
-  let v=null;for(const x of team){const p=byNo[x.no];if(!p)continue;let ab=null;
+/* 2026/11/24：メガシンカの場合（診断・選出で「この匹だけがメガシンカ」）。undefined＝決めていない（前と同じ：メガストーンの匹はメガ後の特性）、
+   null＝だれもメガシンカしない、番号＝その匹だけがメガシンカ（ほかのメガストーンの匹は持ち物なしで、もとの特性） */
+let WX_MEGA,WX_TEAM;
+function teamWx(entries=typeof team==='undefined'?[]:team){if(!entries.length)return null;
+  const key=JSON.stringify([WX_MEGA===undefined?'u':WX_MEGA,entries.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
+  let v=null;for(const x of entries){const p=byNo[x.no];if(!p)continue;let ab=null;
     let guess=false;
-    try{const it=x.set&&x.set.it&&x.set.it.k,mg=it&&megaOf(p.no,it);ab=mg&&mg.ab?mg.ab:(x.set&&x.set.ab&&x.set.ab.k)||null;
+    try{const it0=x.set&&x.set.it&&x.set.it.k,mega=it0&&megaOf(p.no,it0);
+      const active=mega&&(WX_MEGA===undefined||WX_MEGA===x.no);
+      const saved=x.set&&x.set.ab&&x.set.ab.k;
+      const baseSaved=!mega||active||(ABD[p.no]||[]).some(([k])=>k===saved)?saved:null;
+      ab=active?mega.ab:baseSaved;
       /* 特性が未登録で、天気を変える特性を持てる匹（ペリッパーのあめふらし等）は、その特性で使うと仮定する */
-      if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||mySetFor(x.no).ab;guess=!!w}}catch(e){}
-    if(ab&&WSET[ab]){v={k:WSET[ab],by:formInfo(p).base,ab,guess};break}}
+      if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||(mega&&!active?(ABD[p.no]||[])[0]?.[0]:mySetFor(x.no).ab);guess=!!w}}catch(e){}
+    if(ab&&WSET[ab]){v={k:WSET[ab],no:x.no,by:formInfo(p).base,ab,guess};break}}
   TWX_K=key;TWX_V=v;return v}
 const inTeam=m=>typeof team!=='undefined'&&team.some(x=>{const p=byNo[x.no];return p&&(p.no===(m.p.base||m.p.no)||p.no===m.p.no)});
+const appliedTeamWx=()=>typeof WX_OFF!=='undefined'&&WX_OFF?null:WX_TEAM===undefined?teamWx():WX_TEAM;
 function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();let k=wxPair(a,b),by=null;
-  if(!k){const tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null;if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
+  if(!k){const tw=appliedTeamWx();if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
   if(!k)return fn();B.weather={k,t:5,team:by};try{return fn()}finally{B.weather=null}}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
   /* ばけのかわは1回防ぐだけなので、ダメージは「はがれたあと」で見る（1回多くかかる分は duel が数える） */
   const dg=d.disg;d.disg=false;try{
-  a.moves.forEach(mv=>{if(mv.prot)return;const r=bcalc(a,mv,d,{});
-    const h=mv.maxH>1?(mv.minH===mv.maxH?mv.maxH:3):1,acc=accOf(a,mv,d);
+  /* 2026/11/24：1回の使用を bhits（当たりごとの状態・トリプルアクセル・おやこあい）で。回数が変わる技はいつもの回数（mhCount）。
+     かんたんな見積もり（乱数92%）なので、診断の「確定」とは別の数（意図して違う数）。使うごとに変われば seq（useSeq） */
+  a.moves.forEach(mv=>{if(mv.prot||!moveUsable(mv,{a,d}).ok)return;const b=bhits(a,mv,d,{});
+    const acc=accOf(a,mv,d);
     /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
-    let pct=r.dmg*h/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
-    if(pct*acc>best.pct*best.acc)best={pct,mv,acc}});
+    let pct=b.total/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
+    if(pct*acc>best.pct*best.acc)best={pct,mv,acc,seq:typeof useSeq==='function'?useSeq(a,mv,d):(typeof mbSeq==='function'?mbSeq(a,mv,d):null)}});
   }finally{d.disg=dg}
   return best;
 }
@@ -47,9 +85,13 @@ function analyze(myNos,opNos,mySF,opSF,W){
   const sw=B.weather;B.weather=null;
   try{
     const M=myNos.map(n=>mkMon(byNo[n],'me',mySF(n))),O=opNos.map(n=>mkMon(byNo[n],'op',opSF(n)));
+    /* 2026/11/20：持ち物が姿と合わない型（formErr）は選出の計算に入れない（点・おすすめに黙って混ぜない）。外した匹は formErr で返す */
+    const bad=[...M.map((m,i)=>m.formErr?{side:'me',no:myNos[i],why:m.formErr}:null),...O.map((m,i)=>m.formErr?{side:'op',no:opNos[i],why:m.formErr}:null)].filter(Boolean);
+    if(bad.length){B.weather=sw;const mn=myNos.filter((n,i)=>!M[i].formErr),on=opNos.filter((n,i)=>!O[i].formErr);
+      const R=mn.length&&on.length?analyze(mn,on,mySF,opSF,W?W.filter((_,j)=>!O[j].formErr):W):null;if(R)R.formErr=bad;return R||{formErr:bad,none:true}}
     const w=O.map((_,j)=>W?W[j]:1),wt=w.reduce((a,b)=>a+b,0)||1;
     const D=M.map(m=>O.map(o=>estHit(m,o))),R=O.map(o=>M.map(m=>estHit(o,m)));
-    const fast=M.map(m=>O.map(o=>withWx(m,o,()=>effSpd(m)>effSpd(o))));/* 天気（パーティの天気も）で速くなる特性を入れて比べる（2026/11/10） */
+    const fast=M.map(m=>O.map(o=>withWx(m,o,()=>effSpd(m,o)>effSpd(o,m))));/* 天気（パーティの天気も）で速くなる特性を入れて比べる（2026/11/10） */
     const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
     const defV=i=>O.reduce((a,_,j)=>a+w[j]*Math.min(R[j][i].pct*R[j][i].acc/100,100)/100,0)/wt;
     /* 1対1の判定（56-duel.js：タスキ・先制技・積み技・命中なども入る）を足す。相手のだれにも、選出のだれかが有利に戦えるほど高い（2026/11/06） */
@@ -150,11 +192,12 @@ function asDraw(){
   const pct=v=>Math.round(v*100);
   const predRows=opp6.map((n,j)=>({n,j,w:PR.w[j]})).sort((a,b)=>b.w-a.w).map(x=>{const p=byNo[x.n],lead=PR.lead&&PR.lead.includes(x.j);
     return `<div class="row" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${lead?'<span class="atag on">先発予想</span>':''}</div>${oppSetHTML(x.n)}</div><div class="row-n"><b style="color:${x.w>=.7?'var(--w2)':x.w>=.4?'var(--fg)':'var(--mute)'}">${opp6.length>PICK()?pct(x.w)+'%':'—'}</b><span>選出予想</span></div></div>`}).join('');
-  const predHTML=`<div class="sec"><h2>相手の予想</h2><span style="font-size:13px;color:var(--dim)">使用率の高い型と選出</span></div>
+  const feHTML=A&&A.formErr?formErrHTML(A.formErr):'';
+  const predHTML=feHTML+`<div class="sec"><h2>相手の予想</h2><span style="font-size:13px;color:var(--dim)">推定の型と選出</span></div>
   ${opp6.length>PICK()?`<p class="note" style="padding-top:0">相手から見て有利な${PICK()}匹を計算した<b>予想</b>です。いちばん可能性が高いのは <b>${pNos.map(n=>byNo[n].n).join('・')}</b>${PR.top[1]&&PR.top[1].p>PR.top[0].p*.6?'ですが、ほかの組み合わせとの差は小さく、<b>読みにくい相手</b>です':''}。</p>`:'<p class="note" style="padding-top:0">相手を${PICK()+1}匹以上入れると、相手が出してきそうな${PICK()}匹を予想します。</p>'}
   ${predRows}
   ${A2&&!same?`<div class="bnote" style="margin:10px 16px 0"><b>予想どおり ${pNos.map(n=>byNo[n].n.slice(0,4)).join('・')} で来た場合</b>のおすすめは<br><b>${A2.lead.map(i=>A2.M[i].p.n).join('・')}</b>（先発）＋ ${A2.back.map(i=>A2.M[i].p.n).join('・')} です。上のおすすめは、読みが外れた場合も考えた選出です。</div>`:''}
-  <p class="note" style="color:var(--mute)">相手はあなたの育成を知らないため、予想では「あなたのポケモンも使用率の高い型」として計算しています。％は計算上の目安で、実際の選出率ではありません。</p>`;
+  <p class="note" style="color:var(--mute)">相手はあなたの育成を知らないため、予想では「あなたのポケモンも推定の型（集計から組み合わせた型、なければ当サイトの提案の型）」として計算しています。％は計算上の目安で、実際の選出率ではありません。</p>`;
   const covered=A.O.filter((_,j)=>A.best.some(i=>A.D[i][j].pct>=50)).length;
   const mrow=(i,tag)=>{const m=A.M[i];return `<a class="row" href="#/p/${m.p.base||m.p.no}"><span class="av">${stamp(m.p)}</span><div class="row-m"><div class="row-t">${m.p.n}<span class="atag ${tag==='先発'?'on':''}">${tag}</span></div><div class="row-s">${asReason(A,i)}</div></div></a>`};
   const threats=A.O.map((o,j)=>({o,j,hit:A.best.filter(i=>A.R[j][i].pct>=70).length,sum:A.best.reduce((a,i)=>a+Math.min(A.R[j][i].pct,150),0)})).sort((a,b)=>b.sum-a.sum).slice(0,3);

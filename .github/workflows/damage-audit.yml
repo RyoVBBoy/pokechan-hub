@@ -1,0 +1,108 @@
+name: Damage audit (no deployment)
+on:
+  push:
+    branches:
+      - audit/champions-damage-format-20261123
+  workflow_dispatch:
+jobs:
+  damage-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Focused regression
+        run: |
+          node tests/screen-format-regression.mjs
+          node tests/screen-damage-regression.mjs
+          node tests/screen-property-regression.mjs
+          node tests/diagnosis-unsupported-regression.mjs
+          node tests/diagnosis-selection-impact-regression.mjs
+          node tests/champions-ability-data-regression.mjs
+          node tests/ability-diagnosis-selection-integration.mjs
+          node tests/ability-critical-double-matrix.mjs
+          node tests/ko-probability-format-regression.mjs
+      - name: Champions device evidence gate (readiness only; never certifies accuracy)
+        id: device-evidence
+        continue-on-error: true
+        run: node tests/champions-evidence-gate.mjs
+      - name: Audit item branches and oracle assumptions
+        env:
+          ITEM_AUDIT_REPORT: audit-item-oracle.json
+        run: node tests/item-oracle-assumptions-audit.mjs
+      - name: Build site for browser reference comparisons
+        run: |
+          npx playwright install --with-deps chromium
+          node tools/build.mjs
+      - name: Real data integration
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs integration
+      - name: Reused and full party recalculation parity
+        if: ${{ !cancelled() }}
+        run: node tests/impl-fixes-20261124b.mjs
+      - name: Generated build legality
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs legality
+      - name: Real data performance (4x CPU slowdown)
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs performance
+      - name: 45 named cases
+        env:
+          CALC_CASES_REPORT: audit-calc-cases.json
+          CALC_CASES_SUMMARY: audit-calc-cases-summary.json
+        run: node tests/calc-cases.mjs
+      - name: 1500 random reference cases
+        env:
+          CALC_N: '1500'
+          CALC_SEED: '20261123'
+          CALC_REF_REPORT: audit-calc-ref.json
+        run: node tests/calc-ref.mjs
+      - name: Preserve comparison reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: damage-audit-reports
+          path: |
+            audit-calc-cases.json
+            audit-calc-cases-summary.json
+            audit-calc-ref.json
+            audit-item-oracle.json
+            audit-integration.json
+            audit-legality.json
+            audit-performance.json
+          if-no-files-found: warn
+      - name: Summarize auditable results
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {existsSync,readFileSync,appendFileSync} from 'node:fs';
+          const files=['audit-calc-cases.json','audit-calc-cases-summary.json','audit-calc-ref.json','audit-item-oracle.json'];
+          const lines=['## Damage audit evidence','',`Commit: \`${process.env.GITHUB_SHA}\``,''];
+          for(const file of files){
+            if(!existsSync(file)){lines.push(`- \`${file}\`: **missing** (the test may have failed before writing its report)`);continue}
+            try{
+              const data=JSON.parse(readFileSync(file,'utf8'));
+              if(Array.isArray(data)){
+                const fail=data.filter(x=>x.pass===false);
+                lines.push(`- \`${file}\`: ${data.length} recorded scenarios; ${fail.length} explicit failed scenarios`);
+              }else if(file==='audit-item-oracle.json'){
+                lines.push(`- Item support: ${data.coverage?.battleBranchCount} explicit battle branches, ${data.coverage?.unsupportedCount} explicitly unsupported, overlap ${data.bothMarkedUnsupported?.length}; Smogon Gen 9 oracle ${data.comparisonUsesGen9}; 85–100 random range ${data.referenceRandomRange85to100}`);
+              }else if(file==='audit-calc-cases-summary.json'){
+                lines.push(`- Named cases: ${data.namedCases}; assertions ${data.assertions}; failed ${data.failedAssertions}; Smogon-comparable ${data.referenceCases}; rule-based ${data.ruleBasedCases}; unverified-ability ${data.unverifiedAbilityCases}; pass ${data.pass}`);
+              }else{
+                const c=data.coverage||{};
+                lines.push(`- \`${file}\`: requested ${data.requested}, generated ${data.generated}, matched ${data.matched}, mismatched ${data.mismatched}, pass ${data.pass}, seed ${data.seed}`);
+                lines.push(`- Coverage: ${JSON.stringify(c)}`);
+              }
+            }catch(e){lines.push(`- \`${file}\`: **invalid JSON** (${String(e)})`)}
+          }
+          lines.push('','**Reference is @smogon/calc Gen 9, not Pokémon Champions device proof.**','**Device-accuracy certification: BLOCKED until independent evidence replay and review.**');
+          const out=lines.join('\n')+'\n';
+          console.log(out);
+          if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,out);
+          NODE

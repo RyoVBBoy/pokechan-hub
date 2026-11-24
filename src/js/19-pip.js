@@ -129,7 +129,7 @@ function pipDraw(){
   const imm=tb.filter(x=>x[1]===0);if(imm.length)lineOf('無効',imm,'#8b98a5');
   const d=LIVE.csv[p.no];
   if(d){
-    const mvn=d.mv.map(([n,pc])=>{const id=MVKA[nrm(n)];return id===182?['まもる',pc]:id&&mName(id)?[mName(id),pc]:null}).filter(Boolean).slice(0,4);
+    const mvn=d.mv.map(([n,pc])=>{const id=MVKA[nrm(n)];return id&&mName(id)?[mName(id),pc]:null}).filter(Boolean).slice(0,4);
     const its=d.it.map(([n,pc])=>[itemJa(nrm(n))||n,pc]).slice(0,2),abs=d.ab.map(([n,pc])=>[ABN[ABK[nrm(n)]]||n,pc]).slice(0,1);
     g.fillStyle='#e7e9ea';g.font=`800 24px ${FF}`;g.fillText('よく使われる型',28,y+26);y+=36;g.fillStyle='#c4c9cc';
     fitTxt(g,mvn.map(([n,pc])=>`${n}${Math.round(pc)}%`).join('・'),28,y+24,PIP_W-56,22,600);y+=36;
@@ -246,7 +246,7 @@ function pipBuildPages(){
 }
 const pipAb=s=>s.ab?(ABN[s.ab.k]||s.ab.n||''):'';
 const pipIt=s=>s.it?(ITEMN[s.it.k]||s.it.n||''):L('なし','None');
-const pipMv=m=>m?(m.id===182?L('まもる','Protect'):mName(m.id)||m.n||''):'';
+const pipMv=m=>m?(mName(m.id)||m.n||''):'';
 const pipNat=s=>s.up>0&&s.dn>0?`${(NATS.find(n=>n[1]===s.up&&n[2]===s.dn)||[''])[0]}（${SN[s.up]}↑ ${SN[s.dn]}↓）`:L('補正なし','Neutral');
 function pipDrawBuild(g,pg){
   const {p,s,auto,st}=pg.m;

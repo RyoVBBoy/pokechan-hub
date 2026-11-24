@@ -6,8 +6,13 @@ const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j
 /* 当たる回数：データ（MV）で1回になっていた連続技を直す（2026/11/13 ダメージ計算の点検）。860 ネズミざん＝1〜10回（1回ごとに命中判定）、888 ツインビーム＝2回 */
 const mvObj=id=>{const a=MV[id],e=(typeof MVE!=='undefined'&&MVE[id])||{},hh={860:[1,10],888:[2,2]}[id];let drain=a[9];if(e.dr)drain=e.dr;if(e.rc)drain=-e.rc;return{id,n:a[0],t:a[1],pow:a[2],acc:a[3],cls:a[4],pri:a[5],tg:a[6],minH:hh?hh[0]:a[7],maxH:hh?hh[1]:a[8],drain,e}};
 const PROT={id:0,n:'まもる',t:null,prot:true,pri:4,pow:0,acc:0,cls:2,tg:0,minH:1,maxH:1,drain:0};
-/* eelevate（うなぎのぼり・メガシビルドン）は当サイトの特性の説明（ABDS）に合わせてじめん無効。ゲームでの確認はまだ（2026/11/13） */
-const ABSORB={'levitate':['じめん',0],'eelevate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
+/* 2026/11/24：まもる（182）とみきり（197）は計算では同じ「守る」働きだが、別の技として残す（名前・タイプ・PP・採用率・保存）。
+   計算用の技は PROT の働き＋もとの技の番号 sid。保存の形に戻すときは sid を使う（前はみきりを「まもる」182 に書きかえていた） */
+const PROT_IDS=new Set([182,197]);
+const protMv=id=>{const sid=PROT_IDS.has(+id)?+id:182;return{...PROT,sid,n:(typeof MD!=='undefined'&&MD[sid]&&MD[sid][0])||PROT.n}};
+const protSaved=m=>{const id=(m&&m.sid)||182;return{n:(typeof MD!=='undefined'&&MD[id]&&MD[id][0])||'まもる',id}};
+/* eelevate（うなぎのぼり・メガシビルドン）：2026/11/24 Pokémon Showdown e7f50cd の champions の実装（倒したあといちばん高い能力が上がる）に合わせ、じめん無効をやめた（前は当サイトの説明でじめん無効にしていた。どちらもゲーム内では未確認） */
+const ABSORB={'levitate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
 const PINCH={blaze:'ほのお',torrent:'みず',overgrow:'くさ',swarm:'むし'};
 const SKIN={pixilate:['フェアリー'],refrigerate:['こおり'],aerilate:['ひこう'],dragonize:['ドラゴン'],galvanize:['でんき']};
 const WSET={drought:'sun',drizzle:'rain','sand-stream':'sand','snow-warning':'snow'};
@@ -15,8 +20,21 @@ const WSPD={chlorophyll:'sun','swift-swim':'rain','sand-rush':'sand','slush-rush
 const WNAME={sun:'ひざしが つよい',rain:'あめが ふっている',sand:'すなあらし',snow:'ゆきが ふっている'};
 const ABIMPL=new Set([...Object.keys(ABSORB),...Object.keys(PINCH),...Object.keys(SKIN),...Object.keys(WSET),...Object.keys(WSPD),
  'intimidate','clear-body','white-smoke','hyper-cutter','mirror-armor','defiant','competitive','huge-power','pure-power','hustle','compound-eyes','no-guard','technician','adaptability',
- 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link']);
+ 'multiscale','solid-rock','filter','tinted-lens','tough-claws','iron-fist','strong-jaw','mega-launcher','sharpness','sand-force','solar-power','fairy-aura','parental-bond','scrappy','mega-sol','levitate','thick-fat','heatproof','water-bubble','fur-coat','sturdy','speed-boost','moxie','stamina','justified','mold-breaker','skill-link','unaware','marvel-scale','sheer-force','compound-eyes','hustle','cloud-nine','air-lock','bulletproof','soundproof','shell-armor','battle-armor','reckless','punk-rock','steely-spirit','fire-mane','purifying-salt','infiltrator','sniper','fluffy','ice-scales','aura-guard','liquid-voice','quick-feet','gale-wings','sand-veil','snow-cloak','long-reach']);
 const stgM=s=>s>=0?(2+s)/2:2/(2-s);
+/* ちからずく（2026/11/24）：追加効果のある技の威力が1.3倍（5325/4096）になり、その追加効果（相手の状態異常・ひるみ・能力の変化・自分の能力が上がる効果など）は起きない。
+   自分の能力が下がる効果（インファイト等）・反動・吸い取る回復・急所に当たりやすい性質は追加効果ではないので残る。いのちのたまの反動は、ちからずくが働いた技のときだけ受けない。
+   どの技が「追加効果のある技」かは、技ごとに書いた表（SF_SEC。一般的な「効果あり」の印 MVE の o は使わない）。
+   出典：@smogon/calc 0.12.0 の Pokémon Champions の技データの secondaries（Pokémon Showdown と同じ。こおりにする効果のないチャンピオンズのフリーズドライは入らない）＋
+   同じ計算の Electro Shot（エレクトロビーム：威力だけ上がり、ためる効果は残る）。第9世代の参照データであり、チャンピオンズの実機では確かめていない */
+const SF_SEC=new Set(["acidspray","airslash","alluringvoice","ancientpower","appleacid","aquastep","aurawheel","axekick","barbbarrage","bite","bittermalice","blazekick","blizzard","bodyslam","bounce","breakingswipe","bugbuzz","bulldoze","burningjealousy","ceaselessedge","chargebeam","chillingwater","crosspoison","crunch","crushclaw","darkpulse","direclaw","discharge","dragonrush","drumbeating","dynamicpunch","earthpower","eeriespell","electroweb","energyball","extrasensory","fakeout","fierydance","fireblast","firefang","firelash","firepunch","flamecharge","flamethrower","flareblitz","flashcannon","focusblast","gravapple","gunkshot","heatwave","hurricane","icebeam","icefang","icepunch","iciclecrash","icywind","infernalparade","inferno","ironhead","irontail","lavaplume","liquidation","lowsweep","luminacrash","lunge","matchagotcha","meteormash","moonblast","mortalspin","mountaingale","muddywater","mudshot","mudslap","mysticalfire","nightdaze","nuzzle","playrough","poisonfang","poisonjab","pounce","psychic","psychicnoise","psyshieldbash","pyroball","rapidspin","razorshell","rockslide","rocktomb","saltcure","scald","scorchingsands","shadowball","shellsidearm","skittersmack","skyattack","sludgebomb","sludgewave","snarl","snore","sparklingaria","spiritbreak","spiritshackle","steelwing","stoneaxe","strugglebug","syrupbomb","throatchop","thunder","thunderbolt","thunderfang","thunderpunch","torchsong","trailblaze","triattack","triplearrows","tropkick","upperhand","volttackle","waterfall","waterpulse","zapcannon","zenheadbutt","zingzap"]);
+const SF_POW_ONLY=new Set(['electroshot']);
+const sfOn=(a,mv)=>!!(a&&mv&&a.ab==='sheer-force'&&(SF_SEC.has(mkey(mv))||SF_POW_ONLY.has(mkey(mv))));
+/* メテオビーム・エレクトロビーム：使うたびに特攻が1段階上がる。1対1で何回で倒せるかは、使うごとのダメージ（mbSeq）で数える */
+const MB_REP=new Set(['meteorbeam','electroshot']);
+function mbSeq(a,mv,d,r,hpFn){if(!mv||!MB_REP.has(mkey(mv)))return null;const out=[];
+  for(let k=0;k<6;k++){const hp0=d.hp;if(hpFn)hpFn();try{out.push(bcalc(a,mv,d,{r,useN:k}).dmg/d.max*100)}finally{d.hp=hp0}}return out}
+const sfSup=(a,mv)=>!!(a&&mv&&a.ab==='sheer-force'&&SF_SEC.has(mkey(mv)));
 
 /* ---- 持ち物（対応しているもののみ） ---- */
 /* ゲームにある持ち物（メガストーン以外）。2026/11/04 依頼主の完全なリスト。こだわりハチマキ・こだわりメガネ・とつげきチョッキ・あつぞこブーツ等はゲームにない */
@@ -242,9 +260,12 @@ function genTeam(){
 /* 技構成と特性を自動で決める（使用率データがないため、威力・タイプ一致・攻め範囲から選びます） */
 function chooseSet(p,det){
   const nz=()=>det?1:(.85+Math.random()*.3);
-  const ab=ABD[p.no]||[];const ab0=ab.filter(a=>!a[1]);const abk=(ab0.length?ab0:ab).length?(ab0.length?ab0:ab)[det?0:rnd((ab0.length?ab0:ab).length)][0]:null;
-  const ls=LSD[p.no];
-  if(!ls){const phys=p.s[1]>=p.s[3];return{ab:abk,moves:p.t.map(t=>({id:-1,n:t+'わざ',t,pow:90,acc:100,cls:phys?0:1,pri:0,tg:0,minH:1,maxH:1,drain:0}))}}
+  /* メガシンカの姿は、元の姿の覚える技＋メガシンカ後の特性＋そのメガストーン（2026/11/20：前はメガの番号で技を探して見つからず、タイプの名前の仮の技「〇〇わざ」で計算していた） */
+  const lb=learnBase(p),mg=lb!==p;
+  const ab=mg?[[p.ab,0]]:(ABD[p.no]||[]);const ab0=ab.filter(a=>!a[1]);const abk=(ab0.length?ab0:ab).length?(ab0.length?ab0:ab)[det?0:rnd((ab0.length?ab0:ab).length)][0]:null;
+  const ls=LSD[lb.no];
+  /* 覚える技が分からない姿は型を作らない（仮の技で計算しない）。呼ぶ側が理由を出す */
+  if(!ls)return null;
   const A=p.s[1],C=p.s[3],mx=Math.max(A,C);
   const pool=ls[1].filter(id=>MV[id]).map(mvObj).filter(m=>!(m.id===0));
   const sc=m=>{let v=(m.pow||60)*(m.acc||100)/100*Math.pow((m.cls?C:A)/mx,2)*simF(null,m);
@@ -261,7 +282,7 @@ function chooseSet(p,det){
   }
   if(ls[0])chosen.push(PROT);
   else{let best=null;pool.forEach(m=>{if(chosen.includes(m))return;const v=sc(m)*nz();if(!best||v>best.v)best={m,v}});if(best)chosen.push(best.m)}
-  return{ab:abk,moves:chosen};
+  return mg?{ab:abk,item:p.stone,moves:chosen}:{ab:abk,moves:chosen};
 }
 /* 戦闘中にだけ変わる姿の能力（種族値） */
 const BATTLE_FORM={'zero-to-hero':{no:964,s:[100,160,97,106,87,100],always:true,name:'マイティフォルム'},'stance-change':{no:681,s:[60,140,50,140,50,60],name:'ブレードフォルム'}};
@@ -274,15 +295,18 @@ function battleFormHTML(p){const b=BATTLE_FORMS[p.no];if(!b)return '';
   ${b.forms.map(([n,t,w,s])=>`<div class="row" style="cursor:default"><div class="row-m"><div class="row-t">${p.n.replace(/（.*$/,'')}（${n}）</div><div class="chips">${(t?[t]:p.t).map(chip).join('')}${w?`<span class="rt">${w}のとき</span>`:''}</div>${s?`<div class="row-s">${SN.map((x,i)=>`${x}${s[i]}`).join('・')}（合計${s.reduce((a,c)=>a+c,0)}）</div>`:''}</div></div>`).join('')}`}
 function mkMon(p,side,set){
   set=set||chooseSet(p);
-  /* メガストーンを持っていれば、メガシンカ後の姿で計算する（1回の対戦でメガシンカできるのは1匹だけ） */
-  const mg=megaOf(p.no,set.item);
-  if(mg){p=mg;set={...set,ab:mg.ab}}
+  if(!set)throw new Error('form:insufficient-data');
+  /* 姿は resolveForm で決める（2026/11/20）。メガストーンを持っていれば、メガシンカ後の姿で計算する（1回の対戦でメガシンカできるのは1匹だけ）。
+     持ち物が姿と合わないときは formErr に理由を残す（計算の結果を出す画面は、これを見て結果を出さない） */
+  const R=resolveForm(p.no,set.item);let formErr=null;
+  if(R.ok&&R.mega){if(R.form!==p||set.ab!==R.form.ab)set={...set,ab:R.form.ab};p=R.form}
+  else if(!R.ok)formErr=R.why;
   const stOf=q=>{if(set.sp)return calcStats(q,set.sp,set.up??-1,set.dn??-1);const phys=p.s[1]>=p.s[3],ai=phys?1:3,sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;return calcStats(q,sp,ai,phys?3:1)};
   let st=stOf(p),stAtk=null;
   /* 戦闘中に変わる姿（2026/11/04 データの見直し）：イルカマンは一度交代するとマイティフォルムになるので、その能力で計算。
      ギルガルドは攻撃するときだけブレードフォルム（攻撃・特攻140／防御・特防50）になるので、攻撃側の能力を別に持つ（受けるときはシールドフォルム） */
   const bf=BATTLE_FORM[set.ab];if(bf&&bf.no===p.no){const q={...p,s:bf.s};if(bf.always)st=stOf(q);else stAtk=stOf(q)}
-  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise'};
+  return{p,side,st,stAtk,hp:st[0],max:st[0],moves:set.moves,boost:set.boost||null,uncalc:set.uncalc||null,ab:set.ab,item:set.item||null,stg:{atk:0,def:0,spa:0,spd:0,spe:0},prot:false,usedProt:false,lastProt:false,fainted:false,disg:set.ab==='disguise',formErr};
 }
 let B={phase:'menu'};
 const alive=S=>S.act.filter(i=>i!=null).map(i=>S.mons[i]).filter(m=>!m.fainted);
@@ -290,7 +314,8 @@ const bn=b=>(b.side==='op'?'相手の':'')+b.p.n;
 const abn=b=>ABN[b.ab]||'';
 const sideDead=S=>S.mons.every(m=>m.fainted);
 const foesOf=b=>b.side==='me'?B.op:B.me, ownOf=b=>b.side==='me'?B.me:B.op;
-const effSpd=b=>Math.floor(b.st[5]*stgM(b.stg.spe)*(B.weather&&WSPD[b.ab]===B.weather.k?2:1)*(b.item==='choicescarf'?1.5:1)*(b.status==='par'?.5:1));
+/* はやあし：状態異常のとき1.5倍で、まひで遅くならない（2026/11/24） */
+const effSpd=(b,opp)=>Math.floor(b.st[5]*stgM(b.stg.spe)*(WSPD[b.ab]&&WSPD[b.ab]===wxEffK(b,opp)?2:1)*(b.item==='choicescarf'?1.5:1)*(b.item==='ironball'?.5:1)*(b.ab==='quick-feet'&&b.status?1.5:1)*(b.status==='par'&&b.ab!=='quick-feet'?.5:1));
 function chg(b,k,n,log,why){
   const o=b.stg[k];b.stg[k]=Math.max(-6,Math.min(6,o+n));
   const nm={atk:'攻撃',def:'防御',spa:'特攻',spd:'特防',spe:'素早さ'}[k];
@@ -316,18 +341,34 @@ function refill(S,log){
     if(j>=0){S.act[k]=j;log(`<span class="ko">${bn(S.mons[j])}が 出てきた！</span>`);enter(S.mons[j],log)}
   }
 }
-function hitType(a,mv){if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
+function hitType(a,mv,d){if(a&&a.ab==='liquid-voice'&&mv&&mfl(mv,'o'))return 'みず';if(mkey(mv)==='ragingbull'&&a.p){const rb={10250:'かくとう',10251:'ほのお',10252:'みず'}[a.p.no];if(rb)return rb}if(mkey(mv)==='weatherball'){const w=a.ab==='mega-sol'?'sun':wxEffK(a,d);if(w)return{sun:'ほのお',rain:'みず',sand:'いわ',snow:'こおり'}[w]}return SKIN[a.ab]&&mv.t==='ノーマル'&&!['terrainpulse','weatherball'].includes(mkey(mv))?SKIN[a.ab][0]:mv.t}
 /* ---- 条件で威力が変わる技 ---- */
 const WT={"3":100,"6":90.5,"9":85.5,"15":29.5,"18":39.5,"24":65,"25":6,"26":30,"10100":21,"36":40,"38":19.9,"10104":19.9,"40":12,"45":18.6,"53":32,"10108":33,"863":28,"59":155,"10230":168,"186":33.9,"65":48,"68":130,"71":15.5,"80":78.5,"10165":70.5,"199":79.5,"10172":79.5,"83":15,"865":117,"94":40.5,"208":400,"464":282.8,"115":80,"121":80,"122":54.5,"866":58.2,"212":118,"900":89,"127":55,"128":88.4,"10250":115,"10251":85,"10252":110,"130":235,"132":4,"134":29,"135":24.5,"136":25,"196":26.5,"197":27,"470":25.5,"471":25.9,"700":23.5,"142":59,"143":460,"149":210,"154":100.5,"157":79.5,"10233":69.8,"160":88.8,"168":33.5,"181":61.5,"184":28.5,"981":160,"205":125.8,"472":42.5,"211":3.9,"904":60.5,"214":54,"461":34,"903":43,"473":291,"227":50.5,"229":35,"899":95.1,"248":202,"254":52.2,"257":52,"260":81.9,"279":28,"282":48.4,"475":52,"302":11,"303":11.5,"306":360,"308":31.5,"310":40.2,"407":14.5,"317":80,"319":88.8,"323":220,"324":80.4,"334":20.6,"350":162,"351":0.8,"354":12.5,"358":1,"359":47,"362":256.5,"478":26.6,"373":102.6,"376":550,"389":310,"392":55,"395":84.5,"398":24.9,"405":42,"409":102.5,"411":149.5,"428":33.3,"442":108,"445":95,"448":54,"450":300,"454":44.4,"460":135.5,"479":0.3,"10008":0.3,"10009":0.3,"10010":0.3,"10011":0.3,"10012":0.3,"497":63,"500":150,"503":94.6,"10236":58.2,"505":27,"510":37.5,"512":30.5,"514":28,"516":29,"518":60.5,"530":40.4,"531":31,"534":87,"545":200.5,"547":6.6,"902":110,"10248":110,"553":96.3,"560":30,"563":76.5,"867":66.6,"569":107.3,"571":81.1,"10239":73,"579":20.1,"584":57.5,"587":5,"604":80.5,"609":34.3,"614":260,"618":11,"10180":20.5,"623":330,"635":160,"637":46,"652":90,"655":39,"658":40,"660":42.4,"663":24.5,"666":17,"668":81.5,"10061":0.9,"671":10,"673":91,"675":136,"676":28,"678":8.5,"681":53,"683":15.5,"685":5,"687":47,"689":96,"691":81.5,"693":35.3,"695":21,"697":270,"699":225,"701":21.5,"702":2.2,"706":150.5,"10242":334.1,"707":3,"709":71,"711":12.5,"10030":9.5,"10031":14,"10032":39,"713":505,"10243":262.4,"715":85,"724":36.6,"10244":37,"727":83,"730":44,"733":26,"740":180,"745":25,"10126":25,"10152":25,"748":14.5,"750":920,"752":82,"758":22.2,"763":21.4,"765":76,"766":82.8,"768":108,"778":0.7,"780":185,"784":78.2,"812":90,"815":33,"818":45.2,"823":75,"828":19.9,"841":1,"842":13,"844":65.5,"849":40,"10184":40,"853":39,"855":0.4,"858":5.1,"861":61,"869":0.5,"870":62,"871":1,"876":28,"10186":28,"877":3,"887":50,"908":31.2,"911":326.5,"914":61.9,"972":15,"956":90,"964":60.2,"930":48.2,"952":15,"939":113,"968":310,"925":2.3,"998":210,"923":41,"931":2.4,"10260":2.4,"10261":2.4,"10262":2.4,"934":240,"970":45,"943":61,"1000":30,"959":112.8,"936":85,"937":62,"983":120,"979":56,"1013":2.2,"1018":60,"1019":93,"10025":8.5,"10033":155.5,"10034":110.5,"10035":100.5,"10036":101.1,"10037":48,"10038":40.5,"10039":100,"10040":59,"10041":305,"10042":79,"10045":61.5,"10046":125,"10047":62.5,"10048":49.5,"10049":255,"10050":52,"10051":48.4,"10052":23.5,"10053":395,"10054":31.5,"10055":44,"10056":13,"10057":49,"10058":95,"10059":57.5,"10060":185,"10064":102,"10065":55.2,"10066":161,"10067":20.6,"10068":56.4,"10069":32,"10070":130.3,"10071":120,"10072":740,"10073":50.5,"10074":350.2,"10076":942.9,"10087":320.5,"10088":28.3,"10089":112.6,"10090":40.5,"10278":42.3,"10279":125.5,"10280":80,"10281":290,"10282":201,"10283":108.8,"10284":40.4,"10285":29.6,"10286":180.3,"10287":60,"10288":230.5,"10289":31,"10290":180,"10291":69.6,"10292":90,"10293":39,"10294":40,"10295":93.3,"10296":100.8,"10297":69.8,"10298":100,"10299":100.3,"10300":25,"10302":240.5,"10303":99,"10304":38,"10305":26,"10306":8,"10307":49,"10308":50,"10309":99,"10310":49.4,"10313":330,"10314":10.1,"10315":252.8,"10316":148,"10320":22,"10321":77,"10325":315,"10326":10.1};
 /* 技の英語ID｜性質（c接触 pパンチ bかみつき l波動 s切る o音 w風 x弾 dおどり） */
-const MDK={"709":"accelerock|c","151":"acidarmor|","491":"acidspray|x","512":"acrobatics|c","367":"acupressure|","332":"aerialace|cs","495":"afteryou|","97":"agility|","314":"aircutter|sw","403":"airslash|s","914":"alluringvoice|o","502":"allyswitch|","133":"amnesia|","246":"ancientpower|","787":"appleacid|","895":"aquacutter|s","453":"aquajet|c","392":"aquaring|","872":"aquastep|cd","401":"aquatail|c","890":"armorcannon|","597":"aromaticmist|","372":"assurance|c","213":"attract|","396":"aurasphere|lx","783":"aurawheel|","694":"auroraveil|","419":"avalanche|c","853":"axekick|c","608":"babydolleyes|","661":"banefulbunker|","839":"barbbarrage|","226":"batonpass|","690":"beakblast|x","251":"beatup|","562":"belch|","187":"bellydrum|","20":"bind|c","44":"bite|cb","891":"bitterblade|cs","841":"bittermalice|","307":"blastburn|","299":"blazekick|c","59":"blizzard|w","335":"block|","776":"bodypress|c","34":"bodyslam|c","198":"bonerush|","586":"boomburst|o","340":"bounce|c","413":"bravebird|c","784":"breakingswipe|c","280":"brickbreak|c","693":"brutalswing|c","450":"bugbite|c","405":"bugbuzz|o","339":"bulkup|","523":"bulldoze|","418":"bulletpunch|cp","331":"bulletseed|x","807":"burningjealousy|","682":"burnup|","347":"calmmind|","845":"ceaselessedge|cs","268":"charge|","451":"chargebeam|","204":"charm|","886":"chillingwater|","881":"chillyreception|","509":"circlethrow|c","691":"clangingscales|o","775":"clangoroussoul|od","499":"clearsmog|","370":"closecombat|c","811":"coaching|","489":"coil|","894":"comeuppance|c","109":"confuseray|","383":"copycat|","810":"corrosivegas|","322":"cosmicpower|","538":"cottonguard|","178":"cottonspore|","68":"counter|c","756":"courtchange|","343":"covet|c","152":"crabhammer|c","238":"crosschop|c","440":"crosspoison|cs","242":"crunch|cb","306":"crushclaw|cs","174":"curse|","663":"darkestlariat|c","399":"darkpulse|l","605":"dazzlinggleam|","777":"decorate|","432":"defog|","194":"destinybond|","197":"detect|","91":"dig|c","827":"direclaw|cs","50":"disable|","435":"discharge|","291":"dive|c","38":"doubleedge|c","458":"doublehit|c","892":"doubleshock|cp","104":"doubleteam|","434":"dracometeor|","913":"dragoncheer|o","337":"dragonclaw|cs","349":"dragondance|d","751":"dragondarts|","406":"dragonpulse|l","407":"dragonrush|c","525":"dragontail|c","577":"drainingkiss|c","409":"drainpunch|cp","65":"drillpeck|c","529":"drillrun|c","778":"drumbeating|","814":"dualwingbeat|c","223":"dynamicpunch|cp","414":"earthpower|","89":"earthquake|","598":"eerieimpulse|","826":"eeriespell|o","604":"electricterrain|","582":"electrify|","486":"electroball|x","905":"electroshot|","527":"electroweb|","227":"encore|","283":"endeavor|c","203":"endure|","412":"energyball|x","494":"entrainment|","284":"eruption|","797":"expandingforce|","153":"explosion|","326":"extrasensory|","245":"extremespeed|c","263":"facade|c","587":"fairylock|","252":"fakeout|c","313":"faketears|","297":"featherdance|d","364":"feint|","565":"fellstinger|c","907":"ficklebeam|","552":"fierydance|d","515":"finalgambit|","126":"fireblast|","424":"firefang|cb","680":"firelash|c","7":"firepunch|cp","83":"firespin|","660":"firstimpression|c","90":"fissure|","175":"flail|c","488":"flamecharge|c","53":"flamethrower|","394":"flareblitz|c","430":"flashcannon|","260":"flatter|","374":"fling|","812":"flipturn|c","870":"flowertrick|","19":"fly|c","560":"flyingpress|c","411":"focusblast|x","116":"focusenergy|","264":"focuspunch|cp","266":"followme|","571":"forestscurse|","492":"foulplay|c","573":"freezedry|","338":"frenzyplant|","524":"frostbreath|","248":"futuresight|","380":"gastroacid|","202":"gigadrain|","416":"gigaimpact|c","893":"gigatonhammer|","862":"glaiverush|c","137":"glare|","447":"grassknot|c","803":"grassyglide|c","580":"grassyterrain|","788":"gravapple|","356":"gravity|","74":"growth|","470":"guardsplit|","385":"guardswap|","12":"guillotine|c","441":"gunkshot|","360":"gyroball|cx","359":"hammerarm|cp","912":"hardpress|c","114":"haze|","838":"headlongrush|cp","457":"headsmash|c","215":"healbell|o","361":"healingwish|","505":"healpulse|l","535":"heatcrash|c","257":"heatwave|w","484":"heavyslam|c","270":"helpinghand|","506":"hex|","667":"highhorsepower|c","136":"highjumpkick|c","32":"horndrill|c","532":"hornleech|c","336":"howl|o","542":"hurricane|w","308":"hydrocannon|","56":"hydropump|","63":"hyperbeam|","304":"hypervoice|o","95":"hypnosis|","58":"icebeam|","423":"icefang|cb","665":"icehammer|cp","8":"icepunch|cp","420":"iceshard|","861":"icespinner|c","556":"iciclecrash|","333":"iciclespear|","196":"icywind|w","286":"imprison|","844":"infernalparade|","517":"inferno|","611":"infestation|c","275":"ingrain|","689":"instruct|","334":"irondefense|","442":"ironhead|c","231":"irontail|c","746":"jawlock|cb","857":"jetpunch|cp","588":"kingsshield|","282":"knockoff|c","869":"kowtowcleave|cs","808":"lashout|","387":"lastresort|c","854":"lastrespects|","436":"lavaplume|","348":"leafblade|cs","437":"leafstorm|","141":"leechlife|c","73":"leechseed|","791":"lifedew|","617":"lightofruin|","113":"lightscreen|","710":"liquidation|c","199":"lockon|","67":"lowkick|c","490":"lowsweep|c","855":"luminacrash|","679":"lunge|c","183":"machpunch|cp","750":"magicpowder|","478":"magicroom|","602":"magneticflux|","393":"magnetrise|","874":"makeitrain|","902":"matchagotcha|","212":"meanlook|","224":"megahorn|c","25":"megakick|c","262":"memento|","368":"metalburst|","319":"metalsound|o","794":"meteorassault|","800":"meteorbeam|","309":"meteormash|cp","208":"milkdrink|","107":"minimize|","243":"mirrorcoat|","802":"mistyexplosion|","581":"mistyterrain|","585":"moonblast|","236":"moonlight|","234":"morningsun|","866":"mortalspin|c","836":"mountaingale|","330":"muddywater|","341":"mudshot|","189":"mudslap|","595":"mysticalfire|","417":"nastyplot|","539":"nightdaze|","101":"nightshade|","400":"nightslash|cs","568":"nobleroar|o","748":"noretreat|","609":"nuzzle|c","753":"octolock|","200":"outrage|c","786":"overdrive|o","315":"overheat|","220":"painsplit|","570":"paraboliccharge|","575":"partingshot|o","371":"payback|c","195":"perishsong|o","572":"petalblizzard|w","80":"petaldance|cd","566":"phantomforce|c","42":"pinmissile|","583":"playrough|c","365":"pluck|c","305":"poisonfang|cb","398":"poisonjab|c","77":"poisonpowder|","676":"pollenpuff|x","809":"poltergeist|","860":"populationbomb|cs","884":"pounce|c","408":"powergem|","471":"powersplit|","384":"powerswap|","379":"powertrick|","681":"powertrip|c","438":"powerwhip|c","182":"protect|","94":"psychic|","706":"psychicfangs|cb","917":"psychicnoise|o","678":"psychicterrain|","427":"psychocut|s","244":"psychup|","828":"psyshieldbash|c","473":"psyshock|","780":"pyroball|x","511":"quash|","98":"quickattack|c","501":"quickguard|","483":"quiverdance|d","889":"ragefist|cp","476":"ragepowder|","873":"ragingbull|c","833":"ragingfury|","240":"raindance|","229":"rapidspin|c","534":"razorshell|cs","105":"recover|","278":"recycle|","115":"reflect|","513":"reflecttype|","156":"rest|","179":"reversal|c","863":"revivalblessing|","804":"risingvoltage|","46":"roar|o","350":"rockblast|x","397":"rockpolish|","157":"rockslide|","317":"rocktomb|","439":"rockwrecker|x","272":"roleplay|","355":"roost|","496":"round|o","533":"sacredsword|cs","219":"safeguard|","864":"saltcure|","201":"sandstorm|w","328":"sandtomb|","503":"scald|","799":"scaleshot|","184":"scaryface|","815":"scorchingsands|","103":"screech|o","402":"seedbomb|x","69":"seismictoss|c","120":"selfdestruct|","247":"shadowball|x","421":"shadowclaw|cs","325":"shadowpunch|cp","425":"shadowsneak|c","880":"shedtail|","329":"sheercold|","801":"shellsidearm|","504":"shellsmash|","842":"shelter|","508":"shiftgear|","493":"simplebeam|","47":"sing|o","285":"skillswap|","806":"skittersmack|c","143":"skyattack|","303":"slackoff|","163":"slash|cs","79":"sleeppowder|","214":"sleeptalk|","188":"sludgebomb|x","482":"sludgewave|","479":"smackdown|","684":"smartstrike|c","779":"snaptrap|c","555":"snarl|o","745":"snipeshot|","173":"snore|o","883":"snowscape|","487":"soak|","76":"solarbeam|","669":"solarblade|cs","664":"sparklingaria|o","683":"speedswap|","858":"spicyextract|","191":"spikes|","596":"spikyshield|","789":"spiritbreak|c","662":"spiritshackle|","180":"spite|","255":"spitup|","446":"stealthrock|","796":"steelbeam|","798":"steelroller|c","211":"steelwing|c","564":"stickyweb|","254":"stockpile|","707":"stompingtantrum|c","830":"stoneaxe|cs","444":"stoneedge|","500":"storedpower|","480":"stormthrow|c","668":"strengthsap|","81":"stringshot|","522":"strugglebug|","747":"stuffcheeks|","78":"stunspore|","164":"substitute|","389":"suckerpunch|c","241":"sunnyday|","916":"supercellslam|c","162":"superfang|c","276":"superpower|c","57":"surf|","207":"swagger|","256":"swallow|","186":"sweetkiss|","230":"sweetscent|","415":"switcheroo|","14":"swordsdance|d","235":"synthesis|","903":"syrupbomb|x","541":"tailslap|c","366":"tailwind|w","269":"taunt|","715":"tearfullook|","752":"teatime|","298":"teeterdance|d","915":"temperflare|c","805":"terrainpulse|l","168":"thief|c","37":"thrash|c","675":"throatchop|c","87":"thunder|","85":"thunderbolt|","422":"thunderfang|cb","9":"thunderpunch|cp","86":"thunderwave|","321":"tickle|","882":"tidyup|","576":"topsyturvy|","871":"torchsong|o","259":"torment|","92":"toxic|","390":"toxicspikes|","672":"toxicthread|","885":"trailblaze|c","144":"transform|","161":"triattack|","271":"trick|","567":"trickortreat|","433":"trickroom|","843":"triplearrows|","813":"tripleaxel|c","688":"tropkick|c","888":"twinbeam|","918":"upperhand|c","253":"uproar|o","369":"uturn|c","410":"vacuumwave|","474":"venoshock|","521":"voltswitch|","344":"volttackle|c","127":"waterfall|c","352":"waterpulse|l","594":"watershuriken|","323":"waterspout|","834":"wavecrash|c","311":"weatherball|x","250":"whirlpool|","18":"whirlwind|w","469":"wideguard|","528":"wildcharge|c","261":"willowisp|","273":"wish|","472":"wonderroom|","452":"woodhammer|c","388":"worryseed|","35":"wrap|c","404":"xscissor|cs","281":"yawn|","192":"zapcannon|x","428":"zenheadbutt|c","716":"zingzap|c"};
+const MDK={"709":"accelerock|c","151":"acidarmor|","491":"acidspray|x","512":"acrobatics|c","367":"acupressure|","332":"aerialace|cs","495":"afteryou|","97":"agility|","314":"aircutter|sw","403":"airslash|s","914":"alluringvoice|o","502":"allyswitch|","133":"amnesia|","246":"ancientpower|","787":"appleacid|","895":"aquacutter|s","453":"aquajet|c","392":"aquaring|","872":"aquastep|cd","401":"aquatail|c","890":"armorcannon|","597":"aromaticmist|","372":"assurance|c","213":"attract|","396":"aurasphere|lx","783":"aurawheel|","694":"auroraveil|","419":"avalanche|c","853":"axekick|c","608":"babydolleyes|","661":"banefulbunker|","839":"barbbarrage|","226":"batonpass|","690":"beakblast|x","251":"beatup|","562":"belch|","187":"bellydrum|","20":"bind|c","44":"bite|cb","891":"bitterblade|cs","841":"bittermalice|","307":"blastburn|","299":"blazekick|c","59":"blizzard|w","335":"block|","776":"bodypress|c","34":"bodyslam|c","198":"bonerush|","586":"boomburst|o","340":"bounce|c","413":"bravebird|c","784":"breakingswipe|c","280":"brickbreak|c","693":"brutalswing|c","450":"bugbite|c","405":"bugbuzz|o","339":"bulkup|","523":"bulldoze|","418":"bulletpunch|cp","331":"bulletseed|x","807":"burningjealousy|","682":"burnup|","347":"calmmind|","845":"ceaselessedge|cs","268":"charge|","451":"chargebeam|","204":"charm|","886":"chillingwater|","881":"chillyreception|","509":"circlethrow|c","691":"clangingscales|o","775":"clangoroussoul|od","499":"clearsmog|","370":"closecombat|c","811":"coaching|","489":"coil|","894":"comeuppance|c","109":"confuseray|","383":"copycat|","810":"corrosivegas|","322":"cosmicpower|","538":"cottonguard|","178":"cottonspore|","68":"counter|c","756":"courtchange|","343":"covet|c","152":"crabhammer|c","238":"crosschop|c","440":"crosspoison|cs","242":"crunch|cb","306":"crushclaw|cs","174":"curse|","663":"darkestlariat|c","399":"darkpulse|l","605":"dazzlinggleam|","777":"decorate|","432":"defog|","194":"destinybond|","197":"detect|","91":"dig|c","827":"direclaw|cs","50":"disable|","435":"discharge|","291":"dive|c","38":"doubleedge|c","458":"doublehit|c","892":"doubleshock|cp","104":"doubleteam|","434":"dracometeor|","913":"dragoncheer|o","337":"dragonclaw|cs","349":"dragondance|d","751":"dragondarts|","406":"dragonpulse|l","407":"dragonrush|c","525":"dragontail|c","577":"drainingkiss|c","409":"drainpunch|cp","65":"drillpeck|c","529":"drillrun|c","778":"drumbeating|","814":"dualwingbeat|c","223":"dynamicpunch|cp","414":"earthpower|","89":"earthquake|","598":"eerieimpulse|","826":"eeriespell|o","604":"electricterrain|","582":"electrify|","486":"electroball|x","905":"electroshot|","527":"electroweb|","227":"encore|","283":"endeavor|c","203":"endure|","412":"energyball|x","494":"entrainment|","284":"eruption|","797":"expandingforce|","153":"explosion|","326":"extrasensory|","245":"extremespeed|c","263":"facade|c","587":"fairylock|","252":"fakeout|c","313":"faketears|","297":"featherdance|d","364":"feint|","565":"fellstinger|c","907":"ficklebeam|","552":"fierydance|d","515":"finalgambit|","126":"fireblast|","424":"firefang|cb","680":"firelash|c","7":"firepunch|cp","83":"firespin|","660":"firstimpression|c","90":"fissure|","175":"flail|c","488":"flamecharge|c","53":"flamethrower|","394":"flareblitz|c","430":"flashcannon|","260":"flatter|","374":"fling|","812":"flipturn|c","870":"flowertrick|","19":"fly|c","560":"flyingpress|c","411":"focusblast|x","116":"focusenergy|","264":"focuspunch|cp","266":"followme|","571":"forestscurse|","492":"foulplay|c","573":"freezedry|","338":"frenzyplant|","524":"frostbreath|","248":"futuresight|","380":"gastroacid|","202":"gigadrain|","416":"gigaimpact|c","893":"gigatonhammer|","862":"glaiverush|c","137":"glare|","447":"grassknot|c","803":"grassyglide|c","580":"grassyterrain|","788":"gravapple|","356":"gravity|","74":"growth|","470":"guardsplit|","385":"guardswap|","12":"guillotine|c","441":"gunkshot|","360":"gyroball|cx","359":"hammerarm|cp","912":"hardpress|c","114":"haze|","838":"headlongrush|cp","457":"headsmash|c","215":"healbell|o","361":"healingwish|","505":"healpulse|l","535":"heatcrash|c","257":"heatwave|w","484":"heavyslam|c","270":"helpinghand|","506":"hex|","667":"highhorsepower|c","136":"highjumpkick|c","32":"horndrill|c","532":"hornleech|c","336":"howl|o","542":"hurricane|w","308":"hydrocannon|","56":"hydropump|","63":"hyperbeam|","304":"hypervoice|o","95":"hypnosis|","58":"icebeam|","423":"icefang|cb","665":"icehammer|cp","8":"icepunch|cp","420":"iceshard|","861":"icespinner|c","556":"iciclecrash|","333":"iciclespear|","196":"icywind|w","286":"imprison|","844":"infernalparade|","517":"inferno|","611":"infestation|c","275":"ingrain|","689":"instruct|","334":"irondefense|","442":"ironhead|c","231":"irontail|c","746":"jawlock|cb","857":"jetpunch|cp","588":"kingsshield|","282":"knockoff|c","869":"kowtowcleave|cs","808":"lashout|c","387":"lastresort|c","854":"lastrespects|","436":"lavaplume|","348":"leafblade|cs","437":"leafstorm|","141":"leechlife|c","73":"leechseed|","791":"lifedew|","617":"lightofruin|","113":"lightscreen|","710":"liquidation|c","199":"lockon|","67":"lowkick|c","490":"lowsweep|c","855":"luminacrash|","679":"lunge|c","183":"machpunch|cp","750":"magicpowder|","478":"magicroom|","602":"magneticflux|","393":"magnetrise|","874":"makeitrain|","902":"matchagotcha|","212":"meanlook|","224":"megahorn|c","25":"megakick|c","262":"memento|","368":"metalburst|","319":"metalsound|o","794":"meteorassault|","800":"meteorbeam|","309":"meteormash|cp","208":"milkdrink|","107":"minimize|","243":"mirrorcoat|","802":"mistyexplosion|","581":"mistyterrain|","585":"moonblast|","236":"moonlight|","234":"morningsun|","866":"mortalspin|c","836":"mountaingale|","330":"muddywater|","341":"mudshot|","189":"mudslap|","595":"mysticalfire|","417":"nastyplot|","539":"nightdaze|","101":"nightshade|","400":"nightslash|cs","568":"nobleroar|o","748":"noretreat|","609":"nuzzle|c","753":"octolock|","200":"outrage|c","786":"overdrive|o","315":"overheat|","220":"painsplit|","570":"paraboliccharge|","575":"partingshot|o","371":"payback|c","195":"perishsong|o","572":"petalblizzard|w","80":"petaldance|cd","566":"phantomforce|c","42":"pinmissile|","583":"playrough|c","365":"pluck|c","305":"poisonfang|cb","398":"poisonjab|c","77":"poisonpowder|","676":"pollenpuff|x","809":"poltergeist|","860":"populationbomb|cs","884":"pounce|c","408":"powergem|","471":"powersplit|","384":"powerswap|","379":"powertrick|","681":"powertrip|c","438":"powerwhip|c","182":"protect|","94":"psychic|","706":"psychicfangs|cb","917":"psychicnoise|o","678":"psychicterrain|","427":"psychocut|s","244":"psychup|","828":"psyshieldbash|c","473":"psyshock|","780":"pyroball|x","511":"quash|","98":"quickattack|c","501":"quickguard|","483":"quiverdance|d","889":"ragefist|cp","476":"ragepowder|","873":"ragingbull|c","833":"ragingfury|","240":"raindance|","229":"rapidspin|c","534":"razorshell|cs","105":"recover|","278":"recycle|","115":"reflect|","513":"reflecttype|","156":"rest|","179":"reversal|c","863":"revivalblessing|","804":"risingvoltage|","46":"roar|o","350":"rockblast|x","397":"rockpolish|","157":"rockslide|","317":"rocktomb|","439":"rockwrecker|x","272":"roleplay|","355":"roost|","496":"round|o","533":"sacredsword|cs","219":"safeguard|","864":"saltcure|","201":"sandstorm|w","328":"sandtomb|","503":"scald|","799":"scaleshot|","184":"scaryface|","815":"scorchingsands|","103":"screech|o","402":"seedbomb|x","69":"seismictoss|c","120":"selfdestruct|","247":"shadowball|x","421":"shadowclaw|cs","325":"shadowpunch|cp","425":"shadowsneak|c","880":"shedtail|","329":"sheercold|","801":"shellsidearm|","504":"shellsmash|","842":"shelter|","508":"shiftgear|","493":"simplebeam|","47":"sing|o","285":"skillswap|","806":"skittersmack|c","143":"skyattack|","303":"slackoff|","163":"slash|cs","79":"sleeppowder|","214":"sleeptalk|","188":"sludgebomb|x","482":"sludgewave|","479":"smackdown|","684":"smartstrike|c","779":"snaptrap|c","555":"snarl|o","745":"snipeshot|","173":"snore|o","883":"snowscape|","487":"soak|","76":"solarbeam|","669":"solarblade|cs","664":"sparklingaria|o","683":"speedswap|","858":"spicyextract|","191":"spikes|","596":"spikyshield|","789":"spiritbreak|c","662":"spiritshackle|","180":"spite|","255":"spitup|","446":"stealthrock|","796":"steelbeam|","798":"steelroller|c","211":"steelwing|c","564":"stickyweb|","254":"stockpile|","707":"stompingtantrum|c","830":"stoneaxe|cs","444":"stoneedge|","500":"storedpower|","480":"stormthrow|c","668":"strengthsap|","81":"stringshot|","522":"strugglebug|","747":"stuffcheeks|","78":"stunspore|","164":"substitute|","389":"suckerpunch|c","241":"sunnyday|","916":"supercellslam|c","162":"superfang|c","276":"superpower|c","57":"surf|","207":"swagger|","256":"swallow|","186":"sweetkiss|","230":"sweetscent|","415":"switcheroo|","14":"swordsdance|d","235":"synthesis|","903":"syrupbomb|x","541":"tailslap|c","366":"tailwind|w","269":"taunt|","715":"tearfullook|","752":"teatime|","298":"teeterdance|d","915":"temperflare|c","805":"terrainpulse|l","168":"thief|c","37":"thrash|c","675":"throatchop|c","87":"thunder|","85":"thunderbolt|","422":"thunderfang|cb","9":"thunderpunch|cp","86":"thunderwave|","321":"tickle|","882":"tidyup|","576":"topsyturvy|","871":"torchsong|o","259":"torment|","92":"toxic|","390":"toxicspikes|","672":"toxicthread|","885":"trailblaze|c","144":"transform|","161":"triattack|","271":"trick|","567":"trickortreat|","433":"trickroom|","843":"triplearrows|","813":"tripleaxel|c","688":"tropkick|c","888":"twinbeam|","918":"upperhand|c","253":"uproar|o","369":"uturn|c","410":"vacuumwave|","474":"venoshock|","521":"voltswitch|","344":"volttackle|c","127":"waterfall|c","352":"waterpulse|l","594":"watershuriken|","323":"waterspout|","834":"wavecrash|c","311":"weatherball|x","250":"whirlpool|","18":"whirlwind|w","469":"wideguard|","528":"wildcharge|c","261":"willowisp|","273":"wish|","472":"wonderroom|","452":"woodhammer|c","388":"worryseed|","35":"wrap|c","404":"xscissor|cs","281":"yawn|","192":"zapcannon|x","428":"zenheadbutt|c","716":"zingzap|c"};
 const mkey=mv=>(MDK[mv.id]||'').split('|')[0];
 const wtOf=m=>{let w=WT[m.p.no]||WT[m.p.base]||50;if(m.ab==='heavy-metal')w*=2;if(m.ab==='light-metal')w/=2;return w};
 const MCHG=new Set(['solarbeam','solarblade','meteorbeam','electroshot','skyattack','fly','dig','dive','bounce','phantomforce']);
 const MRECH=new Set(['hyperbeam','gigaimpact','blastburn','frenzyplant','hydrocannon','rockwrecker','meteorassault']);
+/* 1回の使用に何ターンかかる技か（2026/11/24）：'charge'＝ためるターンがある（はれのソーラービーム・あめのエレクトロビーム・メガソーラーは除く）、'recharge'＝使った次のターン動けない。
+   1対1の撃ち合い（duTurns）で、相手が動けるターンとして数える。本編の決まり＝前提（パワフルハーブはゲームの持ち物に無い） */
+const mvTurnK=(a,mv,d)=>{const k=mkey(mv);if(MCHG.has(k)){const w=wxEffK(a,d);if((k==='solarbeam'||k==='solarblade')&&(w==='sun'||(a&&a.ab==='mega-sol')))return null;if(k==='electroshot'&&w==='rain')return null;return'charge'}return MRECH.has(k)?'recharge':null};
 const MSELFKO=new Set(['explosion','selfdestruct','mistyexplosion','finalgambit']);
 const MFIRST=new Set(['fakeout','firstimpression']);
 const MFAIL=new Set(['belch','lastresort','steelroller','snore','focuspunch']);
+/* 計算に入れてよい技か（2026/11/20 1か所にまとめる。対策・1対1・診断・ランキング・選出・メモが使う）。
+   決まりはサイトの対戦の計算と同じ＝本編の決まり（チャンピオンズのゲーム内では未確認＝mechanics:'main-series-assumed'、Q8）。
+   フィールドは計算に入れないので、アイアンローラーはいつも失敗。ねこだまし・であいがしら（ctx.turn）は依頼主の判断 D8 の待ちなので、turn を渡さない限り数える（前と同じ） */
+/* へんげんじざい・リベロの前提（2026/11/20 RC5。画面ごとに違うので、前提として書く。どれが正しいかはゲーム内で未確認＝Q2、依頼主の判断 D6 待ち）：
+   ダメージ計算の画面＝はじめは発動する（切りかえあり）、対策・診断・1対1・ランキング・選出・メモ＝発動しない（bcalc に protean を渡さない） */
+const PROTEAN_ASSUME='へんげんじざい・リベロは発動しない前提で計算しています（技と同じタイプにならず、タイプ一致の1.5倍は入れていません。ゲーム内での発動のしかたは未確認）。';
+/* 先制技を受けない特性（2026/11/24）：テイルアーマー（リキキリン）・じょおうのいげん（アマージョ）。本編（第9世代）の決まり＝前提、かたやぶりは無視できる */
+const PRIO_BLOCK=new Set(['armor-tail','queenly-majesty','dazzling']);
+const moveUsable=(mv,ctx)=>{const k=mkey(mv);
+  if(ctx&&ctx.d&&mv&&effPri(ctx.a,mv)>0&&PRIO_BLOCK.has(ctx.d.ab)&&!(ctx.a&&ctx.a.ab==='mold-breaker'))return{ok:false,why:'blocked-priority',mechanics:'main-series-assumed'};
+  if(MFAIL.has(k))return{ok:false,why:k==='steelroller'?'fails-without-terrain':'needs-condition',mechanics:'main-series-assumed'};
+  if(MFIRST.has(k)&&ctx&&ctx.turn==='later')return{ok:false,why:'first-turn-only',mechanics:'main-series-assumed'};
+  return{ok:true}};
 /* 条件つきで威力2倍：計算画面のチェックで指定（模擬戦では使わない） */
 const MCOND={payback:'相手より後に動く',avalanche:'先に相手から攻撃を受けている',assurance:'このターン、相手がすでにダメージを受けている',stompingtantrum:'前のターンに自分の技が失敗した',temperflare:'前のターンに自分の技が失敗した',lashout:'このターンに能力を下げられた',boltbeak:'相手より先に動く',fishiousrend:'相手より先に動く',ficklebeam:'威力2倍が出た（30%の確率）'};
 const MCOUNT={ragefist:['攻撃を受けた回数',6],lastrespects:['倒れた味方の数',5]};
@@ -350,15 +391,15 @@ function varPow(a,mv,d,o){
   switch(k){
     case 'lowkick':case 'grassknot':{const w=wtOf(d);return w>=200?120:w>=100?100:w>=50?80:w>=25?60:w>=10?40:20}
     case 'heavyslam':case 'heatcrash':{const r=wtOf(a)/wtOf(d);return r>=5?120:r>=4?100:r>=3?80:r>=2?60:40}
-    case 'gyroball':{const sa=effSpd(a);return sa?Math.min(150,Math.floor(25*effSpd(d)/sa)+1):1}
-    case 'electroball':{const sd=effSpd(d),r=sd?Math.floor(effSpd(a)/sd):4;return r>=4?150:r>=3?120:r>=2?80:r>=1?60:40}
+    case 'gyroball':{const sa=effSpd(a,d);return sa?Math.min(150,Math.floor(25*effSpd(d,a)/sa)+1):1}
+    case 'electroball':{const sd=effSpd(d,a),r=sd?Math.floor(effSpd(a,d)/sd):4;return r>=4?150:r>=3?120:r>=2?80:r>=1?60:40}
     case 'eruption':case 'waterspout':case 'dragonenergy':return Math.max(1,Math.floor(150*a.hp/a.max));
     case 'flail':case 'reversal':{const r=Math.floor(a.hp*48/a.max);return r<=1?200:r<=4?150:r<=9?100:r<=16?80:r<=32?40:20}
     case 'hardpress':return Math.floor(Math.floor((100*(100*Math.floor(d.hp*4096/d.max))+2047)/4096)/100)||1;
     case 'acrobatics':return a.item?pw:pw*2;
     case 'hex':case 'infernalparade':return d.status?pw*2:pw;
     case 'storedpower':case 'powertrip':return pw+20*Object.values(a.stg).reduce((x,v)=>x+(v>0?v:0),0);
-    case 'weatherball':{const w=a.ab==='mega-sol'?'sun':(B.weather&&B.weather.k);return w?pw*2:pw}
+    case 'weatherball':{const w=a.ab==='mega-sol'?'sun':wxEffK(a,d);return w?pw*2:pw}
     case 'payback':case 'avalanche':case 'assurance':case 'stompingtantrum':case 'temperflare':case 'boltbeak':case 'fishiousrend':return o.cond?pw*2:pw;
     case 'ragefist':return Math.min(350,pw+50*(o.cnt||0));
     case 'lastrespects':return Math.min(300,pw+50*(o.cnt||0));
@@ -374,7 +415,8 @@ function fixedDmg(a,mv,d){
     case 'finalgambit':return a.hp;
     /* 一撃必殺：当たれば倒す（がんじょうなら効かない、ぜったいれいどはこおりタイプに効かない。当たる確率は命中30%で別に見る） */
     case 'guillotine':case 'fissure':case 'horndrill':case 'sheercold':
-      if(d.ab==='sturdy'||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
+      /* がんじょうは、かたやぶりの攻撃では働かない（2026/11/24） */
+      if((d.ab==='sturdy'&&!(a&&a.ab==='mold-breaker'))||(mkey(mv)==='sheercold'&&d.p&&d.p.t.includes('こおり')))return 0;return d.hp;
   }
   return null;
 }
@@ -387,13 +429,17 @@ const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
    （ポケモン対戦シミュレーター Showdown の処理と同じ：this.damage(baseMaxhp/8) → 1未満は1にし、小数を切り捨てる。チャンピオンズ用の変更もない） */
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
 function bcalc(a,mv,d,o){
-  o=o||{};const t=hitType(a,mv);
+  o=o||{};const t=hitType(a,mv,d);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
-  if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t)return{dmg:0,eff:0,absorb:dab};
+  /* くろいてっきゅう：持つと地面に着く（じめん技が ふゆう・ひこうタイプにも当たる。2026/11/24） */
+  const grounded=d.item==='ironball'&&t==='じめん';
+  if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t&&!(grounded&&dab==='levitate'))return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
+  /* ぼうだん・ぼうおん：弾・音の技を受けない（かたやぶりで消える。2026/11/24） */
+  if((dab==='bulletproof'&&mfl(mv,'x'))||(dab==='soundproof'&&mfl(mv,'o')))return{dmg:0,eff:0,immune:dab};
   const mk=mkey(mv);
-  let eff=mult(t,d.p.t);
+  let eff=grounded?mult(t,d.p.t.filter(x=>x!=='ひこう')):mult(t,d.p.t);
   if(mk==='freezedry'&&d.p.t.includes('みず'))eff=mult(t,d.p.t.filter(x=>x!=='みず'))*2;
   if(mk==='flyingpress')eff=mult('かくとう',d.p.t)*mult('ひこう',d.p.t);
   if(!eff&&a.ab==='scrappy'&&(t==='ノーマル'||t==='かくとう')&&d.p.t.includes('ゴースト'))eff=mult(t,d.p.t.filter(x=>x!=='ゴースト'));
@@ -407,9 +453,10 @@ function bcalc(a,mv,d,o){
   let phys=!mv.cls;
   if(mk==='shellsidearm'){const A1=stgV(a.st[1],a.stg.atk),C1=stgV(a.st[3],a.stg.spa),B1=stgV(d.st[2],d.stg.def),D1=stgV(d.st[4],d.stg.spd);
     phys=Math.floor(Math.floor(22*90*A1)/B1)>Math.floor(Math.floor(22*90*C1)/D1)}
-  const ee=mv.e||{},crit=!!o.crit||['flowertrick','frostbreath','stormthrow'].includes(mk);
+  /* シェルアーマー・カブトアーマー：急所に当たらない（かたやぶりで消える） */
+  const ee=mv.e||{},crit=(!!o.crit||['flowertrick','frostbreath','stormthrow'].includes(mk))&&dab!=='shell-armor'&&dab!=='battle-armor';
   /* メガソーラー：自分の技は天気が「はれ」として扱われる */
-  const wr=B.weather&&B.weather.k,w=a.ab==='mega-sol'?'sun':wr;
+  const wr=wxEffK(a,d),w=a.ab==='mega-sol'?'sun':wr;
   /* 威力の補正 */
   const pow0=varPow(a,mv,d,o);
   let bm=4096;
@@ -423,12 +470,19 @@ function bcalc(a,mv,d,o){
   if(phys&&a.item==='muscleband')bm=chM(bm,4505);
   if(!phys&&a.item==='wiseglasses')bm=chM(bm,4505);
   if(a.ab==='tough-claws'&&mfl(mv,'c'))bm=chM(bm,5325);
+  if(sfOn(a,mv))bm=chM(bm,5325);
+  /* すてみ：反動・失敗で自分が傷つく技 1.2倍／パンクロック：音の技 1.3倍／はがねのせいしん：自分のはがね技 1.5倍（味方の分はダブルの未対応）／かんそうはだ：受けるほのお技 1.25倍（2026/11/24、参照の onBasePower） */
+  if(a.ab==='reckless'&&(ee.rc||ee.cx))bm=chM(bm,4915);
+  if(a.ab==='punk-rock'&&mfl(mv,'o'))bm=chM(bm,5325);
+  if(a.ab==='steely-spirit'&&t==='はがね')bm=chM(bm,6144);
+  if(dab==='dry-skin'&&t==='ほのお')bm=chM(bm,5120);
   if(a.ab==='iron-fist'&&mfl(mv,'p'))bm=chM(bm,4915);
   if(a.ab==='strong-jaw'&&mfl(mv,'b'))bm=chM(bm,6144);
   if(a.ab==='mega-launcher'&&mfl(mv,'l'))bm=chM(bm,6144);
   if(a.ab==='sharpness'&&mfl(mv,'s'))bm=chM(bm,6144);
   if(a.ab==='sand-force'&&wr==='sand'&&['いわ','じめん','はがね'].includes(t))bm=chM(bm,5325);
-  if(t==='フェアリー'&&(a.ab==='fairy-aura'||dab==='fairy-aura'))bm=chM(bm,5448);
+  /* フェアリーオーラは場全体の効果で、かたやぶりで消えない（参照の breakable が無い。2026/11/24：前は受ける側のフェアリーオーラをかたやぶりで消していた） */
+  if(t==='フェアリー'&&(a.ab==='fairy-aura'||d.ab==='fairy-aura'))bm=chM(bm,5448);
   const facade=mv.id===263&&['brn','psn','tox','par'].includes(a.status);
   if(facade)bm=chM(bm,8192);
   if((mk==='solarbeam'||mk==='solarblade')&&w&&w!=='sun')bm=chM(bm,2048);
@@ -438,8 +492,14 @@ function bcalc(a,mv,d,o){
   const bp=mv.id===776;
   let as=ee.fp?d.stg.atk:bp?a.stg.def:a.stg[ak];
   /* メテオビーム・エレクトロビームは、ためるターンに特攻が1段階上がってから攻撃する */
-  if((mk==='meteorbeam'||mk==='electroshot')&&!o.roll)as=Math.min(6,as+1);
+  /* 2026/11/24：2回目からの使用では、前の使用で上がった分も残る（o.useN＝この対面で前に使った回数。1回目＋1、2回目＋2…最大＋6） */
+  if(MB_REP.has(mk)&&!o.roll)as=Math.min(6,as+1+(o.useN||0));
   if(crit&&as<0)as=0;
+  /* てんねん：防御側が持つ場合、攻撃側の能力ランクを無視。かたやぶりで無効化される。 */
+  /* 2026/11/24：イカサマも、受ける側（攻撃の値を使われる側）がてんねんなら、その攻撃ランクを無視する（Pokémon Showdown・@smogon/calc と同じ：
+     てんねんは「てんねんの相手と戦っている側の攻めの能力ランク」を消し、イカサマで使うランクも攻める技のランクとして扱われる）。
+     攻める側のてんねんは、イカサマで使う相手の攻撃ランクを消さない */
+  if(dab==='unaware')as=0;
   const ast=a.stAtk||a.st;
   let A=stgV(ee.fp?d.st[1]:bp?a.st[2]:(phys?ast[1]:ast[3]),as),am=4096;
   if(phys&&(a.ab==='huge-power'||a.ab==='pure-power'))am=chM(am,8192);
@@ -452,6 +512,9 @@ function bcalc(a,mv,d,o){
   if(a.item==='lightball'&&a.p.no===25)am=chM(am,8192);
   if(!phys&&a.item==='choicespecs')am=chM(am,6144);
   if(dab==='thick-fat'&&(t==='ほのお'||t==='こおり'))am=chM(am,2048);
+  /* ほのおのたてがみ：ほのお技の攻撃・特攻1.5倍／きよめのしお：受けるゴースト技の攻撃・特攻半分（2026/11/24） */
+  if(a.ab==='fire-mane'&&t==='ほのお')am=chM(am,6144);
+  if(dab==='purifying-salt'&&t==='ゴースト')am=chM(am,2048);
   if((dab==='heatproof'||dab==='water-bubble')&&t==='ほのお')am=chM(am,2048);
   if(bp)am=4096;
   else if(phys&&a.ab==='hustle')A=pR(A*3/2);
@@ -459,15 +522,22 @@ function bcalc(a,mv,d,o){
   /* 防御（急所のときは上がったランクを無視） */
   const useDef=phys||ee.ps,dk=useDef?'def':'spd';
   let ds=d.stg[dk];if(crit&&ds>0)ds=0;
+  /* てんねん：攻撃側が持つ場合、防御側の能力ランクを無視。 */
+  if(a.ab==='unaware')ds=0;
+  /* せいなるつるぎ・ＤＤラリアット：相手の防御のランク（上がっていても下がっていても）を無視する（2026/11/24） */
+  if(mk==='sacredsword'||mk==='darkestlariat')ds=0;
   let D=stgV(useDef?d.st[2]:d.st[4],ds),dm=4096;
   if(wr==='snow'&&useDef&&d.p.t.includes('こおり'))D=pR(D*1.5);
   if(wr==='sand'&&!useDef&&d.p.t.includes('いわ'))D=pR(D*1.5);
+  /* ふしぎなうろこ：状態異常なら物理防御が1.5倍。 */
+  if(useDef&&dab==='marvel-scale'&&d.status)dm=chM(dm,6144);
   if(useDef&&dab==='fur-coat')dm=chM(dm,8192);
   if(!useDef&&d.item==='assaultvest')dm=chM(dm,6144);
   D=Math.max(1,apM(D,dm));
   /* 基本ダメージ */
   let x=Math.floor(Math.floor(Math.floor(22*pow*A)/D)/50)+2;
-  if(o.spread)x=apM(x,3072);
+  /* 範囲技の0.75倍は、範囲の技（mv.tg＝相手全体・自分以外全体）のときだけ。1匹を狙う技には掛けない（2026/11/24） */
+  if(o.spread&&mv.tg)x=apM(x,3072);
   if(o.pb)x=apM(x,1024);
   if(w==='sun'&&(t==='ほのお'||t==='みず'))x=apM(x,t==='ほのお'?6144:2048);
   if(w==='rain'&&(t==='みず'||t==='ほのお'))x=apM(x,t==='みず'?6144:2048);
@@ -482,8 +552,16 @@ function bcalc(a,mv,d,o){
   /* 最後の補正 */
   let fm=4096;
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
-  if(o.screen&&!crit&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))fm=chM(fm,o.spread?2732:2048);
+  if(o.screen&&!crit&&a.ab!=='infiltrator'&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))/* Wall strength follows battle format, not the number of targets. Legacy callers without format retain the old fallback. Champions-specific multipliers still require device verification. */
+  fm=chM(fm,(o.format==='double'||(o.format==null&&o.spread))?2732:2048);
+  /* スナイパー：急所のダメージがさらに1.5倍 */
+  if(a.ab==='sniper'&&crit)fm=chM(fm,6144);
   if(dab==='multiscale'&&d.hp===d.max&&!o.pb)fm=chM(fm,2048);
+  /* もふもふ（ほのお2倍・接触半分を1つの倍率で）・パンクロック（受ける音の技半分）・こおりのりんぷん（特殊半分）・はどうのぼうご（接触半分）。かたやぶりで消える */
+  if(dab==='fluffy'){const fl=(t==='ほのお'?2:1)*(mfl(mv,'c')&&a.ab!=='long-reach'?.5:1);if(fl!==1)fm=chM(fm,fl*4096)}
+  if(dab==='punk-rock'&&mfl(mv,'o'))fm=chM(fm,2048);
+  if(dab==='ice-scales'&&mv.cls===1)fm=chM(fm,2048);
+  if(dab==='aura-guard'&&mfl(mv,'c')&&a.ab!=='long-reach')fm=chM(fm,2048);
   if((dab==='solid-rock'||dab==='filter')&&eff>=2)fm=chM(fm,3072);
   if(a.ab==='tinted-lens'&&eff<1)fm=chM(fm,8192);
   if(a.item==='expertbelt'&&eff>=2)fm=chM(fm,4915);
@@ -507,41 +585,156 @@ function mhCount(a,mv,o){
   if(o&&o.hits>0)return Math.max(mv.minH||1,Math.min(o.hits,mv.maxH));
   return mkey(mv)==='populationbomb'?10:3;
 }
-function bhits(a,mv,d,o){
-  o=o||{};const k=mkey(mv),n=mhCount(a,mv,o);
-  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&fixedDmg(a,mv,d)==null;
-  const hp0=d.hp,it0=d.item,dg0=d.disg,out=[];let hp=hp0,eff=null,loss=0,fainted=false;
+/* ---- 1発ずつの状態の変化（2026/11/24、Pokémon Showdown e7f50cd に合わせた共通の部品） ----
+   当たるたびに：ばけのかわ（1発目を防いで1/8）・半減きのみ（効いた当たりで使う）・ふうせん（当たると割れる）・
+   じきゅうりょく（当たるたび防御+1）・くだけるよろい（物理で防御−1）・きあいのタスキ／がんじょう（o.surv のときだけ。HP満タンから倒れる当たりを1残す。タスキは使う）。
+   相手が倒れたら、そのあとの当たりは状態を変えない（after。合計 total は全部の当たりの「計算上の」ダメージ、dealt は倒れるまでに実際に与えたダメージ） */
+function hitStep(a,mv,d,i,r,cr,o,st){
+  const k=mkey(mv),m=k==='tripleaxel'?{...mv,pow:[20,40,60][i]||60}:mv;
+  const hp0=d.hp,it0=d.item,dg0=d.disg,stg0=d.stg;
+  d.hp=Math.max(0,st.hp);d.item=st.item;d.disg=st.disg;d.stg=st.stg;
   try{
-    for(let i=0;i<(pb?2:n);i++){
-      d.hp=Math.max(0,hp);
-      const r=Array.isArray(o.rolls)?o.rolls[i]:o.r,cr=Array.isArray(o.crits)?!!o.crits[i]:!!o.crit;
-      const m=k==='tripleaxel'?{...mv,pow:[20,40,60][i]||60}:mv;
-      const x=bcalc(a,m,d,{...o,r,crit:cr,pb:pb&&i===1});
-      if(eff==null)eff=x.eff;
-      if(x.disg){
-        /* ばけのかわ：この当たりは技のダメージ0・急所にもならない。最大HPの1/8が減り、はがれる */
-        loss=x.loss;out.push({dmg:0,disg:true,loss,crit:false,r:r||null,hp:d.hp});
-        d.disg=false;hp-=loss;
-        if(hp<=0){fainted=true;break}
-        continue;
-      }
-      out.push({dmg:x.dmg,crit:cr,r:r||null,hp:d.hp});
-      if(!x.eff)break;
-      if(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,m)&&(x.eff>=2||d.item==='chilanberry'))d.item=null;
-      hp-=x.dmg;
-    }
-  }finally{d.hp=hp0;d.item=it0;d.disg=dg0}
+    const x=bcalc(a,m,d,{...o,r,crit:cr,pb:st.pb&&i===1});
+    const ns={...st};let h;
+    if(x.disg){ns.disg=false;ns.hp=st.hp-x.loss;h={dmg:0,disg:true,loss:x.loss,crit:false,r:r||null,hp:st.hp};if(ns.hp<=0)ns.dead=true;return{x,h,ns}}
+    let dmg=x.dmg;
+    if(o.surv&&x.eff&&st.hp===d.max&&dmg>=st.hp&&!st.dead){
+      if(st.item==='focussash'){dmg=st.hp-1;ns.item=null;ns.surv='focussash'}
+      else if(d.ab==='sturdy'&&a.ab!=='mold-breaker'){dmg=st.hp-1;ns.surv='sturdy'}}
+    h={dmg,crit:cr,r:r||null,hp:st.hp};
+    if(!x.eff)return{x,h,ns:{...ns,stop:true}};
+    if(st.item&&RES_BERRY[st.item]&&RES_BERRY[st.item]===hitType(a,m,d)&&(x.eff>=2||st.item==='chilanberry'))ns.item=null;
+    if(st.item==='airballoon')ns.item=null;
+    ns.hp=st.hp-dmg;
+    if(ns.hp>0){
+      if(d.ab==='stamina')ns.stg={...ns.stg,def:Math.min(6,(ns.stg.def||0)+1)};
+      if(d.ab==='weak-armor'&&m.cls===0)ns.stg={...ns.stg,def:Math.max(-6,(ns.stg.def||0)-1),spe:Math.min(6,(ns.stg.spe||0)+2)};
+    }else ns.dead=true;
+    return{x,h,ns};
+  }finally{d.hp=hp0;d.item=it0;d.disg=dg0;d.stg=stg0}
+}
+const hsInit=(d,pb)=>({hp:d.hp,item:d.item,disg:d.disg,stg:{...d.stg},pb});
+/* 1回の使用。当たる回数は n（o.hits・決まった回数・スキルリンク・mhCount） */
+function bhits(a,mv,d,o){
+  o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
+  /* おやこあい：2回目は1/4。範囲技・連続技・ためる技（ソーラービーム等）・決まったダメージの技には働かない（本編の決まり＝前提。2026/11/24 ためる技を足した） */
+  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
+  const out=[];let st=hsInit(d,pb),eff=null,loss=0,fainted=false,disgFaint=false,dealt=0,surv=null;
+  for(let i=0;i<(pb?2:n);i++){
+    const r=Array.isArray(o.rolls)?o.rolls[i]:o.r,cr=Array.isArray(o.crits)?!!o.crits[i]:!!o.crit;
+    if(st.dead){/* 倒れたあと：計算上のダメージだけ（状態は変えない） */const y=hitStep(a,mv,d,i,r,cr,{...o,surv:false},{...st,hp:Math.max(1,st.hp)});if(y.h.disg)break;out.push({...y.h,after:true});continue}
+    const {x,h,ns}=hitStep(a,mv,d,i,r,cr,o,st);
+    if(eff==null)eff=x.eff;
+    if(h.disg){loss=h.loss;out.push(h);st=ns;if(ns.dead){fainted=true;disgFaint=true;break}continue}
+    out.push(h);if(ns.stop)break;dealt+=Math.min(h.dmg,Math.max(0,st.hp));if(ns.surv)surv=ns.surv;st=ns;
+    if(ns.dead)fainted=true;
+  }
   const total=out.reduce((s,h)=>s+h.dmg,0);
-  return{hits:out,total,eff,n:pb?2:n,loss,hpLoss:total+loss,fainted:fainted||hp<=0,disgFaint:fainted};
+  return{hits:out,total,dealt,eff,n:pb?2:n,loss,hpLoss:total+loss,fainted,disgFaint,surv,state:st};
 }
-/* 1回の使用の合計ダメージの分布（当たりごとに乱数は別々）。[[合計,確率],…]。1発ごとの値は乱数によらず状態が同じ（2発目からは満タンでない等）なので、乱数ごとの値を畳み込む */
+/* 1回の使用で当たる回数の分布 [[回数,確率],…]（2026/11/24、Showdown e7f50cd）：
+   o.hits・決まった回数・スキルリンク＝その回数／2〜5回の技＝2回35%・3回35%・4回15%・5回15%／ネズミざん・トリプルアクセル＝2発目から毎回命中の判定、外れたら止まる
+   （1発目が当たったときの分布。1発目の命中はダメージ計算の画面で別に出す） */
+const MACC=new Set(['populationbomb','tripleaxel','triplekick']);
+function hitCountDist(a,mv,d,o){
+  if(!(mv.maxH>1))return[[1,1]];
+  if(o&&o.hits>0)return[[mhCount(a,mv,o),1]];
+  if(a.ab==='skill-link')return[[mv.maxH,1]];
+  const k=mkey(mv);
+  if(MACC.has(k)){const p=Math.min(1,accOf(a,mv,d)/100),N=mv.maxH,out=[];for(let c=1;c<N;c++)out.push([c,Math.pow(p,c-1)*(1-p)]);out.push([N,Math.pow(p,N-1)]);return out.filter(x=>x[1]>0)}
+  if(mv.minH===mv.maxH)return[[mv.maxH,1]];
+  if(mv.minH===2&&mv.maxH===5)return[[2,.35],[3,.35],[4,.15],[5,.15]];
+  const c=mv.maxH-mv.minH+1;return Array.from({length:c},(_,i)=>[mv.minH+i,1/c]);
+}
+/* 1回の使用の合計ダメージの分布（当たりごとに乱数は別々・状態は当たりごとに変わる）。[[合計,確率],…]
+   2026/11/24：前は「1発ごとの値は乱数によらない」として畳み込んでいた（じきゅうりょく・タスキ等で前の当たりによって次が変わると違っていた）。
+   同じ状態（防御のランク・持ち物・ばけのかわ・HP満タンか・倒れたか）と同じ合計はまとめて数える。o.nHits があればその回数だけ */
 function hitDist(a,mv,d,o){
-  const per=[];for(let r=85;r<=100;r++)per.push(bhits(a,mv,d,{...o,r}).hits.map(h=>h.dmg));
-  const n=per[0].length;let dist=new Map([[0,1]]);
-  for(let i=0;i<n;i++){const nd=new Map();for(const[s,c]of dist)for(let r=0;r<16;r++){const v=s+per[r][i];nd.set(v,(nd.get(v)||0)+c/16)}dist=nd}
-  return [...dist.entries()].sort((x,y)=>x[0]-y[0]);
+  o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
+  const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
+  /* o.cap：合計が cap 以上になったらそこでまとめる（倒せるかだけを知りたいとき。分布の形は cap より下だけ正確） */
+  const N=pb?2:n,cache=new Map(),cap=o.cap||Infinity;
+  let S=new Map();const s0=hsInit(d,pb);S.set(JSON.stringify([0,s0]),{t:0,st:s0,p:1});
+  for(let i=0;i<N;i++){const nx=new Map();
+    for(const v of S.values()){
+      if(v.st.capped){const e=nx.get('cap');if(e)e.p+=v.p;else nx.set('cap',{...v});continue}
+      if(v.st.dead||v.st.stop){/* 倒れたあとの当たりは計算上の値（状態は変えない・乱数は別々） */
+        for(let r=85;r<=100;r++){const y=hitStep(a,mv,d,i,r,!!o.crit,{...o,surv:false},{...v.st,hp:Math.max(1,v.st.hp),dead:false});const t=v.t+(v.st.stop?0:y.h.dmg),key=JSON.stringify([t,v.st]);const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:v.st,p:v.p/16})}continue}
+      for(let r=85;r<=100;r++){
+        const ck=JSON.stringify([i,r,v.st.hp===d.max,v.st.hp,v.st.item,v.st.disg,v.st.stg]);
+        let y=cache.get(ck);if(!y){y=hitStep(a,mv,d,i,r,!!o.crit,o,v.st);cache.set(ck,y)}
+        const ns=y.ns,t=Math.min(cap,v.t+(y.h.disg?0:y.h.dmg));if(t>=cap){const key='cap';const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:{...ns,dead:true,capped:true},p:v.p/16});continue}
+        const sk={...ns};const key=JSON.stringify([t,sk]);const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:ns,p:v.p/16})}}
+    S=nx}
+  const out=new Map();for(const v of S.values())out.set(v.t,(out.get(v.t)||0)+v.p);
+  return [...out.entries()].sort((x,y)=>x[0]-y[0]);
 }
-const accOf=(a,mv,d)=>{if(!mv.acc||a.ab==='no-guard'||d.ab==='no-guard')return 100;let v=mv.acc;if(a.ab==='compound-eyes')v*=1.3;if(a.ab==='hustle'&&!mv.cls)v*=.8;return v};
+/* 1回使ったあとの状態（2026/11/24）：次の使用のダメージを出すため、こちら・相手の写しを作る（もとのものは変えない）。
+   こちら：必ず起きる自分の能力の変化（りゅうせいぐん 特攻−2・インファイトは攻撃に関係しない…技の効果の表 MVE.s の確率100%）・メテオビーム/エレクトロビームの特攻+1・使ったノーマルジュエル。
+   相手：bhits の終わりの状態（持ち物・ばけのかわ・ランク）とHP（満タンでない＝マルチスケイル等は働かない） */
+/* 1回使っても「次の使用のダメージ」が変わりえない技・相手か（速くするための前の確かめ。結果は同じ）。
+   ダメージに効くのは：こちらの攻めの能力（物理＝攻撃、特殊＝特攻、ボディプレス＝防御）のランク・メテオビーム・ノーマルジュエル、
+   相手の受ける能力のランク（じきゅうりょく・くだけるよろい＝物理）・この技で効く半減きのみ・ばけのかわ・HP満タンで働くマルチスケイル。
+   （オボンのみは koInfo、タスキ・がんじょうは1回目の耐えだけ、ふうせんは同じ技なら次もじめん技ではない） */
+const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
+function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
+  if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
+  if(a.item==='normalgem'&&hitType(a,mv,d)==='ノーマル')return true;
+  if((d.ab==='stamina'||d.ab==='weak-armor')&&mv.cls===0&&mv.id!==776)return true;
+  if(d.disg)return true;
+  if(d.item&&RES_BERRY[d.item]&&(RES_BERRY[d.item]===hitType(a,mv,d)))return true;
+  if(d.hp===d.max&&d.ab==='multiscale')return true;
+  return false}
+function nextUse(a,mv,d,o){
+  if(!nextUseCould(a,mv,d))return{a,d,changed:false};
+  const b=bhits(a,mv,d,{...o,r:o&&o.r||100});const st=b.state,k=mkey(mv);
+  const a2={...a,stg:{...a.stg}};
+  if(MB_REP.has(k))a2.stg.spa=Math.min(6,(a2.stg.spa||0)+1);
+  if(!sfSup(a,mv))((mv.e&&mv.e.s)||[]).forEach(([s,n,c])=>{if(c>=100&&a2.stg[s]!=null)a2.stg[s]=Math.max(-6,Math.min(6,a2.stg[s]+n))});
+  if(a.item==='normalgem'&&hitType(a,mv,d)==='ノーマル')a2.item=null;
+  const d2={...d,stg:{...st.stg},item:st.item,disg:st.disg,hp:Math.min(d.hp,Math.max(1,d.max-1))};
+  /* changed は次の使用のダメージに効く変化だけ（ほかの変化も写しには入れておく） */
+  const ok=nuOffK(mv),dk=mv.id===776||mv.cls===0||(mv.e&&mv.e.ps)?'def':'spd';
+  const berryRel=!!(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,mv,d));
+  const changed=(a2.stg[ok]||0)!==(a.stg[ok]||0)||(MB_REP.has(k)&&(a2.stg.spa||0)!==(a.stg.spa||0))||a2.item!==a.item||(d2.stg[dk]||0)!==(d.stg[dk]||0)||(berryRel&&d2.item!==d.item)||d2.disg!==d.disg||(d.hp===d.max&&d.ab==='multiscale');
+  return{a:a2,d:d2,changed};
+}
+/* 使うごとの1回のダメージ（％）の並び：1回目・2回目…（6回まで）。状態が変わらないなら null（呼ぶ側は同じ値を使う） */
+function useSeq(a,mv,d,r,o){
+  o=o||{};if(!nextUse(a,mv,d,{...o,r,nHits:o.nHits}).changed)return null;
+  let A=a,D=d,out=[],any=false;
+  for(let k=0;k<6;k++){const b=bhits(A,mv,D,{...o,r,nHits:o.nHits});out.push(b.total/d.max*100);const nx=nextUse(A,mv,D,{...o,r,nHits:o.nHits});if(nx.changed)any=true;A=nx.a;D=nx.d}
+  return any?out:null;
+}
+/* 天気の効果を消す特性（ノーてんき・エアロック）：天気はあるが、効果は出ない（2026/11/24） */
+const WX_SUPP=new Set(['cloud-nine','air-lock']);
+const wxEffK=(a,d)=>{const k=B.weather&&B.weather.k;if(!k)return null;if((a&&WX_SUPP.has(a.ab))||(d&&WX_SUPP.has(d.ab)))return null;return k};
+const MOHKO=new Set(['guillotine','fissure','horndrill','sheercold']);
+/* 命中（2026/11/24、Pokémon Showdown e7f50cd の hitStepAccuracy と同じ順）：
+   一撃必殺＝30（ぜったいれいどはこおりタイプ以外20、ほかの補正なし）→ 天気（かみなり・ぼうふう：あめで必中・はれで50、ふぶき：ゆきで必中）→ ノーガード →
+   命中の補正（ふくがん1.3・はりきり0.8〔物理〕・すながくれ/ゆきがくれ0.8 → こうかくレンズ1.1・ひかりのこな0.9。4096分の1の鎖で掛けて、最後に1回丸める）→
+   命中・回避のランク（てんねんで消える）→ 100を超えたら100（必ず当たる＝100%） */
+/* 実際の優先度（2026/11/24）：はやてのつばさ＝HP満タンのひこう技+1。いたずらごころは変化技だけ（ダメージの計算には関係しない） */
+const effPri=(a,mv)=>{let p=(mv&&mv.pri)||0;if(a&&a.ab==='gale-wings'&&hitType(a,mv)==='ひこう'&&a.hp===a.max)p++;return p};
+const accOf=(a,mv,d,o)=>{
+  const mk=mkey(mv),ig=a.ab==='mold-breaker',dab=ig?null:d.ab,wx=wxEffK(a,d);
+  if(MOHKO.has(mk))return mk==='sheercold'&&!(a.p&&a.p.t.includes('こおり'))?20:30;
+  if(!mv.acc)return 100;
+  let acc=mv.acc;
+  if(mk==='thunder'||mk==='hurricane'){if(wx==='rain')return 100;if(wx==='sun')acc=50}
+  if(mk==='blizzard'&&wx==='snow')return 100;
+  if(a.ab==='no-guard'||d.ab==='no-guard')return 100;
+  let m=4096;
+  if(a.ab==='compound-eyes')m=chM(m,5325);
+  if(a.ab==='hustle'&&mv.cls===0)m=chM(m,3277);
+  if((dab==='sand-veil'&&wx==='sand')||(dab==='snow-cloak'&&wx==='snow'))m=chM(m,3277);
+  if(a.item==='widelens')m=chM(m,4505);
+  if(d.item==='brightpowder')m=chM(m,3686);
+  if(m!==4096)acc=Math.trunc((Math.trunc(acc*m)+2047)/4096);
+  const st=x=>Math.max(-6,Math.min(6,x||0));
+  const ba=dab==='unaware'?0:st(a.stg&&a.stg.acc),be=a.ab==='unaware'?0:st(d.stg&&d.stg.eva),bo=st(ba-be);
+  if(bo>0)acc=Math.trunc(acc*(3+bo)/3);else if(bo<0)acc=Math.trunc(acc*3/(3-bo));
+  return Math.max(0,Math.min(100,acc))};
 function aiChoose(b,foes,ally){
   if(!b.lastProt&&Math.random()<.12&&b.moves.some(m=>m.prot))return{b,mv:b.moves.find(m=>m.prot)};
   let best=null;
@@ -647,7 +840,7 @@ function runTurn(){
       if(mv.drain>0){const hv=Math.floor(tot*mv.drain/100);b.hp=Math.min(b.max,b.hp+hv)}
       if(mv.drain<0&&!b.fainted){b.hp=Math.max(0,b.hp-Math.floor(tot*-mv.drain/100));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は 反動で たおれた！</span>`)}}
       if(t.fainted){log(`<span class="ko">${bn(t)}は たおれた！</span>`);if(b.ab==='moxie'&&!b.fainted)chg(b,'atk',1,log,'じしんかじょう')}
-      else if(mv.e&&b.ab!=='sheer-force'){const e=mv.e;
+      else if(mv.e&&!sfSup(b,mv)){const e=mv.e;
         if(e.a&&Math.random()*100<e.a[1])inflict(t,e.a[0],log);
         if(e.f&&Math.random()*100<e.f)t.flinch=true;
         (e.t||[]).forEach(([k,n,c])=>{if(Math.random()*100>=c)return;if(['clear-body','white-smoke'].includes(t.ab)||(k==='atk'&&t.ab==='hyper-cutter')){log(`${bn(t)}の ${abn(t)}で 能力は 下がらない！`);return}
@@ -656,8 +849,8 @@ function runTurn(){
     }
     if(MSELFKO.has(mk)&&!b.fainted){b.hp=0;b.fainted=true;log(`<span class="ko">${bn(b)}は たおれた！</span>`)}
     if(didHit&&MRECH.has(mk)&&!b.fainted)b.recharge=true;
-    if(didHit&&!b.fainted&&mv.e&&mv.e.s)mv.e.s.forEach(([k,n,c])=>{if(Math.random()*100<c)chg(b,k,n,log)});
-    if(b.item==='lifeorb'&&!b.fainted&&b.hp>0&&didHit){b.hp=Math.max(0,b.hp-Math.max(1,Math.floor(b.max/10)));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は いのちのたまで たおれた！</span>`)}}
+    if(didHit&&!b.fainted&&mv.e&&mv.e.s)mv.e.s.forEach(([k,n,c])=>{if(n>0&&sfSup(b,mv))return;if(Math.random()*100<c)chg(b,k,n,log)});
+    if(b.item==='lifeorb'&&!b.fainted&&b.hp>0&&didHit&&!sfSup(b,mv)){b.hp=Math.max(0,b.hp-Math.max(1,Math.floor(b.max/10)));if(!b.hp){b.fainted=true;log(`<span class="ko">${bn(b)}は いのちのたまで たおれた！</span>`)}}
     if(sideDead(B.me)||sideDead(B.op))break;
   }
   const over=sideDead(B.me)||sideDead(B.op);

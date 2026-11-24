@@ -1,0 +1,8266 @@
+{
+  "mode": "performance",
+  "sha": null,
+  "checks": [
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "real dataset present",
+      "detail": 149
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "six real registered sets available",
+      "detail": 95
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "six distinct sets with unique items"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "sitrusberry",
+        "focussash",
+        "airballoon",
+        "choicescarf",
+        "lifeorb",
+        "rockyhelmet"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A メタグロス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "sitrusberry",
+        "lifeorb",
+        "rockyhelmet",
+        "spelltag",
+        "airballoon",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ハッサム",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B バンギラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "choicescarf",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "choicescarf",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "sitrusberry",
+        "choicescarf",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "sitrusberry",
+        "focussash",
+        "airballoon",
+        "choicescarf",
+        "lifeorb",
+        "rockyhelmet"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A メタグロス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "sitrusberry",
+        "lifeorb",
+        "rockyhelmet",
+        "spelltag",
+        "airballoon",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ハッサム",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B バンギラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "choicescarf",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "choicescarf",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "sitrusberry",
+        "choicescarf",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "sitrusberry",
+        "focussash",
+        "airballoon",
+        "choicescarf",
+        "lifeorb",
+        "rockyhelmet"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A メタグロス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "sitrusberry",
+        "lifeorb",
+        "rockyhelmet",
+        "spelltag",
+        "airballoon",
+        "focussash"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ハッサム",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B バンギラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（アシレーヌ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "choicescarf",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 0 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "choicescarf",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 1 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 2 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 3 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "sitrusberry",
+        "choicescarf",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 4 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "sitrusberry",
+        "airballoon",
+        "rockyhelmet",
+        "focussash",
+        "leftovers",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 サーフゴー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 カバルドン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ブリジュラス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement 5 ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "real dataset present",
+      "detail": 147
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "six real registered sets available",
+      "detail": 95
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "six distinct sets with unique items"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "choicescarf",
+        "lifeorb",
+        "expertbelt"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A マフォクシー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "whiteherb",
+        "choicescarf",
+        "lifeorb",
+        "focussash",
+        "spelltag",
+        "softsand"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B イルカマン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ギルガルド",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 7
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "leftovers",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "lifeorb",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 セグレイブ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "lifeorb",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "choicescarf",
+        "lifeorb",
+        "expertbelt"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A マフォクシー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "whiteherb",
+        "choicescarf",
+        "lifeorb",
+        "focussash",
+        "spelltag",
+        "softsand"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B イルカマン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ギルガルド",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 7
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "leftovers",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "lifeorb",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 セグレイブ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "lifeorb",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "diagnosis nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection nonempty"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "selection axis and count totals"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "choicescarf",
+        "lifeorb",
+        "expertbelt"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A サザンドラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A カイリュー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A マフォクシー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "A evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique items",
+      "detail": [
+        "whiteherb",
+        "choicescarf",
+        "lifeorb",
+        "focussash",
+        "spelltag",
+        "softsand"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B イルカマン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ミミッキュ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ギルガルド",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B required conditions",
+      "detail": [
+        {
+          "t": "入れたいポケモン（オオニューラ）",
+          "ok": true
+        },
+        {
+          "t": "入れたくないポケモンを入れない",
+          "ok": true
+        },
+        {
+          "t": "メガシンカ：なし",
+          "ok": true
+        },
+        {
+          "t": "6匹そろう",
+          "ok": true
+        },
+        {
+          "t": "同じ持ち物を2匹に持たせない",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B evaluated",
+      "detail": "ok"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement evaluation completed",
+      "detail": 7
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "leftovers",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 アシレーヌ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 0 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "lifeorb",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 セグレイブ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 1 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 2 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "lifeorb",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 3 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 4 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "lifeorb"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    }
+  ],
+  "errors": [],
+  "results": [
+    {
+      "fmt": "single",
+      "label": "diagnosis",
+      "ms": 355.79999999981374
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis analysis",
+      "ms": 11.400000000372529
+    },
+    {
+      "fmt": "single",
+      "label": "selection",
+      "ms": 273.20000000018626
+    },
+    {
+      "fmt": "single",
+      "label": "construction A/B",
+      "ms": 5612.799999999814
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 376,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 212,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 248,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvements",
+      "ms": 5914.5
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis",
+      "ms": 167.90000000037253
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis analysis",
+      "ms": 1.2000000001862645
+    },
+    {
+      "fmt": "single",
+      "label": "selection",
+      "ms": 167.70000000018626
+    },
+    {
+      "fmt": "single",
+      "label": "construction A/B",
+      "ms": 1342.199999999255
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 376,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 212,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 248,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvements",
+      "ms": 5380.9000000003725
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis",
+      "ms": 165.29999999981374
+    },
+    {
+      "fmt": "single",
+      "label": "diagnosis analysis",
+      "ms": 2.2000000001862645
+    },
+    {
+      "fmt": "single",
+      "label": "selection",
+      "ms": 165.59999999962747
+    },
+    {
+      "fmt": "single",
+      "label": "construction A/B",
+      "ms": 1215.7999999998137
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A",
+      "no": 376,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 212,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 248,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvements",
+      "ms": 5328.200000000186
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 0",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 1",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 2",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 3",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 4",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 1018,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "improvement 5",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "cpuThrottle": 4,
+      "viewport": "390x844",
+      "note": "three runs; simulated CPU, not device benchmark; no approved SLA"
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis",
+      "ms": 407
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis analysis",
+      "ms": 10.599999999627471
+    },
+    {
+      "fmt": "double",
+      "label": "selection",
+      "ms": 269.5
+    },
+    {
+      "fmt": "double",
+      "label": "construction A/B",
+      "ms": 5429
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 655,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 964,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 681,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvements",
+      "ms": 7059.399999999441
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 998,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis",
+      "ms": 200.5
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis analysis",
+      "ms": 2
+    },
+    {
+      "fmt": "double",
+      "label": "selection",
+      "ms": 197.6000000005588
+    },
+    {
+      "fmt": "double",
+      "label": "construction A/B",
+      "ms": 1549.5
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 655,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 964,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 681,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvements",
+      "ms": 7198.5999999996275
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 998,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis",
+      "ms": 188.59999999962747
+    },
+    {
+      "fmt": "double",
+      "label": "diagnosis analysis",
+      "ms": 2.7999999998137355
+    },
+    {
+      "fmt": "double",
+      "label": "selection",
+      "ms": 216.79999999981374
+    },
+    {
+      "fmt": "double",
+      "label": "construction A/B",
+      "ms": 1443.5
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 635,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 149,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "A",
+      "no": 655,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 964,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 681,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvements",
+      "ms": 7157.299999999814
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 998,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 2",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 3",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 4",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "cpuThrottle": 4,
+      "viewport": "390x844",
+      "note": "three runs; simulated CPU, not device benchmark; no approved SLA"
+    }
+  ]
+}

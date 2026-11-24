@@ -1,6 +1,7 @@
 // ダメージ計算の照合：対戦で広く使われている計算機（@smogon/calc）と、ランダムな組み合わせで乱数16段階を比べる
 import {chromium} from 'playwright';
 import path from 'node:path';
+import {writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {calculate,Pokemon,Move,Field,Generations,Side}=require('@smogon/calc');
@@ -32,9 +33,12 @@ const cases=await pg.evaluate(([N,SEED])=>{
     const d=mkMon(pd,'op',{ab:pick(DAB),item:pick([null,null,'assaultvest','occaberry','shucaberry','yacheberry','chilanberry','roseliberry']),moves:[mv],sp:sp(),up:du,dn:dd});
     const sg=()=>st?R(13)-6:0;a.stg={atk:sg(),def:0,spa:sg(),spd:0,spe:0};d.stg={atk:0,def:sg(),spa:0,spd:sg(),spe:0};
     if(rand()<.1)a.status='brn';
-    const o={crit:rand()<.2,spread:rand()<.15,screen:rand()<.15};
+    const format=rand()<.5?'double':'single';
+    const o={crit:rand()<.2,format,spread:format==='double'&&rand()<.15,screen:rand()<.15};
     const wk=pick([null,null,null,'sun','rain','sand','snow']);const sw=B.weather;B.weather=wk?{k:wk,t:5}:null;
-    let rolls,eff;try{rolls=[];for(let k=85;k<=100;k++)rolls.push(bcalc(a,mv,d,{...o,r:k}).dmg);eff=bcalc(a,mv,d,o).eff}finally{B.weather=sw}
+    /* 2026-11-24: spread cases model a spread-target move on both sides (the reference move gets target allAdjacentFoes); the site applies 0.75x only to spread-target moves (mv.tg) */
+    const m2=o.spread?{...mv,tg:1}:mv;
+    let rolls,eff;try{rolls=[];for(let k=85;k<=100;k++)rolls.push(bcalc(a,m2,d,{...o,r:k}).dmg);eff=bcalc(a,m2,d,o).eff}finally{B.weather=sw}
     if(!eff)continue;
     out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
   }
@@ -54,11 +58,36 @@ let ok=0;const bad=[];
 for(const c of cases){
   const flags={};[...c.fl].forEach(ch=>{if(FL[ch])flags[FL[ch]]=1});
   const mv=new Move(gen,c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread?'allAdjacentFoes':'normal',flags}});
-  const f=new Field({gameType:c.o.spread?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
+  const f=new Field({gameType:c.o.format==='double'?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
   let r=calculate(gen,mk(c.a,1),mk(c.d,0),mv,f).damage;r=Array.isArray(r)?r:[r];
   if(JSON.stringify(r)===JSON.stringify(c.rolls))ok++;else bad.push({c,ref:r});
 }
-const rate=ok/cases.length;
+const coverage={
+ format:Object.fromEntries(['single','double'].map(k=>[k,cases.filter(c=>c.o.format===k).length])),
+ critical:cases.filter(c=>c.o.crit).length,
+ spread:cases.filter(c=>c.o.spread).length,
+ screen:cases.filter(c=>c.o.screen).length,
+ abilityAttacker:cases.filter(c=>!!c.a.ab).length,
+ abilityDefender:cases.filter(c=>!!c.d.ab).length,
+ itemAttacker:cases.filter(c=>!!c.a.item).length,
+ itemDefender:cases.filter(c=>!!c.d.item).length,
+ nonzeroAttackRank:cases.filter(c=>c.a.stg.atk!==0||c.a.stg.spa!==0).length,
+ nonzeroDefenseRank:cases.filter(c=>c.d.stg.def!==0||c.d.stg.spd!==0).length,
+ criticalAndScreen:cases.filter(c=>c.o.crit&&c.o.screen).length,
+ doubleSpreadAndScreen:cases.filter(c=>c.o.format==='double'&&c.o.spread&&c.o.screen).length,
+ criticalAndNonzeroRank:cases.filter(c=>c.o.crit&&(c.a.stg.atk!==0||c.a.stg.spa!==0||c.d.stg.def!==0||c.d.stg.spd!==0)).length
+};
+const coverageMissing=Object.entries({...coverage.format,...coverage}).filter(([key,value])=>key!=='format'&&value<1).map(([key])=>key);
+const pass=cases.length===N&&bad.length===0&&coverageMissing.length===0;
+const rate=cases.length?ok/cases.length:0;
 console.log(`calc: ${ok}/${cases.length} 一致（${(rate*100).toFixed(2)}%・乱数の種 ${SEED}）`);
 if(bad.length)console.log('違い（参考）',JSON.stringify(bad.slice(0,2).map(x=>({ab:x.c.a.ab,mv:x.c.mv.id,ours:x.c.rolls.slice(0,3),ref:x.ref.slice(0,3)}))));
-if(cases.length<N*.8||rate<.999){console.error('NG ダメージ計算が照合先と合いません',JSON.stringify(bad.slice(0,3)));process.exitCode=1}
+if(process.env.CALC_REF_REPORT)writeFileSync(process.env.CALC_REF_REPORT,JSON.stringify({
+  reference:'@smogon/calc Gen 9 (comparison, not Pokémon Champions device proof)',
+  requested:N,generated:cases.length,matched:ok,mismatched:bad.length,
+  seed:SEED,pass,
+  firstMismatches:bad.slice(0,20),
+  coverage,coverageMissing
+
+},null,2));
+if(!pass){console.error('NG ダメージ計算の照合・網羅条件に失敗',JSON.stringify({requested:N,generated:cases.length,mismatches:bad.slice(0,3),coverageMissing}));process.exitCode=1}

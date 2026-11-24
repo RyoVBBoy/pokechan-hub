@@ -188,8 +188,8 @@ const P0=await pg.evaluate(async()=>{const w=ms=>new Promise(z=>setTimeout(z,ms)
     strengthsFirst:(()=>{const hs=[...document.querySelectorAll('#st-box h3,#dgu-sum h3')].map(h=>h.textContent),i=k=>hs.findIndex(h=>h.startsWith(k));
       return i('戦い方の型')===0&&i('戦い方の型')<i('パーティの強み')&&i('パーティの強み')<i('おすすめの選出と先発')&&i('おすすめの選出と先発')<i('戦い方の流れ')&&i('戦い方の流れ')<i('パーティの状態')&&i('パーティの状態')<i('優先ポイント')})(),
     goodFirst:(()=>{const hs=[...document.querySelectorAll('#tout h3.pc-h')].map(h=>h.textContent);const g=hs.findIndex(h=>h==='よいところ'),f=hs.findIndex(h=>/対面のポイント|組み合わせのポイント/.test(h));return g<0||f<0||g<f})(),
-    lose:/気をつけたい相手・場面/.test(t)&&/苦手になりやすい場面/.test(t)&&/戦術メモに残す|特に気をつけたい場面はありません|ヒント/.test(t),
-    sev:[...document.querySelectorAll('#tout .dgu-sev:not(.svref)')].every(e=>['優先度 高','優先度 中','優先度 低','問題なし','よい'].some(k=>e.textContent.includes(k))),
+    lose:/気をつけたい相手・場面/.test(t)&&/苦手になりやすい場面/.test(t)&&/戦術メモに残す|追加の注意点は見つかりません|判定を保留|ヒント/.test(t),
+    sev:[...document.querySelectorAll('#tout .dgu-sev:not(.svref)')].every(e=>['優先度 高','優先度 中','優先度 低','問題なし','判定は暫定','よい'].some(k=>e.textContent.includes(k))),
     sevs:[...new Set([...document.querySelectorAll('#tout .dgu-sev:not(.svref)')].map(e=>e.className+':'+e.textContent))],
     over:document.body.scrollWidth<=innerWidth+1&&[...document.querySelectorAll('.dgu-area')].every(a=>a.getBoundingClientRect().right<=innerWidth+1)}});
 ok(!P0.bad.length,'評価のことば：責める言い方が残っています '+P0.bad.join('・'));

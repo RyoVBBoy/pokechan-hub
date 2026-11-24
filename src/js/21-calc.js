@@ -6,47 +6,80 @@
    r.loss＝はがれて減るHP（最大HPの1/8、技のダメージではない）・r.disgFaint＝その減少で倒れる（連続技の残りの当たりはない）・
    r.next＝はがれたあと（2回目の使用から）の16段階。倒せる回数は koInfo が「1回目＝技のダメージ＋loss、2回目から＝r.next」で数える */
 function dmgRolls(a,mv,d,o){
-  const r=[];let x=null;for(let k=85;k<=100;k++){x=bhits(a,mv,d,{...o,r:k});r.push(x.total)}
-  if(x.hits.length>1)r.dist=hitDist(a,mv,d,o);
-  if(x.loss){r.loss=x.loss;r.disgFaint=x.disgFaint;const dg=d.disg;d.disg=false;try{r.next=dmgRolls(a,mv,d,o)}finally{d.disg=dg}}
+  o=o||{};
+  /* 2026/11/24：共通の部品（15-battle.js の bhits・hitCountDist・hitDist・nextUse）で作る。
+     ①16の値＝いちばんありそうな回数で、全部の当たりが同じ乱数の段階のときの合計（画面の％の幅は、回数が変わる技なら r.dist の最小〜最大）
+     ②r.dist＝当たる回数の分布（2〜5回は35/35/15/15%、ネズミざん・トリプルアクセルは2発目からの命中）× 当たりごとに別々の乱数 × 当たりごとの状態の変化
+     ③r.nexts＝2回目・3回目…の使用（自分の能力の変化・使った持ち物・相手のランク・ばけのかわ・HPが満タンでない）。変わらなければ無し
+     ④連続技・おやこあいの きあいのタスキ／がんじょうは当たりごとに入れる（r.survMulti）。1発だけの技は r.surv（下）で倒せる回数だけに入れる */
+  const cd=hitCountDist(a,mv,d,o),cMain=cd.reduce((b,x)=>x[1]>b[1]+1e-9?x:b,cd[0])[0];
+  const r=[];let x=null;for(let k=85;k<=100;k++){x=bhits(a,mv,d,{...o,r:k,nHits:cMain});r.push(x.total)}
+  const multi=x.hits.length>1||cd.length>1;
+  const survOn=d.hp===d.max&&(d.item==='focussash'||(d.ab==='sturdy'&&a.ab!=='mold-breaker'));
+  if(multi){const mix=new Map();for(const [c,w] of cd)for(const [v,q] of hitDist(a,mv,d,{...o,nHits:c,surv:survOn}))mix.set(v,(mix.get(v)||0)+w*q);
+    r.dist=[...mix.entries()].sort((p,q)=>p[0]-q[0]);if(survOn)r.survMulti=true}
+  if(cd.length>1)r.hitCounts=cd;
+  if(x.loss){r.loss=x.loss;r.disgFaint=x.disgFaint}
+  /* 2回目からの使用：状態を1回ずつ進める（もとのこちら・相手は変えない） */
+  if(!o.noNext){let A=a,D=d,any=false;const nx=[];
+    for(let k=0;k<5;k++){const u=nextUse(A,mv,D,{...o,nHits:cMain});if(u.changed)any=true;A=u.a;D=u.d;nx.push(dmgRolls(A,mv,D,{...o,noNext:true}))}
+    if(any){r.nexts=nx;if(x.loss)r.next=nx[0]}}
+  if(!multi&&!x.loss&&survOn)r.surv={k:d.item==='focussash'?'focussash':'sturdy',max:d.max};
+  /* オボンのみ・オレンのみ：HPが半分以下になったら1回だけ回復（使うごとのあとで見る。連続技の途中で食べる分は使うごとのあととして数える＝近い値） */
+  /* きあいのハチマキ：倒れるダメージを受けても10%で1残る（使ってもなくならない。2026/11/24） */
+  if(d.item==='focusband')r.fband=true;
+  if((d.item==='sitrusberry'||d.item==='oranberry')&&a.ab!=='unnerve'&&d.hp>d.max/2)r.berry={k:d.item,heal:d.item==='sitrusberry'?Math.floor(d.max/4)*(d.ab==='ripen'?2:1):10*(d.ab==='ripen'?2:1),at:Math.floor(d.max/2),max:d.max,inMove:multi};
   return r;
 }
 /* n回当てたときに倒せる確率（いちばん少ない回数と、その確率） */
-function koInfo(r,hp){
+function koInfo(r,hp,maxUses=8){
   if(!r.length)return{n:0,p:0,sure:0};
-  /* 1回の使用のダメージの分布：連続技は r.dist（[合計,確率]）、ほかは16段階が同じ確率 */
   const one=x=>x.dist||x.map(v=>[v,1/x.length]);
-  /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss）、2回目からは はがれたあとのダメージ（r.next） */
-  const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r),bn=r.next?one(r.next):b1;
-  if(Math.max(...b1.map(x=>x[0]))<=0&&Math.max(...bn.map(x=>x[0]))<=0)return{n:0,p:0,sure:0};
-  let dist=new Map([[0,1]]),first=null;
-  for(let n=1;n<=8;n++){
-    const nd=new Map(),base=n===1?b1:bn;
-    for(const[s,c]of dist)for(const[v,w]of base){const t=Math.min(s+v,hp);nd.set(t,(nd.get(t)||0)+c*w)}
-    dist=nd;const ko=Math.min(1,dist.get(hp)||0);
-    if(ko>1e-12&&!first)first={n,p:ko};
-    if(ko>=.9999)return{...(first||{n,p:ko}),sure:n};
+  /* ばけのかわ：1回目はHPの減り＝技のダメージ＋最大HPの1/8（r.loss） */
+  const b1=r.loss?one(r).map(([v,w])=>[v+r.loss,w]):one(r);
+  const nx=k=>r.nexts&&r.nexts.length?one(r.nexts[Math.min(k,r.nexts.length-1)]):b1;
+  if(Math.max(...b1.map(x=>x[0]))<=0&&Math.max(...nx(0).map(x=>x[0]))<=0)return{n:0,p:0,sure:0};
+  /* きあいのタスキ・がんじょう（1発だけの技）：HP満タンからの1回目は、倒せるダメージでも1残る（条件つき） */
+  const sv=r.surv&&hp===r.surv.max,raw1=sv?b1.filter(x=>x[0]>=hp).reduce((t,x)=>t+x[1],0):0;
+  const f1=sv?b1.map(([v,w])=>[Math.min(v,hp-1),w]):b1;
+  const B=r.berry;
+  const out=o=>{if(r.fband)o={...o,fband:true};if(r.hitCounts)o={...o,hitCounts:r.hitCounts};if(B)o={...o,berry:B.k};if(r.survMulti)o={...o,survMulti:true};return sv&&raw1>0?{...o,surv:{k:r.surv.k,raw:raw1}}:o};
+  /* 2026/11/24：残りHPと「きのみを食べたか」の状態で数える。「必ず倒せる」＝倒れていない状態が1つも残らないとき（確率の数で決めない） */
+  let S=new Map([[hp+'|0',{rem:hp,u:0,p:1}]]),ko=0,first=null;
+  for(let n=1;n<=maxUses;n++){
+    const base=n===1?f1:nx(n-2),nS=new Map();
+    for(const st of S.values())for(const[v,w]of base){let rem=st.rem-v,u=st.u;const q=st.p*w;
+      if(rem<=0){if(r.fband){ko+=q*.9;const k='1|'+u,e=nS.get(k);if(e)e.p+=q*.1;else nS.set(k,{rem:1,u,p:q*.1});continue}ko+=q;continue}
+      if(B&&!u&&rem<=B.at){rem=Math.min(B.max,rem+B.heal);u=1}
+      const k=rem+'|'+u,e=nS.get(k);if(e)e.p+=q;else nS.set(k,{rem,u,p:q})}
+    S=nS;const sure=S.size===0,p=sure?1:Math.min(1,ko);
+    if(p>0&&!first)first={n,p};
+    if(sure)return out({...first,...(first.n===n?{p:1}:{}),sure:n});
   }
-  return first?{...first,sure:0}:{n:9,p:0,sure:0};
+  return out(first?{...first,sure:0}:{n:9,p:0,sure:0});
 }
 /* 確率の書き方。必ずではないのに四捨五入で「100%」と出さない（2026/11/13：ネズミざん10回などで 99.95% が 100% に見えた） */
-const pctTxt=p=>p<.001?'0.1%未満':p<.9999&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
-const koLabel=k=>!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`;
+const pctTxt=p=>p<=0?'0%':p<.001?'0.1%未満':p<1&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
+const koAsm=k=>k&&k.hitCounts?`（当たる回数の分布を入れた確率）`:'';
+const koSure=k=>!!k&&k.sure===k.n&&k.n>0;
+const koLabel=k=>(!k.n?'ダメージなし':k.n>8?'8発以上':koSure(k)?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`)+(k.n&&k.n<=8?koAsm(k):'');
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
-const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
+const hcTxt=k=>k&&k.hitCounts?k.hitCounts.map(([c,w])=>`${c}回${(w*100).toFixed(w<.01?2:w<.1?1:0)}%`).join('・'):'';
+const koPlain=k=>koPlain0(k)+(k&&k.hitCounts&&k.n&&k.n<=8?L(`（当たる回数の分布〔${hcTxt(k)}〕を入れた確率。「当たる回数」で回数を決めて見ることもできます）`,` (includes hit-count distribution)`):'')+(k&&k.surv?L('（きあいのタスキ・がんじょうで1回耐える前提。条件つき）',' (assumes Focus Sash/Sturdy survival)'):'')+(k&&k.survMulti?L('（きあいのタスキ・がんじょうは当たりごとに入れて計算）',' (Sash/Sturdy applied per hit)'):'')+(k&&k.berry?L(`（${ITEMN[k.berry]||k.berry}の回復を入れた回数）`,' (includes berry healing)'):'')+(k&&k.fband?L('（きあいのハチマキで10%の確率で耐えるのを入れた確率。必ず倒せることはありません）',' (includes Focus Band 10% survival)'):'');
+const koPlain0=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):koSure(k)?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
 /* 結果の札（2026/11/12）：確定○発は塗り、乱数○発（確率）は枠だけで見分ける。koLabel・koPlain と同じ数（計算は変えない）。ダメージなし・9発以上は札を出さない */
 /* 操作の回数（2026/11/12 アクセス解析）：利用者が条件を変えて、結果が出たときだけ数える（開いただけ・集計の読み込みでの描き直しは数えない）。同じ条件は1回 */
 /* 操作の回数（calc_done）：利用者の操作で計算の条件が変わったときだけ数える。
    2026/11/17：前は「計算の中身の指紋」だけで同じ条件を見分けていたので、あとから届いた使用率の高い型で攻撃側・受ける側の育成が入れかわると、
    何も変えない操作（同じ天気を選び直す等）でも指紋が変わって2回目として数えていた（admhits のときどき落ちる原因）。
    操作の前の指紋（before）を受け取り、操作のあとと同じなら数えない。before が無い呼び出しは前と同じ（指紋だけで1回） */
-const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,CS.disgOff,FMT]);
+const calcSig=()=>JSON.stringify([CS.a,CS.d,CS.mv,CS.crit,CS.spread,CS.screen,CS.burn,CS.cond,CS.weather,CS.cnt,CS.aHP,CS.dHP,CS.dSt,CS.disgOff,CS.hits,CS.protean,FMT]);
 function calcEv(before){try{if(typeof evCount!=='function'||!CS||!document.querySelector('#calc-root .cres-big'))return;
   const sig=calcSig();if(before!==undefined&&sig===before)return;
   evCount('calc_done',sig)}catch(e){}}
-const koBadge=k=>!k||!k.n||k.n>8?'':k.p>=.9999?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
+const koBadge=k=>!k||!k.n||k.n>8?'':koSure(k)?`<span class="cv-kb sure" data-notr>${L(`確定${k.n}発`,`Guaranteed ${k.n}HKO`)}</span>`:`<span class="cv-kb rand" data-notr${k.hitCounts?` title="${L(`当たる回数の分布：${hcTxt(k)}`,'Hit-count distribution included')}"`:''}>${L(`乱数${k.n}発`,`${k.n}HKO chance`)}<small>${pctTxt(k.p)}</small></span>`;
 const mvNm=m=>(m&&m.id>0&&mName(m.id))||(m&&m.n)||'';
-const koShort=k=>!k.n||k.n>8?'—':(k.p>=.9999?'確':'乱')+k.n;
+const koShort=k=>!k.n||k.n>8?'—':(koSure(k)?'確':'乱')+k.n;
 
 let CS=null;const CALC_OPEN={};
 function calcX(no,src){
@@ -76,19 +109,26 @@ function calcMoveList(X){
   return out;
 }
 /* 計算に渡す条件（2026/11/13：当たる回数・へんげんじざいを足した） */
-const calcOpt=()=>({crit:CS.crit,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
+const calcOpt=()=>({crit:CS.crit,format:FMT,spread:FMT==='double'&&CS.spread,screen:CS.screen,cond:CS.cond,cnt:CS.cnt,hits:CS.hits||0,protean:CS.protean!==false});
 /* 計算に入っていない・確かめていない特性と持ち物（2026/11/13 点検）。選ばれていたら結果の下に出す（入っているように見せない） */
-const CALC_UNVERIFIED={eelevate:'うなぎのぼりの「じめん技を受けない」は当サイトの特性の説明に合わせた計算で、ゲームではまだ確かめていません','mega-sol':'メガソーラーの効果は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません',dragonize:'ドラゴンスキンの効果（ノーマル技がドラゴン技・1.2倍）は当サイトの説明に合わせた計算で、ゲームではまだ確かめていません'};
-const CALC_UNIMPL=['fire-mane','aura-guard','piercing-drill','spicy-spray','sheer-force','reckless','analytic','sniper','punk-rock','steely-spirit','supreme-overlord','stakeout','fluffy','purifying-salt','unaware','liquid-voice','marvel-scale','friend-guard','shell-armor','battle-armor','infiltrator','cloud-nine','bulletproof','soundproof','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina'];
-const CALC_UNIMPL_IT=['ironball','metronome','electricseed','grassyseed','psychicseed','mistyseed'];
+const CALC_UNVERIFIED={'mega-sol':'メガソーラー（自分の技は天気が「はれ」と同じ）は Pokémon Showdown の champions の実装と同じ計算です。ゲーム内ではまだ確かめていません',dragonize:'ドラゴンスキン（ノーマル技がドラゴン技・1.2倍）は Pokémon Showdown の champions の実装と同じ計算です。ゲーム内ではまだ確かめていません'};
+const CALC_UNIMPL=['piercing-drill','spicy-spray','analytic','supreme-overlord','stakeout','friend-guard','electric-surge','grassy-surge','psychic-surge','seed-sower','forecast','hunger-switch','stamina','trace','rivalry','eelevate'];/* 2026/11/24：順番（はやてのつばさ・はやあし）・相手の特性をうつす（トレース）・性別（とうそうしん）・回避（すながくれ・ゆきがくれ）も計算に入っていないので知らせる */
+const CALC_UNIMPL_IT=['metronome','electricseed','grassyseed','psychicseed','mistyseed','zoomlens','kingsrock','quickclaw'];/* 2026/11/24：フォーカスレンズ（後に動くと1.2倍）・きあいのハチマキ（たまに耐える）を足した */
 function calcNotes(R){
   const o=[],a=R.a,d=R.d,n=R.n||1,mv=R.mv;
+  /* 2026/11/24：先制技を受けない特性。ダメージの数は出すが、当たらないことを書く */
+  if(mv&&mv.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')o.push(`${ABN[d.ab]||d.ab}の相手には先制技が当たりません（本編の決まり。ゲーム内では未確認）。上の数は当たったとしたときのダメージです`);
   if(n>1){
     const vr=mv.maxH>1&&mv.minH!==mv.maxH;
     o.push(`${n}回当たったときの合計です${vr?(a.ab==='skill-link'?'（スキルリンクで最大の回数）':`（この技は${mv.minH}〜${mv.maxH}回で変わります。下の「条件」の「当たる回数」で選べます）`):''}。1発ずつ順番に計算し、当たりごとに乱数は別々として倒せる確率を出しています`);
     if(mkey(mv)==='populationbomb')o.push('ネズミざんは1回ごとに命中の判定があり、外れたところで止まります。いつも10回当たるわけではありません');
     if(d.ab==='multiscale'&&d.hp===d.max&&a.ab!=='mold-breaker')o.push('マルチスケイルで半分になるのは、HPが満タンのときに受ける1発目だけです');
   }
+  if(mv&&MB_REP.has(mkey(mv)))o.push(`${mName(mv.id)}は使うたびに特攻が1段階上がります。上のダメージは1回目（特攻+1）で、倒せる回数は2回目（+2）・3回目（+3）…のダメージを足して数えています（最大+6）`);
+  if(R.ko&&R.ko.surv){const nm=R.ko.surv.k==='focussash'?'きあいのタスキ':'がんじょう';
+    o.push(`${nm}：受ける側のHPが満タンなので、1回目で倒せるダメージでも1残して耐える前提で倒せる回数を数えています（条件つき：${R.ko.surv.k==='focussash'?'タスキを持っていて、まだ使っていない':'特性ががんじょうで、かたやぶりではない'}・HPが満タン・1発だけの技のとき）。この前提がなければ、1回で倒せる確率は ${pctTxt(R.ko.surv.raw)}です`)}
+  if(a.ab==='sheer-force'&&mv){if(sfOn(a,mv))o.push(`ちからずく：この技は追加効果のある技なので威力1.3倍で計算し、追加効果は起きないとしています${sfSup(a,mv)&&a.item==='lifeorb'?'。いのちのたまの反動も受けません（ダメージの1.3倍はそのまま）':''}（追加効果のある技の一覧は第9世代の参照データ。ゲーム内では未確認）`);
+    else o.push(`ちからずく：この技は追加効果のある技の一覧に入っていないので、威力はそのままです${a.item==='lifeorb'?'（いのちのたまの反動も受けます）':''}`)}
   if(a.ab==='protean'||a.ab==='libero')o.push(R.op&&R.op.protean?`${ABN[a.ab]}で技と同じタイプになったとして計算しています（場に出て最初の技のとき）`:`${ABN[a.ab]}がすでに発動していて、もとのタイプのまま攻撃するとして計算しています`);
   if(d.ab==='disguise'){
     if(a.ab==='mold-breaker')o.push('かたやぶりは、ばけのかわを無視してふつうにダメージを与えます（ばけのかわは、はがれません）');
@@ -98,8 +138,11 @@ function calcNotes(R){
   for(const m of [a,d]){if(CALC_UNVERIFIED[m.ab])o.push(CALC_UNVERIFIED[m.ab]);if(CALC_UNIMPL.includes(m.ab))o.push(`特性「${ABN[m.ab]||m.ab}」の効果は計算に入っていません`);if(m.item&&CALC_UNIMPL_IT.includes(m.item))o.push(`持ち物「${ITEMN[m.item]||m.item}」の効果は計算に入っていません`)}
   return o;
 }
+let CALC_FE=null;
 function calcResult(){
   const a=calcMon('me',CS.a),d=calcMon('op',CS.d);
+  /* 2026/11/20：持ち物が姿と合わない型は計算しない（理由を出す） */
+  CALC_FE=[a.formErr&&{side:'me',no:CS.a.no,why:a.formErr},d.formErr&&{side:'op',no:CS.d.no,why:d.formErr}].filter(Boolean);if(!CALC_FE.length)CALC_FE=null;else return null;
   /* ばけのかわ：はじめは残っている。条件の「ばけのかわがはがれている」で外せる（2026/11/13） */
   if(d.ab==='disguise')d.disg=!CS.disgOff;
   const list=calcMoveList(CS.a);
@@ -137,7 +180,7 @@ function calcSide(key,X,isAtk){
   const st=bf&&bf.no===q.no&&(bf.always||isAtk)?calcStats({...q,s:bf.s},X.sp,X.up,X.dn):calcStats(q,X.sp,X.up,X.dn);
   const ks=[...Object.keys(MEGA).filter(k=>itemFor(X.no,k)),...Object.keys(ITEMN).filter(k=>!isStone(k))];
   return `<div class="cside">
-  <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">使用率の高い型</button></div>
+  <div class="pills" style="padding:2px 16px 8px">${team.some(t=>t.no===X.no)?`<button class="pill" data-c="${key}.src" data-v="mine" aria-pressed="${X.src==='mine'}">あなたの育成</button>`:''}<button class="pill" data-c="${key}.src" data-v="common" aria-pressed="${X.src==='common'}">${byNo[X.no]?detSetKind(byNo[X.no]).s:'推定の型'}</button></div>
   <div class="natr"><span style="width:62px">特性</span><select class="sel" data-c="${key}.ab">${abl.length?abl.map(([k,h])=>`<option value="${k}"${k===X.ab?' selected':''}>${ABN[k]||k}${h?'（隠れ）':''}</option>`).join(''):`<option value="">（なし）</option>`}</select></div>
   <div class="natr"><span style="width:62px">持ち物</span><select class="sel" data-c="${key}.item"><option value="">（なし）</option>${ks.map(k=>`<option value="${k}"${k===X.item?' selected':''}>${ITEMN[k]}</option>`).join('')}</select></div>
   ${megaOf(X.no,X.item)?`<p class="note" style="padding:0 16px 6px;color:var(--acc)">${megaOf(X.no,X.item).n}の姿（特性：${ABN[megaOf(X.no,X.item).ab]||megaOf(X.no,X.item).ab}）で計算します</p>`:''}
@@ -182,16 +225,18 @@ function calcView(){
   const draw=()=>{
     const R=calcResult();
     const pct=v=>(v/R.d.max*100).toFixed(1);
-    const lo=R?Math.min(...R.r):0,hi=R?Math.max(...R.r):0;
+    /* 当たる回数が変わる技（2〜5回等）は、回数の分布を入れた r.dist の最小〜最大（2026/11/24） */
+    const lo=R?(R.r.hitCounts&&R.r.dist?R.r.dist[0][0]:Math.min(...R.r)):0,hi=R?(R.r.hitCounts&&R.r.dist?R.r.dist[R.r.dist.length-1][0]:Math.max(...R.r)):0;
     const O=R?calcOverview(R):null;
-    const nmA=esc(formInfo(byNo[CS.a.no]).base),nmD=esc(formInfo(byNo[CS.d.no]).base);
+    /* 名前は計算した姿（メガストーンを持てばメガシンカの姿。2026/11/20 RC3c） */
+    const nmA=esc(R?R.a.p.n:byNo[CS.a.no].n),nmD=esc(R?R.d.p.n:byNo[CS.d.no].n);
     const sum=X=>{const parts=[X.ab&&ABN[X.ab],X.item&&ITEMN[X.item],(NATS.find(([n,u,d])=>u===X.up&&d===X.dn)||[''])[0]].filter(Boolean);return esc(parts.join('・')||'特性・持ち物なし')};
     const effTag=e=>e>=4?'<span class="cv-e good">ばつぐん×4</span>':e>=2?'<span class="cv-e good">ばつぐん</span>':e===0?'<span class="cv-e none">こうかなし</span>':e<1?'<span class="cv-e weak">いまひとつ</span>':'';
     /* 受けたあとの残りHP（多く残る〜少なく残る） */
     /* 2026/11/13：いまのHP（残りHPの条件）から引く。ばけのかわの減少（R.r.loss）も引く（技のダメージとは別） */
     const ls=R&&R.r.loss||0,cur0=R?R.d.hp/R.d.max*100:100;
     const dAfter=!!(ls&&!R.r.disgFaint&&R.r.next&&R.r.next.length);
-    const remHi=R?Math.max(0,(R.d.hp-Math.min(...R.r)-ls)/R.d.max*100):0,remLo=R?Math.max(0,(R.d.hp-Math.max(...R.r)-ls)/R.d.max*100):0;
+    const remHi=R?Math.max(0,(R.d.hp-lo-ls)/R.d.max*100):0,remLo=R?Math.max(0,(R.d.hp-hi-ls)/R.d.max*100):0;
     /* ばけのかわ（2026/11/16 依頼主「結果をすぐ読めるように」）：いつも見えるのは2行だけ。
        1行目＝1発目（技のダメージ0%・はがれて減るHP）、2行目＝2発目以降（はがれたあとのダメージと、倒せる回数の札と同じ数）。
        1/8・端数・急所・％に入れない理由などの決まりは「ばけのかわの計算仕様」にたたむ。計算（R.r.loss・R.r.next・R.ko）は変えない */
@@ -211,16 +256,16 @@ function calcView(){
     const hpCol=v=>v>50?'#00ba7c':v>20?'#ffb020':'#f4212e';
     V.innerHTML=`<div id="calc-root"><div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
     <div class="cv-vs">
-      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.a)}</span></div>
+      <div class="cv-side"><span class="cv-lab">${L('攻撃する','Attacker')}</span>${monField(`data-c="a.no"`,CS.a.no)}<span class="cv-sum" data-notr>${CS.a.src==='mine'?L('あなたの育成','Your set'):(byNo[CS.a.no]?detSetKind(byNo[CS.a.no]).s:'推定の型')}: ${sum(CS.a)}</span></div>
       <button class="cv-swap" id="c-swap" aria-label="攻守を入れ替える" title="攻守を入れ替える"><span class="cv-swi" style="transform:rotate(${CALC_ROT}deg)">${SVG(I.cycle,22)}</span></button>
-      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):L('使用率の高い型','Common set')}: ${sum(CS.d)}</span></div>
+      <div class="cv-side"><span class="cv-lab">${L('受ける','Defender')}</span>${monField(`data-c="d.no"`,CS.d.no)}<span class="cv-sum" data-notr>${CS.d.src==='mine'?L('あなたの育成','Your set'):(byNo[CS.d.no]?detSetKind(byNo[CS.d.no]).s:'推定の型')}: ${sum(CS.d)}</span></div>
     </div>
-    ${R?`<div class="cres cv-res">
+    ${CALC_FE?formErrHTML(CALC_FE):''}${R?`<div class="cres cv-res">
       <div class="cres-h" data-notr>${L(`${nmA}の<b>${esc(mvNm(R.mv))}</b> → ${nmD}`,`${nmA}'s <b>${esc(mvNm(R.mv))}</b> → ${nmD}`)} ${effTag(R.eff)}${R.acc<100?`<span class="cv-e">命中${Math.round(R.acc)}</span>`:''}</div>
       ${R.eff===0?`<div class="cres-big">0%</div><div class="cv-ko">${L('こうかがありません（タイプか特性で防がれます）','No effect (blocked by type or ability)')}</div>`:`
       <div class="cv-main"><div class="cres-big">${dAfter?`<small class="cv-aft">${L('はがれたあと','After Disguise')}</small>${pct(Math.min(...R.r.next))}<small>%</small> 〜 ${pct(Math.max(...R.r.next))}<small>%</small>`:`${ls?`<small>${L('技のダメージ','Move damage')} </small>`:''}${pct(lo)}<small>%</small> 〜 ${pct(hi)}<small>%</small>`}</div>${koBadge(R.ko)}</div>
       ${disgHTML()}
-      ${ls&&R.ko&&R.ko.n&&R.ko.n<=8&&R.ko.p>=.9999?'':`<div class="cv-ko" data-notr>${koPlain(R.ko)}</div>`}
+      ${ls&&R.ko&&R.ko.n&&R.ko.n<=8&&koSure(R.ko)?'':`<div class="cv-ko" data-notr>${koPlain(R.ko)}</div>`}
       <div class="cv-hp" aria-label="受けたあとの残りHP"><i class="cv-hp-rem" style="width:${remLo}%;background:${hpCol(remLo)}"></i><i class="cv-hp-rng" style="left:${remLo}%;width:${Math.max(.6,remHi-remLo)}%"></i><i class="cv-hp-lost" style="left:${remHi}%;width:${Math.max(0,cur0-remHi)}%"></i></div>
       <div class="cres-s" data-notr>${ls?L('1発目のあとの残りHP','HP left after the 1st hit'):L('残りHP','HP left')}: ${remHi<=0?L('0%（倒れます）','0% (KO)'):Math.round(remLo)===Math.round(remHi)?Math.round(remHi)+'%':`${Math.round(remLo)}〜${Math.round(remHi)}%`}</div>
       <div class="cv-raw num" data-notr>${ls?L('技のダメージ','Move damage'):L('ダメージ','Damage')} ${lo}–${hi}${ls?`<span aria-hidden="true">／</span>${L('ばけのかわ','Disguise')} −${ls}`:''}<span aria-hidden="true">／</span>HP ${R.d.max}${R.d.hp<R.d.max?`<span aria-hidden="true">／</span>${L('いまのHP','current HP')} ${R.d.hp}`:''}</div>`}
@@ -229,7 +274,7 @@ function calcView(){
     ${O&&O.rows.length?`<div class="sec"><h2>技ごとのダメージ</h2><span style="font-size:12px;color:var(--dim)">押すと上に出ます</span></div>
     <div class="cv-mvs">${O.rows.map(x=>`<button class="cv-mv${x.m.id===R.mv.id?' on':''}" data-mvpick="${x.m.id}"><span class="cv-mn" data-notr>${esc(mvNm(x.m))}<small>${x.m.t}・${['物理','特殊','変化'][x.m.cls]}</small></span>
       <span class="cv-mb"><i style="width:${Math.min(100,x.hi)}%;background:${x.eff===0?'var(--line)':x.hi>=100?'#f4212e':x.hi>=50?'#ffb020':'var(--acc)'}"></i></span>
-      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%${x.ls?`<small>${x.after?L('はがれたあと','after Disguise'):'＋'+L('ばけのかわ','Disguise')}</small>`:''}`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':x.ko.p>=.9999?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
+      <span class="cv-mp num">${x.eff===0?L('無効','Immune'):`${Math.round(x.lo)}〜${Math.round(x.hi)}%${x.ls?`<small>${x.after?L('はがれたあと','after Disguise'):'＋'+L('ばけのかわ','Disguise')}</small>`:''}`}</span><span class="cv-mk" data-notr>${x.eff===0||!x.ko.n||x.ko.n>8?'':koSure(x.ko)?L(`確定${x.ko.n}発`,`${x.ko.n}HKO`):L(`乱数${x.ko.n}発`,`chance ${x.ko.n}HKO`)}</span></button>`).join('')}</div>
     <div class="natr" style="padding-top:8px"><span style="width:62px;font-size:13px;color:var(--dim)">ほかの技</span><select class="sel" data-c="mv" data-notr>${R.list.map(m=>`<option value="${m.id}"${m.id===R.mv.id?' selected':''}>${mvNm(m)}（${m.t}・${['物理','特殊','変化'][m.cls]}・${['seismictoss','nightshade','superfang','endeavor','finalgambit'].includes(mkey(m))?'固定ダメージ':'威力'+(m.pow||'変動')}${m.maxH>1?(m.minH===m.maxH?'×'+m.maxH:`×${m.minH}〜${m.maxH}`):''}）</option>`).join('')}</select></div>`:''}
     ${O&&O.back?`<div class="cv-back" data-notr>${L(`反撃されると：${nmD}の<b>${esc(mvNm(O.back.mv))}</b>で、${nmA}は約<b>${Math.round(O.back.pct)}%</b>受けます${O.back.pct>=100?'（一撃で倒されます）':''}`,`If ${nmD} hits back with <b>${esc(mvNm(O.back.mv))}</b>, ${nmA} takes about <b>${Math.round(O.back.pct)}%</b>${O.back.pct>=100?' (OHKO)':''}`)}</div>`:''}`:'<p class="empty">この組み合わせでは計算できる技がありません。</p>'}
     <div class="sec"><h2>条件</h2></div>

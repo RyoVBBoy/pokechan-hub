@@ -22,18 +22,30 @@ function duTurns(p,h,att,def){
   let n;
   /* マルチスケイル・ファントムガード：HP満タンで受ける1回目だけ半分。連続技は1発目の最初の1回だけ半分（2回目からはHPが満タンでない）（2026/11/10） */
   const hh=multi?(h.mv.minH===h.mv.maxH?h.mv.maxH:3):1;
-  if(!ig&&DU_HALF_AB.includes(def.ab)){const f=h&&h.f!=null?h.f:p*(1-.5/hh);n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
+  const sq=h&&Array.isArray(h.seq)&&h.seq.length?h.seq:null,half=!ig&&DU_HALF_AB.includes(def.ab),dsg=!ig&&def.ab==='disguise'&&def.disg!==false&&def.max;
+  if(sq){
+    /* 2026/11/24：メテオビーム・エレクトロビームは使うたびに特攻が上がるので、使うごとのダメージ（h.seq＝1回目・2回目…）を足して数える
+       （前は1回目のダメージのまま n 回と数えていた）。マルチスケイルは1回目だけ半分（h.f）、ばけのかわは1回目が防がれて1/8が減る */
+    let sum=0;n=0;while(n<9&&sum<100){const v=n===0?(dsg?disgLoss(def)/def.max*100:half?(h.f!=null?h.f:sq[0]*.5):sq[0]):sq[Math.min(n,sq.length-1)];sum+=v;n++}
+    if(sum<100)n=9;
+    if(n===1&&(def.item==='focussash'||(!ig&&DU_SURV_AB.includes(def.ab))))n=2;
+  }else{
+  if(half){const f=h&&h.f!=null?h.f:p*(1-.5/hh);n=f>=100?1:1+Math.ceil((100-f)/p)}else n=Math.ceil(100/p);
   if(n===1&&!multi&&(def.item==='focussash'||(!ig&&DU_SURV_AB.includes(def.ab))))n=2;
   /* ばけのかわ（2026/11/13 見直し）：1回目の使用は、最初の当たりが0になり、かわりに最大HPの1/8が減る。連続技は残りの当たりがふつうに入る。
      前は「1回多くかかる」だけで、1/8の減少を数えていなかった */
-  if(!ig&&def.ab==='disguise'&&def.max){const ls=disgLoss(def)/def.max*100,f=p*(1-1/hh)+ls;n=f>=100?1:1+Math.ceil((100-f)/p)}
+  if(dsg){const ls=disgLoss(def)/def.max*100,f=p*(1-1/hh)+ls;n=f>=100?1:1+Math.ceil((100-f)/p)}
+  }
+  /* ためる技は1回の使用に2ターン、反動で動けない技は n 回で 2n−1 ターン（その間に相手が動ける）。2026/11/24：前は1ターンとして数えていた */
+  const tk=h&&h.mv&&typeof mvTurnK==='function'?mvTurnK(att,h.mv,def):null;
+  if(tk==='charge')n*=2;else if(tk==='recharge'&&n>1)n=2*n-1;
   const acc=Math.max(30,(h&&h.acc)||100);
   return Math.min(9,acc<100?n*100/acc:n);
 }
 /* 先制技でいちばん強いもの（ダメージの割合） */
 function duPrio(a,d){
   let best=0;const dg=d.disg;d.disg=false;
-  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(mv.pri>0)||!(mv.pow>0))return;const r=bcalc(a,mv,d,{});best=Math.max(best,r.dmg/d.max*100)})}catch(e){}
+  try{a.moves.forEach(mv=>{if(!mv||mv.prot||!(effPri(a,mv)>0)||!(mv.pow>0)||!moveUsable(mv,{a,d}).ok)return;const r=bcalc(a,mv,d,{});best=Math.max(best,r.dmg/d.max*100)})}catch(e){}
   d.disg=dg;return best;
 }
 function duSetup(a){const k=a.boost;if(!k||!DU_BOOST[k]||k==='bellydrum')return null;const id=Object.keys(MD).find(i=>MD[i][3]===k);return{k,b:DU_BOOST[k],n:id?mName(+id):k}}
@@ -52,13 +64,13 @@ function duel0(a,o){
   const h=duHit(a,o),r=duHit(o,a);
   let mt=duTurns(h.pct,h,a,o),ot=duTurns(r.pct,r,o,a);
   const pa=duPrio(a,o),po=duPrio(o,a);
-  const sa=effSpd(a),so=effSpd(o);
+  const sa=effSpd(a,o),so=effSpd(o,a);
   let f=duFirst(sa,so,mt,ot,h.pct,r.pct,pa,po);
   let up=null;
   /* 積み技：相手の攻撃を2回以上耐えられるなら、1回積んでから */
   const tryUp=(x,y,hx,mx,my,px,first,sx,sy,dir)=>{
     const s=duSetup(x);if(!s||my<3)return null;
-    const pct=hx.pct*duStage(s.b[0]),m2=1+duTurns(pct,hx,x,y),sx2=s.b[1]?Math.floor(sx*duStage(s.b[1])):sx;
+    const pct=hx.pct*duStage(s.b[0]),m2=1+duTurns(pct,{...hx,seq:hx.seq?hx.seq.map(v=>v*duStage(s.b[0])):null},x,y),sx2=s.b[1]?Math.floor(sx*duStage(s.b[1])):sx;
     const f2=sx2>sy?1:sx2<sy?-1:0;
     const before=(my-mx)+first*.5*dir,after=(my-m2)+f2*.5*dir;
     return after>before+.25?{m:m2,f:f2,mv:s.n}:null};

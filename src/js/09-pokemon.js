@@ -61,7 +61,7 @@ function detail(no){
     ${SN.map((n,i)=>`<div class="sprow"><em>${n}</em><input type="range" min="0" max="${SP_CAP}" value="0" id="sp${i}" aria-label="${n}に振る能力ポイント"><span class="v" id="spv${i}">0</span><span class="o" id="sto${i}">0</span></div>`).join('')}
     <div id="dp-nat" style="padding:4px 12px 8px">${natGrid(-1,-1,j=>`data-nat="${j}"`)}</div>
     <p class="note" id="spd-note"></p>
-    <p class="note" style="color:var(--mute)">HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正。個体値31・Lv50で計算しています。能力ポイントは全部で66・1つの能力に32までです（本編の努力値とは別のしくみ）。</p>
+    <p class="note" style="color:var(--mute)">HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×能力補正（HPには無し）。赤い印＝上がる能力で補正前の値が10で割り切れる、青い印＝下がる能力で補正前の値の一の位が1。個体値31・Lv50で計算しています。能力ポイントは全部で66・1つの能力に32までです（本編の努力値とは別のしくみ）。</p>
     <p class="note" style="color:var(--mute)">素早さの順位は、収録している${P.length}匹（メガシンカの姿は入れていない）のそれぞれの最速（素早さを上げる性格・ポイント32）の実数値と比べたものです。種族値・タイプは${esc(SRC.stats.date)}時点のデータです。</p>
   </div></div>
 
@@ -144,7 +144,7 @@ function setSP(i,v){
 function updCalc(){
   const p=byNo[curNo];if(!p||!document.getElementById('sp0'))return;
   const r=calcStats(p,st.sp,st.up,st.dn);
-  r.forEach((v,i)=>{document.getElementById('sto'+i).textContent=v;document.getElementById('spv'+i).textContent=st.sp[i]});
+  r.forEach((v,i)=>{const e=document.getElementById('sto'+i),mk=natMark(p,st.sp,st.up,st.dn,i);e.textContent=v;e.style.color=mk?NAT_MARK_COL[mk]:'';e.dataset.mark=mk;document.getElementById('spv'+i).textContent=st.sp[i]});
   document.getElementById('sp-left').textContent=SP_TOTAL-st.sp.reduce((a,b)=>a+b,0);
   document.getElementById('spd-note').innerHTML=L(`いまの素早さ <b>${r[5]}</b> は、`,`Current Speed <b>${r[5]}</b>: `)+spdRankHTML(r[5],p.no);
 }
