@@ -45,10 +45,10 @@ const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-s
 let TWX_K=null,TWX_V=null;
 /* 2026/11/24：メガシンカの場合（診断・選出で「この匹だけがメガシンカ」）。undefined＝決めていない（前と同じ：メガストーンの匹はメガ後の特性）、
    null＝だれもメガシンカしない、番号＝その匹だけがメガシンカ（ほかのメガストーンの匹は持ち物なしで、もとの特性） */
-let WX_MEGA;
-function teamWx(){if(typeof team==='undefined'||!team.length)return null;
-  const key=JSON.stringify([WX_MEGA===undefined?'u':WX_MEGA,team.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
-  let v=null;for(const x of team){const p=byNo[x.no];if(!p)continue;let ab=null;
+let WX_MEGA,WX_TEAM;
+function teamWx(entries=typeof team==='undefined'?[]:team){if(!entries.length)return null;
+  const key=JSON.stringify([WX_MEGA===undefined?'u':WX_MEGA,entries.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
+  let v=null;for(const x of entries){const p=byNo[x.no];if(!p)continue;let ab=null;
     let guess=false;
     try{const it0=x.set&&x.set.it&&x.set.it.k,mega=it0&&megaOf(p.no,it0);
       const active=mega&&(WX_MEGA===undefined||WX_MEGA===x.no);
@@ -57,11 +57,12 @@ function teamWx(){if(typeof team==='undefined'||!team.length)return null;
       ab=active?mega.ab:baseSaved;
       /* 特性が未登録で、天気を変える特性を持てる匹（ペリッパーのあめふらし等）は、その特性で使うと仮定する */
       if(!ab){const w=(ABD[p.no]||[]).map(z=>z[0]).find(k=>WSET[k]);ab=w||(mega&&!active?(ABD[p.no]||[])[0]?.[0]:mySetFor(x.no).ab);guess=!!w}}catch(e){}
-    if(ab&&WSET[ab]){v={k:WSET[ab],by:formInfo(p).base,ab,guess};break}}
+    if(ab&&WSET[ab]){v={k:WSET[ab],no:x.no,by:formInfo(p).base,ab,guess};break}}
   TWX_K=key;TWX_V=v;return v}
 const inTeam=m=>typeof team!=='undefined'&&team.some(x=>{const p=byNo[x.no];return p&&(p.no===(m.p.base||m.p.no)||p.no===m.p.no)});
+const appliedTeamWx=()=>typeof WX_OFF!=='undefined'&&WX_OFF?null:WX_TEAM===undefined?teamWx():WX_TEAM;
 function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();let k=wxPair(a,b),by=null;
-  if(!k){const tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null;if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
+  if(!k){const tw=appliedTeamWx();if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
   if(!k)return fn();B.weather={k,t:5,team:by};try{return fn()}finally{B.weather=null}}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){

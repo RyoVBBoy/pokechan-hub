@@ -55,7 +55,7 @@ function dguImpHTML(R){
   const B=o.J.b,A=o.J.a,ch=[];
   [['x','答えがない相手'],['w','△以下の相手'],['nosw','後出しできない相手'],['ohko','半分以上を一撃で倒される相手'],['slow','だれも先に動けない相手']].forEach(([k,l])=>{if(B[k]!=null&&A[k]!=null&&B[k]!==A[k])ch.push(`<span class="dgu-chg ${A[k]<B[k]?'up':'dn'}">${l} ${B[k]}→${A[k]}</span>`)});
   if(B.st!=null&&A.st!=null&&B.st!==A.st)ch.push(`<span class="dgu-chg ${A.st>B.st?'up':'dn'}">◎ ${B.st}→${A.st}</span>`);
-  return `<p class="dgu-it"><span class="pc-area">${IMP_KIND[o.kind]}</span><b>${esc(o.title)}</b></p><p class="dgu-chgs">${ch.join('')}</p>
+  return `<p class="dgu-it"><span class="pc-area">${IMP_KIND[o.kind]}</span><b>${esc(o.title)}</b></p><p class="dgu-chgs">${o.J.tr?'通常時 ':''}${ch.join('')}</p>${o.J.tr?`<p class="dgu-note">トリックルーム中 ${impGainLabel(o.J.tr.gain)}</p>`:''}
     <button class="dgu-link" data-dgu-go2="imp-box">ほかの改善案（${R.list.length}件）と、変更前後の詳細を見る</button>`;
 }
 function dguImp(entries){

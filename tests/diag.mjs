@@ -366,7 +366,7 @@ const V8=await pg.evaluate(()=>{
   D=dgSelect(team);const fb=D.T.ms.findIndex(o=>o.p.n==='フシギバナ');
   const c1=D.list.find(x=>x.c.includes(fb)&&x.c.includes(D.wxBy)),c2=D.list.find(x=>x.c.includes(fb)&&!x.c.includes(D.wxBy));
   const sp=c=>c.rows.map(y=>y.zs.find(z=>z.i===fb))[0].sa;
-  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,!c2.wxOk,dgSelWhy(D,c2).warn.some(t=>/天気にならず/.test(t))];
+  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,!c2.wxOk,dgSelWhy(D,c2).warn.some(t=>/味方の天気補正を入れていません/.test(t))];
   /* トリックルーム：張れる匹がいる選出だけ trUse */
   {const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
   setT(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);team[0].set=trSet(team[0].no);DG_SELC.clear();D=dgSelect(team);

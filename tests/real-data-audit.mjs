@@ -156,6 +156,65 @@ try{
       renderPlan(proposal);
       await panel.querySelector('[data-imp]').onclick();
       check(team[0].no===324,'P10 current improvement remains applicable');
+
+      // Phase two acceptance cases use the original audited inputs and visible outputs.
+      const withAbility=(no,k)=>{const x=member(no);x.set.ab={k};return x};
+      const swift=P.find(p=>/イダイトウ/.test(p.n)&&(ABD[p.no]||[]).some(([ab])=>ab==='swift-swim'));
+      team=[withAbility(324,'drought'),withAbility(279,'drizzle'),withAbility(swift.no,'swift-swim'),...[445,143,700].map(no=>member(no))];
+      const weather=dgSelect(team);
+      const rain=weather.list.find(x=>x.c.includes(1)&&x.c.includes(2)&&!x.c.includes(0));
+      const clear=weather.list.find(x=>x.c.includes(2)&&!x.c.includes(0)&&!x.c.includes(1));
+      const salamence=x=>x.rows.find(y=>y.r.q.no===373).zs.find(z=>z.i===2);
+      const rainy=salamence(rain),dry=salamence(clear);
+      check(rain.weather?.no===279&&!clear.weather&&rainy.sa===260&&dry.sa===130&&rainy.swIn==='win'&&dry.swIn!=='win','P01 selected Pelipper and no-setter matchups use the correct conditions',[rainy.sa,dry.sa,rainy.swIn,dry.swIn]);
+      check(dgSelWhy(weather,rain).good.some(t=>/ペリッパー.*雨/.test(t)),'P01 selection explanation names the weather actually evaluated');
+
+      const slowTeam=physical=>[981,324,143,450,534,306].map((no,i)=>{
+        const x=member(no),phys=physical&&x.no!==981&&byNo[no].s[1]>=byNo[no].s[3];
+        x.set.sp=phys?[32,32,0,0,2,0]:[32,0,0,32,2,0];
+        x.set.up=physical&&byNo[no].s[3]<=byNo[no].s[1]?1:3;
+        x.set.dn=5;
+        if(!i)x.set.mv=[{id,n:mName(id)},...x.set.mv].slice(0,4);
+        return x;
+      });
+      team=slowTeam(false);
+      const tr=dgTeam(team,20),arch=tr.rows.find(r=>r.q.n==='ブリジュラス');
+      check(tr.tr.on&&arch?.o.ab==='sturdy'&&arch.oTR?.ab==='stamina'&&arch.lvlTR===3,'P02 Trick Room switches Archaludon from Sturdy to Stamina and rates it circle',{ordinary:arch?.o.ab,active:arch?.oTR?.ab,level:arch?.lvlTR});
+      const plainStart=fmt==='single'?11:0,opt=[...rows.rows.filter(r=>!r.stone&&mvpLegal(r.no).st==='ok')].slice(plainStart);
+      team=[];const usedItems=new Set();
+      for(const r of opt){
+        if(team.some(x=>tbFam(x.no)===tbFam(r.no)))continue;
+        const s=mvpSet(fmt,r.no,{anyMv:true,used:usedItems});if(s.st!=='ok')continue;
+        if(s.sv.it)usedItems.add(s.sv.it.k);
+        team.push({no:r.no,set:s.sv});
+        if(team.length===6)break;
+      }
+      const selected=dgSelect(team),wanted=fmt==='single'?[1,4,5]:[1,2,3,5];
+      const line=selected.list.find(x=>x.c.join()===wanted.join()).rows.find(y=>y.r.q.n==='ブリジュラス');
+      check(line.lvl===(fmt==='single'?1:2)&&line.r.o.ab===(fmt==='single'?'sturdy':'stamina'),'P02 Archaludon is evaluated for members in the actual selection',{actual:line.lvl,ab:line.r.o.ab});
+
+      team=[6,445,143,700,324,279].map(no=>member(no));
+      const original=LIVE.csv[149];
+      try{
+        LIVE.csv[149]=digest('category,name,percentage\nmove,Dragon Claw,100');
+        LIVE.csv[149].mv=chooseSet(byNo[149],true).moves.filter(x=>!x.prot).map(m=>[m.n,100]);
+        const dn=dgTeam(team,20).rows.find(r=>r.from.no===149);
+        const fromDefault=dn.variants.find(v=>v.o.ab==='inner-focus');
+        check(dn.live&&dn.abAssume?.ab==='multiscale'&&dgLevel(fromDefault.rs)===4&&dn.lvl===2,'P03 move-only usage data still tests Dragonite abilities');
+      }finally{if(original===undefined)delete LIVE.csv[149];else LIVE.csv[149]=original}
+
+      team=slowTeam(true);
+      const improvements=dgImprove(team);
+      const title='ローブシンの技：ばかぢから → はやてがえし';
+      const refused=improvements.dropped.find(x=>x.title===title);
+      impRender(panel,improvements);
+      check(!improvements.list.some(x=>x.title===title)&&/通常時 \+4\.8点／トリックルーム中 -2\.0点/.test(refused?.loss)&&/セグレイブ/.test(refused?.loss)&&panel.textContent.includes(refused?.loss),'P04 Trick Room regression is rejected and the normal and active scores are shown',refused);
+      check(improvements.list.filter(x=>x.T1).every(x=>x.J.tr&&x.J.tr.gain>=0&&!x.J.tr.loss),'P04 recommended changes preserve Trick Room and show both scenarios');
+
+      const candidates=[1.00150,1.00075,1.00000].map((sc,i)=>({sc,c:[i],cnt:{1:3-i,3:0,4:0},danger:[],sw:0,fast:0}));
+      const [A,B,C]=candidates;
+      const orders=[[A,B,C],[A,C,B],[B,A,C],[B,C,A],[C,A,B],[C,B,A]];
+      check(orders.map(x=>x.sort(dgSelOrder).map(o=>o.c[0]).join()).every(s=>s==='0,1,2'),'P09 close scores have a deterministic ranking for all six input orders');
     }finally{
       fixture.remove();META.rank=saved.rank;TOPT.st=saved.top;team=saved.team;
       teamRender=saved.render;askConfirm=saved.confirm;TEAMS.cur=saved.slot;

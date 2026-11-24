@@ -9,6 +9,13 @@ let WX_OFF=false;
 const SEL_LV={4:1,3:.7,2:.25,1:0};
 const DG_SELC=new Map();
 function dgSelect(entries){return impWith(entries,()=>dgSelect0(entries))}
+// 表示と同じ小数第3位で丸めた点を比較する。
+const dgSelScore=x=>Number(x.sc.toFixed(3));
+function dgSelOrder(a,b){
+  return dgSelScore(b)-dgSelScore(a)||a.cnt[1]-b.cnt[1]||a.danger.length-b.danger.length||
+    (b.cnt[4]+b.cnt[3])-(a.cnt[4]+a.cnt[3])||b.sw-a.sw||b.fast-a.fast||
+    a.c.join().localeCompare(b.c.join())||(a.megaI??-1)-(b.megaI??-1);
+}
 function dgSelectionIssue(T,entries,K){
   if(T.ms.length!==entries.length)return '図鑑で確認できないポケモンがいます。パーティを見直してください。';
   const ax=entries.findIndex(x=>x.axis);
@@ -35,24 +42,29 @@ function dgSelect0(entries){
   const mkCtx=T1=>{
     const fk=r=>(r.from||r.q).no,byFrom=new Map(T1.rows.map(r=>[fk(r),r]));
     const rows=T1===T?R:R.map(r=>byFrom.get(fk(r))||null);
-    /* パーティの天気：天気を作る匹（名前で探す）と、天気の中で計算した匹。メガシンカで天気を作る匹は、その場合にメガシンカしているときだけ */
-    let tw=null;const wm=typeof WX_MEGA!=='undefined'?WX_MEGA:undefined;
-    try{if(H.length)WX_MEGA=T1.mega.i>=0?T1.mega.no:null;tw=teamWx()}catch(e){}finally{if(H.length)WX_MEGA=wm}
-    const wxBy=tw?T1.ms.findIndex(o=>formInfo(o.p).base===tw.by):-1;
-    const gain=tw?T1.ms.map((_,i)=>i).filter(i=>i!==wxBy&&rows.some(r=>r&&(r.res.find(z=>z.i===i)||{}).wxTeam)):[];
-    let clear=null;
-    const withoutWeather=()=>{
-      if(clear)return clear;
-      const prev=WX_OFF;
-      WX_OFF=true;
-      try{
-        const dry=dgTeam0(entries,20,{megaNo:T1.mega.no,noMega:T1.mega.i<0});
-        const byOpponent=new Map(dry.rows.map(r=>[fk(r),r]));
-        clear={T:dry,rows:R.map(r=>byOpponent.get(fk(r))||null)};
-        return clear;
-      }finally{WX_OFF=prev}
+    const weatherOf=es=>{
+      const prev=typeof WX_MEGA==='undefined'?undefined:WX_MEGA;
+      try{if(H.length)WX_MEGA=T1.mega.i>=0?T1.mega.no:null;return teamWx(es)}
+      finally{if(H.length)WX_MEGA=prev}
     };
-    return{T:T1,rows,tw,wxBy,gain,withoutWeather,mi:T1.mega?T1.mega.i:-1};
+    const tw=weatherOf(entries.filter((_,i)=>T1.M[i]));
+    const wxBy=tw?T1.ms.findIndex(o=>o.x?.no===tw.no):-1;
+    const gain=tw?T1.ms.map((_,i)=>i).filter(i=>i!==wxBy&&rows.some(r=>r&&(r.res.find(z=>z.i===i)||{}).wxTeam)):[];
+    const weatherContexts=new Map();
+    const withSelectedWeather=c=>{
+      const weather=weatherOf(c.map(i=>entries[i]));
+      const k=weather?.no??null;
+      if(!weatherContexts.has(k)){
+        const prev=WX_TEAM;WX_TEAM=weather;
+        try{
+          const affected=dgTeam0(entries,20,{megaNo:T1.mega.no,noMega:T1.mega.i<0,opponents:R.map(r=>r.from)});
+          const lookup=new Map(affected.rows.map(r=>[fk(r),r]));
+          weatherContexts.set(k,{T:affected,rows:R.map(r=>lookup.get(fk(r))||null),weather});
+        }finally{WX_TEAM=prev}
+      }
+      return weatherContexts.get(k);
+    };
+    return{T:T1,rows,tw,wxBy,gain,withSelectedWeather,mi:T1.mega?T1.mega.i:-1};
   };
   const base=mkCtx(T),SC=new Map();
   const ctxFor=h=>{if(T.mega&&T.mega.i===h.i)return base;if(!SC.has(h.i)){let T1=null;try{T1=dgTeam0(entries,20,{megaNo:h.no})}catch(e){}SC.set(h.i,T1&&T1.mega&&T1.mega.i===h.i?mkCtx(T1):null)}return SC.get(h.i)};
@@ -60,13 +72,17 @@ function dgSelect0(entries){
   const ev=(c,X)=>{
     const {tw,wxBy}=X;
     const wxOk=!tw||wxBy<0||c.includes(wxBy);
-    const {T:T1,rows:matchups}=wxOk?X:X.withoutWeather();
+    const {T:T1,rows:matchups,weather=tw}=wxOk?X:X.withSelectedWeather(c);
     const tr=T1.tr;
     /* 実際に技を登録した匹を選んだときだけ、選出した全員をトリックルーム中で比較する。 */
     const trUse=!!(tr&&tr.on&&tr.setters.some(s=>c.includes(s.i)));
-    const get=(r,i)=>r&&(trUse&&r.resTR?r.resTR:r.res).find(x=>x.i===i);
     const P={cov:0,sw:0,swc:0,fast:0,danger:0};const cnt={4:0,3:0,2:0,1:0},rows=[];
-    matchups.forEach((r,j)=>{const zs=c.map(i=>get(r,i)).filter(Boolean);r=r||R[j];
+    matchups.forEach((r,j)=>{
+      const variants=trUse?r?.variantsTR:r?.variants;
+      const chosen=variants?dgOpponentChoice(variants,c):null;
+      const zs=chosen?chosen.rs:(trUse?r?.resTR:r?.res)?.filter(z=>c.includes(z.i))||[];
+      if(chosen)r={...r,o:chosen.o,abAssume:chosen.abAssume};
+      r=r||R[j];
       const st=zs.filter(z=>z.r>=4),ok=zs.filter(z=>z.r>=3),wk=zs.filter(z=>z.r===2);
       const lvl=st.length>=2?4:st.length===1?3:ok.length||wk.length?2:1;cnt[lvl]++;
       const sw=zs.some(z=>z.swIn==='win'),swc=!sw&&zs.some(z=>z.swIn==='sashwin'),fast=zs.some(z=>z.spd===1);
@@ -103,24 +119,22 @@ function dgSelect0(entries){
     const SUP={trickroom:'トリックルーム',tailwind:'おいかぜ',reflect:'リフレクター',lightscreen:'ひかりのかべ',auroraveil:'オーロラベール',stealthrock:'ステルスロック',spikes:'まきびし'};
     const sup=c.map(i=>({i,k:setMv(i).filter(k=>SUP[k])})).filter(x=>x.k.length);
     const ace=c.filter(i=>T1.M[i]&&T1.M[i].boost);
-    return{c,sc,P,cnt,rows,atk,def,over,lost,leads,lead1,pairs,trUse,wxOk,megaI:X.mi>=0&&c.includes(X.mi)?X.mi:-1,X,tr,sw:rows.filter(x=>x.sw).length,swc:rows.filter(x=>x.swc).length,fast:rows.filter(x=>x.fast).length,danger:rows.filter(x=>x.danger),sup,ace};
+    return{c,sc,P,cnt,rows,atk,def,over,lost,leads,lead1,pairs,trUse,wxOk,weather,megaI:X.mi>=0&&c.includes(X.mi)?X.mi:-1,X,tr,sw:rows.filter(x=>x.sw).length,swc:rows.filter(x=>x.swc).length,fast:rows.filter(x=>x.fast).length,danger:rows.filter(x=>x.danger),sup,ace};
   };
   const eligible=T.M.flatMap((m,i)=>m?[i]:[]),groups=combos(eligible,K);
   const all=groups.filter(c=>ax<0||c.includes(ax));
-  const tie=(a,b)=>a.cnt[1]-b.cnt[1]||a.danger.length-b.danger.length||(b.cnt[4]+b.cnt[3])-(a.cnt[4]+a.cnt[3])||b.sw-a.sw||b.fast-a.fast||(a.c.join()<b.c.join()?-1:1);
-  const better=(a,b)=>Math.abs(b.sc-a.sc)>=.001?b.sc-a.sc:tie(a,b);
   /* 選出ごとの評価：メガストーンの匹が選出に0匹＝メガシンカなしで計算、1匹以上＝その匹ごとに「この匹だけがメガシンカ」で計算し、いちばん良い場合 */
   let none=base;
   const evSel=c=>{const hs=H.filter(h=>c.includes(h.i));
     if(hs.length===0){if(H.length&&none===base)none=mkCtx(dgTeam0(entries,20,{noMega:true}));const x=ev(c,none);x.megaAlt=[];return x}
     if(!multi){const x=ev(c,base);x.megaAlt=[];return x}
     const V=hs.map(h=>{const X=ctxFor(h);return X?ev(c,X):null}).filter(Boolean);if(!V.length)return null;
-    V.sort((a,b)=>better(a,b)||a.megaI-b.megaI);const x=V[0];
+    V.sort(dgSelOrder);const x=V[0];
     x.megaAlt=V.slice(1).map(y=>({i:y.megaI,sc:y.sc,cnt:y.cnt}));x.megaHold=hs.map(h=>h.i);return x};
   if(!all.length){DG_SELC.set(key,null);return null}
-  /* 順位：点の高い順。点が同じ（差が0.001未満）なら ×が少ない→選出の多くが一撃で倒される相手が少ない→◎○が多い→後出しできる相手が多い→先に動ける相手が多い→パーティの並び順 */
-  const list=all.map(evSel).filter(Boolean).sort(better);if(!list.length){DG_SELC.set(key,null);return null}
-  list.forEach((x,k)=>x.tie=k>0&&Math.abs(list[k-1].sc-x.sc)<.001);
+  /* 順位：点の高い順。点が同じ（小数第3位まで）なら ×が少ない→選出の多くが一撃で倒される相手が少ない→◎○が多い→後出しできる相手が多い→先に動ける相手が多い→パーティの並び順 */
+  const list=all.map(evSel).filter(Boolean).sort(dgSelOrder);if(!list.length){DG_SELC.set(key,null);return null}
+  list.forEach((x,k)=>x.tie=k>0&&dgSelScore(list[k-1])===dgSelScore(x));
   const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);
   const mine=sel.length===K?list.find(x=>x.c.length===K&&x.c.every(i=>sel.includes(i))):null;
   const out={K,N:R.length,list,best:list[0],mine,mineRank:mine?list.indexOf(mine)+1:0,total:groups.length,excluded:n-eligible.length,
@@ -147,7 +161,10 @@ function dgSelWhy(S,x,ref){
   const X=x.X||{tw:S.tw,wxBy:S.wxBy,gain:S.gain,T:S.T};
   if(x.megaI>=0&&S.multi)good.push(`メガシンカ：${S.megaNm(x.megaI)}（この選出では${S.nm(x.megaI)}だけがメガシンカする場合で計算${(x.megaHold||[]).filter(i=>i!==x.megaI).length?`。${x.megaHold.filter(i=>i!==x.megaI).map(nm).join('・')}はメガシンカせず、メガストーンの効果なしで計算`:''}${x.megaAlt&&x.megaAlt.length?`。${x.megaAlt.map(a=>`${S.megaNm(a.i)}にした場合は点 ${a.sc.toFixed(3)}`).join('・')}`:''}）`);
   else if(x.megaI>=0)good.push(`メガシンカ：${S.megaNm(x.megaI)}`);
-  if(X.tw&&X.wxBy>=0&&X.gain.length&&!x.wxOk)warn.push(`${nm(X.wxBy)}を選ばないので天気にならず、${X.gain.map(nm).filter((v,i,a)=>a.indexOf(v)===i).join('・')}は天気なしで計算しています`);
+  if(x.weather)good.push(`${x.weather.by}の${ABN[x.weather.ab]||'特性'}で${({sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'})[x.weather.k]}になった場合を、対応する対面に反映しています${x.weather.guess?'（特性は推定）':''}`);
+  else if(X.tw&&X.wxBy>=0&&X.gain.length&&!x.wxOk)warn.push(`パーティの天気を作る${nm(X.wxBy)}がこの選出にいないため、味方の天気補正を入れていません`);
+  const assumed=x.rows.filter(y=>y.r.abAssume);
+  if(assumed.length)warn.push(`相手の特性はこの選出で比較して推定：${assumed.slice(0,3).map(y=>`${y.r.q.n}（${ABN[y.r.abAssume.ab]||y.r.abAssume.ab}）`).join('・')}${assumed.length>3?' ほか':''}`);
   const tr=x.tr||X.T&&X.T.tr;
   if(tr&&tr.on)(x.trUse?good:warn).push(x.trUse?`トリックルームを技に入れている匹（${tr.setters.filter(s=>x.c.includes(s.i)).map(s=>nm(s.i)).join('・')}）がいるので、選出の全員と相手をトリックルーム中（遅い方が先）の計算にしています`:'トリックルームを張れる匹がいない選出です（遅い匹はトリックルームなしの計算）');
   return{good,warn};
@@ -222,7 +239,7 @@ function dgSelHTML(S,entries){
     cmp=`<div class="selu-sub"><h4>2番目の選出との違い</h4>${line(R2,1)}
       <div class="dgc-row"><span class="dgc-k">1番の方が良い相手（${better.length}匹）</span>${selOpChips(better,'selu-g')}</div>
       <div class="dgc-row"><span class="dgc-k">2番の方が良い相手（${worse.length}匹）</span>${selOpChips(worse,'selu-b')}</div>
-      <p class="dgu-note">点の差 ${(B.sc-R2.sc).toFixed(3)}${R2.tie?'（同点。×が少ない→一撃の危険が少ない→◎○が多い…の順で決めました）':''}</p>
+      <p class="dgu-note">点の差 ${(dgSelScore(B)-dgSelScore(R2)).toFixed(3)}${R2.tie?'（同点。×が少ない→一撃の危険が少ない→◎○が多い…の順で決めました）':''}</p>
       ${dgSelCmpHTML(S,B,R2)}</div>`}
   const mine=S.mine&&S.mine!==B?dgSelWhy(S,S.mine,B):null;
   return `<div class="pc-i pc-plan sel-box" id="sel-box"><div class="selu-head"><b>選出の比較</b><span class="dgu-fmt">${S.K}匹の選び方 ${S.list.length}通りを計算${S.K===4?'・先発2匹は選んだ4匹ごとに6通り':''}</span></div>
@@ -239,6 +256,6 @@ function dgSelHTML(S,entries){
     ${S.mine?`<div class="selu-sub"><h4>いま選んでいる選出</h4>${line(S.mine,S.mineRank-1)}<p class="dgu-note">${S.list.length}通りのうち<b>${S.mineRank}番目</b>${S.mine===B?'（いちばん良い選出です）':''}</p>${mine?`<ul class="sel-why">${mine.good.filter(t=>/2番目の選出/.test(t)).map(t=>`<li>${esc(t.replace('2番目の選出','いちばん良い選出'))}</li>`).join('')}${mine.warn.map(t=>`<li class="sel-w">${esc(t)}</li>`).join('')}</ul>`:''}</div>`:''}
     <details class="sel-all"><summary>${S.list.length}通りすべてを見る</summary>${S.list.map((x,k)=>line(x,k)).join('')}
       <p class="vcap">並びは点の順です（点の決め方は「1番と2番の点の内訳」）。「先発」の印は、その選出の中で比べた先発です。</p></details>
-    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`パーティの天気（${esc(S.tw.by)}の特性）は、その匹を選んだ選出でだけ入れています。`:''}${S.tr&&S.tr.on?'トリックルームは、技に入れている匹を選んだ選出でだけ、選出の全員（相手も）をトリックルーム中の順番で計算しています。覚えられるだけの匹では張ったことにしません。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較では、計算対象の相手を先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
+    <details class="sel-all"><summary>計算の前提を見る</summary><p class="vcap">${FMT==='double'?'ダブルも1対1で計算しています（範囲技・2匹同時の動き・味方のサポートは入れていません）。':''}${S.tw?`味方の天気は、選出に入る天候役のうちパーティ順で先頭の1匹が作った場合を評価しています。`:''}${S.tr&&S.tr.on?'トリックルームは、技に入れている匹を選んだ選出でだけ、選出の全員（相手も）をトリックルーム中の順番で計算しています。覚えられるだけの匹では張ったことにしません。':''}相手の選出の読み合い・交代の順番は入れていません。先発の比較では、計算対象の相手を先発の候補として数えています（相手が実際に何を先発にするかは分かりません）。</p></details>
   </div>`;
 }

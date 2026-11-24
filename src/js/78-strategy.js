@@ -73,6 +73,7 @@ function stFill(entries){
     :'<p class="stg-p">計算では、目立った強みはまだ見つかりませんでした。下の「気をつけたい相手・場面」と改善案から、少しずつ整えていきましょう。</p>'}</div>`;
   /* 3. おすすめの選出と先発 */
   const DS=P0&&P0.DS,B=DS&&DS.best;
+  const selectedTR=B?.tr;
   let sec3='';
   if(B){
     const ld=B.pairs?B.pairs[0].pr:[B.lead1[0].i];
@@ -84,7 +85,8 @@ function stFill(entries){
         return `<li${ld.includes(i)?' class="stg-lead"':''}><b>${nmE(i)}</b>${r.length?`<span class="stg-rl">${r.map(t=>`<i>${esc(t)}</i>`).join('')}</span>`:''}<small>${l&&l.adv.length?`有利に戦える相手 ${l.adv.length}匹（${l.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}${l.adv.length>3?' など':''}）`:'はっきり有利な相手は少なめ。ほかの匹の補助に回る'}</small></li>`}).join('')}</ul>
       <p class="stg-f">${esc(DS.T.opponentSource)}${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。上位${DS.N}匹のうち ◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?'先発2匹は簡易比較です。':''}</p>
       ${(()=>{const notes=[];const inC=n=>B.c.some(i=>byNo[entries[i].no].n===n);
-        if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
+        if(B.weather)notes.push(`${esc(ARCH_BADGE[B.weather.k][0])}は${esc(B.weather.by)}が作った場合を、該当する対面に反映しています${B.weather.guess?'（特性は推定）':''}。`);
+        else if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
         if(T.tr&&T.tr.on&&!T.tr.setters.some(t=>B.c.includes(t.i)))notes.push(`この選出にはトリックルームを張れるポケモン（${T.tr.setters.map(t=>esc(T.ms[t.i].p.n)).join('・')}）が入っていません。トリックルームで戦うなら、張る役を入れた選出も比べてください。`);
         return notes.map(t=>`<p class="stg-warn">${t}</p>`).join('')})()}
       <div class="stg-btns">${(()=>{const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);return sel.length===B.c.length&&B.c.every(i=>sel.includes(i))?'<span class="stg-done">✓ いま選出にしている組み合わせです</span>':`<button class="btn btn-p" data-stg-sel="${B.c.join(',')}">この組み合わせを選出にする</button>`})()}
@@ -101,7 +103,7 @@ function stFill(entries){
       flow={sel:B.c.map(pn),ld:ld.map(pn),mid:mid.map(pn),atk:B.atk.filter(i=>!ld.includes(i)).map(pn),def:B.def.filter(i=>!ld.includes(i)).map(pn),
         adv:l0?l0.adv.slice(0,3).map(y=>y.x.r.q.n):[],fin:P0.finWhy&&B.c.includes(fin)?{n:pn(fin),t:stTx(finTxt)}:null}}
     steps=[
-      ['序盤',T.tr&&T.tr.on&&T.tr.setters.some(t=>B.c.includes(t.i))?`<b>${T.tr.setters.filter(t=>B.c.includes(t.i)).map(t=>nmE(t.i)).join('か')}</b>でトリックルームを張り、遅いポケモンで先に攻撃する。${T.tr.unset?'（いまの技にトリックルームが入っていません）':''}`
+      ['序盤',B.trUse?`<b>${selectedTR.setters.filter(t=>B.c.includes(t.i)).map(t=>nmE(t.i)).join('か')}</b>でトリックルームを張れた場合、遅いポケモンで先に攻撃する。`
         :sup.length?`${sup.map(s=>`<b>${nmE(s.i)}</b>の${s.k.map(k=>ST_SUP[k]).join('・')}`).join('、')}で場を整える。${ld.some(i=>!sup.some(s=>s.i===i))?`先発の<b>${ld.map(nmE).join('・')}</b>で相手の先発を見る。`:''}`
         :`先発の<b>${ld.map(nmE).join('・')}</b>で、相手の先発に有利をとって削る。${l0&&l0.adv.length?`（有利な相手：${l0.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}）`:''}`],
       ['中盤',mid.length?`不利な相手が出てきたら<b>${mid.map(nmE).join('・')}</b>に交代して受け、数を減らす。`:'先発のまま有利な相手を削り、不利なら交代する。'],

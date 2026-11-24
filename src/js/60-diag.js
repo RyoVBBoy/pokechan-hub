@@ -104,7 +104,7 @@ let DG_MEMO=null,DG_MEMO_OFF=false;
 const dgMonSig=m=>JSON.stringify(m,(k,v)=>k==='p'?(v&&v.no):v);
 function dgMatch(a,o){
   if(!DG_MEMO||DG_MEMO_OFF)return withWx(a,o,()=>dgMatch0(a,o));
-  let k;try{let tw=null;try{tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null}catch(e){}
+  let k;try{let tw=null;try{tw=appliedTeamWx()}catch(e){}
     k=dgMonSig(a)+'|'+dgMonSig(o)+'|'+JSON.stringify([DG_TR,typeof WX_OFF!=='undefined'&&WX_OFF,FMT,B.weather||null,tw,inTeam(a),inTeam(o),LIVE.csv[o.p.base||o.p.no]?.mv])}catch(e){return withWx(a,o,()=>dgMatch0(a,o))}
   if(DG_MEMO.has(k))return DG_MEMO.get(k);
   const v=withWx(a,o,()=>dgMatch0(a,o));DG_MEMO.set(k,v);return v}
@@ -330,54 +330,82 @@ function dgTeam1(n,ms,CS,mi,H,mode,opponents){
   if(!H.length||(H.length<2&&mi>=0))return dgTeam2(n,ms,CS,mi,H,mode,opponents);
   const wm=WX_MEGA;WX_MEGA=mi>=0?ms[mi].x.no:null;try{return dgTeam2(n,ms,CS,mi,H,mode,opponents)}finally{WX_MEGA=wm}
 }
+const dgLevel=rs=>{const stable=rs.filter(r=>r.r>=4).length;return stable>=2?4:stable===1?3:rs.some(r=>r.r>=2)?2:1};
+function dgOpponentChoice(variants,indices){
+  if(variants.length===1&&!indices)return {...variants[0],abAssume:null};
+  const choices=indices?variants.map(v=>({o:v.o,rs:v.rs.filter(r=>indices.includes(r.i))})):variants;
+  const value=v=>[dgLevel(v.rs),v.rs.reduce((n,r)=>n+r.r,0),v.rs.filter(r=>r.swIn==='win').length];
+  const ordered=choices.map(v=>({v,score:value(v)})).sort((a,b)=>a.score[0]-b.score[0]||a.score[1]-b.score[1]||a.score[2]-b.score[2]);
+  const best=ordered[0].v,auto=variants[0].o.ab;
+  const fingerprint=rs=>rs.map(r=>[r.k,r.swIn,r.spd].join(':')).join();
+  const signature=fingerprint(best.rs);
+  const abAssume=best.o.ab!==auto||choices.some(v=>fingerprint(v.rs)!==signature)
+    ?{ab:best.o.ab,alts:choices.filter(v=>v.o.ab!==best.o.ab).map(v=>v.o.ab),auto}:null;
+  return{...best,abAssume};
+}
+function dgOpponentVariants(M,opponents){
+  return opponents.map(o=>({o,rs:M.flatMap((a,i)=>{
+    if(!a)return [];
+    try{return [{i,...dgMatch(a,o)}]}catch(e){return []}
+  })}));
+}
 function dgTeam2(n,ms,CS,mi,H,mode,opponents){
   /* 2026/11/20：持ち物が姿と合わない型（formErr）の匹は計算に入れない（null＝いない匹と同じ扱い）。外した匹は formErr で返し、前提に書く */
   const FE=[];
   const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{const m=mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs);if(m.formErr){FE.push({side:'me',no:o.p.no,why:m.formErr});return null}return m}catch(e){return null}});
-  const fam=q=>q.base||q.no;
-  const opps=opponents||metaOpps(n).filter(q=>!ms.some(o=>fam(o.p)===fam(q)));
-  const rows=opps.map(q=>{
-    const live=!!(LIVE.csv[q.base||q.no]);
-    let o;try{o=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))}catch(e){return null}
-    if(o.formErr){FE.push({side:'op',no:q.no,why:o.formErr});return null}
-    const run=oo=>M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,oo)}}catch(e){return null}}).filter(Boolean);
-    let res=run(o),abAssume=null;
-    /* 2026/11/10 依頼主の確認（カイリューのマルチスケイル）：集計がない相手は特性が分からない。自動の型は隠れ特性でない最初の特性（カイリューならせいしんりょく）を選ぶので、
-       持てる特性ごとに計算し、結果が変わるときは、こちらにいちばん不利な特性で計算する（推測で有利と言わない）。メガシンカの姿は特性が1つなのでそのまま */
-    if(!live&&!q.base){const abs=[...new Set((ABD[q.no]||[]).map(z=>z[0]))];
-      if(abs.length>1){const lvOf=rs=>{const st=rs.filter(r=>r.r>=4).length,ok=rs.filter(r=>r.r>=3).length,wk=rs.filter(r=>r.r===2).length;return st>=2?4:st===1?3:ok||wk?2:1};
-        const sumR=rs=>rs.reduce((t,r)=>t+r.r,0),swN=rs=>rs.filter(r=>r.swIn==='win').length;
-        const V=abs.map(ab=>{const oo={...o,ab};return{ab,oo,rs:ab===o.ab?res:run(oo)}});
-        V.sort((x,y)=>lvOf(x.rs)-lvOf(y.rs)||sumR(x.rs)-sumR(y.rs)||swN(x.rs)-swN(y.rs)||(x.ab===o.ab?-1:y.ab===o.ab?1:0));
-        const sig=rs=>rs.map(r=>r.k+r.swIn).join();
-        if(V[0].ab!==o.ab||V.some(v=>sig(v.rs)!==sig(V[0].rs)))abAssume={ab:V[0].ab,alts:abs.filter(k=>k!==V[0].ab),auto:o.ab};
-        o=V[0].oo;res=V[0].rs}}
-    const stable=res.filter(r=>r.r>=4),ok=res.filter(r=>r.r>=3),weak=res.filter(r=>r.r===2);
-    const lvl=stable.length>=2?4:stable.length===1?3:ok.length||weak.length?2:1;
-    /* 2026/11/20：相手の型がメガストーンを持つと、メガシンカの姿で計算している。名前・リンクも計算した姿にする（もとの候補は from） */
-    return{q:o.p!==q&&o.p.mega?o.p:q,from:q,o,live,res,stable,ok,weak,lvl,abAssume};
-  }).filter(Boolean);
-  /* トリックルーム構築（2026/11/10 依頼主）：トリックルームを張れる匹（登録した技。技が未登録なら覚えられる匹）がいて、
-     パーティの半分より多くが、上位の相手の7割以上より遅いとき。そのときは全部の対面をトリックルーム中（遅い方が先）でも計算する */
-  const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
-  /* 2026/11/10 依頼主の指摘（ブリムオン・リキキリン・コータス…が「晴れ・対面」になった）：技を登録していても、その中にトリックルームが無いと
-     張れる匹に数えていなかった。覚えられる匹は「張れる候補」（reg:false）として数え、技に入っていないことは別に知らせる */
-  /* 2026/11/24：張れる匹（setters）は、計算に使う育成の技に実際にトリックルームが入っている匹だけ。覚えられるだけの匹は「張れる候補」（cand）として別に持ち、
-     トリックルームが張られたことにはしない（tr.on にしない・遅さの弱点を消さない）。cand は「トリックルーム向きの形か」（suit）の判定と、技に入れる提案だけに使う */
-  const all=ms.map((o,i)=>{const mv=o.x.set&&o.x.set.mv&&o.x.set.mv.length?o.x.set.mv:null;
-    const reg=!!mv&&mv.some(m=>m&&m.id===TRID),can=lsOf(o.p).includes(TRID);
-    return reg||can?{i,reg,mv:!!mv}:null}).filter(Boolean);
-  const setters=all.filter(s=>s.reg),cand=all.filter(s=>!s.reg);
-  const slow=M.map((a,i)=>i).filter(i=>rows.length&&rows.filter(r=>{const z=r.res.find(x=>x.i===i);return z&&z.sa<z.so}).length>=rows.length*.7);
-  const many=slow.length*2>ms.length;
-  const tr={on:!!setters.length&&many,setters,cand,slow,suit:!!all.length&&many,unset:!setters.length&&!!cand.length&&many};
-  if(tr.on){const prevTR=DG_TR;DG_TR=true;try{rows.forEach(r=>{r.resTR=M.map((a,i)=>{if(!a)return null;try{return{i,...dgMatch(a,r.o)}}catch(e){return null}}).filter(Boolean);
-    const st=r.resTR.filter(x=>x.r>=4),okk=r.resTR.filter(x=>x.r>=3),wk=r.resTR.filter(x=>x.r===2);r.lvlTR=st.length>=2?4:st.length===1?3:okk.length||wk.length?2:1})}finally{DG_TR=prevTR}}
-  /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
-  const unk=new Map();const addU=(m,who)=>{if(!m)return;const notes=dgCalcUnsupported(m);if(m.ab&&ABN[m.ab]&&typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab)&&!notes.length)notes.push(`特性「${ABN[m.ab]}」`);if(notes.length)unk.set(who+m.p.n,`${m.p.n}の${notes.join('・')}`)};
-  M.forEach(m=>addU(m,'me'));rows.forEach(r=>addU(r.o,'op'));
-  return{ms,M,rows,opponentSource:metaOppsSource(),live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
-    mega:{i:mi,no:mi>=0?ms[mi].x.no:null,mode,holders:H.map(i=>({i,no:ms[i].x.no,stone:dgStoneOf(ms[i].x.no,CS[i])})),alts:null}};
+  const prevWeather=WX_TEAM;
+  if(WX_TEAM===undefined)WX_TEAM=teamWx(ms.filter((_,i)=>M[i]).map(o=>o.x));
+  try{
+    const fam=q=>q.base||q.no;
+    const opps=opponents||metaOpps(n).filter(q=>!ms.some(o=>fam(o.p)===fam(q)));
+    const rows=opps.map(q=>{
+      const csv=LIVE.csv[q.base||q.no],live=!!csv;
+      let set,o;
+      try{
+        set=(q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q))||chooseSet(q,true);
+        o=mkMon(q,'op',set);
+      }catch(e){return null}
+      if(o.formErr){FE.push({side:'op',no:q.no,why:o.formErr});return null}
+      const legal=(ABD[q.no]||[]).map(([ab])=>ab);
+      const recorded=csv?.ab?.some(([name,pct])=>pct>0&&ABK[nrm(name)]===o.ab&&legal.includes(o.ab));
+      const unknown=!q.base&&!o.p.mega&&!recorded&&legal.length>1;
+      const abilities=unknown?[...new Set([o.ab,...legal].filter(ab=>legal.includes(ab)))]:[o.ab];
+      const variants=dgOpponentVariants(M,abilities.map(ab=>ab===o.ab?o:mkMon(q,'op',{...set,ab})));
+      const chosen=dgOpponentChoice(variants),res=chosen.rs;
+      o=chosen.o;
+      return{q:o.p!==q&&o.p.mega?o.p:q,from:q,o,live,res,
+        stable:res.filter(r=>r.r>=4),ok:res.filter(r=>r.r>=3),weak:res.filter(r=>r.r===2),
+        lvl:dgLevel(res),abAssume:chosen.abAssume,variants:unknown?variants:null};
+    }).filter(Boolean);
+    /* トリックルーム構築（2026/11/10 依頼主）：トリックルームを張れる匹（登録した技。技が未登録なら覚えられる匹）がいて、
+       パーティの半分より多くが、上位の相手の7割以上より遅いとき。そのときは全部の対面をトリックルーム中（遅い方が先）でも計算する */
+    const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
+    /* 2026/11/10 依頼主の指摘（ブリムオン・リキキリン・コータス…が「晴れ・対面」になった）：技を登録していても、その中にトリックルームが無いと
+       張れる匹に数えていなかった。覚えられる匹は「張れる候補」（reg:false）として数え、技に入っていないことは別に知らせる */
+    /* 2026/11/24：張れる匹（setters）は、計算に使う育成の技に実際にトリックルームが入っている匹だけ。覚えられるだけの匹は「張れる候補」（cand）として別に持ち、
+       トリックルームが張られたことにはしない（tr.on にしない・遅さの弱点を消さない）。cand は「トリックルーム向きの形か」（suit）の判定と、技に入れる提案だけに使う */
+    const all=ms.map((o,i)=>{const mv=o.x.set&&o.x.set.mv&&o.x.set.mv.length?o.x.set.mv:null;
+      const can=!!M[i]&&lsOf(o.p).includes(TRID),reg=can&&!!mv&&mv.some(m=>m&&+m.id===TRID);
+      return reg||can?{i,reg,mv:!!mv}:null}).filter(Boolean);
+    const setters=all.filter(s=>s.reg),cand=all.filter(s=>!s.reg);
+    const slow=M.map((a,i)=>i).filter(i=>rows.length&&rows.filter(r=>{const z=r.res.find(x=>x.i===i);return z&&z.sa<z.so}).length>=rows.length*.7);
+    const many=slow.length*2>ms.length;
+    const tr={on:!!setters.length&&many,setters,cand,slow,suit:!!all.length&&many,unset:!setters.length&&!!cand.length&&many};
+    if(tr.on){
+      const prevTR=DG_TR;DG_TR=true;
+      try{rows.forEach(r=>{
+        const variants=dgOpponentVariants(M,r.variants?r.variants.map(v=>v.o):[r.o]);
+        const chosen=dgOpponentChoice(variants);
+        r.resTR=chosen.rs;r.lvlTR=dgLevel(chosen.rs);r.oTR=chosen.o;r.abAssumeTR=chosen.abAssume;
+        if(r.variants)r.variantsTR=variants;
+      })}finally{DG_TR=prevTR}
+    }
+    /* 計算に入っていない特性（ABIMPL にないもの）を、こちら・相手ともに書き出す（推測で計算したことにしない） */
+    const unk=new Map();const addU=(m,who)=>{if(!m)return;const notes=dgCalcUnsupported(m);if(m.ab&&ABN[m.ab]&&typeof ABIMPL!=='undefined'&&!ABIMPL.has(m.ab)&&!notes.length)notes.push(`特性「${ABN[m.ab]}」`);if(notes.length)unk.set(who+m.p.n,`${m.p.n}の${notes.join('・')}`)};
+    M.forEach(m=>addU(m,'me'));rows.forEach(r=>{addU(r.o,'op');if(r.oTR&&r.oTR.ab!==r.o.ab)addU(r.oTR,'op TR')});
+    return{ms,M,rows,opponentSource:metaOppsSource(),live:rows.some(r=>r.live),liveAll:rows.every(r=>r.live),mySet:ms.map(o=>!!(o.x.set&&o.x.set.mv&&o.x.set.mv.length)),unk:[...unk.values()],tr,formErr:FE,
+      mega:{i:mi,no:mi>=0?ms[mi].x.no:null,mode,holders:H.map(i=>({i,no:ms[i].x.no,stone:dgStoneOf(ms[i].x.no,CS[i])})),alts:null}};
+  }finally{WX_TEAM=prevWeather}
 }
 const DG_LV={4:['◎','2匹以上で安定して対応できる','ok'],3:['○','1匹だけで対応（その匹に頼っている）','mid'],2:['△','対応が不安定（乱数・同速・条件しだい）','warn'],1:['×','パーティ全体で対応が難しい','bad']};
 function dgHTML(){return `<div id="dg-box"><div class="sec"><h2>相手ごとの対応力（計算）</h2></div><p class="empty" style="padding:14px">計算中…</p></div>`}
@@ -388,8 +416,8 @@ function dgFill(entries){
   const nm1=i=>esc(formInfo(T.ms[i].p).base);
   const rowHTML=r=>{const L=DG_LV[r.lvl],best=[...r.res].sort((a,b)=>b.r-a.r).slice(0,3);
     return `<details class="dg-r dg-${L[2]}"><summary><span class="dg-lv">${L[0]}</span><b>${esc(r.q.n)}</b><small>${r.stable.length?r.stable.map(x=>nm1(x.i)).join('・')+'で対応':r.ok.length||r.weak.length?'不安定':'答えなし'}${(()=>{const w=r.res.filter(x=>x.swIn==='win'),c=r.res.filter(x=>x.swIn==='sashwin');return w.length?`／後出し：${w.map(x=>nm1(x.i)).join('・')}`:c.length?`／<span class="dg-cond">条件つき後出し：${c.map(x=>nm1(x.i)).join('・')}</span>`:'／<span class="dg-nosw">後出しできる匹なし</span>'})()}</small></summary>
-      <p class="dg-why">${L[1]}${r.live?'':'（この相手は使用率の集計が読めていないため、自動で決めた型で計算）'}${r.abAssume?`。特性が分からないので、こちらにいちばん不利な${esc(ABN[r.abAssume.ab]||r.abAssume.ab)}で計算（ほかに${r.abAssume.alts.map(k=>esc(ABN[k]||k)).join('・')}もある）`:''}</p>
-      ${r.resTR?(()=>{const bt=[...r.resTR].sort((a,b)=>b.r-a.r).slice(0,2);return `<p class="dg-why"><b>トリックルーム中：${DG_LV[r.lvlTR][0]}</b> ${bt.map(x=>`${nm1(x.i)}は${x.t}`).join('／')}</p>`})():''}
+      <p class="dg-why">${L[1]}${r.live?'':'（この相手の型は推定で計算）'}${r.abAssume?`。特性を特定できないため、こちらにいちばん不利な${esc(ABN[r.abAssume.ab]||r.abAssume.ab)}で計算（ほかに${r.abAssume.alts.map(k=>esc(ABN[k]||k)).join('・')}もある）`:''}</p>
+      ${r.resTR?(()=>{const bt=[...r.resTR].sort((a,b)=>b.r-a.r).slice(0,2);return `<p class="dg-why"><b>トリックルーム中：${DG_LV[r.lvlTR][0]}</b>${r.abAssumeTR?`（推定特性：${esc(ABN[r.oTR.ab]||r.oTR.ab)}）`:''} ${bt.map(x=>`${nm1(x.i)}は${x.t}`).join('／')}</p>`})():''}
       ${typeof dguMatchHTML==='function'?(()=>{const all=[...r.res].sort((a,b)=>b.r-a.r),rest=all.slice(3);const one=x=>dguMatchHTML(x,r.q.n,formInfo(T.ms[x.i].p).base);
         return best.map(one).join('')+(rest.length?`<details class="dgc-ev"><summary>ほかの${rest.length}匹の対面を見る</summary>${rest.map(one).join('')}</details>`:'')})()
       :`<ul>${best.map(x=>`<li><b>${nm1(x.i)}</b>（こちら）は <span class="dg-k dg-k${x.r}">${x.t}</span>：${x.why.map(esc).join('／')}<small>素早さ：${nm1(x.i)} ${x.sa} 対 ${esc(r.q.n)} ${x.so}（${x.spd===1?'こちらが先':x.spd===0?'同速':'相手が先'}）</small></li>`).join('')}</ul>`}</details>`};
@@ -578,6 +606,7 @@ function dgDefSwaps(entries,T){
     const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
       const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>=2).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
     sc.forEach(({c,S})=>{let T1;try{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x);T1=impRecalc(es)}catch(e){return}
+      if(impTrEvaluation(T,T1)?.loss)return;
       const D=dgDiff(T,T1),b=D.b,a=D.a;
       if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
   res.sort((x,y)=>y.gain-x.gain);
@@ -604,7 +633,7 @@ function dgMegaBind(root){if(!root)return;root.querySelectorAll('[data-dgm]').fo
 function dgPremise(T){
   return `${T.formErr&&T.formErr.length?`計算に入れていない匹：${T.formErr.map(x=>`${(byNo[x.no]||{}).n||x.no}（${FORM_WHY[x.why]||x.why}）`).join('・')}。`:''}${dgMegaTxt(T)}${T.opponentSource}${T.rows.length}匹（${T.liveAll?'ランクバトルの集計から組み合わせた推定の型（1人が実際に使った型ではない）':T.live?'集計が読めた相手は集計から組み合わせた推定の型、ほかは当サイトの提案の型':'自動で決めた型。ランクバトルの集計を読めていません'}）。`+
     `${FMT==='double'?'ダブルでも1対1で計算しています（範囲技の0.75倍・2匹同時の動き・味方のサポートは入れていません）。':''}`+
-    `${T.rows.some(r=>r.abAssume)?`集計がない相手で特性によって結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない効果：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
+    `${T.rows.some(r=>r.abAssume)?`特性を特定できない相手で結果が変わるときは、こちらにいちばん不利な特性で計算しています（${T.rows.filter(r=>r.abAssume).slice(0,4).map(r=>`${r.q.n}＝${ABN[r.abAssume.ab]||r.abAssume.ab}`).join('・')}${T.rows.filter(r=>r.abAssume).length>4?' ほか':''}）。`:''}${T.unk.length?`計算に入っていない効果：${T.unk.slice(0,8).join('、')}${T.unk.length>8?' ほか':''}。`:''}${DG_NOTE}`;
 }
 
 /* ===================== 構築の型のバッジ（2026/11/10 依頼主：パーティの6匹の右上に、どういう型か分かる札） =====================

@@ -114,9 +114,15 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
     const withSun=selection.list.filter(x=>x.c.includes(0)&&x.c.includes(1));
     const zero=dgTeam0(team,20,{noMega:true});
     const dry=new Map(zero.rows.map(r=>[(r.from||r.q).no,r]));
+    const matchSelection=(x,y,z)=>{
+      const variants=x.trUse?z.variantsTR:z.variants;
+      const results=x.trUse?z.resTR:z.res;
+      const expected=variants?dgOpponentChoice(variants,x.c):{o:z.o,rs:results.filter(v=>x.c.includes(v.i))};
+      return y.r.o.ab===expected.o.ab&&JSON.stringify(y.zs)===JSON.stringify(expected.rs);
+    };
     const same=without.every(x=>x.megaI===-1&&x.rows.every(y=>{
       const z=dry.get((y.r.from||y.r.q).no);
-      return y.r.o.ab===z.o.ab&&JSON.stringify(y.zs)===JSON.stringify(x.c.map(i=>(x.trUse?z.resTR:z.res).find(v=>i===v.i)).filter(Boolean));
+      return matchSelection(x,y,z);
     }));
     const swapGate=mvpEvalTeam(team,FMT,{none:true});
     const gateDry=swapGate.scen.find(s=>s.u<0);
@@ -130,7 +136,7 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
     const clean=new Map(fromScratch.rows.map(r=>[(r.from||r.q).no,r]));
     const drySame=noSetter.length>0&&noSetter.every(x=>!x.wxOk&&x.rows.every(y=>{
       const z=clean.get((y.r.from||y.r.q).no);
-      return y.r.o.ab===z.o.ab&&JSON.stringify(y.zs)===JSON.stringify(x.c.map(i=>(x.trUse?z.resTR:z.res).find(v=>i===v.i)).filter(Boolean));
+      return matchSelection(x,y,z);
     }));
     const target=zero.rows[0].from.no,prev=LIVE.csv[target];
     let changed;
