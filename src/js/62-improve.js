@@ -84,7 +84,8 @@ function impUsePct(no,stone){const out={};const put=(id,pc)=>{if(id&&pc!=null&&!
   try{const d=typeof LIVE!=='undefined'&&LIVE.csv[no];if(d&&d.mv)d.mv.forEach(([n,pc])=>put(MVKA[nrm(n)],pc))}catch(e){}
   try{if(typeof mvpRowOf==='function'){const r=mvpRowOf(typeof FMT!=='undefined'?FMT:'single',no,stone);if(r&&r.mv)r.mv.forEach(([k,pc])=>put(MVKA[nrm(k)],pc))}}catch(e){}
   return out}
-function dgImprove(entries){
+function dgImprove(entries){const prev=DG_MEMO;DG_MEMO=prev||new Map();try{return dgImprove0(entries)}finally{DG_MEMO=prev}}
+function dgImprove0(entries){
   if(!entries||entries.length<3)return{list:[],note:'3匹以上入れると改善案を計算できます。'};
   const T0=dgTeam0(entries,20);try{const w=teamWx();T0.wxKey=w?[w.k,w.by]:null}catch(e){T0.wxKey=null}
   /* 2026/11/20：持ち物が姿と合わない匹がいるパーティは、比べる前の数がその匹を外した数になるので、改善案を出さない（理由を出す） */

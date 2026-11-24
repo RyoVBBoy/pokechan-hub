@@ -94,7 +94,18 @@ const dgKoTxt=x=>{if(!x||!x.max)return '効く技がない';
   if(x.nMin===x.nMax)return x.nMin>=9?'倒しきれない':`確定${x.nMin}発`;
   return `乱数${x.nMax}発（確定${x.nMin>=9?'なし':x.nMin+'発'}）`};
 /* 1対1：a（こちら）と o（相手）。どちらの技も「確定（乱数最小）」と「最悪の場合（相手は乱数最大）」で見る */
-function dgMatch(a,o){return withWx(a,o,()=>dgMatch0(a,o))}
+/* 1対1の結果の使い回し（2026/11/24、改善案の計算を速くする）：DG_MEMO があるあいだ（dgImprove の中だけ）、同じ入力の1対1は計算し直さない。
+   鍵は、こちら・相手の計算用の姿（実数値・技・特性・持ち物・ランク・HP 等をすべて文字にしたもの。p は図鑑番号）と、
+   結果を変える場の状態（トリックルーム中・天気なしの計算・すでにある天気・パーティの天気・パーティにいる匹か）。入力が同じなら結果も同じなので、全部を計算し直したときと同じ答えになる
+   （tests/impl-fixes-20261124b.mjs で、使い回しなしの結果と一致することを確かめる）。DG_MEMO_OFF で止められる */
+let DG_MEMO=null,DG_MEMO_OFF=false;
+const dgMonSig=m=>JSON.stringify(m,(k,v)=>k==='p'?(v&&v.no):v);
+function dgMatch(a,o){
+  if(!DG_MEMO||DG_MEMO_OFF)return withWx(a,o,()=>dgMatch0(a,o));
+  let k;try{let tw=null;try{tw=typeof teamWx==='function'&&!(typeof WX_OFF!=='undefined'&&WX_OFF)?teamWx():null}catch(e){}
+    k=dgMonSig(a)+'|'+dgMonSig(o)+'|'+JSON.stringify([DG_TR,typeof WX_OFF!=='undefined'&&WX_OFF,B.weather||null,tw,inTeam(a),inTeam(o)])}catch(e){return withWx(a,o,()=>dgMatch0(a,o))}
+  if(DG_MEMO.has(k))return DG_MEMO.get(k);
+  const v=withWx(a,o,()=>dgMatch0(a,o));DG_MEMO.set(k,v);return v}
 function dgMatch0(a,o){
   const me=dgBest(a,o),op=dgBest(o,a);
   /* トリックルーム中（DG_TR）は遅い方が先に動く（先制技はトリックルームでも先） */
