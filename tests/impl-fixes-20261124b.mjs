@@ -79,8 +79,21 @@ const R=await pg.evaluate(()=>{const o={};const id=k=>+Object.keys(MD).find(i=>M
   const mab=megaOf(megaNo.no,megaNo.k).ab;
   const V=tbValidate([{no:megaNo.no,set:{ab:{k:mab,n:ABN[mab]},it:null,mv:[],sp:null,up:-1,dn:-1}},{no:megaNo.no,set:null},{no:143,set:{ab:null,it:null,mv:[{id:id('bodyslam'),n:'x'},{id:id('bodyslam'),n:'x'}],sp:null,up:-1,dn:-1}}]);
   o.tbv={n:V.mem.length,ab:V.mem[0].set.ab&&V.mem[0].set.ab.k,abOk:(ABD[megaNo.no]||[]).some(z=>z[0]===(V.mem[0].set.ab&&V.mem[0].set.ab.k)),mv:V.mem[1]&&V.mem[1].set.mv.length,notes:V.notes.length};
+  /* ⑫ 改善案の計算の1対1の使い回し（DG_MEMO）：使い回しなしで全部計算し直した結果と同じ（シングル・ダブル、実際の集計の型の6匹） */
+  o.memo={};const keepT2=team.slice(),fmt0=FMT;
+  try{for(const fmt of ['single','double']){FMT=fmt;const rows=mvpRows(fmt);if(!rows){o.memo[fmt]=null;continue}
+    const pool=rows.rows.filter(r=>!r.stone&&mvpLegal(r.no).st==='ok').map(r=>mvpSet(fmt,r.no,{anyMv:true})).filter(x=>x.st==='ok');
+    const used=new Set(),es=[];for(const q of pool){if(es.some(x=>tbFam(x.no)===tbFam(q.no)))continue;const s=mvpSet(fmt,q.no,{anyMv:true,used});if(s.st!=='ok')continue;if(s.sv.it)used.add(s.sv.it.k);es.push({no:q.no,set:s.sv,axis:es.length===0});if(es.length===6)break}
+    team.length=0;team.push(...es);
+    const sig=I=>JSON.stringify({l:I.list.map(x=>[x.kind,x.i,x.title,x.why,x.J.b,x.J.a,x.J.D.up,x.J.D.dn,x.megaChg,dgMetric(x.T1),x.T1.mega.no]),d:(I.dropped||[]).map(x=>x.title+'|'+x.loss),t:I.tried});
+    DG_MEMO_OFF=true;let t=performance.now();const A=dgImprove(team);const tA=performance.now()-t;DG_MEMO_OFF=false;
+    t=performance.now();const B2=dgImprove(team);const tB=performance.now()-t;
+    o.memo[fmt]={eq:sig(A)===sig(B2),n:A.list.length,tA:Math.round(tA),tB:Math.round(tB)}}}
+  finally{DG_MEMO_OFF=false;FMT=fmt0;team.length=0;keepT2.forEach(x=>team.push(x))}
   return o});
 await b.close();
+for(const f of ['single','double'])ok(R.memo[f]&&R.memo[f].eq&&R.memo[f].n>=0,`改善案（${f}）：1対1の使い回しありとなしで結果が同じ`,R.memo[f]);
+console.log('改善案の時間（使い回しなし→あり）',JSON.stringify(R.memo));
 const S=R.sf;
 ok(S.ice[0]>S.ice[1]&&Math.abs(S.ice[0]/S.ice[1]-1.3)<.03,'ちからずく：れいとうパンチは1.3倍',S.ice);
 ok(S.cc[0]===S.cc[1],'ちからずく：インファイト（自分が下がるだけ）は上がらない',S.cc);
