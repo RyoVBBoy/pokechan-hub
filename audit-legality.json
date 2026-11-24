@@ -2134,11 +2134,11 @@
       "pass": true,
       "label": "B auto グソクムシャ unique items",
       "detail": [
-        "blackglasses",
         "lifeorb",
-        "focussash",
-        "salamencite",
-        "shucaberry"
+        "leftovers",
+        "widelens",
+        "sitrusberry",
+        "focussash"
       ]
     },
     {
@@ -2160,17 +2160,6 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto グソクムシャ ドドゲザン",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
       "label": "B auto グソクムシャ ミミッキュ",
       "detail": {
         "bad": [],
@@ -2182,7 +2171,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto グソクムシャ ガブリアス",
+      "label": "B auto グソクムシャ ギルガルド",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2193,16 +2182,29 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto グソクムシャ ボーマンダ",
+      "label": "B auto グソクムシャ エースバーン",
       "detail": {
         "bad": [],
-        "unknown": []
+        "unknown": [
+          "item regulation unverified"
+        ]
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto グソクムシャ エンペルト",
+      "label": "B auto グソクムシャ ミミズズ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto グソクムシャ パーモット",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2222,15 +2224,6 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ドドゲザン",
-      "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
       "label": "B auto Mega ability only with matching stone ミミッキュ",
       "detail": {
         "it": "lifeorb",
@@ -2240,28 +2233,37 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ガブリアス",
+      "label": "B auto Mega ability only with matching stone ギルガルド",
+      "detail": {
+        "it": "leftovers",
+        "ab": "stance-change"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto Mega ability only with matching stone エースバーン",
+      "detail": {
+        "it": "widelens",
+        "ab": "libero"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto Mega ability only with matching stone ミミズズ",
+      "detail": {
+        "it": "sitrusberry",
+        "ab": "earth-eater"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto Mega ability only with matching stone パーモット",
       "detail": {
         "it": "focussash",
-        "ab": "rough-skin"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto Mega ability only with matching stone ボーマンダ",
-      "detail": {
-        "it": "salamencite",
-        "ab": "aerilate"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto Mega ability only with matching stone エンペルト",
-      "detail": {
-        "it": "shucaberry",
-        "ab": "competitive"
+        "ab": "iron-fist"
       }
     },
     {
@@ -2497,7 +2499,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ボーマンダ セグレイブ",
+      "label": "B must ボーマンダ ホルード",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2566,10 +2568,10 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone セグレイブ",
+      "label": "B must Mega ability only with matching stone ホルード",
       "detail": {
         "it": "focussash",
-        "ab": "thermal-exchange"
+        "ab": "huge-power"
       }
     },
     {
@@ -2768,7 +2770,7 @@
         "lifeorb",
         "focussash",
         "sitrusberry",
-        "leftovers"
+        "nevermeltice"
       ]
     },
     {
@@ -2823,7 +2825,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ボーマンダ ミミズズ",
+      "label": "B auto ボーマンダ ウルガモス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2834,7 +2836,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ボーマンダ ラウドボーン",
+      "label": "B auto ボーマンダ バイバニラ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2881,19 +2883,19 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ミミズズ",
+      "label": "B auto Mega ability only with matching stone ウルガモス",
       "detail": {
         "it": "sitrusberry",
-        "ab": "earth-eater"
+        "ab": "flame-body"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ラウドボーン",
+      "label": "B auto Mega ability only with matching stone バイバニラ",
       "detail": {
-        "it": "leftovers",
-        "ab": "unaware"
+        "it": "nevermeltice",
+        "ab": "snow-warning"
       }
     },
     {
@@ -3083,11 +3085,11 @@
       "label": "B must ガブリアス unique items",
       "detail": [
         "garchompitez",
-        "blackglasses",
+        "sitrusberry",
         "lifeorb",
         "focussash",
-        "sitrusberry",
-        "leftovers"
+        "choicescarf",
+        "airballoon"
       ]
     },
     {
@@ -3107,7 +3109,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ガブリアス ドドゲザン",
+      "label": "B must ガブリアス アシレーヌ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3129,7 +3131,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ガブリアス マンムー",
+      "label": "B must ガブリアス セグレイブ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3140,7 +3142,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ガブリアス ミミズズ",
+      "label": "B must ガブリアス ドリュウズ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3151,7 +3153,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ガブリアス ラウドボーン",
+      "label": "B must ガブリアス バンギラス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3180,10 +3182,10 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ドドゲザン",
+      "label": "B must Mega ability only with matching stone アシレーヌ",
       "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
+        "it": "sitrusberry",
+        "ab": "torrent"
       }
     },
     {
@@ -3198,28 +3200,28 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone マンムー",
+      "label": "B must Mega ability only with matching stone セグレイブ",
       "detail": {
         "it": "focussash",
-        "ab": "thick-fat"
+        "ab": "thermal-exchange"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ミミズズ",
+      "label": "B must Mega ability only with matching stone ドリュウズ",
       "detail": {
-        "it": "sitrusberry",
-        "ab": "earth-eater"
+        "it": "choicescarf",
+        "ab": "mold-breaker"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ラウドボーン",
+      "label": "B must Mega ability only with matching stone バンギラス",
       "detail": {
-        "it": "leftovers",
-        "ab": "unaware"
+        "it": "airballoon",
+        "ab": "sand-stream"
       }
     },
     {
@@ -3397,10 +3399,10 @@
       "detail": [
         "focussash",
         "lifeorb",
-        "blackglasses",
-        "salamencite",
-        "golisopite",
-        "shucaberry"
+        "choicescarf",
+        "airballoon",
+        "widelens",
+        "lucarionitez"
       ]
     },
     {
@@ -3433,7 +3435,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ガブリアス ドドゲザン",
+      "label": "B auto ガブリアス イルカマン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3444,30 +3446,32 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ガブリアス ボーマンダ",
-      "detail": {
-        "bad": [],
-        "unknown": []
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto ガブリアス グソクムシャ",
-      "detail": {
-        "bad": [],
-        "unknown": []
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto ガブリアス エンペルト",
+      "label": "B auto ガブリアス ドリュウズ",
       "detail": {
         "bad": [],
         "unknown": [
           "item regulation unverified"
         ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto ガブリアス エースバーン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto ガブリアス ルカリオ",
+      "detail": {
+        "bad": [],
+        "unknown": []
       }
     },
     {
@@ -3491,37 +3495,37 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ドドゲザン",
+      "label": "B auto Mega ability only with matching stone イルカマン",
       "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
+        "it": "choicescarf",
+        "ab": "zero-to-hero"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ボーマンダ",
+      "label": "B auto Mega ability only with matching stone ドリュウズ",
       "detail": {
-        "it": "salamencite",
-        "ab": "aerilate"
+        "it": "airballoon",
+        "ab": "mold-breaker"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone グソクムシャ",
+      "label": "B auto Mega ability only with matching stone エースバーン",
       "detail": {
-        "it": "golisopite",
-        "ab": "tough-claws"
+        "it": "widelens",
+        "ab": "libero"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone エンペルト",
+      "label": "B auto Mega ability only with matching stone ルカリオ",
       "detail": {
-        "it": "shucaberry",
-        "ab": "competitive"
+        "it": "lucarionitez",
+        "ab": "aura-guard"
       }
     },
     {
@@ -3711,10 +3715,10 @@
       "label": "B must ルカリオ unique items",
       "detail": [
         "lucarionitez",
-        "choicescarf",
+        "airballoon",
         "lifeorb",
         "focussash",
-        "airballoon",
+        "choicescarf",
         "widelens"
       ]
     },
@@ -3735,7 +3739,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ルカリオ イルカマン",
+      "label": "B must ルカリオ バンギラス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3757,7 +3761,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ルカリオ セグレイブ",
+      "label": "B must ルカリオ ソウブレイズ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3768,7 +3772,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must ルカリオ バンギラス",
+      "label": "B must ルカリオ イルカマン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -3808,10 +3812,10 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone イルカマン",
+      "label": "B must Mega ability only with matching stone バンギラス",
       "detail": {
-        "it": "choicescarf",
-        "ab": "zero-to-hero"
+        "it": "airballoon",
+        "ab": "sand-stream"
       }
     },
     {
@@ -3826,19 +3830,19 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone セグレイブ",
+      "label": "B must Mega ability only with matching stone ソウブレイズ",
       "detail": {
         "it": "focussash",
-        "ab": "thermal-exchange"
+        "ab": "weak-armor"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone バンギラス",
+      "label": "B must Mega ability only with matching stone イルカマン",
       "detail": {
-        "it": "airballoon",
-        "ab": "sand-stream"
+        "it": "choicescarf",
+        "ab": "zero-to-hero"
       }
     },
     {
@@ -4024,11 +4028,11 @@
       "pass": true,
       "label": "B auto ルカリオ unique items",
       "detail": [
-        "blackglasses",
+        "choicescarf",
         "lifeorb",
-        "focussash",
-        "salamencite",
-        "golisopite"
+        "golisopite",
+        "blackglasses",
+        "focussash"
       ]
     },
     {
@@ -4050,7 +4054,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ルカリオ ドドゲザン",
+      "label": "B auto ルカリオ イルカマン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4072,7 +4076,16 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ルカリオ ガブリアス",
+      "label": "B auto ルカリオ グソクムシャ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto ルカリオ ドドゲザン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4083,19 +4096,12 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto ルカリオ ボーマンダ",
+      "label": "B auto ルカリオ ガブリアス",
       "detail": {
         "bad": [],
-        "unknown": []
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto ルカリオ グソクムシャ",
-      "detail": {
-        "bad": [],
-        "unknown": []
+        "unknown": [
+          "item regulation unverified"
+        ]
       }
     },
     {
@@ -4110,10 +4116,10 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ドドゲザン",
+      "label": "B auto Mega ability only with matching stone イルカマン",
       "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
+        "it": "choicescarf",
+        "ab": "zero-to-hero"
       }
     },
     {
@@ -4128,28 +4134,28 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ガブリアス",
-      "detail": {
-        "it": "focussash",
-        "ab": "rough-skin"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto Mega ability only with matching stone ボーマンダ",
-      "detail": {
-        "it": "salamencite",
-        "ab": "aerilate"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
       "label": "B auto Mega ability only with matching stone グソクムシャ",
       "detail": {
         "it": "golisopite",
         "ab": "tough-claws"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto Mega ability only with matching stone ドドゲザン",
+      "detail": {
+        "it": "blackglasses",
+        "ab": "supreme-overlord"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto Mega ability only with matching stone ガブリアス",
+      "detail": {
+        "it": "focussash",
+        "ab": "rough-skin"
       }
     },
     {
@@ -4339,11 +4345,11 @@
       "label": "B must セグレイブ unique items",
       "detail": [
         "baxcalibrite",
-        "blackglasses",
+        "airballoon",
+        "leftovers",
+        "focussash",
         "lifeorb",
-        "rockyhelmet",
-        "sitrusberry",
-        "focussash"
+        "rockyhelmet"
       ]
     },
     {
@@ -4363,7 +4369,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must セグレイブ ドドゲザン",
+      "label": "B must セグレイブ バンギラス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4374,7 +4380,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must セグレイブ ミミッキュ",
+      "label": "B must セグレイブ カビゴン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4385,7 +4391,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must セグレイブ カイリュー",
+      "label": "B must セグレイブ ソウブレイズ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4396,7 +4402,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must セグレイブ ラウドボーン",
+      "label": "B must セグレイブ エースバーン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4407,7 +4413,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must セグレイブ マンムー",
+      "label": "B must セグレイブ カバルドン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4436,46 +4442,46 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ドドゲザン",
+      "label": "B must Mega ability only with matching stone バンギラス",
       "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
+        "it": "airballoon",
+        "ab": "sand-stream"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ミミッキュ",
+      "label": "B must Mega ability only with matching stone カビゴン",
       "detail": {
-        "it": "lifeorb",
-        "ab": "disguise"
+        "it": "leftovers",
+        "ab": "thick-fat"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone カイリュー",
-      "detail": {
-        "it": "rockyhelmet",
-        "ab": "multiscale"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone ラウドボーン",
-      "detail": {
-        "it": "sitrusberry",
-        "ab": "unaware"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone マンムー",
+      "label": "B must Mega ability only with matching stone ソウブレイズ",
       "detail": {
         "it": "focussash",
-        "ab": "thick-fat"
+        "ab": "weak-armor"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B must Mega ability only with matching stone エースバーン",
+      "detail": {
+        "it": "lifeorb",
+        "ab": "libero"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B must Mega ability only with matching stone カバルドン",
+      "detail": {
+        "it": "rockyhelmet",
+        "ab": "sand-stream"
       }
     },
     {
@@ -4654,10 +4660,10 @@
       "detail": [
         "focussash",
         "lifeorb",
-        "choicescarf",
+        "lucarionitez",
         "airballoon",
-        "leftovers",
-        "widelens"
+        "sitrusberry",
+        "leftovers"
       ]
     },
     {
@@ -4690,12 +4696,10 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto セグレイブ ホルード",
+      "label": "B auto セグレイブ ルカリオ",
       "detail": {
         "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
+        "unknown": []
       }
     },
     {
@@ -4712,7 +4716,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto セグレイブ ギルガルド",
+      "label": "B auto セグレイブ ウルガモス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4723,7 +4727,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto セグレイブ エースバーン",
+      "label": "B auto セグレイブ アシレーヌ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -4752,10 +4756,10 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ホルード",
+      "label": "B auto Mega ability only with matching stone ルカリオ",
       "detail": {
-        "it": "choicescarf",
-        "ab": "huge-power"
+        "it": "lucarionitez",
+        "ab": "aura-guard"
       }
     },
     {
@@ -4770,19 +4774,19 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ギルガルド",
+      "label": "B auto Mega ability only with matching stone ウルガモス",
       "detail": {
-        "it": "leftovers",
-        "ab": "stance-change"
+        "it": "sitrusberry",
+        "ab": "flame-body"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone エースバーン",
+      "label": "B auto Mega ability only with matching stone アシレーヌ",
       "detail": {
-        "it": "widelens",
-        "ab": "libero"
+        "it": "leftovers",
+        "ab": "torrent"
       }
     },
     {
@@ -4973,10 +4977,10 @@
       "detail": [
         "absolitez",
         "choicescarf",
+        "leftovers",
         "lifeorb",
-        "focussash",
-        "blackglasses",
-        "airballoon"
+        "damprock",
+        "focussash"
       ]
     },
     {
@@ -5007,6 +5011,17 @@
     {
       "fmt": "single",
       "pass": true,
+      "label": "B must アブソル カビゴン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
       "label": "B must アブソル ミミッキュ",
       "detail": {
         "bad": [],
@@ -5018,7 +5033,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must アブソル セグレイブ",
+      "label": "B must アブソル ペリッパー",
       "detail": {
         "bad": [],
         "unknown": [
@@ -5029,18 +5044,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must アブソル ドドゲザン",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B must アブソル バンギラス",
+      "label": "B must アブソル マンムー",
       "detail": {
         "bad": [],
         "unknown": [
@@ -5078,6 +5082,15 @@
     {
       "fmt": "single",
       "pass": true,
+      "label": "B must Mega ability only with matching stone カビゴン",
+      "detail": {
+        "it": "leftovers",
+        "ab": "thick-fat"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
       "label": "B must Mega ability only with matching stone ミミッキュ",
       "detail": {
         "it": "lifeorb",
@@ -5087,28 +5100,19 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B must Mega ability only with matching stone セグレイブ",
+      "label": "B must Mega ability only with matching stone ペリッパー",
+      "detail": {
+        "it": "damprock",
+        "ab": "drizzle"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B must Mega ability only with matching stone マンムー",
       "detail": {
         "it": "focussash",
-        "ab": "thermal-exchange"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone ドドゲザン",
-      "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone バンギラス",
-      "detail": {
-        "it": "airballoon",
-        "ab": "sand-stream"
+        "ab": "thick-fat"
       }
     },
     {
@@ -5287,9 +5291,9 @@
       "detail": [
         "choicescarf",
         "lifeorb",
-        "blackglasses",
-        "sitrusberry",
-        "focussash"
+        "lucarionitez",
+        "focussash",
+        "widelens"
       ]
     },
     {
@@ -5333,7 +5337,16 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto アブソル ドドゲザン",
+      "label": "B auto アブソル ルカリオ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto アブソル ソウブレイズ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -5344,18 +5357,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto アブソル ラウドボーン",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto アブソル セグレイブ",
+      "label": "B auto アブソル エースバーン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -5393,28 +5395,28 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ドドゲザン",
+      "label": "B auto Mega ability only with matching stone ルカリオ",
       "detail": {
-        "it": "blackglasses",
-        "ab": "supreme-overlord"
+        "it": "lucarionitez",
+        "ab": "aura-guard"
       }
     },
     {
       "fmt": "single",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ラウドボーン",
-      "detail": {
-        "it": "sitrusberry",
-        "ab": "unaware"
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "B auto Mega ability only with matching stone セグレイブ",
+      "label": "B auto Mega ability only with matching stone ソウブレイズ",
       "detail": {
         "it": "focussash",
-        "ab": "thermal-exchange"
+        "ab": "weak-armor"
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B auto Mega ability only with matching stone エースバーン",
+      "detail": {
+        "it": "widelens",
+        "ab": "libero"
       }
     },
     {
@@ -5590,11 +5592,11 @@
       "label": "B unique items",
       "detail": [
         "sitrusberry",
-        "blackglasses",
         "lifeorb",
-        "focussash",
+        "rockyhelmet",
+        "spelltag",
         "airballoon",
-        "rockyhelmet"
+        "focussash"
       ]
     },
     {
@@ -5616,7 +5618,18 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B ドドゲザン",
+      "label": "B ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ハッサム",
       "detail": {
         "bad": [],
         "unknown": [
@@ -5638,17 +5651,6 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B ガブリアス",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
       "label": "B バンギラス",
       "detail": {
         "bad": [],
@@ -5660,7 +5662,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B カバルドン",
+      "label": "B ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -5705,7 +5707,7 @@
       "fmt": "single",
       "pass": true,
       "label": "improvement evaluation completed",
-      "detail": 7
+      "detail": 6
     },
     {
       "fmt": "single",
@@ -5722,7 +5724,7 @@
         "airballoon",
         "rockyhelmet",
         "focussash",
-        "leftovers",
+        "choicescarf",
         "lifeorb"
       ]
     },
@@ -5813,11 +5815,11 @@
       "pass": true,
       "label": "improvement 1 unique items",
       "detail": [
-        "sitrusberry",
+        "choicescarf",
         "airballoon",
         "rockyhelmet",
         "focussash",
-        "choicescarf",
+        "leftovers",
         "lifeorb"
       ]
     },
@@ -5908,7 +5910,7 @@
       "pass": true,
       "label": "improvement 2 unique items",
       "detail": [
-        "choicescarf",
+        "sitrusberry",
         "airballoon",
         "rockyhelmet",
         "focussash",
@@ -6099,7 +6101,7 @@
       "label": "improvement 4 unique items",
       "detail": [
         "sitrusberry",
-        "airballoon",
+        "choicescarf",
         "rockyhelmet",
         "focussash",
         "leftovers",
@@ -6136,7 +6138,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "improvement 4 カイリュー",
+      "label": "improvement 4 カバルドン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -6194,7 +6196,7 @@
       "label": "improvement 5 unique items",
       "detail": [
         "sitrusberry",
-        "choicescarf",
+        "airballoon",
         "rockyhelmet",
         "focussash",
         "leftovers",
@@ -6265,101 +6267,6 @@
       "fmt": "single",
       "pass": true,
       "label": "improvement 5 ミミッキュ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement retains axis"
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 six members",
-      "detail": 6
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 unique items",
-      "detail": [
-        "sitrusberry",
-        "airballoon",
-        "rockyhelmet",
-        "focussash",
-        "leftovers",
-        "lifeorb"
-      ]
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 unique families"
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 アシレーヌ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 サーフゴー",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 カバルドン",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 ガブリアス",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 ブリジュラス",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 ミミッキュ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -8170,10 +8077,10 @@
       "detail": [
         "salamencite",
         "choicescarf",
-        "lifeorb",
+        "occaberry",
         "focussash",
-        "sitrusberry",
-        "chopleberry"
+        "lifeorb",
+        "leftovers"
       ]
     },
     {
@@ -8208,7 +8115,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must ボーマンダ ミミッキュ",
+      "label": "B must ボーマンダ デカヌチャン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -8230,7 +8137,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must ボーマンダ ウインディ",
+      "label": "B must ボーマンダ ミミッキュ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -8241,7 +8148,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must ボーマンダ ガオガエン",
+      "label": "B must ボーマンダ ミロカロス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -8279,10 +8186,10 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ミミッキュ",
+      "label": "B must Mega ability only with matching stone デカヌチャン",
       "detail": {
-        "it": "lifeorb",
-        "ab": "disguise"
+        "it": "occaberry",
+        "ab": "mold-breaker"
       }
     },
     {
@@ -8297,19 +8204,19 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ウインディ",
+      "label": "B must Mega ability only with matching stone ミミッキュ",
       "detail": {
-        "it": "sitrusberry",
-        "ab": "intimidate"
+        "it": "lifeorb",
+        "ab": "disguise"
       }
     },
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ガオガエン",
+      "label": "B must Mega ability only with matching stone ミロカロス",
       "detail": {
-        "it": "chopleberry",
-        "ab": "intimidate"
+        "it": "leftovers",
+        "ab": "competitive"
       }
     },
     {
@@ -8807,9 +8714,9 @@
         "garchompitez",
         "lifeorb",
         "focussash",
+        "charcoal",
         "choicescarf",
-        "sitrusberry",
-        "chopleberry"
+        "whiteherb"
       ]
     },
     {
@@ -8840,7 +8747,18 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must ガブリアス ドリュウズ",
+      "label": "B must ガブリアス ウインディ（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B must ガブリアス コータス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -8862,18 +8780,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must ガブリアス ウインディ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B must ガブリアス ガオガエン",
+      "label": "B must ガブリアス オオニューラ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -8911,10 +8818,19 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ドリュウズ",
+      "label": "B must Mega ability only with matching stone ウインディ（ヒスイ）",
       "detail": {
         "it": "focussash",
-        "ab": "sand-rush"
+        "ab": "rock-head"
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B must Mega ability only with matching stone コータス",
+      "detail": {
+        "it": "charcoal",
+        "ab": "drought"
       }
     },
     {
@@ -8929,19 +8845,10 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ウインディ",
+      "label": "B must Mega ability only with matching stone オオニューラ",
       "detail": {
-        "it": "sitrusberry",
-        "ab": "intimidate"
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone ガオガエン",
-      "detail": {
-        "it": "chopleberry",
-        "ab": "intimidate"
+        "it": "whiteherb",
+        "ab": "unburden"
       }
     },
     {
@@ -9122,7 +9029,7 @@
         "focussash",
         "golisopite",
         "rockyhelmet",
-        "leftovers"
+        "sitrusberry"
       ]
     },
     {
@@ -9186,7 +9093,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto ガブリアス ミロカロス",
+      "label": "B auto ガブリアス イダイトウ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -9242,10 +9149,10 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ミロカロス",
+      "label": "B auto Mega ability only with matching stone イダイトウ",
       "detail": {
-        "it": "leftovers",
-        "ab": "competitive"
+        "it": "sitrusberry",
+        "ab": "adaptability"
       }
     },
     {
@@ -9436,10 +9343,10 @@
       "detail": [
         "golisopite",
         "choicescarf",
-        "spelltag",
-        "lifeorb",
+        "leftovers",
         "focussash",
-        "psychicseed"
+        "spelltag",
+        "lifeorb"
       ]
     },
     {
@@ -9470,6 +9377,28 @@
     {
       "fmt": "double",
       "pass": true,
+      "label": "B must グソクムシャ ヌメルゴン（ヒスイ）",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B must グソクムシャ イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
       "label": "B must グソクムシャ ギルガルド",
       "detail": {
         "bad": [],
@@ -9482,28 +9411,6 @@
       "fmt": "double",
       "pass": true,
       "label": "B must グソクムシャ ミミッキュ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B must グソクムシャ ドリュウズ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B must グソクムシャ アーマーガア",
       "detail": {
         "bad": [],
         "unknown": [
@@ -9541,6 +9448,24 @@
     {
       "fmt": "double",
       "pass": true,
+      "label": "B must Mega ability only with matching stone ヌメルゴン（ヒスイ）",
+      "detail": {
+        "it": "leftovers",
+        "ab": "shell-armor"
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B must Mega ability only with matching stone イダイトウ",
+      "detail": {
+        "it": "focussash",
+        "ab": "adaptability"
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
       "label": "B must Mega ability only with matching stone ギルガルド",
       "detail": {
         "it": "spelltag",
@@ -9554,24 +9479,6 @@
       "detail": {
         "it": "lifeorb",
         "ab": "disguise"
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone ドリュウズ",
-      "detail": {
-        "it": "focussash",
-        "ab": "sand-rush"
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B must Mega ability only with matching stone アーマーガア",
-      "detail": {
-        "it": "psychicseed",
-        "ab": "mirror-armor"
       }
     },
     {
@@ -10113,7 +10020,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must ルカリオ ゲンガー",
+      "label": "B must ルカリオ イダイトウ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -10182,10 +10089,10 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ゲンガー",
+      "label": "B must Mega ability only with matching stone イダイトウ",
       "detail": {
         "it": "focussash",
-        "ab": "cursed-body"
+        "ab": "adaptability"
       }
     },
     {
@@ -10703,8 +10610,8 @@
         "choicescarf",
         "lifeorb",
         "focussash",
-        "spelltag",
-        "sitrusberry"
+        "leftovers",
+        "softsand"
       ]
     },
     {
@@ -10757,7 +10664,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must アブソル ギルガルド",
+      "label": "B must アブソル ヌメルゴン（ヒスイ）",
       "detail": {
         "bad": [],
         "unknown": [
@@ -10768,7 +10675,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must アブソル ガオガエン",
+      "label": "B must アブソル ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -10824,19 +10731,19 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ギルガルド",
+      "label": "B must Mega ability only with matching stone ヌメルゴン（ヒスイ）",
       "detail": {
-        "it": "spelltag",
-        "ab": "stance-change"
+        "it": "leftovers",
+        "ab": "shell-armor"
       }
     },
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ガオガエン",
+      "label": "B must Mega ability only with matching stone ガブリアス",
       "detail": {
-        "it": "sitrusberry",
-        "ab": "intimidate"
+        "it": "softsand",
+        "ab": "rough-skin"
       }
     },
     {
@@ -11015,7 +10922,7 @@
       "detail": [
         "choicescarf",
         "lifeorb",
-        "spelltag",
+        "lucarionitez",
         "focussash",
         "sitrusberry"
       ]
@@ -11061,7 +10968,16 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto アブソル ギルガルド",
+      "label": "B auto アブソル ルカリオ",
+      "detail": {
+        "bad": [],
+        "unknown": []
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "B auto アブソル イダイトウ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -11072,18 +10988,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto アブソル ウインディ（ヒスイ）",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "double",
-      "pass": true,
-      "label": "B auto アブソル ガオガエン",
+      "label": "B auto アブソル ウインディ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -11121,25 +11026,25 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ギルガルド",
+      "label": "B auto Mega ability only with matching stone ルカリオ",
       "detail": {
-        "it": "spelltag",
-        "ab": "stance-change"
+        "it": "lucarionitez",
+        "ab": "aura-guard"
       }
     },
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ウインディ（ヒスイ）",
+      "label": "B auto Mega ability only with matching stone イダイトウ",
       "detail": {
         "it": "focussash",
-        "ab": "rock-head"
+        "ab": "adaptability"
       }
     },
     {
       "fmt": "double",
       "pass": true,
-      "label": "B auto Mega ability only with matching stone ガオガエン",
+      "label": "B auto Mega ability only with matching stone ウインディ",
       "detail": {
         "it": "sitrusberry",
         "ab": "intimidate"
@@ -11336,7 +11241,7 @@
         "focussash",
         "lifeorb",
         "spelltag",
-        "sitrusberry"
+        "softsand"
       ]
     },
     {
@@ -11400,7 +11305,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must セグレイブ ガオガエン",
+      "label": "B must セグレイブ ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -11465,10 +11370,10 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B must Mega ability only with matching stone ガオガエン",
+      "label": "B must Mega ability only with matching stone ガブリアス",
       "detail": {
-        "it": "sitrusberry",
-        "ab": "intimidate"
+        "it": "softsand",
+        "ab": "rough-skin"
       }
     },
     {
@@ -11953,7 +11858,7 @@
         "lifeorb",
         "focussash",
         "spelltag",
-        "sitrusberry"
+        "softsand"
       ]
     },
     {
@@ -11997,7 +11902,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B イダイトウ",
+      "label": "B ウインディ（ヒスイ）",
       "detail": {
         "bad": [],
         "unknown": [
@@ -12019,7 +11924,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B ガオガエン",
+      "label": "B ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -12064,7 +11969,7 @@
       "fmt": "double",
       "pass": true,
       "label": "improvement evaluation completed",
-      "detail": 6
+      "detail": 7
     },
     {
       "fmt": "double",
@@ -12080,8 +11985,8 @@
         "whiteherb",
         "chopleberry",
         "focussash",
-        "lifeorb",
-        "sitrusberry",
+        "miracleseed",
+        "leftovers",
         "choicescarf"
       ]
     },
@@ -12126,7 +12031,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 0 セグレイブ",
+      "label": "improvement 0 ゴリランダー",
       "detail": {
         "bad": [],
         "unknown": [
@@ -12137,7 +12042,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 0 ガオガエン",
+      "label": "improvement 0 アシレーヌ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -12175,7 +12080,7 @@
         "whiteherb",
         "chopleberry",
         "focussash",
-        "miracleseed",
+        "lifeorb",
         "sitrusberry",
         "choicescarf"
       ]
@@ -12221,7 +12126,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 1 ゴリランダー",
+      "label": "improvement 1 セグレイブ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -12271,7 +12176,7 @@
         "chopleberry",
         "focussash",
         "miracleseed",
-        "lifeorb",
+        "sitrusberry",
         "choicescarf"
       ]
     },
@@ -12366,7 +12271,7 @@
         "chopleberry",
         "focussash",
         "miracleseed",
-        "sitrusberry",
+        "lifeorb",
         "choicescarf"
       ]
     },
@@ -12422,7 +12327,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 3 ウインディ",
+      "label": "improvement 3 ガオガエン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -12462,7 +12367,7 @@
         "focussash",
         "miracleseed",
         "sitrusberry",
-        "lifeorb"
+        "choicescarf"
       ]
     },
     {
@@ -12557,7 +12462,7 @@
         "focussash",
         "miracleseed",
         "sitrusberry",
-        "choicescarf"
+        "lifeorb"
       ]
     },
     {
@@ -12624,6 +12529,101 @@
       "fmt": "double",
       "pass": true,
       "label": "improvement 5 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -14438,15 +14438,6 @@
     {
       "fmt": "single",
       "label": "B auto グソクムシャ",
-      "no": 983,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto グソクムシャ",
       "no": 778,
       "bad": [],
       "unknown": [
@@ -14456,7 +14447,7 @@
     {
       "fmt": "single",
       "label": "B auto グソクムシャ",
-      "no": 445,
+      "no": 681,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14465,14 +14456,25 @@
     {
       "fmt": "single",
       "label": "B auto グソクムシャ",
-      "no": 373,
+      "no": 815,
       "bad": [],
-      "unknown": []
+      "unknown": [
+        "item regulation unverified"
+      ]
     },
     {
       "fmt": "single",
       "label": "B auto グソクムシャ",
-      "no": 395,
+      "no": 968,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B auto グソクムシャ",
+      "no": 923,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14558,7 +14560,7 @@
     {
       "fmt": "single",
       "label": "B must ボーマンダ",
-      "no": 998,
+      "no": 660,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14671,7 +14673,7 @@
     {
       "fmt": "single",
       "label": "B auto ボーマンダ",
-      "no": 968,
+      "no": 637,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14680,7 +14682,7 @@
     {
       "fmt": "single",
       "label": "B auto ボーマンダ",
-      "no": 911,
+      "no": 584,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14748,7 +14750,7 @@
     {
       "fmt": "single",
       "label": "B must ガブリアス",
-      "no": 983,
+      "no": 730,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14766,7 +14768,7 @@
     {
       "fmt": "single",
       "label": "B must ガブリアス",
-      "no": 473,
+      "no": 998,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14775,7 +14777,7 @@
     {
       "fmt": "single",
       "label": "B must ガブリアス",
-      "no": 968,
+      "no": 530,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14784,7 +14786,7 @@
     {
       "fmt": "single",
       "label": "B must ガブリアス",
-      "no": 911,
+      "no": 248,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14861,7 +14863,7 @@
     {
       "fmt": "single",
       "label": "B auto ガブリアス",
-      "no": 983,
+      "no": 964,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14870,25 +14872,27 @@
     {
       "fmt": "single",
       "label": "B auto ガブリアス",
-      "no": 373,
-      "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "B auto ガブリアス",
-      "no": 768,
-      "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "B auto ガブリアス",
-      "no": 395,
+      "no": 530,
       "bad": [],
       "unknown": [
         "item regulation unverified"
       ]
+    },
+    {
+      "fmt": "single",
+      "label": "B auto ガブリアス",
+      "no": 815,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B auto ガブリアス",
+      "no": 448,
+      "bad": [],
+      "unknown": []
     },
     {
       "fmt": "single",
@@ -14952,7 +14956,7 @@
     {
       "fmt": "single",
       "label": "B must ルカリオ",
-      "no": 964,
+      "no": 248,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14970,7 +14974,7 @@
     {
       "fmt": "single",
       "label": "B must ルカリオ",
-      "no": 998,
+      "no": 937,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -14979,7 +14983,7 @@
     {
       "fmt": "single",
       "label": "B must ルカリオ",
-      "no": 248,
+      "no": 964,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15056,7 +15060,7 @@
     {
       "fmt": "single",
       "label": "B auto ルカリオ",
-      "no": 983,
+      "no": 964,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15074,7 +15078,14 @@
     {
       "fmt": "single",
       "label": "B auto ルカリオ",
-      "no": 445,
+      "no": 768,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "B auto ルカリオ",
+      "no": 983,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15083,16 +15094,11 @@
     {
       "fmt": "single",
       "label": "B auto ルカリオ",
-      "no": 373,
+      "no": 445,
       "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "B auto ルカリオ",
-      "no": 768,
-      "bad": [],
-      "unknown": []
+      "unknown": [
+        "item regulation unverified"
+      ]
     },
     {
       "fmt": "single",
@@ -15156,7 +15162,7 @@
     {
       "fmt": "single",
       "label": "B must セグレイブ",
-      "no": 983,
+      "no": 248,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15165,6 +15171,101 @@
     {
       "fmt": "single",
       "label": "B must セグレイブ",
+      "no": 143,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must セグレイブ",
+      "no": 937,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must セグレイブ",
+      "no": 815,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must セグレイブ",
+      "no": 450,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A auto セグレイブ",
+      "no": 998,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "A auto セグレイブ",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A auto セグレイブ",
+      "no": 10104,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A auto セグレイブ",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A auto セグレイブ",
+      "no": 248,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "A auto セグレイブ",
+      "no": 887,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B auto セグレイブ",
+      "no": 998,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B auto セグレイブ",
       "no": 778,
       "bad": [],
       "unknown": [
@@ -15173,8 +15274,15 @@
     },
     {
       "fmt": "single",
-      "label": "B must セグレイブ",
-      "no": 149,
+      "label": "B auto セグレイブ",
+      "no": 448,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "B auto セグレイブ",
+      "no": 248,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15182,8 +15290,8 @@
     },
     {
       "fmt": "single",
-      "label": "B must セグレイブ",
-      "no": 911,
+      "label": "B auto セグレイブ",
+      "no": 637,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15191,7 +15299,111 @@
     },
     {
       "fmt": "single",
-      "label": "B must セグレイブ",
+      "label": "B auto セグレイブ",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A must アブソル",
+      "no": 359,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "A must アブソル",
+      "no": 260,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A must アブソル",
+      "no": 823,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A must アブソル",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A must アブソル",
+      "no": 887,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "A must アブソル",
+      "no": 1000,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must アブソル",
+      "no": 359,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "B must アブソル",
+      "no": 964,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must アブソル",
+      "no": 143,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must アブソル",
+      "no": 778,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must アブソル",
+      "no": 279,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B must アブソル",
       "no": 473,
       "bad": [],
       "unknown": [
@@ -15200,214 +15412,6 @@
     },
     {
       "fmt": "single",
-      "label": "A auto セグレイブ",
-      "no": 998,
-      "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "A auto セグレイブ",
-      "no": 730,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A auto セグレイブ",
-      "no": 10104,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A auto セグレイブ",
-      "no": 1000,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A auto セグレイブ",
-      "no": 248,
-      "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "A auto セグレイブ",
-      "no": 887,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto セグレイブ",
-      "no": 998,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto セグレイブ",
-      "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto セグレイブ",
-      "no": 660,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto セグレイブ",
-      "no": 248,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto セグレイブ",
-      "no": 681,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto セグレイブ",
-      "no": 815,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A must アブソル",
-      "no": 359,
-      "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "A must アブソル",
-      "no": 260,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A must アブソル",
-      "no": 823,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A must アブソル",
-      "no": 730,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A must アブソル",
-      "no": 887,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "A must アブソル",
-      "no": 1000,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B must アブソル",
-      "no": 359,
-      "bad": [],
-      "unknown": []
-    },
-    {
-      "fmt": "single",
-      "label": "B must アブソル",
-      "no": 964,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B must アブソル",
-      "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B must アブソル",
-      "no": 998,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B must アブソル",
-      "no": 983,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B must アブソル",
-      "no": 248,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
       "label": "A auto アブソル",
       "no": 359,
       "bad": [],
@@ -15486,7 +15490,14 @@
     {
       "fmt": "single",
       "label": "B auto アブソル",
-      "no": 983,
+      "no": 448,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "single",
+      "label": "B auto アブソル",
+      "no": 937,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15495,16 +15506,7 @@
     {
       "fmt": "single",
       "label": "B auto アブソル",
-      "no": 911,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B auto アブソル",
-      "no": 998,
+      "no": 815,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15513,22 +15515,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 14.200000000186265
+      "ms": 49.200000000186265
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 1.5
+      "ms": 1.599999999627471
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 15.599999999627471
+      "ms": 49.200000000186265
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 323.09999999962747
+      "ms": 377
     },
     {
       "fmt": "single",
@@ -15596,7 +15598,16 @@
     {
       "fmt": "single",
       "label": "B",
-      "no": 983,
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 212,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15606,15 +15617,6 @@
       "fmt": "single",
       "label": "B",
       "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B",
-      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15632,7 +15634,7 @@
     {
       "fmt": "single",
       "label": "B",
-      "no": 450,
+      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15641,7 +15643,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 820.7999999998137
+      "ms": 1415.7999999998137
     },
     {
       "fmt": "single",
@@ -15880,7 +15882,7 @@
     {
       "fmt": "single",
       "label": "improvement 4",
-      "no": 149,
+      "no": 450,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -15961,60 +15963,6 @@
     {
       "fmt": "single",
       "label": "improvement 5",
-      "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 730,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 1000,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 450,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 445,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 1018,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
       "no": 778,
       "bad": [],
       "unknown": [
@@ -17709,7 +17657,7 @@
     {
       "fmt": "double",
       "label": "B must ボーマンダ",
-      "no": 778,
+      "no": 959,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -17727,7 +17675,7 @@
     {
       "fmt": "double",
       "label": "B must ボーマンダ",
-      "no": 59,
+      "no": 778,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -17736,7 +17684,7 @@
     {
       "fmt": "double",
       "label": "B must ボーマンダ",
-      "no": 727,
+      "no": 350,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -17917,7 +17865,16 @@
     {
       "fmt": "double",
       "label": "B must ガブリアス",
-      "no": 530,
+      "no": 10230,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B must ガブリアス",
+      "no": 324,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -17935,16 +17892,7 @@
     {
       "fmt": "double",
       "label": "B must ガブリアス",
-      "no": 59,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "B must ガブリアス",
-      "no": 727,
+      "no": 903,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18046,7 +17994,7 @@
     {
       "fmt": "double",
       "label": "B auto ガブリアス",
-      "no": 350,
+      "no": 902,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18123,6 +18071,24 @@
     {
       "fmt": "double",
       "label": "B must グソクムシャ",
+      "no": 10242,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B must グソクムシャ",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "B must グソクムシャ",
       "no": 681,
       "bad": [],
       "unknown": [
@@ -18133,24 +18099,6 @@
       "fmt": "double",
       "label": "B must グソクムシャ",
       "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "B must グソクムシャ",
-      "no": 530,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "B must グソクムシャ",
-      "no": 823,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18340,7 +18288,7 @@
     {
       "fmt": "double",
       "label": "B must ルカリオ",
-      "no": 94,
+      "no": 902,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18557,7 +18505,7 @@
     {
       "fmt": "double",
       "label": "B must アブソル",
-      "no": 681,
+      "no": 10242,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18566,7 +18514,7 @@
     {
       "fmt": "double",
       "label": "B must アブソル",
-      "no": 727,
+      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18652,7 +18600,14 @@
     {
       "fmt": "double",
       "label": "B auto アブソル",
-      "no": 681,
+      "no": 448,
+      "bad": [],
+      "unknown": []
+    },
+    {
+      "fmt": "double",
+      "label": "B auto アブソル",
+      "no": 902,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18661,16 +18616,7 @@
     {
       "fmt": "double",
       "label": "B auto アブソル",
-      "no": 10230,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "B auto アブソル",
-      "no": 727,
+      "no": 59,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18774,7 +18720,7 @@
     {
       "fmt": "double",
       "label": "B must セグレイブ",
-      "no": 727,
+      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -18885,22 +18831,22 @@
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 19.100000000558794
+      "ms": 54.5
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 2
+      "ms": 1.7000000001862645
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 23.200000000186265
+      "ms": 56.200000000186265
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 639.5
+      "ms": 498.59999999962747
     },
     {
       "fmt": "double",
@@ -18986,7 +18932,7 @@
     {
       "fmt": "double",
       "label": "B",
-      "no": 902,
+      "no": 10230,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -19004,7 +18950,7 @@
     {
       "fmt": "double",
       "label": "B",
-      "no": 727,
+      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -19013,7 +18959,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 1152.1000000005588
+      "ms": 1551.4000000003725
     },
     {
       "fmt": "double",
@@ -19045,6 +18991,60 @@
     {
       "fmt": "double",
       "label": "improvement 0",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
       "no": 998,
       "bad": [],
       "unknown": [
@@ -19053,60 +19053,6 @@
     },
     {
       "fmt": "double",
-      "label": "improvement 0",
-      "no": 727,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 0",
-      "no": 445,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 903,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 983,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 902,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 812,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
       "label": "improvement 1",
       "no": 727,
       "bad": [],
@@ -19216,7 +19162,7 @@
     {
       "fmt": "double",
       "label": "improvement 3",
-      "no": 59,
+      "no": 727,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -19333,6 +19279,60 @@
     {
       "fmt": "double",
       "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
       "no": 445,
       "bad": [],
       "unknown": [

@@ -3369,22 +3369,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 127.20000000018626
+      "ms": 98.69999999925494
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 2
+      "ms": 3.1000000005587935
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 80
+      "ms": 54.39999999944121
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 1481.8000000000466
+      "ms": 1276.1000000005588
     },
     {
       "fmt": "single",
@@ -3497,7 +3497,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 1289.3000000000466
+      "ms": 1515.8999999994412
     },
     {
       "fmt": "single",
@@ -3826,12 +3826,12 @@
     {
       "fmt": "single",
       "label": "two Mega selection",
-      "ms": 94.9000000001397
+      "ms": 110.70000000018626
     },
     {
       "fmt": "single",
       "label": "two Mega improvements",
-      "ms": 1366.7000000001863
+      "ms": 1486.7999999998137
     },
     {
       "fmt": "single",
@@ -4036,27 +4036,27 @@
     {
       "fmt": "single",
       "label": "Trick Room change",
-      "ms": 44.799999999813735
+      "ms": 46.59999999962747
     },
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 149.39999999990687
+      "ms": 90.5
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 2.300000000046566
+      "ms": 2
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 60.5999999998603
+      "ms": 84.5
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 1210.1999999999534
+      "ms": 1238.7000000001863
     },
     {
       "fmt": "double",
@@ -4169,7 +4169,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 1654.6000000000931
+      "ms": 1452.4000000003725
     },
     {
       "fmt": "double",
@@ -4552,12 +4552,12 @@
     {
       "fmt": "double",
       "label": "two Mega selection",
-      "ms": 260.5
+      "ms": 137.09999999962747
     },
     {
       "fmt": "double",
       "label": "two Mega improvements",
-      "ms": 1931.1999999999534
+      "ms": 1670.699999999255
     },
     {
       "fmt": "double",
@@ -4994,7 +4994,7 @@
     {
       "fmt": "double",
       "label": "Trick Room change",
-      "ms": 84.9000000001397
+      "ms": 77.29999999981374
     }
   ]
 }
