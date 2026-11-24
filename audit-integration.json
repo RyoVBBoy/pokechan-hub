@@ -169,11 +169,11 @@
       "label": "B unique items",
       "detail": [
         "sitrusberry",
-        "blackglasses",
         "lifeorb",
-        "focussash",
+        "rockyhelmet",
+        "spelltag",
         "airballoon",
-        "rockyhelmet"
+        "focussash"
       ]
     },
     {
@@ -195,7 +195,18 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B ドドゲザン",
+      "label": "B ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "single",
+      "pass": true,
+      "label": "B ハッサム",
       "detail": {
         "bad": [],
         "unknown": [
@@ -217,17 +228,6 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B ガブリアス",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
       "label": "B バンギラス",
       "detail": {
         "bad": [],
@@ -239,7 +239,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "B カバルドン",
+      "label": "B ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -284,7 +284,7 @@
       "fmt": "single",
       "pass": true,
       "label": "improvement evaluation completed",
-      "detail": 7
+      "detail": 6
     },
     {
       "fmt": "single",
@@ -301,7 +301,7 @@
         "airballoon",
         "rockyhelmet",
         "focussash",
-        "leftovers",
+        "choicescarf",
         "lifeorb"
       ]
     },
@@ -392,11 +392,11 @@
       "pass": true,
       "label": "improvement 1 unique items",
       "detail": [
-        "sitrusberry",
+        "choicescarf",
         "airballoon",
         "rockyhelmet",
         "focussash",
-        "choicescarf",
+        "leftovers",
         "lifeorb"
       ]
     },
@@ -487,7 +487,7 @@
       "pass": true,
       "label": "improvement 2 unique items",
       "detail": [
-        "choicescarf",
+        "sitrusberry",
         "airballoon",
         "rockyhelmet",
         "focussash",
@@ -678,7 +678,7 @@
       "label": "improvement 4 unique items",
       "detail": [
         "sitrusberry",
-        "airballoon",
+        "choicescarf",
         "rockyhelmet",
         "focussash",
         "leftovers",
@@ -715,7 +715,7 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "improvement 4 カイリュー",
+      "label": "improvement 4 カバルドン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -773,7 +773,7 @@
       "label": "improvement 5 unique items",
       "detail": [
         "sitrusberry",
-        "choicescarf",
+        "airballoon",
         "rockyhelmet",
         "focussash",
         "leftovers",
@@ -859,101 +859,6 @@
     {
       "fmt": "single",
       "pass": true,
-      "label": "improvement 6 six members",
-      "detail": 6
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 unique items",
-      "detail": [
-        "sitrusberry",
-        "airballoon",
-        "rockyhelmet",
-        "focussash",
-        "leftovers",
-        "lifeorb"
-      ]
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 unique families"
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 アシレーヌ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 サーフゴー",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 カバルドン",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 ガブリアス",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 ブリジュラス",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement 6 ミミッキュ",
-      "detail": {
-        "bad": [],
-        "unknown": [
-          "item regulation unverified"
-        ]
-      }
-    },
-    {
-      "fmt": "single",
-      "pass": true,
-      "label": "improvement retains axis"
-    },
-    {
-      "fmt": "single",
-      "pass": true,
       "label": "two actual Mega builds available"
     },
     {
@@ -975,12 +880,12 @@
         "alt": [
           {
             "i": 1,
-            "sc": 0.8190476190476187,
+            "sc": 0.9047619047619045,
             "cnt": {
               "1": 0,
-              "2": 2,
+              "2": 1,
               "3": 7,
-              "4": 8
+              "4": 9
             }
           }
         ]
@@ -1017,7 +922,7 @@
         "golisopite",
         "salamencite",
         "sitrusberry",
-        "choicescarf",
+        "airballoon",
         "rockyhelmet",
         "focussash"
       ]
@@ -1096,18 +1001,18 @@
       "detail": {
         "shown": {
           "n": 17,
-          "nosw": 2,
-          "ohko": 3,
-          "slow": 0,
+          "nosw": 0,
+          "ohko": 2,
+          "slow": 1,
           "x": 0,
           "w": 0,
           "st": 15
         },
         "full": {
           "n": 17,
-          "nosw": 2,
-          "ohko": 3,
-          "slow": 0,
+          "nosw": 0,
+          "ohko": 2,
+          "slow": 1,
           "x": 0,
           "w": 0,
           "st": 15
@@ -1133,7 +1038,7 @@
         "golisopite",
         "salamencite",
         "sitrusberry",
-        "airballoon",
+        "choicescarf",
         "rockyhelmet",
         "focussash"
       ]
@@ -1212,21 +1117,21 @@
       "detail": {
         "shown": {
           "n": 17,
-          "nosw": 2,
-          "ohko": 3,
-          "slow": 1,
+          "nosw": 1,
+          "ohko": 2,
+          "slow": 0,
           "x": 0,
           "w": 0,
-          "st": 15
+          "st": 16
         },
         "full": {
           "n": 17,
-          "nosw": 2,
-          "ohko": 3,
-          "slow": 1,
+          "nosw": 1,
+          "ohko": 2,
+          "slow": 0,
           "x": 0,
           "w": 0,
-          "st": 15
+          "st": 16
         }
       }
     },
@@ -1328,8 +1233,8 @@
       "detail": {
         "shown": {
           "n": 17,
-          "nosw": 2,
-          "ohko": 3,
+          "nosw": 1,
+          "ohko": 2,
           "slow": 1,
           "x": 0,
           "w": 0,
@@ -1337,8 +1242,8 @@
         },
         "full": {
           "n": 17,
-          "nosw": 2,
-          "ohko": 3,
+          "nosw": 1,
+          "ohko": 2,
           "slow": 1,
           "x": 0,
           "w": 0,
@@ -1444,7 +1349,7 @@
       "detail": {
         "shown": {
           "n": 17,
-          "nosw": 3,
+          "nosw": 1,
           "ohko": 2,
           "slow": 1,
           "x": 0,
@@ -1453,7 +1358,7 @@
         },
         "full": {
           "n": 17,
-          "nosw": 3,
+          "nosw": 1,
           "ohko": 2,
           "slow": 1,
           "x": 0,
@@ -1653,7 +1558,7 @@
         "lifeorb",
         "focussash",
         "spelltag",
-        "sitrusberry"
+        "softsand"
       ]
     },
     {
@@ -1697,7 +1602,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B イダイトウ",
+      "label": "B ウインディ（ヒスイ）",
       "detail": {
         "bad": [],
         "unknown": [
@@ -1719,7 +1624,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "B ガオガエン",
+      "label": "B ガブリアス",
       "detail": {
         "bad": [],
         "unknown": [
@@ -1764,7 +1669,7 @@
       "fmt": "double",
       "pass": true,
       "label": "improvement evaluation completed",
-      "detail": 6
+      "detail": 7
     },
     {
       "fmt": "double",
@@ -1780,8 +1685,8 @@
         "whiteherb",
         "chopleberry",
         "focussash",
-        "lifeorb",
-        "sitrusberry",
+        "miracleseed",
+        "leftovers",
         "choicescarf"
       ]
     },
@@ -1826,7 +1731,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 0 セグレイブ",
+      "label": "improvement 0 ゴリランダー",
       "detail": {
         "bad": [],
         "unknown": [
@@ -1837,7 +1742,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 0 ガオガエン",
+      "label": "improvement 0 アシレーヌ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -1875,7 +1780,7 @@
         "whiteherb",
         "chopleberry",
         "focussash",
-        "miracleseed",
+        "lifeorb",
         "sitrusberry",
         "choicescarf"
       ]
@@ -1921,7 +1826,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 1 ゴリランダー",
+      "label": "improvement 1 セグレイブ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -1971,7 +1876,7 @@
         "chopleberry",
         "focussash",
         "miracleseed",
-        "lifeorb",
+        "sitrusberry",
         "choicescarf"
       ]
     },
@@ -2066,7 +1971,7 @@
         "chopleberry",
         "focussash",
         "miracleseed",
-        "sitrusberry",
+        "lifeorb",
         "choicescarf"
       ]
     },
@@ -2122,7 +2027,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "improvement 3 ウインディ",
+      "label": "improvement 3 ガオガエン",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2162,7 +2067,7 @@
         "focussash",
         "miracleseed",
         "sitrusberry",
-        "lifeorb"
+        "choicescarf"
       ]
     },
     {
@@ -2257,7 +2162,7 @@
         "focussash",
         "miracleseed",
         "sitrusberry",
-        "choicescarf"
+        "lifeorb"
       ]
     },
     {
@@ -2339,6 +2244,101 @@
     {
       "fmt": "double",
       "pass": true,
+      "label": "improvement 6 six members",
+      "detail": 6
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique items",
+      "detail": [
+        "whiteherb",
+        "chopleberry",
+        "focussash",
+        "miracleseed",
+        "sitrusberry",
+        "choicescarf"
+      ]
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 unique families"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 オオニューラ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ドドゲザン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 イダイトウ",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ゴリランダー",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガオガエン",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement 6 ガブリアス",
+      "detail": {
+        "bad": [],
+        "unknown": [
+          "item regulation unverified"
+        ]
+      }
+    },
+    {
+      "fmt": "double",
+      "pass": true,
+      "label": "improvement retains axis"
+    },
+    {
+      "fmt": "double",
+      "pass": true,
       "label": "two actual Mega builds available"
     },
     {
@@ -2360,7 +2360,7 @@
         "alt": [
           {
             "i": 0,
-            "sc": 0.9886363636363635,
+            "sc": 1.0738636363636362,
             "cnt": {
               "1": 0,
               "2": 1,
@@ -2404,7 +2404,7 @@
         "whiteherb",
         "chopleberry",
         "focussash",
-        "choicescarf"
+        "leftovers"
       ]
     },
     {
@@ -2470,7 +2470,7 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "two Mega improvement 0 ガブリアス",
+      "label": "two Mega improvement 0 アシレーヌ",
       "detail": {
         "bad": [],
         "unknown": [
@@ -2484,22 +2484,22 @@
       "label": "improvement 0 after-values equal full recomputation",
       "detail": {
         "shown": {
-          "n": 17,
-          "nosw": 5,
-          "ohko": 4,
-          "slow": 0,
+          "n": 18,
+          "nosw": 7,
+          "ohko": 2,
+          "slow": 2,
           "x": 0,
           "w": 0,
-          "st": 16
+          "st": 18
         },
         "full": {
-          "n": 17,
-          "nosw": 5,
-          "ohko": 4,
-          "slow": 0,
+          "n": 18,
+          "nosw": 7,
+          "ohko": 2,
+          "slow": 2,
           "x": 0,
           "w": 0,
-          "st": 16
+          "st": 18
         }
       }
     },
@@ -2605,8 +2605,8 @@
       "detail": {
         "shown": {
           "n": 18,
-          "nosw": 9,
-          "ohko": 5,
+          "nosw": 8,
+          "ohko": 4,
           "slow": 2,
           "x": 0,
           "w": 0,
@@ -2614,8 +2614,8 @@
         },
         "full": {
           "n": 18,
-          "nosw": 9,
-          "ohko": 5,
+          "nosw": 8,
+          "ohko": 4,
           "slow": 2,
           "x": 0,
           "w": 0,
@@ -2639,7 +2639,7 @@
       "pass": true,
       "label": "two Mega improvement 2 unique items",
       "detail": [
-        "leftovers",
+        "charizarditey",
         "dragoninite",
         "whiteherb",
         "chopleberry",
@@ -2655,11 +2655,11 @@
     {
       "fmt": "double",
       "pass": true,
-      "label": "two Mega improvement 2 ラグラージ",
+      "label": "two Mega improvement 2 リザードン",
       "detail": {
         "bad": [],
         "unknown": [
-          "item regulation unverified"
+          "Mega regulation unverified"
         ]
       }
     },
@@ -2726,8 +2726,8 @@
         "shown": {
           "n": 18,
           "nosw": 8,
-          "ohko": 6,
-          "slow": 2,
+          "ohko": 5,
+          "slow": 1,
           "x": 0,
           "w": 0,
           "st": 17
@@ -2735,8 +2735,8 @@
         "full": {
           "n": 18,
           "nosw": 8,
-          "ohko": 6,
-          "slow": 2,
+          "ohko": 5,
+          "slow": 1,
           "x": 0,
           "w": 0,
           "st": 17
@@ -2761,7 +2761,7 @@
       "detail": [
         "charizarditey",
         "dragoninite",
-        "whiteherb",
+        "choicescarf",
         "chopleberry",
         "focussash",
         "miracleseed"
@@ -2845,18 +2845,18 @@
       "detail": {
         "shown": {
           "n": 18,
-          "nosw": 8,
-          "ohko": 7,
-          "slow": 1,
+          "nosw": 9,
+          "ohko": 5,
+          "slow": 0,
           "x": 0,
           "w": 0,
           "st": 17
         },
         "full": {
           "n": 18,
-          "nosw": 8,
-          "ohko": 7,
-          "slow": 1,
+          "nosw": 9,
+          "ohko": 5,
+          "slow": 0,
           "x": 0,
           "w": 0,
           "st": 17
@@ -2883,7 +2883,7 @@
         "dragoninite",
         "whiteherb",
         "chopleberry",
-        "focussash",
+        "choicescarf",
         "miracleseed"
       ]
     },
@@ -2965,18 +2965,18 @@
       "detail": {
         "shown": {
           "n": 18,
-          "nosw": 8,
+          "nosw": 7,
           "ohko": 7,
-          "slow": 1,
+          "slow": 0,
           "x": 0,
           "w": 0,
           "st": 17
         },
         "full": {
           "n": 18,
-          "nosw": 8,
+          "nosw": 7,
           "ohko": 7,
-          "slow": 1,
+          "slow": 0,
           "x": 0,
           "w": 0,
           "st": 17
@@ -3001,10 +3001,10 @@
       "detail": [
         "charizarditey",
         "dragoninite",
-        "choicescarf",
+        "whiteherb",
         "chopleberry",
         "focussash",
-        "miracleseed"
+        "choicescarf"
       ]
     },
     {
@@ -3086,7 +3086,7 @@
         "shown": {
           "n": 18,
           "nosw": 9,
-          "ohko": 7,
+          "ohko": 5,
           "slow": 0,
           "x": 0,
           "w": 0,
@@ -3095,7 +3095,7 @@
         "full": {
           "n": 18,
           "nosw": 9,
-          "ohko": 7,
+          "ohko": 5,
           "slow": 0,
           "x": 0,
           "w": 0,
@@ -3123,7 +3123,7 @@
         "dragoninite",
         "whiteherb",
         "chopleberry",
-        "choicescarf",
+        "focussash",
         "miracleseed"
       ]
     },
@@ -3205,18 +3205,18 @@
       "detail": {
         "shown": {
           "n": 18,
-          "nosw": 7,
-          "ohko": 9,
-          "slow": 0,
+          "nosw": 9,
+          "ohko": 4,
+          "slow": 2,
           "x": 0,
           "w": 0,
           "st": 17
         },
         "full": {
           "n": 18,
-          "nosw": 7,
-          "ohko": 9,
-          "slow": 0,
+          "nosw": 9,
+          "ohko": 4,
+          "slow": 2,
           "x": 0,
           "w": 0,
           "st": 17
@@ -3244,7 +3244,7 @@
         "whiteherb",
         "chopleberry",
         "focussash",
-        "choicescarf"
+        "miracleseed"
       ]
     },
     {
@@ -3326,8 +3326,8 @@
         "shown": {
           "n": 18,
           "nosw": 9,
-          "ohko": 7,
-          "slow": 0,
+          "ohko": 5,
+          "slow": 1,
           "x": 0,
           "w": 0,
           "st": 17
@@ -3335,8 +3335,8 @@
         "full": {
           "n": 18,
           "nosw": 9,
-          "ohko": 7,
-          "slow": 0,
+          "ohko": 5,
+          "slow": 1,
           "x": 0,
           "w": 0,
           "st": 17
@@ -3369,22 +3369,22 @@
     {
       "fmt": "single",
       "label": "diagnosis",
-      "ms": 36.60000000055879
+      "ms": 127.20000000018626
     },
     {
       "fmt": "single",
       "label": "diagnosis analysis",
-      "ms": 1.5
+      "ms": 2
     },
     {
       "fmt": "single",
       "label": "selection",
-      "ms": 18.799999999813735
+      "ms": 80
     },
     {
       "fmt": "single",
       "label": "construction A/B",
-      "ms": 1105.2000000001863
+      "ms": 1481.8000000000466
     },
     {
       "fmt": "single",
@@ -3452,7 +3452,16 @@
     {
       "fmt": "single",
       "label": "B",
-      "no": 983,
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "single",
+      "label": "B",
+      "no": 212,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -3462,15 +3471,6 @@
       "fmt": "single",
       "label": "B",
       "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "B",
-      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -3488,7 +3488,7 @@
     {
       "fmt": "single",
       "label": "B",
-      "no": 450,
+      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -3497,7 +3497,7 @@
     {
       "fmt": "single",
       "label": "improvements",
-      "ms": 1035
+      "ms": 1289.3000000000466
     },
     {
       "fmt": "single",
@@ -3736,7 +3736,7 @@
     {
       "fmt": "single",
       "label": "improvement 4",
-      "no": 149,
+      "no": 450,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -3817,60 +3817,6 @@
     {
       "fmt": "single",
       "label": "improvement 5",
-      "no": 778,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 730,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 1000,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 450,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 445,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
-      "no": 1018,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "single",
-      "label": "improvement 6",
       "no": 778,
       "bad": [],
       "unknown": [
@@ -3880,12 +3826,12 @@
     {
       "fmt": "single",
       "label": "two Mega selection",
-      "ms": 41.299999999813735
+      "ms": 94.9000000001397
     },
     {
       "fmt": "single",
       "label": "two Mega improvements",
-      "ms": 1035.7999999998137
+      "ms": 1366.7000000001863
     },
     {
       "fmt": "single",
@@ -4090,27 +4036,27 @@
     {
       "fmt": "single",
       "label": "Trick Room change",
-      "ms": 15
+      "ms": 44.799999999813735
     },
     {
       "fmt": "double",
       "label": "diagnosis",
-      "ms": 45
+      "ms": 149.39999999990687
     },
     {
       "fmt": "double",
       "label": "diagnosis analysis",
-      "ms": 2.900000000372529
+      "ms": 2.300000000046566
     },
     {
       "fmt": "double",
       "label": "selection",
-      "ms": 27.899999999441206
+      "ms": 60.5999999998603
     },
     {
       "fmt": "double",
       "label": "construction A/B",
-      "ms": 1181.3999999994412
+      "ms": 1210.1999999999534
     },
     {
       "fmt": "double",
@@ -4196,7 +4142,7 @@
     {
       "fmt": "double",
       "label": "B",
-      "no": 902,
+      "no": 10230,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -4214,7 +4160,7 @@
     {
       "fmt": "double",
       "label": "B",
-      "no": 727,
+      "no": 445,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -4223,7 +4169,7 @@
     {
       "fmt": "double",
       "label": "improvements",
-      "ms": 1255.2999999998137
+      "ms": 1654.6000000000931
     },
     {
       "fmt": "double",
@@ -4255,6 +4201,60 @@
     {
       "fmt": "double",
       "label": "improvement 0",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 730,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 0",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 1",
       "no": 998,
       "bad": [],
       "unknown": [
@@ -4263,60 +4263,6 @@
     },
     {
       "fmt": "double",
-      "label": "improvement 0",
-      "no": 727,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 0",
-      "no": 445,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 903,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 983,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 902,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
-      "label": "improvement 1",
-      "no": 812,
-      "bad": [],
-      "unknown": [
-        "item regulation unverified"
-      ]
-    },
-    {
-      "fmt": "double",
       "label": "improvement 1",
       "no": 727,
       "bad": [],
@@ -4426,7 +4372,7 @@
     {
       "fmt": "double",
       "label": "improvement 3",
-      "no": 59,
+      "no": 727,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -4543,6 +4489,60 @@
     {
       "fmt": "double",
       "label": "improvement 5",
+      "no": 445,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 903,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 983,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 902,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 812,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
+      "no": 727,
+      "bad": [],
+      "unknown": [
+        "item regulation unverified"
+      ]
+    },
+    {
+      "fmt": "double",
+      "label": "improvement 6",
       "no": 445,
       "bad": [],
       "unknown": [
@@ -4552,12 +4552,12 @@
     {
       "fmt": "double",
       "label": "two Mega selection",
-      "ms": 100.29999999981374
+      "ms": 260.5
     },
     {
       "fmt": "double",
       "label": "two Mega improvements",
-      "ms": 1539.5
+      "ms": 1931.1999999999534
     },
     {
       "fmt": "double",
@@ -4607,7 +4607,7 @@
     {
       "fmt": "double",
       "label": "two Mega improvement 0",
-      "no": 445,
+      "no": 730,
       "bad": [],
       "unknown": [
         "item regulation unverified"
@@ -4670,10 +4670,10 @@
     {
       "fmt": "double",
       "label": "two Mega improvement 2",
-      "no": 260,
+      "no": 6,
       "bad": [],
       "unknown": [
-        "item regulation unverified"
+        "Mega regulation unverified"
       ]
     },
     {
@@ -4994,7 +4994,7 @@
     {
       "fmt": "double",
       "label": "Trick Room change",
-      "ms": 19.100000000558794
+      "ms": 84.9000000001397
     }
   ]
 }

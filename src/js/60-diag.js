@@ -49,14 +49,14 @@ function dgMove(a,mv,d){
     if(!lo1.total&&!hi1.total||!lo1.eff){const r0=bcalc(a,mv,d,{r:85});return{mv,min:0,max:0,eff:lo1.eff||r0.eff||0,h:cMain,acc:accOf(a,mv,d),ohko:0,absorb:r0.absorb||null}}
     const fixed=fixedDmg(a,mv,d)!=null;
     const u=nextUse(a,mv,d,{nHits:cMain});
-    const g=(r,c)=>u.changed?bhits(u.a,mv,u.d,{r,nHits:c}).total:f(r,c).total;
+    const g=(r,c)=>u.changed?bhits(u.a,mv,u.d,{r,nHits:c}).total:r===85&&c===cMin?lo1.total:r===100&&c===cMax?hi1.total:f(r,c).total;
     const P=v=>v/d.max*100;
     const fmin=P(lo1.total),fmax=P(hi1.total),min=P(g(85,cMin)),max=P(g(100,cMax));
     let seqMin=null,seqMax=null;if(u.changed){seqMin=useSeq(a,mv,d,85,{nHits:cMin});seqMax=useSeq(a,mv,d,100,{nHits:cMax})}
     /* 一撃で倒せる乱数の数（16段階に換算）：1回目の使用の分布（当たる回数の分布・当たりごとの乱数と状態）で HP 以上になる確率×16 */
     let ohko=0;if(fmax>=100){if(fixed)ohko=16;
       else if(lo1.n===1&&cd.length===1)ohko=DG_ROLLS.filter(r=>f(r,1).total>=d.max).length;
-      else{let pk=0;for(const [c,w] of cd)for(const [v,q] of hitDist(a,mv,d,{nHits:c}))if(v>=d.max)pk+=w*q;ohko=pk*16}}
+      else{let pk=0;for(const [c,w] of cd)for(const [v,q] of hitDist(a,mv,d,{nHits:c,cap:d.max}))if(v>=d.max)pk+=w*q;ohko=pk*16}}
     const half=DU_HALF_AB.includes(d.ab)&&!duIg(a);
     const hit1=[lo1.hits[0]?lo1.hits[0].dmg:0,hi1.hits[0]?hi1.hits[0].dmg:0],hitN=lo1.hits.length>1?[lo1.hits[1].dmg,hi1.hits[1].dmg]:null;
     return{mv,mvn:dgMvName(a,mv),min,max,eff:lo1.eff,h:cMain,hMin:cMin,hMax:cMax,acc:accOf(a,mv,d),ohko,fixed,half:half?d.ab:null,fmin,fmax,

@@ -650,16 +650,18 @@ function hitCountDist(a,mv,d,o){
 function hitDist(a,mv,d,o){
   o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
   const pb=a.ab==='parental-bond'&&n===1&&!o.spread&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
-  const N=pb?2:n,cache=new Map();
+  /* o.cap：合計が cap 以上になったらそこでまとめる（倒せるかだけを知りたいとき。分布の形は cap より下だけ正確） */
+  const N=pb?2:n,cache=new Map(),cap=o.cap||Infinity;
   let S=new Map();const s0=hsInit(d,pb);S.set(JSON.stringify([0,s0]),{t:0,st:s0,p:1});
   for(let i=0;i<N;i++){const nx=new Map();
     for(const v of S.values()){
+      if(v.st.capped){const e=nx.get('cap');if(e)e.p+=v.p;else nx.set('cap',{...v});continue}
       if(v.st.dead||v.st.stop){/* 倒れたあとの当たりは計算上の値（状態は変えない・乱数は別々） */
         for(let r=85;r<=100;r++){const y=hitStep(a,mv,d,i,r,!!o.crit,{...o,surv:false},{...v.st,hp:Math.max(1,v.st.hp),dead:false});const t=v.t+(v.st.stop?0:y.h.dmg),key=JSON.stringify([t,v.st]);const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:v.st,p:v.p/16})}continue}
       for(let r=85;r<=100;r++){
         const ck=JSON.stringify([i,r,v.st.hp===d.max,v.st.hp,v.st.item,v.st.disg,v.st.stg]);
         let y=cache.get(ck);if(!y){y=hitStep(a,mv,d,i,r,!!o.crit,o,v.st);cache.set(ck,y)}
-        const ns=y.ns,t=v.t+(y.h.disg?0:y.h.dmg);
+        const ns=y.ns,t=Math.min(cap,v.t+(y.h.disg?0:y.h.dmg));if(t>=cap){const key='cap';const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:{...ns,dead:true,capped:true},p:v.p/16});continue}
         const sk={...ns};const key=JSON.stringify([t,sk]);const e=nx.get(key);if(e)e.p+=v.p/16;else nx.set(key,{t,st:ns,p:v.p/16})}}
     S=nx}
   const out=new Map();for(const v of S.values())out.set(v.t,(out.get(v.t)||0)+v.p);
@@ -668,14 +670,31 @@ function hitDist(a,mv,d,o){
 /* 1回使ったあとの状態（2026/11/24）：次の使用のダメージを出すため、こちら・相手の写しを作る（もとのものは変えない）。
    こちら：必ず起きる自分の能力の変化（りゅうせいぐん 特攻−2・インファイトは攻撃に関係しない…技の効果の表 MVE.s の確率100%）・メテオビーム/エレクトロビームの特攻+1・使ったノーマルジュエル。
    相手：bhits の終わりの状態（持ち物・ばけのかわ・ランク）とHP（満タンでない＝マルチスケイル等は働かない） */
+/* 1回使っても「次の使用のダメージ」が変わりえない技・相手か（速くするための前の確かめ。結果は同じ）。
+   ダメージに効くのは：こちらの攻めの能力（物理＝攻撃、特殊＝特攻、ボディプレス＝防御）のランク・メテオビーム・ノーマルジュエル、
+   相手の受ける能力のランク（じきゅうりょく・くだけるよろい＝物理）・この技で効く半減きのみ・ばけのかわ・HP満タンで働くマルチスケイル。
+   （オボンのみは koInfo、タスキ・がんじょうは1回目の耐えだけ、ふうせんは同じ技なら次もじめん技ではない） */
+const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
+function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
+  if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
+  if(a.item==='normalgem'&&hitType(a,mv)==='ノーマル')return true;
+  if((d.ab==='stamina'||d.ab==='weak-armor')&&mv.cls===0&&mv.id!==776)return true;
+  if(d.disg)return true;
+  if(d.item&&RES_BERRY[d.item]&&(RES_BERRY[d.item]===hitType(a,mv)))return true;
+  if(d.hp===d.max&&d.ab==='multiscale')return true;
+  return false}
 function nextUse(a,mv,d,o){
+  if(!nextUseCould(a,mv,d))return{a,d,changed:false};
   const b=bhits(a,mv,d,{...o,r:o&&o.r||100});const st=b.state,k=mkey(mv);
   const a2={...a,stg:{...a.stg}};
   if(MB_REP.has(k))a2.stg.spa=Math.min(6,(a2.stg.spa||0)+1);
   if(!sfSup(a,mv))((mv.e&&mv.e.s)||[]).forEach(([s,n,c])=>{if(c>=100&&a2.stg[s]!=null)a2.stg[s]=Math.max(-6,Math.min(6,a2.stg[s]+n))});
   if(a.item==='normalgem'&&hitType(a,mv)==='ノーマル')a2.item=null;
   const d2={...d,stg:{...st.stg},item:st.item,disg:st.disg,hp:Math.min(d.hp,Math.max(1,d.max-1))};
-  const changed=JSON.stringify([a2.stg,a2.item])!==JSON.stringify([a.stg,a.item])||JSON.stringify([d2.stg,d2.item,d2.disg])!==JSON.stringify([d.stg,d.item,d.disg])||(d.hp===d.max&&(d.ab==='multiscale'||d.item==='focussash'||d.ab==='sturdy'));
+  /* changed は次の使用のダメージに効く変化だけ（ほかの変化も写しには入れておく） */
+  const ok=nuOffK(mv),dk=mv.id===776||mv.cls===0||(mv.e&&mv.e.ps)?'def':'spd';
+  const berryRel=!!(d.item&&RES_BERRY[d.item]&&RES_BERRY[d.item]===hitType(a,mv));
+  const changed=(a2.stg[ok]||0)!==(a.stg[ok]||0)||(MB_REP.has(k)&&(a2.stg.spa||0)!==(a.stg.spa||0))||a2.item!==a.item||(d2.stg[dk]||0)!==(d.stg[dk]||0)||(berryRel&&d2.item!==d.item)||d2.disg!==d.disg||(d.hp===d.max&&d.ab==='multiscale');
   return{a:a2,d:d2,changed};
 }
 /* 使うごとの1回のダメージ（％）の並び：1回目・2回目…（6回まで）。状態が変わらないなら null（呼ぶ側は同じ値を使う） */
