@@ -1,0 +1,38 @@
+name: Party check release verification (no deployment)
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [release/party-check-20261126, release/party-check-integration-20261126]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://pokechan-hub.pages.dev
+      - name: Party move usage
+        run: node tests/release-party-move-usage.mjs
+      - name: Targeted party regression
+        if: ${{ !cancelled() }}
+        run: |
+          node tests/diag.mjs
+          node tests/dgmega.mjs
+          node tests/strategy.mjs
+          node tests/quick.mjs
+      - name: Full regression
+        if: ${{ !cancelled() }}
+        run: npm test
