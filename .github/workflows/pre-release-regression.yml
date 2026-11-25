@@ -1,0 +1,43 @@
+name: Pre-release regression (no deployment)
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [release/search-and-tool-stars-20261125]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://pokechan-hub.pages.dev
+      - name: Release UI and screenshots
+        run: node tests/release-search-stars.mjs
+      - name: Search and stars targeted regression
+        if: ${{ !cancelled() }}
+        run: |
+          node tests/navlayout.mjs
+          node tests/toolsguide.mjs
+      - name: All regression tests
+        if: ${{ !cancelled() }}
+        run: npm test
+      - name: Preserve release screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-stars-ui
+          path: release-screenshots/
+          if-no-files-found: warn
