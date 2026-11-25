@@ -11,8 +11,9 @@ const PROT={id:0,n:'まもる',t:null,prot:true,pri:4,pow:0,acc:0,cls:2,tg:0,min
 const PROT_IDS=new Set([182,197]);
 const protMv=id=>{const sid=PROT_IDS.has(+id)?+id:182;return{...PROT,sid,n:(typeof MD!=='undefined'&&MD[sid]&&MD[sid][0])||PROT.n}};
 const protSaved=m=>{const id=(m&&m.sid)||182;return{n:(typeof MD!=='undefined'&&MD[id]&&MD[id][0])||'まもる',id}};
-/* eelevate（うなぎのぼり・メガシビルドン）：2026/11/24 Pokémon Showdown e7f50cd の champions の実装（倒したあといちばん高い能力が上がる）に合わせ、じめん無効をやめた（前は当サイトの説明でじめん無効にしていた。どちらもゲーム内では未確認） */
-const ABSORB={'levitate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
+/* うなぎのぼりの浮遊は Showdown の Pokemon#isGrounded と Smogon Calc の Champions 計算で確認。
+   撃破後の能力上昇は対面評価では扱わない。実機での両効果は未確認。 */
+const ABSORB={'levitate':['じめん',0],'eelevate':['じめん',0],'volt-absorb':['でんき',1],'lightning-rod':['でんき',0],'motor-drive':['でんき',0],'water-absorb':['みず',1],'dry-skin':['みず',1],'flash-fire':['ほのお',0],'sap-sipper':['くさ',0],'earth-eater':['じめん',1]};
 const PINCH={blaze:'ほのお',torrent:'みず',overgrow:'くさ',swarm:'むし'};
 const SKIN={pixilate:['フェアリー'],refrigerate:['こおり'],aerilate:['ひこう'],dragonize:['ドラゴン'],galvanize:['でんき']};
 const WSET={drought:'sun',drizzle:'rain','sand-stream':'sand','snow-warning':'snow'};
@@ -439,7 +440,7 @@ function bcalc(a,mv,d,o){
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
   /* くろいてっきゅう：持つと地面に着く（じめん技が ふゆう・ひこうタイプにも当たる。2026/11/24） */
   const grounded=d.item==='ironball'&&t==='じめん';
-  if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t&&!(grounded&&dab==='levitate'))return{dmg:0,eff:0,absorb:dab};
+  if(dab&&ABSORB[dab]&&ABSORB[dab][0]===t&&!(grounded&&(dab==='levitate'||dab==='eelevate')))return{dmg:0,eff:0,absorb:dab};
   /* ふうせん：割れるまでじめん技を受けない（かたやぶりでも防げない） */
   if(d.item==='airballoon'&&t==='じめん')return{dmg:0,eff:0,balloon:true};
   /* ぼうだん・ぼうおん：弾・音の技を受けない（かたやぶりで消える。2026/11/24） */

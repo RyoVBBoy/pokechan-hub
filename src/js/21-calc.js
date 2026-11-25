@@ -135,7 +135,7 @@ function calcNotes(R){
     else if(!d.disg)o.push('ばけのかわがはがれたあと（最大HPの1/8はもう減っている）として計算しています。いまのHPは「そのほかの条件」の残りHPで合わせてください');
     /* ばけのかわが残っているときの説明（1/8・端数・急所）は、結果の「ばけのかわの計算仕様」にたたんで出す（2026/11/16） */
   }
-  for(const m of [a,d]){if(CALC_UNVERIFIED[m.ab])o.push(CALC_UNVERIFIED[m.ab]);if(CALC_UNIMPL.includes(m.ab))o.push(`特性「${ABN[m.ab]||m.ab}」の効果は計算に入っていません`);if(m.item&&CALC_UNIMPL_IT.includes(m.item))o.push(`持ち物「${ITEMN[m.item]||m.item}」の効果は計算に入っていません`)}
+  for(const m of [a,d]){if(CALC_UNVERIFIED[m.ab])o.push(CALC_UNVERIFIED[m.ab]);if(CALC_UNIMPL.includes(m.ab))o.push(m.ab==='eelevate'?'うなぎのぼりは、参照実装に従ってじめん無効を計算しています。撃破後の能力上昇は未反映です。':`特性「${ABN[m.ab]||m.ab}」の効果は計算に入っていません`);if(m.item&&CALC_UNIMPL_IT.includes(m.item))o.push(`持ち物「${ITEMN[m.item]||m.item}」の効果は計算に入っていません`)}
   return o;
 }
 let CALC_FE=null;

@@ -49,3 +49,5 @@
 | ダブルの連携 | ガブリアスのじしんをカビゴンに当て、最大乱数では1対象157、範囲補正あり118。ほかの条件を固定した味方リザードンは、同じ範囲技でも通常は0、くろいてっきゅうを持つケースではダメージを受けた。選出アシストの1対1評価では味方の枠は入力されない。 | 相手の推定技にワイドガードがある場面の注意を追加。対象の選定、味方の巻き込み、てだすけ、ワイドガード、相手2匹からの集中攻撃の順に検証を続ける。 |
 
 参照は [現行M-Cのルール](https://champions-news.pokemon-home.com/en/page/816.html)、[サイコフィールド](https://github.com/smogon/pokemon-showdown/blob/e7f50cd7bcb36348c631534a97ae8323b8189541/data/moves.ts#L14092-L14139)、[じしんの対象](https://github.com/smogon/pokemon-showdown/blob/e7f50cd7bcb36348c631534a97ae8323b8189541/data/moves.ts#L4393-L4404)、[てだすけ](https://github.com/smogon/pokemon-showdown/blob/e7f50cd7bcb36348c631534a97ae8323b8189541/data/moves.ts#L8576-L8608)、[ワイドガード](https://github.com/smogon/pokemon-showdown/blob/e7f50cd7bcb36348c631534a97ae8323b8189541/data/moves.ts#L20804-L20849)。観測値はサイトの計算。実機一致と勝率は未確認。
+
+接地条件を照合中に、以前の「うなぎのぼりではじめん技が当たる」という結論を訂正した。従来の監査は能力上昇を定義する特性ファイルだけを確認し、[Showdown の接地判定](https://github.com/smogon/pokemon-showdown/blob/e7f50cd7bcb36348c631534a97ae8323b8189541/sim/pokemon.ts#L2170-L2183) がうなぎのぼりも対象にしている点を見落としていた。@smogon/calc 0.12.0 の Champions 計算も通常のじしんが0。監査版のじめん無効を復元し、かたやぶりではダメージが入るケースも検査。倒した後の能力上昇は対面評価の未対応として残る。本番版には元からじめん無効の分岐がある。

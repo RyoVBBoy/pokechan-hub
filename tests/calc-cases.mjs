@@ -49,8 +49,7 @@ const C=[
  {no:28,t:'ふうせんにじめん技（0）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',item:'airballoon',...BULK},mv:'earthquake'},
  {no:29,t:'連続技＋マルチスケイル（スキルリンクのロックブラスト5回→HP満タンのカイリュー）',A:{n:'ヘラクロス',en:'Heracross-Mega',ab:'guts',item:'heracronite',...ATK},D:{n:'カイリュー',en:'Dragonite',ab:'multiscale',...BULK},mv:'rockblast',hits:5},
  {no:30,t:'メガゲッコウガ：へんげんじざいがこの技で発動（タイプ一致になる）',A:{n:'ゲッコウガ',en:null,ab:'protean',item:'greninjite',...SPA},D:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...SBULK},mv:'icebeam',o:{protean:true}},
- /* 2026/11/24：うなぎのぼりは Pokémon Showdown e7f50cd の champions の実装で「倒したあと能力が上がる」特性（じめん無効ではない）。期待値を「じめん技がふつうに当たる」に変えた（前は当サイトの説明で0）。照合先にない姿なので当サイトのタイプを入れた Mew・ダメージに関係のない特性で比べる */
- {no:31,t:'メガシビルドン（うなぎのぼり）にじめん技（参照の実装どおり、じめん技はふつうに当たる。ゲームで未確認）',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'シビルドン',en:null,refAb:'Pressure',ab:'levitate',item:'eelektrossite',...BULK},mv:'earthquake'},
+ {no:31,gen:0,t:'メガシビルドン（うなぎのぼり）はじめん技を受けない',A:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...ATK},D:{n:'シビルドン',en:'Eelektross-Mega',refAb:'Eelevate',ab:'levitate',item:'eelektrossite',...BULK},mv:'earthquake'},
  /* ここから追加の場面 */
  {no:32,t:'追加：レイジングブルは壁を壊す（リフレクターがあっても半分にならない）',A:{n:'ケンタロス（パルデア・ブレイズ種）',en:'Tauros-Paldea-Blaze',ab:'intimidate',...ATK},D:{n:'カビゴン',en:'Snorlax',ab:'thick-fat',...BULK},mv:'ragingbull',o:{screen:true}},
  {no:33,t:'追加：メガゲッコウガ：へんげんじざいが発動済み（もとのタイプ＝タイプ一致なし）',A:{n:'ゲッコウガ',en:null,refAb:'Pressure',ab:'protean',item:'greninjite',...SPA},D:{n:'ガブリアス',en:'Garchomp',ab:'rough-skin',...SBULK},mv:'icebeam',o:{protean:false}},

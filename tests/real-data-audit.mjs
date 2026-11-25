@@ -550,6 +550,10 @@ try{
         const eq=mvObj(89),neutral=fixedMon(143,'op',[],{ab:'immunity'});
         const regular=bcalc(garchomp,eq,neutral,{r:100,format:'double'}).dmg;
         const spread=bcalc(garchomp,eq,neutral,{r:100,format:'double',spread:true}).dmg;
+        const eel=mkMon(megaOf(604,'eelektrossite'),'op',{...chooseSet(byNo[604],true),item:'eelektrossite'});
+        const eelHit=attacker=>bcalc(attacker,eq,eel,{r:100}).dmg;
+        check(eel.ab==='eelevate'&&eelHit(garchomp)===0&&eelHit({...garchomp,ab:'mold-breaker'})>0,
+          'Eelevate prevents Ground damage unless the attacker ignores the ability');
         const approx=Math.round(estHit(garchomp,neutral).pct);
         check(eq.tg===2&&regular>spread&&Math.abs(spread-regular*.75)<=.5
           &&bcalc(garchomp,eq,flyingAlly,{r:100,spread:true}).dmg===0

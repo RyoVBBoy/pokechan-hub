@@ -52,8 +52,7 @@ const R=await pg.evaluate(async()=>{
   const g=mkMon(byNo[445],'me',{ab:'roughskin',item:null,moves:[mvObj(id('earthquake'))]});
   const MZ=mkMon(byNo[10309],'op',detSet(byNo[10309]));
   o.eqMZ=bcalc(g,mvObj(id('earthquake')),MZ,{r:100}).dmg;
-  /* 2026/11/24：メガシビルドンのうなぎのぼりは Pokémon Showdown e7f50cd の champions の実装で「倒したあと能力が上がる」特性（じめん無効ではない）。
-     無効の場面から外し、下の immunEel で「じめん技が当たる」ことを確かめる */
+  /* うなぎのぼりの浮遊は参照の接地判定に含まれる。 */
   {const m=MEGAP.find(x=>x.n==='メガシビルドン');const T=mkMon(m,'op',detSet(m));o.immunEel=[T.ab,bcalc(g,mvObj(id('earthquake')),T,{r:100}).dmg]}
   o.immun=[['メガジュカイン','electric'],['メガマフォクシー','ground'],['メガチリーン','ground'],['メガガブリアスZ','ground']].map(([nm,ty])=>{
     const m=MEGAP.find(x=>x.n===nm);if(!m)return[nm,'none'];const T=mkMon(m,'op',detSet(m));
@@ -180,7 +179,7 @@ ok(R.itx.length===0,'③持ち物＝そのメガストーン '+R.itx);
 ok(R.notLearn.length===0,'③技は元の姿が覚える技 '+R.notLearn);
 ok(R.eqMZ===0,'④メガガブリアスZにじしん＝0（ふゆう） '+R.eqMZ);
 R.immun.forEach(([nm,ab,d])=>ok(d===0,`④${nm}（${ab}）の無効 ${d}`));
-ok(R.immunEel[0]==='eelevate'&&R.immunEel[1]>0,'④メガシビルドン（うなぎのぼり）はじめん技が当たる（参照の実装） '+R.immunEel);
+ok(R.immunEel[0]==='eelevate'&&R.immunEel[1]===0,'④メガシビルドン（うなぎのぼり）はじめん技が無効（参照の実装） '+R.immunEel);
 ok(R.hzName>0&&R.hzBare===0,'⑤メガガブリアスZの対策の文の名前 '+R.hzName+'/'+R.hzBare);
 ok(!R.hzPh,'⑤仮の技が文に無い');
 ok(R.hzKind&&R.hzItem,'⑧型の出どころの札・持ち物');
