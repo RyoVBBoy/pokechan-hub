@@ -372,7 +372,7 @@ const ART=await pg.evaluate(async()=>{const r={};const w=ms=>new Promise(z=>setT
   TB=tbNew(N('ガブリアス'));TB.tab='cond';TB.cond={must:[],ng:[],want:[],mega:'auto',type:'auto',style:[]};TB_PROP=null;tbSave();tbDraw();document.getElementById('tb-run').click();
   for(let i=0;i<300&&!document.querySelector('.tbd-plan .tbd-six1');i++)await w(200);
   const six=[...document.querySelectorAll('.tbd-plan[data-plan=A] .tbd-six1')];r.names=six.length===6&&six.every((a,i)=>a.querySelector('.tbd-six-n').textContent===formInfo(byNo[TB_PROP.A.mem[i].no]).base);
-  r.big=six.every(a=>parseFloat(getComputedStyle(a.querySelector('.tbd-six-n')).fontSize)>=14&&!a.querySelector('svg:not(.ti):not(.temb)')&&!!a.querySelector('.tbd-six-em svg.temb'));
+  r.big=six.every(a=>parseFloat(getComputedStyle(a.querySelector('.tbd-six-n')).fontSize)>=14&&!a.querySelector('svg:not(.ti):not(.temb)')&&!!a.querySelector('.mon-card-em svg.temb'));
   /* タイプは略さない（全部の名前）・色はタイプの色 */
   r.tyFull=six.every(a=>[...a.querySelectorAll('.tbd-tys .chip')].every(i=>T.includes(i.textContent.trim())&&i.querySelector('svg.ti')));
   r.tyMatch=six.every((a,i)=>[...a.querySelectorAll('.tbd-tys .chip')].map(x=>x.textContent.trim()).join()===byNo[TB_PROP.A.mem[i].no].t.join());

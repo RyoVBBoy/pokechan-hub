@@ -136,7 +136,7 @@ async function asFetch(){
 function asDraw(){
   const el=document.getElementById('as-res');if(!el)return;
   const cnt=document.getElementById('as-cnt');if(cnt)cnt.textContent=`${opp6.length}/6`;
-  document.getElementById('as-opp').innerHTML=opp6.length?`<div class="aopp">${opp6.map(n=>`<span class="aop"><button class="aopi" data-info="${n}" aria-label="${byNo[n].n}の相性"><span class="av">${stamp(byNo[n])}</span><b>${byNo[n].n}</b></button><button class="aox" data-rm="${n}" aria-label="${byNo[n].n}を外す">${SVG(I.x,16)}</button></span>`).join('')}</div><div style="padding:6px 16px 0;text-align:right"><button class="bback" id="as-clear" style="padding:0">すべて外す</button></div>`:'';
+  document.getElementById('as-opp').innerHTML=opp6.length?`<div class="aopp">${opp6.map(n=>{const p=byNo[n];return `<span class="aop mon-card">${monCardArt(p)}<button class="aopi" data-info="${n}" aria-label="${esc(p.n)}の相性"><b>${esc(p.n)}</b></button><button class="aox" data-rm="${n}" aria-label="${esc(p.n)}を外す">${SVG(I.x,16)}</button></span>`}).join('')}</div><div style="padding:6px 16px 0;text-align:right"><button class="bback" id="as-clear" style="padding:0">すべて外す</button></div>`:'';
   {const w=document.getElementById('as-pipw');if(w)w.hidden=!opp6.length}
   {const bx=document.getElementById('pip-box');if(bx&&PIP.vid&&!bx.contains(PIP.vid))bx.appendChild(PIP.vid)}
   pipUI();if(opp6.length)pipSchedule();
@@ -149,18 +149,18 @@ function asDraw(){
   const same=A2&&A2.best.map(i=>myNos[i]).sort().join()===A.best.map(i=>myNos[i]).sort().join();
   const pct=v=>Math.round(v*100);
   const predRows=opp6.map((n,j)=>({n,j,w:PR.w[j]})).sort((a,b)=>b.w-a.w).map(x=>{const p=byNo[x.n],lead=PR.lead&&PR.lead.includes(x.j);
-    return `<div class="row" style="align-items:flex-start;content-visibility:visible"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}${lead?'<span class="atag on">先発予想</span>':''}</div>${oppSetHTML(x.n)}</div><div class="row-n"><b style="color:${x.w>=.7?'var(--w2)':x.w>=.4?'var(--fg)':'var(--mute)'}">${opp6.length>PICK()?pct(x.w)+'%':'—'}</b><span>選出予想</span></div></div>`}).join('');
+    return `<div class="row mon-card mon-card-row">${monCardArt(p)}<div class="row-m"><div class="row-t">${nm(p)}${lead?'<span class="atag on">先発予想</span>':''}</div>${oppSetHTML(x.n)}</div><div class="row-n"><b style="color:${x.w>=.7?'var(--w2)':x.w>=.4?'var(--fg)':'var(--mute)'}">${opp6.length>PICK()?pct(x.w)+'%':'—'}</b><span>選出予想</span></div></div>`}).join('');
   const predHTML=`<div class="sec"><h2>相手の予想</h2><span style="font-size:13px;color:var(--dim)">使用率の高い型と選出</span></div>
   ${opp6.length>PICK()?`<p class="note" style="padding-top:0">相手から見て有利な${PICK()}匹を計算した<b>予想</b>です。いちばん可能性が高いのは <b>${pNos.map(n=>byNo[n].n).join('・')}</b>${PR.top[1]&&PR.top[1].p>PR.top[0].p*.6?'ですが、ほかの組み合わせとの差は小さく、<b>読みにくい相手</b>です':''}。</p>`:'<p class="note" style="padding-top:0">相手を${PICK()+1}匹以上入れると、相手が出してきそうな${PICK()}匹を予想します。</p>'}
   ${predRows}
   ${A2&&!same?`<div class="bnote" style="margin:10px 16px 0"><b>予想どおり ${pNos.map(n=>byNo[n].n.slice(0,4)).join('・')} で来た場合</b>のおすすめは<br><b>${A2.lead.map(i=>A2.M[i].p.n).join('・')}</b>（先発）＋ ${A2.back.map(i=>A2.M[i].p.n).join('・')} です。上のおすすめは、読みが外れた場合も考えた選出です。</div>`:''}
   <p class="note" style="color:var(--mute)">相手はあなたの育成を知らないため、予想では「あなたのポケモンも使用率の高い型」として計算しています。％は計算上の目安で、実際の選出率ではありません。</p>`;
   const covered=A.O.filter((_,j)=>A.best.some(i=>A.D[i][j].pct>=50)).length;
-  const mrow=(i,tag)=>{const m=A.M[i];return `<a class="row" href="#/p/${m.p.base||m.p.no}"><span class="av">${stamp(m.p)}</span><div class="row-m"><div class="row-t">${m.p.n}<span class="atag ${tag==='先発'?'on':''}">${tag}</span></div><div class="row-s">${asReason(A,i)}</div></div></a>`};
+  const mrow=(i,tag)=>{const m=A.M[i];return `<a class="row mon-card mon-card-row" href="#/p/${m.p.base||m.p.no}">${monCardArt(m.p)}<div class="row-m"><div class="row-t">${m.p.n}<span class="atag ${tag==='先発'?'on':''}">${tag}</span></div><div class="row-s">${asReason(A,i)}</div></div></a>`};
   const threats=A.O.map((o,j)=>({o,j,hit:A.best.filter(i=>A.R[j][i].pct>=70).length,sum:A.best.reduce((a,i)=>a+Math.min(A.R[j][i].pct,150),0)})).sort((a,b)=>b.sum-a.sum).slice(0,3);
   const thr=threats.map(t=>{const top=A.best.map(i=>({i,r:A.R[t.j][i]})).sort((a,b)=>b.r.pct-a.r.pct)[0];
     const faster=A.best.filter(i=>!A.fast[i][t.j]).length;
-    return `<div class="row"><span class="av">${stamp(t.o.p)}</span><div class="row-m"><div class="row-t">${t.o.p.n}</div><div class="row-s">${t.hit?`選出のうち${t.hit}匹に大ダメージ`:'大きな脅威ではない'}${top.r.mv?`（${A.M[top.i].p.n}に${top.r.mv.n}で約${Math.round(top.r.pct)}%）`:''}。${faster?`${faster}匹より速い`:'選出の全員が先に動ける'}</div></div><button class="binfo" style="position:static;flex:none" data-info="${(t.o.p.base||t.o.p.no)}">相性</button></div>`}).join('');
+    return `<div class="row mon-card mon-card-row">${monCardArt(t.o.p)}<div class="row-m"><div class="row-t">${t.o.p.n}</div><div class="row-s">${t.hit?`選出のうち${t.hit}匹に大ダメージ`:'大きな脅威ではない'}${top.r.mv?`（${A.M[top.i].p.n}に${top.r.mv.n}で約${Math.round(top.r.pct)}%）`:''}。${faster?`${faster}匹より速い`:'選出の全員が先に動ける'}</div></div><button class="binfo" style="position:static;flex:none" data-info="${(t.o.p.base||t.o.p.no)}">相性</button></div>`}).join('');
   const cell=(d,mode)=>{const p=Math.round(d.pct);const c=mode==='atk'?(p>=100?'g3':p>=50?'g2':p>=25?'g1':''):(p>=100?'r3':p>=50?'r2':p>=25?'r1':'');return `<td class="${c}">${p>=100?'100+':p}</td>`};
   const hm=`<table class="hm"><tr><th></th>${A.O.map(o=>`<th title="${o.p.n}"><span class="av">${stamp(o.p)}</span>${o.p.n.slice(0,3)}</th>`).join('')}</tr>${A.M.map((m,i)=>`<tr class="${A.best.includes(i)?'on':''}"><th>${shortN(m.p.n)}</th>${A.O.map((o,j)=>cell(asMode==='atk'?A.D[i][j]:A.R[j][i],asMode)).join('')}</tr>`).join('')}</table>`;
   const alt=A.all.slice(1).map(x=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${x.c.map(i=>A.M[i].p.n).join('・')}</div><div class="row-s">評価 ${Math.round(x.s*100)}（おすすめは ${Math.round(A.all[0].s*100)}）</div></div></div>`).join('');
@@ -216,7 +216,7 @@ function assistView(arg){
   const sug=()=>{const t=q.value.trim();
     const l=t?P.filter(p=>nmHit(p,t)&&!opp6.includes(p.no)).slice(0,6)
       :asTy.length?P.filter(p=>!opp6.includes(p.no)&&asTy.every(x=>p.t.includes(x))&&(asTy.length<2||p.t.length===2)).sort((a,b)=>tyRank(a)-tyRank(b)).slice(0,8):[];
-    sg.innerHTML=l.map(p=>`<button class="row" data-add="${p.no}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font-family:inherit"><span class="av" style="width:40px;height:40px">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join('')||(t?'<p class="empty" style="padding:16px">見つかりません</p>':'')};
+    sg.innerHTML=l.map(p=>`<button class="row mon-card mon-card-row" data-add="${p.no}">${monCardArt(p)}<div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div></div></button>`).join('')||(t?'<p class="empty" style="padding:16px">見つかりません</p>':'')};
   /* スクショから相手の6匹を読む（読むのはサーバー＝AI、選出の計算はこのスマホでする） */
   document.getElementById('as-shot').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;

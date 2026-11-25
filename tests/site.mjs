@@ -238,6 +238,8 @@ const tr=await pg.evaluate(()=>{const c0=TEAMS.cur;switchTeam(1);team=[{no:445,s
 if(tr.join()!=='0,445,3,445')fail('パーティの保存・切り替え: '+tr.join());
 // パーティの選出ボタンは大きく押しやすい／スクロールしても下のメニューは画面の下に固定（2026/11/03 から少し浮いた形＝下から16px以内）
 await pg.evaluate(()=>{team.length=0;[445,149,248,10230].forEach(no=>team.push({no,sel:false}));saveTeam();location.hash='#/team'});await pg.waitForTimeout(400);
+const partyArt=await pg.evaluate(()=>['#slots','#tsets'].map(id=>document.querySelectorAll(id+' .mon-card-em svg.temb').length));
+if(partyArt.join()!=='4,4')fail('パーティと育成一覧のタイプ紋章: '+partyArt.join());
 await pg.click('[data-sel="1"]');await pg.waitForTimeout(150);
 const ts=await pg.evaluate(()=>{const b=document.querySelector('.t-sel').getBoundingClientRect();scrTo(0,600);return[b.height,b.width,team[1].sel,location.hash]});
 await pg.waitForTimeout(150);
@@ -249,6 +251,9 @@ await pg.evaluate(()=>{scrTo(0,0);team.length=0;saveTeam()});
 await pg.evaluate(()=>{team.length=0;[445,149,248,6,9,94].forEach(no=>team.push({no,sel:false}));saveTeam();
   opp6.length=0;['カイリュー','ガオガエン','ブリムオン','ペリッパー','メタグロス','ドドゲザン'].forEach(n=>{const p=P.find(q=>q.n===n);if(p)opp6.push(p.no)});saveOpp6();location.hash='#/assist'});
 await pg.waitForTimeout(1200);
+const assistArt=await pg.evaluate(()=>({opponents:document.querySelectorAll('#as-opp .mon-card-em svg.temb').length,
+  picks:document.querySelectorAll('#as-res a.mon-card .mon-card-em svg.temb').length}));
+if(assistArt.opponents!==6||assistArt.picks!==3)fail('選出アシストのタイプ紋章: '+JSON.stringify(assistArt));
 const adv=await pg.evaluate(()=>[...document.querySelectorAll('.adv b')].map(e=>e.textContent));
 if(!(adv.length>=2&&adv.some(t=>/ペリッパー/.test(t))))fail('選出のアドバイス: '+adv.join(' / '));
 await pg.evaluate(()=>{opp6.length=0;saveOpp6();team.length=0;saveTeam()});

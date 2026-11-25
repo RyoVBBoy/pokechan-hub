@@ -589,10 +589,9 @@ input[type=range]::-webkit-slider-thumb{background:#fff;box-shadow:0 0 0 4px rgb
 input[type=checkbox]{accent-color:var(--acc);width:18px;height:18px}
 .aopp{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px}
 .aop{display:flex;align-items:center;border-radius:16px;box-shadow:inset 0 0 0 1px var(--line);min-width:0}
-.aopi{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:0;background:none;color:inherit;font-family:inherit;padding:8px 0 8px 10px;cursor:pointer;text-align:left}
-.aopi .av{width:32px;height:32px}
+.aopi{flex:1;min-width:0;min-height:44px;display:flex;align-items:center;gap:8px;border:0;background:none;color:inherit;font-family:inherit;padding:8px 0 8px 12px;cursor:pointer;text-align:left}
 .aopi b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.aox{flex:none;width:36px;height:36px;border:0;background:none;color:var(--dim);display:grid;place-items:center;border-radius:50%;cursor:pointer}
+.aox{flex:none;width:44px;height:44px;border:0;background:none;color:var(--dim);display:grid;place-items:center;border-radius:50%;cursor:pointer}
 .atag{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;padding:1px 9px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--line2);color:var(--dim);vertical-align:2px}
 .atag.on{background:var(--accf);color:var(--onacc);box-shadow:none}
 .hm{width:100%;min-width:330px;border-collapse:separate;border-spacing:2px;table-layout:fixed;font:700 12px Inter,sans-serif}
@@ -2873,7 +2872,6 @@ img.mon-art{width:100%;height:100%;object-fit:contain;display:block}
 .tbd .tbd-six{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px 12px}
 @media (min-width:480px){.tbd .tbd-six{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .tbd-six1{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:10px 10px 10px 14px;border-radius:12px;background:var(--line-in);text-decoration:none;color:var(--fg);overflow:hidden}
-.tbd-six1::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(var(--c1),var(--c2))}
 .tbd-six1 .av{display:none}
 .tbd-pic{display:block;width:100%;aspect-ratio:1;max-height:96px;margin-bottom:2px}
 .tbd-pic img,.tbd-pic svg{width:100%;height:100%;object-fit:contain}
@@ -2895,9 +2893,7 @@ img.mon-art{width:100%;height:100%;object-fit:contain;display:block}
 .tbd-tmn .tbd-tys .chip{font-size:11.5px;padding:1px 8px}
 /* 6匹のカード・仕上げ（2026/11/14 依頼主「Original, Readable, and Rights-Conscious」）：
    名前が主・図鑑の番号・タイプの札・役わり・当サイトのタイプの絵の透かし（右上）。カード全体で図鑑のページへ、右下の「ずかん↗」は公式サイト */
-.tbd-six1{gap:5px;padding:10px 10px 10px 14px;min-height:0;isolation:isolate}
-.tbd-six-wm{position:absolute;right:-8px;top:-8px;width:64px;height:64px;color:var(--c1);opacity:.16;pointer-events:none;z-index:-1}
-.tbd-six-wm svg{width:64px;height:64px}
+.tbd-six1{gap:5px;padding:10px 10px 10px 14px;min-height:0}
 .tbd-six-a{color:var(--fg);text-decoration:none;max-width:100%}
 .tbd-six-a::after{content:"";position:absolute;inset:0;z-index:0}
 .tbd-six-n{display:block;font-size:16px;font-weight:800;line-height:1.25}
@@ -2917,24 +2913,31 @@ img.mon-art{width:100%;height:100%;object-fit:contain;display:block}
 .tbd-six-no{flex-wrap:wrap}
 /* タイプのエンブレム（2つのタイプは半分ずつ、ななめの切り口）。2026/11/14 依頼主の見本 */
 svg.temb{display:block;width:100%;height:100%;overflow:visible}
-.tbd-six-wm{display:none}
-.tbd-six-em{position:absolute;right:8px;top:8px;width:44px;height:44px;pointer-events:none;z-index:0}
-.tbd-six1 .tbd-six-a,.tbd-six1 .tbd-six-no{padding-right:44px}
-.tbd-six1 .tbd-six-no{padding-right:0;width:auto;max-width:calc(100% - 46px)}
 .tbd-re{flex:none;width:36px;height:36px;display:block}
 .tbd-r .av svg.temb,.tbd-mid .av svg.temb,.tbc-h .av svg.temb,.tbd-bar-m .av svg.temb,.tbd-head .av svg.temb,.tbd-tm .av svg.temb{padding:2px}
 .tbd-six-r .tbd-zk{margin:-6px -6px -6px auto;align-self:center}
 .tbd-six-r{width:100%}
-@media (max-width:379px){.tbd-six-em{width:30px;height:30px;right:6px;top:8px}.tbd-six1 .tbd-six-a{padding-right:30px}.tbd-six-n{font-size:15px}}
 @media (max-width:359px){.tbd .tbd-six{grid-template-columns:1fr}}
 /* 6匹のカードのエンブレムは、大きくうすい透かし（2026/11/14 依頼主「このテイストで」）。2つのタイプは半分ずつ。光はつけない */
-.tbd-six-em{position:absolute;right:-10px;top:-10px;width:72px;height:72px;opacity:.2;pointer-events:none;z-index:-1}
-.tbd-six-em svg g{filter:none}
-.tbd-six1 .tbd-six-a{padding-right:0}
-.tbd-six1 .tbd-six-no{width:100%;max-width:none}
+.mon-card{position:relative;isolation:isolate}
+.mon-card-art{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:-1}
+.mon-card-art::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--mon-stripe,5px);background:linear-gradient(var(--mon-c1),var(--mon-c2))}
+.mon-card-em{position:absolute;right:-10px;top:-10px;width:72px;height:72px;opacity:.2}
+.mon-card-em svg g{filter:none}
+.tile.mon-card{background:var(--line-in);justify-content:flex-start;align-items:stretch;text-align:left;padding-top:31px}
+.tile.mon-card .nm,.tile.mon-card .chips{margin:0 2px 0 6px;overflow-wrap:anywhere}
+.tile.mon-card .nm .pn{justify-content:flex-start}
+.tile.mon-card .nm .ftag{white-space:normal}
+.tile.mon-card .chip{padding-inline:6px;gap:3px;font-size:10.5px}
+.tile.mon-card .mon-card-art{bottom:44px;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.tile.mon-card .t-sel{height:44px;flex:none;border-radius:0 0 16px 16px}
+.tile.mon-card button:focus-visible,.aop.mon-card button:focus-visible{outline-offset:-2px}
+.mon-card-row{--mon-stripe:4px;content-visibility:visible;align-items:flex-start;min-height:60px;margin:4px 16px;padding:10px 12px 10px 14px;border:0;border-radius:12px;background:var(--line-in)}
+button.mon-card-row{width:calc(100% - 32px);text-align:left;color:inherit;font-family:inherit}
+.aop.mon-card{--mon-stripe:4px;background:var(--line-in)}
+@media (max-width:379px){.mon-card-em{width:60px;height:60px;right:-8px;top:-8px}.tbd-six-n{font-size:15px}}
 .tbd-six-no .tbd-zk{margin:-8px -6px -8px auto}
 .tbd-six-r{width:auto}
-@media (max-width:379px){.tbd-six-em{width:60px;height:60px;right:-8px;top:-8px}.tbd-six1 .tbd-six-a{padding-right:0}}
 @media (max-width:359px){.tbd .tbd-six{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .t-busy{opacity:.55;transition:opacity .12s;pointer-events:none}
 /* 投稿を開いた画面の日時（2026/11/15 依頼主、X と同じ位置：本文の下・ボタンの上） */
