@@ -56,6 +56,7 @@ async function page(who,vp,E=env){
   return pg;
 }
 const dest=()=>REQ.filter(x=>/note\.com/.test(x.url));
+const adm=async(p,body)=>{const r=await w.fetch(new Request('https://x.dev'+p,{method:'POST',headers:{'content-type':'application/json','x-admin-token':'admin-secret-123','cf-connecting-ip':'10.3.0.1'},body:JSON.stringify(body)}),env,{waitUntil(){}});return[r.status,await r.json()]};
 for(const vp of [{width:390,height:844},{width:1280,height:900}]){
   const W=vp.width;REQ.length=0;
   const pg=await page('sakura',vp);
@@ -72,7 +73,7 @@ for(const vp of [{width:390,height:844},{width:1280,height:900}]){
   await pg.focus(art+' .tw-ul');await pg.keyboard.press('Enter');await pg.waitForTimeout(500);
   ok(await pg.$('.ulc.on'),W+'：Enter で確認の画面');
   ok(await pg.$eval('.ulc .ulc-host',e=>e.textContent)==='note.com'&&await pg.$eval('.ulc .ulc-url',e=>e.textContent)==='https://note.com/ren/n/n0123456789ab?from=share',W+'：確認の画面にホストと全部のアドレス');
-  ok(await pg.$eval('.ulc a.xc-ok',a=>a.target==='_blank'&&['noopener','noreferrer','nofollow','ugc'].every(x=>a.relList.contains(x))&&a.getAttribute('href')==='https://note.com/ren/n/n0123456789ab?from=share'),W+'：開くボタンは別のタブ・noopener noreferrer nofollow ugc');
+  ok(await pg.$eval('.ulc',d=>!d.querySelector('a[href]')&&d.querySelector('button.xc-ok')),W+'：確認の画面にもリンク先の <a> を置かない（「開く」はボタン）');
   ok(await pg.evaluate(()=>document.activeElement&&document.activeElement.classList.contains('xc-no')),W+'：はじめはキャンセルに焦点');
   await pg.keyboard.press('Tab');ok(await pg.evaluate(()=>document.activeElement.classList.contains('xc-ok')),W+'：Tab で開くボタンへ');
   await pg.keyboard.press('Tab');ok(await pg.evaluate(()=>document.activeElement.classList.contains('xc-no')),W+'：Tab は画面の中で回る');
@@ -82,17 +83,32 @@ for(const vp of [{width:390,height:844},{width:1280,height:900}]){
   await pg.click(art+' .tw-ul');await pg.waitForTimeout(500);await pg.click('.ulc .xc-no');await pg.waitForTimeout(300);
   ok(!(await pg.$('.ulc'))&&dest().length===0&&pg.url().startsWith('file:'),W+'：キャンセルで閉じ、移動しない');
   ok(!(await pg.evaluate(()=>location.hash)).includes('note'),W+'：画面の移動（#/）に入れない');
-  /* 開く */
+  /* 開く（2回すばやく押しても1回だけ） */
   await pg.click(art+' .tw-ul');await pg.waitForTimeout(500);
-  const [pop]=await Promise.all([pg.ctx.waitForEvent('page'),pg.click('.ulc a.xc-ok')]);
-  await pop.waitForLoadState().catch(()=>{});
+  const [pop]=await Promise.all([pg.ctx.waitForEvent('page'),pg.evaluate(()=>{const b=document.querySelector('.ulc .xc-ok');b.click();b.click()})]);
+  for(let i=0;i<40&&!dest().length;i++)await pg.waitForTimeout(100);
+  await pg.waitForTimeout(300);
   ok(await pop.evaluate(()=>window.opener===null).catch(()=>true),W+'：開いたタブから元の画面に触れない（opener なし）');
-  ok(dest().length===1&&dest()[0].ref==='',W+'：「開く」を押したときだけ1回・リファラーなし '+JSON.stringify(dest()));
+  ok(dest().length===1&&dest()[0].ref==='',W+'：「開く」でサーバーがもう一度確かめたあと1回だけ・リファラーなし '+JSON.stringify(dest()));
+  ok(pg.ctx.pages().length===2,W+'：2回押してもタブは1つ '+pg.ctx.pages().length);
   await pop.close();await pg.waitForTimeout(200);ok(!(await pg.$('.ulc')),W+'：開いたら確認の画面を閉じる');
-  /* サーバーから届いた値も確かめ直す（危険な値は押せない文字） */
-  ok(await pg.evaluate(()=>[{state:'ok',url:'javascript:alert(1)',host:'x'},{state:'ok',url:'https://a.com\\@b.net/'},{state:'ok',url:'https://u:p@a.com/'},{state:'ok',url:'https://127.0.0.1/'},{state:'blocked'},{state:'ok',url:'https://a.com:8443/'},{state:'ok',url:'data:text/html,x'}]
-    .every(l=>/tw-ul--off/.test(ulinkHTML({ulink:l}))&&!/javascript|data:/.test(ulinkHTML({ulink:l})))),W+'：形のおかしいリンクは押せない文字');
-  ok(await pg.evaluate(()=>!ulinkSafe('https://note.com/a"><script>')||ulinkHTML({ulink:{state:'ok',url:'https://note.com/a',host:'<b>'}}).indexOf('<b>')<0),W+'：ホストの文字も安全な形で出す');
+  /* 確認の画面を開いているあいだに：①運営者が止めた ②押せる設定を止めた ③許可の期限（60秒）が切れた → 開かない（開きかけたタブも閉じる） */
+  for(const [nm,before,after] of [
+    ['止めているあいだに運営者が止めた',async()=>{await adm(`/api/admin/links/${NID}`,{action:'quarantine',reason:'確認のため止める',confirm:true})},async()=>{await adm(`/api/admin/links/${NID}`,{action:'restore',reason:'問題なしと確認',confirm:true})}],
+    ['押せる設定を止めた',async()=>{env.LINKS_CLICK=''},async()=>{env.LINKS_CLICK='1'}],
+    ['許可の期限が切れた',async()=>{const t=realNow()+61e3;Date.now=()=>t},async()=>{Date.now=realNow}]]){
+    REQ.length=0;await pg.goto(URL0+'#/tl');await pg.waitForTimeout(1300);
+    await pg.click(art+' .tw-ul');await pg.waitForTimeout(500);
+    await before();
+    await pg.click('.ulc .xc-ok');await pg.waitForTimeout(1200);
+    await after();
+    ok(dest().length===0&&pg.ctx.pages().length===1&&!(await pg.$('.ulc')),W+'：'+nm+' → 開かない・タブも閉じる '+JSON.stringify(dest())+pg.ctx.pages().length);
+    if(nm!=='許可の期限が切れた')ok(await pg.$(art+' .tw-ul--off'),W+'：'+nm+' → そのリンクは押せない文字に');
+  }
+  /* サーバーから届いた値も確かめ直す（形のおかしい値は押せない文字） */
+  ok(await pg.evaluate(()=>[{state:'ok',host:'javascript:alert(1)'},{state:'ok',host:'a.com\\@b.net'},{state:'ok',host:'127.0.0.1'},{state:'blocked'},{state:'ok',host:'<b>x</b>'},{state:'ok'},{state:'off',host:'<img>'}]
+    .every(l=>/tw-ul--off/.test(ulinkHTML({ulink:l}))&&!/javascript|<b>|<img/.test(ulinkHTML({ulink:l})))),W+'：形のおかしいホストは押せない文字');
+  ok(await pg.evaluate(()=>!ulinkSafe('https://note.com/a"><script>')&&!ulinkSafe('javascript:alert(1)')&&!!ulinkSafe('https://note.com/a')),W+'：開く前のアドレスの確かめ');
   /* 投稿欄：リンク欄・貼ったリンクを移す */
   if(W===390){await pg.goto(URL0+'#/');await pg.waitForTimeout(1500)}else{await pg.goto(URL0+'#/');await pg.waitForTimeout(1500)}
   ok(await pg.$eval('#twc-u-w',e=>!e.hidden).catch(()=>false),W+'：開いているときは投稿欄にリンク欄');
@@ -107,7 +123,7 @@ for(const vp of [{width:390,height:844},{width:1280,height:900}]){
   const mine=(await env.DB.prepare(`SELECT n.body,l.url FROM notes n JOIN note_links l ON l.note_id=n.id WHERE n.uid='uA' ORDER BY n.id DESC LIMIT 1`).first());
   ok(mine&&mine.url==='https://note.com/sakura/n/n999'&&mine.body==='S3 の記事',W+'：投稿欄から本文とリンクを送る '+JSON.stringify(mine));
   ok(await pg.$eval('#twc-u',e=>e.value)==='',W+'：送ったらリンク欄を空に');
-  ok(dest().length===1,W+'：投稿しても行き先に通信しない');
+  ok(dest().length===0,W+'：投稿しても行き先に通信しない');
   ok(!pg.errs.length,W+'：ページのエラーなし '+pg.errs.join(' / '));
   await pg.ctx.close();
 }
@@ -115,9 +131,10 @@ for(const vp of [{width:390,height:844},{width:1280,height:900}]){
 {const E={...env,LINKS_POST:'',LINKS_CLICK:''};REQ.length=0;const pg=await page('sakura',{width:390,height:844},E);
   await pg.goto(URL0+'#/');await pg.waitForTimeout(1500);
   ok(!(await pg.$('#twc-u'))&&!(await pg.$('#twc-u-w')),'止めているとき：リンク欄を出さない');
-  const art=`.tw[data-id="${NID}"]`;await pg.click(art+' .tw-ul');await pg.waitForTimeout(600);
+  const art=`.tw[data-id="${NID}"]`;
+  ok(!(await pg.$(art+' button.tw-ul'))&&await pg.$eval(art+' .tw-ul--off',e=>e.textContent.includes('note.com')&&e.textContent.includes('開けません')),'押せる設定を止めているとき：はじめから押せない文字（ホストだけ）');
+  await pg.click(art+' .tw-ul--off');await pg.waitForTimeout(400);
   ok(!(await pg.$('.ulc'))&&dest().length===0,'止めているとき：押しても開かない');
-  ok(await pg.$(art+' .tw-ul--off'),'止めているとき：押したあと押せない文字にする');
   await pg.ctx.close()}
 /* ログインしていない人も、確かめてから開ける（読むのは止めない） */
 {REQ.length=0;const pg=await page('',{width:390,height:844});await pg.goto(URL0+'#/tl');await pg.waitForTimeout(1500);

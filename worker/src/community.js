@@ -55,6 +55,20 @@ async function cleanup(db){
   ]);
 }
 const J=(o,st=200)=>new Response(JSON.stringify(o),{status:st,headers:{...CORS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
+/* 送られてきた JSON を、上限のバイト数まで少しずつ読む。{body} か {status:413|400} */
+async function readJsonBody(req,max){
+  if(!req.body)return{body:{}};
+  const rd=req.body.getReader(),ch=[];let n=0;
+  try{for(;;){const {done,value}=await rd.read();if(done)break;n+=value.byteLength;if(n>max){try{await rd.cancel()}catch(e){}return{status:413}}ch.push(value)}}
+  catch(e){return{status:400}}
+  if(!n)return{body:{}};
+  const all=new Uint8Array(n);let o=0;for(const c of ch){all.set(c,o);o+=c.byteLength}
+  let t;try{t=new TextDecoder('utf-8',{fatal:true}).decode(all)}catch(e){return{status:400}}
+  if(!t.trim())return{body:{}};
+  let j;try{j=JSON.parse(t)}catch(e){return{status:400}}
+  if(!j||typeof j!=='object'||Array.isArray(j))return{status:400};
+  return{body:j};
+}
 async function api(req,env,u,ctx){
   if(!env.DB)return J({error:'掲示板はまだ準備中です。'},503);
   const db=env.DB;await dbInit(db);await socialInit(db);await mediaInit(db);
@@ -86,7 +100,12 @@ async function api(req,env,u,ctx){
   {const r=await newsApi(req,env,db,path,now,isAdmin);if(r)return r}
   /* 送られてくる中身の大きさの上限（画像・振り返りは上で別に扱う）。大きすぎるものは読まずに断る */
   if(req.method==='POST'&&(+req.headers.get('content-length')||0)>262144)return J({error:'送信内容が大きすぎます。'},413);
-  let body={};if(req.method==='POST'){const t=await req.text();if(t.length>262144)return J({error:'送信内容が大きすぎます。'},413);if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
+  /* 中身は少しずつ読み、上限（256KB）をこえたところで読むのをやめる（Content-Length がない・うそのときも）。
+     JSON の物（{…}）だけを受け付ける。読めないものは数え（接続元ごと、links.js の badReq）、続けば429 */
+  let body={};if(req.method==='POST'){const rb=await readJsonBody(req,262144);
+    if(rb.status===413)return J({error:'送信内容が大きすぎます。'},413);
+    if(rb.status){if(await badReq(db,env,ip,now))return J({error:'形のおかしい送信が続いています。少し時間をおいてください。'},429);return J({error:'送信内容を読めませんでした。'},400)}
+    body=rb.body}
   if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db,env)).then(()=>linksCleanup(db,now)).catch(()=>{}));
   let m;
   /* タイムライン・フォロー・通知（social.js） */

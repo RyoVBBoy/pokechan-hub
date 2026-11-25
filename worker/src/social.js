@@ -95,7 +95,7 @@ const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) A
   (SELECT json_array(nl.url,nl.host,nl.state) FROM note_links nl WHERE nl.note_id=COALESCE(o.id,n.id)) AS ulink`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
 /* link＝運営の bot のリンク（notes.link、利用者は書けない）。ulink＝利用者のリンク（note_links、links.js の lkOut） */
-const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,...(r.ulink?{ulink:lkOut(r)}:{}),media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
+const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,...(r.ulink?{ulink:lkOut(r,r.lkc)}:{}),media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
   user:{handle:r.handle,name:r.name,av:r.av||null,...(r.off?{off:true}:{}),...(r.card?{card:true}:{})},...(r.tool?{tool:r.tool}:{}),reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
@@ -107,6 +107,10 @@ async function socialRate(db,uid,now){
   if(r&&r.d>=100)return '1日に投稿できる回数（100件）を超えました。';
   return null;
 }
+/* 投稿を書く（15秒に1件・1日100件を、書く文そのものの中で確かめる＝同時に送られても決まりをこえない。数え方は socialRate と同じ） */
+const noteIns=(db,uid,text,now,ip,to,med)=>db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) SELECT ?1,?2,?3,?4,?5,?6
+  WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 RETURNING id`)
+  .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null);
 async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
   if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags|me\/bookmarks)/.test(path))return null;
@@ -117,7 +121,9 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const meRow=me?await db.prepare(`SELECT uid,handle,name,banned FROM users WHERE uid=?`).bind(me.uid).first():null;
   const meUid=meRow&&!meRow.banned?meRow.uid:'';
   const need=()=>!me?J({error:'ログインしてください。'},401):!meRow?J({error:'先にプロフィールを作ってください。'},403):meRow.banned?J({error:'このアカウントは利用を停止しています。'},403):null;
-  const withMine=rows=>rows.map(r=>({...r,mine:meUid&&r.handle===meRow.handle}));
+  /* lkc：利用者のリンクを押せるか（LINKS_CLICK）。止めているときは一覧でも押せない文字にする（links.js の lkOut） */
+  const lkc=lkOn(env,'LINKS_CLICK');
+  const withMine=rows=>rows.map(r=>({...r,mine:meUid&&r.handle===meRow.handle,lkc}));
 
   /* タイムライン：みんな／フォロー中 */
   if(path==='/api/tl'&&req.method==='GET'){
@@ -137,9 +143,11 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const e=need();if(e)return e;
     /* リンクを開いているとき（links.js）：形の違う値は断り、長さは形を直す前に確かめる（黙って切らない）。止めているときは前と同じ */
     const lkp=lkOn(env,'LINKS_POST');
-    if(lkp){if(body.body!=null&&typeof body.body!=='string')return J({error:'本文を読めませんでした。'},400);
-      if(body.reply_to!=null&&typeof body.reply_to!=='number'&&typeof body.reply_to!=='string')return J({error:'返信先を読めませんでした。'},400);
-      if(typeof body.body==='string'&&body.body.length>LK_BODY_RAW_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400)}
+    if(lkp){const bad=(body.body!=null&&typeof body.body!=='string')?'本文を読めませんでした。':(body.reply_to!=null&&typeof body.reply_to!=='number'&&typeof body.reply_to!=='string')?'返信先を読めませんでした。'
+        :(typeof body.body==='string'&&body.body.length>LK_BODY_RAW_MAX)?`投稿は${NOTE_MAX}文字までです。`:null;
+      /* 形のおかしいものも回数を数え（接続元ごと）、リンクを付けようとしていれば本人の枠も使う。超えたら429 */
+      if(bad){if(await badReq(db,env,ip,now)||(lkIntent(body,typeof body.body==='string'?body.body:'')&&!await lkSlot(db,meUid,now)))return J({error:'形のおかしい送信が続いています。少し時間をおいてください。'},429);
+        return J({error:bad},400)}}
     let text=clean(body.body,lkp?LK_BODY_RAW_MAX:NOTE_MAX*2+2);
     const lk=await lkForNote(env,db,me,meUid,body,text,now);
     if(lk.error)return J({error:lk.error,...(lk.code?{code:lk.code}:{})},lk.status||400);
@@ -158,10 +166,14 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     if(lk.link){
       /* 安全確認はいちばん最後（ほかの確かめで断るものは外に送らない）。問題がなければ、投稿とリンクを1つの取引で書く */
       const c=await lkCheckForNote(env,db,meUid,lk.link,now);if(c.error)return J({error:c.error},c.status);
-      const out=await db.batch([db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?)`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null),
-        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at) VALUES(last_insert_rowid(),?,?,?,'ok','clean',?,?,?,?) RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,now,now)]);
+      /* リンクの行は、いま書いた投稿（同じ人・同じ時刻）が本当に書けたときだけ（回数の決まりで書けなければ、リンクも書かない） */
+      const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med),
+        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev) SELECT last_insert_rowid(),?1,?2,?3,'ok','clean',?4,?5,?4,?4,0
+          WHERE changes()=1 AND EXISTS(SELECT 1 FROM notes WHERE id=last_insert_rowid() AND uid=?1 AND created_at=?4) RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp)]);
       r=out[1]&&out[1].results&&out[1].results[0];
-    }else r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null).first();
+    }else r=await noteIns(db,meUid,text,now,ip,to,med).first();
+    /* 同時に送られて、15秒に1件・1日100件の決まりで書けなかった */
+    if(!r)return J({error:await socialRate(db,meUid,now)||'連続の投稿は15秒あけてください。'},400);
     if(r&&med.length)await mediaAttach(db,meUid,med.map(x=>x.k),r.id);
     const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
     if(pa&&r){const q=[recount(db,to)];

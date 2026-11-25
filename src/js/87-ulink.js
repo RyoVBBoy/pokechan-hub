@@ -21,25 +21,36 @@ function ulinkSafe(u){
     if(x.protocol!=='https:'||x.username||x.password||x.port||x.hostname!==auth||!x.hostname.includes('.')||/^[0-9.]+$/.test(x.hostname))return null;
     return{url:x.href,host:x.hostname}}catch(e){return null}
 }
-/* 投稿の中の表示（twHtml から）。押せるのは形の正しいものだけ */
+/* ホストの形（サーバーが確かめた ASCII のホスト名だけ） */
+const ulinkHost=h=>typeof h==='string'&&h.length<=253&&/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(h)&&/(^|\.)(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/.test(h)?h:null;
+/* 投稿の中の表示（twHtml から）。一覧には全部のアドレスは来ない（ホストと状態だけ）。押せるのは state:'ok'（サーバーで LINKS_CLICK が開いている）だけ */
 function ulinkHTML(n){
   const l=n&&n.ulink;if(!l)return '';
-  const s=l.state==='ok'&&ulinkSafe(l.url);
-  if(!s)return `<div class="tw-ul tw-ul--off">${L('このリンクは表示を止めています','This link has been disabled')}</div>`;
-  return `<button type="button" class="tw-ul" data-ul aria-label="${esc(L('外部リンクを開く（確認画面が出ます）：','Open external link (confirmation first): ')+s.host)}"><b>${L('外部リンク','External link')}</b><small data-notr>${esc(s.host)}</small></button>`;
+  const h=ulinkHost(l.host);
+  if(l.state==='off'&&h)return `<div class="tw-ul tw-ul--off"><b>${L('外部リンク（いまは開けません）','External link (unavailable now)')}</b><small data-notr>${esc(h)}</small></div>`;
+  if(l.state!=='ok'||!h)return `<div class="tw-ul tw-ul--off">${L('このリンクは表示を止めています','This link has been disabled')}</div>`;
+  return `<button type="button" class="tw-ul" data-ul aria-label="${esc(L('外部リンクを開く（確認画面が出ます）：','Open external link (confirmation first): ')+h)}"><b>${L('外部リンク','External link')}</b><small data-notr>${esc(h)}</small></button>`;
 }
-/* 押したとき：サーバーで確かめる → 確認の画面 → 利用者が「開く」を押したときだけ開く */
+const ulinkInert=btn=>{if(btn&&document.body.contains(btn)&&btn.matches('button.tw-ul')){const d=document.createElement('div');d.className='tw-ul tw-ul--off';d.textContent=L('このリンクは表示を止めています','This link has been disabled');btn.replaceWith(d)}};
+let ULINK_BUSY=false;
+/* 押したとき：①サーバーで確かめる（確認の画面に出すアドレスと、1回だけ・60秒だけの許可） → 確認の画面 → ②「開く」でもう一度サーバーが確かめてから開く */
 async function ulinkOpen(id,btn){
-  if(btn)btn.disabled=true;
+  if(ULINK_BUSY)return;ULINK_BUSY=true;if(btn)btn.disabled=true;
   let j;
   try{j=await authFetch(`/api/links/${+id}/open`,{})}
-  catch(err){toast(err.message);if(btn){btn.disabled=false;if(err.status===410||err.status===403){btn.outerHTML=`<div class="tw-ul tw-ul--off">${esc(L('このリンクは表示を止めています','This link has been disabled'))}</div>`}}return}
-  if(btn)btn.disabled=false;
+  catch(err){ULINK_BUSY=false;if(btn)btn.disabled=false;toast(err.message);if(err.data&&err.data.inert)ulinkInert(btn);return}
+  ULINK_BUSY=false;if(btn)btn.disabled=false;
   const s=j&&j.ok&&ulinkSafe(j.url);
-  if(!s||s.host!==j.host){toast(L('このリンクは開けません','This link cannot be opened'));return}
-  ulinkConfirm(s,btn);
+  if(!s||s.host!==j.host||typeof j.intent!=='string'||!/^[0-9a-f]{32}$/.test(j.intent)){toast(L('このリンクは開けません','This link cannot be opened'));return}
+  ulinkConfirm(id,s,j.intent,Math.max(5,Math.min(60,+j.ttl||60)),btn);
 }
-function ulinkConfirm(s,from){
+/* 開いたタブを、リファラーを送らずに行き先へ（タブの中の meta で。サイトのページは渡さない） */
+function ulinkGo(w,url){
+  try{w.opener=null}catch(e){}
+  try{const d=w.document;d.open();d.write('<!doctype html><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url='+esc(url)+'"><title>…</title>');d.close();return true}
+  catch(e){try{w.location.replace(url);return true}catch(e2){return false}}
+}
+function ulinkConfirm(id,s,intent,ttl,from){
   const d=document.createElement('div');d.className='xc ulc';
   const bg=document.createElement('div');bg.className='xc-bg';
   const p=document.createElement('div');p.className='xc-p';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');p.setAttribute('aria-labelledby','ulc-h');
@@ -49,15 +60,34 @@ function ulinkConfirm(s,from){
   const w=document.createElement('p');w.className='ulc-w';
   w.textContent=L('このサイトの外のページです。安全確認で問題が見つからなかったことは、安全の保証ではありません。ログイン情報・個人情報・支払いの情報は入力しないでください。',
     'This page is outside this site. Passing our safety check does not guarantee it is safe. Do not enter login, personal or payment details.');
-  const a=document.createElement('a');a.className='xc-ok xc-plain';a.href=s.url;a.target='_blank';a.rel='noopener noreferrer nofollow ugc';a.referrerPolicy='no-referrer';a.textContent=L('開く','Open');
+  const st=document.createElement('p');st.className='ulc-st';st.setAttribute('role','status');
+  const ok=document.createElement('button');ok.type='button';ok.className='xc-ok xc-plain';ok.textContent=L('開く','Open');
   const no=document.createElement('button');no.type='button';no.className='xc-no';no.textContent=L('キャンセル','Cancel');
-  p.append(h,ho,full,w,a,no);d.append(bg,p);document.body.appendChild(d);
+  p.append(h,ho,full,w,st,ok,no);d.append(bg,p);document.body.appendChild(d);
   requestAnimationFrame(()=>d.classList.add('on'));
-  const done=()=>{d.classList.remove('on');document.removeEventListener('keydown',key,true);setTimeout(()=>d.remove(),150);if(from&&document.body.contains(from))from.focus()};
+  let closed=false,used=false;
+  const exp=setTimeout(()=>{if(used)return;ok.disabled=true;st.textContent=L('確認の期限が切れました。もう一度リンクを押してください。','This confirmation expired. Press the link again.')},Math.max(1,ttl-2)*1000);
+  const done=()=>{if(closed)return;closed=true;clearTimeout(exp);d.classList.remove('on');document.removeEventListener('keydown',key,true);setTimeout(()=>d.remove(),150);if(from&&document.body.contains(from))from.focus()};
   const key=e=>{if(e.key==='Escape'){e.preventDefault();done()}
-    else if(e.key==='Tab'){const f=[a,no],i=f.indexOf(document.activeElement);e.preventDefault();f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}};
+    else if(e.key==='Tab'){const f=[ok,no].filter(x=>!x.disabled),i=f.indexOf(document.activeElement);e.preventDefault();if(f.length)f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}};
   document.addEventListener('keydown',key,true);
-  a.addEventListener('click',()=>setTimeout(done,0));no.onclick=done;bg.onclick=done;
+  ok.onclick=async()=>{
+    if(used||ok.disabled)return;used=true;ok.disabled=true;st.textContent=L('確かめています…','Checking…');
+    /* 押した操作の中でタブを先に開く（あとから開くと止められるため）。中身はサーバーが許可するまで空のまま */
+    let tab=null;try{tab=window.open('about:blank','_blank')}catch(e){}
+    if(tab)try{tab.opener=null}catch(e){}
+    let j;
+    try{j=await authFetch(`/api/links/${+id}/go`,{intent})}
+    catch(err){if(tab)try{tab.close()}catch(e){}toast(err.message);if(err.data&&err.data.inert)ulinkInert(from);done();return}
+    const g=j&&j.ok&&ulinkSafe(j.url);
+    if(!g||g.url!==s.url){if(tab)try{tab.close()}catch(e){}toast(L('このリンクは開けません','This link cannot be opened'));done();return}
+    if(tab&&ulinkGo(tab,g.url)){done();return}
+    /* タブを止められたとき：その場で押せるリンクを15秒だけ出す（新しいタブ・opener なし・リファラーなし） */
+    const a=document.createElement('a');a.className='xc-ok xc-plain';a.href=g.url;a.target='_blank';a.rel='noopener noreferrer nofollow ugc';a.referrerPolicy='no-referrer';a.textContent=L('このリンクを開く','Open this link');
+    st.textContent=L('ブラウザが新しいタブを止めました。下を押して開いてください。','Your browser blocked the new tab. Press below to open it.');
+    ok.replaceWith(a);a.focus();a.addEventListener('click',()=>setTimeout(done,0));setTimeout(()=>{if(!closed)done()},15000);
+  };
+  no.onclick=done;bg.onclick=done;
   no.focus();
 }
 /* 投稿欄のリンク欄（twComposer・返信）。設定が「開いている」ときだけ出す。

@@ -183,23 +183,36 @@ function adminView(){
         const ask=async(title,text)=>{if(!await askConfirm({title,text,ok:'実行する'}))return null;const r=(prompt('理由（4文字以上・記録に残ります）')||'').trim();if(r.length<4){toast('理由を4文字以上で書いてください');return null}return r};
         el.innerHTML=`<p class="note" style="padding-top:0">変数：投稿 ${on(f.post)}・押す ${on(f.click)}・利用停止の記録 ${on(f.sanctions)}・Web Risk の合言葉 ${f.webrisk?'あり':'なし'}・メールの鍵 ${f.emailKey?'あり':'なし'}。
           通報・安全確認の結果だけでは停止しません。意図的な攻撃と確かめたときだけ、理由と根拠の番号を付けて記録します。</p>
-          <div class="sec"><h2>利用停止の記録を作る</h2></div>
+          ${S.health&&!S.health.ok?`<div class="bnote" style="margin:0 16px 12px;color:var(--w2)">メールの鍵の状態に問題があります：${esc([S.health.err,(S.health.missing_tombstone_versions||[]).length?'停止に使う版がない '+S.health.missing_tombstone_versions.join(','):'',(S.health.missing_identity_versions||[]).length?'記録に使った版がない '+S.health.missing_identity_versions.join(','):''].filter(Boolean).join('・'))}</div>`:''}
+          <div class="sec"><h2>1. 確認の記録を作る</h2></div>
+          <p class="note" style="padding-top:0">根拠は、その人のこのサイトの記録だけ（投稿 note・リンク link・リンクの記録 link_event・通報 report の番号）。IP アドレスや端末の情報は根拠にできません。</p>
           <div class="cform" style="padding:0 16px"><label>ユーザーID<input id="sc-h" autocomplete="off" autocapitalize="off"></label>
+          <label>種類<select id="sc-ck"><option value="attack">意図的な攻撃と確かめた</option><option value="linked">確かめた攻撃者の関連アカウント</option></select></label>
+          <label>確かめた内容（20文字以上）<input id="sc-s" maxlength="400"></label>
+          <label>根拠（例：link:12, note:34）<input id="sc-refs" autocomplete="off" autocapitalize="off"></label>
+          <label>関連アカウントのとき：もとの攻撃者の停止の root<input id="sc-rel" autocomplete="off" autocapitalize="off"></label></div>
+          <div class="btns"><button class="btn btn-p" id="sc-cgo">確認の記録を作る</button></div>
+          <div class="sec"><h2>2. 利用停止を記録する</h2></div>
+          <div class="cform" style="padding:0 16px"><label>確認の記録の番号<input id="sc-c" inputmode="numeric" autocomplete="off"></label>
           <label>種類<select id="sc-k"><option value="perpetrator">確かめた攻撃者（いつまでも・確認済みメールも）</option><option value="linked">確かめた関連アカウント（期限つき）</option><option value="temporary">期限つき（そのほか）</option></select></label>
           <label>期間（期限つきのとき）<select id="sc-m"><option value="">90日（はじめ）</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
-          <label>理由<input id="sc-r" maxlength="200"></label><label>根拠の番号（通報・リンクの記録など）<input id="sc-e" maxlength="80"></label></div>
+          <label>停止する理由（20文字以上）<input id="sc-r" maxlength="400"></label></div>
           <div class="btns"><button class="btn btn-p" id="sc-go">記録する</button></div>
+          <div class="sec"><h2>確認の記録</h2></div>`+((S.cases||[]).map(c=>`<div class="bpost"><div class="bpost-h"><b>#${c.id}</b>　@${esc(c.handle||'')}　${esc(c.kind)}　${esc(c.status)}</div><div class="bpost-b">${esc(c.summary)}　根拠：${esc(c.refs)}${c.related_root?'　もと：'+esc(c.related_root):''}</div></div>`).join('')||'<p class="empty">記録はありません。</p>')+`
           <div class="sec"><h2>利用停止の記録</h2></div>`+(S.sanctions.length?S.sanctions.map(x=>`<div class="bpost"><div class="bpost-h"><b>#${x.id}</b>　${x.kind==='email'?'確認済みメール（ハッシュ）':'@'+esc(x.handle||'（削除済み）')}　${x.permanent?'いつまでも':'〜'+dt(x.expires_at)}　${x.live?'<b style="color:var(--w2)">有効</b>':esc(x.status)}${x.appeal?'　異議：'+esc(x.appeal):''}</div>
-            <div class="bpost-b">${esc(x.reason)}　根拠：${esc(x.evidence||'')}　（${esc(x.source||'')}・${dt(x.created_at)}）</div>
+            <div class="bpost-b">${esc(x.reason)}　根拠：${esc(x.evidence||'')}　root：${esc(x.root_key||'')}${x.kver?'　鍵の版：'+esc(x.kver):''}　（${esc(x.source||'')}・${dt(x.created_at)}）</div>
             ${x.live&&x.kind==='uid'?`<div style="padding-top:6px;display:flex;gap:16px"><button class="bback" data-sc-rev="${x.id}" style="padding:0">取り消す</button><button class="bback" data-sc-ap="${x.id}" style="padding:0">異議を記録</button></div>`:''}</div>`).join(''):'<p class="empty">記録はありません。</p>')
           +`<div class="sec"><h2>リンク</h2></div>`+(L.links.length?L.links.map(x=>`<div class="bpost"><div class="bpost-h">#${x.note_id}　@${esc(x.handle||'')}　<b>${esc(x.state)}</b>　通報 ${x.reports}　確認 ${dt(x.verdict_at)}</div>
             <div class="bpost-b" style="word-break:break-all" data-notr>${esc(x.url)}</div>
             <div style="padding-top:6px;display:flex;gap:16px"><button class="bback" data-lk="quarantine:${x.note_id}" style="padding:0;color:var(--w2)">止める</button><button class="bback" data-lk="restore:${x.note_id}" style="padding:0">確かめて戻す</button><button class="bback" data-lk="recheck:${x.note_id}" style="padding:0">確かめ直す</button></div></div>`).join(''):'<p class="empty">リンクはありません。</p>')
           +`<div class="sec"><h2>記録（URL は残していません）</h2></div>`+(L.events.map(e=>`<div class="bpost"><div class="bpost-h">${dt(e.at)}　${esc(e.kind)}　${esc(e.host||'')}　@${esc(e.handle||'')}</div><div class="bpost-b">${esc(e.detail||'')}</div></div>`).join('')||'<p class="empty">記録はありません。</p>');
-        document.getElementById('sc-go').onclick=async()=>{const h=document.getElementById('sc-h').value.trim().replace(/^@/,''),k=document.getElementById('sc-k').value,m=document.getElementById('sc-m').value;
-          const reason=document.getElementById('sc-r').value.trim(),evidence=document.getElementById('sc-e').value.trim();if(!h)return;
-          if(!await askConfirm({title:`@${h} の利用停止を記録しますか？`,text:k==='perpetrator'?'いつまでもの停止です。確認済みメールのハッシュも記録し、同じメールでの作り直しも止めます。取り消しはできますが、慎重に。':'期限つきの停止です。',ok:'記録する'}))return;
-          act(()=>apost('/api/admin/sanctions',{handle:h,kind:k,months:m?+m:null,reason,evidence,confirm:'SANCTION'}),'記録しました')};
+        document.getElementById('sc-cgo').onclick=async()=>{const h=document.getElementById('sc-h').value.trim().replace(/^@/,'');if(!h)return;
+          const refs=document.getElementById('sc-refs').value.split(/[,\s]+/).filter(Boolean).map(x=>{const [t,id]=x.split(':');return{t,id:+id}});
+          act(async()=>{const j=await apost('/api/admin/cases',{handle:h,kind:document.getElementById('sc-ck').value,summary:document.getElementById('sc-s').value.trim(),refs,related_root:document.getElementById('sc-rel').value.trim()||null});toast('確認の記録 #'+j.case_id)},'作りました')};
+        document.getElementById('sc-go').onclick=async()=>{const c=+document.getElementById('sc-c').value,k=document.getElementById('sc-k').value,m=document.getElementById('sc-m').value;
+          const rationale=document.getElementById('sc-r').value.trim();if(!c)return;
+          if(!await askConfirm({title:`確認の記録 #${c} で利用停止を記録しますか？`,text:k==='perpetrator'?'いつまでもの停止です。確認済みメールのハッシュも記録し、同じメールでの作り直しも止めます。取り消しはできますが、慎重に。':'期限つきの停止です。',ok:'記録する'}))return;
+          act(()=>apost('/api/admin/sanctions',{case_id:c,kind:k,months:m?+m:null,rationale,confirm:'SANCTION'}),'記録しました')};
         el.querySelectorAll('[data-sc-rev]').forEach(b=>b.onclick=async()=>{const r=await ask('この利用停止を取り消しますか？','手動の停止（停止中のアカウント）はそのままです。');if(r)act(()=>apost(`/api/admin/sanctions/${b.dataset.scRev}/reverse`,{reason:r,confirm:true}),'取り消しました')});
         el.querySelectorAll('[data-sc-ap]').forEach(b=>b.onclick=async()=>{const r=await ask('異議を記録しますか？','記録だけで、停止は変わりません。');if(r)act(()=>apost(`/api/admin/sanctions/${b.dataset.scAp}/appeal`,{reason:r,decision:'open',confirm:true}),'記録しました')});
         el.querySelectorAll('[data-lk]').forEach(b=>b.onclick=async()=>{const [a,id]=b.dataset.lk.split(':'),r=await ask({quarantine:'このリンクを止めますか？',restore:'新しい安全確認をして、問題がなければ戻しますか？',recheck:'安全確認をし直しますか？'}[a],'投稿は消しません。');

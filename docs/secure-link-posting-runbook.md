@@ -6,35 +6,47 @@ Status: implemented on `feature/secure-link-posting`, **all flags OFF by default
 
 | Name | Kind | Default | Effect |
 |---|---|---|---|
-| `LINKS_POST` | variable | unset (OFF) | `1` = authenticated timeline notes/replies may carry one HTTPS link. Also requires `SANCTIONS_ON=1`, a valid `EMAIL_HMAC_KEY` and `WEBRISK_API_KEY`; otherwise link posts are refused (503) and plain posts are unaffected. |
-| `LINKS_CLICK` | variable | unset (OFF) | `1` = `POST /api/links/:id/open` returns the destination after re-checking visibility, state and a fresh verdict. OFF = every link is inert text. |
-| `SANCTIONS_ON` | variable | unset (OFF) | `1` = admin can create sanctions; the verified-email registry (HMAC hashes) starts recording. **Existing active sanctions are enforced regardless of this flag.** |
-| `WEBRISK_API_KEY` | secret | unset | Google Cloud Web Risk Lookup API key. Sent only in the `x-goog-api-key` header to the fixed endpoint `https://webrisk.googleapis.com/v1/uris:search`. Never returned to clients or logged. |
-| `EMAIL_HMAC_KEY` | secret | unset | ≥32 chars. HMAC-SHA-256 key for normalized verified emails. Shorter values are treated as missing. |
-| `EMAIL_HMAC_KEY_VER` | variable | `v1` | Label stored with each hash. |
-| `EMAIL_HMAC_KEY_PREV` / `EMAIL_HMAC_KEY_PREV_VER` | secret / variable | unset / `v0` | Previous key during rotation (see §3). |
-| `LINKS_WEBRISK_DAY` | variable | `5000` | Global daily cap on provider calls (atomic counter in D1). |
-| `LINKS_WEBRISK_MS` | variable | `3000` | Provider timeout (clamped 500–5000 ms). |
-| `LINKS_CLEAN_TTL_MIN` | variable | `30` | Local maximum lifetime of a "no match" verdict (clamped 5–60 min). |
+| `LINKS_POST` | variable | unset (OFF) | `1` = authenticated timeline notes/replies may carry one HTTPS link. Also requires `SANCTIONS_ON=1`, a valid email keyring with a current version, and `WEBRISK_API_KEY`; otherwise link posts are refused (503) and plain posts are unaffected. |
+| `LINKS_CLICK` | variable | unset (OFF) | `1` = links can be opened through the two-step `open` → `go` flow. OFF = feeds return `state:"off"` (host only) and both endpoints return 403 `inert`. |
+| `SANCTIONS_ON` | variable | unset (OFF) | `1` = admins can create case records and sanctions; verified-email hashes start being recorded. **Active sanctions are enforced regardless of this flag.** |
+| `WEBRISK_API_KEY` | secret | unset | Google Cloud Web Risk key, sent only in the `x-goog-api-key` header to the fixed endpoint `https://webrisk.googleapis.com/v1/uris:search`. Never returned or logged. |
+| `EMAIL_HMAC_KEYRING` | secret | unset | JSON `{"<version>":"<key ≥32 chars>", …}` (≤8 versions, version = `[A-Za-z0-9_-]{1,16}`). **All versions still referenced must stay in the ring.** |
+| `EMAIL_HMAC_KEY_CURRENT` | variable | — | Version used for new hashes. Must exist in the ring, or the ring is treated as invalid. |
+| `EMAIL_HMAC_KEY` / `_VER`, `EMAIL_HMAC_KEY_PREV` / `_PREV_VER` | secret / variable | unset / `v1` / `v0` | Legacy single-key form; merged into the ring (`EMAIL_HMAC_KEY` is current unless `EMAIL_HMAC_KEY_CURRENT` says otherwise). |
+| `LINKS_WEBRISK_DAY` | variable | `5000` | Global daily cap on provider calls (atomic D1 counter, reserved only after a lease is held). |
+| `LINKS_WEBRISK_CONC` | variable | `4` | Global concurrent provider calls (1–16), enforced by D1 lease rows shared by every isolate. |
+| `LINKS_WEBRISK_MS` | variable | `3000` | Provider timeout (500–5000 ms). A lease expires at timeout + 2 s, so a crashed isolate's lease is recovered automatically. |
+| `LINKS_CLEAN_TTL_MIN` | variable | `30` | Lifetime of a "no match" verdict (5–60 min). Unsafe verdicts: provider `expireTime`, clamped to 10 min–24 h. |
 
 No new binding is required; all new tables live in the existing D1 (`DB`).
 
 ## 2. Enabling (only after the release gates)
-1. Set `EMAIL_HMAC_KEY` (random, ≥32 chars) and `WEBRISK_API_KEY` as **secrets**.
-2. `SANCTIONS_ON=1` first; observe for a day (email hashes recorded for verified sign-ins on writes and `GET /api/me`).
+1. Create the keyring as a secret (`EMAIL_HMAC_KEYRING`, random keys ≥32 chars) and set `EMAIL_HMAC_KEY_CURRENT`. Set `WEBRISK_API_KEY`.
+2. `SANCTIONS_ON=1` first and check the admin tab「リンク・利用停止の記録」: the key-status banner must be absent (`health.ok`).
 3. `LINKS_CLICK=1`, then `LINKS_POST=1`. `GET /api/links/config` must return `{"post":true,"click":true}`.
 4. Apply the approved rules/privacy text (§5) in the same release.
 
-## 3. Rollback / kill switch
-* **Stop new links**: unset `LINKS_POST`. Old clients and the composer return to the legacy behaviour (inline URLs rejected by the existing filter; an explicit `url` field is rejected, never silently dropped). Existing posts and `note_links` rows are kept.
-* **Stop opening links**: unset `LINKS_CLICK`. All links render as inert text immediately (server refuses `open`; the UI turns the button inert on 403/410).
-* **Never** delete `sanctions`, `sanction_events`, `note_links`, `link_events` to roll back. Unsetting `SANCTIONS_ON` stops *creating* sanctions and recording email hashes; it does **not** lift active sanctions (enforcement is independent of the flag, by design).
-* To lift one sanction: admin tab「リンク・利用停止の記録」→ 取り消す (reason + confirmation; writes `sanction_events`). The legacy `/api/admin/ban {on:false}` only removes the *manual* ban (`banned=1`); if an active sanction exists the account stays at `banned=2`.
-* Mixed versions: an old site against the new Worker ignores `ulink` and never sends `url`; a new site against an old Worker gets 404 for `/api/links/config` → link UI hidden. Old Worker + new tables: tables are additive; old code ignores them.
-* Key rotation: set new key as `EMAIL_HMAC_KEY` (+`_VER`), move old to `EMAIL_HMAC_KEY_PREV` (+`_PREV_VER`). Matches on the old key are copied forward under the new key automatically (`source='rekey'`). After all relevant hashes have been re-seen (or after the retention window), remove `_PREV`. Losing the key makes email tombstones unverifiable → authenticated requests fail closed (503) while any email sanction is active; restore the key.
+## 3. Behaviour that operators must know
+* **Opening a link (two steps).** Feeds return only `{host, state}` (`ok` | `off` | `blocked`), never the full URL. `POST /api/links/:id/open` re-checks visibility, state and a fresh verdict (re-reading them after any asynchronous re-check) and returns the URL for the confirmation dialog plus a one-use intent valid 60 s and bound to the viewer and the link's revision. `POST /api/links/:id/go` consumes the intent atomically and re-checks visibility, state, revision, verdict expiry and the flag before returning the URL. The browser opens a blank tab inside the click, clears `opener`, and navigates it through a `no-referrer` meta refresh only after `go` succeeds; on any refusal the tab is closed. If the browser blocks the tab, a native `noopener noreferrer` link is shown for 15 s.
+* **Limits that cannot be removed:** a URL already shown in a dialog (or copied) cannot be revoked from the user's memory; there is an unavoidable race between the final `go` answer and the external navigation; a destination can change after it was checked. "No match" is never presented as "safe".
+* **State changes are revision-guarded.** Every state change on `note_links` increments `rev`. Re-checks (click, report) and admin restore/recheck write only if `rev` is unchanged since they read it; admin quarantine always wins and increments `rev`, invalidating outstanding intents.
+* **Provider budget.** Cache → lease (global, D1) → daily quota → fetch → release. The cache never lets a "clean" answer overwrite an unexpired "unsafe" one or an older answer overwrite a newer one, a concurrent unsafe answer wins, and size is capped at 5000 rows on every write.
+* **Request bounds.** JSON bodies are read as a stream and cancelled at 256 KB (with or without `Content-Length`); only JSON objects are accepted. Malformed bodies count per client (salted IP hash): 30 per 10 min per client, 5000 per 10 min globally, then 429. Link intents (field present or `http(s)://` in text) take the per-UID slot (10 s / 12 per h / 40 per day) before any other check, including malformed ones. Every note insert enforces 15 s / 100 per day inside the INSERT itself, so concurrent plain and link posts cannot exceed it.
+* **Sanctions.** Created only from a case record (`POST /api/admin/cases`: target, kind `attack`|`linked`, summary ≥20 chars, 1–10 references to this site's own records — note, link, link_event, report — that belong to the target; `linked` also needs an active confirmed-attack root). `POST /api/admin/sanctions` needs the open case, rationale ≥20 chars and `confirm:"SANCTION"`; the UID row, email tombstones, audit events, `banned=2` and case status are written in one D1 batch under one immutable `root_key`. Reversal reverses every row with that `root_key` (all re-key copies) in one statement; independent sanctions on the same email keep their own roots. Re-key copies are only inserted while the root is active. Durations: permanent, 90 days default, or 3–6 calendar months in JST with end-of-month clamping (owner approval still required for the default).
+* **Expiry SLA.** Writes by the sanctioned account re-check immediately. Public visibility (`banned=2`) is restored by the hourly cron (`0 * * * *`) and by periodic cleanup, i.e. **within 1 hour** after expiry; the delay errs on the side of still hiding. Manual bans (`banned=1`) are never touched.
+* **Key coverage.** On every authenticated request the gate checks that every key version used by active tombstones is in the ring; if not (or the ring is invalid), logged-in writes and `/api/me*` fail closed with 503 and the admin tab shows the missing versions. Recorded identity hashes whose version is missing block creation of new permanent sanctions. Hashes cannot be recomputed without the plaintext email, which is never stored — so **never remove a key version from the ring on elapsed time alone**; retire a version only when `health` shows nothing references it.
+* **Email reassignment risk.** A permanent email tombstone also blocks any future person who receives the same address from the provider. Appeals go through the contact form; reversal is per root.
+* **Cost.** Measured in tests: a logged-in GET adds 3 D1 queries over an anonymous one (1 pre-existing profile lookup + 2 for sanctions); a plain post uses 8 in total.
 
-## 4. Data model (additive, idempotent `CREATE TABLE IF NOT EXISTS`)
-`note_links` (user link per note; separate from bot `notes.link`), `link_verdicts` (bounded cache, ≤5000 rows), `link_attempts`, `link_clicks`, `link_quota`, `link_events` (no full URLs; host + 16-hex hash prefix + short code; 180 days), `sanctions`, `sanction_events`, `user_emails` (uid ↔ HMAC hash; deleted with the account). `users.banned` gains value `2` = sanction-derived (0 normal, 1 manual).
+## 4. Rollback / kill switch
+* **Stop new links**: unset `LINKS_POST`. Inline URLs are rejected by the legacy filter; an explicit `url` field is rejected, never silently dropped. Existing posts and `note_links` rows are kept.
+* **Stop opening links**: unset `LINKS_CLICK`. Feeds immediately render links inert (`state:"off"`), and `open`/`go` refuse, including dialogs already open. Clients cache `/api/links/config` for up to 5 min, but the server is authoritative.
+* **Never** delete `sanctions`, `sanction_events`, `sanction_cases`, `note_links`, `link_events` to roll back. Unsetting `SANCTIONS_ON` stops creating sanctions and recording hashes; it does **not** lift active sanctions.
+* To lift one sanction: admin tab → 取り消す (reason + confirmation). The legacy `/api/admin/ban {on:false}` only lifts the manual ban; an active sanction keeps `banned=2`.
+* Mixed versions: an old site ignores `ulink` and never sends `url`; a new site against an old Worker gets 404 for `/api/links/config` and hides the link UI. Tables and columns are additive (`CREATE … IF NOT EXISTS`, `ALTER … ADD COLUMN`).
+
+### Data model
+`note_links` (+`rev`), `link_intents`, `link_verdicts` (≤5000), `link_attempts`, `link_clicks`, `link_quota`, `link_leases`, `req_bad`, `link_events` (no full URLs), `sanction_cases`, `sanctions` (+`root_key`, `case_id`; unique `(root_key, ehash)` for email rows and `(root_key)` for UID rows), `sanction_events` (+`root_key`), `user_emails`. `users.banned`: 0 normal, 1 manual, 2 sanction-derived.
 
 ## 5. Policy text drafts (NOT applied — owner/legal approval required)
 These replace the current rule lines on `#/rules` that say links are not allowed, only once approved.
