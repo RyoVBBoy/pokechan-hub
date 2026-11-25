@@ -25,6 +25,9 @@ globalThis.fetch=async(u,o={})=>{u=String(u);OUT.push(u);
     if(md==='defer')return new Promise(res=>WR.pending.push({uri,res}));
     if(md==='clean')return new Response('{}',{status:200});
     if(md==='unsafe')return new Response(JSON.stringify({threat:{threatTypes:['SOCIAL_ENGINEERING'],expireTime:new Date(Date.now()+36e5).toISOString()}}));
+    if(md==='unsafe-3d')return new Response(JSON.stringify({threat:{threatTypes:['MALWARE'],expireTime:new Date(Date.now()+3*864e5).toISOString()}}));
+    if(md==='unsafe-noexp')return new Response(JSON.stringify({threat:{threatTypes:['MALWARE']}}));
+    if(md==='unsafe-badexp')return new Response(JSON.stringify({threat:{threatTypes:['MALWARE'],expireTime:'tomorrow'}}));
     if(md==='unsafe-past')return new Response(JSON.stringify({threat:{threatTypes:['MALWARE'],expireTime:'2000-01-01T00:00:00Z'}}));
     if(md==='error')return new Response('oops',{status:500});
     if(md==='quota')return new Response('{}',{status:429});
@@ -145,7 +148,7 @@ r=await tryLink(C,'https://err-fixture.test-gk.net/page');expect('失敗は覚�
 /* 合言葉がない・1日の回数 */
 {const E=mkEnv({WEBRISK_API_KEY:''});env=E;const X=await mk('uX','xavier');r=await tryLink(X,'https://note.com/nokey');expect('合言葉がなければ閉じる',r[0]===503,r);
   r=await call('/api/notes',{method:'POST',tok:X,body:{body:'ふつう'}});tick();expect('合言葉がなくてもリンクなしは投稿できる',r[0]===200,r)}
-{env=mkEnv({LINKS_WEBRISK_DAY:'2'});await env.DB.prepare('DELETE FROM link_quota').run();const X=await mk('uX','xavier');let s=[];for(const i of [1,2,3]){s.push((await tryLink(X,'https://note.com/day'+i))[0])}
+{env=mkEnv({LINKS_WEBRISK_DAY:'2'});await env.DB.prepare('DELETE FROM link_budget').run();const X=await mk('uX','xavier');let s=[];for(const i of [1,2,3]){s.push((await tryLink(X,'https://note.com/day'+i))[0])}
   expect('1日の安全確認の回数をこえたら閉じる',s[0]===200&&s[1]===200&&s[2]===503,s)}
 {env=mkEnv({SANCTIONS_ON:''});const X=await mk('uX','xavier');r=await tryLink(X,'https://note.com/nosanc');expect('利用停止の記録が止まっていればリンクは付けられない',r[0]===503,r)}
 {env=mkEnv();const X=await mk('uX','xavier',{verified:false});r=await tryLink(X,'https://note.com/unv');expect('メール未確認の人はリンクを付けられない',r[0]===403,r);
@@ -248,7 +251,7 @@ for(const k of Object.keys(WR.mode))if(WR.mode[k]==='defer')delete WR.mode[k];
 
 /* ---------- 7. 同時に外へ送る数（どの isolate でも共通の札）・1日の回数・覚えの順番と上限 ---------- */
 {const w2=(await import(path.join(ROOT,'worker/dist/worker.js')+'?inst=2')).default;
-  const E=mkEnv({LINKS_WEBRISK_CONC:'2'});await E.DB.prepare('DELETE FROM link_quota').run();
+  const E=mkEnv({LINKS_WEBRISK_CONC:'2'});await E.DB.prepare('DELETE FROM link_budget').run();
   const us=[];for(let i=0;i<4;i++)us.push(await mk('uL'+i,'lease'+i));
   WR.mode['lease-fixture']='defer';await clearSlots();tick();const q0=WR.calls.length;
   const ps=us.map((t,i)=>call('/api/notes',{method:'POST',tok:t,body:{body:'L',url:`https://note.com/lease-fixture/${i}`},E,W:i%2?w2:w}));
@@ -256,7 +259,7 @@ for(const k of Object.keys(WR.mode))if(WR.mode[k]==='defer')delete WR.mode[k];
   expect('2つの isolate から4つ同時でも、外へ送るのは2つまで',WR.pending.length===2,WR.pending.length);
   relPend();relPend();const rs=await Promise.all(ps);
   expect('札がとれなかったものは混み合っていると断る（503）',rs.filter(x=>x[0]===200).length===2&&rs.filter(x=>x[0]===503).length===2,rs.map(x=>x[0]));
-  expect('1日の回数は、札をとれたものだけ使う',(await q('SELECT n FROM link_quota'))[0].n===2&&WR.calls.length-q0===2,await q('SELECT * FROM link_quota'));
+  expect('1日・1か月の回数は、札をとれたものだけ使う',(await q('SELECT dn,mn FROM link_budget'))[0].dn===2&&(await q('SELECT dn,mn FROM link_budget'))[0].mn===2&&WR.calls.length-q0===2,await q('SELECT * FROM link_budget'));
   expect('終わったら札を返す',(await q('SELECT COUNT(*) AS c FROM link_leases WHERE expires_at>?',clock))[0].c===0,await q('SELECT * FROM link_leases'));
   delete WR.mode['lease-fixture'];
   await E.DB.prepare(`UPDATE link_leases SET holder='dead',expires_at=?`).bind(clock+36e5).run();
@@ -267,8 +270,9 @@ for(const k of Object.keys(WR.mode))if(WR.mode[k]==='defer')delete WR.mode[k];
   const real=E.DB,Ebad={...E,DB:{prepare:s=>{if(/link_leases/.test(s))throw new Error('down');return real.prepare(s)},batch:l=>real.batch(l)}};
   tick(16e3);await clearSlots();r=await call('/api/notes',{method:'POST',tok:us[1],body:{body:'L',url:'https://note.com/lease3/z'},E:Ebad});expect('札の表を読めなければ閉じる',r[0]===503,r)}
 {const sh=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(x=>x.toString(16).padStart(2,'0')).join('');
-  const U='https://note.com/order/x';const h=await sh('lk|'+U);
-  const id=await mkLink(P,U);
+  const U='https://note.com/order/x';
+  const id=await mkLink(P,U);const h=(await q('SELECT vh FROM note_links WHERE note_id=?',id))[0].vh;
+  expect('覚えの鍵は方針の版ごと（リンクだけのハッシュではない）',h&&h!==await sh('lk|'+U),h);
   await env.DB.prepare(`UPDATE link_verdicts SET verdict='unsafe',types='MALWARE',checked_at=?,expires_at=? WHERE h=?`).bind(clock,clock+36e5,h).run();
   r=await call(`/api/admin/links/${id}`,{method:'POST',admin:'admin-secret-123',body:{action:'recheck',reason:'確かめ直す',confirm:true}});
   const c=(await q('SELECT verdict FROM link_verdicts WHERE h=?',h))[0];
@@ -332,7 +336,7 @@ r=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{kind:'perpetrato
   expect('作る途中で失敗したら、停止・メール・記録・表示のどれも残さない',r[0]===500&&(await q('SELECT COUNT(*) AS c FROM sanctions'))[0].c===c0&&(await q(`SELECT banned FROM users WHERE uid='uZ'`))[0].banned===0,{r,c0})}
 r=await sanc({kind:'perpetrator',case_id:zc});
 expect('確かめた攻撃者：いつまでもの停止＋確認済みメールの記録',r[0]===200&&r[1].permanent&&r[1].email==='recorded'&&/^[0-9a-f]{32}$/.test(r[1].root),r);const zs=r[1].id,zroot=r[1].root;
-r=await sanc({kind:'perpetrator',case_id:zc});expect('同じ確認の記録で2回は停止できない',r[0]===400,r);
+r=await sanc({kind:'perpetrator',case_id:zc});expect('同じ確認の記録で2回は停止できない（409）',r[0]===409&&r[1].conflict,r);
 tick();r=await call('/api/notes',{method:'POST',tok:Z,body:{body:'停止中'}});expect('停止中は投稿できない（前に作ったログインのままでも）',r[0]===403&&r[1].sanction&&r[1].sanction.permanent,r);
 r=await call('/api/media',{method:'POST',tok:Z,raw:'x'});expect('停止中は画像も送れない',r[0]===403,r);
 r=await call('/api/dm/send',{method:'POST',tok:Z,body:{to:'neighbor',body:'hi'}});expect('停止中はメッセージも送れない',r[0]===403,r);
@@ -410,17 +414,21 @@ r=await mkCase('olive',[{t:'note',id:(await call('/api/notes',{method:'POST',tok
   r=await call('/api/me',{method:'POST',tok:await tok('ind-new',{email:'ind@mail.test-gk.net'}),body:{handle:'indnew',name:'N',agree:true}});
   expect('1つを取り消しても、もう1つの停止は残る',r[0]===403,r)}
 /* 関連アカウント（確かめた攻撃者の有効な停止に結びつける。IP だけでは作れない）・暦の月・期限・手動の停止と並ぶとき */
+const postLink=async(t,url)=>{tick();await clearSlots();const x=await call('/api/notes',{method:'POST',tok:t,body:{body:'link',url}});expect('リンクの投稿（根拠用）',x[0]===200,x);return x[1].id};
 const PR=await mk('uPerp','perp',{email:'perp@mail.test-gk.net'});tick();const ppn=(await call('/api/notes',{method:'POST',tok:PR,body:{body:'p'}}))[1].id;
-const pc=await mkCase('perp',[{t:'note',id:ppn}]);const ps=await sanc({kind:'perpetrator',case_id:pc[1].case_id});const proot=ps[1].root;
-const T=await mk('uT','tempo'),M=await mk('uM','manual');tick();const tn=(await call('/api/notes',{method:'POST',tok:T,body:{body:'t'}}))[1].id;tick();const mn=(await call('/api/notes',{method:'POST',tok:M,body:{body:'m'}}))[1].id;
+const ppl=await postLink(PR,'https://note.com/attack/shared');
+const pc=await mkCase('perp',[{t:'note',id:ppn},{t:'link',id:ppl}]);const ps=await sanc({kind:'perpetrator',case_id:pc[1].case_id});const proot=ps[1].root;
+const T=await mk('uT','tempo'),M=await mk('uM','manual');const tl=await postLink(T,'https://note.com/attack/shared'),ml=await postLink(M,'https://note.com/attack/shared');tick();const tn=(await call('/api/notes',{method:'POST',tok:T,body:{body:'t'}}))[1].id;tick();const mn=(await call('/api/notes',{method:'POST',tok:M,body:{body:'m'}}))[1].id;
 r=await mkCase('tempo',[{t:'note',id:tn}],'linked');expect('関連アカウントは、もとの攻撃者の停止を指定しないと作れない',r[0]===400,r);
 r=await mkCase('tempo',[{t:'note',id:tn}],'linked',{related_root:'0'.repeat(32)});expect('ない停止は指定できない',r[0]===400,r);
 r=await mkCase('perp',[{t:'note',id:ppn}],'linked',{related_root:proot});expect('同じ人を関連アカウントにはできない',r[0]===400,r);
-r=await mkCase('tempo',[{t:'note',id:tn}],'linked',{related_root:proot});const tc=r[1].case_id;expect('関連アカウントの確認の記録',r[0]===200,r);
+r=await mkCase('tempo',[{t:'note',id:tn}],'linked',{related_root:proot});expect('ふつうの投稿と攻撃者の停止だけでは関連の根拠にならない',r[0]===400,r);
+{const ol=await postLink(T,'https://note.com/unrelated/page');r=await mkCase('tempo',[{t:'link',id:ol}],'linked',{related_root:proot});expect('ちがう行き先のリンクは関連の根拠にならない',r[0]===400,r)}
+r=await mkCase('tempo',[{t:'link',id:tl}],'linked',{related_root:proot});const tc=r[1].case_id;expect('関連アカウントの確認の記録',r[0]===200,r);
 r=await sanc({kind:'linked',case_id:tc,months:7});expect('期間は3〜6か月',r[0]===400,r);
 r=await sanc({kind:'linked',case_id:tc});
 expect('関連アカウント：はじめは90日・メールは記録しない',r[0]===200&&!r[1].permanent&&Math.round((r[1].expires_at-clock)/864e5)===90&&r[1].email==='none',r);
-r=await mkCase('manual',[{t:'note',id:mn}],'linked',{related_root:proot});const mc=r[1].case_id;
+r=await mkCase('manual',[{t:'link',id:ml}],'linked',{related_root:proot});const mc=r[1].case_id;
 r=await sanc({kind:'temporary',case_id:mc,months:3});expect('3か月の停止',r[0]===200,r);
 await call('/api/admin/ban',{method:'POST',...ADM,body:{handle:'manual'}});
 expect('手動の停止をすると 1',(await q(`SELECT banned FROM users WHERE uid='uM'`))[0].banned===1,'');
@@ -438,7 +446,7 @@ tick();r=await call('/api/notes',{method:'POST',tok:M,body:{body:'x'}});expect('
 r=await call('/api/notes',{method:'POST',tok:PR,body:{body:'x'}});expect('いつまでもの停止は期限で戻らない',r[0]===403,r);
 /* 変数をすべて止めても、有効な停止は守る */
 r=await call('/api/notes',{method:'POST',tok:PR,body:{body:'x'},E:{...env,LINKS_POST:'',LINKS_CLICK:'',SANCTIONS_ON:''}});expect('変数を全部止めても、有効な停止は守る',r[0]===403,r);
-r=await mkCase('tempo',[{t:'note',id:tn}],'linked',{related_root:proot});
+r=await mkCase('tempo',[{t:'link',id:tl}],'linked',{related_root:proot});
 await call(`/api/admin/sanctions/${ps[1].id}/reverse`,{method:'POST',...ADM,body:{reason:'攻撃者の停止を取り消し',confirm:true}});
 r=await sanc({kind:'linked',case_id:r[1].case_id});expect('もとの攻撃者の停止が取り消されていれば、関連アカウントは作れない',r[0]===409,r);
 /* 日本時間の暦の月（月末はその月の最後の日） */
@@ -446,8 +454,10 @@ for(const [start,mo,want] of [['2027-01-31T10:00:00+09:00',3,'2027-04-30T10:00:0
   clock=Date.parse(start);const u=await mk('uMon'+start.slice(0,10),'mon'+start.slice(2,10).replace(/-/g,''));tick(0);
   await env.DB.prepare(`INSERT INTO notes(uid,body,created_at,ip) VALUES(?,?,?,'')`).bind('uMon'+start.slice(0,10),'m',clock).run();const nid=(await q('SELECT MAX(id) AS id FROM notes'))[0].id;
   const PX=await mk('uPx'+start.slice(0,10),'px'+start.slice(2,10).replace(/-/g,''));await env.DB.prepare(`INSERT INTO notes(uid,body,created_at,ip) VALUES(?,?,?,'')`).bind('uPx'+start.slice(0,10),'p',clock).run();
-  const pxn=(await q('SELECT MAX(id) AS id FROM notes'))[0].id;const pxc=await mkCase('px'+start.slice(2,10).replace(/-/g,''),[{t:'note',id:pxn}]);const pxs=await sanc({kind:'perpetrator',case_id:pxc[1].case_id});
-  const c=await mkCase('mon'+start.slice(2,10).replace(/-/g,''),[{t:'note',id:nid}],'linked',{related_root:pxs[1].root});r=await sanc({kind:'linked',case_id:c[1].case_id,months:mo});
+  const pxn=(await q('SELECT MAX(id) AS id FROM notes'))[0].id;
+  for(const [nn,uu] of [[nid,'uMon'+start.slice(0,10)],[pxn,'uPx'+start.slice(0,10)]])await env.DB.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict_at,expires_at,created_at,updated_at,vh) VALUES(?,?,'https://note.com/mon','note.com','ok',?,?,?,?,?)`).bind(nn,uu,clock,clock+36e5,clock,clock,'vh-'+start).run();
+  const pxc=await mkCase('px'+start.slice(2,10).replace(/-/g,''),[{t:'link',id:pxn}]);const pxs=await sanc({kind:'perpetrator',case_id:pxc[1].case_id});
+  const c=await mkCase('mon'+start.slice(2,10).replace(/-/g,''),[{t:'link',id:nid}],'linked',{related_root:pxs[1].root});r=await sanc({kind:'linked',case_id:c[1].case_id,months:mo});
   expect(`暦の月：${start} ＋${mo}か月 → ${want}`,r[0]===200&&r[1].expires_at===Date.parse(want),{got:r[1].expires_at&&new Date(r[1].expires_at+9*3600e3).toISOString(),r});
   void u;void PX}
 /* アカウントを消しても、いつまでもの記録は残る */
@@ -459,6 +469,109 @@ for(const [start,mo,want] of [['2027-01-31T10:00:00+09:00',3,'2027-04-30T10:00:0
 {const D=await mk('uDel3','delthree',{email:'d3@mail.test-gk.net'});tick();await call('/api/notes',{method:'POST',tok:D,body:{body:'x'}});
   r=await call('/api/me/delete',{method:'POST',tok:D,body:{}});expect('ふつうの削除ではメールの対応も消す',r[0]===200&&(await q(`SELECT COUNT(*) AS c FROM user_emails WHERE uid='uDel3'`))[0].c===0,r)}
 
+/* ---------- 13. レビュー2回目（A：安全確認の覚えと回数・B：鍵の印・確認の記録の取りあい・書く文の中の確かめ・決まった時刻の仕事） ---------- */
+{
+const w2=(await import(path.join(ROOT,'worker/dist/worker.js')+'?inst=r2')).default;
+const U1=await mk('uR2a','rtwoa'),U2=await mk('uR2b','rtwob'),U3=await mk('uR2c','rtwoc');
+const wr=()=>WR.calls.length;
+await env.DB.prepare('DELETE FROM link_budget').run();
+/* A1 危険の答えは業者の期限まで（24時間で切らない）・その間は問い合わせない */
+WR.mode['longthreat-fixture']='unsafe-3d';
+r=await tryLink(U1,'https://longthreat-fixture.test-gk.net/x');expect('A1 危険（期限3日）は断る',r[0]===400,r);
+tick(2*864e5);let c0=wr();
+r=await tryLink(U2,'https://longthreat-fixture.test-gk.net/x');expect('A1 2日後も、業者の期限まで覚えた危険で断る（問い合わせない）',r[0]===400&&wr()===c0,{r,d:wr()-c0});
+/* A2 期限のない・形のおかしい・過ぎた期限 */
+WR.mode['noexp-fixture']='unsafe-noexp';c0=wr();
+r=await tryLink(U1,'https://noexp-fixture.test-gk.net/x');expect('A2 危険なのに期限がない＝形がおかしい（閉じる）',r[0]===503,r);
+r=await tryLink(U2,'https://noexp-fixture.test-gk.net/x');expect('A2 形のおかしい答えは覚えない（もう一度問い合わせる）',r[0]===503&&wr()-c0===2,wr()-c0);
+WR.mode['badexp-fixture']='unsafe-badexp';r=await tryLink(U1,'https://badexp-fixture.test-gk.net/x');expect('A2 期限の書き方がおかしい（RFC3339 でない）＝閉じる',r[0]===503,r);
+WR.mode['pastexp-fixture']='unsafe-past';c0=wr();r=await tryLink(U1,'https://pastexp-fixture.test-gk.net/x');expect('A2 期限が過ぎた危険は今回は断る',r[0]===400,r);
+delete WR.mode['pastexp-fixture'];r=await tryLink(U2,'https://pastexp-fixture.test-gk.net/x');expect('A2 過ぎた期限の危険は覚えない（次はもう一度問い合わせる）',r[0]===200&&wr()-c0===2,{r,d:wr()-c0});
+/* A3 同じ行き先の投稿：あとで危険と分かったら、前に問題なしだった投稿も止める（その投稿の期限の前でも） */
+const dupA=(await tryLink(U1,'https://dup-fixture.test-gk.net/page'))[1].id,dupB=(await tryLink(U2,'https://dup-fixture.test-gk.net/page'))[1].id;
+expect('A3 同じ行き先の2つ目は覚えを使う',!!dupA&&!!dupB,{dupA,dupB});
+const dlg=await call(`/api/links/${dupA}/open`,{method:'POST',body:{},ip:IPV});expect('A3 先に確認の画面を開いておく',dlg[0]===200,dlg);
+WR.mode['dup-fixture']='unsafe-3d';
+r=await call(`/api/admin/links/${dupB}`,{method:'POST',admin:'admin-secret-123',body:{action:'recheck',reason:'確かめ直す',confirm:true}});expect('A3 片方を確かめ直して危険と分かる',r[1].verdict==='unsafe',r);
+r=await call(`/api/links/${dupA}/go`,{method:'POST',body:{intent:dlg[1].intent},ip:IPV});expect('A3 開いていた確認の画面の「開く」も止める（共有の危険）',r[0]===410&&r[1].inert,r);
+expect('A3 もう片方も期限の前に危険（押せない）に変わる',(await q('SELECT state FROM note_links WHERE note_id=?',dupA))[0].state==='unsafe',await q('SELECT state,expires_at FROM note_links WHERE note_id=?',dupA));
+const dupC=(await call('/api/notes',{method:'POST',tok:U3,body:{body:'x',url:'https://dup-fixture.test-gk.net/page'}}));
+expect('A3 3つ目の投稿も断る',dupC[0]===400,dupC);
+/* A4 戻すのも、期限内の危険があれば問い合わせずに断る */
+await call(`/api/admin/links/${dupB}`,{method:'POST',admin:'admin-secret-123',body:{action:'quarantine',reason:'確認のため止める',confirm:true}});
+delete WR.mode['dup-fixture'];c0=wr();
+r=await call(`/api/admin/links/${dupB}`,{method:'POST',admin:'admin-secret-123',body:{action:'restore',reason:'誤判定だと思う',confirm:true}});
+expect('A4 期限内の危険は、新しく確かめる指定でも短くしない（戻せない・問い合わせない）',r[0]===409&&r[1].verdict==='unsafe'&&wr()===c0,{r,d:wr()-c0});
+/* A5 1日と1か月の回数（1つの文で同時に。片方だけ減らない）・UTC の月が変われば戻る */
+const bset=(day,dn,month,mn)=>env.DB.prepare(`UPDATE link_budget SET day=?,dn=?,month=?,mn=? WHERE id='webrisk'`).bind(day,dn,month,mn).run();
+const today=new Date(clock).toISOString().slice(0,10),mon=today.slice(0,7);
+await bset(today,0,mon,89999);r=await tryLink(U1,'https://budget-a.test-gk.net/1');expect('A5 1か月の最後の1回は使える',r[0]===200,r);
+r=await tryLink(U1,'https://budget-a.test-gk.net/2');expect('A5 1か月の上限で閉じる',r[0]===503,r);
+await bset(today,3000,mon,10);c0=wr();r=await tryLink(U1,'https://budget-a.test-gk.net/3');
+const bb=(await q(`SELECT dn,mn FROM link_budget`))[0];expect('A5 1日の上限のときは、1か月の回数も減らさない',r[0]===503&&bb.mn===10&&bb.dn===3000&&wr()===c0,bb);
+await bset('2000-01-31',3000,'2000-01',90000);r=await tryLink(U1,'https://budget-a.test-gk.net/4');
+expect('A5 日・月が変われば数え直す（UTC）',r[0]===200&&(await q(`SELECT dn,mn,month FROM link_budget`))[0].mn===1,await q(`SELECT * FROM link_budget`));
+await bset(today,0,mon,90000);tick();r=await call('/api/notes',{method:'POST',tok:U1,body:{body:'回数の上限でもリンクなしは投稿できる'}});expect('A5 上限でもリンクなしは投稿できる',r[0]===200,r);
+await env.DB.prepare('DELETE FROM link_budget').run();
+/* A6 覚えの上限で、期限内の危険は消さない */
+{const ins=[];for(let i=0;i<20;i++)ins.push(env.DB.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'unsafe','MALWARE',?,?)`).bind('uns'+i,clock-1e7,clock+864e5));
+  for(let i=0;i<5100;i++)ins.push(env.DB.prepare(`INSERT OR IGNORE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'clean','',?,?)`).bind('cln'+i,clock-1e6+i,clock+36e5));
+  await env.DB.batch(ins);await tryLink(U2,'https://evict.test-gk.net/x');
+  const nu=(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE h LIKE 'uns%'`))[0].c,tot=(await q(`SELECT COUNT(*) AS c FROM link_verdicts`))[0].c;
+  expect('A6 上限で消すのは問題なしだけ（期限内の危険は残る）・合計は上限まで',nu===20&&tot<=5000,{nu,tot})}
+/* A7 覚えを読めなければ閉じる（リンクなしは使える） */
+{const real=env.DB,E={...env,DB:{prepare:s=>{if(/FROM link_verdicts/.test(s))throw new Error('down');return real.prepare(s)},batch:l=>real.batch(l)}};
+  await clearSlots();tick();r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x',url:'https://cache-down.test-gk.net/'},E});expect('A7 覚えを読めなければリンクは閉じる',r[0]===503,r);
+  tick();r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'覚えが読めなくてもふつうの投稿'},E});expect('A7 覚えが読めなくてもリンクなしは投稿できる',r[0]===200,r)}
+/* B1 同じ版のまま鍵の中身を差しかえた＝閉じる（版の名前がそろっていても） */
+{const KS={v1:EK,v2:'email-hmac-key-test-v2-0123456789abcdef',v3:'email-hmac-key-test-v3-0123456789abcdef',v4:'email-hmac-key-test-v4-0123456789abcdef'};
+  const live=(await q(`SELECT COUNT(*) AS c FROM sanctions WHERE kind='email' AND status='active'`))[0].c;expect('B1 有効なメールの停止がある前提',live>0,live);
+  const Ebad={...env,EMAIL_HMAC_KEY:'',EMAIL_HMAC_KEYRING:JSON.stringify({...KS,v1:'WRONG-material-for-v1-0123456789abcdef'}),EMAIL_HMAC_KEY_CURRENT:'v1'};
+  tick();r=await call('/api/notes',{method:'POST',tok:U1,body:{body:'x'},E:Ebad});expect('B1 同じ版で中身がちがう鍵は閉じる',r[0]===503,r);
+  r=await call('/api/admin/sanctions',{...ADM,E:Ebad});expect('B1 管理画面に「中身がちがう版」を出す（鍵そのものは出さない）',r[1].health.err==='key-mismatch'&&r[1].health.mismatch_versions.includes('v1')&&!JSON.stringify(r[1]).includes('WRONG-material'),r[1].health);
+  r=await call('/api/links/config',{E:Ebad});
+  tick();r=await call('/api/notes',{method:'POST',tok:U1,body:{body:'もとの鍵に戻すと使える'}});expect('B1 もとの鍵に戻すと使える',r[0]===200,r);
+  expect('B1 印は鍵そのものではない（返事にも記録にも鍵が出ない）',!JSON.stringify(await q('SELECT * FROM key_sentinels')).includes(EK),'')}
+/* B2 1つの確認の記録への同時の停止（2つの isolate から）・同じ op の送り直し・根拠や対象が変わったら作らない・もとの停止の取り消し中 */
+{const AT=await mk('uAtk2','attacktwo',{email:'atk2@mail.test-gk.net'});const al=await postLink(AT,'https://note.com/attack2/shared');
+  const ac=await mkCase('attacktwo',[{t:'link',id:al}]);
+  const body={kind:'perpetrator',case_id:ac[1].case_id,rationale:RAT,confirm:'SANCTION'};
+  const rs=await Promise.all([call('/api/admin/sanctions',{method:'POST',...ADM,body}),call('/api/admin/sanctions',{method:'POST',...ADM,body,W:w2})]);
+  expect('B2 同じ確認の記録を2つの isolate から同時に → 1つだけ',rs.filter(x=>x[0]===200).length===1&&rs.filter(x=>x[0]===409).length===1&&(await q(`SELECT COUNT(*) AS c FROM sanctions WHERE case_id=? AND kind='uid'`,ac[1].case_id))[0].c===1,rs.map(x=>x[0]));
+  const win=rs.find(x=>x[0]===200)[1];
+  r=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{...body,op:win.op}});expect('B2 同じ op の送り直しは前の結果（何度送っても1つ）',r[0]===200&&r[1].repeat&&r[1].id===win.id,r);
+  const aroot=win.root;
+  const LK=await mk('uLk2','linktwo');const ll=await postLink(LK,'https://note.com/attack2/shared');
+  const lc=await mkCase('linktwo',[{t:'link',id:ll}],'linked',{related_root:aroot});expect('B2 関連の確認の記録（同じ行き先のリンク）',lc[0]===200,lc);
+  await env.DB.prepare('DELETE FROM note_links WHERE note_id=?').bind(ll).run();
+  r=await sanc({kind:'linked',case_id:lc[1].case_id});expect('B2 根拠が消えていたら停止しない（記録は open のまま）',r[0]===409&&(await q('SELECT status FROM sanction_cases WHERE id=?',lc[1].case_id))[0].status==='open',r);
+  const ll2=await postLink(LK,'https://note.com/attack2/shared');const lc2=await mkCase('linktwo',[{t:'link',id:ll2}],'linked',{related_root:aroot});
+  const GH=await mk('uGhost','ghostone');const gl=await postLink(GH,'https://note.com/attack2/shared');const gc=await mkCase('ghostone',[{t:'link',id:gl}],'linked',{related_root:aroot});
+  await env.DB.prepare(`DELETE FROM users WHERE uid='uGhost'`).run();
+  r=await sanc({kind:'linked',case_id:gc[1].case_id});expect('B2 対象がいなくなっていたら停止しない',r[0]===409,r);
+  r=await sanc({kind:'linked',case_id:lc2[1].case_id});expect('B2 関連アカウントの停止',r[0]===200,r);const lid=r[1].id;
+  tick();r=await call('/api/notes',{method:'POST',tok:LK,body:{body:'x'}});expect('B2 関連アカウントは停止中',r[0]===403,r);
+  r=await call(`/api/admin/sanctions/${win.id}/reverse`,{method:'POST',...ADM,body:{reason:'攻撃者の停止は誤りだった',confirm:true}});
+  expect('B2 もとの攻撃者を取り消すと、結びついた関連の停止は保留（自動で有罪のままにしない）',r[0]===200&&r[1].held===1&&(await q('SELECT status FROM sanctions WHERE id=?',lid))[0].status==='held',r);
+  tick();r=await call('/api/notes',{method:'POST',tok:LK,body:{body:'保留のあいだは止めない'}});expect('B2 保留の停止は効かない',r[0]===200,r);
+  expect('B2 保留の記録',(await q(`SELECT action FROM sanction_events WHERE sanction_id=?`,lid)).some(x=>x.action==='hold_parent_reversed'),'');
+  const LK3=await mk('uLk3','linkthree');const l3=await postLink(LK3,'https://note.com/attack2/shared');
+  r=await mkCase('linkthree',[{t:'link',id:l3}],'linked',{related_root:aroot});expect('B2 取り消された攻撃者には関連の確認の記録を作れない',r[0]===400,r);
+  expect('B2 取り消しと保留のとき Firebase を戻す依頼（決めるのはアダプター）',(await q(`SELECT COUNT(*) AS c FROM fb_outbox WHERE action='enable' AND uid IN ('uAtk2','uLk2')`))[0].c===2,await q(`SELECT uid,action FROM fb_outbox`))}
+/* B3 門を通ったあとに停止が作られた投稿は書かない（書く文の中で確かめる） */
+{const RC=await mk('uRace3','racethree');const real=env.DB;let fired=false;
+  const E={...env,DB:{prepare:s=>{if(!fired&&/^INSERT INTO notes\(uid,body/.test(s.trim())){fired=true;real.prepare(`INSERT INTO sanctions(kind,uid,permanent,starts_at,reason,status,root_key,created_at,updated_at) VALUES('uid','uRace3',1,?,'race test','active','race-root',?,?)`).bind(clock,clock,clock).runSync?.()}return real.prepare(s)},batch:l=>real.batch(l)}};
+  tick();r=await call('/api/notes',{method:'POST',tok:RC,body:{body:'門のあとに停止'},E});
+  expect('B3 門を通ったあとに停止されたら、投稿は書かない（403）',fired&&r[0]===403&&(await q(`SELECT COUNT(*) AS c FROM notes WHERE uid='uRace3'`))[0].c===0,{fired,r})}
+expect('B3 同じ確認済みメールの前からのアカウントは表示も止める',(await q(`SELECT banned FROM users WHERE uid='uShare'`))[0].banned===2,await q(`SELECT banned FROM users WHERE uid='uShare'`));
+/* B3 決まった時刻の仕事の記録（成功・失敗） */
+{await w.scheduled({cron:'0 * * * *',scheduledTime:clock},env,{waitUntil(p){LATER.push(p)}});await settle();
+  const j=(await q(`SELECT * FROM job_runs WHERE name='sanction_sweep'`))[0];expect('B3 期限の見直しの成功を記録',j&&j.last_ok===1&&j.ok_at===clock,j);
+  const real=env.DB,E={...env,DB:{prepare:s=>{if(/^UPDATE users SET banned=0/.test(s.trim()))throw new Error('down');return real.prepare(s)},batch:l=>real.batch(l)}};
+  tick(36e5);await w.scheduled({cron:'0 * * * *',scheduledTime:clock},E,{waitUntil(p){LATER.push(p.catch(()=>{}))}});await settle();
+  const j2=(await q(`SELECT * FROM job_runs WHERE name='sanction_sweep'`))[0];expect('B3 失敗も記録（次の回にもう一度）',j2.last_ok===0&&j2.fails===1&&j2.ok_at===j.ok_at,j2);
+  r=await call('/api/admin/sanctions',ADM);expect('B3 管理画面に仕事の結果',r[1].jobs.some(x=>x.name==='sanction_sweep'),r[1].jobs)}
+}
 /* ---------- 11. 1回のリクエストで増える D1 の問い合わせの数（報告に書く） ---------- */
 {const real=env.DB;let cnt=0;const Ec={...env,DB:{prepare:s=>{cnt++;return real.prepare(s)},batch:l=>real.batch(l)}};
   const QN=Ec.DB;const tl0=(()=>{cnt=0})();void tl0;

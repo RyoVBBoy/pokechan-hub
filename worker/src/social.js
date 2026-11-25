@@ -108,9 +108,10 @@ async function socialRate(db,uid,now){
   return null;
 }
 /* 投稿を書く（15秒に1件・1日100件を、書く文そのものの中で確かめる＝同時に送られても決まりをこえない。数え方は socialRate と同じ） */
-const noteIns=(db,uid,text,now,ip,to,med)=>db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) SELECT ?1,?2,?3,?4,?5,?6
-  WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 RETURNING id`)
-  .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null);
+/* 停止の確かめも同じ文の中で（門を通ったあとに停止が作られても書かない。links.js の noteSancSQL。hs＝このリクエストのトークンの確認済みメールのハッシュ） */
+const noteIns=(db,uid,text,now,ip,to,med,hs=[])=>db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) SELECT ?1,?2,?3,?4,?5,?6
+  WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 ${noteSancSQL(hs.length)} RETURNING id`)
+  .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null,...hs.map(x=>x.h));
 async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
   if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags|me\/bookmarks)/.test(path))return null;
@@ -162,18 +163,24 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     const to=parseInt(body.reply_to,10)>0?parseInt(body.reply_to,10):0;
     const pa=to?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(to).first():null;
     if(to&&!pa)return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404);
-    let r;
+    let r;const hs=GATE_HS.get(req)||[];
     if(lk.link){
       /* 安全確認はいちばん最後（ほかの確かめで断るものは外に送らない）。問題がなければ、投稿とリンクを1つの取引で書く */
       const c=await lkCheckForNote(env,db,meUid,lk.link,now);if(c.error)return J({error:c.error},c.status);
       /* リンクの行は、いま書いた投稿（同じ人・同じ時刻）が本当に書けたときだけ（回数の決まりで書けなければ、リンクも書かない） */
-      const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med),
-        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev) SELECT last_insert_rowid(),?1,?2,?3,'ok','clean',?4,?5,?4,?4,0
-          WHERE changes()=1 AND EXISTS(SELECT 1 FROM notes WHERE id=last_insert_rowid() AND uid=?1 AND created_at=?4) RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp)]);
+      /* last_insert_rowid() は使わない（書けなかったときに前の行の番号が残るため。Miniflare で確かめた）。
+         同じ人・同じ時刻の投稿は15秒の決まりで1つしかないので、それを鍵にする */
+      const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med,hs),
+        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev,vh) SELECT n.id,?1,?2,?3,'ok','clean',?4,?5,?4,?4,0,?6
+          FROM notes n WHERE n.uid=?1 AND n.created_at=?4 AND n.repost_of=0 ORDER BY n.id DESC LIMIT 1 RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,c.t.h)]);
       r=out[1]&&out[1].results&&out[1].results[0];
-    }else r=await noteIns(db,meUid,text,now,ip,to,med).first();
+    }else r=await noteIns(db,meUid,text,now,ip,to,med,hs).first();
     /* 同時に送られて、15秒に1件・1日100件の決まりで書けなかった */
-    if(!r)return J({error:await socialRate(db,meUid,now)||'連続の投稿は15秒あけてください。'},400);
+    if(!r){
+      /* 書けなかった：門のあとに停止が作られたか（同じ文の中の確かめで止まった）・回数の決まりか */
+      const sx=await db.prepare(`SELECT 1 AS x WHERE 1 ${noteSancSQL(hs.length)}`).bind(meUid,null,now,null,null,null,...hs.map(x=>x.h)).first();
+      if(!sx)return J({error:SANC_MSG},403);
+      return J({error:await socialRate(db,meUid,now)||'連続の投稿は15秒あけてください。'},400)}
     if(r&&med.length)await mediaAttach(db,meUid,med.map(x=>x.k),r.id);
     const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
     if(pa&&r){const q=[recount(db,to)];
