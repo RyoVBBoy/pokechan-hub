@@ -1,0 +1,31 @@
+name: Pre-release regression (no deployment)
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/desktop-global-search-20261125]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://pokechan-hub.pages.dev
+      - name: Desktop search and layout
+        run: node tests/navlayout.mjs
+      - name: All regression tests
+        if: ${{ !cancelled() }}
+        run: npm test
