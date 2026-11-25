@@ -69,7 +69,8 @@ raw, tc = open(os.path.join(SRC, 'chart.txt'), encoding='utf-8').read().split('\
 
 # ---- Game Kid/s AI（Stage A）：根拠台帳・計算のリビジョン・計算で名前で特別扱いされるもの ----
 _tcd = json.loads(tc.replace("'", '"'))
-ledger = ai_ledger.build(s, {**eng, 'MD': obj('MD')}, _tcd)
+_nd = json.load(open(os.path.join(W, 'ai-field-sources.json'), encoding='utf-8'))['_names_date']
+ledger = ai_ledger.build(s, {**eng, 'MD': obj('MD')}, _tcd, _nd)
 # 計算に使う species.txt の種族値・タイプが、台帳（サイトの RAWDATA）と同じか
 _spx = {int(l.split(',')[0]): l.split(',') for l in sp.strip().split('\n')}
 _chk = 0
@@ -106,7 +107,7 @@ code = (code.replace('__COMMUNITY__', open(os.path.join(SRC, 'auth.js'), encodin
 os.makedirs(os.path.join(W, 'dist'), exist_ok=True)
 open(os.path.join(W, 'dist/worker.js'), 'w', encoding='utf-8').write(code)
 # テスト用：同じ中身に、AI の内部の関数を取り出す口を付けたもの（公開しない）
-open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo};\n')
+open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiRoles,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo};\n')
 open(os.path.join(W, 'dist/ai_meta.json'), 'w', encoding='utf-8').write(json.dumps({'dataRevision': ledger['dataRevision'], 'engineRevision': engine_rev, 'records': len(ledger['recs']), 'entities': len(ledger['ents']), 'special': len(special), 'specialList': special}, ensure_ascii=False))
 print('AI ledger', len(ledger['recs']), 'records', ledger['dataRevision'], engine_rev)
 # dist の中の .js を ES モジュールとして扱う（テストで読み込むため）

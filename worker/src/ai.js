@@ -14,7 +14,7 @@ const AI_LIMITS={maxInputTokens:2000,maxOutputTokens:500,calls:1,timeoutMs:15000
 const AI_LABEL={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_calc:'サイトの計算・推定',site_estimate:'サイトの計算・推定',site_aggregate:'当サイト集計',insufficient:'根拠不足'};
 /* 検証の強さ（弱いほうに合わせてカードの検証状態を決める） */
 const AI_RANK={official:6,ingame:5,external_match:4,site_aggregate:3,site_calc:3,external_single:2,site_estimate:1,insufficient:0};
-const AI_INTENTS=['species_types','species_stats','species_abilities','species_megas','learns_move','move_info','sp_rule','damage_calc','usage_share','party_tool','legality','unknown'];
+const AI_INTENTS=['compare','species_types','species_stats','species_abilities','species_megas','learns_move','move_info','sp_rule','damage_calc','usage_share','party_tool','legality','unknown'];
 const AI_TEMPLATES=['species_types','species_stats','species_abilities','species_megas','learns_move','move_info','sp_rule','damage_calc','usage_share','hold','needs_input','unsupported','unavailable','open_tool'];
 /* 計算に影響しない特性（Stage A で計算を許す特性）。build.py が「計算の関数の中に名前が出てこない」ことを確かめる */
 const AI_CALC_ABILITY_OK=new Set(['pressure','inner-focus','keen-eye','frisk','unnerve','natural-cure','regenerator','shed-skin','synchronize','early-bird','limber','oblivious','own-tempo','insomnia','vital-spirit','cursed-body','pickpocket','big-pecks','tangled-feet','run-away','pickup','illuminate','stench','shield-dust','magma-armor','immunity','sweet-veil','aroma-veil','damp','suction-cups','sticky-hold','rattled','steadfast','anticipation','forewarn','overcoat','weak-armor','cute-charm','poison-point','static','flame-body','effect-spore','rough-skin','gooey','mummy','wandering-spirit','gluttony','cheek-pouch','ripen','harvest','unburden','klutz','quick-feet','surge-surfer']);
@@ -54,7 +54,7 @@ function aiFindEntities(q,L){
     while(i>=0){
       let free=true;for(let j=i;j<i+k.length;j++)if(used[j]){free=false;break}
       const edge=!ascii||((i===0||!/[a-z0-9]/.test(t[i-1]))&&(i+k.length>=t.length||!/[a-z0-9]/.test(t[i+k.length])));
-      if(free&&edge){for(let j=i;j<i+k.length;j++)used[j]=true;found.push({pos:i,key:k,ids:[...L.alias.get(k)]})}
+      if(free&&edge){for(let j=i;j<i+k.length;j++)used[j]=true;found.push({pos:i,end:i+k.length,key:k,ids:[...L.alias.get(k)]})}
       i=t.indexOf(k,i+1);
     }
   }
@@ -64,9 +64,41 @@ function aiFindEntities(q,L){
     const e=L.ents.get(id);let forms=null;
     if(e.kind==='species'&&!e.mega&&e.base){const fl=L.fam.get(aiNorm(e.base))||[];if(fl.length>1&&f.key===aiNorm(e.base))forms=fl}
     if(forms&&out.some(o=>o.forms&&o.pos===f.pos))continue;   /* 同じ名前の姿は1つの候補にまとめる */
-    out.push({ref:forms?forms[0]:id,kind:e.kind,label:forms?L.ents.get(forms[0]).base:e.label,pos:f.pos,forms});
+    out.push({ref:forms?forms[0]:id,kind:e.kind,label:forms?L.ents.get(forms[0]).base:e.label,pos:f.pos,end:f.end,forms});
   }
-  return out.slice(0,AI_MAX_CANDS);
+  return aiRoleHints(t,out.slice(0,AI_MAX_CANDS));
+}
+/* 文の意味から「攻撃する側／受ける側」を決める（名前の後ろの助詞と述語）。どのゲームの台帳でも使う。決まらなければ決めない（ask）
+   Xの〈技〉・Xが・Xで・Xから＝攻撃する側／Xに・Xへ・Xを＝受ける側／Xは …耐える・受ける＝受ける側、Xは …倒せる・与える＝攻撃する側 */
+function aiRoleHints(t,cands){
+  const sp=cands.filter(c=>c.kind==='species'),mv=cands.filter(c=>c.kind==='move');
+  for(const c of sp){
+    const f=t.slice(c.end);let r=null;
+    if(/^の/.test(f)&&mv.some(m=>m.pos===c.end+1))r='attacker';
+    else if(/^(が|で|から)/.test(f))r='attacker';
+    else if(/^(に|へ|を)/.test(f))r='defender';
+    else if(/^は/.test(f)){const rest=f.slice(1);if(/耐え|たえ|受け|うけ|くら|食ら/.test(rest))r='defender';else if(/倒せ|たおせ|与え|あたえ|削れ|けずれ|落とせ/.test(rest))r='attacker'}
+    c.role=r;
+  }
+  /* 「AとBの〈技〉」のように並べただけなら、どちらが攻撃するかは決めない */
+  for(const c of sp){const f=t.slice(c.end);if(/^と/.test(f)){const nx=sp.find(x=>x.pos===c.end+1);if(nx){c.role='and';nx.role='and'}}}
+  return cands;
+}
+/* 役わりが1つずつに決まったか（決まらなければ ambiguous と、選べる組み合わせ） */
+function aiRoles(cands){
+  const sp=cands.filter(c=>c.kind==='species'),u=[...new Map(sp.map(c=>[c.ref,c])).values()];
+  const a=u.filter(c=>c.role==='attacker'),d=u.filter(c=>c.role==='defender');
+  if(u.length>2||u.some(c=>c.role==='and'))return{ambiguous:true,cands:u};
+  if(a.length>1||d.length>1)return{ambiguous:true,cands:u};
+  if(u.length===2){
+    let A=a[0],D=d[0];
+    if(A&&!D)D=u.find(c=>c!==A&&!c.role);
+    if(D&&!A)A=u.find(c=>c!==D&&!c.role);
+    if(!A||!D||A===D)return{ambiguous:true,cands:u};
+    return{attacker:A,defender:D};
+  }
+  if(u.length===1){const c=u[0];return c.role==='defender'?{defender:c}:{attacker:c}}
+  return{};
 }
 function aiEvidenceOut(r,L){
   L=L||aiLedger();const s=L.src[r.sourceRef.slice(4)]||null;
@@ -79,7 +111,7 @@ const AI_CALC_SPECIES_NG=new Set([681,964]);  /* 戦闘中に姿が変わる（�
 /* 台帳だけで答えるゲーム別アダプターの共通部分。ほかのゲームの台帳・ツールには決して流さない */
 function aiMakeAdapter(gameId,getL,o){
   o=o||{};
-  return{gameId,ledger:getL,
+  return{gameId,ledger:getL,fmtWords:o.fmtWords||null,formatDependent:i=>(o.fmtDep||[]).includes(i),
     getCapabilities:o.caps||(()=>({intents:[],formats:['single','double']})),
     resolveScope(req){
       const L=getL(),man=L.man||{rulesets:[],current:null};
@@ -99,8 +131,9 @@ function aiMakeAdapter(gameId,getL,o){
     runTool(name,input,scope,env){if(scope.gameId!==gameId)return{ok:false,err:'tool_unknown'};const f=(o.tools||{})[name];return f?f(input,scope,env):{ok:false,err:'tool_unavailable'}}
   };
 }
+const AI_FMT_LABEL={single:'シングル',double:'ダブル'};
 const AI_ADAPTERS={
-  pokechamp:aiMakeAdapter('pokechamp',aiLedger,{engineRev:AI_ENGINE_REV,tools:{calc:(i,s)=>aiCalc(i,s),usage:(i,s,e)=>aiUsage(i,s,e)},
+  pokechamp:aiMakeAdapter('pokechamp',aiLedger,{engineRev:AI_ENGINE_REV,fmtDep:['damage_calc','usage_share','party_tool'],fmtWords:{single:/シングル/,double:/ダブル/},tools:{calc:(i,s)=>aiCalc(i,s),usage:(i,s,e)=>aiUsage(i,s,e)},
     caps:()=>({intents:AI_INTENTS.filter(x=>x!=='unknown'),formats:['single','double'],
         calc:{contract:'calc-a1',engineRevision:AI_ENGINE_REV,conditions:['通常の姿（メガシンカ・戦闘中の姿の変化なし）','ランク0','HP満タン','天気・場・状態異常・壁なし','持ち物なし','急所なし','相性が等倍','単体を攻撃する、威力が決まった1回だけ当たる技','計算に影響しない特性だけ'],
           abilities:[...AI_CALC_ABILITY_OK].filter(k=>ABN[k]).sort()},
@@ -195,7 +228,8 @@ const MockProvider={
     if(mode==='usage_unknown')return{ok:false,errorKind:'network',usage:{known:false}};
     const q=String(input.question),cs=input.candidates,usage={input:aiTokEst(JSON.stringify(input)),output:96,known:true};
     let intent='unknown';
-    const R=[[/ダメージ|確定|何発|乱数|削れ/,'damage_calc'],[/使用率|よく使われ|採用率/,'usage_share'],[/診断|選出|構築|パーティ/,'party_tool'],
+    const nsp=new Set(cs.filter(c=>c.kind==='species').map(c=>c.ref)).size;
+    const R=[[/どっち|どちら|比べ|比較|vs|ＶＳ|より強/i,nsp>=2?'compare':'unknown'],[/ダメージ|確定|何発|乱数|削れ|倒せ|耐え/,'damage_calc'],[/使用率|よく使われ|採用率/,'usage_share'],[/診断|選出|構築|パーティ/,'party_tool'],
       [/使える|使用可能|レギュ|禁止|ルール上/,'legality'],[/覚え/,'learns_move'],[/能力ポイント|\bap\b|ＡＰ|努力値/i,'sp_rule'],
       [/種族値|ステータス|能力値/,'species_stats'],[/タイプ/,'species_types'],[/特性/,'species_abilities'],[/メガ/,'species_megas'],[/威力|命中|分類|優先度/,'move_info']];
     for(const [re,k] of R)if(re.test(q)){intent=k;break}
@@ -203,7 +237,8 @@ const MockProvider={
     if(['species_types','species_stats','species_abilities','species_megas','usage_share','legality'].includes(intent)&&sp[0])refs.species=sp[0].ref;
     if(intent==='learns_move'){if(sp[0])refs.species=sp[0].ref;if(mv[0])refs.move=mv[0].ref}
     if(intent==='move_info'&&mv[0])refs.move=mv[0].ref;
-    if(intent==='damage_calc'){if(sp[0])refs.attacker=sp[0].ref;if(sp[1])refs.defender=sp[1].ref;if(mv[0])refs.move=mv[0].ref}
+    if(intent==='damage_calc'){const ro=aiRoles(cs);if(!ro.ambiguous){if(ro.attacker)refs.attacker=ro.attacker.ref;if(ro.defender)refs.defender=ro.defender.ref}if(mv[0])refs.move=mv[0].ref}
+    if(intent==='compare')sp.slice(0,2).forEach((c,i)=>refs[i?'defender':'attacker']=c.ref);
     if(intent==='party_tool')refs.tool=/選出/.test(q)?'select':/構築/.test(q)?'build':'diag';
     let plan={intent,refs};
     if(mode==='bad_ids')plan={intent:intent==='unknown'?'species_types':intent,refs:{species:'sp:999999'}};
@@ -245,6 +280,9 @@ async function aiCompose(ad,scope,plan,cands,body,env){
   const formCheck=(k)=>{const id=pick(k);if(!id)return{need:k};const c=cands.find(x=>x.ref===id);if(!ti[k]&&c&&c.forms)return{need:k,choices:c.forms};return{id}};
   const i=plan.intent;
   if(i==='unknown')return{status:'unsupported',reasonCode:'intent_unsupported',cards:[aiCard('unsupported',{reasonCode:'intent_unsupported'},[],'insufficient')]};
+  if(i==='compare'){const ids=cands.filter(c=>c.kind==='species').map(c=>c.ref).filter((v,k,a)=>a.indexOf(v)===k).slice(0,2);
+    const nos=ids.map(x=>+x.slice(3));
+    return{status:'unsupported',reasonCode:'compare_unsupported',nextAction:{kind:'open_tool',tool:'compare',route:'#/cmp/'+nos.join('-')},cards:[aiCard('unsupported',{reasonCode:'compare_unsupported',tool:'compare',names:ids.map(x=>L.ents.get(x).label)},[],'insufficient')]};}
   if(i==='party_tool'){const tool=plan.refs.tool||'diag';return{status:'needs_input',reasonCode:'local_tool_result',nextAction:{kind:'open_tool',tool},cards:[aiCard('open_tool',{tool},[],'site_calc')]}}
   if(i==='legality'){
     return{status:'insufficient_evidence',reasonCode:'ruleset_unverified',cards:[aiHold('ruleset_unverified',{rulesetId:scope.rulesetId})],evidence:[...out.evidence.values()]};
@@ -293,8 +331,24 @@ async function aiCompose(ad,scope,plan,cands,body,env){
   if(i==='damage_calc'){
     const c=body.toolInput&&body.toolInput.calc;
     const merged={...(c||{})};
-    if(!merged.attacker&&plan.refs.attacker)merged.attacker={id:plan.refs.attacker};
-    if(!merged.defender&&plan.refs.defender)merged.defender={id:plan.refs.defender};
+    /* 攻撃する側・受ける側は文の意味（aiRoles）で決め、模擬AIの答えと食い違えば決めない。決まらなければ選んでもらう */
+    const ro=aiRoles(cands),lab=x=>L.ents.get(x)?L.ents.get(x).label:'';
+    if(!merged.attacker||!merged.defender){
+      if(ro.ambiguous&&!merged.attacker&&!merged.defender){const u=ro.cands.slice(0,3),opts=[];
+        for(const x of u)for(const y of u)if(x!==y)opts.push({attacker:x.ref,defender:y.ref,label:`${lab(x.ref)} → ${lab(y.ref)}`});
+        return{status:'needs_input',reasonCode:'roles_ambiguous',nextAction:{kind:'choose_roles',options:opts,move:plan.refs.move||null},cards:[aiCard('needs_input',{field:'roles',options:opts},[],'insufficient')]}}
+      const pa=plan.refs.attacker,pd=plan.refs.defender;
+      if((pa&&ro.attacker&&pa!==ro.attacker.ref)||(pd&&ro.defender&&pd!==ro.defender.ref))
+        return{status:'needs_input',reasonCode:'roles_ambiguous',nextAction:{kind:'choose_roles',options:[],move:plan.refs.move||null},cards:[aiCard('needs_input',{field:'roles',options:[]},[],'insufficient')]};
+      const A=ro.attacker,D=ro.defender;
+      for(const [k,x] of [['attacker',A],['defender',D]]){
+        if(merged[k]||!x)continue;
+        /* 同じ名前の姿（ウインディ／ウインディ（ヒスイ）など）は決めない */
+        if(x.forms)return{status:'needs_input',reasonCode:'form_ambiguous',nextAction:{kind:'choose',field:k,choices:x.forms.map(id=>({ref:id,label:lab(id)})),keep:{attacker:merged.attacker||(k!=='attacker'&&A&&!A.forms?{id:A.ref}:null),defender:merged.defender||(k!=='defender'&&D&&!D.forms?{id:D.ref}:null),move:merged.move||plan.refs.move||null}},
+          cards:[aiCard('needs_input',{field:k,choices:x.forms.map(id=>({ref:id,label:lab(id)}))},[],'insufficient')]};
+        merged[k]={id:x.ref};
+      }
+    }
     if(!merged.move&&plan.refs.move)merged.move=plan.refs.move;
     const ck=aiCalcCheck(merged,scope);
     if(ck.need)return{status:'needs_input',reasonCode:'calc_input_missing',nextAction:{kind:'calc_form',need:ck.need,prefill:{attacker:merged.attacker&&merged.attacker.id||null,defender:merged.defender&&merged.defender.id||null,move:merged.move||null}},
@@ -452,7 +506,7 @@ function aiValidBody(b){
   if(!b||typeof b!=='object'||Array.isArray(b))return'body_invalid';
   if(Object.keys(b).some(k=>!AI_BODY_KEYS.includes(k)))return'field_unknown';
   if(typeof b.gameId!=='string'||!/^[a-z0-9_-]{1,32}$/.test(b.gameId))return'game_invalid';
-  if(b.format!=='single'&&b.format!=='double')return'format_invalid';
+  if(b.format!==undefined&&b.format!==null&&b.format!=='single'&&b.format!=='double')return'format_invalid';
   if(b.requestedRulesetId!==undefined&&b.requestedRulesetId!==null&&(typeof b.requestedRulesetId!=='string'||!/^[A-Za-z0-9-]{1,16}$/.test(b.requestedRulesetId)))return'ruleset_invalid';
   if(typeof b.question!=='string'||!b.question.trim())return'question_missing';
   if([...b.question].length>AI_MAX_Q)return'question_too_long';
@@ -495,8 +549,8 @@ async function aiApi(req,env,u,ctx){
   let uidH;try{uidH=await aiHmac(env,'u|'+me.uid)}catch(e){return AE(503,'config_missing')}
   let plan;try{plan=await aiPlanOf(db,uidH,now)}catch(e){return AE(503,'ai_db_unavailable')}
   if(path==='/api/ai/v1/context'){
-    const gid=u.searchParams.get('gameId')||'',fmt=u.searchParams.get('format')||'single';
-    if(!/^[a-z0-9_-]{1,32}$/.test(gid)||(fmt!=='single'&&fmt!=='double'))return AE(400,'query_invalid');
+    const gid=u.searchParams.get('gameId')||'',fmt=u.searchParams.get('format')||null;
+    if(!/^[a-z0-9_-]{1,32}$/.test(gid)||(fmt!==null&&fmt!=='single'&&fmt!=='double'))return AE(400,'query_invalid');
     let usage;try{usage=await aiUsageOf(db,uidH,plan,cfg,now)}catch(e){return AE(503,'ai_db_unavailable')}
     const ad=AI_ADAPTERS[gid];
     if(!ad)return AJ({status:'unsupported',reasonCode:'game_unsupported',enabled:true,usage});
@@ -506,7 +560,7 @@ async function aiApi(req,env,u,ctx){
   /* 6) 質問の形 */
   const rb=await aiReadBody(req);if(rb.err)return AE(rb.err[0],rb.err[1]);
   const body=rb.j,bad=aiValidBody(body);if(bad)return AE(400,bad);
-  const rid=body.requestId,inp={gameId:body.gameId,format:body.format,requestedRulesetId:body.requestedRulesetId||null,question:body.question.normalize('NFKC').trim(),toolInput:body.toolInput||null};
+  const rid=body.requestId,inp={gameId:body.gameId,format:body.format||null,requestedRulesetId:body.requestedRulesetId||null,question:body.question.normalize('NFKC').trim(),toolInput:body.toolInput||null};
   const inH=await aiHmac(env,'i|'+uidH+'|'+aiCanon(inp));
   const replay=ex=>{if(ex.in_h!==inH)return AE(409,'request_id_reused');
     if(ex.state==='done'&&ex.resp){let j;try{j=JSON.parse(ex.resp)}catch(e){j=null}if(j)return AJ({...j,replayed:true})}
@@ -517,10 +571,13 @@ async function aiApi(req,env,u,ctx){
   const ad=AI_ADAPTERS[body.gameId];
   let usage0;try{usage0=await aiUsageOf(db,uidH,plan,cfg,now)}catch(e){return AE(503,'ai_db_unavailable')}
   if(!ad)return AJ({status:'unsupported',scope:{gameId:body.gameId},cards:[aiCard('unsupported',{reasonCode:'game_unsupported'},[],'insufficient')],evidence:[],reasonCode:'game_unsupported',usage:usage0,requestId:rid});
-  const sc=ad.resolveScope({format:body.format,requestedRulesetId:body.requestedRulesetId});
+  /* 形式は、指定が無ければ質問の言葉から（アダプターの fmtWords。両方・どちらも無ければ決めない） */
+  let fmt0=body.format||null;
+  if(!fmt0&&ad.fmtWords){const hit=Object.entries(ad.fmtWords).filter(([f,re])=>re.test(inp.question)).map(x=>x[0]);if(hit.length===1)fmt0=hit[0]}
+  const sc=ad.resolveScope({format:fmt0,requestedRulesetId:body.requestedRulesetId});
   if(sc.error)return AJ({status:'unsupported',scope:{gameId:body.gameId,format:body.format},cards:[aiCard('unsupported',{reasonCode:sc.error},[],'insufficient')],evidence:[],reasonCode:sc.error,usage:usage0,requestId:rid});
   const scope=sc.scope,cands=ad.resolveEntities(inp.question);
-  const pin={question:inp.question,candidates:cands.map(c=>({ref:c.ref,kind:c.kind,label:c.label})),intents:AI_INTENTS,templates:AI_TEMPLATES};
+  const pin={question:inp.question,candidates:cands.map(c=>({ref:c.ref,kind:c.kind,label:c.label,pos:c.pos,end:c.end,role:c.role||null})),intents:AI_INTENTS,templates:AI_TEMPLATES};
   const tin=aiTokEst(JSON.stringify(pin));
   if(tin>AI_LIMITS.maxInputTokens)return AE(400,'input_budget');
   /* 8) 頻度の上限（会員・IP・全体）→ 予約 */
@@ -534,7 +591,8 @@ async function aiApi(req,env,u,ctx){
     if(Math.random()<.02)ctx&&ctx.waitUntil&&ctx.waitUntil(aiPurge(db,now).catch(()=>{}));
   }catch(e){return AE(503,'ai_db_unavailable')}
   const lim=aiLimits(cfg,plan);
-  let rv;try{rv=await aiReserve(db,{uidH,rid,inH,plan,lim,cfg,max,provider:prov.id,model:prov.model,priceId:price.id,now})}catch(e){return AE(503,'ai_db_unavailable')}
+  /* 予約の時刻は、受け付けた時刻ではなく予約した時刻（処理中の期間を正しく残すため） */
+  let rv;try{rv=await aiReserve(db,{uidH,rid,inH,plan,lim,cfg,max,provider:prov.id,model:prov.model,priceId:price.id,now:Date.now()})}catch(e){return AE(503,'ai_db_unavailable')}
   if(!rv.ok){
     if(rv.dup)return replay(rv.dup);
     if(rv.limit==='budget')return AE(503,'budget_exhausted');
@@ -553,6 +611,9 @@ async function aiApi(req,env,u,ctx){
   const plan2=aiCheckPlan(g.plan,pin.candidates);
   let res;
   if(!plan2)res={status:'unavailable',reasonCode:'plan_invalid',cards:[aiCard('unavailable',{reasonCode:'plan_invalid'},[],'insufficient')],evidence:[]};
+  /* 形式で答えが変わる質問で形式が無ければ、答えずに形式だけ聞く（枠は使わない）。どのゲームでも同じ流れ（アダプターの formatDependent・getCapabilities().formats） */
+  else if(!scope.format&&ad.formatDependent&&ad.formatDependent(plan2.intent)){const fm=(ad.getCapabilities().formats||[]);
+    res={status:'needs_input',reasonCode:'format_missing',nextAction:{kind:'choose',field:'format',choices:fm.map(f=>({ref:f,label:AI_FMT_LABEL[f]||f}))},cards:[aiCard('needs_input',{field:'format',choices:fm.map(f=>({ref:f,label:AI_FMT_LABEL[f]||f}))},[],'insufficient')],evidence:[]}}
   else{try{res=await aiCompose(ad,scope,plan2,cands,body,env)}catch(e){res={status:'unavailable',reasonCode:'compose_failed',cards:[aiCard('unavailable',{reasonCode:'compose_failed'},[],'insufficient')],evidence:[]}}}
   res.evidence=res.evidence||[];
   res.scope=scope;

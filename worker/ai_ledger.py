@@ -5,7 +5,7 @@ sourceType・sourceRef・checkedAt・validFrom・validTo・status）。出典の
 VERIFIED_BAKED（組み込み済みの確認結果）だけから決める。ブラウザーの localStorage（pcverify）による昇格は使わない。
 検査：スキーマ・ID の重複・出典の参照切れ・値の型・SRC との食い違い。どれかが合わなければ組み立てを止める。
 """
-import hashlib, json, re
+import hashlib, json, os, re
 
 GAME = 'pokechamp'
 SOURCE_TYPES = ('official', 'ingame', 'external_match', 'external_single', 'site_calc', 'site_aggregate', 'site_estimate')
@@ -48,7 +48,7 @@ def _baked(s):
     return {int(k): v for k, v in json.loads(t).items()}
 
 
-def build(s, eng, tc):
+def build(s, eng, tc, names_date):
     src = _src_manifest(s)
     baked = _baked(s)
     raw = re.search(r'const RAWDATA=`(.*?)`', s, re.S).group(1).strip().split('\n')
@@ -59,10 +59,23 @@ def build(s, eng, tc):
     MV, LSD, ABD, ABN, MD = eng['MV'], eng['LSD'], eng['ABD'], eng['ABN'], eng['MD']
     recs, ents = [], {}
 
-    def add(kind, ent, field, val, sid, st_type=None, checked=None, status='active', scope=None):
-        S = src[sid]
+    pol = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ai-field-sources.json'), encoding='utf-8'))
+    src['names'] = {'id': 'names', 'name': 'PokeAPI（外国語の正式名、tools/gen-names.py）', 'lv': 'single', 'date': names_date,
+                    'refs': [{'name': 'PokeAPI', 'url': 'https://pokeapi.co/'}]}
+
+    def add(kind, ent, field, val, sid=None, st_type=None, checked=None, status='active', scope=None):
+        """項目ごとの出典（ai-field-sources.json）。st_type は ingame（VERIFIED_BAKED）か site_estimate（LS_EST）のときだけ上書き"""
+        p = pol.get(kind + '.' + field)
+        if not p: raise Exception('AI台帳: 出典の表にない項目 ' + kind + '.' + field)
+        sid = p['src']; S = src[sid]; typ = p['type']
+        if st_type in ('ingame', 'site_estimate'): typ = st_type
+        elif st_type: raise Exception('AI台帳: 上書きできない種別 ' + st_type)
+        if p['type'] == 'ingame' and S['lv'] not in ('ingame', 'official'):
+            raise Exception('AI台帳: %s.%s は ingame だが SRC.%s が %s' % (kind, field, sid, S['lv']))
+        if typ == 'ingame' and p['type'] != 'ingame' and not (st_type == 'ingame' and p.get('baked') and checked):
+            raise Exception('AI台帳: 確認の記録なしに ingame にした ' + ent + '#' + field)
         r = {'evidenceId': ent + '#' + field, 'scope': scope or {'gameId': GAME, 'rulesetId': None, 'format': 'formatIndependent'},
-             'entityId': ent, 'field': field, 'typedValue': val, 'sourceType': st_type or LV_TO_TYPE[S['lv']],
+             'entityId': ent, 'field': field, 'typedValue': val, 'sourceType': typ,
              'sourceRef': 'src:' + sid, 'checkedAt': checked or S['date'], 'validFrom': checked or S['date'], 'validTo': None,
              'status': 'unverified' if S['lv'] == 'unverified' and status == 'active' else status, 'kind': kind}
         recs.append(r)
@@ -119,6 +132,7 @@ def build(s, eng, tc):
         eid = 'ab:' + k
         ent('ability', eid, n, [n, names['a'].get(k)], {'key': k})
         add('ability', eid, 'name', n, 'learn')
+        if names['a'].get(k): add('ability', eid, 'name_en', names['a'][k], 'names')
     ent('rule', 'rule:stats', '能力ポイント・実数値', ['能力ポイント', 'ap', 'sp', '努力値'])
     add('rule', 'rule:stats', 'sp_cap', {'total': 66, 'per': 32}, 'formula')
     add('rule', 'rule:stats', 'stat_formula', {'hp': '種族値+ポイント+75', 'other': '(種族値+ポイント+20)×性格補正（1.1倍・0.9倍、切り捨て）'}, 'formula')

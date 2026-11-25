@@ -12,8 +12,15 @@ globalThis.fetch=async u=>{u=String(u);if(u.includes('securetoken@system.gservic
 const mod=await import(path.join(ROOT,'worker/dist/worker_test.js'));
 const w=mod.default,A=mod.__ai;
 const FIX=JSON.parse(fs.readFileSync(path.join(ROOT,'tests/ai-eval/fixed-v1.json'),'utf8'));
-const R={};let bad=0;
-const res=(suite,name,cond,info)=>{(R[suite]=R[suite]||{n:0,ok:0,fail:[]}).n++;if(cond)R[suite].ok++;else{bad++;R[suite].fail.push(name);console.error('NG',suite,name,info!==undefined?JSON.stringify(info).slice(0,400):'')}};
+/* 数え方：ケース＝1つの入力の場面（K で始める。K を使わない res は1つで1ケース）、アサーション＝res 1回 */
+const R={};let bad=0,CUR=null;
+const S0=s=>R[s]=R[s]||{cases:0,okCases:0,n:0,ok:0,fail:[]};
+const K=(suite,name)=>{S0(suite).cases++;CUR={suite,name,ok:true};R[suite].okCases++};
+const res=(suite,name,cond,info)=>{const r=S0(suite);r.n++;
+  if(!CUR||CUR.suite!==suite||CUR.auto){r.cases++;r.okCases++;CUR={suite,name,ok:true,auto:true}}
+  if(cond)r.ok++;else{bad++;r.fail.push(name);if(CUR.ok){CUR.ok=false;r.okCases--}console.error('NG',suite,name,info!==undefined?JSON.stringify(info).slice(0,400):'')}};
+const KE=()=>{CUR=null};
+const FIXED={n:0};
 
 /* ---------- 元データ（AI の台帳を使わずに読む） ---------- */
 const src=JSON.parse(fs.readFileSync(path.join(ROOT,'src/js/order.json'),'utf8')).map(f=>fs.readFileSync(path.join(ROOT,'src/js',f),'utf8')).join('');
@@ -23,16 +30,18 @@ const MEGAP=src.match(/const MEGAP=`(.*?)`/s)[1].trim().split('\n').map(l=>{cons
 const BY=Object.fromEntries([...RAW,...MEGAP].map(p=>[p.no,p]));
 const SRCLV={};for(const m of src.match(/const SRC=\{(.*?)\n\};/s)[1].matchAll(/\n (\w+):\{name:'[^']*',lv:'(\w+)'/g))SRCLV[m[1]]=m[2];
 const BAKED=JSON.parse(src.match(/const VERIFIED_BAKED=(\{[^;\n]*\});/)[1].replace(/([{,])(\w+):/g,'$1"$2":').replace(/'/g,'"'));
-const LVLAB={official:'公式資料',ingame:'実機で確認',multi:'外部参照と一致',single:'外部参照（1出典・未照合）',unverified:'外部参照（1出典・未照合）'};
+const LAB={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_estimate:'サイトの計算・推定'};
+const POL=JSON.parse(fs.readFileSync(path.join(ROOT,'worker/ai-field-sources.json'),'utf8'));
 const SRCURLS=new Set([...src.match(/const SRC=\{(.*?)\n\};/s)[1].matchAll(/'(https:\/\/[^']+)'/g)].map(m=>m[1]));
-/* 根拠1件のラベルが、元の確認段階と同じか */
+const KIND={sp:'species',mv:'move',ab:'ability',rule:'rule',rs:'ruleset'};
+/* 根拠1件のラベルが、項目ごとの出典の表（ai-field-sources.json）と VERIFIED_BAKED どおりか。実機で確認は、確認の記録がある項目だけ */
 function expLabel(e){
   if(e.sourceType==='site_calc')return 'サイトの計算・推定';if(e.sourceType==='site_aggregate')return '当サイト集計';
-  const sid=e.sourceRef.replace(/^src:/,''),no=+String(e.entityId).replace(/^sp:/,'');
-  if(sid==='stats'&&(e.field==='types'||e.field==='stats')&&BAKED[no]&&BAKED[no][e.field==='types'?'t':'s']===1)return '実機で確認';
-  return LVLAB[SRCLV[sid]];
+  const kind=KIND[String(e.entityId).split(':')[0]],p=POL[kind+'.'+e.field];if(!p)return null;
+  const no=+String(e.entityId).replace(/^sp:/,'');
+  if(p.baked&&BAKED[no]&&BAKED[no][p.baked]===1)return '実機で確認';
+  return LAB[p.type];
 }
-
 /* ---------- 環境 ---------- */
 const users=new Map();
 async function mkEnv(o={}){
@@ -66,6 +75,7 @@ function common(suite,name,j,fmt){
   const env=await mkEnv(BIG);
   let answerable=0,answered=0;
   for(const c of FIX.cases.filter(x=>x.suite==='evidence')){
+    K('evidence',c.id);FIXED.n++;
     const {st,j}=await ask(env,c.q,{format:'single'});const x=c.expect,card=(j.cards||[])[0]||{},s=card.slots||{};
     let ok=st===200&&j.status===x.status;
     if(x.status==='answered'||x.status==='partial'){answerable++;if(ok)answered++;
@@ -84,6 +94,7 @@ function common(suite,name,j,fmt){
     res('evidence',c.id+' '+c.q,ok,{st,status:j.status,reason:j.reasonCode,card});
     if(st===200)common('evidence',c.id,j,'single');
   }
+  KE();
   /* 姿を選び直す（toolInput.entities）と、その姿で答える */
   for(const [q,ref] of [['ウインディのタイプは？','sp:10230'],['ルガルガンの種族値','sp:10126']]){
     const {j}=await ask(env,q,{toolInput:{entities:{species:ref}}});
@@ -97,6 +108,7 @@ function common(suite,name,j,fmt){
 {
   const env=await mkEnv(BIG);
   for(const c of FIX.cases.filter(x=>x.suite==='calc')){
+    K('calc',c.id);FIXED.n++;
     const {st,j}=await ask(env,c.q,{format:c.format,toolInput:{calc:c.calc}});const x=c.expect,card=(j.cards||[]).find(k=>k.templateId==='damage_calc'),s=card&&card.slots;
     if(x.status==='answered'){
       const ok=st===200&&j.status==='answered'&&s&&JSON.stringify(s.rolls)===JSON.stringify(x.rolls)&&s.min===x.min&&s.max===x.max&&s.hp===x.hp&&s.ko.n===x.ko.n&&s.ko.sure===x.ko.sure&&Math.abs(s.ko.p-x.ko.p)<1e-12
@@ -108,6 +120,7 @@ function common(suite,name,j,fmt){
       res('calc',c.id+' 未対応 '+c.q,ok,{st,status:j.status,reason:j.reasonCode});
     }
   }
+  KE();
   /* 対応しない条件の追加：相性が等倍でない（数値を出さない） */
   const neq={attacker:{id:'sp:445',sp:[2,32,0,0,0,32],nature:{up:1,dn:3},ability:'sand-veil'},defender:{id:'sp:6',sp:[2,0,32,0,32,0],nature:{up:-1,dn:-1},ability:'blaze'},move:'mv:89'};
   const chk=A.aiCalcCheck(neq,{format:'single'});res('calc','特性の許可表にない特性は計算しない（すながくれ）',chk.err==='ability_unsupported',chk);
@@ -366,10 +379,100 @@ function common(suite,name,j,fmt){
   const e6=await mkEnv({...BIG,AI_MOCK_DELAY_MS:'30'});
   const rr=await Promise.all(Array.from({length:50},()=>ask(e6,'ガブリアスのタイプ',{uid:'par'})));
   const okN=rr.filter(x=>x.st===200&&x.j.status==='answered').length,conc=rr.filter(x=>x.st===429&&x.j.reasonCode==='quota_concurrent').length;
-  res('quota','同時50件で同じ人は1件だけ受け付ける（Node の SQLite）',okN===1&&conc===49&&await dayCount(e6,'par')===1,{okN,conc});
+  const ph6=await A.aiHmac(e6,'u|par'),iv=(await e6.AI_DB.prepare(`SELECT created_at a,updated_at b FROM ai_requests WHERE uid_h=? ORDER BY created_at`).bind(ph6).all()).results;
+  res('quota','同時50件で同じ人は処理中1件だけ（期間が重ならない・Node の SQLite）',okN>=1&&okN+conc===50&&iv.length===okN&&!iv.some((x,i)=>i>0&&x.a<iv[i-1].b)&&await dayCount(e6,'par')===okN,{okN,conc,iv});
 }
-for(const [k,v] of Object.entries(R))console.log(`  ${k}: ${v.ok}/${v.n}${v.rate?`（回答可能 ${v.rate.answered}/${v.rate.answerable}）`:''}${v.fail.length?' NG: '+v.fail.slice(0,5).join(' / '):''}`);
-const tot=Object.values(R).reduce((a,v)=>a+v.n,0);
+
+/* ================= 7. 追加（2026-11-25 見直し）：形式の確認・役わり・比較・出典の項目ごとの確かめ・既定の利用枠 ================= */
+KE();
+const ask2=(env,question,o={})=>call(env,'/api/ai/v1/answer',{uid:o.uid,body:{gameId:o.gameId||'pokechamp',...(o.format?{format:o.format}:{}),question,requestId:o.rid||rid(),...(o.toolInput?{toolInput:o.toolInput}:{})}});
+const consumed=async(env,uid)=>{const h=await A.aiHmac(env,'u|'+uid);return (await env.AI_DB.prepare(`SELECT COUNT(*) c FROM ai_requests WHERE uid_h=? AND consumed=1`).bind(h).first()).c};
+const calcOk=FIX.cases.find(c=>c.suite==='calc'&&c.expect.status==='answered'&&c.format==='single');
+{ /* --- ツール・使用率（形式の確認つき） --- */
+  const env=await mkEnv(BIG);const now=Date.now();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage_cache(fmt TEXT PRIMARY KEY,data TEXT,at INTEGER)`).run();
+  for(const f of ['single','double'])await env.DB.prepare(`INSERT INTO usage_cache(fmt,data,at) VALUES(?,?,?)`).bind(f,JSON.stringify({fmt:f,days:30,previews:200,users:20,seen:[[445,f==='single'?30:44,1]],v:2,at:now-36e5}),now-36e5).run();
+  let b0=await consumed(env,'tu');let a=await ask2(env,'ガブリアスの使用率は？',{uid:'tu'});
+  K('tools','使用率は形式を聞く（回数を使わない）');res('tools','使用率は形式を聞く',a.j.status==='needs_input'&&a.j.reasonCode==='format_missing'&&a.j.nextAction.choices.map(c=>c.ref).join()==='single,double',a.j);res('tools','形式の確認は回数を使わない',await consumed(env,'tu')===b0);
+  a=await ask2(env,'ガブリアスの使用率は？',{uid:'tu',format:'double'});K('tools','形式を選んで同じ質問を続ける');res('tools','選んだ形式の集計で答える',a.j.status==='answered'&&a.j.cards[0].slots.count===44&&a.j.scope.format==='double',a.j);res('tools','答えたときだけ1回',await consumed(env,'tu')===b0+1);
+  a=await ask2(env,'シングルでのガブリアスの使用率',{uid:'tu'});K('tools','質問の言葉の形式（シングル）');res('tools','質問の言葉の形式で答える',a.j.status==='answered'&&a.j.cards[0].slots.count===30&&a.j.scope.format==='single',a.j);
+  a=await ask2(env,'ダブルのガブリアスの使用率',{uid:'tu'});K('tools','質問の言葉の形式（ダブル）');res('tools','ダブルの言葉',a.j.scope&&a.j.scope.format==='double'&&a.j.cards[0].slots.count===44,a.j);
+  a=await ask2(env,'シングルとダブルのガブリアスの使用率',{uid:'tu'});K('tools','両方の言葉なら決めずに聞く');res('tools','両方なら聞く',a.j.reasonCode==='format_missing',a.j);
+  for(const [q,tool] of [['パーティの診断をして','diag'],['選出は？','select'],['構築を見て','build']]){a=await ask2(env,q,{uid:'tu'});K('tools','診断・選出・構築も形式を聞く：'+tool);res('tools','形式を聞く '+tool,a.j.reasonCode==='format_missing',a.j);
+    a=await ask2(env,q,{uid:'tu',format:'single'});res('tools','形式があれば端末の結果へ '+tool,a.j.reasonCode==='local_tool_result'&&a.j.nextAction.tool===tool&&a.j.scope.format==='single',a.j)}
+  a=await ask2(env,'ガブリアスのタイプは？',{uid:'tu'});K('tools','形式に関係ない質問は形式なしで答える');res('tools','形式なしで答える',a.j.status==='answered'&&a.j.scope.format===null,a.j);
+  a=await ask2(env,'能力ポイントの上限',{uid:'tu'});K('tools','ルールも形式なしで答える');res('tools','ルール',a.j.status==='answered'&&a.j.cards[0].templateId==='sp_rule',a.j);
+  a=await call(env,'/api/ai/v1/context?gameId=pokechamp',{uid:'tu'});K('tools','context は形式なしで開ける');res('tools','context',a.st===200&&a.j.scope.format===null&&a.j.capabilities.formats.join()==='single,double',a.j);
+  a=await ask2(env,'ガブリアスのじしんでカイリューへのダメージ',{uid:'tu'});K('tools','計算も形式を聞く');res('tools','計算の形式',a.j.reasonCode==='format_missing',a.j);
+}
+{ /* --- 保留・ゲーム分離：役わり・姿・比較・どのゲームでも同じ形式の確認 --- */
+  const env=await mkEnv(BIG);let a;
+  const roleQ=[['ガブリアスのじしんでカイリューへのダメージ','sp:445','sp:149'],['カイリューにガブリアスのじしんは何発？','sp:445','sp:149'],['カイリューはガブリアスのじしんを耐える？','sp:445','sp:149'],
+    ['ガブリアスはじしんでカイリューを倒せる？','sp:445','sp:149'],['カイリューのしんそくでガブリアスへのダメージ','sp:149','sp:445']];
+  for(const [q,at,df] of roleQ){a=await ask2(env,q,{format:'single'});K('hold','文の意味で役わり：'+q);
+    res('hold','役わり '+q,a.j.status==='needs_input'&&a.j.reasonCode==='calc_input_missing'&&a.j.nextAction.prefill.attacker===at&&a.j.nextAction.prefill.defender===df,a.j)}
+  for(const q of ['ガブリアスとカイリューのじしんのダメージ','ガブリアス カイリュー じしん ダメージ']){a=await ask2(env,q,{format:'single'});K('hold','役わりが決まらなければ聞く：'+q);
+    res('hold','役わりを聞く '+q,a.j.status==='needs_input'&&a.j.reasonCode==='roles_ambiguous'&&a.j.nextAction.options.length===2&&!/"rolls"/.test(a.text),a.j)}
+  a=await ask2(env,'ガブリアスとカイリューのじしんのダメージ',{format:'single',toolInput:{calc:{attacker:{id:'sp:149'},defender:{id:'sp:445'},move:'mv:89'}}});K('hold','選んだ役わりで続ける');
+  res('hold','選んだ役わり',a.j.reasonCode==='calc_input_missing'&&a.j.nextAction.prefill.attacker==='sp:149'&&a.j.nextAction.prefill.defender==='sp:445',a.j);
+  a=await ask2(env,'ウインディのフレアドライブでカイリューへのダメージ',{format:'single'});K('hold','攻撃する側の姿が決まらなければ聞く');
+  res('hold','攻撃する側の姿',a.j.reasonCode==='form_ambiguous'&&a.j.nextAction.field==='attacker'&&a.j.nextAction.choices.map(c=>c.ref).sort().join()==='sp:10230,sp:59'&&a.j.nextAction.keep.defender.id==='sp:149',a.j);
+  a=await ask2(env,'カイリューのしんそくでケンタロスへのダメージ',{format:'single'});K('hold','受ける側の姿が決まらなければ聞く');
+  res('hold','受ける側の姿',a.j.reasonCode==='form_ambiguous'&&a.j.nextAction.field==='defender'&&a.j.nextAction.choices.length===4,a.j);
+  for(const q of ['ガブリアスとカイリューどっちが強い？','ガブリアスとカイリューを比べて','サーフゴーとガブリアスはどちらが速い？']){a=await ask2(env,q);K('hold','比べる質問は答えない：'+q);
+    res('hold','比較 '+q,a.j.status==='unsupported'&&a.j.reasonCode==='compare_unsupported'&&/^#\/cmp\/\d+-\d+$/.test(a.j.nextAction.route)&&!(a.j.evidence||[]).length,a.j)}
+  a=await ask2(env,'ガブリアスはどっちが強い？');K('hold','1匹だけの「どっち」は比較にしない');res('hold','1匹だけ',a.j.reasonCode!=='compare_unsupported',a.j);
+  /* 架空の第2ゲームでも同じ形式の確認（アダプターの formatDependent・formats だけで動く） */
+  const C2={st:['official','ingame','external_match','external_single','site_calc','site_aggregate','site_estimate'],ss:['active','unverified','conflict','expired'],rev:'dfake2',man:{rulesets:[],current:null},src:{fk:{id:'fk',name:'架空',lv:'official',date:'2026-11-01',refs:[]}},
+    e:{'sp:9001':['species','テストモン',['テストモン'],{base:'テストモン',no:9001}]},r:[['sp:9001','name','テストモン',0,'fk','2026-11-01',0,0,'species'],['sp:9001','types',['みず'],0,'fk','2026-11-01',0,0,'species']]};
+  const L2=A.aiLedgerFrom(C2,'fake2');A.AI_ADAPTERS.fake2=A.aiMakeAdapter('fake2',()=>L2,{fmtDep:['usage_share'],caps:()=>({formats:['ranked','casual']})});
+  a=await ask2(env,'テストモンの使用率',{gameId:'fake2'});K('hold','ほかのゲームでも同じ形式の確認');res('hold','ほかのゲームの形式の選び方',a.j.reasonCode==='format_missing'&&a.j.nextAction.choices.map(c=>c.ref).join()==='ranked,casual'&&a.j.scope.gameId==='fake2',a.j);
+  a=await ask2(env,'テストモンのタイプ',{gameId:'fake2'});K('hold','ほかのゲームの形式に関係ない質問');res('hold','そのまま答える',a.j.status==='answered'&&a.j.cards[0].slots.types[0]==='みず'&&a.j.evidence.every(e=>e.scope.gameId==='fake2'),a.j);
+  a=await ask2(env,'ガブリアスのタイプ',{gameId:'fake2'});K('hold','ほかのゲームに Pokémon Champions の名前は流さない');res('hold','流さない',a.j.status!=='answered'&&!(a.j.evidence||[]).length,a.j);
+  delete A.AI_ADAPTERS.fake2;
+}
+{ /* --- 出典：実機で確認は記録のある項目だけ --- */
+  const L=A.aiLedger();let ing=0,bad1=[];
+  for(const r of L.recs.values()){if(r.sourceType!=='ingame')continue;ing++;const kind=KIND[r.entityId.split(':')[0]],p=POL[kind+'.'+r.field],no=+r.entityId.replace(/^sp:/,'');
+    if(!(p&&(p.type==='ingame'||(p.baked&&BAKED[no]&&BAKED[no][p.baked]===1))))bad1.push(r.evidenceId)}
+  K('evidence','実機で確認は記録のある項目だけ（台帳の全件）');res('evidence','台帳の実機で確認',ing>0&&!bad1.length,bad1.slice(0,5));
+  const env=await mkEnv(BIG);
+  for(const [q,f,lab] of [['じしんの優先度は？','priority','外部参照（1出典・未照合）'],['じしんの威力','power','実機で確認'],['能力ポイントの上限','sp_cap','外部参照（1出典・未照合）']]){
+    const a=await ask2(env,q);K('evidence','項目ごとのラベル：'+f);const e=(a.j.evidence||[]).find(x=>x.field===f);res('evidence','ラベル '+f,e&&e.label===lab,a.j.evidence)}
+  for(const [q,no] of [['カイリューの種族値',149],['ペリッパーの種族値',279]]){const a=await ask2(env,q);K('evidence','種族値の確認の記録 '+no);const e=(a.j.evidence||[]).find(x=>x.field==='stats');
+    res('evidence','種族値 '+no,e&&e.label===(BAKED[no]&&BAKED[no].s===1?'実機で確認':'外部参照（1出典・未照合）'),e)}
+  const a=await ask2(env,'ガブリアスのタイプ');K('evidence','名前は1出典のまま（タイプが実機で確認でも）');const nm=a.j.evidence.find(x=>x.field==='name'),ty=a.j.evidence.find(x=>x.field==='types');
+  res('evidence','名前とタイプのラベル',nm.label==='外部参照（1出典・未照合）'&&ty.label==='実機で確認'&&a.j.cards[0].verificationStatus==='external_single',a.j);
+}
+{ /* --- 防御・障害（形式・役わりの入力） --- */
+  const env=await mkEnv(BIG);let a;
+  for(const f of ['SINGLE','',0,'doubles',['single']]){a=await call(env,'/api/ai/v1/answer',{body:{gameId:'pokechamp',format:f,question:'ガブリアスのタイプ',requestId:rid()}});K('defense','形式の値の誤り '+JSON.stringify(f));res('defense','形式 '+JSON.stringify(f),a.st===400&&a.j.reasonCode==='format_invalid',a.j)}
+  a=await call(env,'/api/ai/v1/context?gameId=pokechamp&format=triple');K('defense','context の形式の誤り');res('defense','context 形式',a.st===400,a.j);
+  a=await ask2(env,'ガブリアスとカイリューのじしんのダメージ',{format:'single',toolInput:{calc:{attacker:{id:'sp:445',role:'x'}}}});K('defense','役わりの入力に知らない項目');res('defense','知らない項目',a.st===400,a.j);
+  a=await ask2(env,'比べて',{format:'single'});K('defense','名前のない比較は比較にしない');res('defense','名前のない比較',a.j.reasonCode!=='compare_unsupported'&&a.st===200,a.j);
+  const rt=await ask2(env,'ガブリアスの使用率');K('defense','形式の確認の返事に内部の情報を含めない');res('defense','内部の情報なし',!/uid_h|in_h|alice|test-only/.test(rt.text),rt.text.slice(0,200));
+}
+{ /* --- 利用枠：既定の無料枠（1日5回・月30回）。設定の上書きなし --- */
+  const env=await mkEnv({AI_RL_USER_MIN:'1000',AI_RL_IP_MIN:'1000'});   /* 頻度の上限だけテストのためにゆるめる。日・月の上限は既定値 */
+  const rr=[];for(let i=0;i<6;i++)rr.push(await ask2(env,'ガブリアスのタイプ',{uid:'d5'}));
+  K('quota','既定：無料は1日5回');res('quota','5回まで答える',rr.slice(0,5).every(x=>x.j.status==='answered')&&rr[4].j.usage.day.limit===5&&rr[4].j.usage.month.limit===30,rr[4].j.usage);res('quota','6回目は 429',rr[5].st===429&&rr[5].j.reasonCode==='quota_day',rr[5].j);
+  const h=await A.aiHmac(env,'u|m30'),now=Date.now(),mon=A.aiMonth(now),today=A.aiDay(now);
+  const other=d=>`${mon}-${String(d).padStart(2,'0')}`;
+  let n=0;for(let d=1;n<29;d++){const day=other(d);if(day===today)continue;for(let k=0;k<5&&n<29;k++,n++)await env.AI_DB.prepare(`INSERT INTO ai_requests(uid_h,rid,in_h,plan,day,month,state,consumed,max_micro,cost_micro,provider,model,price_id,created_at,updated_at) VALUES(?,?,'x','free',?,?,'done',1,450,100,'mock','mock-plan-1','mock-test-1',?,?)`).bind(h,'pre'+n,day,mon,now-1000,now-1000).run()}
+  let a=await ask2(env,'ガブリアスのタイプ',{uid:'m30'});const a2=await ask2(env,'ガブリアスのタイプ',{uid:'m30'});
+  K('quota','既定：無料は月30回');res('quota','30回目は答える',a.j.status==='answered'&&a.j.usage.month.used===30,a.j.usage);res('quota','31回目は月の上限',a2.st===429&&a2.j.reasonCode==='quota_month',a2.j);
+  const b0=await consumed(env,'cl');a=await ask2(env,'ガブリアスのじしんでカイリューへのダメージ',{uid:'cl'});const b1=await consumed(env,'cl');
+  a=await ask2(env,'ガブリアスのじしんでカイリューへのダメージ',{uid:'cl',format:'single'});const b2=await consumed(env,'cl');
+  a=await ask2(env,calcOk.q,{uid:'cl',format:'single',toolInput:{calc:calcOk.calc}});const b3=await consumed(env,'cl');
+  K('quota','形式・条件の確認は回数を使わず、答えたときだけ1回');res('quota','確認は0回',b1===b0&&b2===b0,{b0,b1,b2});res('quota','答えで1回',a.j.status==='answered'&&b3===b0+1,{b3,a:a.j.status});
+  a=await ask2(env,'ガブリアスとカイリューどっちが強い？',{uid:'cl'});K('quota','比較の案内は回数を使わない');res('quota','比較は0回',await consumed(env,'cl')===b3);
+  const e9=await mkEnv({});a=await ask2(e9,'ガブリアスのタイプ',{uid:'rl'});const lim=[];for(let i=0;i<6;i++)lim.push((await ask2(e9,'ガブリアスのタイプ',{uid:'rl'})).st);
+  K('quota','既定：1分あたりの頻度の上限（会員6回）');res('quota','7回目は頻度の上限',lim.includes(429),lim);
+}
+KE();
+for(const [k,v] of Object.entries(R))console.log(`  ${k}: ケース ${v.okCases}/${v.cases}・アサーション ${v.ok}/${v.n}${v.rate?`（回答可能 ${v.rate.answered}/${v.rate.answerable}）`:''}${v.fail.length?' NG: '+v.fail.slice(0,5).join(' / '):''}`);
+console.log(`  固定評価（fixed-v1）: ${FIXED.n}ケース`);
+const tot=Object.values(R).reduce((a,v)=>a+v.n,0),totC=Object.values(R).reduce((a,v)=>a+v.cases,0);
 fs.mkdirSync(path.join(ROOT,'tests/out'),{recursive:true});
-fs.writeFileSync(path.join(ROOT,'tests/out/ai-results.json'),JSON.stringify({total:tot,bad,suites:Object.fromEntries(Object.entries(R).map(([k,v])=>[k,{n:v.n,ok:v.ok,fail:v.fail,rate:v.rate}]))},null,1));
-console.log(bad?`ai: NG（${bad}件 / ${tot}項目）`:`ai: OK（${tot}項目）`);if(bad)process.exitCode=1;
+fs.writeFileSync(path.join(ROOT,'tests/out/ai-results.json'),JSON.stringify({cases:totC,assertions:tot,fixed:FIXED.n,bad,suites:Object.fromEntries(Object.entries(R).map(([k,v])=>[k,{cases:v.cases,okCases:v.okCases,assertions:v.n,ok:v.ok,fail:v.fail,rate:v.rate}]))},null,1));
+console.log(bad?`ai: NG（${bad}件 / ${totC}ケース・${tot}アサーション）`:`ai: OK（${totC}ケース・${tot}アサーション）`);if(bad)process.exitCode=1;
