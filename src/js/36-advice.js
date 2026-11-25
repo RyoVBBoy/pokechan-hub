@@ -72,14 +72,19 @@ function asAdvice(A,PR){
     let choices;
     try{
       B.weather=null;
-      choices=asWithWeather(A.wx,()=>A.back.map(i=>({m:A.M[i],z:dgMatch(A.M[i],threat.o)}))
-        .filter(({m,z})=>z.swIn==='win'&&!dgCalcUnsupported(m).length&&!dgCalcUnsupported(threat.o).length));
+      choices=asWithWeather(A.wx,()=>A.back.flatMap(i=>{
+        const m=A.M[i],cases=A.weatherTies?.[i]?.[threat.j];
+        if(dgCalcUnsupported(m).length||dgCalcUnsupported(threat.o).length)return [];
+        const checks=cases?cases.map(x=>withWeatherKind(x.k,()=>dgMatch(m,threat.o))):[dgMatch(m,threat.o)];
+        if(checks.some(z=>z.swIn!=='win'))return [];
+        return [{m,finish:[...new Set(checks.map(z=>z.me.mvn+dgAccLabel(z.me)))].join('／')}];
+      }));
     }finally{B.weather=before}
     const top=threat.hits[0],n=nm(threat.o),damage=Math.round(top.r.pct),defender=nm(A.M[top.i]);
-    const detail=L(`${defender}に${top.r.mv.n}で約${damage}%の見積もりです。`,
-      `${top.r.mv.n} is estimated to deal about ${damage}% to ${defender}. `);
+    const detail=L(`${defender}に${top.r.mv.n}で約${damage}%の見積もりです${top.weather?`（${top.weather}の場合）`:''}。`,
+      `${top.r.mv.n} is estimated to deal about ${damage}% to ${defender}${top.weather?' in the worse weather case':''}. `);
     if(choices.length){
-      const who=list(choices.map(({m,z})=>`${nm(m)}の${z.me.mvn}${dgAccLabel(z.me)}`));
+      const who=list(choices.map(({m,finish})=>`${nm(m)}の${finish}`));
       add('tip',L(`${n}への交代候補`,`Possible switch-ins against ${n}`),
         detail+L(`計算上は${who}で交代後に倒し切れる候補があります。残りHPと場の条件を確かめてください。`,
           `The matchup calculation identifies ${who} as a potential answer after switching. Check remaining HP and field conditions.`),3);

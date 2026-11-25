@@ -33,7 +33,7 @@ const formSet=p=>{
     return{set:t,kind:SET_KIND.theory,form:p,megaSet:i.set,megaForm:i.form,note:`${i.kind.t}は${ITEMN[i.set.item]||i.set.item}を持つ（${i.form.n}の型）ので、${p.n}は当サイトの提案の型で計算しています。`}}
   return{...i,note:null}};
 /* 同時に天候特性が発動する1対1。速い側が先に発動するので、遅い側の天気が残る。
-   同速なら順番は未確定。詳細に表示し、代表値には攻撃方向に依存しない順を使う。 */
+   同速なら順番は未確定。相手入力型の選出では両方の天気を比較する。 */
 function wxPairOptions(a,b){
   const ka=a&&WSET[a.ab],kb=b&&WSET[b.ab];
   if(!ka||!kb||ka===kb)return (ka||kb)?[ka||kb]:[];
@@ -78,9 +78,14 @@ function asWithWeather(wx,fn){
   AS_WX=wx;B.weather=null;
   try{return fn()}finally{AS_WX=prev;B.weather=weather}
 }
+function withWeatherKind(k,fn,details={}){
+  const before=B.weather;
+  B.weather={k,t:5,...details};
+  try{return fn()}finally{B.weather=before}
+}
 function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();const direct=wxPairOptions(a,b);let k=direct[0],by=null;
   if(!k){const tw=AS_WX===undefined?appliedTeamWx():AS_WX;if(tw&&[a,b].some(m=>m&&m.side==='me'&&(AS_WX!==undefined||inTeam(m))&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
-  if(!k)return fn();B.weather={k,t:5,team:by,tie:direct.length>1?direct:null};try{return fn()}finally{B.weather=null}}
+  if(!k)return fn();return withWeatherKind(k,fn,{team:by,tie:direct.length>1?direct:null})}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
@@ -104,13 +109,20 @@ function asMatchMatrix(M,O,W,wx,getPair){
   const speedDiff=pairs.map(row=>row.map(x=>x.speed));
   const fast=speedDiff.map(row=>row.map(d=>d>0));
   const S=pairs.map(row=>row.map(x=>x.duel));
+  const weatherTies=pairs.map(row=>row.map(x=>x.weatherTies));
   const wt=W.reduce((a,b)=>a+b,0)||1;
-  const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
-  const defV=M.map((_,i)=>R.reduce((a,row,j)=>a+W[j]*Math.min(row[i].pct*row[i].acc/100,100)/100,0)/wt);
-  const duV=idx=>O.reduce((a,_,j)=>a+W[j]*Math.max(...idx.map(i=>S[i][j]))/2,0)/wt;
+  const mean=(pair,value)=>pair.weatherTies
+    ?pair.weatherTies.reduce((n,x)=>n+value(x),0)/pair.weatherTies.length:value(pair);
+  const capped=d=>Math.min(d.pct*d.acc/100,100)/100;
+  // 同速天候は、先に発動順が分からない前提で各対面の点を平均する。
+  const offense=pairs.map(row=>row.map(pair=>mean(pair,x=>capped(x.dealt)+(x.dealt.pct>=100&&x.speed>0?.25:0))));
+  const offV=(i,j)=>offense[i][j];
+  const defV=pairs.map(row=>row.reduce((a,pair,j)=>a+W[j]*mean(pair,x=>capped(x.taken)),0)/wt);
+  const duels=pairs.map(row=>row.map(pair=>mean(pair,x=>x.duel)));
+  const duV=idx=>O.reduce((a,_,j)=>a+W[j]*Math.max(...idx.map(i=>duels[i][j]))/2,0)/wt;
   const score=idx=>O.reduce((a,_,j)=>a+W[j]*Math.max(...idx.map(i=>offV(i,j))),0)/wt-.6*idx.reduce((a,i)=>a+defV[i],0)/idx.length+.2*duV(idx);
   const leadFor=line=>combos(line,Math.min(LEADN(),line.length)).map(c=>({c,s:score(c)+c.reduce((a,i)=>a+fast[i].reduce((x,f,j)=>x+(f?W[j]:0),0)/wt*.15,0)})).sort((a,b)=>b.s-a.s);
-  return{M,O,D,R,S,fast,speedDiff,offV,score,leadFor,wx};
+  return{M,O,D,R,S,fast,speedDiff,offV,score,leadFor,wx,weatherTies};
 }
 function analyze(myNos,opNos,mySF,opSF,W,keepNo,compareMegas=false){
   mySF=mySF||mySetFor;opSF=opSF||(n=>detSet(byNo[n]));
@@ -142,11 +154,17 @@ function analyze(myNos,opNos,mySF,opSF,W,keepNo,compareMegas=false){
     const cache=new Map();
     const getPair=(m,o,wx)=>{
       const key=JSON.stringify([ids.get(m),ids.get(o),wx?.k,wx?.no]);
-      if(!cache.has(key))cache.set(key,asWithWeather(wx,()=>({
-        dealt:estHit(m,o),taken:estHit(o,m),
-        speed:withWx(m,o,()=>effSpd(m,o)-effSpd(o,m)),
-        duel:typeof duelS==='function'?duelS(m,o):0
-      })));
+      if(!cache.has(key))cache.set(key,asWithWeather(wx,()=>{
+        const read=()=>({
+          dealt:estHit(m,o),taken:estHit(o,m),
+          speed:withWx(m,o,()=>effSpd(m,o)-effSpd(o,m)),
+          duel:typeof duelS==='function'?duelS(m,o):0
+        });
+        const weather=compareMegas?wxPairOptions(m,o):[];
+        if(weather.length<2)return read();
+        const weatherTies=weather.map(k=>withWeatherKind(k,()=>({k,...read()})));
+        return {...weatherTies[0],weatherTies};
+      }));
       return cache.get(key);
     };
     const matrices=new Map();
@@ -177,22 +195,30 @@ function analyze(myNos,opNos,mySF,opSF,W,keepNo,compareMegas=false){
       const v=matrix(best,megaI,oppI,wx);
       return {wx,score:v.score(best),lead:v.leadFor(best)[0].c,speedDiff:v.speedDiff};
     }):[];
-    const weatherTies=compareMegas?best.flatMap(i=>match.O.flatMap(o=>{
-      const cases=wxPairOptions(match.M[i],o);
-      return cases.length===2?[{own:match.M[i].p.n,opp:o.p.n,cases}]:[];
-    })):[];
-    return{...match,myNos,opNos,megaI,leadFor,all:all.slice(0,3),full:all,best,lead,back,leads,weatherCases,weatherTies};
+    return{...match,myNos,opNos,megaI,leadFor,all:all.slice(0,3),full:all,best,lead,back,leads,weatherCases};
   }finally{B.weather=sw}
 }
 const asMegaLabel=(M,i)=>i>=0?`${M[i].p.n}にメガシンカ`:'メガシンカなし';
+const asMinDealt=(A,i,j)=>A.weatherTies?.[i]?.[j]
+  ?Math.min(...A.weatherTies[i][j].map(x=>x.dealt.pct)):A.D[i][j].pct;
+function asTieDamage(cases,key){
+  const values=cases.map(x=>Math.round(x[key].pct));
+  const lo=Math.min(...values),hi=Math.max(...values);
+  return lo===hi?`${lo}%`:`${lo}〜${hi}%`;
+}
 function asWeatherHTML(A){
-  const cases=A.weatherCases||[],ties=A.weatherTies||[];
+  const cases=A.weatherCases||[];
+  const ties=A.best.flatMap(i=>A.O.flatMap((o,j)=>{
+    const weather=A.weatherTies?.[i]?.[j];
+    if(!weather)return [];
+    const lines=weather.map(x=>`${AS_WX_NAME[x.k]}（与 ${esc(x.dealt.mv?.n||'—')} ${Math.round(x.dealt.pct)}%・命中${Math.round(x.dealt.acc)}%／受 ${esc(x.taken.mv?.n||'—')} ${Math.round(x.taken.pct)}%・命中${Math.round(x.taken.acc)}%）`);
+    return [`<li>${esc(A.M[i].p.n)}と${esc(o.p.n)}は同速。 ${lines.join('／')}</li>`];
+  }));
   if(cases.length<2&&!ties.length)return '';
   const rows=cases.map(x=>`<li>${esc(asWeatherLabel(x.wx))}（評価 ${x.score.toFixed(3)}／先発 ${x.lead.map(i=>esc(A.M[i].p.n)).join('・')}）</li>`).join('');
-  const tied=ties.map(x=>`${esc(x.own)}と${esc(x.opp)}は同速。発動順で${x.cases.map(k=>AS_WX_NAME[k]).join('・')}が変わります。表では${AS_WX_NAME[x.cases[0]]}の場合を表示しています。`).join('<br>');
   return `<details class="sel-all"><summary>天気の前提と比較</summary>
     ${cases.length>1?`<p class="note">おすすめは「${esc(asWeatherLabel(A.wx))}」を前提に評価しました。同じ選出・同じ相手で、味方の天気だけを変えた場合です。対面するポケモンの天候特性は別に反映します。</p><ul>${rows}</ul>`:''}
-    ${tied?`<p class="note">${tied}</p>`:''}</details>`;
+    ${ties.length?`<p class="note">同速の天候役が同時に場に出た場合は、発動順で残る天気が変わります。選出と先発の採点には両方を同じ重みで反映しました。ダメージ表の幅は両方の天気での見積もりです。</p><ul>${ties.join('')}</ul>`:''}</details>`;
 }
 function asAnalyze(myNos,opNos,weights){
   const A=analyze(myNos,opNos,null,null,weights,team.find(x=>x.axis)?.no,true);
@@ -205,19 +231,25 @@ function asSpeedSummary(A,j){
 }
 function asThreats(A){
   return A.O.map((o,j)=>{
-    const hits=A.best.map(i=>({i,r:A.R[j][i]})).filter(x=>x.r.mv).sort((a,b)=>b.r.pct-a.r.pct);
+    const hits=A.best.map(i=>{
+      const cases=A.weatherTies?.[i]?.[j];
+      if(!cases)return {i,r:A.R[j][i]};
+      const worst=cases.reduce((a,b)=>b.taken.pct>a.taken.pct?b:a);
+      return {i,r:worst.taken,weather:AS_WX_NAME[worst.k]};
+    }).filter(x=>x.r.mv).sort((a,b)=>b.r.pct-a.r.pct);
     const severe=hits.filter(x=>x.r.pct>=70).length;
     return {o,j,hits,severe,sum:hits.reduce((n,x)=>n+Math.min(x.r.pct,150),0)};
   }).filter(t=>t.hits.length).sort((a,b)=>b.severe-a.severe||b.sum-a.sum||a.j-b.j);
 }
 const shortN=n=>n.length>5?n.slice(0,4)+'…':n;
 function asReason(A,i){
-  const hits=A.O.map((o,j)=>({o,j,d:A.D[i][j]})).filter(x=>x.d.pct>=50&&x.d.pct>=Math.max(...A.best.map(k=>A.D[k][x.j].pct))-1).sort((a,b)=>b.d.pct-a.d.pct);
+  const hits=A.O.map((o,j)=>({o,j,d:A.D[i][j]})).filter(x=>!A.weatherTies?.[i]?.[x.j]&&x.d.pct>=50&&x.d.pct>=Math.max(...A.best.map(k=>A.D[k][x.j].pct))-1).sort((a,b)=>b.d.pct-a.d.pct);
   const o=[];
+  if(A.weatherTies?.[i]?.some(Boolean))o.push('同速の天候役との対面は「天気の前提と比較」を参照');
   if(hits.length)o.push(hits.slice(0,3).map(x=>`${x.o.p.n}に${x.d.mv?.n||'攻撃'}で約${Math.round(x.d.pct)}%`).join('／'));
   const f=A.fast[i].filter(Boolean).length;
   if(f>=Math.ceil(A.O.length*.6))o.push(`相手${A.O.length}匹中${f}匹より速い`);
-  const w=A.O.filter((_,j)=>A.R[j][i].pct>=100).length;
+  const w=A.O.filter((_,j)=>A.weatherTies?.[i]?.[j]?.some(x=>x.taken.pct>=100)||A.R[j][i].pct>=100).length;
   if(w)o.push(`<span style="color:var(--w2)">${w}匹から一撃で倒されるおそれ</span>`);
   return o.join('。')||'この相手候補では、火力・素早さの目立つ利点を確認できませんでした';
 }
@@ -305,15 +337,15 @@ function asDraw(){
   ${predRows}
   ${A2&&!same?`<div class="bnote" style="margin:10px 16px 0"><b>予想どおり ${pNos.map(n=>byNo[n].n.slice(0,4)).join('・')} で来た場合</b>のおすすめは<br><b>${A2.lead.map(i=>A2.M[i].p.n).join('・')}</b>（先発）＋ ${A2.back.map(i=>A2.M[i].p.n).join('・')} です（${asMegaLabel(A2.M,A2.megaI)}）。上のおすすめは、読みが外れた場合も考えた選出です。</div>`:''}
   <p class="note" style="color:var(--mute)">相手はあなたの育成を知らないため、予想では「あなたのポケモンも推定の型（集計から組み合わせた型、なければ当サイトの提案の型）」として計算しています。％は計算上の目安で、実際の選出率ではありません。</p>`;
-  const covered=A.O.filter((_,j)=>A.best.some(i=>A.D[i][j].pct>=50)).length;
+  const covered=A.O.filter((_,j)=>A.best.some(i=>asMinDealt(A,i,j)>=50)).length;
   const mrow=(i,tag)=>{const m=A.M[i];return `<a class="row" href="#/p/${m.p.base||m.p.no}"><span class="av">${stamp(m.p)}</span><div class="row-m"><div class="row-t">${m.p.n}<span class="atag ${tag==='先発'?'on':''}">${tag}</span></div><div class="row-s">${asReason(A,i)}</div></div></a>`};
   const thr=asThreats(A).slice(0,3).map(t=>{
     const top=t.hits[0];
-    const damage=`${A.M[top.i].p.n}に${top.r.mv.n}で約${Math.round(top.r.pct)}%`;
+    const damage=`${A.M[top.i].p.n}に${top.r.mv.n}で約${Math.round(top.r.pct)}%${top.weather?`（${top.weather}の場合）`:''}`;
     return `<div class="row"><span class="av">${stamp(t.o.p)}</span><div class="row-m"><div class="row-t">${t.o.p.n}</div><div class="row-s">${t.severe?`選出の${t.severe}匹に推定70%以上`:'比較した技では推定70%以上の相手なし'}（${damage}）。${asSpeedSummary(A,t.j)}</div></div><button class="binfo" style="position:static;flex:none" data-info="${(t.o.p.base||t.o.p.no)}">相性</button></div>`;
   }).join('');
-  const cell=(d,mode)=>{const p=Math.round(d.pct);const c=mode==='atk'?(p>=100?'g3':p>=50?'g2':p>=25?'g1':''):(p>=100?'r3':p>=50?'r2':p>=25?'r1':'');return `<td class="${c}">${p>=100?'100+':p}</td>`};
-  const hm=`<table class="hm"><tr><th></th>${A.O.map(o=>`<th title="${o.p.n}"><span class="av">${stamp(o.p)}</span>${o.p.n.slice(0,3)}</th>`).join('')}</tr>${A.M.map((m,i)=>`<tr class="${A.best.includes(i)?'on':''}"><th>${shortN(m.p.n)}</th>${A.O.map((o,j)=>cell(asMode==='atk'?A.D[i][j]:A.R[j][i],asMode)).join('')}</tr>`).join('')}</table>`;
+  const cell=(d,mode,tie)=>{const p=Math.round(d.pct);const c=mode==='atk'?(p>=100?'g3':p>=50?'g2':p>=25?'g1':''):(p>=100?'r3':p>=50?'r2':p>=25?'r1':'');return tie?`<td title="天気による幅">${asTieDamage(tie,mode==='atk'?'dealt':'taken')}</td>`:`<td class="${c}">${p>=100?'100+':p}</td>`};
+  const hm=`<table class="hm"><tr><th></th>${A.O.map(o=>`<th title="${o.p.n}"><span class="av">${stamp(o.p)}</span>${o.p.n.slice(0,3)}</th>`).join('')}</tr>${A.M.map((m,i)=>`<tr class="${A.best.includes(i)?'on':''}"><th>${shortN(m.p.n)}</th>${A.O.map((o,j)=>cell(asMode==='atk'?A.D[i][j]:A.R[j][i],asMode,A.weatherTies?.[i]?.[j])).join('')}</tr>`).join('')}</table>`;
   const alt=A.all.slice(1).map(x=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${x.c.map(i=>x.match.M[i].p.n).join('・')}</div><div class="row-s"> ${asMegaLabel(x.match.M,x.megaI)}・評価 ${Math.round(x.s*100)}（おすすめは ${Math.round(A.all[0].s*100)}）</div></div></div>`).join('');
   el.innerHTML=`<div class="sec"><h2>おすすめ選出</h2><span style="font-size:13px;color:var(--dim)">${FMTN()}・先発${LEADN()}匹＋控え${PICK()-LEADN()}匹</span></div>
   ${FMT==='double'?`<p class="note" role="status">${DG_DOUBLE_SCOPE}${DG_DOUBLE_LIMITS}</p>`:''}

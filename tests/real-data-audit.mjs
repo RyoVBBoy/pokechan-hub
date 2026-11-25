@@ -206,6 +206,34 @@ try{
           'tied weather lists both possible outcomes and uses the same representative in attack and defense');
       });
 
+      const fixedWeatherSet=(ab,speed,item,move)=>({ab,sp:[2,0,0,32,0,speed],up:-1,dn:-1,item,moves:[mvObj(move)]});
+      const torkoal=fixedWeatherSet('drought',10,null,436);
+      const pelipper=fixedWeatherSet('drizzle',15,'ironball',542);
+      const tie=analyze([324],[279],()=>torkoal,()=>pelipper,null,null,true);
+      const samePair=tie.weatherTies[0][0];
+      const inWeather=k=>samePair.find(x=>x.k===k);
+      const quality=x=>Math.min(1,x.pct*x.acc/10000);
+      const points=x=>quality(x.dealt)-.6*quality(x.taken)+.1*x.duel;
+      const score=(points(inWeather('rain'))+points(inWeather('sun')))/2;
+      check(canLearn(324,436)&&canLearn(279,542)&&samePair.every(x=>!x.speed)
+        &&inWeather('rain').taken.acc===100&&inWeather('sun').taken.acc===50
+        &&Math.abs(tie.all[0].s-score)<1e-12&&score>points(inWeather('rain'))
+        &&score<points(inWeather('sun'))&&Math.abs(tie.leads[0].s-score)<1e-12,
+        'tied Torkoal and Pelipper use both weather outcomes in selection and lead scores',
+        {rain:points(inWeather('rain')),sun:points(inWeather('sun')),used:tie.all[0].s});
+      const copy=asWeatherHTML(tie);
+      check(copy.includes('同じ重み')&&copy.includes('命中100%')&&copy.includes('命中50%')
+        &&asTieDamage(samePair,'dealt')==='13〜41%'&&asMinDealt(tie,0,0)===inWeather('rain').dealt.pct,
+        'the visible weather explanation keeps damage and accuracy distinct and retains the lower damage for coverage');
+
+      const leadRoster=[324,3,6,59,65];
+      const leadSet=no=>no===324?torkoal:{...chooseSet(byNo[no],true),moves:[protMv(182)]};
+      const balancedLead=analyze(leadRoster,[279],leadSet,()=>pelipper,null,null,true);
+      const rainOnlyLead=analyze(leadRoster,[279],leadSet,()=>pelipper);
+      check(leadRoster.slice(1).every(no=>canLearn(no,182))&&balancedLead.lead.includes(0)&&!rainOnlyLead.lead.includes(0),
+        'averaging the two weather outcomes changes the recommended lead in a controlled roster',
+        {twoWeather:balancedLead.lead,oneWeather:rainOnlyLead.lead});
+
       // Keep Pelipper's rain active as a scenario, then vary only the opponent's ability.
       const waterAttacker=mkMon(byNo[swift.no],'me',mySetFor(swift.no));
       const opponent=ab=>mkMon(byNo[334],'op',{...chooseSet(byNo[334],true),ab});

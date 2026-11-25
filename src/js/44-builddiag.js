@@ -104,7 +104,7 @@ function threeStepHTML(myNos,PR){
   const nm1=n=>esc(byNo[n].n);
   const scen=tops.map(t=>{const oNos=t.c.map(j=>opp6[j]);const A=asAnalyze(myNos,oNos);
     if(A.none)return null;
-    const plan=A.O.map((o,j)=>{const i=[...A.best].sort((a,b)=>A.offV(b,j)-A.offV(a,j))[0];const d=A.D[i][j];return{o,i,d}});
+    const plan=A.O.map((o,j)=>{const i=[...A.best].sort((a,b)=>A.offV(b,j)-A.offV(a,j))[0];const d=A.D[i][j];return{o,i,d,tie:A.weatherTies?.[i]?.[j],min:asMinDealt(A,i,j)}});
     return{p:t.p,oNos,A,plan}}).filter(Boolean);
   if(!scen.length)return '';
   const sc={};scen.forEach(s=>{s.A.best.forEach(i=>{sc[i]=(sc[i]||0)+s.p*(s.A.lead.includes(i)?1:.4)})});
@@ -117,7 +117,7 @@ function threeStepHTML(myNos,PR){
       return a.length?`<p class="vcap">相手の役のめやす：${a.map(([l,v])=>`${l}＝${v.join('・')}`).join('／')}。メガシンカは同時に1匹までとして比較し、起点作りとアタッカーを組み合わせた選出を少し重く見ています。</p>`:''})()}
     <h4>② それぞれへの通し筋</h4>
     ${scen.map((s,k)=>`<div class="pc-situ"><p><b>${k+1}で来たら</b>：${s.A.best.map(i=>`<b>${esc(s.A.M[i].p.n)}</b>`).join('・')}（先発 ${s.A.lead.map(i=>esc(s.A.M[i].p.n)).join('・')}、${esc(asMegaLabel(s.A.M,s.A.megaI))}）</p>
-      <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.d.mv?esc(x.d.mv.n)+'で':''}約${Math.round(x.d.pct)}%${x.d.pct<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
+      <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.tie?`天気で約${asTieDamage(x.tie,'dealt')}`:`${x.d.mv?esc(x.d.mv.n)+'で':''}約${Math.round(x.d.pct)}%`}${x.min<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
     <h4>③ 初手</h4>
     <p><b>${leadI.map(i=>esc(byNo[scen[0].A.myNos[i]].n)).join('・')}</b>：${scen.length}つの通し筋のうち${leadI.map(inN).join('・')}つに入り、評価した予想で先発候補になった匹です。先発を見て、相手がどの選出かを見きわめ、②の通し筋に切りかえます。</p>
   </div>`;

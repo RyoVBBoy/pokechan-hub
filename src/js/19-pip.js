@@ -86,8 +86,8 @@ function pipDraw(){
     const row=(i,tag,y,col)=>{const m=A.M[i];
       pill(g,tag,28,y,col,'#fff',22);m.p.t.forEach((t,k)=>tIcon(g,t,110+k*34,y+2,30));
       g.fillStyle='#e7e9ea';g.font=`800 32px ${FF}`;g.fillText(m.p.n,184,y+30);
-      const hits=A.O.map((o,j)=>({o,d:A.D[i][j]})).filter(x=>x.d.pct>=50).sort((a,b)=>b.d.pct-a.d.pct).slice(0,3);
-      g.fillStyle='#c4c9cc';fitTxt(g,hits.length?`狙い：${hits[0].o.p.n}に${hits[0].d.mv?.n||'攻撃'}で約${pct(hits[0].d.pct)}%`:'この型では50%以上削れる相手を確認できません',28,y+72,PIP_W-56,23,600)};
+      const hits=A.O.map((o,j)=>({o,d:A.D[i][j],min:asMinDealt(A,i,j),tie:A.weatherTies?.[i]?.[j]})).filter(x=>x.min>=50).sort((a,b)=>b.min-a.min);
+      g.fillStyle='#c4c9cc';fitTxt(g,hits.length?`狙い：${hits[0].o.p.n}に${hits[0].tie?`天気で約${asTieDamage(hits[0].tie,'dealt')}`:`${hits[0].d.mv?.n||'攻撃'}で約${pct(hits[0].d.pct)}%`}`:'この型では50%以上削れる相手を確認できません',28,y+72,PIP_W-56,23,600)};
     g.fillStyle='#c4c9cc';fitTxt(g,[asMegaLabel(A.M,A.megaI),A.wx?asWeatherLabel(A.wx):''].filter(Boolean).join('／'),28,112,PIP_W-56,23,600);
     let y=134;A.lead.forEach(i=>{row(i,'先発',y,'#1d9bf0');y+=112});
     g.strokeStyle='#2f3336';g.lineWidth=2;g.beginPath();g.moveTo(20,y-12);g.lineTo(PIP_W-20,y-12);g.stroke();y+=8;
@@ -115,10 +115,10 @@ function pipDraw(){
     A.O.forEach((o,j)=>{const x=150+j*cw;tIcon(g,o.p.t[0],x+cw/2-17,top,34);g.fillStyle='#c4c9cc';g.textAlign='center';fitTxt(g,o.p.n.slice(0,4),x+cw/2,top+62,cw-4,18,700);g.textAlign='left'});
     const rh=Math.min(120,(PIP_H-top-150)/rows.length);
     rows.forEach((i,k)=>{const y=top+84+k*rh;g.fillStyle='#e7e9ea';fitTxt(g,A.M[i].p.n,28,y+rh*.55,118,26,800);
-      A.O.forEach((o,j)=>{const d=A.D[i][j],x=150+j*cw,p=d.pct,lab=d.mv?asWithWeather(A.wx,()=>withWx(A.M[i],o,()=>koShort(koInfo(dmgRolls(A.M[i],d.mv,o,{}),o.max)))):'—';
+      A.O.forEach((o,j)=>{const d=A.D[i][j],tie=A.weatherTies?.[i]?.[j],x=150+j*cw,p=asMinDealt(A,i,j),lab=tie?'天気で変動':d.mv?asWithWeather(A.wx,()=>withWx(A.M[i],o,()=>koShort(koInfo(dmgRolls(A.M[i],d.mv,o,{}),o.max)))):'—';
         rr(g,x+3,y+4,cw-6,rh-10,12);g.fillStyle=p>=100?'#00ba7c':p>=50?'rgba(0,186,124,.4)':p>=34?'rgba(0,186,124,.16)':'#16181c';g.fill();
         g.fillStyle=p>=50?'#fff':'#8b98a5';g.textAlign='center';g.font=`800 ${Math.min(30,cw*.38)}px ${FF}`;g.fillText(lab,x+cw/2,y+rh*.5);
-        g.font=`600 ${Math.min(17,cw*.24)}px Inter,${FF}`;g.fillText(p?pct(p)+'%':'',x+cw/2,y+rh*.5+22);g.textAlign='left'})});
+        g.font=`600 ${Math.min(17,cw*.24)}px Inter,${FF}`;g.fillText(tie?asTieDamage(tie,'dealt'):p?pct(p)+'%':'',x+cw/2,y+rh*.5+22);g.textAlign='left'})});
     g.fillStyle='#71767b';g.font=`600 19px ${FF}`;g.fillText('確1＝確定1発、乱1＝乱数1発（乱数16段階で計算）',28,PIP_H-62);
     foot();return;
   }
@@ -143,12 +143,12 @@ function pipDraw(){
     fitTxt(g,`持ち物 ${its.map(([n,pc])=>`${n}${Math.round(pc)}%`).join('・')}　特性 ${abs.map(([n])=>n).join('')}`,28,y+24,PIP_W-56,22,600);y+=48;
   }
   if(A&&pg.j>=0){
-    const j=pg.j,best=A.best.map(i=>({i,d:A.D[i][j]})).sort((a,b)=>b.d.pct-a.d.pct)[0];
-    const thr=A.best.map(i=>({i,r:A.R[j][i]})).sort((a,b)=>b.r.pct-a.r.pct)[0];
+    const j=pg.j,best=A.best.map(i=>({i,d:A.D[i][j],min:asMinDealt(A,i,j),tie:A.weatherTies?.[i]?.[j]})).sort((a,b)=>b.min-a.min)[0];
+    const thr=asThreats(A).find(x=>x.j===j)?.hits[0];
     g.fillStyle='#00ba7c';g.font=`800 24px ${FF}`;g.fillText('攻める',28,y+26);
-    g.fillStyle='#e7e9ea';fitTxt(g,best&&best.d.mv?`${A.M[best.i].p.n}の${best.d.mv.n}（約${pct(best.d.pct)}%）`:'—',130,y+26,PIP_W-158,24);y+=46;
+    g.fillStyle='#e7e9ea';fitTxt(g,best&&best.d.mv?`${A.M[best.i].p.n}の${best.tie?`（天気で約${asTieDamage(best.tie,'dealt')}）`:`${best.d.mv.n}（約${pct(best.d.pct)}%）`}`:'—',130,y+26,PIP_W-158,24);y+=46;
     g.fillStyle='#f4212e';g.font=`800 24px ${FF}`;g.fillText('警戒',28,y+26);
-    g.fillStyle='#e7e9ea';fitTxt(g,thr&&thr.r.mv?`${thr.r.mv.n}で${A.M[thr.i].p.n}に約${pct(thr.r.pct)}%`:'—',130,y+26,PIP_W-158,24);
+    g.fillStyle='#e7e9ea';fitTxt(g,thr&&thr.r.mv?`${thr.r.mv.n}で${A.M[thr.i].p.n}に約${pct(thr.r.pct)}%${thr.weather?`（${thr.weather}）`:''}`:'—',130,y+26,PIP_W-158,24);
   }
   foot();
 }
