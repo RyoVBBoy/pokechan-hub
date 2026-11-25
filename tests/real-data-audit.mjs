@@ -172,6 +172,40 @@ try{
         {rainSpeed:rainy.sa,clearSpeed:dry.sa,move:rainy.me.mvn,accuracy:rainy.me.acc,rain:rainy.swIn,clear:dry.swIn});
       check(dgSelWhy(weather,rain).good.some(t=>/ペリッパー.*雨/.test(t)),'P01 selection explanation names the weather actually evaluated');
 
+      const weatherNos=team.slice(0,PICK()).map(x=>x.no);
+      const compareWeather=nos=>analyze(nos,[373],null,null,null,null,true);
+      const assistWeather=compareWeather(weatherNos);
+      const reversed=compareWeather([weatherNos[1],weatherNos[0],...weatherNos.slice(2)]);
+      const byWeather=(a,k)=>a.weatherCases.find(x=>(x.wx?.k||'clear')===k);
+      const index=weatherNos.indexOf(swift.no);
+      check(assistWeather.wx?.k==='sun'&&reversed.wx?.k==='rain'
+        &&byWeather(assistWeather,'rain').speedDiff[index][0]-byWeather(assistWeather,'clear').speedDiff[index][0]===130
+        &&['sun','rain','clear'].every(k=>Math.abs(byWeather(assistWeather,k).score-byWeather(reversed,k).score)<1e-9),
+        'assist compares the same selected members and opposing build under sun, rain and no inherited weather');
+      const weatherCopy=asWeatherHTML(assistWeather);
+      check(['コータスの晴れ','ペリッパーの雨','味方の天気の引き継ぎなし','先発'].every(x=>weatherCopy.includes(x)),
+        'assist explanation names the setter and shows lead and score for each weather case');
+
+      const makeSetter=(no,side,ab,speed,item=null)=>{
+        const m=mkMon(byNo[no],side,{...chooseSet(byNo[no],true),ab,item});
+        m.st[5]=speed;
+        return m;
+      };
+      const sun=makeSetter(324,'me','drought',100);
+      const rainSetter=makeSetter(279,'op','drizzle',120);
+      const pair=(a,b)=>withWx(a,b,()=>[B.weather.k,B.weather.tie]);
+      asWithWeather(null,()=>{
+        check(pair(sun,rainSetter)[0]==='sun'&&pair(rainSetter,sun)[0]==='sun',
+          'the slower opposing weather setter wins in both calculation directions');
+        rainSetter.item='ironball';
+        check(pair(sun,rainSetter)[0]==='rain'&&pair(rainSetter,sun)[0]==='rain',
+          'weather activation compares modified Speed: Iron Ball reverses which weather remains');
+        rainSetter.item=null;rainSetter.st[5]=100;
+        const forward=pair(sun,rainSetter),reverse=pair(rainSetter,sun);
+        check(JSON.stringify(forward)===JSON.stringify(reverse)&&forward[1]?.join()===('rain,sun'),
+          'tied weather lists both possible outcomes and uses the same representative in attack and defense');
+      });
+
       // Keep Pelipper's rain active as a scenario, then vary only the opponent's ability.
       const waterAttacker=mkMon(byNo[swift.no],'me',mySetFor(swift.no));
       const opponent=ab=>mkMon(byNo[334],'op',{...chooseSet(byNo[334],true),ab});

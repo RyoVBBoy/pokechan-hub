@@ -272,6 +272,7 @@ function dgMatch0(a,o){
   if(spd===0&&!why.some(w=>/同速/.test(w)))why.push(spdTxt);
   if(wxT)why.push(wxT);
   const weatherSuppressed=!!B.weather&&!weather;
+  if(B.weather?.tie)why.push('天候特性が同速のため、発動順で天気が変わります。この対面は片方の天気での試算です。');
   if(weatherSuppressed)why.push('天気を無効にする特性が場にいるため、天気の効果なしで計算しています。');
   if(me&&me.half)why.push(me.h>1?`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの${me.mvn}（1回で${me.h}回当たる）は最初の当たりだけ半分、2回目の当たりからは半分にならない（1回目と2回目の当たりを乱数ごとに別々に計算して足し、倒すまでの回数を数えています）`:`相手の${ABN[me.half]||'特性'}：相手のHPが満タンのとき、こちらの攻撃の1発目だけダメージが半分になる（倒すまでの回数はこれを入れて数えています）`);
   if(op&&op.half)why.push(`こちらの${ABN[op.half]||'特性'}：こちらのHPが満タンのとき、相手の攻撃の1発目だけダメージが半分になる`);

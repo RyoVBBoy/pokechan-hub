@@ -32,11 +32,21 @@ const formSet=p=>{
   if(i.form&&i.form!==p){const t=chooseSet(p,true);
     return{set:t,kind:SET_KIND.theory,form:p,megaSet:i.set,megaForm:i.form,note:`${i.kind.t}は${ITEMN[i.set.item]||i.set.item}を持つ（${i.form.n}の型）ので、${p.n}は当サイトの提案の型で計算しています。`}}
   return{...i,note:null}};
-/* 1対1のときの天気（2026/11/08 依頼主の指摘：バンギラスの砂嵐でいわタイプの特防が1.5倍になるのを入れていなかった）。
-   場に出ると天気を変える特性（WSET）の匹がいれば、その天気で計算する。両方なら遅い方（あとから出る特性）の天気。
-   対戦の画面など、すでに天気が決まっているとき（B.weather）はそのまま */
-function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return null;if(s.length===1)return WSET[s[0].ab];
-  return WSET[(s[0].st[5]<=s[1].st[5]?s[0]:s[1]).ab]}
+/* 同時に天候特性が発動する1対1。速い側が先に発動するので、遅い側の天気が残る。
+   同速なら順番は未確定。詳細に表示し、代表値には攻撃方向に依存しない順を使う。 */
+function wxPairOptions(a,b){
+  const ka=a&&WSET[a.ab],kb=b&&WSET[b.ab];
+  if(!ka||!kb||ka===kb)return (ka||kb)?[ka||kb]:[];
+  const sa=effSpd(a,b),sb=effSpd(b,a);
+  return sa===sb?[ka,kb].sort():[sa<sb?ka:kb];
+}
+const AS_WX_NAME={sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'};
+const asWeatherLabel=wx=>wx?`${byNo[wx.no].n}の${AS_WX_NAME[wx.k]}`:'味方の天気の引き継ぎなし';
+function asWeatherChoices(M,c){
+  const weather=new Map();
+  for(const i of c){const m=M[i],k=WSET[m.ab];if(k&&!weather.has(k))weather.set(k,{k,no:m.p.base||m.p.no,ab:m.ab})}
+  return [...weather.values(),null];
+}
 /* パーティの天気（2026/11/10 依頼主：晴れのパーティなのに、ようりょくそ の素早さ2倍が1対1の計算に入っていなかった）。
    1対1では2匹のどちらかが天気を変える特性のときだけ天気を入れていたので、パーティの別の匹（ひでり等）が作る天気が入らなかった。
    こちらのパーティに天気を作る匹がいて、その天気で得をする特性（ようりょくそ・すいすい等の素早さ2倍、サンパワー、すなのちから）の匹が
@@ -68,9 +78,9 @@ function asWithWeather(wx,fn){
   AS_WX=wx;B.weather=null;
   try{return fn()}finally{AS_WX=prev;B.weather=weather}
 }
-function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();let k=wxPair(a,b),by=null;
+function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();const direct=wxPairOptions(a,b);let k=direct[0],by=null;
   if(!k){const tw=AS_WX===undefined?appliedTeamWx():AS_WX;if(tw&&[a,b].some(m=>m&&m.side==='me'&&(AS_WX!==undefined||inTeam(m))&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
-  if(!k)return fn();B.weather={k,t:5,team:by};try{return fn()}finally{B.weather=null}}
+  if(!k)return fn();B.weather={k,t:5,team:by,tie:direct.length>1?direct:null};try{return fn()}finally{B.weather=null}}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){
   let best={pct:0,mv:null,acc:100};
@@ -140,10 +150,9 @@ function analyze(myNos,opNos,mySF,opSF,W,keepNo,compareMegas=false){
       return cache.get(key);
     };
     const matrices=new Map();
-    const matrix=(c,megaI,oppI)=>{
+    const matrix=(c,megaI,oppI,alternate)=>{
       const M=compareMegas?forms(my,megaI):my.map(x=>x.mon);
-      const setter=compareMegas?c.map(i=>M[i]).find(m=>WSET[m.ab]):null;
-      const wx=compareMegas?(setter?{k:WSET[setter.ab],no:setter.p.base||setter.p.no,ab:setter.ab}:null):undefined;
+      const wx=compareMegas?(alternate===undefined?asWeatherChoices(M,c)[0]:alternate):undefined;
       const key=JSON.stringify([megaI,oppI,wx?.no,wx?.k]);
       if(!matrices.has(key))matrices.set(key,asMatchMatrix(M,opponents[oppI],weights,wx,getPair));
       return matrices.get(key);
@@ -153,20 +162,38 @@ function analyze(myNos,opNos,mySF,opSF,W,keepNo,compareMegas=false){
       const megas=compareMegas?[...holders(my,c),-1]:[-1];
       const variants=megas.map(megaI=>{
         // 相手のメガが未確認なら、通常の姿とメガ1匹ずつを比べ、最も厳しい条件を採用する。
-        const worst=opponents.map((_,i)=>{const match=matrix(c,megaI,i);return {match,s:match.score(c)}})
+        const worst=opponents.map((_,i)=>{const match=matrix(c,megaI,i);return {match,s:match.score(c),oppI:i}})
           .reduce((a,b)=>b.s<a.s?b:a);
         return {megaI,...worst};
       }).sort((a,b)=>b.s-a.s);
-      const {megaI,s,match}=variants[0];
-      return {c,s,megaI,match,megaOptions:variants.map(v=>({megaI:v.megaI,s:v.s}))};
+      const {megaI,s,match,oppI}=variants[0];
+      return {c,s,megaI,match,oppI,megaOptions:variants.map(v=>({megaI:v.megaI,s:v.s}))};
     }).sort((a,b)=>b.s-a.s);
     const best=all[0].c,match=all[0].match;
     const leadFor=line=>all.find(x=>x.c===line)?.match.leadFor(line)||match.leadFor(line);
     const leads=leadFor(best),lead=leads[0].c,back=best.filter(i=>!lead.includes(i));
-    return{...match,myNos,opNos,megaI:all[0].megaI,leadFor,all:all.slice(0,3),full:all,best,lead,back,leads};
+    const {megaI,oppI}=all[0];
+    const weatherCases=compareMegas?asWeatherChoices(match.M,best).map(wx=>{
+      const v=matrix(best,megaI,oppI,wx);
+      return {wx,score:v.score(best),lead:v.leadFor(best)[0].c,speedDiff:v.speedDiff};
+    }):[];
+    const weatherTies=compareMegas?best.flatMap(i=>match.O.flatMap(o=>{
+      const cases=wxPairOptions(match.M[i],o);
+      return cases.length===2?[{own:match.M[i].p.n,opp:o.p.n,cases}]:[];
+    })):[];
+    return{...match,myNos,opNos,megaI,leadFor,all:all.slice(0,3),full:all,best,lead,back,leads,weatherCases,weatherTies};
   }finally{B.weather=sw}
 }
 const asMegaLabel=(M,i)=>i>=0?`${M[i].p.n}にメガシンカ`:'メガシンカなし';
+function asWeatherHTML(A){
+  const cases=A.weatherCases||[],ties=A.weatherTies||[];
+  if(cases.length<2&&!ties.length)return '';
+  const rows=cases.map(x=>`<li>${esc(asWeatherLabel(x.wx))}（評価 ${x.score.toFixed(3)}／先発 ${x.lead.map(i=>esc(A.M[i].p.n)).join('・')}）</li>`).join('');
+  const tied=ties.map(x=>`${esc(x.own)}と${esc(x.opp)}は同速。発動順で${x.cases.map(k=>AS_WX_NAME[k]).join('・')}が変わります。表では${AS_WX_NAME[x.cases[0]]}の場合を表示しています。`).join('<br>');
+  return `<details class="sel-all"><summary>天気の前提と比較</summary>
+    ${cases.length>1?`<p class="note">おすすめは「${esc(asWeatherLabel(A.wx))}」を前提に評価しました。同じ選出・同じ相手で、味方の天気だけを変えた場合です。対面するポケモンの天候特性は別に反映します。</p><ul>${rows}</ul>`:''}
+    ${tied?`<p class="note">${tied}</p>`:''}</details>`;
+}
 function asAnalyze(myNos,opNos,weights){
   const A=analyze(myNos,opNos,null,null,weights,team.find(x=>x.axis)?.no,true);
   return A?.none||A?.best?.length!==PICK()?{...A,none:true}:A;
@@ -292,6 +319,7 @@ function asDraw(){
   ${FMT==='double'?`<p class="note" role="status">${DG_DOUBLE_SCOPE}${DG_DOUBLE_LIMITS}</p>`:''}
   <p class="note">${asMegaLabel(A.M,A.megaI)}を前提にした評価です。相手は推定の型で、通常の姿と、推定の型にメガ石がある場合はメガシンカも比較し、より厳しい条件で採点しています。</p>
   ${A.lead.map(i=>mrow(i,'先発')).join('')}${A.back.map(i=>mrow(i,'控え')).join('')}
+  ${asWeatherHTML(A)}
   <p class="note">この${A.best.length}匹で、相手${A.O.length}匹のうち<b>${covered}匹</b>に推定50%以上のダメージを与えられます。${opp6.length>PICK()?'相手が<b>出してきそうなポケモンほど重く見て</b>選んでいます。':''}</p>
   ${typeof threeStepHTML==='function'?threeStepHTML(myNos,PR):''}
   ${asAdviceHTML(A,{...PR,w:A.opNos.map(no=>PR.w[opp6.indexOf(no)])})}
@@ -302,7 +330,7 @@ function asDraw(){
   <p class="note" style="padding-top:4px">${asMode==='atk'?'上のメガシンカを前提とした目安です。縦があなた、横が相手。あなたの一番強い技で、相手のHPを何%削れるかの目安です。':'上のメガシンカを前提とした目安です。縦があなた、横が相手。相手の一番強い技で、あなたのHPを何%削られるかの目安です。'}色の濃い行がおすすめ選出です。</p>
   <div style="overflow-x:auto;padding:0 16px">${hm}</div>
   ${alt?`<div class="sec"><h2>ほかの候補</h2></div>${alt}`:''}
-  ${srcLine('ladder','calc')}<p class="note" style="color:var(--dim);padding-bottom:10px">${asDataLine([...myNos,...opp6])}<br>ダメージは乱数の中央付近・天気を変える特性を含む1対1の目安です。相手が実際に何を持っているかで変わります。</p>`;
+  ${srcLine('ladder','calc')}<p class="note" style="color:var(--dim);padding-bottom:10px">${asDataLine([...myNos,...opp6])}<br>ダメージは乱数の中央付近・天気を変える特性を含む1対1の目安です。フィールドの効果は反映していません。相手が実際に何を持っているかで変わります。</p>`;
   const sim=document.getElementById('as-sim');
   if(sim)sim.onclick=()=>{
     if(opp6.length<4)return;

@@ -88,7 +88,7 @@ function pipDraw(){
       g.fillStyle='#e7e9ea';g.font=`800 32px ${FF}`;g.fillText(m.p.n,184,y+30);
       const hits=A.O.map((o,j)=>({o,d:A.D[i][j]})).filter(x=>x.d.pct>=50).sort((a,b)=>b.d.pct-a.d.pct).slice(0,3);
       g.fillStyle='#c4c9cc';fitTxt(g,hits.length?`狙い：${hits[0].o.p.n}に${hits[0].d.mv?.n||'攻撃'}で約${pct(hits[0].d.pct)}%`:'この型では50%以上削れる相手を確認できません',28,y+72,PIP_W-56,23,600)};
-    g.fillStyle='#c4c9cc';fitTxt(g,asMegaLabel(A.M,A.megaI),28,112,PIP_W-56,23,600);
+    g.fillStyle='#c4c9cc';fitTxt(g,[asMegaLabel(A.M,A.megaI),A.wx?asWeatherLabel(A.wx):''].filter(Boolean).join('／'),28,112,PIP_W-56,23,600);
     let y=134;A.lead.forEach(i=>{row(i,'先発',y,'#1d9bf0');y+=112});
     g.strokeStyle='#2f3336';g.lineWidth=2;g.beginPath();g.moveTo(20,y-12);g.lineTo(PIP_W-20,y-12);g.stroke();y+=8;
     A.back.forEach(i=>{row(i,'控え',y,'#536471');y+=112});
