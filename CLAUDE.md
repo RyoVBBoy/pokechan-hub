@@ -120,6 +120,7 @@
 - ダメージ計算の操作の回数（calc_done）の数え方（2026/11/17）：利用者の操作の前の指紋（`calcSig`）と比べ、計算の条件が変わったときだけ数える（`calcEv(before)`）。前は指紋だけで見分けていたので、あとから届いた使用率の高い型で育成が入れかわると、何も変えない操作（同じ天気の選び直し等）を2回目として数えていた（tests/admhits.mjs がときどき落ちていた原因）。積み技・ランクの操作も同じ（setupBind の redraw に指紋を渡す）。
 - 図鑑番号の書き方（2026/11/19 依頼主）：「No.0445」にそろえる（前は名前の札 nm() などが「#0445」）。04-common.js の nm()・17-sources.js・tools/gen-pages.cjs の静的ページ。英語の速さの順位「#N」・ハッシュタグは別物なのでそのまま。
 - 投稿を押す所（2026/11/19 依頼主「X と同じに」、32-timeline.js の twBind・tests/twtap.mjs）：投稿のどこを押してもその投稿の画面（#/n/番号）へ（前は本文だけ）。リンク・ボタン・画像（.tw-md）・下の操作の並び（.tw-a）・名前・アイコン・入力欄は除く。文字を選んでいるときと、投稿の画面の大きな投稿（tw--big）は移らない。Ctrl/⌘＋クリック・ホイールのクリックは新しいタブ。
+- Game Kid/s AI（2026/11/25 Stage A、ブランチ feature/gamekids-ai だけ。仕様 docs/ai/implementation-spec.md・報告 docs/ai/stage-a-report.md）：**既定で無効**（Worker は AI_ENABLED='1'、画面は config/public.json の ai.enabled）。Worker `worker/src/ai.js`（/api/ai/v1/context・answer を api() より前に分岐、模擬アダプター MockProvider だけ、根拠台帳は `worker/ai_ledger.py` がサイトのデータと SRC から作って検査、利用枠は別の D1 `AI_DB`＝`worker/migrations-ai/0001_ai_init.sql`）、画面 `87-ai.js`（#/ai）。計算は画面と同じ dmgRolls・koInfo を対応表 calc-a1 の条件だけ。テスト tests/ai.mjs・ai-ui.mjs（run.mjs）、本物の D1 互換の同時50件は tests/ai-d1.mjs（Miniflare は npm audit の指摘があるので package.json に入れず MINIFLARE_DIR で指す）。固定評価 tests/ai-eval/fixed-v1.json は作り直さない。
 ### 手元で確かめる
 ```
 npm install

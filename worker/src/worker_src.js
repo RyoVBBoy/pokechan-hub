@@ -321,7 +321,9 @@ function secureRes(res,req,env){
   const r=new Response(res.body,res),h=r.headers,u=new URL(req.url),media=u.pathname.startsWith('/m/');
   const o=req.headers.get('origin');
   h.delete('Access-Control-Allow-Origin');
-  if(ORIGIN_OK(o,env)){h.set('Access-Control-Allow-Origin',o);h.set('Access-Control-Max-Age','600')}
+  /* AI（/api/ai/）は AI 用の許可リスト（AI_ALLOWED_ORIGINS）だけ。コミュニティ用の許可リストは使わない */
+  const aiPath=u.pathname==='/api/ai'||u.pathname.startsWith('/api/ai/');
+  if(aiPath?AI_ORIGIN(o,env):ORIGIN_OK(o,env)){h.set('Access-Control-Allow-Origin',o);h.set('Access-Control-Max-Age','600')}
   else if(media)h.set('Access-Control-Allow-Origin','*');   /* 画像は公開してよいもの（非表示のものはそもそも返さない） */
   h.append('Vary','Origin');
   h.set('X-Content-Type-Options','nosniff');
@@ -359,6 +361,8 @@ export default{
     const u=new URL(req.url);let text=u.searchParams.get('text')||'',team=u.searchParams.get('team')||req.headers.get('x-team')||'',mode=u.searchParams.get('mode')||'';
     const H={...CORS,'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'};
     if(u.pathname.startsWith('/m/')&&req.method==='GET')return mediaGet(req,env,u.pathname.slice(3));
+    /* Game Kid/s AI（ai.js）：コミュニティ用の DB 初期化・共通の JSON 読み取りより前に分ける。既定は無効 */
+    if(u.pathname==='/api/ai'||u.pathname.startsWith('/api/ai/'))return aiApi(req,env,u,ctx);
     if(u.pathname.startsWith('/api/'))return api(req,env,u,ctx);
     /* 背面タップ連携（2026/10/31 に削除済み）の受け口は閉じる。AI の読み取りを外から使われないようにするため（LEGACY_TAP=1 のときだけ開く） */
     if(req.method==='POST'&&env.LEGACY_TAP!=='1')return new Response('この受け口は終了しました。',{status:410,headers:H});

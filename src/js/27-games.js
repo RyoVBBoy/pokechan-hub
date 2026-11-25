@@ -33,6 +33,7 @@ const GAMES=[
       {id:'replay',sec:'対戦の準備',href:'#/replay',ic:I.replay,t:'対戦の振り返り（動画から）',s:'振り返り',d:'画面収録の動画から、相手・選出・勝ち負けを記録して、勝率と苦手な相手を出す'},
       {id:'pip',sec:'計算',href:'#/pip',ic:I.pip,t:'PiP（ピクチャ・イン・ピクチャ）',s:'PiP',d:'選出・ダメージ・素早さや育成のカードを、ゲームの上にPiPで浮かべる（バトル中・育成中）'},
       {id:'calc',sec:'計算',href:'#/calc',ic:I.calc,t:'ダメージ計算',s:'ダメ計',d:'あなたの育成や使用率の高い型で、乱数16段階・確定数まで'},
+      ...(typeof aiUiOn==='function'&&aiUiOn()?[{id:'ai',sec:'計算',href:'#/ai',ic:I.search,t:'AI攻略アシスト（試験中）',s:'AI',d:'図鑑・計算・集計のデータから、根拠つきで答える（試験中）'}]:[]),
       {id:'types',sec:'計算',href:'#/types',ic:I.zap,t:'タイプ相性',s:'相性',d:'相手のポケモンやタイプから、効く技と出すべきポケモン'},
       {id:'cmp',sec:'計算',href:'#/cmp',ic:I.cmp,t:'ポケモン比較',s:'比較',d:'2匹の種族値とタイプ相性を重ねて比べる'},
       {id:'import',sec:'連携',href:'#/import',ic:I.image,t:'画像から取り込む',s:'取り込み',d:'ゲームのチーム画面のスクショから、技・持ち物・能力ポイントまで'},

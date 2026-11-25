@@ -6,5 +6,9 @@
     "projectId": "pokechan-hub",
     "appId": "1:974120833547:web:83d8f6cde2d86a31852d0e"
   },
-  "apple": false
+  "apple": false,
+  "ai": {
+    "_説明": "Game Kid/s AI（Stage A）の画面。false の間は画面もツール一覧の入口も出しません。サーバー側も AI_ENABLED=1 にしない限り動きません。",
+    "enabled": false
+  }
 }

@@ -3672,3 +3672,32 @@ body.gkcm-on{overflow:hidden}
 @media(min-width:700px){
   .tw-vs{padding:64px 80px;box-sizing:border-box}
 }
+
+/* ===== Game Kid/s AI（Stage A・87-ai.js。既定では出さない） ===== */
+.ai-root{padding:12px 16px 24px}
+.ai-scope{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 8px}
+.ai-chip{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--acc-t);color:var(--fg);font-weight:700;font-size:13px}
+.ai-fmt{display:inline-flex;gap:4px}
+.ai-fmt button{min-height:36px;padding:0 14px;white-space:nowrap;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);font:inherit;font-size:13px}
+.ai-fmt button[aria-pressed=true]{background:var(--accf);color:var(--onacc);border-color:transparent}
+.ai-small{font-size:12px;color:var(--dim);line-height:1.5}
+.ai-quota{margin:8px 0;font-size:14px}
+.ai-q{display:block;margin:8px 0}.ai-q span{display:block;font-weight:700;margin-bottom:4px}
+.ai-q textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--glass);color:var(--fg)}
+.ai-ans{margin-top:12px}.ai-st{font-weight:800;margin-bottom:6px}
+.ai-card{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0;background:var(--glass);overflow-wrap:anywhere}
+.ai-card p{margin:4px 0;line-height:1.6}
+.ai-err{border-color:#f4212e66}
+.ai-lab{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.ai-lab-official,.ai-lab-ingame{color:#00ba7c;border-color:#00ba7c88}
+.ai-lab-external_match{color:#7856ff;border-color:#7856ff88}
+.ai-lab-insufficient{color:#f4212e;border-color:#f4212e88}
+.ai-hold{color:var(--dim)}
+.ai-ev{margin-top:6px;font-size:13px}.ai-ev summary{cursor:pointer;min-height:32px;line-height:32px}
+.ai-ev ul{margin:4px 0;padding-left:18px}.ai-ev li{margin:3px 0;line-height:1.5}
+.ai-local,.ai-calc{border:1px dashed var(--line);border-radius:14px;padding:10px 12px;margin:8px 0}
+.ai-side{border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:8px}
+.ai-side label,.ai-calc>label{display:block;margin:6px 0;font-size:14px}
+.ai-sp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ai-sp label{font-size:12px}.ai-sp input{width:100%;box-sizing:border-box;font-size:16px;padding:6px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--fg)}
+.ai-tools{flex-wrap:wrap}
