@@ -96,16 +96,38 @@ for(const W of [390,1280]){
   ok(!!(await pg.$('.tg-card')),W+'：覚えを消すとカードがまた出る');
   await pg.click('[data-tg-x]');await W8(pg,200);
   ok(!(await pg.$('.tg-card'))&&!(await pg.$('.tg-v'))&&await pg.evaluate(()=>localStorage.getItem('pctoolsguide')==='1'),W+'：×でカードを閉じると、開かずに次から出さない');
-  /* ⑤ ツールの働きは前と同じ：☆で「すぐ使う」の先頭に入り、並びは変わらない */
-  const id=await pg.$eval('#view .trow [data-tpin]',e=>e.dataset.tpin);
-  await pg.click(`#view .trow [data-tpin="${id}"]`);await W8(pg);
-  const after=await pg.evaluate(id=>{const t=toolsOf(curGame()).find(x=>x.id===id);const first=document.querySelector('#view .tquick .ttile');
-    return{href:t.href,first:first&&first.getAttribute('href'),order:document.querySelector('.tprim').getBoundingClientRect().top<document.querySelector('.tquick').getBoundingClientRect().top&&document.querySelector('.tquick').getBoundingClientRect().top<document.querySelector('.tother-h').getBoundingClientRect().top}},id);
-  ok(after.first===after.href&&after.order,W+'：☆を押したツールが「すぐ使う」の先頭に入り、並びは同じ',after);
-  await pg.click(`#view .trow [data-tpin="${id}"]`);await W8(pg);
-  /* 「すぐ使う」のタイルは前と同じように開く */
-  const qh=await pg.$eval('#view .tquick .ttile',e=>e.getAttribute('href'));await pg.click('#view .tquick .ttile');await W8(pg);
-  ok(await pg.evaluate(()=>location.hash)===qh,W+'：「すぐ使う」のタイルを押すとそのツールが開く',qh);
+  /* ⑤ スターと表示が一致し、外したツールは使っても戻らない */
+  const tiles=()=>pg.locator('#view .tquick .ttile').evaluateAll(links=>links.map(a=>a.getAttribute('href')));
+  const defaults=['assist','calc','types','meta'];
+  const star=id=>pg.locator(`#view [data-tpin="${id}"]`);
+  const checkPins=async ids=>JSON.stringify(await tiles())===JSON.stringify(ids.map(id=>'#/'+id));
+  ok(await checkPins(defaults)&&await pg.locator('#view [data-tpin][aria-pressed="true"]').count()===4,
+    W+'：初回は指定した4件がスター済みで「すぐ使う」に出る');
+  ok(await star('calc').evaluate(e=>!e.closest('a')&&e.getBoundingClientRect().width>=44),
+    W+'：ダメージ計算のカードに、リンクから独立したスターを表示');
+  await star('calc').click();
+  ok(await checkPins(['assist','types','meta'])&&await star('calc').getAttribute('aria-pressed')==='false',
+    W+'：スターを外すとダメージ計算がすぐ消える');
+  if(W>=700)ok(!(await pg.$('#pcs-tools .pcs-t[href="#/calc"]')),W+'：右側のすぐ使うにも反映');
+  await pg.click('#view .tprim-c[href="#/calc"]');
+  await pg.waitForURL('**/#/calc');
+  await pg.goto(URL0+'#/tools');
+  await star('calc').waitFor();
+  ok(await checkPins(['assist','types','meta']),W+'：外したツールは開き直しで再表示されない');
+  for(const id of ['assist','types','meta'])await star(id).click();
+  await pg.reload();
+  await star('calc').waitFor();
+  ok(await checkPins([])&&await pg.locator('#view .tquick').textContent().then(t=>t.includes('ここに追加')),
+    W+'：すべて外した状態も再読み込み後に保つ');
+  await star('cmp').click();
+  await star('calc').click();
+  ok(await checkPins(['calc','cmp']),W+'：追加したツールだけが新しい順で並ぶ');
+  await pg.locator('#view .tquick .ttile[href="#/cmp"]').click();
+  await pg.waitForURL('**/#/cmp');
+  await pg.evaluate(()=>localStorage.setItem('pctools','{"pokechamp":["pip"]}'));
+  await pg.goto(URL0+'#/tools');
+  await star('pip').waitFor();
+  ok(await checkPins(['pip']),W+'：以前に保存したスターを引き継ぐ');
   ok(!errs.length,W+'：エラーなし',errs);
   await ctx.close();
 }

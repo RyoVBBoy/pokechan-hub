@@ -3,7 +3,7 @@
    利用者は「マイゲーム」をピン留めし、「起動したときに開く画面」を選べる。
    ゲームごとに持つもの：
      tabs  … 下のメニュー（左のメニュー）。最後に共通の「コミュニティ」が自動で付く
-     tools … ツール一覧に並ぶもの（ツール画面・ホームの「すぐ使う」・最近使った、に使う）
+     tools … ツール一覧に並ぶもの（ツール画面と「すぐ使う」に使う）
      fab   … 右下の丸いボタン（ポケチャンは「相性を調べる」）。無いゲームは出さない */
 I.target='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>';
 I.trend='<path d="M3.5 17.5 9 12l4 4 7.5-8"/><path d="M15 8h5.5v5.5"/>';
@@ -23,7 +23,7 @@ const GAMES=[
   {id:'pokechamp',name:'ポケモンチャンピオンズ',en:'Pokémon Champions',short:'ポケチャン',home:'#/',status:'ready',color:'#ffcb05',desc:'図鑑・選出アシスト・ダメージ計算・対戦募集',
     sym:'<path d="M12 2.6 20.2 7.3v9.4L12 21.4 3.8 16.7V7.3z"/><path d="M7.6 15.4h8.8l.9-5.6-3.1 2.2L12 8.4l-2.2 3.6-3.1-2.2z"/>',
     tabs:[['',I.home,'ホーム'],['search',I.search,'検索'],['tools',I.tool,'ツール'],['team',I.grid,'パーティ']],fab:true,
-    quick:['assist','calc','types','meta'],
+    defaultPins:['assist','calc','types','meta'],
     tools:()=>[
       {id:'assist',sec:'対戦の準備',href:'#/assist',ic:I.target,t:'選出アシスト',s:'選出',d:`相手の6匹から、出すべき${PICK()}匹と先発・相手の予想選出を出す`},
       {id:'tier',sec:'対戦の準備',href:'#/tier',ic:I.trophy,t:'強いポケモンランキング',s:'ランキング',d:`${FMTN()}の使用率と、上位のポケモンとの1対1の計算から、S〜Cに分けて理由つきで並べる（毎日更新）`},
@@ -55,24 +55,22 @@ const readyGames=()=>GAMES.filter(g=>g.status==='ready');
 /* いまのゲーム＝最後に選んだゲーム（この端末の pcgames.last）。対応していない・消えたゲームなら、対応している最初のゲーム */
 const curGame=()=>{const g=gameOf(gpGet().last);return g&&g.status==='ready'?g:readyGames()[0]};
 const gameName=g=>L(g.name,g.en||g.name);
-/* ---- ツール：マイツール（☆）・最近使った（この端末に保存。ゲームごと） ---- */
+/* ゲーム別に保存したスターを使う。未設定のときだけ既定値にし、空の一覧も保存済みとして扱う。 */
 const toolsOf=g=>(g&&g.tools?g.tools():[]);
-const tlsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){return{}}};
-const tPins=(g=curGame())=>tlsGet('pctools')[g.id]||[];
-const tRecent=(g=curGame())=>tlsGet('pcrecent')[g.id]||[];
-const tSave=(k,g,a)=>{const o=tlsGet(k);o[g.id]=a;try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}};
-function tTogglePin(id){const g=curGame(),p=tPins(g);const on=!p.includes(id);tSave('pctools',g,on?[...p,id]:p.filter(x=>x!==id));return on}
-/* 開いた画面がツールなら「最近使った」に入れる（#/assist/pip のように長く一致する方を優先） */
-function trackTool(h){
-  const g=curGame();let best=null;
-  for(const t of toolsOf(g))if((h===t.href||h.startsWith(t.href+'/'))&&(!best||t.href.length>best.href.length))best=t;
-  if(!best||(h.startsWith('#/assist/')&&best.id==='assist'))return;
-  tSave('pcrecent',g,[best.id,...tRecent(g).filter(x=>x!==best.id)].slice(0,8));
+const tPinPrefs=()=>{try{return JSON.parse(localStorage.getItem('pctools')||'{}')||{}}catch(e){return{}}};
+const tPins=(g=curGame())=>{
+  const saved=tPinPrefs()[g.id];
+  return Array.isArray(saved)?saved:(g.defaultPins||[]);
+};
+function tTogglePin(id){
+  const g=curGame(),pins=tPins(g),on=!pins.includes(id);
+  const next=on?[id,...pins]:pins.filter(p=>p!==id);
+  try{localStorage.setItem('pctools',JSON.stringify({...tPinPrefs(),[g.id]:next}))}catch(e){}
+  return on;
 }
-/* すぐ使うツール：☆ → 最近使った → ゲームのおすすめ の順に、重ならないように */
-function quickTools(n=8){
-  const g=curGame(),all=toolsOf(g),by=id=>all.find(t=>t.id===id);
-  return [...new Set([...tPins(g),...tRecent(g),...(g.quick||[])])].map(by).filter(Boolean).slice(0,n);
+function quickTools(n){
+  const g=curGame(),tools=new Map(toolsOf(g).map(t=>[t.id,t]));
+  return [...new Set(tPins(g))].map(id=>tools.get(id)).filter(Boolean).slice(0,n);
 }
 const toolTile=t=>`<a class="ttile" href="${t.href}"><span class="ttile-i">${SVG(t.ic,24)}</span><b>${esc(t.s||t.t)}</b></a>`;
 /* 下（左）のメニューを、いまのゲームに合わせて作る */

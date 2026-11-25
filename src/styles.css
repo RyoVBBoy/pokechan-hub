@@ -2372,6 +2372,9 @@ body:has(#ac-root.ac2) .foot{display:none}
 .tprim-h{margin:0 4px 10px;font-size:17px}
 .tprim-g{display:grid;gap:10px}
 .tprim-c{position:relative;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;padding:14px 12px 14px 14px;border-radius:16px;background:var(--card);border:1px solid var(--card-b);box-shadow:var(--card-s);color:var(--fg);text-decoration:none;min-height:64px}
+.tprim-item{position:relative;display:grid;min-width:0}
+.tprim-item.has-pin .tprim-c{padding-right:52px}
+.tprim-item>.tpin{position:absolute;top:4px;right:4px;margin:0}
 .tprim-c:hover{border-color:rgba(var(--acc-rgb),.5)}
 .tprim-i{grid-row:1/3;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accf);color:var(--onacc)}
 .tprim-t{font-size:16.5px;font-weight:800}

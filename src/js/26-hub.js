@@ -3,20 +3,23 @@ const hubRow=(h,t,d,badge)=>`<a class="row" href="${h}"><div class="row-m"><div 
 function toolsView(){
   setHeader('ツール');
   const g=curGame(),all=toolsOf(g),pins=tPins(g),by=id=>all.find(t=>t.id===id);
-  const mine=pins.map(by).filter(Boolean),recent=tRecent(g).map(by).filter(t=>t&&!pins.includes(t.id)).slice(0,4);
   const secs=[...new Set(all.map(t=>t.sec))];
+  const star=t=>{
+    const on=pins.includes(t.id);
+    return `<button type="button" class="tpin${on?' on':''}" data-tpin="${t.id}" aria-pressed="${on}" aria-label="${esc(L(`${t.t}を「すぐ使う」に表示`,`Show ${t.t} in Quick Access`))}">${SVG(I.star,20)}</button>`;
+  };
   const row=t=>`<div class="trow"><a class="trow-a" href="${t.href}"><span class="ttile-i">${SVG(t.ic,22)}</span><span class="row-m"><span class="row-t">${esc(t.t)}${t.badge?`<span class="atag" style="margin-left:6px">${t.badge}</span>`:''}</span><span class="row-s">${t.d}</span></span></a>
-    <button class="tpin${pins.includes(t.id)?' on':''}" data-tpin="${t.id}" aria-pressed="${pins.includes(t.id)}" aria-label="${esc(t.t)}をマイツールに${pins.includes(t.id)?'入れない':'入れる'}">${SVG(I.star,20)}</button></div>`;
+    ${star(t)}</div>`;
   /* 2026/11/12 依頼主：14のツールが同じ大きさで並ぶと、はじめての人が迷う。いちばん上に「まずはこの3つ」（ダメージ計算・図鑑・パーティ）を大きなカードで出し、
      ほかは下の「そのほかのツール」にまとめる（ダメージ計算は上のカードにあるので下には出さない） */
   const PRIMARY=g.id==='pokechamp'?[
-    {href:'#/calc',ic:I.calc,t:'ダメージ計算',d:'技のダメージ（％）と、何回で倒せるかを計算'},
+    {id:'calc',href:'#/calc',ic:I.calc,t:'ダメージ計算',d:'技のダメージ（％）と、何回で倒せるかを計算'},
     {href:'#/dex',ic:I.dex||I.book,t:'図鑑',d:'種族値・弱点・覚える技・使用率の高い型'},
     {href:'#/team',ic:I.grid,t:'パーティと診断',d:'6匹の育成・弱点のチェック・おすすめの選出'}]:[];
   const prim=new Set(PRIMARY.map(x=>x.href));
   /* 並び（2026/11/16 依頼主）：使い方ガイドのカード（はじめてだけ）→ まずはこの3つ → すぐ使う → 対戦の形式 → その他のツール → そのほか（相性・役割など、前と同じ） */
   const tg=g.id==='pokechamp'&&typeof toolsGuideCardHTML==='function';
-  V.innerHTML=`${tg?toolsGuideCardHTML():''}${PRIMARY.length?`<section class="tprim" aria-labelledby="tprim-h"><div class="tprim-hd"><h2 class="tprim-h" id="tprim-h">まずはこの3つ</h2>${tg?toolsGuideLinkHTML():''}</div><div class="tprim-g">${PRIMARY.map(x=>`<a class="tprim-c" href="${x.href}"><span class="tprim-i">${SVG(x.ic,26)}</span><span class="tprim-t">${esc(x.t)}</span><span class="tprim-d">${esc(x.d)}</span><span class="tprim-go">${SVG(I.chev,18)}</span></a>`).join('')}</div></section>`:''}
+  V.innerHTML=`${tg?toolsGuideCardHTML():''}${PRIMARY.length?`<section class="tprim" aria-labelledby="tprim-h"><div class="tprim-hd"><h2 class="tprim-h" id="tprim-h">まずはこの3つ</h2>${tg?toolsGuideLinkHTML():''}</div><div class="tprim-g">${PRIMARY.map(x=>`<div class="tprim-item${x.id?' has-pin':''}"><a class="tprim-c" href="${x.href}"><span class="tprim-i">${SVG(x.ic,26)}</span><span class="tprim-t">${esc(x.t)}</span><span class="tprim-d">${esc(x.d)}</span>${x.id?'':`<span class="tprim-go">${SVG(I.chev,18)}</span>`}</a>${x.id?star(x):''}</div>`).join('')}</div></section>`:''}
   ${g.id==='pokechamp'?toolsQuickHTML():''}
   ${g.id==='pokechamp'?`<div class="fmtbar"><span>対戦の形式</span>${fmtSwitch()}</div>
   <p class="note" style="padding-top:4px">選んだ形式（いまは<b>${FMTN()}</b>：${PICK()}匹選出・先発${LEADN()}匹）で、選出・予想・使用率を計算します。</p>`:''}
@@ -27,7 +30,7 @@ function toolsView(){
   if(g.id==='pokechamp')toolsTopBind(V);
   if(tg)toolsGuideBind(V);
   if(g.id==='pokechamp')bindFmt(V,toolsView);
-  V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrY();toolsView();scrTo(0,y)});
+  V.querySelectorAll('[data-tpin]').forEach(b=>b.onclick=()=>{const t=by(b.dataset.tpin),on=tTogglePin(t.id);toast(on?`「${t.s||t.t}」をマイツールに入れました`:`「${t.s||t.t}」をマイツールから外しました`);const y=scrY();toolsView();drawSide();V.querySelector(`[data-tpin="${t.id}"]`)?.focus({preventScroll:true});scrTo(0,y)});
 }
 function communityView(){
   setHeader('コミュニティ');
