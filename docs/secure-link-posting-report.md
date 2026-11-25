@@ -29,8 +29,12 @@ Adapter `lkThreat`: fixed endpoint, key in header only, `redirect:'manual'`, tim
 ## 5. Moderation and verified-email registry
 `sanctions` (kind uid/email, permanent or `expires_at`, reason, evidence id, source, actor = salted hash of admin IP, status, appeal, parent), `sanction_events` (audit). Perpetrator: permanent UID sanction + permanent email tombstones for every recorded verified-email hash of that UID; none recorded → `email:'unresolved'` (no invented association). Linked/temporary: 90 days default or 3–6 calendar months. Enforcement independent of flags; expiry sweep hourly (cron `0 * * * *`), on the user's own writes, and in periodic cleanup — only `banned=2` ever returns to 0. Email: Firebase-verified claim only (never request body); normalization = trim, NFC, lowercase whole address, IDN domain → ASCII, **no** plus/dot folding; HMAC-SHA-256 with versioned key and previous-key rotation (auto re-key). Deleting an account removes `user_emails`; sanctions persist. Firebase-side account disable/revocation is **not** implemented: this provides service-side denial only (see §7).
 
-## 6. Test evidence
-Filled in from the final runs (see PR description for exact logs): baseline vs candidate `node tests/run.mjs`, new suites `links.mjs`, `links-migrate.mjs`, `links-ui.mjs`, and `calc-ref`.
+## 6. Test evidence (this environment, 2026-11-25)
+Commands (both runs): `npm install` · `node tools/build.mjs` · `python3 worker/build.py` · `SITE_URL=https://example.invalid node tools/gen-pages.cjs` · `CHROMIUM=/opt/pw-browsers/chromium node tests/run.mjs` (CHROMIUM needed because the preinstalled browser differs from the pinned Playwright build).
+* Baseline: clean git worktree at `31ed89e` → build exit 0, `すべてのテストに合格しました`, 44/44 suites, calc-ref 1500/1500.
+* Candidate: implementation commits on this branch → build exit 0, `すべてのテストに合格しました`, 47/47 suites, calc-ref 1500/1500.
+* Every pre-existing suite has the same assertion count as baseline except `social` 287 → 292 (added flag OFF/ON checks; original URL-rejection assertion kept). New: `links` 231, `links-migrate` 8, `links-ui` 70 (390 px and 1280 px).
+* Not run here: the new `.github/workflows/pr-tests.yml` (runs on GitHub after push; check the PR's Checks tab). Real Google Web Risk, real Firebase and production D1 were never contacted.
 
 ## 7. Release blockers (all open)
 1. Independent security review (handoff requires GPT review) of `worker/src/links.js`, `src/js/87-ulink.js`, gate changes in `community.js`/`auth.js`/`social.js`.
