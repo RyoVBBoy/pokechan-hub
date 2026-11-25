@@ -771,9 +771,14 @@ html[data-dir=back]::view-transition-new(root){animation:vt-pop .3s var(--ease) 
   .pcside{display:block;position:fixed;top:0;bottom:0;left:calc(var(--gl) + var(--navw) + var(--mainw));width:var(--sidew);
     padding:8px 0 24px 28px;overflow-y:auto;z-index:30}
   .pcs-search{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 18px;margin:4px 0 14px;border:1px solid transparent;
-    border-radius:999px;background:var(--elev2);color:var(--dim);font:400 15px var(--ff);cursor:pointer;text-align:left}
+    border-radius:999px;background:var(--elev2);color:var(--dim);font:400 15px var(--ff);text-align:left;gap:4px;padding:0 8px}
   .pcs-search svg{width:18px;height:18px;flex:none}
-  .pcs-search:hover{border-color:var(--acc);color:var(--fg)}
+  .pcs-search:focus-within,.pcs-search:hover{border-color:var(--acc);color:var(--fg)}
+  .pcs-search input{flex:1;min-width:0;width:0;height:100%;border:0;padding:0;background:transparent;color:var(--fg);font:inherit;outline:none}
+  .pcs-search input::placeholder{color:var(--dim);opacity:1}
+  .pcs-search button{display:grid;place-items:center;width:32px;height:32px;flex:none;border:0;border-radius:50%;padding:0;background:transparent;color:inherit;cursor:pointer}
+  .pcs-search button:hover,.pcs-search button:focus-visible{background:var(--hov);color:var(--acc)}
+  .pcs-search .pcs-search-matchup{color:var(--acc)}
   .pcs-box{border:1px solid var(--line);border-radius:16px;overflow:hidden}
   .pcs-box h2{margin:0;padding:12px 16px;font-size:20px;font-weight:800}
   .pcs-box a{display:block;padding:12px 16px;transition:background .15s}
@@ -2372,6 +2377,9 @@ body:has(#ac-root.ac2) .foot{display:none}
 .tprim-h{margin:0 4px 10px;font-size:17px}
 .tprim-g{display:grid;gap:10px}
 .tprim-c{position:relative;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;padding:14px 12px 14px 14px;border-radius:16px;background:var(--card);border:1px solid var(--card-b);box-shadow:var(--card-s);color:var(--fg);text-decoration:none;min-height:64px}
+.tprim-item{position:relative;display:grid;min-width:0}
+.tprim-item.has-pin .tprim-c{padding-right:52px}
+.tprim-item>.tpin{position:absolute;top:4px;right:4px;margin:0}
 .tprim-c:hover{border-color:rgba(var(--acc-rgb),.5)}
 .tprim-i{grid-row:1/3;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accf);color:var(--onacc)}
 .tprim-t{font-size:16.5px;font-weight:800}
