@@ -7,7 +7,7 @@
    ・NGワード・リンク・連投は受け付けない。IPアドレスは悪用時の対応のため90日保存し、その後消す */
 const BOARDS={zatsu:'雑談',kouchiku:'構築相談',shitsumon:'質問',taikai:'大会・イベント'};
 const NG=['死ね','殺す','氏ね','きもい','キモい','ガイジ','池沼','在日','チョン','支那','ちんこ','まんこ','セックス','せっくす','援交','パパ活','LINE交換','ライン交換','電話番号','住所教','裏垢','RMT','リアルマネー','代行','アカウント売','垢売'];
-const REASONS=['誹謗中傷・嫌がらせ','個人情報','売買・代行・RMT','わいせつ・出会い目的','宣伝・荒らし・スパム','不正行為の紹介','その他'];
+const REASONS=['誹謗中傷・嫌がらせ','個人情報','売買・代行・RMT','わいせつ・出会い目的','宣伝・荒らし・スパム','不正行為の紹介','フィッシング・危険なリンク','その他'];
 const LIMIT={title:40,body:1000,name:16,comment:200};
 let DB_READY=false;
 async function dbInit(db){
@@ -28,12 +28,15 @@ async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncod
 const today=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
 async function aidOf(ip,env){return (await sha(ip+'|'+today()+'|'+(env.APP_TOKEN||'pc'))).slice(0,8)}
 const clean=(s,n)=>String(s||'').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g,'').replace(/\r\n?/g,'\n').trim().slice(0,n);
+/* NGワードだけ（2026/11/25：タイムラインのリンクの中の言葉にも使う）。ngCheck は前と同じく「リンク（URL）の禁止＋NGワード」で、掲示板・募集・プロフィール・タイムラインの本文に使う */
+function ngWords(...xs){
+  const t=xs.join(' ').normalize('NFKC').toLowerCase();
+  return NG.some(w=>t.includes(w.normalize('NFKC').toLowerCase()))?'書き込めない言葉が含まれています。':null;
+}
 function ngCheck(...xs){
   const t=xs.join(' ').normalize('NFKC').toLowerCase();
   if(/https?:\/\/|www\.|\.com\b|\.jp\b|discord\.gg|line\.me/.test(t))return 'リンク（URL）は書き込めません。';
-  const hit=NG.find(w=>t.includes(w.normalize('NFKC').toLowerCase()));
-  if(hit)return '書き込めない言葉が含まれています。';
-  return null;
+  return ngWords(...xs);
 }
 async function rateOk(db,ip){
   const now=Date.now();
@@ -68,6 +71,8 @@ async function api(req,env,u,ctx){
     else if(adminTok&&!isAdmin){await db.prepare(`INSERT INTO sec_fail(who,at) VALUES(?,?)`).bind(who,now).run();
       if(Math.random()<.05)await db.prepare(`DELETE FROM sec_fail WHERE at<?`).bind(now-864e5).run()}
   }
+  /* 利用停止の記録（links.js）：ログインした人のリクエストは、どの機能より先に確かめる（画像・読み取り・振り返りなども） */
+  {const g=await sanctionGate(req,env,db,path,now);if(g)return g}
   /* 画像は JSON ではなく中身そのものを受け取るので、先に分ける（media.js） */
   if(path==='/api/media'&&req.method==='POST')return mediaUpload(req,env,db,now);
   /* 運営の Tips の画像（管理用の合言葉だけ。tips.js） */
@@ -82,7 +87,7 @@ async function api(req,env,u,ctx){
   /* 送られてくる中身の大きさの上限（画像・振り返りは上で別に扱う）。大きすぎるものは読まずに断る */
   if(req.method==='POST'&&(+req.headers.get('content-length')||0)>262144)return J({error:'送信内容が大きすぎます。'},413);
   let body={};if(req.method==='POST'){const t=await req.text();if(t.length>262144)return J({error:'送信内容が大きすぎます。'},413);if(t){try{body=JSON.parse(t)}catch(e){return J({error:'送信内容を読めませんでした。'},400)}}}
-  if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db,env)).catch(()=>{}));
+  if(Math.random()<.02)ctx&&ctx.waitUntil(cleanup(db).then(()=>socialCleanup(db,env)).then(()=>linksCleanup(db,now)).catch(()=>{}));
   let m;
   /* タイムライン・フォロー・通知（social.js） */
   /* ランキングbot（rankbot.js） */
@@ -95,6 +100,8 @@ async function api(req,env,u,ctx){
   {const r=await pushApi(req,env,db,path,body,now);if(r)return r}
   /* メッセージ（DM・グループ）と非公開アカウントの切りかえ（dm.js） */
   {const r=await dmApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
+  /* タイムラインのリンク・利用停止の記録（links.js） */
+  {const r=await linksApi(req,env,db,path,u,body,now,ip,isAdmin);if(r)return r}
   {const r=await socialApi(req,env,db,path,u,body,now,ip,ctx);if(r)return r}
   /* シーズンごとの上位パーティ（ladder.js） */
   {const r=await ladderApi(req,env,db,path,u,body,now,isAdmin);if(r)return r}
@@ -214,9 +221,14 @@ async function api(req,env,u,ctx){
   if(path==='/api/admin/ban'&&req.method==='POST'){
     if(!isAdmin)return J({error:'管理用の合言葉が違います。'},401);
     const h=String(body.handle||'').replace(/^@/,'');
-    const r=await db.prepare(`UPDATE users SET banned=? WHERE handle=? COLLATE NOCASE`).bind(body.on===false?0:1,h).run();
+    /* 解除（on:false）でも、有効な利用停止の記録（links.js）がある人は 2（記録による停止）のままにする＝前からの解除で記録を飛ばせない */
+    await linksInit(db);
+    const r=body.on===false?await db.prepare(`UPDATE users SET banned=CASE WHEN EXISTS(SELECT 1 FROM sanctions s WHERE s.kind='uid' AND s.uid=users.uid AND s.status='active' AND (s.permanent=1 OR s.expires_at>?1))
+        OR EXISTS(SELECT 1 FROM sanctions s JOIN user_emails ue ON ue.ehash=s.ehash WHERE s.kind='email' AND ue.uid=users.uid AND s.status='active' AND (s.permanent=1 OR s.expires_at>?1)) THEN 2 ELSE 0 END WHERE handle=?2 COLLATE NOCASE`).bind(now,h).run()
+      :await db.prepare(`UPDATE users SET banned=1 WHERE handle=? COLLATE NOCASE`).bind(h).run();
     if(!(r.meta&&r.meta.changes))return J({error:'そのユーザーIDの人が見つかりません。'},404);
-    return J({ok:true,banned:body.on!==false});
+    const st=await db.prepare(`SELECT banned FROM users WHERE handle=? COLLATE NOCASE`).bind(h).first();
+    return J({ok:true,banned:body.on!==false||!!(st&&st.banned),...(body.on===false&&st&&st.banned===2?{sanctioned:true,error:'手動の停止は解除しましたが、有効な利用停止の記録があるため停止のままです（「利用停止の記録」で確かめてください）。'}:{})});
   }
   if(path==='/api/admin/banned'&&req.method==='GET'){
     if(!isAdmin)return J({error:'管理用の合言葉が違います。'},401);

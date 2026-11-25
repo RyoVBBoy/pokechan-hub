@@ -29,10 +29,16 @@ async function verifyIdToken(tok,env){
   if(!ok)return null;
   return{uid:pl.sub,email:pl.email||null,emailVerified:!!pl.email_verified,provider:(pl.firebase&&pl.firebase.sign_in_provider)||''};
 }
+/* AUTH_DENY：利用停止の確かめ（links.js の sanctionGate）で止めたリクエスト。そのリクエストではログインしていない人と同じ扱いにする。
+   AUTH_MEMO：同じリクエストで何度も署名を確かめない */
+const AUTH_DENY=new WeakMap(),AUTH_MEMO=new WeakMap();
 async function authOf(req,env){
+  if(AUTH_DENY.has(req))return null;
+  if(AUTH_MEMO.has(req))return AUTH_MEMO.get(req);
   const a=req.headers.get('authorization')||'';const m=a.match(/^Bearer\s+(.+)$/i);
   if(!m)return null;
-  try{return await verifyIdToken(m[1].trim(),env)}catch(e){return null}
+  const p=(async()=>{try{return await verifyIdToken(m[1].trim(),env)}catch(e){return null}})();
+  AUTH_MEMO.set(req,p);return p;
 }
 /* ユーザーID（@の後ろ）：半角英数字と_の3〜15文字。運営や公式と紛らわしいものは使えない */
 const HANDLE_RE=/^[A-Za-z0-9_]{3,15}$/;
@@ -77,6 +83,7 @@ async function userApi(req,env,db,path,body,now){
   /* 公開プロフィール（/api/u/…）は social.js */
   if(!path.startsWith('/api/me'))return null;
   if(!fbPid(env))return J({error:'ログイン機能は準備中です。'},503);
+  if(AUTH_DENY.has(req))return J({error:AUTH_DENY.get(req).err?'いまアカウントの状態を確かめられません。少し時間をおいてください。':SANC_MSG},AUTH_DENY.get(req).err?503:403);
   const me=await authOf(req,env);
   if(!me)return J({error:'ログインし直してください。'},401);
   const row=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
@@ -196,6 +203,8 @@ async function userApi(req,env,db,path,body,now){
   if(path==='/api/me/delete'&&req.method==='POST'){
     await socialDeleteUser(db,me.uid,env);
     await db.prepare(`DELETE FROM user_data WHERE uid=?`).bind(me.uid).run();
+    /* UID と確認済みメールの対応は消す。利用停止の記録（sanctions）は、決めた保存の決まりのとおり残す（消したあとの作り直しを止めるため） */
+    await linksInit(db);await db.prepare(`DELETE FROM user_emails WHERE uid=?`).bind(me.uid).run();
     await pushInit(db);await db.prepare(`DELETE FROM push_subs WHERE uid=?`).bind(me.uid).run();
     await db.prepare(`DELETE FROM users WHERE uid=?`).bind(me.uid).run();
     return J({ok:true});

@@ -19,7 +19,7 @@ function adminView(){
   <p class="note" style="padding-top:14px">通報された書き込みの確認と削除ができます。サーバーに設定した<b>管理用の合言葉（ADMIN_TOKEN）</b>を入れてください。アプリや背面タップ用の合言葉（APP_TOKEN）では入れません。合言葉はこの端末にだけ保存されます。</p>
   <div class="cform" style="padding:0 16px"><label>管理用の合言葉<input type="password" id="adm-tok" value="${esc(tok)}" autocomplete="off"></label></div>
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
-  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="quota" aria-pressed="${admTab==='quota'}">使用量</button><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button><button class="pill" data-at="tips" aria-pressed="${admTab==='tips'}">Tips</button></div>
+  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="quota" aria-pressed="${admTab==='quota'}">使用量</button><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="links" aria-pressed="${admTab==='links'}">リンク・利用停止の記録</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button><button class="pill" data-at="tips" aria-pressed="${admTab==='tips'}">Tips</button></div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
   document.getElementById('adm-save').onclick=()=>{try{sessionStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
@@ -176,6 +176,34 @@ function adminView(){
             colBox.querySelectorAll('[data-cskip]').forEach(b=>b.onclick=()=>post('/api/admin/collect/decide',{gkey:b.dataset.cskip,publish:false},()=>'載せないことにしました'));
           }catch(e){colBox.innerHTML=`<div class="bnote">${esc(e.message)}</div>`}};
         if(colBox){document.getElementById('col-s').onchange=colLoad;document.getElementById('col-f').onchange=colLoad;colLoad()}
+      }else if(admTab==='links'){
+        /* タイムラインのリンクと、利用停止の記録（worker/src/links.js）。値はすべて esc で文字として出す。リンクはここでも開かない（文字だけ） */
+        const [L,S]=await Promise.all([aget('/api/admin/links'),aget('/api/admin/sanctions')]);
+        const f=L.flags||{},on=x=>x?'<b>ON</b>':'OFF',dt=t=>t?new Date(+t+9*3600e3).toISOString().slice(0,16).replace('T',' '):'—';
+        const ask=async(title,text)=>{if(!await askConfirm({title,text,ok:'実行する'}))return null;const r=(prompt('理由（4文字以上・記録に残ります）')||'').trim();if(r.length<4){toast('理由を4文字以上で書いてください');return null}return r};
+        el.innerHTML=`<p class="note" style="padding-top:0">変数：投稿 ${on(f.post)}・押す ${on(f.click)}・利用停止の記録 ${on(f.sanctions)}・Web Risk の合言葉 ${f.webrisk?'あり':'なし'}・メールの鍵 ${f.emailKey?'あり':'なし'}。
+          通報・安全確認の結果だけでは停止しません。意図的な攻撃と確かめたときだけ、理由と根拠の番号を付けて記録します。</p>
+          <div class="sec"><h2>利用停止の記録を作る</h2></div>
+          <div class="cform" style="padding:0 16px"><label>ユーザーID<input id="sc-h" autocomplete="off" autocapitalize="off"></label>
+          <label>種類<select id="sc-k"><option value="perpetrator">確かめた攻撃者（いつまでも・確認済みメールも）</option><option value="linked">確かめた関連アカウント（期限つき）</option><option value="temporary">期限つき（そのほか）</option></select></label>
+          <label>期間（期限つきのとき）<select id="sc-m"><option value="">90日（はじめ）</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+          <label>理由<input id="sc-r" maxlength="200"></label><label>根拠の番号（通報・リンクの記録など）<input id="sc-e" maxlength="80"></label></div>
+          <div class="btns"><button class="btn btn-p" id="sc-go">記録する</button></div>
+          <div class="sec"><h2>利用停止の記録</h2></div>`+(S.sanctions.length?S.sanctions.map(x=>`<div class="bpost"><div class="bpost-h"><b>#${x.id}</b>　${x.kind==='email'?'確認済みメール（ハッシュ）':'@'+esc(x.handle||'（削除済み）')}　${x.permanent?'いつまでも':'〜'+dt(x.expires_at)}　${x.live?'<b style="color:var(--w2)">有効</b>':esc(x.status)}${x.appeal?'　異議：'+esc(x.appeal):''}</div>
+            <div class="bpost-b">${esc(x.reason)}　根拠：${esc(x.evidence||'')}　（${esc(x.source||'')}・${dt(x.created_at)}）</div>
+            ${x.live&&x.kind==='uid'?`<div style="padding-top:6px;display:flex;gap:16px"><button class="bback" data-sc-rev="${x.id}" style="padding:0">取り消す</button><button class="bback" data-sc-ap="${x.id}" style="padding:0">異議を記録</button></div>`:''}</div>`).join(''):'<p class="empty">記録はありません。</p>')
+          +`<div class="sec"><h2>リンク</h2></div>`+(L.links.length?L.links.map(x=>`<div class="bpost"><div class="bpost-h">#${x.note_id}　@${esc(x.handle||'')}　<b>${esc(x.state)}</b>　通報 ${x.reports}　確認 ${dt(x.verdict_at)}</div>
+            <div class="bpost-b" style="word-break:break-all" data-notr>${esc(x.url)}</div>
+            <div style="padding-top:6px;display:flex;gap:16px"><button class="bback" data-lk="quarantine:${x.note_id}" style="padding:0;color:var(--w2)">止める</button><button class="bback" data-lk="restore:${x.note_id}" style="padding:0">確かめて戻す</button><button class="bback" data-lk="recheck:${x.note_id}" style="padding:0">確かめ直す</button></div></div>`).join(''):'<p class="empty">リンクはありません。</p>')
+          +`<div class="sec"><h2>記録（URL は残していません）</h2></div>`+(L.events.map(e=>`<div class="bpost"><div class="bpost-h">${dt(e.at)}　${esc(e.kind)}　${esc(e.host||'')}　@${esc(e.handle||'')}</div><div class="bpost-b">${esc(e.detail||'')}</div></div>`).join('')||'<p class="empty">記録はありません。</p>');
+        document.getElementById('sc-go').onclick=async()=>{const h=document.getElementById('sc-h').value.trim().replace(/^@/,''),k=document.getElementById('sc-k').value,m=document.getElementById('sc-m').value;
+          const reason=document.getElementById('sc-r').value.trim(),evidence=document.getElementById('sc-e').value.trim();if(!h)return;
+          if(!await askConfirm({title:`@${h} の利用停止を記録しますか？`,text:k==='perpetrator'?'いつまでもの停止です。確認済みメールのハッシュも記録し、同じメールでの作り直しも止めます。取り消しはできますが、慎重に。':'期限つきの停止です。',ok:'記録する'}))return;
+          act(()=>apost('/api/admin/sanctions',{handle:h,kind:k,months:m?+m:null,reason,evidence,confirm:'SANCTION'}),'記録しました')};
+        el.querySelectorAll('[data-sc-rev]').forEach(b=>b.onclick=async()=>{const r=await ask('この利用停止を取り消しますか？','手動の停止（停止中のアカウント）はそのままです。');if(r)act(()=>apost(`/api/admin/sanctions/${b.dataset.scRev}/reverse`,{reason:r,confirm:true}),'取り消しました')});
+        el.querySelectorAll('[data-sc-ap]').forEach(b=>b.onclick=async()=>{const r=await ask('異議を記録しますか？','記録だけで、停止は変わりません。');if(r)act(()=>apost(`/api/admin/sanctions/${b.dataset.scAp}/appeal`,{reason:r,decision:'open',confirm:true}),'記録しました')});
+        el.querySelectorAll('[data-lk]').forEach(b=>b.onclick=async()=>{const [a,id]=b.dataset.lk.split(':'),r=await ask({quarantine:'このリンクを止めますか？',restore:'新しい安全確認をして、問題がなければ戻しますか？',recheck:'安全確認をし直しますか？'}[a],'投稿は消しません。');
+          if(r)act(()=>apost('/api/admin/links/'+id,{action:a,reason:r,confirm:true}),'実行しました')});
       }else if(admTab==='banned'){
         const j=await aget('/api/admin/banned');
         el.innerHTML=`<p class="note" style="padding-top:0">停止したアカウントは、投稿・プロフィールが表示されず、書き込みもできなくなります。解除すると元に戻ります。</p>

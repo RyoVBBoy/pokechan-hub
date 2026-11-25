@@ -66,6 +66,8 @@ async function socialInit(db){
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
     db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS notes_repost ON notes(repost_of,uid) WHERE repost_of>0`)
   ]);
+  /* 利用者のリンク・利用停止の記録の表（links.js。足すだけ・消さない） */
+  await linksInit(db);
   SOCIAL_READY=true;
 }
 /* 投稿の一覧で返す形（uid やIPアドレスは出さない） */
@@ -89,9 +91,11 @@ const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) A
   EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
   EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted,
   EXISTS(SELECT 1 FROM bookmarks bk WHERE bk.uid=?1 AND bk.note_id=COALESCE(o.id,n.id)) AS saved,
-  CASE WHEN o.id IS NULL THEN ${CARDVIS('u')} ELSE ${CARDVIS('ou')} END AS card`;
+  CASE WHEN o.id IS NULL THEN ${CARDVIS('u')} ELSE ${CARDVIS('ou')} END AS card,
+  (SELECT json_array(nl.url,nl.host,nl.state) FROM note_links nl WHERE nl.note_id=COALESCE(o.id,n.id)) AS ulink`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
-const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
+/* link＝運営の bot のリンク（notes.link、利用者は書けない）。ulink＝利用者のリンク（note_links、links.js の lkOut） */
+const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,...(r.ulink?{ulink:lkOut(r)}:{}),media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
   user:{handle:r.handle,name:r.name,av:r.av||null,...(r.off?{off:true}:{}),...(r.card?{card:true}:{})},...(r.tool?{tool:r.tool}:{}),reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
@@ -131,18 +135,33 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   /* 投稿する */
   if(path==='/api/notes'&&req.method==='POST'){
     const e=need();if(e)return e;
-    const text=clean(body.body,NOTE_MAX*2+2);
+    /* リンクを開いているとき（links.js）：形の違う値は断り、長さは形を直す前に確かめる（黙って切らない）。止めているときは前と同じ */
+    const lkp=lkOn(env,'LINKS_POST');
+    if(lkp){if(body.body!=null&&typeof body.body!=='string')return J({error:'本文を読めませんでした。'},400);
+      if(body.reply_to!=null&&typeof body.reply_to!=='number'&&typeof body.reply_to!=='string')return J({error:'返信先を読めませんでした。'},400);
+      if(typeof body.body==='string'&&body.body.length>LK_BODY_RAW_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400)}
+    let text=clean(body.body,lkp?LK_BODY_RAW_MAX:NOTE_MAX*2+2);
+    const lk=await lkForNote(env,db,me,meUid,body,text,now);
+    if(lk.error)return J({error:lk.error,...(lk.code?{code:lk.code}:{})},lk.status||400);
+    text=lk.text;
     /* 画像（先に /api/media で送ったもの）。画像だけの投稿もできる */
     const med=await mediaAttach(db,meUid,body.media,0);
     if(Array.isArray(body.media)&&body.media.length&&!med.length)return J({error:'画像を送り直してください（時間がたって消えた可能性があります）。'},400);
-    if(text.length<1&&!med.length)return J({error:'本文を入れてください。'},400);
+    if(text.length<1&&!med.length&&!lk.link)return J({error:'本文を入れてください。'},400);
     if([...text].length>NOTE_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400);
     const ng=(text&&ngCheck(text))||await socialRate(db,meUid,now);if(ng)return J({error:ng},400);
     /* 返信なら、返信先が見られる投稿か確かめる（リポストの行には返信できない） */
     const to=parseInt(body.reply_to,10)>0?parseInt(body.reply_to,10):0;
     const pa=to?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(to).first():null;
     if(to&&!pa)return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404);
-    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null).first();
+    let r;
+    if(lk.link){
+      /* 安全確認はいちばん最後（ほかの確かめで断るものは外に送らない）。問題がなければ、投稿とリンクを1つの取引で書く */
+      const c=await lkCheckForNote(env,db,meUid,lk.link,now);if(c.error)return J({error:c.error},c.status);
+      const out=await db.batch([db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?)`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null),
+        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at) VALUES(last_insert_rowid(),?,?,?,'ok','clean',?,?,?,?) RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,now,now)]);
+      r=out[1]&&out[1].results&&out[1].results[0];
+    }else r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null).first();
     if(r&&med.length)await mediaAttach(db,meUid,med.map(x=>x.k),r.id);
     const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
     if(pa&&r){const q=[recount(db,to)];
@@ -175,7 +194,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     await mediaDrop(env,db,'note_id=?',id);
     if(own&&own.reply_to)await recount(db,own.reply_to).run();
     if(own&&own.repost_of)await recount(db,own.repost_of).run();
-    await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM bookmarks WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
+    await db.batch([db.prepare(`DELETE FROM note_links WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM bookmarks WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
     return J({ok:true});
   }
   /* ブックマーク（on:false で外す）。本人だけの保存なので、相手への通知・数はない。1人2000件まで */
@@ -248,6 +267,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     /* 運営の Tips の投稿（2026/11/16）：通報で自動に隠さない（1件で画像・3件で投稿の決まりを使わない）。通報は管理画面の「通報」に並び、運営者が確かめる */
     /* 公式の運営の札のアカウント（2026/11/19）も同じ：通報で自動に隠さず、運営者が確かめる */
     const own=await db.prepare(`SELECT n.uid,${OFFX('x')} AS off FROM notes n LEFT JOIN users x ON x.uid=n.uid WHERE n.id=?`).bind(id).first();
+    /* 利用者のリンク付きの投稿は、通報で安全確認をし直す（通報だけで止めたり停止したりはしない。links.js） */
+    await later(lkReported(env,db,id,now));
     if(own&&(own.uid==='bot:tips'||own.off))return J({ok:true,review:true});
     const c=await db.prepare(`SELECT COUNT(*) AS n FROM reports WHERE kind='note' AND target=?`).bind(id).first();
     /* 画像つきの投稿は、通報1件で画像を確認待ちにする（運営者が確認して戻す） */
@@ -423,6 +444,7 @@ async function socialDeleteUser(db,uid,env){
     db.prepare(`DELETE FROM likes WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM notifs WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM note_tags WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
+    db.prepare(`DELETE FROM note_links WHERE uid=? OR note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid,uid),
     db.prepare(`DELETE FROM notes WHERE uid=?`).bind(uid),
     db.prepare(`UPDATE notes SET likes=MAX(0,likes-1) WHERE id IN (SELECT note_id FROM likes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM likes WHERE uid=?`).bind(uid),

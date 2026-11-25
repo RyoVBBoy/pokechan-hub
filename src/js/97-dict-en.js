@@ -116,7 +116,7 @@ const EN={
 'あなたの投稿にいいねしました':'liked your post','あなたをフォローしました':'followed you','まだ投稿がありません。':'No posts yet.','もっと見る':'Show more','そのほかの操作':'More','いいね':'Like',
 'この投稿を削除する':'Delete this post','この投稿を通報する':'Report this post','あなたの投稿':'Your post','通報の理由を選んでください':'Choose a reason',
 '3人から通報されると自動的に非表示になり、運営者が確認します。':'Posts reported by 3 people are hidden automatically and reviewed.',
-'誹謗中傷・嫌がらせ':'Abuse or harassment','個人情報':'Personal information','売買・代行・RMT':'Selling, boosting or RMT','わいせつ・出会い目的':'Sexual content or dating','宣伝・荒らし・スパム':'Ads, trolling or spam','不正行為の紹介':'Cheating','その他':'Other',
+'誹謗中傷・嫌がらせ':'Abuse or harassment','個人情報':'Personal information','売買・代行・RMT':'Selling, boosting or RMT','わいせつ・出会い目的':'Sexual content or dating','宣伝・荒らし・スパム':'Ads, trolling or spam','不正行為の紹介':'Cheating','フィッシング・危険なリンク':'Phishing or dangerous link','その他':'Other',
 '通報しました。ご協力ありがとうございます':'Reported. Thank you.','投稿しました':'Posted','削除しました':'Deleted','通報':'Report','非表示':'Hide',
 'ログインしてください。':'Please sign in.','先にプロフィールを作ってください。':'Please create your profile first.','いいねするにはログインしてください':'Sign in to like posts','フォローするにはログインしてください':'Sign in to follow',
 /* アカウント */

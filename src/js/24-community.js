@@ -154,7 +154,7 @@ function rulesView(){
 
 
 /* ---- 選択肢シート（通報の理由など） ---- */
-const REPORT_REASONS=['誹謗中傷・嫌がらせ','個人情報','売買・代行・RMT','わいせつ・出会い目的','宣伝・荒らし・スパム','不正行為の紹介','その他'];
+const REPORT_REASONS=['誹謗中傷・嫌がらせ','個人情報','売買・代行・RMT','わいせつ・出会い目的','宣伝・荒らし・スパム','不正行為の紹介','フィッシング・危険なリンク','その他'];
 function pickSheet(title,opts,sub){
   return new Promise(res=>{
     const o=document.createElement('div');o.className='psheet';
