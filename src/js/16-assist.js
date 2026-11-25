@@ -165,6 +165,7 @@ function asDraw(){
   const hm=`<table class="hm"><tr><th></th>${A.O.map(o=>`<th title="${o.p.n}"><span class="av">${stamp(o.p)}</span>${o.p.n.slice(0,3)}</th>`).join('')}</tr>${A.M.map((m,i)=>`<tr class="${A.best.includes(i)?'on':''}"><th>${shortN(m.p.n)}</th>${A.O.map((o,j)=>cell(asMode==='atk'?A.D[i][j]:A.R[j][i],asMode)).join('')}</tr>`).join('')}</table>`;
   const alt=A.all.slice(1).map(x=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${x.c.map(i=>A.M[i].p.n).join('・')}</div><div class="row-s">評価 ${Math.round(x.s*100)}（おすすめは ${Math.round(A.all[0].s*100)}）</div></div></div>`).join('');
   el.innerHTML=`<div class="sec"><h2>おすすめ選出</h2><span style="font-size:13px;color:var(--dim)">${FMTN()}・先発${LEADN()}匹＋控え${PICK()-LEADN()}匹</span></div>
+  ${FMT==='double'?`<p class="note" role="status">${L('ダブルは1対1の対面を組み合わせた暫定評価です。味方の巻き込み・支援、相手2匹の同時攻撃、まもるや技による行動妨害は評価していません。','Doubles scores are provisional combinations of one-on-one matchups. Ally damage and support, simultaneous attacks by two opponents, Protect and disruption are not modeled.')}</p>`:''}
   ${A.lead.map(i=>mrow(i,'先発')).join('')}${A.back.map(i=>mrow(i,'控え')).join('')}
   <p class="note">この${A.best.length}匹で、相手${A.O.length}匹のうち<b>${covered}匹</b>に推定50%以上のダメージを与えられます。${opp6.length>PICK()?'相手が<b>出してきそうなポケモンほど重く見て</b>選んでいます。':''}</p>
   ${typeof threeStepHTML==='function'?threeStepHTML(myNos,PR):''}
@@ -176,7 +177,7 @@ function asDraw(){
   <p class="note" style="padding-top:4px">${asMode==='atk'?'縦があなた、横が相手。あなたの一番強い技で、相手のHPを何%削れるかの目安です。':'縦があなた、横が相手。相手の一番強い技で、あなたのHPを何%削られるかの目安です。'}色の濃い行がおすすめ選出です。</p>
   <div style="overflow-x:auto;padding:0 16px">${hm}</div>
   ${alt?`<div class="sec"><h2>ほかの候補</h2></div>${alt}`:''}
-  ${srcLine('ladder','calc')}<p class="note" style="color:var(--dim);padding-bottom:10px">${asDataLine([...myNos,...opp6])}<br>ダメージは乱数の中央付近・天気なし・1対1で計算した目安です。相手が実際に何を持っているかで変わります。</p>`;
+  ${srcLine('ladder','calc')}<p class="note" style="color:var(--dim);padding-bottom:10px">${asDataLine([...myNos,...opp6])}<br>${L('ダメージは乱数の中央付近・天気を変える特性を含む1対1の目安です。フィールドの効果は反映していません。相手が実際に何を持っているかで変わります。','Damage is a mid-roll one-on-one estimate, including weather-setting abilities. Terrain effects are not modeled. Actual opposing sets can change the results.')}</p>`;
   const sim=document.getElementById('as-sim');
   if(sim)sim.onclick=()=>{
     if(opp6.length<4)return;

@@ -36,7 +36,11 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <nav class="tabbar"><button class="pc-brand" id="gsw" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="ゲームを切り替える"></button><div class="tabbar-in" id="nav"></div><div class="pc-more" id="pc-more" aria-label="そのほかのメニュー"></div><button class="pc-post" id="pc-post" type="button" title="相性を調べる" aria-label="相性を調べる"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/></svg><span>相性を調べる</span></button></nav>
 <aside class="pcside" aria-label="よく使う機能">
-  <button class="pcs-search" id="pcs-search" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>ポケモン名で相性を調べる</button>
+  <form class="pcs-search" id="pcs-search" role="search">
+    <button class="pcs-search-go" type="submit" aria-label="検索" title="検索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <input id="pcs-q" type="search" placeholder="ポケモン・#タグ・言葉で検索" aria-label="検索" autocomplete="off" enterkeyhint="search">
+    <button class="pcs-search-matchup" id="pcs-matchup" type="button" aria-label="相性を調べる" title="相性を調べる"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.3 2.5 4.9 13.6h5.9l-1.1 7.9 8.4-11.1h-5.9z"/></svg></button>
+  </form>
   <div class="pcs-box" id="pcs-tools"></div>
   <div class="pcs-box pcs-box--cm"><h2>コミュニティ</h2>
     <a href="#/tl" class="pcs-t"><span class="ttile-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:20px;height:20px"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/></svg></span><span><b>タイムライン</b><small>トレーナーの投稿を見る・投稿する</small></span></a>

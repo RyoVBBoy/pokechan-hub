@@ -11,7 +11,7 @@ async function page(W,H,theme='dark'){
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message));
   await pg.route(/^https?:/,r=>{const p=new URL(r.request().url()).pathname;
     const J=o=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(o)});
-    if(p==='/api/tl')return J({notes:[],next:null});if(/^\/api\/u\//.test(p))return J({user:{handle:'minato',name:'ミナト',bio:'',created_at:Date.now(),notes:0,followers:0,following:0,me:true,results:[],games:{}}});
+    if(p==='/api/tl')return J({notes:[],next:null});if(p==='/api/search')return J({notes:[],users:[],next:null});if(p==='/api/tags/trend')return J({tags:[]});if(/^\/api\/u\//.test(p))return J({user:{handle:'minato',name:'ミナト',bio:'',created_at:Date.now(),notes:0,followers:0,following:0,me:true,results:[],games:{}}});
     return r.abort()});
   await pg.goto(URL0+'#/tools');await pg.waitForTimeout(700);
   await pg.evaluate(()=>{AUTH.user={getIdToken:async()=>'t'};AUTH.profile={handle:'minato',name:'ミナト',bio:'',av:null};twAuth=async()=>AUTH.profile;refreshBrand()});
@@ -63,7 +63,25 @@ for(const [W,H] of [[1024,800],[1280,900],[1920,1080]]){
       const box=[...document.querySelectorAll('.pcside .pcs-box')].map(x=>x.getBoundingClientRect());
       return{sMid:Math.round((sr.top+sr.bottom)/2),hMid:Math.round((hd.top+hd.bottom)/2),tx:[...new Set(tx)],gap:Math.round(box[1].top-box[0].bottom),boxL:[...new Set(box.map(q=>Math.round(q.left)))]}});
     ok(Math.abs(e.sMid-e.hMid)<=6,W+'：検索欄は上の見出しの行にそろう '+JSON.stringify([e.sMid,e.hMid]));
-    ok(e.tx.length===1&&e.boxL.length===1&&e.gap===12,W+'：「すぐ使う」と「コミュニティ」の文の左がそろう・箱の間は12px '+JSON.stringify(e))}
+    ok(e.tx.length===1&&e.boxL.length===1&&e.gap===12,W+'：「すぐ使う」と「コミュニティ」の文の左がそろう・箱の間は12px '+JSON.stringify(e));
+    const input=pg.locator('#pcs-q');
+    await input.fill('  ピカチュウ  ');await input.press('Enter');
+    await pg.waitForFunction(()=>decodeURIComponent(location.hash)==='#/search/ピカチュウ'&&document.querySelector('#sr-q')?.value==='ピカチュウ');
+    ok(await pg.locator('#pcs-q').inputValue()==='ピカチュウ',W+'：右上でポケモンを検索');
+    await input.fill('#構築相談');await pg.locator('.pcs-search-go').click();
+    await pg.waitForFunction(()=>decodeURIComponent(location.hash)==='#/search/#構築相談'&&document.querySelector('#sr-q')?.value==='#構築相談');
+    ok(await pg.locator('#pcs-q').inputValue()==='#構築相談',W+'：検索ボタンでタグを検索');
+    await input.fill('a/b & c');await input.press('Enter');
+    await pg.waitForFunction(()=>document.querySelector('#sr-q')?.value==='a/b & c');
+    ok(await pg.evaluate(()=>location.hash)==='#/search/a%2Fb%20%26%20c',W+'：特殊文字を安全にURL化');
+    await pg.goBack();await pg.waitForFunction(()=>document.querySelector('#pcs-q')?.value==='#構築相談');
+    await input.fill('');await input.press('Enter');
+    await pg.waitForFunction(()=>location.hash==='#/search'&&!!document.querySelector('#sr-live'));
+    ok(await pg.locator('#pcs-q').inputValue()==='',W+'：空欄の検索は検索トップを開く');
+    await pg.locator('#pcs-matchup').click();
+    ok(await pg.locator('#sheet').isVisible(),W+'：相性確認も従来どおり開く');
+    await pg.keyboard.press('Escape');await pg.waitForFunction(()=>document.getElementById('sheet').hidden);
+  }
   /* A：コミュニティの左のふちがそろう */
   await go(pg,'#/community');
   const c=await pg.evaluate(()=>{const col=document.querySelector('#view').getBoundingClientRect(),note=document.querySelector('.cmv>.note'),r=document.createRange();r.selectNodeContents(note);const t=r.getClientRects()[0];
