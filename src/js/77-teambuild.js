@@ -40,7 +40,7 @@ const tbPic=p=>p&&ART_URL?`<span class="tbd-pic">${monArt(p)}</span>`:'';
    公式のポケモンずかんへは、リンクだけ（画像は読まない・写さない。番号と姿の枝番は zukanUrl＝図鑑のページと同じ） */
 const tbSixOne=(no,set)=>{const p=byNo[no];if(!p)return '';const mg=set&&set.it&&set.it.k&&isStone(set.it.k)&&megaOf(no,set.it.k);const fi=formInfo(p),zu=zukanUrl(p);
   const rl=(p.roles||[]).slice(0,2);
-  return `<div class="tbd-six1" style="--c1:${COL[p.t[0]]};--c2:${COL[p.t[1]||p.t[0]]}"><span class="tbd-six-em" aria-hidden="true">${typeEmblem(p)}</span>${tbPic(p)}
+  return `<div class="tbd-six1 mon-card">${monCardArt(p)}${tbPic(p)}
     <a class="tbd-six-a" href="#/p/${p.no}"><span class="tbd-six-n">${esc(fi.base)}</span></a>
     <span class="tbd-six-no">No.${String(p.dno||p.no).padStart(4,'0')}${fi.tag?`<span class="tbd-six-f">${esc(fi.tag)}</span>`:''}${zu?`<a class="tbd-zk" href="${zu}" target="_blank" rel="noopener noreferrer nofollow" aria-label="${esc(fi.base)}をポケモンずかん（公式サイト）で見る" title="ポケモンずかん（公式サイト）で見る">ずかん<span aria-hidden="true">↗</span></a>`:''}</span>
     ${tbTyB(p)}

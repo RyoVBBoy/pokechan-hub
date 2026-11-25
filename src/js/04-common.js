@@ -39,6 +39,10 @@ function typeEmblem(p){
     <g clip-path="url(#${id}l)"><g transform="translate(-2 0)" fill="${c1}" color="${c1}" filter="url(#${id}a)">${TICON[t[0]]}</g></g>
     <g clip-path="url(#${id}r)"><g transform="translate(6 0)" fill="${c2}" color="${c2}" filter="url(#${id}b)">${TICON[t[1]]}</g></g></svg>`;
 }
+function monCardArt(p){
+  const [first,second=first]=p.t;
+  return `<span class="mon-card-art" aria-hidden="true" style="--mon-c1:${COL[first]};--mon-c2:${COL[second]}"><span class="mon-card-em">${typeEmblem(p)}</span></span>`;
+}
 function monArt(p){
   if(!p)return '';
   if(ART_URL)return `<img class="mon-art" src="${esc(ART_URL.replace('{no}',p.no))}" alt="${esc(p.n)}" loading="lazy" decoding="async" data-no="${p.no}">`;
