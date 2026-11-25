@@ -37,7 +37,7 @@ function drawSide(){
   pcSearchSync();
   if(!document.getElementById('pc-more').innerHTML)pcNavDraw();else pcNavMark();
   const el=document.getElementById('pcs-tools');if(!el||getComputedStyle(el.parentNode).display==='none')return;
-  const qt=quickTools(6);
+  const qt=quickTools();
   el.innerHTML=`<h2>すぐ使う</h2>${qt.map(t=>`<a href="${t.href}" class="pcs-t"><span class="ttile-i">${SVG(t.ic,20)}</span><span><b>${esc(t.t)}</b><small>${t.d}</small></span></a>`).join('')}<a href="#/tools" class="pcs-more">ツールをすべて見る</a>`;
 }
 const pcSearchForm=document.getElementById('pcs-search'),pcSearchInput=document.getElementById('pcs-q');
