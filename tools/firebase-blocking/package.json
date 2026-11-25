@@ -1,0 +1,10 @@
+{
+  "name": "gamekids-firebase-blocking",
+  "private": true,
+  "description": "Firebase blocking functions for sanctioned identities (not deployed; owner approval and Identity Platform upgrade required)",
+  "main": "index.js",
+  "engines": { "node": "20" },
+  "dependencies": {
+    "firebase-functions": "6.1.0"
+  }
+}
