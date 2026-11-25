@@ -52,7 +52,7 @@
 
 コマンド：`npm run build`（`node tools/build.mjs && python3 worker/build.py && node tools/gen-pages.cjs`、`SITE_URL` と `CHROMIUM` を指定）、`node tests/run.mjs`（`ai.mjs`・`ai-ui.mjs` を追加）、`MINIFLARE_DIR=… node tests/ai-d1.mjs`。
 
-結果の表は §8（実測値）を参照。
+結果の表は §7（実測値）を参照。
 
 固定評価セット `tests/ai-eval/fixed-v1.json`（112件）は `tools/gen-ai-eval.mjs` で一度だけ作って保存した。期待値は AI の台帳を使わず、図鑑の事実はサイトの元データ、計算はダメージ計算の画面（`calcResult`）から作った。テストは作り直さない。作成中に、生成スクリプトが計算の対応表の外の技（はかいこうせん・あなをほる等）を「対応」に分類していたため、それらは対応外のケースとして残し（期待＝`move_unsupported`）、対応ケースは対応表の中から選び直した（失敗例を消して合格にはしていない）。
 
@@ -72,7 +72,7 @@
 12. **メトリクス**：`ai_requests` の行に提供元・モデル・状態・理由コード・費用・時刻が残る（質問文・回答の全文ログは残さない。回答は再送用に24時間だけ）。トークン数そのものは保存していない。
 13. **本番 Worker との一致・バインディング・提供元の契約状態**は確認対象外（仕様 §2 のとおり）。
 
-## 8. 実測値（2026-11-25、このコンテナ・Node 22・Chromium）
+## 7. 実測値（2026-11-25、このコンテナ・Node 22・Chromium）
 
 | 実行 | 結果 |
 |---|---|
