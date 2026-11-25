@@ -161,9 +161,10 @@ function mvpEvalTeam(entries,fmt,opt){
     try{scen.forEach(sc=>{
         WX_MEGA=sc.u<0?null:mem[sc.u].x.no;
         const scenarioWx=weatherKey();
-        const mons=mem.map((m,i)=>{const mega=i===sc.u;const set=m.stone&&!mega?{...m.S.calc,item:null}:m.S.calc;
-          const sig=m.x.no+':'+JSON.stringify([set.ab,set.item,(set.moves||[]).map(v=>v.id+(v.prot?'p':'')),set.sp,set.up,set.dn]);
-          return{a:mkMon(m.p,'me',set),sig}});
+        const mons=mem.map((m,i)=>{const mega=i===sc.u;const set=m.stone&&!mega?{...m.S.calc,evolve:false}:m.S.calc;
+          const a=mkMon(m.p,'me',set);
+          const sig=m.x.no+':'+JSON.stringify([a.p.no,a.ab,a.item,(set.moves||[]).map(v=>v.id+(v.prot?'p':'')),set.sp,set.up,set.dn]);
+          return{a,sig}});
         /* 確かめ用：この場合でメガの姿で計算したポケモン（いつも0匹か1匹） */
         sc.megaIdx=mons.map((m,i)=>m.a.p.base?i:-1).filter(i=>i>=0);
         sc.rows=O.list.map(op=>{const z=mons.map(m=>mvpMatch(m.a,m.sig,op,scenarioWx));

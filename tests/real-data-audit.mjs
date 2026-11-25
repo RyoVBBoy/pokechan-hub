@@ -87,7 +87,7 @@ try{
       /* 2026-11-24: one Mega per scenario; a selection with both holders evaluates each holder separately with the other in normal form */
       const both=S?.list.find(x=>x.c.includes(0)&&x.c.includes(1));
       check(both&&both.megaI>=0&&both.megaHold?.length===2&&both.megaAlt?.length===1,'two-holder selection records chosen Mega and the alternative',both&&{megaI:both.megaI,alt:both.megaAlt});
-      if(both){const T1=dgTeam0(team,20,{megaNo:es[both.megaI].no});check(T1.mega.i===both.megaI&&T1.M.filter((m,i)=>m&&i!==both.megaI&&es[i].set?.it&&isStone(es[i].set.it.k)).every(m=>!m.p.mega&&!m.item),'non-evolving holder uses normal form without stone',null)}
+      if(both){const T1=dgTeam0(team,20,{megaNo:es[both.megaI].no});check(T1.mega.i===both.megaI&&T1.M.filter((m,i)=>m&&i!==both.megaI&&es[i].set?.it&&isStone(es[i].set.it.k)).every(m=>!m.p.mega&&m.item===es.find(x=>x.no===m.p.no)?.set.it.k),'non-evolving holder uses normal form and keeps its stone',null)}
       check(S?.list.every(x=>x.rows.length===S.N),'same opponent population for every selection',null);
       const I2=timed('two Mega improvements',()=>dgImprove(team));check(I2&&Array.isArray(I2.list),'two Mega improvements computed');
       if(I2)for(const [i,o] of I2.list.entries()){auditTeam('two Mega improvement '+i,o.entries);
@@ -467,14 +467,67 @@ try{
           'an immune reserve is offered only when it can finish after switching',
           {safe:safeNote?.d,unsafe:unsafeNote?.d});
         const threeStones=[member(6,'charizarditey'),member(359,'absolite'),member(445,'garchompite'),member(149)];
+        threeStones[1].set.ab={k:'magic-bounce'};
         team=threeStones;
-        const impossible=asAnalyze(team.map(x=>x.no),opp6);
-        check(impossible.none&&impossible.megaSkipped>0,
-          'opponent-specific assist abstains when every modeled option assumes several Mega Evolutions');
+        const tight=asAnalyze(team.map(x=>x.no),opp6);
+        check(!tight.none&&tight.full.length===(fmt==='single'?4:1)
+          &&tight.full.every(x=>x.megaOptions.length===1+x.c.filter(i=>i<3).length),
+          'assist compares every lineup even when every lineup has several Mega Stone holders');
         team=[...threeStones,member(143),member(700)];
-        const partial=asAnalyze(team.map(x=>x.no),opp6);
-        check(!partial.none&&partial.megaSkipped>0&&partial.full.every(x=>x.c.filter(i=>partial.M[i].p.mega).length<=1),
-          'assist keeps evaluated lineups and discloses the untested combinations with several Mega Stone holders');
+        const all=asAnalyze(team.map(x=>x.no),opp6);
+        const monsOK=x=>x.match.M.filter(m=>m.p.mega).length===(x.megaI<0?0:1)
+          &&x.match.M.every((m,i)=>i>=3||i===x.megaI||(m.item===team[i].set.it.k&&(ABD[m.p.no]||[]).some(([ab])=>ab===m.ab)));
+        check(!all.none&&all.full.length===(fmt==='single'?20:15)&&all.full.every(monsOK),
+          'assist computes ordinary typing and legal ordinary abilities while keeping inactive stones');
+        const acro=mvObj(512),base=mySetFor(6);
+        const withStone=mkMon(byNo[6],'me',{...base,evolve:false}),noItem=mkMon(byNo[6],'me',{...base,item:null});
+        check(canLearn(6,acro.id)&&!withStone.p.mega&&withStone.item==='charizarditey'
+          &&varPow(withStone,acro,all.O[0],{})===acro.pow&&varPow(noItem,acro,all.O[0],{})===2*acro.pow,
+          'an inactive Mega Stone prevents Acrobatics from receiving the no-item power boost');
+        const both=all.full.find(x=>x.c.includes(0)&&x.c.includes(1));
+        const oNos=[65];
+        const active=[...both.c.filter(i=>i<3),-1];
+        const shown=analyze(both.c.map(i=>team[i].no),oNos,null,null,null,null,true).full[0];
+        const ownIndex=i=>i<0?-1:both.c.indexOf(i);
+        const separately=active.every(i=>{
+          const externallyFixed=n=>{
+            const member=team.findIndex(x=>x.no===n),set=mySetFor(n);
+            return member<3&&member!==i?{...set,evolve:false}:set;
+          };
+          const fixed=analyze(both.c.map(i=>team[i].no),oNos,externallyFixed);
+          const score=shown.megaOptions.find(v=>v.megaI===ownIndex(i))?.s;
+          return Math.abs(score-fixed.full[0].s)<1e-10;
+        });
+        check(separately,'each Mega and no-Mega score matches a separate run with those forms fixed in advance');
+        const completeTeam=team;
+        team=[threeStones[0],threeStones[1],member(149),member(700)];
+        const four=team.map(x=>x.no);
+        const grass=asAnalyze(four,[3]),ghost=asAnalyze(four,[94]);
+        check(grass.megaI===0&&ghost.megaI===1&&grass.lead.includes(0)&&!grass.lead.includes(1)
+          &&ghost.lead.includes(1)&&!ghost.lead.includes(0)
+          &&grass.wx?.k==='sun'&&!ghost.wx
+          &&asReason(grass,0).includes('フシギバナ')&&asReason(ghost,1).includes('ゲンガー'),
+          'Venusaur and Gengar change both the recommended Mega and the lead in the same party',
+          {grass:asMegaLabel(grass.M,grass.megaI),ghost:asMegaLabel(ghost.M,ghost.megaI)});
+        team=completeTeam;
+        const oldOpps=opp6;
+        try{
+          opp6=[byNo[6].no,megaOf(359,'absolite').no,megaOf(445,'garchompite').no,65,143,700];
+          const against=asAnalyze(team.map(x=>x.no),opp6);
+          check(!against.none&&against.full.every(x=>x.match.O.filter(m=>m.p.mega).length<=1),
+            'opponent damage and ranking never assume more than one opposing Mega');
+          const predictions=oppPredict(team.map(x=>x.no),opp6);
+          const current=asAnalyze(team.map(x=>x.no),opp6,predictions.w);
+          const pip=pipData().find(x=>x.kind==='plan')?.A;
+          check(pip?.megaI===current.megaI&&pip?.best.join()===current.best.join()&&pip?.lead.join()===current.lead.join()
+            &&pip?.M.map(m=>m.p.no).join()===current.M.map(m=>m.p.no).join(),
+            'PiP plan uses the same Mega, forms, lineup and lead as the opponent-specific screen');
+          const key=pipBattleKey();
+          team[0]={...team[0],set:{...team[0].set,it:null}};
+          check(pipBattleKey()!==key,'changing only a Mega Stone invalidates the saved PiP video');
+          team[0]=threeStones[0];
+        }finally{opp6=oldOpps}
+
       }finally{team=assistTeam;opp6=assistOpps}
       const savedAuth=AUTH.user,savedFetch=authFetch;
       try{

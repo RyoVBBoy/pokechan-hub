@@ -299,7 +299,13 @@ function mkMon(p,side,set){
   /* 姿は resolveForm で決める（2026/11/20）。メガストーンを持っていれば、メガシンカ後の姿で計算する（1回の対戦でメガシンカできるのは1匹だけ）。
      持ち物が姿と合わないときは formErr に理由を残す（計算の結果を出す画面は、これを見て結果を出さない） */
   const R=resolveForm(p.no,set.item);let formErr=null;
-  if(R.ok&&R.mega){if(R.form!==p||set.ab!==R.form.ab)set={...set,ab:R.form.ab};p=R.form}
+  if(R.ok&&R.mega){
+    p=set.evolve===false?R.base:R.form;
+    const abs=ABD[p.no]||[];
+    const ab=p.mega?p.ab:abs.some(([k])=>k===set.ab)?set.ab:(abs.find(([,hidden])=>!hidden)||abs[0])?.[0]||null;
+    // メガシンカしない場合も石は持ったまま。持ち物の有無で変わる技に反映する。
+    set={...set,item:R.stone,ab};
+  }
   else if(!R.ok)formErr=R.why;
   const stOf=q=>{if(set.sp)return calcStats(q,set.sp,set.up??-1,set.dn??-1);const phys=p.s[1]>=p.s[3],ai=phys?1:3,sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;return calcStats(q,sp,ai,phys?3:1)};
   let st=stOf(p),stAtk=null;

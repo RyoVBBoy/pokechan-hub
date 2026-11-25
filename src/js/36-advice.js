@@ -72,8 +72,8 @@ function asAdvice(A,PR){
     let choices;
     try{
       B.weather=null;
-      choices=A.back.map(i=>({m:A.M[i],z:dgMatch(A.M[i],threat.o)}))
-        .filter(({m,z})=>z.swIn==='win'&&!dgCalcUnsupported(m).length&&!dgCalcUnsupported(threat.o).length);
+      choices=asWithWeather(A.wx,()=>A.back.map(i=>({m:A.M[i],z:dgMatch(A.M[i],threat.o)}))
+        .filter(({m,z})=>z.swIn==='win'&&!dgCalcUnsupported(m).length&&!dgCalcUnsupported(threat.o).length));
     }finally{B.weather=before}
     const top=threat.hits[0],n=nm(threat.o),damage=Math.round(top.r.pct),defender=nm(A.M[top.i]);
     const detail=L(`${defender}に${top.r.mv.n}で約${damage}%の見積もりです。`,

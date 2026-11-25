@@ -44,7 +44,7 @@ function wxPair(a,b){const s=[a,b].filter(x=>x&&WSET[x.ab]);if(!s.length)return 
 const WX_GAIN={sun:['chlorophyll','solar-power','protosynthesis'],rain:['swift-swim'],sand:['sand-rush','sand-force'],snow:['slush-rush']};
 let TWX_K=null,TWX_V=null;
 /* 2026/11/24：メガシンカの場合（診断・選出で「この匹だけがメガシンカ」）。undefined＝決めていない（前と同じ：メガストーンの匹はメガ後の特性）、
-   null＝だれもメガシンカしない、番号＝その匹だけがメガシンカ（ほかのメガストーンの匹は持ち物なしで、もとの特性） */
+   null＝だれもメガシンカしない、番号＝その匹だけがメガシンカ（ほかのメガストーンの匹は通常の姿でもとの特性） */
 let WX_MEGA,WX_TEAM;
 function teamWx(entries=typeof team==='undefined'?[]:team){if(!entries.length)return null;
   const key=JSON.stringify([WX_MEGA===undefined?'u':WX_MEGA,entries.map(x=>[x.no,x.set&&x.set.ab&&x.set.ab.k,x.set&&x.set.it&&x.set.it.k])]);if(key===TWX_K)return TWX_V;
@@ -61,8 +61,15 @@ function teamWx(entries=typeof team==='undefined'?[]:team){if(!entries.length)re
   TWX_K=key;TWX_V=v;return v}
 const inTeam=m=>typeof team!=='undefined'&&team.some(x=>{const p=byNo[x.no];return p&&(p.no===(m.p.base||m.p.no)||p.no===m.p.no)});
 const appliedTeamWx=()=>typeof WX_OFF!=='undefined'&&WX_OFF?null:WX_TEAM===undefined?teamWx():WX_TEAM;
+let AS_WX;
+function asWithWeather(wx,fn){
+  if(wx===undefined)return fn();
+  const prev=AS_WX,weather=B.weather;
+  AS_WX=wx;B.weather=null;
+  try{return fn()}finally{AS_WX=prev;B.weather=weather}
+}
 function withWx(a,b,fn){if(typeof B==='undefined'||B.weather)return fn();let k=wxPair(a,b),by=null;
-  if(!k){const tw=appliedTeamWx();if(tw&&[a,b].some(m=>m&&m.side==='me'&&inTeam(m)&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
+  if(!k){const tw=AS_WX===undefined?appliedTeamWx():AS_WX;if(tw&&[a,b].some(m=>m&&m.side==='me'&&(AS_WX!==undefined||inTeam(m))&&(WX_GAIN[tw.k]||[]).includes(m.ab))){k=tw.k;by=tw}}
   if(!k)return fn();B.weather={k,t:5,team:by};try{return fn()}finally{B.weather=null}}
 function estHit(a,d){return withWx(a,d,()=>estHit0(a,d))}
 function estHit0(a,d){
@@ -80,37 +87,86 @@ function estHit0(a,d){
   return best;
 }
 function combos(arr,k){const out=[];const rec=(s,c)=>{if(c.length===k){out.push(c.slice());return}for(let i=s;i<arr.length;i++){c.push(arr[i]);rec(i+1,c);c.pop()}};rec(0,[]);return out}
-function analyze(myNos,opNos,mySF,opSF,W,keepNo,strictMegas=false){
+/* 1対1の比較を、各選出のメガシンカと天気の前提ごとに共用する。 */
+function asMatchMatrix(M,O,W,wx,getPair){
+  const pairs=M.map(m=>O.map(o=>getPair(m,o,wx)));
+  const D=pairs.map(row=>row.map(x=>x.dealt)),R=O.map((_,j)=>pairs.map(row=>row[j].taken));
+  const speedDiff=pairs.map(row=>row.map(x=>x.speed));
+  const fast=speedDiff.map(row=>row.map(d=>d>0));
+  const S=pairs.map(row=>row.map(x=>x.duel));
+  const wt=W.reduce((a,b)=>a+b,0)||1;
+  const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
+  const defV=M.map((_,i)=>R.reduce((a,row,j)=>a+W[j]*Math.min(row[i].pct*row[i].acc/100,100)/100,0)/wt);
+  const duV=idx=>O.reduce((a,_,j)=>a+W[j]*Math.max(...idx.map(i=>S[i][j]))/2,0)/wt;
+  const score=idx=>O.reduce((a,_,j)=>a+W[j]*Math.max(...idx.map(i=>offV(i,j))),0)/wt-.6*idx.reduce((a,i)=>a+defV[i],0)/idx.length+.2*duV(idx);
+  const leadFor=line=>combos(line,Math.min(LEADN(),line.length)).map(c=>({c,s:score(c)+c.reduce((a,i)=>a+fast[i].reduce((x,f,j)=>x+(f?W[j]:0),0)/wt*.15,0)})).sort((a,b)=>b.s-a.s);
+  return{M,O,D,R,S,fast,speedDiff,offV,score,leadFor,wx};
+}
+function analyze(myNos,opNos,mySF,opSF,W,keepNo,compareMegas=false){
   mySF=mySF||mySetFor;opSF=opSF||(n=>detSet(byNo[n]));
   const sw=B.weather;B.weather=null;
   try{
-    const M=myNos.map(n=>mkMon(byNo[n],'me',mySF(n))),O=opNos.map(n=>mkMon(byNo[n],'op',opSF(n)));
-    /* 2026/11/20：持ち物が姿と合わない型（formErr）は選出の計算に入れない（点・おすすめに黙って混ぜない）。外した匹は formErr で返す */
-    const bad=[...M.map((m,i)=>m.formErr?{side:'me',no:myNos[i],why:m.formErr}:null),...O.map((m,i)=>m.formErr?{side:'op',no:opNos[i],why:m.formErr}:null)].filter(Boolean);
-    if(bad.length){B.weather=sw;if(bad.some(e=>e.side==='me'&&e.no===keepNo))return {formErr:bad,none:true};const mn=myNos.filter((n,i)=>!M[i].formErr),on=opNos.filter((n,i)=>!O[i].formErr);
-      const R=mn.length&&on.length?analyze(mn,on,mySF,opSF,W?W.filter((_,j)=>!O[j].formErr):W,keepNo,strictMegas):null;if(R)R.formErr=bad;return R||{formErr:bad,none:true}}
-    const k=Math.min(PICK(),M.length),axis=myNos.indexOf(keepNo);
-    const cs=combos(M.map((_,i)=>i),k).filter(c=>axis<0||c.includes(axis));
-    // この簡易比較は各メンバーのメガ後の姿を使う。2匹以上がメガ後になる組を公開の推薦に使わない。
-    const cs1=cs.filter(c=>c.filter(i=>M[i].p.mega).length<=1),megaSkipped=cs.length-cs1.length;
-    if(strictMegas&&!cs1.length)return {none:true,megaSkipped};
-    const w=O.map((_,j)=>W?W[j]:1),wt=w.reduce((a,b)=>a+b,0)||1;
-    const D=M.map(m=>O.map(o=>estHit(m,o))),R=O.map(o=>M.map(m=>estHit(o,m)));
-    const speedDiff=M.map(m=>O.map(o=>withWx(m,o,()=>effSpd(m,o)-effSpd(o,m))));
-    const fast=speedDiff.map(row=>row.map(d=>d>0));/* 天気（パーティの天気も）で速くなる特性を入れて比べる（2026/11/10） */
-    const offV=(i,j)=>{const d=D[i][j];let v=Math.min(d.pct*d.acc/100,100)/100;if(d.pct>=100&&fast[i][j])v+=.25;return v};
-    const defV=i=>O.reduce((a,_,j)=>a+w[j]*Math.min(R[j][i].pct*R[j][i].acc/100,100)/100,0)/wt;
-    /* 1対1の判定（56-duel.js：タスキ・先制技・積み技・命中なども入る）を足す。相手のだれにも、選出のだれかが有利に戦えるほど高い（2026/11/06） */
-    const S=M.map(m=>O.map(o=>typeof duelS==='function'?duelS(m,o):0));
-    const duV=idx=>O.reduce((a,_,j)=>a+w[j]*Math.max(...idx.map(i=>S[i][j]))/2,0)/wt;
-    const score=idx=>O.reduce((a,_,j)=>a+w[j]*Math.max(...idx.map(i=>offV(i,j))),0)/wt-.6*idx.reduce((a,i)=>a+defV(i),0)/idx.length+.2*duV(idx);
-    const all=(cs1.length?cs1:cs).map(c=>({c,s:score(c)})).sort((a,b)=>b.s-a.s);
-    const best=all[0].c;
-    const leadFor=line=>combos(line,Math.min(LEADN(),line.length)).map(c=>({c,s:score(c)+c.reduce((a,i)=>a+fast[i].reduce((x,f,j)=>x+(f?w[j]:0),0)/wt*.15,0)})).sort((a,b)=>b.s-a.s);
+    const build=(nos,getSet,side)=>nos.map(no=>{
+      const p=byNo[no],set=getSet(no)||chooseSet(p,true),mon=mkMon(p,side,set);
+      const normal=compareMegas&&!mon.formErr&&mon.p.mega
+        ?mkMon(p,side,{...set,evolve:false}):mon;
+      return {mon,normal};
+    });
+    const my=build(myNos,mySF,'me'),op=build(opNos,opSF,'op');
+    const bad=[...my.map(({mon},i)=>mon.formErr?{side:'me',no:myNos[i],why:mon.formErr}:null),...op.map(({mon},i)=>mon.formErr?{side:'op',no:opNos[i],why:mon.formErr}:null)].filter(Boolean);
+    if(bad.length){
+      if(bad.some(e=>e.side==='me'&&e.no===keepNo))return {formErr:bad,none:true};
+      const mn=myNos.filter((_,i)=>!my[i].mon.formErr),on=opNos.filter((_,i)=>!op[i].mon.formErr);
+      const result=mn.length&&on.length?analyze(mn,on,mySF,opSF,W?W.filter((_,j)=>!op[j].mon.formErr):W,keepNo,compareMegas):null;
+      return result?{...result,formErr:bad}:{formErr:bad,none:true};
+    }
+    if(!my.length||!op.length)return {none:true};
+    const axis=myNos.indexOf(keepNo),indices=my.map((_,i)=>i);
+    const candidates=combos(indices,Math.min(PICK(),my.length)).filter(c=>axis<0||c.includes(axis));
+    const weights=op.map((_,j)=>W?W[j]:1);
+    const holders=(members,line)=>line.filter(i=>members[i].mon.p.mega);
+    const forms=(members,active)=>members.map(({mon,normal},i)=>i===active?mon:normal);
+    const theirMegas=holders(op,op.map((_,i)=>i));
+    const opponents=compareMegas?[-1,...theirMegas].map(i=>forms(op,i)):[op.map(x=>x.mon)];
+    const ids=new Map([...my,...op].flatMap(x=>[x.mon,x.normal]).map((m,i)=>[m,i]));
+    const cache=new Map();
+    const getPair=(m,o,wx)=>{
+      const key=JSON.stringify([ids.get(m),ids.get(o),wx?.k,wx?.no]);
+      if(!cache.has(key))cache.set(key,asWithWeather(wx,()=>({
+        dealt:estHit(m,o),taken:estHit(o,m),
+        speed:withWx(m,o,()=>effSpd(m,o)-effSpd(o,m)),
+        duel:typeof duelS==='function'?duelS(m,o):0
+      })));
+      return cache.get(key);
+    };
+    const matrices=new Map();
+    const matrix=(c,megaI,oppI)=>{
+      const M=compareMegas?forms(my,megaI):my.map(x=>x.mon);
+      const setter=compareMegas?c.map(i=>M[i]).find(m=>WSET[m.ab]):null;
+      const wx=compareMegas?(setter?{k:WSET[setter.ab],no:setter.p.base||setter.p.no,ab:setter.ab}:null):undefined;
+      const key=JSON.stringify([megaI,oppI,wx?.no,wx?.k]);
+      if(!matrices.has(key))matrices.set(key,asMatchMatrix(M,opponents[oppI],weights,wx,getPair));
+      return matrices.get(key);
+    };
+    const legacy=compareMegas?candidates:candidates.filter(c=>holders(my,c).length<=1);
+    const all=(legacy.length?legacy:candidates).map(c=>{
+      const megas=compareMegas?[...holders(my,c),-1]:[-1];
+      const variants=megas.map(megaI=>{
+        // 相手のメガが未確認なら、通常の姿とメガ1匹ずつを比べ、最も厳しい条件を採用する。
+        const worst=opponents.map((_,i)=>{const match=matrix(c,megaI,i);return {match,s:match.score(c)}})
+          .reduce((a,b)=>b.s<a.s?b:a);
+        return {megaI,...worst};
+      }).sort((a,b)=>b.s-a.s);
+      const {megaI,s,match}=variants[0];
+      return {c,s,megaI,match,megaOptions:variants.map(v=>({megaI:v.megaI,s:v.s}))};
+    }).sort((a,b)=>b.s-a.s);
+    const best=all[0].c,match=all[0].match;
+    const leadFor=line=>all.find(x=>x.c===line)?.match.leadFor(line)||match.leadFor(line);
     const leads=leadFor(best),lead=leads[0].c,back=best.filter(i=>!lead.includes(i));
-    return{myNos,opNos,megaSkipped,M,O,D,R,S,fast,speedDiff,leadFor,all:all.slice(0,3),full:all,best,lead,back,offV,leads};
+    return{...match,myNos,opNos,megaI:all[0].megaI,leadFor,all:all.slice(0,3),full:all,best,lead,back,leads};
   }finally{B.weather=sw}
 }
+const asMegaLabel=(M,i)=>i>=0?`${M[i].p.n}にメガシンカ`:'メガシンカなし';
 function asAnalyze(myNos,opNos,weights){
   const A=analyze(myNos,opNos,null,null,weights,team.find(x=>x.axis)?.no,true);
   return A?.none||A?.best?.length!==PICK()?{...A,none:true}:A;
@@ -158,12 +214,10 @@ function oppRoleTags(opNos){
 function oppPredict(myNos,opNos){
   if(opNos.length<=PICK())return{w:opNos.map(()=>1),top:[{c:opNos.map((_,j)=>j),p:1}],lead:null,P:null};
   const P=analyze(opNos,myNos,n=>detSet(byNo[n]),n=>detSet(byNo[n]),null,null,true);
-  /* 上位構築によく入っているポケモン（57-topteams.js）ほど、選出にも入りやすいとして少し重く見る（2026/11/06）
-     選出の組み立てとしてよくある形を少し重く見る（2026/11/03 依頼主の資料）：
-     メガシンカできる匹は1匹まで・場を作る匹（起点作り）と数値の高いアタッカーを組み合わせた選出 */
+  /* 上位構築での採用傾向と、起点作り・アタッカーの組み合わせを少し重く見る。 */
   if(!P?.full?.length)return{w:opNos.map(()=>1),top:[],lead:null,P};
   const rk=oppRoleTags(opNos);
-  const adj=c=>{const mg=c.filter(j=>rk[j].mega).length,su=c.some(j=>rk[j].setup),at=c.some(j=>rk[j].ace);return(mg>=2?-.05:0)+(mg===1?.01:0)+(su&&at?.03:su||at?.01:0)+(typeof topFreq==='function'?.03*c.reduce((s,j)=>s+topFreq(opNos[j]),0):0)};
+  const adj=c=>{const su=c.some(j=>rk[j].setup),at=c.some(j=>rk[j].ace);return(su&&at?.03:su||at?.01:0)+(typeof topFreq==='function'?.03*c.reduce((s,j)=>s+topFreq(opNos[j]),0):0)};
   const original=i=>opNos.indexOf(P.myNos[i]);
   const full=P.full.map(x=>{const c=x.c.map(original);return{c,local:x.c,s:x.s+adj(c)}}).sort((a,b)=>b.s-a.s);
   const mx=full[0].s,ex=full.map(x=>Math.exp((x.s-mx)/.06)),tot=ex.reduce((a,b)=>a+b,0);
@@ -206,13 +260,13 @@ function asDraw(){
   if(team.length<4){el.innerHTML=`<div class="bnote" style="margin-top:20px"><b>先にあなたのパーティを登録してください</b><br>選出を考えるには、4〜6匹の登録が必要です（いま${team.length}匹）。</div><div class="btns"><a class="btn btn-p" href="#/team">パーティを登録する</a></div>`;return}
   if(!opp6.length){el.innerHTML=`<p class="empty" style="padding:36px 24px">対戦前の画面に出る<b>相手の6匹</b>を、上の欄から入れてください。<br>1匹入れるごとに結果が更新されます。</p>`;return}
   const myNos=team.map(x=>x.no),PR=oppPredict(myNos,opp6),A=asAnalyze(myNos,opp6,PR.w);
-  if(A.none){el.innerHTML=`${A.formErr?.length?formErrHTML(A.formErr):''}<p class="note" role="status">${A.megaSkipped?`複数のメガ石を持つポケモンを同時に選んだときの通常姿を、この選出アシストでは比較できないため、選出を保留しています。`:`選出に必要な${PICK()}匹を評価できません。軸と育成を確認してください。`}</p>`;return}
+  if(A.none){el.innerHTML=`${A.formErr?.length?formErrHTML(A.formErr):''}<p class="note" role="status">選出に必要な${PICK()}匹を評価できません。軸と育成を確認してください。</p>`;return}
   /* 操作の回数（2026/11/12）：相手6匹がそろって計算できたとき。同じパーティ・同じ相手は1回 */
   if(opp6.length>=6&&typeof evCount==='function')evCount('assist_done',JSON.stringify([myNos,[...opp6].sort((a,b)=>a-b),FMT]));
   const pNos=(PR.top[0]?.c||[]).map(j=>opp6[j]);
   const scenario=opp6.length>PICK()&&pNos.length?asAnalyze(myNos,pNos):null;
   const A2=scenario&&!scenario.none?scenario:null;
-  const selectionKey=a=>[a.best,a.lead].map(group=>group.map(i=>a.myNos[i]).sort().join()).join('|');
+  const selectionKey=a=>JSON.stringify([a.best.map(i=>a.myNos[i]).sort(),a.lead.map(i=>a.myNos[i]).sort(),a.myNos[a.megaI]]);
   const same=A2&&selectionKey(A2)===selectionKey(A);
   const pct=v=>Math.round(v*100);
   const predRows=opp6.map((n,j)=>({n,j,w:PR.w[j]})).sort((a,b)=>b.w-a.w).map(x=>{const p=byNo[x.n],lead=PR.lead&&PR.lead.includes(x.j);
@@ -221,9 +275,8 @@ function asDraw(){
   const predictionPending=opp6.length>PICK()?'相手の選出を予想できるデータが足りません。':`相手を${PICK()+1}匹以上入れると、相手が出してきそうな${PICK()}匹を予想します。`;
   const predHTML=feHTML+`<div class="sec"><h2>相手の予想</h2><span style="font-size:13px;color:var(--dim)">推定の型と選出</span></div>
   ${opp6.length>PICK()&&PR.top.length?`<p class="note" style="padding-top:0">相手から見て有利な${PICK()}匹を計算した<b>予想</b>です。いちばん可能性が高いのは <b>${pNos.map(n=>byNo[n].n).join('・')}</b>${PR.top[1]&&PR.top[1].p>PR.top[0].p*.6?'ですが、ほかの組み合わせとの差は小さく、<b>読みにくい相手</b>です':''}。</p>`:`<p class="note" style="padding-top:0">${predictionPending}</p>`}
-  ${PR.P?.megaSkipped?`<p class="note">相手の予想でも、複数のメガシンカを同時に仮定する組み合わせは比較を保留しています。</p>`:''}
   ${predRows}
-  ${A2&&!same?`<div class="bnote" style="margin:10px 16px 0"><b>予想どおり ${pNos.map(n=>byNo[n].n.slice(0,4)).join('・')} で来た場合</b>のおすすめは<br><b>${A2.lead.map(i=>A2.M[i].p.n).join('・')}</b>（先発）＋ ${A2.back.map(i=>A2.M[i].p.n).join('・')} です。上のおすすめは、読みが外れた場合も考えた選出です。</div>`:''}
+  ${A2&&!same?`<div class="bnote" style="margin:10px 16px 0"><b>予想どおり ${pNos.map(n=>byNo[n].n.slice(0,4)).join('・')} で来た場合</b>のおすすめは<br><b>${A2.lead.map(i=>A2.M[i].p.n).join('・')}</b>（先発）＋ ${A2.back.map(i=>A2.M[i].p.n).join('・')} です（${asMegaLabel(A2.M,A2.megaI)}）。上のおすすめは、読みが外れた場合も考えた選出です。</div>`:''}
   <p class="note" style="color:var(--mute)">相手はあなたの育成を知らないため、予想では「あなたのポケモンも推定の型（集計から組み合わせた型、なければ当サイトの提案の型）」として計算しています。％は計算上の目安で、実際の選出率ではありません。</p>`;
   const covered=A.O.filter((_,j)=>A.best.some(i=>A.D[i][j].pct>=50)).length;
   const mrow=(i,tag)=>{const m=A.M[i];return `<a class="row" href="#/p/${m.p.base||m.p.no}"><span class="av">${stamp(m.p)}</span><div class="row-m"><div class="row-t">${m.p.n}<span class="atag ${tag==='先発'?'on':''}">${tag}</span></div><div class="row-s">${asReason(A,i)}</div></div></a>`};
@@ -234,10 +287,10 @@ function asDraw(){
   }).join('');
   const cell=(d,mode)=>{const p=Math.round(d.pct);const c=mode==='atk'?(p>=100?'g3':p>=50?'g2':p>=25?'g1':''):(p>=100?'r3':p>=50?'r2':p>=25?'r1':'');return `<td class="${c}">${p>=100?'100+':p}</td>`};
   const hm=`<table class="hm"><tr><th></th>${A.O.map(o=>`<th title="${o.p.n}"><span class="av">${stamp(o.p)}</span>${o.p.n.slice(0,3)}</th>`).join('')}</tr>${A.M.map((m,i)=>`<tr class="${A.best.includes(i)?'on':''}"><th>${shortN(m.p.n)}</th>${A.O.map((o,j)=>cell(asMode==='atk'?A.D[i][j]:A.R[j][i],asMode)).join('')}</tr>`).join('')}</table>`;
-  const alt=A.all.slice(1).map(x=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${x.c.map(i=>A.M[i].p.n).join('・')}</div><div class="row-s">評価 ${Math.round(x.s*100)}（おすすめは ${Math.round(A.all[0].s*100)}）</div></div></div>`).join('');
+  const alt=A.all.slice(1).map(x=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${x.c.map(i=>x.match.M[i].p.n).join('・')}</div><div class="row-s"> ${asMegaLabel(x.match.M,x.megaI)}・評価 ${Math.round(x.s*100)}（おすすめは ${Math.round(A.all[0].s*100)}）</div></div></div>`).join('');
   el.innerHTML=`<div class="sec"><h2>おすすめ選出</h2><span style="font-size:13px;color:var(--dim)">${FMTN()}・先発${LEADN()}匹＋控え${PICK()-LEADN()}匹</span></div>
   ${FMT==='double'?`<p class="note" role="status">${DG_DOUBLE_SCOPE}${DG_DOUBLE_LIMITS}</p>`:''}
-  ${A.megaSkipped?`<p class="note" role="status">メガ石を持つポケモンが2匹以上入る${A.megaSkipped}通りは、通常姿との組み合わせを評価できないため比較を保留しています。</p>`:''}
+  <p class="note">${asMegaLabel(A.M,A.megaI)}を前提にした評価です。相手は推定の型で、通常の姿と、推定の型にメガ石がある場合はメガシンカも比較し、より厳しい条件で採点しています。</p>
   ${A.lead.map(i=>mrow(i,'先発')).join('')}${A.back.map(i=>mrow(i,'控え')).join('')}
   <p class="note">この${A.best.length}匹で、相手${A.O.length}匹のうち<b>${covered}匹</b>に推定50%以上のダメージを与えられます。${opp6.length>PICK()?'相手が<b>出してきそうなポケモンほど重く見て</b>選んでいます。':''}</p>
   ${typeof threeStepHTML==='function'?threeStepHTML(myNos,PR):''}
@@ -246,7 +299,7 @@ function asDraw(){
   <div class="sec"><h2>警戒する相手</h2></div>${thr||'<p class="note">この型の攻撃技からは、受けるダメージを確認できませんでした。</p>'}
   <div class="sec"><h2>ダメージの目安</h2></div>
   <div class="pills" style="padding-top:0"><button class="pill" data-hm="atk" aria-pressed="${asMode==='atk'}">与えるダメージ</button><button class="pill" data-hm="def" aria-pressed="${asMode==='def'}">受けるダメージ</button></div>
-  <p class="note" style="padding-top:4px">${asMode==='atk'?'縦があなた、横が相手。あなたの一番強い技で、相手のHPを何%削れるかの目安です。':'縦があなた、横が相手。相手の一番強い技で、あなたのHPを何%削られるかの目安です。'}色の濃い行がおすすめ選出です。</p>
+  <p class="note" style="padding-top:4px">${asMode==='atk'?'上のメガシンカを前提とした目安です。縦があなた、横が相手。あなたの一番強い技で、相手のHPを何%削れるかの目安です。':'上のメガシンカを前提とした目安です。縦があなた、横が相手。相手の一番強い技で、あなたのHPを何%削られるかの目安です。'}色の濃い行がおすすめ選出です。</p>
   <div style="overflow-x:auto;padding:0 16px">${hm}</div>
   ${alt?`<div class="sec"><h2>ほかの候補</h2></div>${alt}`:''}
   ${srcLine('ladder','calc')}<p class="note" style="color:var(--dim);padding-bottom:10px">${asDataLine([...myNos,...opp6])}<br>ダメージは乱数の中央付近・天気を変える特性を含む1対1の目安です。相手が実際に何を持っているかで変わります。</p>`;

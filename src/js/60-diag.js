@@ -165,7 +165,7 @@ const dgMonSig=m=>JSON.stringify(m,(k,v)=>k==='p'?(v&&v.no):v);
 function dgMatch(a,o){
   if(!DG_MEMO||DG_MEMO_OFF)return withWx(a,o,()=>dgMatch0(a,o));
   let k;try{let tw=null;try{tw=appliedTeamWx()}catch(e){}
-    k=dgMonSig(a)+'|'+dgMonSig(o)+'|'+JSON.stringify([DG_TR,typeof WX_OFF!=='undefined'&&WX_OFF,FMT,B.weather||null,tw,inTeam(a),inTeam(o),LIVE.csv[o.p.base||o.p.no]?.mv])}catch(e){return withWx(a,o,()=>dgMatch0(a,o))}
+    k=dgMonSig(a)+'|'+dgMonSig(o)+'|'+JSON.stringify([DG_TR,typeof WX_OFF!=='undefined'&&WX_OFF,FMT,B.weather||null,tw,AS_WX,inTeam(a),inTeam(o),LIVE.csv[o.p.base||o.p.no]?.mv])}catch(e){return withWx(a,o,()=>dgMatch0(a,o))}
   if(DG_MEMO.has(k))return DG_MEMO.get(k);
   const v=withWx(a,o,()=>dgMatch0(a,o));DG_MEMO.set(k,v);return v}
 function dgMatch0(a,o){
@@ -365,7 +365,7 @@ function dgDataSig(){
   return JSON.stringify([FMT,rk,csv,tp,'m'+dgMegaSel(),DGD.allow,B.weather||null]);
 }
 /* ---- メガシンカは1回の対戦で1匹だけ（2026/11/14 依頼主の判断：診断は「選んだメガだけを見せる」） ----
-   メガストーンを持つ匹が2匹以上いれば、1匹だけをメガの姿で計算し、ほかは持ち物なしで計算する（同時に2匹をメガの姿で数えない）。
+   メガストーンを持つ匹が2匹以上いれば、1匹だけをメガの姿で計算し、ほかはメガ石を持ったまま通常の姿で計算する（同時に2匹をメガの姿で数えない）。
    どの匹にするかは利用者が選べる（DGM.sel、パーティの枠ごと・localStorage pcdgmega）。選んでいなければ自動＝メガの匹ごとに計算して、
    答えがない相手（×）→△以下→後出しできない相手→半分以上を一撃→◎の多さ→並び順 でいちばん良いもの */
 const DGM={sel:(()=>{try{return JSON.parse(localStorage.getItem('pcdgmega')||'{}')||{}}catch(e){return{}}})()};
@@ -437,7 +437,7 @@ function dgOpponentVariants(M,opponents){
 function dgTeam2(n,ms,CS,mi,H,mode,opponents){
   /* 2026/11/20：持ち物が姿と合わない型（formErr）の匹は計算に入れない（null＝いない匹と同じ扱い）。外した匹は formErr で返し、前提に書く */
   const FE=[];
-  const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{const m=mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,item:null}:cs);if(m.formErr){FE.push({side:'me',no:o.p.no,why:m.formErr});return null}return m}catch(e){return null}});
+  const M=ms.map((o,i)=>{const cs=CS[i];if(!cs)return null;try{const m=mkMon(o.p,'me',H.includes(i)&&i!==mi?{...cs,evolve:false}:cs);if(m.formErr){FE.push({side:'me',no:o.p.no,why:m.formErr});return null}return m}catch(e){return null}});
   const prevWeather=WX_TEAM;
   if(WX_TEAM===undefined)WX_TEAM=teamWx(ms.filter((_,i)=>M[i]).map(o=>o.x));
   try{
@@ -706,7 +706,7 @@ function dgDefSwaps(entries,T){
 /* どのメガで計算したかと、切りかえ（2026/11/14 依頼主の判断：選んだメガだけを見せる）。メガストーンを持つ匹が2匹以上のときだけ出す */
 const dgMegaNm=h=>{const m=megaOf(h.no,h.stone);return m&&byNo[m.no]?byNo[m.no].n:formInfo(byNo[h.no]).base};
 function dgMegaTxt(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';const h=M.holders.find(z=>z.i===M.i);
-  return `メガシンカは${dgMegaNm(h)}だけで計算（${M.mode==='auto'?'自動：パーティ全体でいちばん結果が良いメガ':'あなたが選んだメガ'}）。1回の対戦でメガシンカできるのは1匹だけなので、ほかのメガストーンを持つ匹（${M.holders.filter(z=>z.i!==M.i).map(z=>formInfo(byNo[z.no]).base).join('・')}）はメガシンカしない姿・持ち物なしで計算しています。`}
+  return `メガシンカは${dgMegaNm(h)}だけで計算（${M.mode==='auto'?'自動：パーティ全体でいちばん結果が良いメガ':'あなたが選んだメガ'}）。1回の対戦でメガシンカできるのは1匹だけなので、ほかのメガストーンを持つ匹（${M.holders.filter(z=>z.i!==M.i).map(z=>formInfo(byNo[z.no]).base).join('・')}）はメガ石を持ったまま通常の姿で計算しています。`}
 function dgMegaBarHTML(T){const M=T&&T.mega;if(!M||M.holders.length<2)return '';
   const on=no=>M.mode!=='auto'&&M.no===no;
   const alt=M.alts?`<details class="dgm-alt"><summary>自動で選んだ理由（メガごとの結果）</summary><ul>${M.alts.map(a=>{const h=M.holders.find(z=>z.i===a.i);return `<li${a.i===M.i?' class="dgm-best"':''}><b>${esc(dgMegaNm(h))}</b>：答えがない相手 ${a.x}匹・△以下 ${a.w}匹・後出しできない相手 ${a.nosw}匹・半分以上を一撃で倒される相手 ${a.ohko}匹・◎ ${a.st}匹${a.i===M.i?'（選んだもの）':''}</li>`}).join('')}</ul><p class="note">答えがない相手の少なさ→△以下の少なさ→後出しできない相手の少なさ→一撃で倒される相手の少なさ→◎の多さ、の順で比べています。強さや勝率の保証ではありません。</p></details>`:'';
