@@ -17,7 +17,7 @@ function usageSet(p,b){
   const ls=LSD[p.no]?LSD[p.no][1]:[];
   const abs=(ABD[p.no]||[]).map(a=>a[0]),ab=(b.ab.find(([k])=>abs.includes(k))||[])[0]||null;
   const it=(b.it.find(([k])=>ITEMN[k])||[])[0]||null;
-  const mv=b.mv.map(x=>x[0]).filter(id=>(id===182||ls.includes(id))&&(MV[id]||MD[id])).slice(0,4);
+  const mv=b.mv.map(x=>x[0]).filter(id=>ls.includes(id)&&(MV[id]||MD[id])).slice(0,4);
   const nat=b.nat[0]?b.nat[0][0].split('-').map(Number):[-1,-1];
   const sp=b.sp[0]?b.sp[0][0].split('-').map(Number):null;
   if(mv.length<2||!sp)return null;

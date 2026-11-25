@@ -150,12 +150,14 @@ function monGuide(p,o={}){
   /* ランクバトルの集計（championsbattledata.com、15-battle.js の LIVE）があれば、いちばん多い組み合わせの型を先頭に置く */
   const liveF=!o.raw&&!base&&typeof LIVE!=='undefined'&&LIVE.csv[p.no]?FMT:null;
   if(liveF)try{const d=LIVE.csv[p.no],b=buildSet(p,d,true),lsl=LSD[p.no]?LSD[p.no][1]:[],mv=[...new Set([...liveFit(p,d,b.ab).moves.map(x=>x.id===0?182:x.id),...d.mv.map(([n])=>MVKA[nrm(n)])].filter(id=>id&&(lsl.includes(id)||id===182)))];
-    if(mv.length>=2&&b.sp){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルでよく使われている型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計から、いちばん多い特性・性格・能力ポイントと、いっしょに使って意味のある持ち物と技（ジュエル・タイプ強化の持ち物ならそのタイプの技、こだわり系なら攻撃技だけ等）を組み合わせたものです。`,
+    /* 2026/11/20 RC2：集計の型がメガストーンを持つなら、それはメガシンカの姿の型。元の姿の型として（元の姿の能力で）出さない。名前は「推定」（集計は項目ごとの割合で、1人の型ではない） */
+    const lvR=resolveForm(p.no,b.item);
+    if(mv.length>=2&&b.sp&&lvR.ok&&!lvR.mega){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルの集計から組み合わせた推定の型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計から、いちばん多い特性・性格・能力ポイントと、いっしょに使って意味のある持ち物と技（ジュエル・タイプ強化の持ち物ならそのタイプの技、こだわり系なら攻撃技だけ等）を組み合わせたものです。`,
       ab:b.ab,item:b.item,up:b.up,dn:b.dn,sp:b.sp,moves:mv.slice(0,4),fmt:liveF,k:/^choice|lifeorb|focussash|expertbelt/.test(it)?'attacker':it==='leftovers'?'bulky':'attacker',live:true})}}catch(e){}
   if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].filter(f=>f!==liveF).forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
   SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
-  if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;st.why=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。')+(st.why?'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
+  if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;const kp=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。');st.why=(kp?kp+'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
   if(o.raw)return{keys:setKeys,make:k=>{try{const r=sets[k]();return r&&r.moves.length?r:null}catch(e){return null}},key,ai,lowDef,best:n=>pickAtk(n)};
   /* ---- まとめ ---- */
@@ -287,7 +289,7 @@ function monGuide(p,o={}){
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
         :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
       ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
-      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は合計種族値の高いポケモンとメガシンカの姿を、使用率の高い型で計算（当サイトのダメージ計算・乱数の真ん中あたり）。</p>':''}`:''}
+      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は合計種族値の高いポケモンとメガシンカの姿を、${SET_MIX}で計算（当サイトのダメージ計算・乱数の真ん中あたり）。</p>':''}`:''}
       ${o.parts?`<div class="btns" style="padding:10px 0 0"><button class="btn btn-s" data-useset="${i}">この型をパーティに入れる</button></div>`:''}
       </div>`};
   /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */

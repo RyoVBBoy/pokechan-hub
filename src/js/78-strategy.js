@@ -12,103 +12,114 @@ const ST_APPROACH={
   tm:'1匹ずつ、有利な相手に出して倒していく（対面）',ac:'交代をくり返しながら、攻撃役で削っていく（攻めのサイクル）',dc:'硬いポケモンで受けながら、少しずつ削っていく（受けのサイクル）',su:'場を整えてから、能力を上げたエースで一気に倒す（積み）'};
 const ST_SUP={trickroom:'トリックルーム',tailwind:'おいかぜ',reflect:'リフレクター',lightscreen:'ひかりのかべ',auroraveil:'オーロラベール',stealthrock:'ステルスロック',spikes:'まきびし'};
 /* 天気の型で、得をする仲間がいないときは「攻める」と言わない（型をつくらない） */
-function stApproach(a,W){if(['sun','rain','sand','snow'].includes(a.k)&&W&&W.k===a.k&&!W.gain.length)return `天気を${ARCH_BADGE[a.k][0]}にできる（いまは${ARCH_BADGE[a.k][0]}で得をする仲間がいません）`;return ST_APPROACH[a.k]||''}
+function stApproach(a,W){if(a.unset)return 'トリックルームを登録したときに使える戦い方の候補';if(['sun','rain','sand','snow'].includes(a.k)&&W&&W.k===a.k&&!W.gain.length)return `天気を${ARCH_BADGE[a.k][0]}にできる（いまは${ARCH_BADGE[a.k][0]}で得をする仲間がいません）`;return ST_APPROACH[a.k]||''}
 const stList=(a,f,k)=>a.slice(0,k||4).map(f).join('・')+(a.length>(k||4)?` など${a.length}匹`:'');
 function stHTML(){return `<div id="st-box" class="stg-card"><p class="dgu-loading">このパーティの戦い方をまとめています…</p></div>`}
 /* 1匹ずつの、上位の相手に対する数（dgTeam の res から。判定は dgAnalyze・dgSelect と同じ基準） */
 function stMemStats(T){
   return T.ms.map((o,i)=>{const z=T.rows.map(r=>({q:r.q,z:r.res.find(x=>x.i===i)})).filter(y=>y.z);
     return{i,ko:z.filter(y=>y.z.k==='ko_fast'),adv:z.filter(y=>y.z.r>=4),
-      safe:z.filter(y=>['switch','wall','tank'].includes(y.z.k)||y.z.swIn==='win'||(y.z.op&&y.z.op.fmax<50))}});
+      safe:z.filter(y=>y.z.swIn==='win')}});
 }
 const stNames=(a,k)=>a.slice(0,k||3).map(y=>esc(y.q.n)).join('・')+(a.length>(k||3)?'など':'');
-function stStrengths(entries,T,C,W,arch){
+function stStrengths(T,W){
+  if(!T.rows.length)return [];
   const N=T.rows.length,nm=i=>`<b>${esc(T.ms[i].p.n)}</b>`,out=[],used=new Set();
   /* ① 戦い方の型に合う強み（天気で得をする仲間・トリックルーム） */
   if(W&&W.gain.length)out.push({k:'wx',t:`${esc(W.by)}の${esc(ABN[W.ab]||'特性')}で${esc(ARCH_BADGE[W.k][0])}になり、${W.gain.map(n=>`<b>${esc(n)}</b>`).join('・')}が得をする`,
     how:`${esc(W.by)}を早めに出して天気を作り、${W.gain.map(esc).join('・')}で攻める。${W.guess?'（特性が未登録なので、この特性と仮定しています）':''}`});
-  if(T.tr&&T.tr.on&&T.tr.slow.length>=2)out.push({k:'tr',t:`${T.tr.setters.map(s=>nm(s.i)).join('・')}がトリックルームを張れて、遅い${stList(T.tr.slow,nm)}が先に動ける`,
-    how:`${T.tr.setters.map(s=>esc(T.ms[s.i].p.n)).join('か')}で先にトリックルームを張り、その間に${T.tr.slow.slice(0,2).map(i=>esc(T.ms[i].p.n)).join('・')}で攻める。${T.tr.unset?'（いまの技にトリックルームが入っていません。入れると、この戦い方ができます）':''}`});
+  const trFast=(T.tr?.slow||[]).filter(i=>T.rows.some(r=>r.resTR?.some(z=>z.i===i&&z.spd===1)));
+  if(T.tr?.on&&trFast.length>=2)out.push({k:'tr',t:`${T.tr.setters.map(s=>nm(s.i)).join('・')}がトリックルームを張れた場合、${stList(trFast,nm)}が先に動ける対面がある`,
+    how:`${T.tr.setters.map(s=>esc(T.ms[s.i].p.n)).join('か')}でトリックルームを張れたら、その間に${trFast.slice(0,2).map(i=>esc(T.ms[i].p.n)).join('・')}で攻める。${T.tr.unset?'（いまの技にトリックルームが入っていません。入れると、この戦い方ができます）':''}`});
   /* ② 上から倒せる攻撃役・安定して受けられる匹（それぞれ上位の4分の1以上のときだけ） */
   const S=stMemStats(T),q4=Math.max(3,Math.ceil(N/4));
   const a=[...S].sort((x,y)=>y.ko.length-x.ko.length||x.i-y.i)[0];
-  if(a&&a.ko.length>=q4){used.add(a.i);out.push({t:`${nm(a.i)}は、上位${N}匹のうち${a.ko.length}匹を上から倒せる`,how:`相手に${stNames(a.ko)}がいたら、${esc(T.ms[a.i].p.n)}を出して先に倒す。`})}
+  if(a&&a.ko.length>=q4){used.add(a.i);out.push({t:`${nm(a.i)}は、比較対象${N}匹のうち${a.ko.length}匹を先に倒せる`,how:`相手に${stNames(a.ko)}がいたら、${esc(T.ms[a.i].p.n)}を出して先に倒せる対面を使う。`})}
   const d=[...S].filter(x=>!used.has(x.i)).sort((x,y)=>y.safe.length-x.safe.length||x.i-y.i)[0];
-  if(d&&d.safe.length>=q4)out.push({t:`${nm(d.i)}は、上位${N}匹のうち${d.safe.length}匹の攻撃を受けられる`,how:`${stNames(d.safe)}の攻撃は、${esc(T.ms[d.i].p.n)}に交代して受ける。`});
-  /* ③ 弱点を受け合える2匹（partyCheck のよいところ） */
-  const pr=(C&&C.good||[]).find(x=>/弱点を受け合える/.test(String(x.t)));
-  if(pr)out.push({t:String(pr.t).replace(/<[^>]+>/g,''),how:'片方が弱点を突かれそうなときは、もう片方に交代して受ける。'});
-  /* ④ 相手の多くに2匹以上で対応できる */
+  if(d&&d.safe.length>=q4)out.push({t:`${nm(d.i)}は、上位${N}匹のうち${d.safe.length}匹に後出しして勝てる`,how:`${stNames(d.safe)}には、計算時と同じHP・場の条件で${esc(T.ms[d.i].p.n)}に交代できる。`});
+  /* ③ 相手の多くに2匹以上で対応できる */
   const st=T.rows.filter(r=>r.lvl===4).length;
   if(st>=Math.ceil(N/2)){const c={};T.rows.filter(r=>r.lvl===4).forEach(r=>r.stable.forEach(z=>c[z.i]=(c[z.i]||0)+1));
     const top=Object.keys(c).map(Number).sort((x,y)=>c[y]-c[x]||x-y).slice(0,3);
     out.push({t:`上位${N}匹のうち${st}匹に、2匹以上で安定して対応できる（${top.map(nm).join('・')}が中心）`,how:`相手の6匹を見て、${top.map(i=>esc(T.ms[i].p.n)).join('・')}から有利なポケモンを選べば、選出で迷いにくい。`})}
   return out.slice(0,3);
 }
-function stWx(entries){
-  let w=null;try{w=teamWx()}catch(e){}
+function stWx(T){
+  const w=T.weather;
   if(!w)return null;
-  const gain=entries.filter(x=>{try{const m=mkMon(byNo[x.no],'me',mySetFor(x.no));return (WX_GAIN[w.k]||[]).includes(m.ab)}catch(e){return false}}).map(x=>byNo[x.no].n);
-  return{...w,gain};
+  const gain=T.M.filter(m=>m&&(WX_GAIN[w.k]||[]).includes(m.ab)).map(m=>m.p.n);
+  return {...w,gain};
+}
+// 上部カード・選出画面・下書きで、実際に選んだ対面を共通の根拠にする。
+function stSelectionFlow(P0,entries){
+  const B=P0.DS.best,lead=P0.lead,pn=i=>byNo[entries[i].no].n;
+  const back=B.c.filter(i=>!lead.includes(i));
+  const adv=B.rows.filter(row=>row.zs.some(z=>lead.includes(z.i)&&z.r>=4)).slice(0,3).map(row=>row.r.q.n);
+  const watch=B.rows.filter(row=>!row.zs.some(z=>lead.includes(z.i)&&z.r>=4));
+  const switches=watch.flatMap(row=>{
+    const matchups=row.zs.filter(z=>back.includes(z.i)&&z.swIn==='win');
+    return matchups.length?[{opponent:row.r.q,choices:matchups.map(z=>z.i),matchups}]:[];
+  });
+  const risky=watch.filter(row=>!row.zs.some(z=>back.includes(z.i)&&z.swIn==='win')).slice(0,2).map(row=>row.r.q.n);
+  const head=`先発候補は${lead.map(pn).join('・')}。${adv.length?`対面で有利な相手の例は${adv.join('・')}。`:'先発で有利と判定できた相手は見つかりませんでした。'}`;
+  const mega=B.megaI>=0?`この選出は${P0.DS.megaNm(B.megaI)}を使う場合の評価です。`
+    :P0.DS.H.length?'この選出はメガシンカなしで評価しています。':'';
+  const setup=B.trUse?`${B.tr.setters.filter(s=>B.c.includes(s.i)).map(s=>pn(s.i)).join('・')}でトリックルームを張れた場合は、場が有効な間に攻めます。`
+    :B.weather?`${B.weather.by}が${ARCH_BADGE[B.weather.k][0]}を作れた場合は、天候が有効な間に攻めます。`:'';
+  const mid=switches.slice(0,3).map(x=>`${x.opponent.n}には${x.matchups.map(z=>pn(z.i)+'の'+z.me.mvn+dgAccLabel(z.me)).join('／')}が後出しから倒し切る候補。`).join('')+
+    (switches.length?'計算と同じHP・場の条件が前提です。':watch.length?'先発が有利を取れない相手への、後出しで勝てる控えは見つかりませんでした。':'比較した相手には、先発候補のいずれかが対面で有利です。')+
+    (risky.length?`${risky.join('・')}は後出しで勝てる控えがいないため、選出や先発を見直す候補です。`:'');
+  const reason=P0.finWhy&&{prio:'先制技',scarf:'持ち物',setup:'積み技'}[P0.finWhy[0]];
+  const fin=reason?{n:pn(P0.finisher),t:`${reason}の${P0.finWhy[1]}`}:null;
+  const end=fin?`終盤の候補は${fin.n}。 ${fin.t}を使える場面で、相手を倒せるHPまで削れているか確認します。`:'終盤の候補を決める根拠が足りません。残った相手のHPと先に動けるかを確認します。';
+  return {sel:B.c.map(pn),ld:lead.map(pn),adv,fin,switches,steps:[['序盤',head+mega+setup],['中盤',mid],['終盤',end]]};
 }
 function stFill(entries){
   const box=document.getElementById('st-box');if(!box)return;
-  let T,C,P0=null;try{T=dgTeam(entries,20);C=partyCheck(entries)}catch(e){box.innerHTML='';return}
-  const N=T.rows.length;if(!N){box.innerHTML='';return}
+  let T,P0=null;
+  try{T=dgTeam(entries,20)}catch(e){box.innerHTML='<p class="stg-p" role="status">戦い方の判定に必要な計算を完了できませんでした。</p>';return}
+  const N=T.rows.length;
   try{P0=selPlan(entries)}catch(e){}
-  const arch=(()=>{try{return teamArch(entries)}catch(e){return []}})(),W=stWx(entries);
+  const arch=(()=>{try{return teamArch(entries,T)}catch(e){return []}})(),W=stWx(T);
   const nmE=i=>esc(byNo[entries[i].no].n);
   /* 推定の匹（技を登録していない匹は、使用率の高い型か自動の型で計算） */
-  const guess=entries.filter(x=>!(x.set&&(x.set.mv||[]).some(m=>m&&m.id))).map(x=>byNo[x.no].n);
+  const guess=entries.filter(x=>!(x.set&&(x.set.mv||[]).some(m=>m&&m.id))).map(x=>byNo[x.no]?.n||String(x.no));
   /* 1. 戦い方 */
   const sec1=`<div class="stg-sec"><h3>このパーティの戦い方</h3>
     ${arch.length?`<ul class="stg-arch">${arch.map(a=>`<li><a class="tarch-b tarch-${a.k}${a.unset?' tarch-unset':''}" href="#/arch/${ARCH_BADGE[a.k][1]}">${esc(ARCH_BADGE[a.k][0])}</a><span><b>${esc(stApproach(a,W))}</b><small>${esc(a.why)}</small></span></li>`).join('')}</ul>`
       :`<p class="stg-p">まだはっきりした型（天気・トリックルーム・対面・サイクルなど）は見つかっていません。${entries.filter(x=>x.set).length<3?'技・持ち物を3匹以上登録すると、対面・サイクル・積みも判定します。':'下の強みと選出から、戦い方を組み立ててみてください。'}</p>`}
     ${typeof dgMegaBarHTML==='function'?dgMegaBarHTML(T):''}
     ${T.mega&&T.mega.holders&&T.mega.holders.length?`<details class="stg-nomega" id="stg-nomega"><summary>メガシンカしない場合と比べる</summary><div class="stg-nm-b"><p class="dgu-loading">開くと計算します</p></div></details>`:''}
-    <p class="stg-f">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算した結果です。${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、使用率の高い型で計算した<b>推定</b>です。`:''}${FMT==='double'?'ダブルも1対1の計算を組み合わせています（範囲技・味方のサポート・まもるなどは入っていません）。':''}</p></div>`;
+    <p class="stg-f">${FMTN()}・${N?`パーティ全体を${esc(T.opponentSource)}${N}匹と1匹ずつ比較した結果です。`:'比較できる相手がいないため、対面の判定を保留しています。'}${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?DG_DOUBLE_SCOPE+DG_DOUBLE_LIMITS:''}</p></div>`;
   /* 2. 強み */
-  const G=stStrengths(entries,T,C,W,arch);
-  const sec2=`<div class="stg-sec"><h3>パーティの強み</h3>${G.length?`<ol class="stg-gl">${G.map(g=>`<li><p class="stg-gt">${g.t}</p><p class="stg-gh"><span>使い方</span>${g.how}</p></li>`).join('')}</ol>`
+  const G=stStrengths(T,W);
+  const sec2=`<div class="stg-sec"><h3>パーティの強み</h3>${G.length?`<p class="stg-f">パーティ全体の評価です。トリックルーム中の強みは条件付きで示します。</p><ol class="stg-gl">${G.map(g=>`<li><p class="stg-gt">${g.t}</p><p class="stg-gh"><span>使い方</span>${g.how}</p></li>`).join('')}</ol>`
     :'<p class="stg-p">計算では、目立った強みはまだ見つかりませんでした。下の「気をつけたい相手・場面」と改善案から、少しずつ整えていきましょう。</p>'}</div>`;
   /* 3. おすすめの選出と先発 */
   const DS=P0&&P0.DS,B=DS&&DS.best;
+  const flow=B?stSelectionFlow(P0,entries):null;
   let sec3='';
   if(B){
     const ld=B.pairs?B.pairs[0].pr:[B.lead1[0].i];
-    const roleOf=i=>{const r=[];if(ld.includes(i))r.push('先発');if(B.atk.includes(i))r.push('上から倒す');if(B.def.includes(i))r.push('受け');
-      const s=B.sup.find(x=>x.i===i);if(s)r.push(s.k.map(k=>ST_SUP[k]).join('・'));if(B.ace.includes(i))r.push('積みエース');if(P0.finisher===i&&P0.finWhy)r.push('詰め役');return r};
+    const roleOf=i=>{const r=[];if(ld.includes(i))r.push('先発');if(B.atk.includes(i))r.push('上から倒す');if(B.rows.some(row=>row.zs.some(z=>z.i===i&&z.swIn==='win')))r.push('後出し候補');
+      const s=B.sup.find(x=>x.i===i);if(s)r.push(s.k.map(k=>ST_SUP[k]).join('・'));if(P0.finisher===i&&P0.finWhy)r.push('詰め役');return r};
     const order=[...ld,...B.c.filter(i=>!ld.includes(i))];
     sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3>
       <ul class="stg-sel">${order.map(i=>{const l=B.lead1.find(x=>x.i===i),r=roleOf(i);
-        return `<li${ld.includes(i)?' class="stg-lead"':''}><b>${nmE(i)}</b>${r.length?`<span class="stg-rl">${r.map(t=>`<i>${esc(t)}</i>`).join('')}</span>`:''}<small>${l&&l.adv.length?`有利に戦える相手 ${l.adv.length}匹（${l.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}${l.adv.length>3?' など':''}）`:'はっきり有利な相手は少なめ。ほかの匹の補助に回る'}</small></li>`}).join('')}</ul>
-      <p class="stg-f">使用率の上位${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。上位${DS.N}匹のうち ◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?'先発2匹は簡易比較です。':''}</p>
+        return `<li${ld.includes(i)?' class="stg-lead"':''}><b>${nmE(i)}</b>${r.length?`<span class="stg-rl">${r.map(t=>`<i>${esc(t)}</i>`).join('')}</span>`:''}<small>${l&&l.adv.length?`有利に戦える相手 ${l.adv.length}匹（${l.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}${l.adv.length>3?' など':''}）`:'有利と判定できた相手はありません'}</small></li>`}).join('')}</ul>
+      <p class="stg-f">${esc(DS.T.opponentSource)}${DS.N}匹を相手にした<b>基本の選出</b>です（${DS.list.length}通りを比べた1番。◎${B.cnt[4]}・○${B.cnt[3]}）。いつも最適とは限らないので、相手の6匹を見て変えてください。${B.pairs?DG_DOUBLE_SCOPE:''}</p>
       ${(()=>{const notes=[];const inC=n=>B.c.some(i=>byNo[entries[i].no].n===n);
-        if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
+        if(B.weather)notes.push(`${esc(ARCH_BADGE[B.weather.k][0])}は${esc(B.weather.by)}が作った場合を、該当する対面に反映しています${B.weather.guess?'（特性は推定）':''}。`);
+        else if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
         if(T.tr&&T.tr.on&&!T.tr.setters.some(t=>B.c.includes(t.i)))notes.push(`この選出にはトリックルームを張れるポケモン（${T.tr.setters.map(t=>esc(T.ms[t.i].p.n)).join('・')}）が入っていません。トリックルームで戦うなら、張る役を入れた選出も比べてください。`);
         return notes.map(t=>`<p class="stg-warn">${t}</p>`).join('')})()}
       <div class="stg-btns">${(()=>{const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);return sel.length===B.c.length&&B.c.every(i=>sel.includes(i))?'<span class="stg-done">✓ いま選出にしている組み合わせです</span>':`<button class="btn btn-p" data-stg-sel="${B.c.join(',')}">この組み合わせを選出にする</button>`})()}
         <button class="dgu-link" data-dgu-tab="plan">選出の理由・ほかの選出と比べる</button></div></div>`;
-  }else sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3><p class="stg-p">選出を比べるには、選出する数（${PICK()}匹）より多くポケモンを入れてください。</p></div>`;
+  }else sec3=`<div class="stg-sec"><h3>おすすめの選出と先発</h3><p class="stg-p">${P0?.issue?esc(P0.issue):`選出を比べるには、選出する数（${PICK()}匹）より多くポケモンを入れてください。`}</p></div>`;
   /* 4. 戦い方の流れ */
-  let sec4='',steps=[],flow=null;
-  if(P0&&B){
-    const ld=B.pairs?B.pairs[0].pr:[B.lead1[0].i],sup=B.sup.filter(s=>B.c.includes(s.i));
-    const fin=P0.finisher,mid=B.c.filter(i=>!ld.includes(i)&&i!==fin);
-    const l0=B.lead1.find(x=>x.i===ld[0]);
-    const finTxt=P0.finWhy?{prio:`先制技の${esc(P0.finWhy[1])}`,scarf:esc(P0.finWhy[1]),setup:`積み技の${esc(P0.finWhy[1])}`}[P0.finWhy[0]]:'';
-    {const pn=i=>byNo[entries[i].no].n;
-      flow={sel:B.c.map(pn),ld:ld.map(pn),mid:mid.map(pn),atk:B.atk.filter(i=>!ld.includes(i)).map(pn),def:B.def.filter(i=>!ld.includes(i)).map(pn),
-        adv:l0?l0.adv.slice(0,3).map(y=>y.x.r.q.n):[],fin:P0.finWhy&&B.c.includes(fin)?{n:pn(fin),t:stTx(finTxt)}:null}}
-    steps=[
-      ['序盤',T.tr&&T.tr.on&&T.tr.setters.some(t=>B.c.includes(t.i))?`<b>${T.tr.setters.filter(t=>B.c.includes(t.i)).map(t=>nmE(t.i)).join('か')}</b>でトリックルームを張り、遅いポケモンで先に攻撃する。${T.tr.unset?'（いまの技にトリックルームが入っていません）':''}`
-        :sup.length?`${sup.map(s=>`<b>${nmE(s.i)}</b>の${s.k.map(k=>ST_SUP[k]).join('・')}`).join('、')}で場を整える。${ld.some(i=>!sup.some(s=>s.i===i))?`先発の<b>${ld.map(nmE).join('・')}</b>で相手の先発を見る。`:''}`
-        :`先発の<b>${ld.map(nmE).join('・')}</b>で、相手の先発に有利をとって削る。${l0&&l0.adv.length?`（有利な相手：${l0.adv.slice(0,3).map(y=>esc(y.x.r.q.n)).join('・')}）`:''}`],
-      ['中盤',mid.length?`不利な相手が出てきたら<b>${mid.map(nmE).join('・')}</b>に交代して受け、数を減らす。`:'先発のまま有利な相手を削り、不利なら交代する。'],
-      ['終盤',P0.finWhy&&B.c.includes(fin)?`<b>${nmE(fin)}</b>の${finTxt}で、削れた相手を詰める。`:'詰め役がはっきりしません。先制技・こだわりスカーフ・積み技のどれかを持つポケモンがいると、終盤に競り負けにくくなります。']];
-    sec4=`<div class="stg-sec"><h3>戦い方の流れ（目安）</h3><ol class="stg-flow">${steps.map(([h,t])=>`<li><span class="stg-ph">${h}</span><p>${t}</p></li>`).join('')}</ol>
-      <p class="stg-f">計算から考えた進め方の目安です。相手の選出や読み合いで変わるので、必ずこの通りになるわけではありません。</p></div>`;
-  }
+  const steps=flow?.steps||[];
+  const sec4=flow?`<div class="stg-sec"><h3>戦い方の流れ（目安）</h3><ol class="stg-flow">${steps.map(([h,t])=>`<li><span class="stg-ph">${h}</span><p>${esc(t)}</p></li>`).join('')}</ol>
+    <p class="stg-f">表示した選出の対面から組み立てた目安です。実際の相手の型や残りHP、場の条件を確認してください。</p></div>`:'';
   /* 自動の文（書きこみの下書き・投稿に使う。文字だけ） */
   const autoTp=arch.map(a=>a.k).filter(k=>ST_TYPE[k]);
   ST_LAST={entries,flow,G,sig:mpSig()};
@@ -124,17 +135,20 @@ function stFill(entries){
   stBind(box);
   if(typeof dgMegaBind==='function')dgMegaBind(box);
   box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>ttJump(b.dataset.dguTab,'sel-box'));
-  const sb=box.querySelector('[data-stg-sel]');if(sb)sb.onclick=()=>{const c=sb.dataset.stgSel.split(',').map(Number);entries.forEach((x,i)=>x.sel=c.includes(i));saveTeam();toast('この組み合わせを選出にしました');const y=scrY();teamRender();scrTo(0,y)};
-  const nmD=box.querySelector('#stg-nomega');if(nmD)nmD.addEventListener('toggle',()=>{if(!nmD.open||nmD.dataset.done)return;nmD.dataset.done=1;setTimeout(()=>stNoMegaFill(entries,T,nmD),20)});
+  const stamp=teamActionStamp(entries);
+  const sb=box.querySelector('[data-stg-sel]');if(sb)sb.onclick=()=>{if(!sb.isConnected||!teamActionCurrent(stamp))return;const c=sb.dataset.stgSel.split(',').map(Number);entries.forEach((x,i)=>x.sel=c.includes(i));saveTeam();toast('この組み合わせを選出にしました');const y=scrY();teamRender();scrTo(0,y)};
+  const nmD=box.querySelector('#stg-nomega');if(nmD)nmD.addEventListener('toggle',()=>{if(!nmD.open||nmD.dataset.done)return;nmD.dataset.done=1;setTimeout(()=>{if(nmD.isConnected&&teamActionStamp()===stamp)stNoMegaFill(entries,T,nmD)},20)});
 }
 /* メガシンカしない場合：メガストーンを持つ匹は全員メガシンカしない姿（持ち物なし）で、同じ相手と計算し直す。上の結果とは別に並べるだけ */
 function stNoMegaFill(entries,T,el){
   const b=el.querySelector('.stg-nm-b');
-  try{const ms=entries.map(x=>({x,p:byNo[x.no]})).filter(o=>o.p),CS=ms.map(o=>{try{return dgCalcSet(o)}catch(e){return null}});
-    const H=ms.map((o,i)=>dgStoneOf(o.x.no,CS[i])?i:-1).filter(i=>i>=0);
-    const T0=dgTeam1(T.rows.length,ms,CS,-1,H,'none'),a=dgMetric(T),z=dgMetric(T0);
+  try{
+    const opponents=T.rows.map(r=>r.from);
+    const T0=impWith(entries,()=>dgTeam0(entries,opponents.length,{noMega:true,opponents}));
+    if(T0.rows.length!==opponents.length||T0.rows.some((r,i)=>r.from!==opponents[i]))throw Error('opponents changed');
+    const a=dgMetric(T),z=dgMetric(T0);
     const row=(l,x,y,low)=>`<tr><th>${l}</th><td>${x}匹</td><td>${y}匹</td><td>${x===y?'同じ':((low?y<x:y>x)?'メガなしの方が良い':'メガありの方が良い')}</td></tr>`;
-    b.innerHTML=`<table class="stg-nmt"><thead><tr><th></th><th>メガシンカあり</th><th>なし</th><th></th></tr></thead><tbody>${row('◎ 安定して対応',a.st,z.st,false)}${row('答えがない相手',a.x,z.x,true)}${row('△以下の相手',a.w,z.w,true)}${row('後出しできない相手',a.nosw,z.nosw,true)}</tbody></table><p class="stg-f">メガストーンを持つポケモンを、メガシンカしない姿（持ち物なし）で同じ相手と計算しました。上の戦い方・選出は「メガシンカあり」の計算です。</p>`}
+    b.innerHTML=`<table class="stg-nmt"><thead><tr><th></th><th>メガシンカあり</th><th>なし</th><th></th></tr></thead><tbody>${row('◎ 安定して対応',a.st,z.st,false)}${row('答えがない相手',a.x,z.x,true)}${row('△以下の相手',a.w,z.w,true)}${row('後出しできない相手',a.nosw,z.nosw,true)}</tbody></table><p class="stg-f">メガストーンを持つポケモンを、メガシンカしない姿（持ち物なし）で同じ相手${opponents.length}匹と計算しました。「メガシンカあり」はパーティ全体の診断で選んだメガシンカです。</p>`}
   catch(e){b.innerHTML='<p class="stg-p">計算できませんでした。</p>'}
 }
 
@@ -187,7 +201,7 @@ function stTpEv(id,entries){
   const t=ST_TYPE[id],reg=[],can=[],regN=[],canN=[];if(!t||(!t.mv&&!t.ab))return null;
   const abOf=set=>set&&set.ab?(set.ab.k||(typeof set.ab==='string'?set.ab:null)):null;
   entries.forEach(x=>{const p=byNo[x.no];if(!p)return;const nm=formInfo(p).base,set=x.set||{},r=[],c=[];
-    const mv=(set.mv||[]).filter(m=>m&&m.id).map(m=>m.id),ls=(LSD[p.no]||LSD[p.base]||[0,[]])[1];
+    const mv=(set.mv||[]).filter(m=>m&&m.id).map(m=>m.id),ls=lsOf(p);
     /* 技を4つ登録していれば、その中にない技は「使わない」とわかる（覚えられても未確認にしない）。特性も登録していれば同じ */
     const mvFull=mv.length>=4,abSet=!!abOf(set);
     (t.mv||[]).forEach(k=>{const id2=ST_MVID(k);if(!id2)return;if(mv.includes(id2))r.push(mName(id2));else if(!mvFull&&ls.includes(id2))c.push(mName(id2))});
@@ -244,10 +258,9 @@ function stTpDraft(tp,entries,flow){
     subs=withEv.slice(1).map(id=>`${stTpL(id)}：${act(id,stTpEv(id,entries).regN)}`);
     const all=[...new Set([main,...withEv.slice(1)].flatMap(id=>stTpEv(id,entries).regN))].filter(n=>!inSel(n));
     if(all.length)noteSel=`（${J(all)}はおすすめの選出に入っていないので、この戦い方をするときは選出に入れてください）`}
-  if(!open)open=`先発の${J(flow.ld)}で、相手の先発に圧力をかける。${flow.adv.length?`（有利な相手：${J(flow.adv)}）`:''}`;
-  if(!mid){const d=flow.def.length?flow.def:flow.mid,a=flow.atk.filter(n=>!d.includes(n));
-    mid=d.length?`不利な相手が出てきたら${J(d)}に交代して受け${a.length?`、${J(a)}で数を減らす`:'、数を減らす'}。`:`有利な相手を削り、不利なら交代する。`}
-  const end=flow.fin?`${flow.fin.n}の${flow.fin.t}で、削れた相手を詰めにいく。`:'詰め役ははっきりしていません。先制技・こだわりスカーフ・積み技のどれかがあると、最後に競り負けにくくなります。';
+  if(!open)open=flow.steps[0][1];
+  if(!mid)mid=flow.steps[1][1];
+  const end=flow.steps[2][1];
   const L=[`序盤：${open}${noteSel}`,...subs.map(x=>`　${x}`),`中盤：${mid}`,`終盤：${end}`];
   if(unT.length)L.push(`※${J(unT.map(stTpL))}は技・特性が未登録のため、上の流れには入れていません。`);
   return L.join('\n');
@@ -375,7 +388,7 @@ async function strategyCard(d){
   if(d.arch){g.font=`800 26px ${FF}`;const w=g.measureText(d.arch).width+40;rrect(g,56,y,Math.min(w,W-112),48,24);g.fillStyle='rgba(124,92,255,.35)';g.fill();g.fillStyle='#fff';g.fillText(fitText(g,d.arch,W-152),76,y+33);y+=70}
   L.forEach(([h,ls])=>{g.fillStyle='#ffd400';g.font=`800 28px ${FF}`;g.fillText(h,56,y+30);y+=52;g.fillStyle='rgba(255,255,255,.9)';g.font=`500 26px ${FF}`;ls.forEach(l=>{g.fillText(l,70,y+26);y+=38});y+=18});
   g.fillStyle='rgba(255,255,255,.5)';g.font=`600 18px ${FF}`;
-  g.fillText(d.own.length?'自動の診断（使用率の上位の相手との計算）に、トレーナーが書き加えた戦い方です':'使用率の上位の相手との計算から作った自動の診断です（目安）',56,H-30);
+  g.fillText(d.own.length?'自動の診断に、トレーナーが書き加えた戦い方です':'対面計算から作った自動の診断です（目安）',56,H-30);
   try{return await new Promise((r,j)=>{try{c.toBlob(r,'image/png')}catch(e){j(e)}})}catch(e){return null}
 }
 let TWC_PRE=null;
