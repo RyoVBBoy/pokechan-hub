@@ -87,6 +87,13 @@ function impRoleLoss(T0,T1,i){
 }
 const IMP_KIND={swap:'入れかえ',move:'技',sp:'能力ポイント',nat:'性格',item:'持ち物',role:'型（役割）',sel:'選出'};
 /* 改善案を作る。戻り値：[{kind,i,title,why,entries（変更後）,J（比べた結果）,apply}] */
+/* 入れかえ先にしない採用率（%）。使用データで多く使われている技は、1対1のダメージだけで「いらない」とは言えない */
+const IMP_USED=30;
+/* その匹の技の採用率（%）：ランクバトルの集計（種族ごと）と PokéKit（姿・メガストーンごと）の高い方 */
+function impUsePct(no,stone){const out={};const put=(id,pc)=>{if(id&&pc!=null&&!(out[id]>=pc))out[id]=pc};
+  try{const d=typeof LIVE!=='undefined'&&LIVE.csv[no];if(d&&d.mv)d.mv.forEach(([n,pc])=>put(MVKA[nrm(n)],pc))}catch(e){}
+  try{if(typeof mvpRowOf==='function'){const r=mvpRowOf(typeof FMT!=='undefined'?FMT:'single',no,stone);if(r&&r.mv)r.mv.forEach(([k,pc])=>put(MVKA[nrm(k)],pc))}}catch(e){}
+  return out}
 function dgImprove(entries){
   if(!entries||entries.length<3)return{list:[],note:'3匹以上入れると改善案を計算できます。'};
   const T0=dgTeam0(entries,20);try{const w=teamWx();T0.wxKey=w?[w.k,w.by]:null}catch(e){T0.wxKey=null}
@@ -106,19 +113,22 @@ function dgImprove(entries){
     /* 2026/11/16 依頼主の報告：攻撃役（解説の型に受けの型がない匹）には、攻撃のポイント・性格を削って耐久に回す案を出さない */
     let gk=[];try{gk=monGuide(p,{raw:true}).keys}catch(e){}
     const atkRole=!gk.includes('bulky')&&(gk.includes('attacker')||gk.includes('setup')||!gk.length);
-    /* ---- 技：いちばん使われていない攻撃技を、覚える攻撃技と入れかえる（積み技・場を作る技・まもるは残す） ---- */
+    /* ---- 技：比較対面で最善に選ばれた回数と採用率を区別し、採用率の高い攻撃技を保護する ---- */
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));
     if(atkIdx.length){
-      const slot=atkIdx.sort((a,b)=>(bestUse[a.m.id]||0)-(bestUse[b.m.id]||0))[0];
+      const stK=base.it&&isStone(base.it.k)?base.it.k:null,use=impUsePct(x.no,stK);
+      const slot=atkIdx.filter(o=>!((use[o.m.id]||0)>=IMP_USED)).sort((a,b)=>(bestUse[a.m.id]||0)-(bestUse[b.m.id]||0))[0];
+      if(slot){
       const have=new Set(base.mv.map(m=>m.id)),ls=((LSD[p.no]||LSD[p.base]||[0,[]])[1]||[]);
       const oppT=problem.map(r=>r.q.t||byNo[r.q.no].t);
       const cands=ls.filter(id=>!have.has(id)&&MV[id]&&!IMP_NOMV.has(MD[id]&&MD[id][3])).map(id=>{const m=mvObj(id);if(!(m.pow>0))return null;
         const stab=p.t.includes(m.t)?1.5:1,cl=m.cls===(main===1?0:1)?1:.45,se=oppT.filter(t=>mult(m.t,t)>=2).length;
         return{id,m,v:m.pow*Math.min(100,m.acc||100)/100*stab*cl*(1+.15*se)+(m.pri>0?40:0)}}).filter(Boolean).sort((a,b)=>b.v-a.v).slice(0,7);
       cands.forEach(c=>{const mv=base.mv.map((m,k)=>k===slot.k?{id:c.id,n:mName(c.id)}:m);
-        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は上位の相手にいちばん使われていない技なので、${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる`)});
-    }
+        const nUse=bestUse[slot.m.id]||0,pu=use[slot.m.id];
+        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は、比較した${T0.rows.length}匹との1対1で、倒すまでの回数や命中を比べて最善の攻撃に選ばれた相手が${nUse}匹です${pu!=null?`（使用データでの採用率${pu}%）`:''}。${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる案です（回復・追加効果などダメージ以外の働きは比べていません）`)});
+    }}
     /* ---- 能力ポイント（合計66：32＋32＋2） ---- */
     const SPS=[[[main,5],'攻撃と素早さ'],[[0,main],'HPと攻撃'],[[0,2],'HPと防御'],[[0,4],'HPと特防'],[[0,5],'HPと素早さ']];
     SPS.forEach(([[a,b],lab])=>{if(atkRole&&a!==main&&b!==main)return;const sp=[0,0,0,0,0,0];sp[a]=32;sp[b]=32;const rest=[0,2,4,main].find(k=>!sp[k]);sp[rest]=2;
