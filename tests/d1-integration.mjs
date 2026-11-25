@@ -63,9 +63,9 @@ ok(WR.max===1&&par.filter(x=>x[0]===200).length>=1&&par.filter(x=>x[0]===503).le
 ok((await db.prepare(`SELECT COUNT(*) AS c FROM link_leases WHERE expires_at>?`).bind(Date.now()).first()).c===0,'終わったら札を返す','');
 WR.delay=0;
 const mo=new Date().toISOString().slice(0,7),dy=new Date().toISOString().slice(0,10);
-await db.prepare(`UPDATE link_budget SET day=?,dn=5,month=?,mn=90000 WHERE id='webrisk'`).bind(dy,mo).run();
+await db.prepare(`DELETE FROM link_budget_d`).run();await db.prepare(`INSERT INTO link_budget_d(day,month,n) VALUES(?,?,5),(?,?,89995)`).bind(dy,mo,mo+'-00',mo).run();
 r=await call('/api/notes',{method:'POST',tok:U.iG,body:{body:'x',url:'https://note.com/it/quota'}});
-const bq=await db.prepare(`SELECT dn,mn FROM link_budget`).first();
+const bq={dn:(await db.prepare(`SELECT n FROM link_budget_d WHERE day=?`).bind(dy).first()).n,mn:(await db.prepare(`SELECT SUM(n) AS n FROM link_budget_d WHERE month=?`).bind(mo).first()).n};
 ok(r[0]===503&&bq.dn===5&&bq.mn===90000,'1か月の上限で閉じ、1日の回数も減らさない',{r,bq});
 /* 確認の記録への同時の停止 → 1つだけ */
 const ADM={admin:'admin-secret-123'};
@@ -89,7 +89,7 @@ ok((await db.prepare(`SELECT COUNT(*) AS c FROM fb_sync WHERE uid='iA' AND gen>d
   ok(r1[0]===200&&r2[0]===200&&r3[0]===200&&r3[1].repeat===true&&fr.owned===1&&fr.prior===0&&fr.done_gen===fr.gen,'記録→報告・同じ報告をもう一度でも1回分（本物の D1）',{r1,r2,r3,fr})}
 r=await call('/api/notes',{method:'POST',tok:U.iA,body:{body:'停止中'}});ok(r[0]===403,'停止中は投稿できない',r);
 /* リンクの行は、このリクエストの使い捨ての鍵で書いた投稿だけにつく（本物の D1。同じ人の同じ時刻を鍵にしない） */
-{await db.prepare(`UPDATE link_budget SET dn=0,mn=0`).run();
+{await db.prepare(`DELETE FROM link_budget_d`).run();
   const UK=await tok('iK');await call('/api/me',{method:'POST',tok:UK,body:{handle:'hiK',name:'iK',agree:true}});
   /* 先に1回確かめて覚えさせる（同時に外へ送るのは1つまでの設定なので、覚えを使って同時に書く） */
   r=await call('/api/notes',{method:'POST',tok:UK,body:{body:'先に1回',url:'https://note.com/it/shared-op'}});ok(r[0]===200,'先に1回（覚えさせる）',r);

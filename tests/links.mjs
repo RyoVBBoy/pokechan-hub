@@ -55,6 +55,10 @@ const settle=async()=>{while(LATER.length)await LATER.shift()};
 let bad=0,n=0;const expect=(name,cond,info)=>{n++;if(!cond){bad++;console.error('NG',name,JSON.stringify(info)?.slice(0,400))}};
 const db=()=>env.DB;
 const q=async(sql,...a)=>(await env.DB.prepare(sql).bind(...a).all()).results;
+/* 回数の表（日ごとの行。月はその月の合計）を読む・置く */
+const bget=async(day)=>{day=day||new Date(clock).toISOString().slice(0,10);const r=await q(`SELECT n FROM link_budget_d WHERE day=?`,day);return{dn:r.length?r[0].n:0,mn:(await q(`SELECT COALESCE(SUM(n),0) AS n FROM link_budget_d WHERE month=?`,day.slice(0,7)))[0].n}};
+const bput=async(day,dn,month,mn)=>{await env.DB.prepare('DELETE FROM link_budget_d').run();if(dn)await env.DB.prepare(`INSERT INTO link_budget_d(day,month,n) VALUES(?,?,?)`).bind(day,month,dn).run();
+  if(mn-dn>0)await env.DB.prepare(`INSERT INTO link_budget_d(day,month,n) VALUES(?,?,?)`).bind(month+'-00',month,mn-dn).run()};
 const clearSlots=()=>env.DB.prepare('DELETE FROM link_attempts').run();
 const mk=async(uid,h,o)=>{const t=await tok(uid,o);const r=await call('/api/me',{method:'POST',tok:t,body:{handle:h,name:h.toUpperCase(),agree:true}});expect('プロフィール '+h,r[0]===200,r);return t};
 const A=await mk('uA','alice'),B=await mk('uB','bob'),C=await mk('uC','carol');
@@ -148,7 +152,7 @@ r=await tryLink(C,'https://err-fixture.test-gk.net/page');expect('失敗は覚�
 /* 合言葉がない・1日の回数 */
 {const E=mkEnv({WEBRISK_API_KEY:''});env=E;const X=await mk('uX','xavier');r=await tryLink(X,'https://note.com/nokey');expect('合言葉がなければ閉じる',r[0]===503,r);
   r=await call('/api/notes',{method:'POST',tok:X,body:{body:'ふつう'}});tick();expect('合言葉がなくてもリンクなしは投稿できる',r[0]===200,r)}
-{env=mkEnv({LINKS_WEBRISK_DAY:'2'});await env.DB.prepare('DELETE FROM link_budget').run();const X=await mk('uX','xavier');let s=[];for(const i of [1,2,3]){s.push((await tryLink(X,'https://note.com/day'+i))[0])}
+{env=mkEnv({LINKS_WEBRISK_DAY:'2'});await env.DB.prepare('DELETE FROM link_budget_d').run();const X=await mk('uX','xavier');let s=[];for(const i of [1,2,3]){s.push((await tryLink(X,'https://note.com/day'+i))[0])}
   expect('1日の安全確認の回数をこえたら閉じる',s[0]===200&&s[1]===200&&s[2]===503,s)}
 {env=mkEnv({SANCTIONS_ON:''});const X=await mk('uX','xavier');r=await tryLink(X,'https://note.com/nosanc');expect('利用停止の記録が止まっていればリンクは付けられない',r[0]===503,r)}
 {env=mkEnv();const X=await mk('uX','xavier',{verified:false});r=await tryLink(X,'https://note.com/unv');expect('メール未確認の人はリンクを付けられない',r[0]===403,r);
@@ -251,7 +255,7 @@ for(const k of Object.keys(WR.mode))if(WR.mode[k]==='defer')delete WR.mode[k];
 
 /* ---------- 7. 同時に外へ送る数（どの isolate でも共通の札）・1日の回数・覚えの順番と上限 ---------- */
 {const w2=(await import(path.join(ROOT,'worker/dist/worker.js')+'?inst=2')).default;
-  const E=mkEnv({LINKS_WEBRISK_CONC:'2'});await E.DB.prepare('DELETE FROM link_budget').run();
+  const E=mkEnv({LINKS_WEBRISK_CONC:'2'});await E.DB.prepare('DELETE FROM link_budget_d').run();
   const us=[];for(let i=0;i<4;i++)us.push(await mk('uL'+i,'lease'+i));
   WR.mode['lease-fixture']='defer';await clearSlots();tick();const q0=WR.calls.length;
   const ps=us.map((t,i)=>call('/api/notes',{method:'POST',tok:t,body:{body:'L',url:`https://note.com/lease-fixture/${i}`},E,W:i%2?w2:w}));
@@ -259,7 +263,7 @@ for(const k of Object.keys(WR.mode))if(WR.mode[k]==='defer')delete WR.mode[k];
   expect('2つの isolate から4つ同時でも、外へ送るのは2つまで',WR.pending.length===2,WR.pending.length);
   relPend();relPend();const rs=await Promise.all(ps);
   expect('札がとれなかったものは混み合っていると断る（503）',rs.filter(x=>x[0]===200).length===2&&rs.filter(x=>x[0]===503).length===2,rs.map(x=>x[0]));
-  expect('1日・1か月の回数は、札をとれたものだけ使う',(await q('SELECT dn,mn FROM link_budget'))[0].dn===2&&(await q('SELECT dn,mn FROM link_budget'))[0].mn===2&&WR.calls.length-q0===2,await q('SELECT * FROM link_budget'));
+  {const g=await bget();expect('1日・1か月の回数は、札をとれたものだけ使う',g.dn===2&&g.mn===2&&WR.calls.length-q0===2,g)}
   expect('終わったら札を返す',(await q('SELECT COUNT(*) AS c FROM link_leases WHERE expires_at>?',clock))[0].c===0,await q('SELECT * FROM link_leases'));
   delete WR.mode['lease-fixture'];
   await E.DB.prepare(`UPDATE link_leases SET holder='dead',expires_at=?`).bind(clock+36e5).run();
@@ -480,7 +484,7 @@ for(const [start,mo,want] of [['2027-01-31T10:00:00+09:00',3,'2027-04-30T10:00:0
 const w2=(await import(path.join(ROOT,'worker/dist/worker.js')+'?inst=r2')).default;
 const U1=await mk('uR2a','rtwoa'),U2=await mk('uR2b','rtwob'),U3=await mk('uR2c','rtwoc');
 const wr=()=>WR.calls.length;
-await env.DB.prepare('DELETE FROM link_budget').run();
+await env.DB.prepare('DELETE FROM link_budget_d').run();
 /* A1 危険の答えは業者の期限まで（24時間で切らない）・その間は問い合わせない */
 WR.mode['longthreat-fixture']='unsafe-3d';
 r=await tryLink(U1,'https://longthreat-fixture.test-gk.net/x');expect('A1 危険（期限3日）は断る',r[0]===400,r);
@@ -509,16 +513,16 @@ delete WR.mode['dup-fixture'];c0=wr();
 r=await call(`/api/admin/links/${dupB}`,{method:'POST',admin:'admin-secret-123',body:{action:'restore',reason:'誤判定だと思う',confirm:true}});
 expect('A4 期限内の危険は、新しく確かめる指定でも短くしない（戻せない・問い合わせない）',r[0]===409&&r[1].verdict==='unsafe'&&wr()===c0,{r,d:wr()-c0});
 /* A5 1日と1か月の回数（1つの文で同時に。片方だけ減らない）・UTC の月が変われば戻る */
-const bset=(day,dn,month,mn)=>env.DB.prepare(`UPDATE link_budget SET day=?,dn=?,month=?,mn=? WHERE id='webrisk'`).bind(day,dn,month,mn).run();
+const bset=(day,dn,month,mn)=>bput(day,dn,month,mn);
 const today=new Date(clock).toISOString().slice(0,10),mon=today.slice(0,7);
 await bset(today,0,mon,89999);r=await tryLink(U1,'https://budget-a.test-gk.net/1');expect('A5 1か月の最後の1回は使える',r[0]===200,r);
 r=await tryLink(U1,'https://budget-a.test-gk.net/2');expect('A5 1か月の上限で閉じる',r[0]===503,r);
 await bset(today,3000,mon,10);c0=wr();r=await tryLink(U1,'https://budget-a.test-gk.net/3');
-const bb=(await q(`SELECT dn,mn FROM link_budget`))[0];expect('A5 1日の上限のときは、1か月の回数も減らさない',r[0]===503&&bb.mn===10&&bb.dn===3000&&wr()===c0,bb);
+const bb=await bget();expect('A5 1日の上限のときは、1か月の回数も減らさない',r[0]===503&&bb.mn===3000&&bb.dn===3000&&wr()===c0,bb);
 await bset('2000-01-31',3000,'2000-01',90000);r=await tryLink(U1,'https://budget-a.test-gk.net/4');
-expect('A5 日・月が変われば数え直す（UTC）',r[0]===200&&(await q(`SELECT dn,mn,month FROM link_budget`))[0].mn===1,await q(`SELECT * FROM link_budget`));
+expect('A5 日・月が変われば数え直す（UTC）',r[0]===200&&(await bget()).mn===1&&(await bget()).dn===1,await q(`SELECT * FROM link_budget_d`));
 await bset(today,0,mon,90000);tick();r=await call('/api/notes',{method:'POST',tok:U1,body:{body:'回数の上限でもリンクなしは投稿できる'}});expect('A5 上限でもリンクなしは投稿できる',r[0]===200,r);
-await env.DB.prepare('DELETE FROM link_budget').run();
+await env.DB.prepare('DELETE FROM link_budget_d').run();
 /* A6 覚えの上限で、期限内の危険は消さない */
 {const ins=[];for(let i=0;i<20;i++)ins.push(env.DB.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'unsafe','MALWARE',?,?)`).bind('uns'+i,clock-1e7,clock+864e5));
   for(let i=0;i<5100;i++)ins.push(env.DB.prepare(`INSERT OR IGNORE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'clean','',?,?)`).bind('cln'+i,clock-1e6+i,clock+36e5));
@@ -801,12 +805,19 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
     tick(20e3);await clearSlots();const c0=WR.calls.length;r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x',url:'https://note.com/r4/cap-clean'}});
     expect('R4 危険が多いときは問題なしを覚えない（付けられる・毎回確かめる）',r[0]===200&&WR.calls.length===c0+1&&(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='clean'`))[0].c===0,{r});
     await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'fill%'`).run();delete WR.mode['note.com/r4/cap-bad']}
-  /* 回数の日付：遅れて届いた古い日付のリクエストで、日・月を前に戻さない */
-  {const d=new Date(clock).toISOString().slice(0,10),nx=new Date(clock+864e5).toISOString().slice(0,10);
-    await env.DB.prepare(`UPDATE link_budget SET day=?,dn=7,month=?,mn=50 WHERE id='webrisk'`).bind(nx,nx.slice(0,7)).run();
-    const U5=await mk('uR4w','rfourw');tick();await clearSlots();await call('/api/notes',{method:'POST',tok:U5,body:{body:'x',url:'https://note.com/r4/delayed'}});
-    const b=(await q(`SELECT day,dn,month,mn FROM link_budget WHERE id='webrisk'`))[0];
-    expect('R4 古い日付のリクエストは、いまの（先の）日に数える（前に戻さない）',b.day===nx&&b.dn===8&&b.month===nx.slice(0,7)&&b.mn===51,{b,d})}
+  /* 回数の日付：日・月ごとに別々に数える（月末の 2999/89999 → 12/1・遅れて届いた 11/30・12/1 の順でも、12月は2・11月は上限まで） */
+  {const ck=clock;const at=t=>{Date.now=()=>t};const U5=await mk('uR4w','rfourw');
+    await env.DB.prepare('DELETE FROM link_budget_d').run();
+    const n30=Date.UTC(2026,10,30,23,59,0),d1=Date.UTC(2026,11,1,0,1,0);
+    await env.DB.prepare(`INSERT INTO link_budget_d(day,month,n) VALUES('2026-11-30','2026-11',2999),('2026-11-00','2026-11',87000)`).run();
+    const E=mkEnv({LINKS_WEBRISK_DAY:'3000',LINKS_WEBRISK_MONTH:'90000'});
+    let hn=0;const hit=async(t,u)=>{const id='uR4b'+(++hn);const T=await mk(id,'rfourb'+hn);clock=t;at(t);await clearSlots();return call('/api/notes',{method:'POST',tok:T,body:{body:'x',url:u},E})};
+    const r1=await hit(d1,'https://budget-r4.test-gk.net/1'),r2=await hit(n30+1000,'https://budget-r4.test-gk.net/2'),r3=await hit(d1+40e3,'https://budget-r4.test-gk.net/3');
+    Date.now=()=>clock;
+    const dec=await bget('2026-12-01'),nov=await bget('2026-11-30');
+    expect('R4 日・月ごとに別々に数える：12月は2・11月30日は上限の3000まで（遅れた11月のリクエストが12月の数を戻さない）',r1[0]===200&&r2[0]===200&&r3[0]===200&&dec.dn===2&&dec.mn===2&&nov.dn===3000&&nov.mn===89999+1,{dec,nov,st:[r1[0],r2[0],r3[0]]});
+    const r4=await hit(n30+2000,'https://budget-r4.test-gk.net/4');Date.now=()=>clock;expect('R4 その日の上限に届いた日（11/30）の遅れたリクエストは断る（ほかの日の数は変えない）',r4[0]===503&&(await bget('2026-12-01')).dn===2,r4);
+    clock=ck;Date.now=()=>clock}
   /* 方針の版が変わった行は、開くときに今の鍵にする */
   {const U6=await mk('uR4v','rfourv');const id6=await postLink(U6,'https://note.com/r4/policy');
     await env.DB.prepare(`UPDATE note_links SET vh='old-policy-key' WHERE note_id=?`).bind(id6).run();

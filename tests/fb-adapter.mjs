@@ -182,11 +182,29 @@ FB.fail.delete('fbD');s=await run({max:30});ok(s.done>=1&&FB.users.fbD.disabled=
 /* 16. Firebase の返事がない・時間切れのあとで本当に終わる（結果が分からない） */
 const H=await perp('fbH','fbhhh');FB.late.set('fbH',600);
 s=await run({max:30});R=await row('fbH');
-ok(s.unknown===1&&R.unknown===1&&R.owned===1&&R.prior===0,'時間切れ＝結果が分からないとして数える（持ち主の記録は外を変える前のまま）',{s,R});
-ok(FB.calls.some(c=>c[0]==='late-done'&&c[1]==='fbH')&&FB.users.fbH.disabled===true&&R.obs_disabled===1&&s.observed===1,'遅れて本当に終わった呼び出しを待ってから読み直し、見た状態を残す（終えたことにはしない）',{s,R,calls:FB.calls.filter(c=>c[1]==='fbH')});
+ok(s.unknown===1&&R.owned===1&&R.prior===0,'時間切れ＝結果が分からないとして数える（持ち主の記録は外を変える前のまま）',{s,R});
+ok(FB.calls.some(c=>c[0]==='late-done'&&c[1]==='fbH')&&FB.users.fbH.disabled===true&&R.obs_disabled===1&&s.observed===1&&R.unknown===0&&R.done_gen<R.gen,'遅れて本当に終わった呼び出しを待ってから読み直し、見た状態を残し、確かめ直しにする（終えたことにはしない）',{s,R,calls:FB.calls.filter(c=>c[1]==='fbH')});
 ok(FB.calls.filter(c=>c[0]==='update'&&c[1]==='fbH').length===1,'同じ回の中で、結果が分からないアカウントにもう一度さわらない','');
-r=await call('/api/admin/sanctions',{...ADM});ok(r[1].fb_sync.unknown===1&&r[1].fb_sync.alert===true,'結果が分からないものを管理画面に知らせる',r[1].fb_sync);
+ok((await env.DB.prepare(`SELECT n FROM fb_metrics WHERE k='unknown'`).first()).n>=1,'結果が分からなかった回を数える','');
 FB.late.delete('fbH');tick(31e3);s=await run({max:30});R=await row('fbH');ok(R.unknown===0&&R.done_gen===R.gen&&FB.users.fbH.disabled===true,'次の回で確かめて終える',{s,R});
+/* 16a. 待っても終わらない（落ちた・止まった）：結果が分からないまま残し、管理画面に知らせる */
+const H2=await perp('fbH2','fbhh2');FB.hang.add('fbH2');
+s=await run({max:30,settleMs:200});R=await row('fbH2');ok(R.unknown===1&&R.unk_intent==='disable','待っても終わらない呼び出しは、結果が分からないまま残す',R);
+r=await call('/api/admin/sanctions',{...ADM});ok(r[1].fb_sync.unknown>=1&&r[1].fb_sync.alert===true,'結果が分からないものを管理画面に知らせる',r[1].fb_sync);
+FB.hang.delete('fbH2');tick(31e3);s=await run({max:30});ok(FB.users.fbH2.disabled===true&&(await row('fbH2')).unknown===1,'あとで止めても、結果が分からなかった印は運営者が確かめるまで残る',await row('fbH2'));
+r=await call('/api/admin/fb/replay',{method:'POST',...ADM,body:{handle:'fbhh2',reason:'Firebase の画面で止まっていると確かめた',confirm:true}});ok(r[0]===200&&(await row('fbH2')).unknown===0,'運営者が確かめてやり直すと、印を外す',r);
+/* 16b. 時間切れの「止める」が、借りる時間が切れて取り消され・別の回が戻したあとで本当に終わる（SDK の呼び出しは止められない） */
+{const G=await perp('fbG','fbggg');FB.late.set('fbG',900);
+  const p1=run({max:30,settleMs:3000});
+  for(let i=0;i<100&&!FB.calls.some(c=>c[0]==='update'&&c[1]==='fbG');i++)await new Promise(r=>setTimeout(r,10));
+  await new Promise(r=>setTimeout(r,400));
+  R=await row('fbG');ok(R.unknown===1&&R.owned===1,'時間切れ＝結果が分からない（持ち主の記録は外を変える前のまま）',R);
+  await rev(G.id);tick(61e3);FB.late.delete('fbG');
+  const s2=await run({max:30});ok(FB.users.fbG.disabled===false,'取り消されたので、別の回が戻す（まだ遅れた「止める」は終わっていない）',{s2,u:FB.users.fbG});
+  const s1=await p1;
+  ok(FB.calls.some(c=>c[0]==='late-done'&&c[1]==='fbG')&&FB.users.fbG.disabled===true,'そのあとで遅れた「止める」が本当に終わり、止まってしまう（取り消せない呼び出し）',{s1,u:FB.users.fbG});
+  R=await row('fbG');ok(R.obs_disabled===1&&R.next_at===0,'最初の回は、遅れた呼び出しを待ってから読み直し、止まっていると記録して、すぐ確かめ直しにする',R);
+  tick(31e3);const s3=await run({max:30});ok(FB.users.fbG.disabled===false&&(await row('fbG')).owned===0,'次の回で、取り消されたあるべき状態に戻す',{s3,R:await row('fbG')})}
 /* 17. 1回の時間が借りる時間（60秒）より長くかかっても、1つずつ借りるので、あとのアカウントは期限切れにならない */
 {const U=[];for(let i=0;i<4;i++){const id='fbL'+i;await perp(id,'fbll'+i);U.push(id)}
   FB.slow=25e3;s=await run({max:30});FB.slow=0;

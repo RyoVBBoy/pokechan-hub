@@ -37,7 +37,9 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
   const hs=await req('GET','/api/fb/env');
   if(hs.status!==200||hs.j.env!==env.workerEnvId||hs.j.project!==env.project)throw new Error('worker-env-mismatch');
   const late=[],touched=new Set(),unknownUids=new Set();
-  const fb=(p,what,uid)=>withTimeout(p,timeoutMs,what,pp=>{unknownUids.add(uid);late.push(pp.catch(()=>{}))});
+  /* 時間切れの呼び出しは、uid ごとに「終わったか」を覚える（終わったものだけ読み直して observe。終わらないものは unknown のまま残す＝管理画面に出る） */
+  const pend=new Map();
+  const fb=(p,what,uid)=>withTimeout(p,timeoutMs,what,pp=>{unknownUids.add(uid);const e=pend.get(uid)||{n:0,done:0};e.n++;pend.set(uid,e);late.push(pp.catch(()=>{}).finally(()=>{e.done++}))});
   const sum={done:0,failed:0,unknown:0,stale:0,noop:0,dead:0,lost:0,observed:0};
   for(let n=0;n<max;n++){
     const c=await post('/api/fb/claim',{skip:[...touched]});
@@ -88,7 +90,7 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
   }
   /* 遅れて終わるかもしれない SDK の呼び出しを待ち、結果が分からないアカウントを読み直して、見た状態だけを残す（終えたことにはしない） */
   if(late.length){let t;await Promise.race([Promise.allSettled(late),new Promise(r=>{t=setTimeout(r,settleMs)})]);clearTimeout(t)}
-  for(const uid of unknownUids){try{const u=await withTimeout(auth.getUser(uid),timeoutMs,'observe');const o=await post('/api/fb/observe',{uid,observed_disabled:!!u.disabled});if(o.status===200)sum.observed++}catch(e){}}
+  for(const uid of unknownUids){const e=pend.get(uid);if(!e||e.done<e.n)continue;try{const u=await withTimeout(auth.getUser(uid),timeoutMs,'observe');const o=await post('/api/fb/observe',{uid,observed_disabled:!!u.disabled});if(o.status===200)sum.observed++}catch(e){}}
   return sum;
 }
 /* 手で動かすとき：node tools/firebase-adapter/adapter.mjs --live --env <名前>
