@@ -30,7 +30,7 @@ function koInfo(r,hp){
   return first?{...first,sure:0}:{n:9,p:0,sure:0};
 }
 /* 確率の書き方。必ずではないのに四捨五入で「100%」と出さない（2026/11/13：ネズミざん10回などで 99.95% が 100% に見えた） */
-const pctTxt=p=>p<.001?'0.1%未満':p<.9999&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
+const pctTxt=p=>p<=0?'0%':p<.001?'0.1%未満':p<.9999&&p>=.995?'99.5%以上':(p*100).toFixed(p<.1?1:0)+'%';
 const koLabel=k=>!k.n?'ダメージなし':k.n>8?'8発以上':k.p>=.9999?`確定${k.n}発`:`乱数${k.n}発（${pctTxt(k.p)}）${k.sure?`／確定${k.sure}発`:''}`;
 /* わかりやすい言い方（2026/11/07 依頼主の要望：ダメージ計算をわかりやすく） */
 const koPlain=k=>!k.n?L('ダメージを与えられません','No damage'):k.n>8?L('倒すには9回以上かかります','Takes 9+ hits to KO'):k.p>=.9999?L(`${k.n}回当てれば必ず倒せます`,`Guaranteed ${k.n}HKO`):L(`${k.n}回で倒せる確率は ${pctTxt(k.p)}${k.sure?`。${k.sure}回なら必ず倒せます`:''}`,`${pctTxt(k.p)} chance to ${k.n}HKO${k.sure?` (guaranteed ${k.sure}HKO)`:''}`);
