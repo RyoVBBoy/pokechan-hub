@@ -5,15 +5,15 @@
 const ADV_REFS=[];/* {t:'記事の題名',src:'サイト名',url:'https://…'} */
 const ADVK={
   setup:['swordsdance','dragondance','nastyplot','quiverdance','shellsmash','calmmind','bulkup','bellydrum','shiftgear','coil','victorydance','tidyup','agility','rockpolish','tailglow','geomancy','curse','filletaway','noretreat','growth','workup'],
-  tr:['trickroom'],tail:['tailwind'],fake:['fakeout'],redir:['followme','ragepowder'],screen:['reflect','lightscreen','auroraveil'],
+  tr:['trickroom'],tail:['tailwind'],fake:['fakeout'],redir:['followme','ragepowder'],psychic:['psychicterrain'],guard:['wideguard'],screen:['reflect','lightscreen','auroraveil'],
   weather:{drizzle:'あめ',drought:'はれ',sandstream:'すなあらし',snowwarning:'ゆき'},choice:['choicescarf','choiceband','choicespecs']
 };
 const advKey=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 /* 相手が使いそうな技・特性・持ち物（集計があれば上位、なければ計算用の型と持てる特性） */
 function advOpp(A,j){
   const o=A.O[j],no=A.opNos[j],d=LIVE.csv[no];
-  const mv=new Set(d?d.mv.filter(([,p])=>p>=10).map(([n])=>advKey(n)):(o.moves||[]).map(m=>m&&MD[m.id]?MD[m.id][3]:'').filter(Boolean));
-  const ab=new Set(d?d.ab.filter(([,p])=>p>=15).map(([n])=>advKey(n)):(ABD[no]||[]).map(([k])=>advKey(k)));
+  const mv=new Set(d?d.mv.filter(([,p])=>p>=10).map(([n])=>MD[MVJ[n.normalize('NFKC')]]?.[3]||advKey(n)):(o.moves||[]).map(m=>m&&MD[m.id]?MD[m.id][3]:'').filter(Boolean));
+  const ab=new Set(d?d.ab.filter(([,p])=>p>=15).map(([n])=>advKey(ABJ[n.normalize('NFKC')]||n)):(ABD[no]||[]).map(([k])=>advKey(k)));
   const it=new Set(d?d.it.filter(([,p])=>p>=15).map(([n])=>advKey(n)):[]);
   return{o,no,mv,ab,it,has:k=>k.some(x=>mv.has(x))};
 }
@@ -104,14 +104,27 @@ function asAdvice(A,PR){
   if(ch.length)add('tip',L(`こだわりアイテムの可能性：${list(ch.map(x=>nm(x.o)))}`,`Possible Choice items: ${list(ch.map(x=>nm(x.o)))}`),
     L('こだわり系の持ち物は、交代するまで同じ技しか出せません。1回技を見たら、その技を受けられるポケモンに交代して流れをつかみましょう。',
       'Choice-locked Pokémon repeat the same move until they switch. After seeing the move, switch to something that takes it well.'),1);
+  const psychic=opps.filter((x,j)=>likely(j)&&(x.o.ab==='psychic-surge'||x.ab.has('psychicsurge')||x.has(ADVK.psychic)));
+  const priority=picks.filter(m=>m.moves.some(mv=>!mv.prot&&effPri(m,mv)>0));
+  if(psychic.length&&priority.length)add('warn',
+    L(`サイコフィールドに注意：${list(psychic.map(x=>nm(x.o)))}`,`Watch for Psychic Terrain: ${list(psychic.map(x=>nm(x.o)))}`),
+    L(`サイコフィールド中は、地面にいる相手に${list(priority.map(nm))}の先制技が通りません。この効果は選出の点数に未反映です。`,
+      `Psychic Terrain blocks ${list(priority.map(nm))}'s priority moves against grounded opponents. The selection score does not include this effect.`),4);
   /* 10. ダブル：ねこだまし・このゆびとまれ・おいかぜ */
   if(FMT==='double'){
     const fk=opps.filter((x,j)=>likely(j)&&x.has(ADVK.fake));
     if(fk.length)add('tip',L(`ねこだまし：${list(fk.map(x=>nm(x.o)))}`,`Fake Out: ${list(fk.map(x=>nm(x.o)))}`),
       L('1ターン目に片方の行動を止められます。止められて困るポケモンは先発にしない、またはまもるで受けると安全です。','They can flinch one Pokémon on turn 1. Avoid leading with the one you can\'t afford to stop, or Protect.'),1);
     const rd=opps.filter((x,j)=>likely(j)&&x.has(ADVK.redir));
+    const guard=opps.filter((x,j)=>likely(j)&&x.has(ADVK.guard));
+    const spread=picks.flatMap(m=>m.moves.filter(mv=>mv.tg));
     if(rd.length)add('tip',L(`技を引きつける相手：${list(rd.map(x=>nm(x.o)))}`,`Redirection: ${list(rd.map(x=>nm(x.o)))}`),
-      L('このゆびとまれ・いかりのこなで単体技が吸われます。全体技で一緒に削るか、先に倒しましょう。','Single-target moves get redirected. Use spread moves or KO the redirector first.'),2);
+      L('このゆびとまれ・いかりのこなで単体技の対象が変わることがあります。範囲技を使うなら、味方にも当たる技か、ワイドガードで防がれるかを確認してください。',
+        'Follow Me or Rage Powder may redirect single-target moves. Before using a spread move, check for ally damage and Wide Guard.'),2);
+    if(guard.length&&spread.length)add('warn',
+      L(`範囲技を防ぐ相手：${list(guard.map(x=>nm(x.o)))}`,`Possible Wide Guard: ${list(guard.map(x=>nm(x.o)))}`),
+      L(`ワイドガードで${list([...new Set(spread.map(mv=>mv.n))])}などの範囲技を防がれることがあります。選出の点数には反映していません。`,
+        'Wide Guard can block your spread attacks. The selection score does not include this effect.'),4);
     const tw=opps.filter((x,j)=>likely(j)&&x.has(ADVK.tail));
     if(tw.length)add('tip',L(`おいかぜ：${list(tw.map(x=>nm(x.o)))}`,`Tailwind: ${list(tw.map(x=>nm(x.o)))}`),
       L('4ターンの間、相手の素早さが2倍になります。まもるでターンを稼ぐか、こちらも素早さを操作できると安心です。','Their Speed doubles for 4 turns. Stall with Protect or bring your own speed control.'),2);

@@ -528,6 +528,53 @@ try{
           &&unsafeNote?.d.includes('控えで安定して後出しから倒せる候補は確認できません')&&!asAdvice(unsafe).some(x=>x.t.includes('交代候補')),
           'an immune reserve is offered only when it can finish after switching',
           {safe:safeNote?.d,unsafe:unsafeNote?.d});
+        const fixedMon=(no,side,ids,opt)=>mkMon(byNo[no],side,{...chooseSet(byNo[no],true),item:null,moves:ids.map(mvObj),...opt});
+        const scizor=fixedMon(212,'me',[418],{ab:'technician'});
+        const indeedee=fixedMon(876,'op',[],{ab:'psychic-surge'});
+        const dragonite=fixedMon(149,'op',[],{ab:'inner-focus'});
+        const bp=mvObj(418),field=B.terrain;
+        let withoutField,withField;
+        try{
+          const hits=()=>[indeedee,dragonite].map(o=>Math.round(estHit(scizor,o).pct));
+          B.terrain=null;withoutField=hits();
+          B.terrain='psychic';withField=hits();
+        }finally{B.terrain=field}
+        check(canLearn(212,418)&&effPri(scizor,bp)===1&&withoutField[0]>0
+          &&JSON.stringify(withoutField)===JSON.stringify(withField),
+          'audit reproduces the unsupported terrain case: the current scores still count grounded priority damage',
+          {withoutField,withField});
+        const garchomp=fixedMon(445,'me',[89],{ab:'rough-skin'});
+        const pelipperGuard=fixedMon(279,'op',[],{ab:'keen-eye'});
+        const groundAlly=fixedMon(6,'me',[],{ab:'blaze',item:'ironball'});
+        const flyingAlly=fixedMon(6,'me',[],{ab:'blaze'});
+        const eq=mvObj(89),neutral=fixedMon(143,'op',[],{ab:'immunity'});
+        const regular=bcalc(garchomp,eq,neutral,{r:100,format:'double'}).dmg;
+        const spread=bcalc(garchomp,eq,neutral,{r:100,format:'double',spread:true}).dmg;
+        const approx=Math.round(estHit(garchomp,neutral).pct);
+        check(eq.tg===2&&regular>spread&&Math.abs(spread-regular*.75)<=.5
+          &&bcalc(garchomp,eq,flyingAlly,{r:100,spread:true}).dmg===0
+          &&bcalc(garchomp,eq,groundAlly,{r:100,spread:true}).dmg>0
+          &&approx>Math.round(spread/neutral.max*100),
+          'audit reproduces the doubles gap: spread changes damage and the ally can be hit, but assist scores one target',
+          {regular,spread,approx});
+        const notesFor=(M,O)=>{
+          const A={M,O,opNos:O.map(o=>o.p.no),best:M.map((_,i)=>i),back:[],D:M.map(m=>O.map(o=>estHit(m,o))),
+            R:O.map(o=>M.map(m=>estHit(o,m))),speedDiff:M.map(()=>O.map(()=>0))};
+          return asAdviceHTML(A);
+        };
+        const prevUsage=LIVE.csv[279];
+        const guardRegistered=canLearn(279,469);
+        try{
+          LIVE.csv[279]={mv:[['ワイドガード',50]],ab:[],it:[]};
+          const first=notesFor([scizor,garchomp],[indeedee,pelipperGuard]);
+          const noPriority=notesFor([garchomp],[indeedee,pelipperGuard]);
+          const noSpread=notesFor([scizor],[indeedee,pelipperGuard]);
+          check(guardRegistered&&first.includes('サイコフィールド')&&first.includes('先制技が通りません')
+            &&first.includes('選出の点数に未反映')&&!noPriority.includes('先制技が通りません')
+            &&first.includes('範囲技を防ぐ相手')===(fmt==='double')
+            &&(fmt!=='double'||first.includes('ワイドガードでじしん'))&&!noSpread.includes('範囲技を防ぐ相手'),
+            'assist warns about relevant terrain and Wide Guard effects and describes the unscored condition');
+        }finally{if(prevUsage===undefined)delete LIVE.csv[279];else LIVE.csv[279]=prevUsage}
         const threeStones=[member(6,'charizarditey'),member(359,'absolite'),member(445,'garchompite'),member(149)];
         threeStones[1].set.ab={k:'magic-bounce'};
         team=threeStones;
