@@ -47,21 +47,48 @@ function asAdvice(A,PR){
   if(slowVs.length>=2)add('warn',L(`先手を取られやすい：${list(slowVs.map(x=>nm(x.o)))}`,`Likely to be outsped by: ${list(slowVs.map(x=>nm(x.o)))}`),
     L('選出の多くより速い相手がいます。先制技・こだわりスカーフ・素早さを下げる技・耐えてから反撃できる耐久など、上から殴られても崩れない形を意識しましょう。',
       'Several opponents outspeed most of your picks. Priority moves, a Choice Scarf, speed control or enough bulk to take a hit first help here.'),2);
-  /* 6. 弱点の重なり（一貫性）：同じタイプの技が選出の2匹以上に抜群 */
-  for(const t of T){const weak=picks.filter(m=>mult(t,m.p.t)>=2);if(weak.length<2)continue;
-    const users=opps.filter((x,j)=>likely(j)&&x.o.p.t.includes(t));if(!users.length)continue;
-    const res=picks.filter(m=>mult(t,m.p.t)<1);
-    add(res.length?'tip':'warn',L(`${t}技が通りやすい`,`${tName(t)} moves hit hard`),
-      L(`${t}タイプの技が選出の${weak.length}匹（${weak.map(nm).join('・')}）に抜群で、相手には${list(users.map(x=>nm(x.o)))}がいます。${res.length?`タイプ相性で半減以下なのは${res.map(nm).join('・')}です。交代前に、相手が使える技と残りHPを確認してください。`:'半減以下で受けられるポケモンがいないので、先に倒すか選出を見直しましょう。'}`,
-        `${tName(t)} moves are super effective on ${weak.length} of your picks (${weak.map(nm).join(', ')}), and they have ${list(users.map(x=>nm(x.o)))}. ${res.length?`${res.map(nm).join(', ')} resist this type. Check the opponent’s moves and remaining HP before switching.`:'Nothing resists it — KO them first or rethink your picks.'}`),res.length?1:3);
-    if(out.length>8)break}
-  /* 7. 受け出し先：いちばん危ない相手の技を半減以下で受けられるポケモンがいるか */
-  const th=A.O.map((o,j)=>({j,s:A.best.reduce((a,i)=>a+Math.min(A.R[j][i].pct,150),0)})).sort((a,b)=>b.s-a.s)[0];
-  if(th){const mv=A.best.map(i=>A.R[th.j][i].mv).find(Boolean);
-    if(mv&&mv.t){const res=picks.filter(m=>mult(mv.t,m.p.t)<1);
-      if(!res.length)add('warn',L(`${nm(A.O[th.j])}の${mv.n}を受けられない`,`No safe switch-in for ${nm(A.O[th.j])}'s ${mv.n}`),
-        L(`選出に${mv.t}タイプを半減以下で受けられるポケモンがいません。先発で有利な相手を当てて先に削るか、控えに受けられるポケモンを入れることを考えましょう。`,
-          `None of your picks resists ${tName(mv.t)}. Pressure it early or bring something that resists it.`),3)}}
+  /* 6. 同じタイプの攻撃が複数の選出メンバーに実際に抜群だった場合。 */
+  const coverage=new Map();
+  const threats=asThreats(A);
+  for(const th of threats){
+    if(!likely(th.j))continue;
+    for(const {i,r} of th.hits){
+      if(r.eff<2||!r.type)continue;
+      if(!coverage.has(r.type))coverage.set(r.type,{members:new Set(),opponents:new Set()});
+      const match=coverage.get(r.type);
+      match.members.add(nm(A.M[i]));match.opponents.add(nm(th.o));
+    }
+  }
+  for(const [t,{members,opponents}] of coverage){
+    if(members.size<2)continue;
+    add('tip',L(`${t}技で弱点を突かれる`,`Weak to ${tName(t)} moves`),
+      L(`計算した型では、${list([...opponents])}の${t}技が${list([...members])}に抜群です。`,
+        `In the estimated sets, ${tName(t)} attacks from ${list([...opponents])} hit ${list([...members])} super effectively.`),2);
+  }
+  /* 7. 交代案は控えの後出し判定で裏付ける。 */
+  const threat=threats.find(x=>x.severe);
+  if(threat){
+    const before=B.weather;
+    let choices;
+    try{
+      B.weather=null;
+      choices=A.back.map(i=>({m:A.M[i],z:dgMatch(A.M[i],threat.o)}))
+        .filter(({m,z})=>z.swIn==='win'&&!dgCalcUnsupported(m).length&&!dgCalcUnsupported(threat.o).length);
+    }finally{B.weather=before}
+    const top=threat.hits[0],n=nm(threat.o),damage=Math.round(top.r.pct),defender=nm(A.M[top.i]);
+    const detail=L(`${defender}に${top.r.mv.n}で約${damage}%の見積もりです。`,
+      `${top.r.mv.n} is estimated to deal about ${damage}% to ${defender}. `);
+    if(choices.length){
+      const who=list(choices.map(({m,z})=>`${nm(m)}の${z.me.mvn}${dgAccLabel(z.me)}`));
+      add('tip',L(`${n}への交代候補`,`Possible switch-ins against ${n}`),
+        detail+L(`計算上は${who}で交代後に倒し切れる候補があります。残りHPと場の条件を確かめてください。`,
+          `The matchup calculation identifies ${who} as a potential answer after switching. Check remaining HP and field conditions.`),3);
+    }else{
+      add('warn',L(`${n}への後出しに注意`,`Be careful switching into ${n}`),
+        detail+L('控えで安定して後出しから倒せる候補は確認できませんでした。先発や選出の組み合わせを見直してください。',
+          'The calculation found no reliable switch-in among your reserves. Reconsider your lead or picks.'),3);
+    }
+  }
   /* 8. メガシンカの候補：1試合に1匹だけ。どれがメガかを見極める */
   const mg=opps.filter(x=>megasOf(x.no).length&&(!LIVE.csv[x.no]||[...x.it].some(k=>MEGA[k])));
   if(mg.length>=2)add('tip',L(`メガシンカ候補が${mg.length}匹：${list(mg.map(x=>nm(x.o)))}`,`${mg.length} possible Mega Evolutions: ${list(mg.map(x=>nm(x.o)))}`),

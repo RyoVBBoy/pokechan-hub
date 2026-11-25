@@ -447,6 +447,25 @@ try{
         check(reason.includes('相手Aに技A')&&reason.includes('相手Bに技B')&&asSpeedSummary(synthetic,0)==='同速 1匹'
           &&asSpeedSummary(synthetic,1)==='相手の方が速い 1匹',
           'assist reasons keep separate moves and never count same speed as slower');
+        const ground=mkMon(byNo[445],'op',{...chooseSet(byNo[445],true),ab:null,moves:[mvObj(89)]});
+        const grounded=estHit(ground,mkMon(byNo[376],'me',{...chooseSet(byNo[376],true),ab:null,item:null}));
+        const blast=mkMon(byNo[94],'op',{...chooseSet(byNo[94],true),ab:null,item:null,moves:[{...mvObj(247),pow:180}]});
+        const lead=mkMon(byNo[65],'me',{...chooseSet(byNo[65],true),ab:null,item:null,moves:[mvObj(94)]});
+        const reserve=id=>mkMon(byNo[143],'me',{...chooseSet(byNo[143],true),ab:null,item:null,moves:[mvObj(id)]});
+        const forThreat=id=>{
+          const M=[lead,reserve(id)];
+          return {M,best:[0,1],back:[1],O:[blast],opNos:[94],
+            R:[M.map(m=>estHit(blast,m))],D:M.map(m=>[estHit(m,blast)]),speedDiff:[[0],[0]]};
+        };
+        const safe=forThreat(242),unsafe=forThreat(34);
+        const safeNote=asAdvice(safe).find(x=>x.t.includes('交代候補'));
+        const unsafeNote=asAdvice(unsafe).find(x=>x.t.includes('後出しに注意'));
+        check(grounded.type==='じめん'&&grounded.eff===2&&asThreats(safe)[0].hits[0].r.mv.id===247,
+          'threat uses the actual calculated move type, effectiveness and strongest target');
+        check(safeNote?.d.includes('カビゴンのかみくだく')&&safeNote.d.includes('フーディンにシャドーボール')
+          &&unsafeNote?.d.includes('控えで安定して後出しから倒せる候補は確認できません')&&!asAdvice(unsafe).some(x=>x.t.includes('交代候補')),
+          'an immune reserve is offered only when it can finish after switching',
+          {safe:safeNote?.d,unsafe:unsafeNote?.d});
       }finally{team=assistTeam;opp6=assistOpps}
       const savedAuth=AUTH.user,savedFetch=authFetch;
       try{

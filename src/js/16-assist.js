@@ -75,7 +75,7 @@ function estHit0(a,d){
     const acc=accOf(a,mv,d);
     /* 一撃必殺は当たる確率（3割）の分だけ数える（「一撃で倒せる」と言い切らないように） */
     let pct=b.total/d.max*100;if(['guillotine','fissure','sheercold','horndrill'].includes(mkey(mv)))pct=pct*acc/100;
-    if(pct*acc>best.pct*best.acc)best={pct,mv,acc,seq:typeof useSeq==='function'?useSeq(a,mv,d):(typeof mbSeq==='function'?mbSeq(a,mv,d):null)}});
+    if(pct*acc>best.pct*best.acc)best={pct,mv,acc,type:hitType(a,mv,d),eff:b.eff,seq:typeof useSeq==='function'?useSeq(a,mv,d):(typeof mbSeq==='function'?mbSeq(a,mv,d):null)}});
   }finally{d.disg=dg}
   return best;
 }
@@ -118,6 +118,13 @@ function asSpeedSummary(A,j){
   const faster=A.best.filter(i=>A.speedDiff[i][j]<0).length;
   const tied=A.best.filter(i=>A.speedDiff[i][j]===0).length;
   return [faster?`相手の方が速い ${faster}匹`:'',tied?`同速 ${tied}匹`:''].filter(Boolean).join('・')||'選出の全員が相手より速い';
+}
+function asThreats(A){
+  return A.O.map((o,j)=>{
+    const hits=A.best.map(i=>({i,r:A.R[j][i]})).filter(x=>x.r.mv).sort((a,b)=>b.r.pct-a.r.pct);
+    const severe=hits.filter(x=>x.r.pct>=70).length;
+    return {o,j,hits,severe,sum:hits.reduce((n,x)=>n+Math.min(x.r.pct,150),0)};
+  }).filter(t=>t.hits.length).sort((a,b)=>b.severe-a.severe||b.sum-a.sum||a.j-b.j);
 }
 const shortN=n=>n.length>5?n.slice(0,4)+'…':n;
 function asReason(A,i){
@@ -218,9 +225,11 @@ function asDraw(){
   <p class="note" style="color:var(--mute)">相手はあなたの育成を知らないため、予想では「あなたのポケモンも推定の型（集計から組み合わせた型、なければ当サイトの提案の型）」として計算しています。％は計算上の目安で、実際の選出率ではありません。</p>`;
   const covered=A.O.filter((_,j)=>A.best.some(i=>A.D[i][j].pct>=50)).length;
   const mrow=(i,tag)=>{const m=A.M[i];return `<a class="row" href="#/p/${m.p.base||m.p.no}"><span class="av">${stamp(m.p)}</span><div class="row-m"><div class="row-t">${m.p.n}<span class="atag ${tag==='先発'?'on':''}">${tag}</span></div><div class="row-s">${asReason(A,i)}</div></div></a>`};
-  const threats=A.O.map((o,j)=>({o,j,hit:A.best.filter(i=>A.R[j][i].pct>=70).length,sum:A.best.reduce((a,i)=>a+Math.min(A.R[j][i].pct,150),0)})).sort((a,b)=>b.sum-a.sum).slice(0,3);
-  const thr=threats.map(t=>{const top=A.best.map(i=>({i,r:A.R[t.j][i]})).sort((a,b)=>b.r.pct-a.r.pct)[0];
-    return `<div class="row"><span class="av">${stamp(t.o.p)}</span><div class="row-m"><div class="row-t">${t.o.p.n}</div><div class="row-s">${t.hit?`選出のうち${t.hit}匹に大ダメージ`:'大きな脅威ではない'}${top.r.mv?`（${A.M[top.i].p.n}に${top.r.mv.n}で約${Math.round(top.r.pct)}%）`:''}。${asSpeedSummary(A,t.j)}</div></div><button class="binfo" style="position:static;flex:none" data-info="${(t.o.p.base||t.o.p.no)}">相性</button></div>`}).join('');
+  const thr=asThreats(A).slice(0,3).map(t=>{
+    const top=t.hits[0];
+    const damage=`${A.M[top.i].p.n}に${top.r.mv.n}で約${Math.round(top.r.pct)}%`;
+    return `<div class="row"><span class="av">${stamp(t.o.p)}</span><div class="row-m"><div class="row-t">${t.o.p.n}</div><div class="row-s">${t.severe?`選出の${t.severe}匹に推定70%以上`:'比較した技では推定70%以上の相手なし'}（${damage}）。${asSpeedSummary(A,t.j)}</div></div><button class="binfo" style="position:static;flex:none" data-info="${(t.o.p.base||t.o.p.no)}">相性</button></div>`;
+  }).join('');
   const cell=(d,mode)=>{const p=Math.round(d.pct);const c=mode==='atk'?(p>=100?'g3':p>=50?'g2':p>=25?'g1':''):(p>=100?'r3':p>=50?'r2':p>=25?'r1':'');return `<td class="${c}">${p>=100?'100+':p}</td>`};
   const hm=`<table class="hm"><tr><th></th>${A.O.map(o=>`<th title="${o.p.n}"><span class="av">${stamp(o.p)}</span>${o.p.n.slice(0,3)}</th>`).join('')}</tr>${A.M.map((m,i)=>`<tr class="${A.best.includes(i)?'on':''}"><th>${shortN(m.p.n)}</th>${A.O.map((o,j)=>cell(asMode==='atk'?A.D[i][j]:A.R[j][i],asMode)).join('')}</tr>`).join('')}</table>`;
   const alt=A.all.slice(1).map(x=>`<div class="row"><div class="row-m"><div class="row-t" style="font-size:14px">${x.c.map(i=>A.M[i].p.n).join('・')}</div><div class="row-s">評価 ${Math.round(x.s*100)}（おすすめは ${Math.round(A.all[0].s*100)}）</div></div></div>`).join('');
@@ -231,7 +240,7 @@ function asDraw(){
   ${typeof threeStepHTML==='function'?threeStepHTML(myNos,PR):''}
   ${asAdviceHTML(A,{...PR,w:A.opNos.map(no=>PR.w[opp6.indexOf(no)])})}
   ${predHTML}
-  <div class="sec"><h2>警戒する相手</h2></div>${thr}
+  <div class="sec"><h2>警戒する相手</h2></div>${thr||'<p class="note">この型の攻撃技からは、受けるダメージを確認できませんでした。</p>'}
   <div class="sec"><h2>ダメージの目安</h2></div>
   <div class="pills" style="padding-top:0"><button class="pill" data-hm="atk" aria-pressed="${asMode==='atk'}">与えるダメージ</button><button class="pill" data-hm="def" aria-pressed="${asMode==='def'}">受けるダメージ</button></div>
   <p class="note" style="padding-top:4px">${asMode==='atk'?'縦があなた、横が相手。あなたの一番強い技で、相手のHPを何%削れるかの目安です。':'縦があなた、横が相手。相手の一番強い技で、あなたのHPを何%削られるかの目安です。'}色の濃い行がおすすめ選出です。</p>
