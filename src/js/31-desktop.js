@@ -1,7 +1,7 @@
 /* ===================== PC・広い画面 =====================
    広い画面では、下のタブが左のメニューになり、右に「よく使う機能」が出る（見た目は styles.css の最後）。
-   左の「相性を調べる」と右の検索ボタンは、スマホの右下の丸いボタンと同じ画面を開く。 */
-/* 右の列の「すぐ使う」は、マイツール（☆）・最近使ったツールに合わせて入れかわる */
+   左の⚡は設定された機能、右上はサイト内検索。右上の⚡で従来の相性確認を開く。 */
+/* 右の列の「すぐ使う」は、スターを付けたツールに合わせて入れかわる */
 /* ===== PC（700px以上）の左のメニュー（2026/11/18）：前は左上のアイコンを押すと開いていた左から出るメニューの項目を、ここ（左の列）に並べる。
    ホーム〜メッセージ（#nav）のあとに、プロフィール・お知らせ・フォローリクエスト・ブックマーク・コミュニティ・対戦募集・構築相談・設定・ヘルプセンター、最後に⚡。
    同じ行き先は2回出さない（メッセージ・パーティ・ツール＝マイツールは #nav にある）。スマホは今までどおり左から出るメニュー */
@@ -34,9 +34,33 @@ try{matchMedia('(min-width:700px)').addEventListener('change',()=>{const k=(type
   document.querySelectorAll('.tb').forEach(e=>{const on=e.dataset.k===navGroup(k);on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')});pcNavMark();if(typeof moveTbPill==='function')moveTbPill()})}catch(e){}
 document.addEventListener('click',e=>{if(e.target.closest('[data-pcm="settings"]')&&typeof settingsOpen==='function')settingsOpen()});
 function drawSide(){
+  pcSearchSync();
   if(!document.getElementById('pc-more').innerHTML)pcNavDraw();else pcNavMark();
   const el=document.getElementById('pcs-tools');if(!el||getComputedStyle(el.parentNode).display==='none')return;
-  const qt=quickTools(6);
+  const qt=quickTools();
   el.innerHTML=`<h2>すぐ使う</h2>${qt.map(t=>`<a href="${t.href}" class="pcs-t"><span class="ttile-i">${SVG(t.ic,20)}</span><span><b>${esc(t.t)}</b><small>${t.d}</small></span></a>`).join('')}<a href="#/tools" class="pcs-more">ツールをすべて見る</a>`;
 }
-['pc-post','pcs-search'].forEach(id=>{const e=document.getElementById(id);if(e)e.onclick=()=>id==='pc-post'&&typeof qaRun==='function'?qaRun():openSheet()});  /* 左のメニューの⚡は設定した機能（64-quick.js）、右の検索欄は相性を調べる */
+const pcSearchForm=document.getElementById('pcs-search'),pcSearchInput=document.getElementById('pcs-q');
+let pcSearchRoute=null;
+function pcSearchSync(){
+  if(!pcSearchInput||pcSearchRoute===cur)return;
+  pcSearchRoute=cur;
+  const [k,a]=cur.replace(/^#\/?/,'').split('/');
+  let q='';
+  if(k==='search')try{q=decodeURIComponent(a||'')}catch(e){q=a||''}
+  pcSearchInput.value=q;
+}
+if(pcSearchForm&&pcSearchInput){
+  let composing=false;
+  pcSearchInput.addEventListener('compositionstart',()=>{composing=true});
+  pcSearchInput.addEventListener('compositionend',()=>{composing=false});
+  pcSearchForm.addEventListener('submit',e=>{
+    e.preventDefault();
+    if(composing)return;
+    const q=pcSearchInput.value.trim();
+    pcSearchInput.value=q;pcSearchInput.blur();
+    nav(q?'#/search/'+encodeURIComponent(q):'#/search');
+  });
+}
+const pcMatchup=document.getElementById('pcs-matchup');if(pcMatchup)pcMatchup.onclick=()=>openSheet();
+const pcPost=document.getElementById('pc-post');if(pcPost)pcPost.onclick=()=>typeof qaRun==='function'?qaRun():openSheet();
