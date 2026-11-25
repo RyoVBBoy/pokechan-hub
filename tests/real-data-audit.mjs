@@ -466,6 +466,15 @@ try{
           &&unsafeNote?.d.includes('控えで安定して後出しから倒せる候補は確認できません')&&!asAdvice(unsafe).some(x=>x.t.includes('交代候補')),
           'an immune reserve is offered only when it can finish after switching',
           {safe:safeNote?.d,unsafe:unsafeNote?.d});
+        const threeStones=[member(6,'charizarditey'),member(359,'absolite'),member(445,'garchompite'),member(149)];
+        team=threeStones;
+        const impossible=asAnalyze(team.map(x=>x.no),opp6);
+        check(impossible.none&&impossible.megaSkipped>0,
+          'opponent-specific assist abstains when every modeled option assumes several Mega Evolutions');
+        team=[...threeStones,member(143),member(700)];
+        const partial=asAnalyze(team.map(x=>x.no),opp6);
+        check(!partial.none&&partial.megaSkipped>0&&partial.full.every(x=>x.c.filter(i=>partial.M[i].p.mega).length<=1),
+          'assist keeps evaluated lineups and discloses the untested combinations with several Mega Stone holders');
       }finally{team=assistTeam;opp6=assistOpps}
       const savedAuth=AUTH.user,savedFetch=authFetch;
       try{
