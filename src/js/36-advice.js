@@ -11,7 +11,7 @@ const ADVK={
 const advKey=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 /* 相手が使いそうな技・特性・持ち物（集計があれば上位、なければ計算用の型と持てる特性） */
 function advOpp(A,j){
-  const o=A.O[j],no=opp6[j],d=LIVE.csv[no];
+  const o=A.O[j],no=A.opNos[j],d=LIVE.csv[no];
   const mv=new Set(d?d.mv.filter(([,p])=>p>=10).map(([n])=>advKey(n)):(o.moves||[]).map(m=>m&&MD[m.id]?MD[m.id][3]:'').filter(Boolean));
   const ab=new Set(d?d.ab.filter(([,p])=>p>=15).map(([n])=>advKey(n)):(ABD[no]||[]).map(([k])=>advKey(k)));
   const it=new Set(d?d.it.filter(([,p])=>p>=15).map(([n])=>advKey(n)):[]);
@@ -43,7 +43,7 @@ function asAdvice(A,PR){
     L(`選出が物理アタッカー中心（${phys.map(nm).join('・')}）です。いかくで攻撃を下げられると崩れやすいので、特殊技で戦えるポケモンを混ぜるか、交代で下がった能力を戻せるようにしましょう。`,
       `Your picks are mostly physical (${phys.map(nm).join(', ')}). Mix in a special attacker or be ready to switch to reset the drop.`),2);
   /* 5. 素早さ：相手の方が速いポケモンが多い */
-  const slowVs=opps.filter((x,j)=>likely(j)&&A.best.filter(i=>!A.fast[i][j]).length>=Math.ceil(A.best.length*.67));
+  const slowVs=opps.filter((x,j)=>likely(j)&&A.best.filter(i=>A.speedDiff[i][j]<0).length>=Math.ceil(A.best.length*.67));
   if(slowVs.length>=2)add('warn',L(`先手を取られやすい：${list(slowVs.map(x=>nm(x.o)))}`,`Likely to be outsped by: ${list(slowVs.map(x=>nm(x.o)))}`),
     L('選出の多くより速い相手がいます。先制技・こだわりスカーフ・素早さを下げる技・耐えてから反撃できる耐久など、上から殴られても崩れない形を意識しましょう。',
       'Several opponents outspeed most of your picks. Priority moves, a Choice Scarf, speed control or enough bulk to take a hit first help here.'),2);
@@ -52,8 +52,8 @@ function asAdvice(A,PR){
     const users=opps.filter((x,j)=>likely(j)&&x.o.p.t.includes(t));if(!users.length)continue;
     const res=picks.filter(m=>mult(t,m.p.t)<1);
     add(res.length?'tip':'warn',L(`${t}技が通りやすい`,`${tName(t)} moves hit hard`),
-      L(`${t}タイプの技が選出の${weak.length}匹（${weak.map(nm).join('・')}）に抜群で、相手には${list(users.map(x=>nm(x.o)))}がいます。${res.length?`受けられるのは${res.map(nm).join('・')}なので、交代先として意識しましょう。`:'半減以下で受けられるポケモンがいないので、先に倒すか選出を見直しましょう。'}`,
-        `${tName(t)} moves are super effective on ${weak.length} of your picks (${weak.map(nm).join(', ')}), and they have ${list(users.map(x=>nm(x.o)))}. ${res.length?`${res.map(nm).join(', ')} can switch in.`:'Nothing resists it — KO them first or rethink your picks.'}`),res.length?1:3);
+      L(`${t}タイプの技が選出の${weak.length}匹（${weak.map(nm).join('・')}）に抜群で、相手には${list(users.map(x=>nm(x.o)))}がいます。${res.length?`タイプ相性で半減以下なのは${res.map(nm).join('・')}です。交代前に、相手が使える技と残りHPを確認してください。`:'半減以下で受けられるポケモンがいないので、先に倒すか選出を見直しましょう。'}`,
+        `${tName(t)} moves are super effective on ${weak.length} of your picks (${weak.map(nm).join(', ')}), and they have ${list(users.map(x=>nm(x.o)))}. ${res.length?`${res.map(nm).join(', ')} resist this type. Check the opponent’s moves and remaining HP before switching.`:'Nothing resists it — KO them first or rethink your picks.'}`),res.length?1:3);
     if(out.length>8)break}
   /* 7. 受け出し先：いちばん危ない相手の技を半減以下で受けられるポケモンがいるか */
   const th=A.O.map((o,j)=>({j,s:A.best.reduce((a,i)=>a+Math.min(A.R[j][i].pct,150),0)})).sort((a,b)=>b.s-a.s)[0];

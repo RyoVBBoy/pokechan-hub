@@ -20,7 +20,13 @@ let ITJR=null;const itemJa=k=>{if(!ITJR){ITJR={};Object.entries(ITJ).forEach(([n
 function pipData(){
   if(PIP.mode==='build')return pipBuildPages();
   const opp=opp6.map(n=>byNo[n]).filter(Boolean);
-  let A=null;if(team.length>=4&&opp.length){try{A=analyze(team.map(x=>x.no),opp6)}catch(e){A=null}}
+  let A=null;
+  if(team.length>=4&&opp.length){
+    try{
+      const myNos=team.map(x=>x.no),result=asAnalyze(myNos,opp6,oppPredict(myNos,opp6).w);
+      if(!result.none)A=result;
+    }catch(e){}
+  }
   const pages=[];
   /* 相手をまだ入れていないとき（ツールの PiP から）は、相手がいなくても作れるカード（タイプ相性・パーティの戦術メモ）だけ */
   const cards=opp.length?PIP.cfg.cards:PIP.cfg.cards.filter(c=>PIP_NOOPP.includes(c));
@@ -31,7 +37,7 @@ function pipData(){
     else if(c==='speed')pages.push({kind:'speed',A,opp});
     else if(c==='dmg')pages.push({kind:'dmg',A,opp});
     else if(c==='type')pages.push({kind:'type'});
-    else if(c==='sets')opp.forEach((p,j)=>pages.push({kind:'one',p,j,A}));
+    else if(c==='sets')opp.forEach(p=>pages.push({kind:'one',p,j:A?.opNos.indexOf(p.no)??-1,A}));
     else if(c==='memo')pages.push(...memoPipPages(opp));
   });
   return pages.length?pages:[{kind:'sum',opp}];
@@ -108,7 +114,7 @@ function pipDraw(){
     A.O.forEach((o,j)=>{const x=150+j*cw;tIcon(g,o.p.t[0],x+cw/2-17,top,34);g.fillStyle='#c4c9cc';g.textAlign='center';fitTxt(g,o.p.n.slice(0,4),x+cw/2,top+62,cw-4,18,700);g.textAlign='left'});
     const rh=Math.min(120,(PIP_H-top-150)/rows.length);
     rows.forEach((i,k)=>{const y=top+84+k*rh;g.fillStyle='#e7e9ea';fitTxt(g,A.M[i].p.n,28,y+rh*.55,118,26,800);
-      A.O.forEach((o,j)=>{const d=A.D[i][j],x=150+j*cw,p=d.pct,lab=d.mv?koShort(koInfo(dmgRolls(A.M[i],d.mv,A.O[j],{}),A.O[j].max)):'—';
+      A.O.forEach((o,j)=>{const d=A.D[i][j],x=150+j*cw,p=d.pct,lab=d.mv?withWx(A.M[i],o,()=>koShort(koInfo(dmgRolls(A.M[i],d.mv,o,{}),o.max))):'—';
         rr(g,x+3,y+4,cw-6,rh-10,12);g.fillStyle=p>=100?'#00ba7c':p>=50?'rgba(0,186,124,.4)':p>=34?'rgba(0,186,124,.16)':'#16181c';g.fill();
         g.fillStyle=p>=50?'#fff':'#8b98a5';g.textAlign='center';g.font=`800 ${Math.min(30,cw*.38)}px ${FF}`;g.fillText(lab,x+cw/2,y+rh*.5);
         g.font=`600 ${Math.min(17,cw*.24)}px Inter,${FF}`;g.fillText(p?pct(p)+'%':'',x+cw/2,y+rh*.5+22);g.textAlign='left'})});
@@ -135,7 +141,7 @@ function pipDraw(){
     fitTxt(g,mvn.map(([n,pc])=>`${n}${Math.round(pc)}%`).join('・'),28,y+24,PIP_W-56,22,600);y+=36;
     fitTxt(g,`持ち物 ${its.map(([n,pc])=>`${n}${Math.round(pc)}%`).join('・')}　特性 ${abs.map(([n])=>n).join('')}`,28,y+24,PIP_W-56,22,600);y+=48;
   }
-  if(A){
+  if(A&&pg.j>=0){
     const j=pg.j,best=A.M.map((m,i)=>({i,d:A.D[i][j]})).sort((a,b)=>b.d.pct-a.d.pct)[0];
     const thr=A.M.map((m,i)=>({i,r:A.R[j][i]})).sort((a,b)=>b.r.pct-a.r.pct)[0];
     g.fillStyle='#00ba7c';g.font=`800 24px ${FF}`;g.fillText('攻める',28,y+26);

@@ -127,7 +127,7 @@ function dgImprove0(entries){
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));
     if(atkIdx.length){
       /* 2026/11/24 依頼主の指摘（メガグソクムシャのきゅうけつ＝使用データでは71.8%〔シングル〕・98.3%〔ダブル〕なのに「いちばん使われていない」）：
-         bestUse は使用率ではなく「上位の相手との1対1で、いちばんダメージの大きい技に選ばれた相手の数」。吸い取って回復する分なども数えない。
+         bestUse は使用率ではなく「比較対象との1対1で、倒すまでの回数・命中などで最善の技に選ばれた相手の数」。吸い取って回復する分なども数えない。
          なので、使用データ（ランクバトルの集計・PokéKit のその姿の行）で IMP_USED 以上使われている技は入れかえ先にしない */
       const stK=base.it&&isStone(base.it.k)?base.it.k:null,use=impUsePct(x.no,stK);
       const slot=atkIdx.filter(o=>!((use[o.m.id]||0)>=IMP_USED)).sort((a,b)=>(bestUse[a.m.id]||0)-(bestUse[b.m.id]||0))[0];
@@ -139,7 +139,7 @@ function dgImprove0(entries){
         return{id,m,v:m.pow*Math.min(100,m.acc||100)/100*stab*cl*(1+.15*se)+(m.pri>0?40:0)}}).filter(Boolean).sort((a,b)=>b.v-a.v).slice(0,7);
       cands.forEach(c=>{const mv=base.mv.map((m,k)=>k===slot.k?{id:c.id,n:mName(c.id)}:m);
         const nUse=bestUse[slot.m.id]||0,pu=use[slot.m.id];
-        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は、上位${T0.rows.length}匹との1対1でいちばんダメージの大きい技になる相手が${nUse}匹といちばん少ない技です${pu!=null?`（使用データでの採用率${pu}%）`:''}。${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる案です（回復・追加効果などダメージ以外の働きは比べていません）`)});
+        tryEntry('move',i,set({mv}),`${nm(i)}の技：${mName(slot.m.id)} → ${mName(c.id)}`,`${mName(slot.m.id)}は、比較した${T0.rows.length}匹との1対1で、倒すまでの回数や命中を比べて最善の攻撃に選ばれた相手が${nUse}匹です${pu!=null?`（使用データでの採用率${pu}%）`:''}。${mName(c.id)}（${c.m.t}・威力${c.m.pow}${c.m.pri>0?'・先制技':''}）にかえる案です（回復・追加効果などダメージ以外の働きは比べていません）`)});
     }}
     /* ---- 能力ポイント（合計66：32＋32＋2） ---- */
     const SPS=[[[main,5],'攻撃と素早さ'],[[0,main],'HPと攻撃'],[[0,2],'HPと防御'],[[0,4],'HPと特防'],[[0,5],'HPと素早さ']];

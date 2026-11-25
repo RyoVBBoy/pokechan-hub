@@ -424,6 +424,30 @@ try{
         if(savedMemo===undefined)delete MEMO.party[memoKey];else MEMO.party[memoKey]=savedMemo;
         if(memoStorage===null)localStorage.removeItem('pcmemo');else localStorage.setItem('pcmemo',memoStorage);
       }
+      const assistTeam=team,assistOpps=opp6;
+      try{
+        team=[member(6),{...member(359),axis:true},member(445),member(149),member(143),member(700)];
+        opp6=[248,373,376,1018,911,306];
+        const ownNos=team.map(x=>x.no),predicted=oppPredict(ownNos,opp6),assist=asAnalyze(ownNos,opp6,predicted.w);
+        check(!assist.none&&assist.full.every(x=>x.c.some(i=>assist.myNos[i]===359))
+          &&predicted.lead.every(i=>predicted.top[0].c.includes(i)),
+          'opponent-specific assist keeps the axis and predicts the lead within the adjusted lineup');
+        const floatingPlan=pipData().find(x=>x.kind==='plan')?.A;
+        check(floatingPlan&&floatingPlan.best.join()===assist.best.join()&&floatingPlan.lead.join()===assist.lead.join(),
+          'PiP and the opponent-specific screen use the same selection and lead');
+        team[1].set.it={k:'charizarditey'};
+        check(asAnalyze(ownNos,opp6,predicted.w).none,'opponent-specific assist stops for an invalid axis');
+        delete team[1].axis;
+        const pruned=asAnalyze(ownNos,opp6,predicted.w);
+        check(!pruned.none&&!pruned.myNos.includes(359)&&pruned.best.every(i=>pruned.M[i].p.no===pruned.myNos[i]),
+          'selection indices still point to the actual members after excluding an invalid build');
+        const synthetic={O:[{p:{n:'相手A'}},{p:{n:'相手B'}}],best:[0],fast:[[false,false]],speedDiff:[[0,-3]],
+          D:[[{pct:85,mv:{n:'技A'}},{pct:75,mv:{n:'技B'}}]],R:[[{pct:0}],[{pct:0}]]};
+        const reason=asReason(synthetic,0);
+        check(reason.includes('相手Aに技A')&&reason.includes('相手Bに技B')&&asSpeedSummary(synthetic,0)==='同速 1匹'
+          &&asSpeedSummary(synthetic,1)==='相手の方が速い 1匹',
+          'assist reasons keep separate moves and never count same speed as slower');
+      }finally{team=assistTeam;opp6=assistOpps}
       const savedAuth=AUTH.user,savedFetch=authFetch;
       try{
         AUTH.user={id:'fixture'};

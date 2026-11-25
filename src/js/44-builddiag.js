@@ -102,9 +102,11 @@ function threeStepHTML(myNos,PR){
   if(!PR||!PR.top||PR.top.length<2||opp6.length<=PICK())return '';
   const tops=PR.top.slice(0,3);
   const nm1=n=>esc(byNo[n].n);
-  const scen=tops.map(t=>{const oNos=t.c.map(j=>opp6[j]);const A=analyze(myNos,oNos);
+  const scen=tops.map(t=>{const oNos=t.c.map(j=>opp6[j]);const A=asAnalyze(myNos,oNos);
+    if(A.none)return null;
     const plan=A.O.map((o,j)=>{const i=[...A.best].sort((a,b)=>A.offV(b,j)-A.offV(a,j))[0];const d=A.D[i][j];return{o,i,d}});
-    return{p:t.p,oNos,A,plan}});
+    return{p:t.p,oNos,A,plan}}).filter(Boolean);
+  if(!scen.length)return '';
   const sc={};scen.forEach(s=>{s.A.best.forEach(i=>{sc[i]=(sc[i]||0)+s.p*(s.A.lead.includes(i)?1:.4)})});
   const leadI=Object.keys(sc).map(Number).sort((a,b)=>sc[b]-sc[a]).slice(0,LEADN());
   const inN=i=>scen.filter(s=>s.A.best.includes(i)).length;
@@ -115,8 +117,8 @@ function threeStepHTML(myNos,PR){
       return a.length?`<p class="vcap">相手の役のめやす：${a.map(([l,v])=>`${l}＝${v.join('・')}`).join('／')}。メガシンカできる匹は1匹まで、起点作りとアタッカーを組み合わせた選出を、少し来やすいものとして見ています。</p>`:''})()}
     <h4>② それぞれへの通し筋</h4>
     ${scen.map((s,k)=>`<div class="pc-situ"><p><b>${k+1}で来たら</b>：${s.A.best.map(i=>`<b>${esc(s.A.M[i].p.n)}</b>`).join('・')}（先発 ${s.A.lead.map(i=>esc(s.A.M[i].p.n)).join('・')}）</p>
-      <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.d.mv?esc(x.d.mv.n)+'で':''}${Math.round(Math.min(x.d.pct,999))>=100?'一撃':'約'+Math.round(x.d.pct)+'%'}${x.d.pct<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
+      <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.d.mv?esc(x.d.mv.n)+'で':''}約${Math.round(x.d.pct)}%${x.d.pct<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
     <h4>③ 初手</h4>
-    <p><b>${leadI.map(i=>esc(byNo[myNos[i]].n)).join('・')}</b>：3つの通し筋のうち${leadI.map(inN).join('・')}つに入り、どの予想でも先発として動きやすい匹です。先発を見て、相手がどの選出かを見きわめ、②の通し筋に切りかえます。</p>
+    <p><b>${leadI.map(i=>esc(byNo[scen[0].A.myNos[i]].n)).join('・')}</b>：${scen.length}つの通し筋のうち${leadI.map(inN).join('・')}つに入り、評価した予想で先発候補になった匹です。先発を見て、相手がどの選出かを見きわめ、②の通し筋に切りかえます。</p>
   </div>`;
 }
