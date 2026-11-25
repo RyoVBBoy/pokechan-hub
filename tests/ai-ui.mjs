@@ -30,11 +30,19 @@ async function page(o={}){
     const h={origin:ORIGIN,authorization:q.headers().authorization||''};if(q.method()==='POST')h['content-type']='application/json';
     const x=await w.fetch(new Request(q.url().replace('https://pokechan-tap.pokechan.workers.dev','https://w.example'),{method:q.method(),headers:h,body:q.method()==='POST'?q.postData():undefined}),env,{waitUntil(){}});
     return r.fulfill({status:x.status,headers:hd,body:await x.text()})});
+  /* にせものの Firebase（ログインの状態はページの中だけ。__set で本物と同じ onAuthStateChanged を起こす） */
+  await pg.route(/www\.gstatic\.com\/firebasejs\/.*\/firebase-(app|auth)\.js/,r=>r.fulfill({status:200,headers:{'Content-Type':'text/javascript','Access-Control-Allow-Origin':'*'},
+    body:/firebase-app/.test(r.request().url())?'export const initializeApp=c=>({c});':`let user=null;const cbs=[];const fire=()=>cbs.forEach(f=>f(user));
+export const getAuth=()=>({});export const onAuthStateChanged=(a,f)=>{cbs.push(f);setTimeout(()=>f(user),0)};
+export const signOut=async()=>{user=null;fire()};export const getRedirectResult=async()=>null;
+export const __set=u=>{user=u;fire()};export class GoogleAuthProvider{};export class OAuthProvider{};`}));
   if(o.ai)await pg.addInitScript(()=>{try{sessionStorage.setItem('pcaitest','1')}catch(e){}});
   await pg.goto(URL0+'#/');await pg.waitForTimeout(500);
   return{pg,ctx,errs};
 }
 const login=pg=>pg.evaluate(t=>{AUTH.user={uid:'ui-user',email:null,getIdToken:async()=>t}},TOKEN);
+/* 本物の onAuthStateChanged の処理（29-account.js）を通してログイン・切りかえる */
+const fbSet=(pg,uid,tk)=>pg.evaluate(async([uid,tk])=>{await fbLoad();AUTH.fb.au.__set(uid?{uid,email:null,getIdToken:async()=>tk}:null);await new Promise(r=>setTimeout(r,30))},[uid,tk]);
 
 /* ---------- 既定では無効 ---------- */
 { const {pg,ctx,errs}=await page();aiCalls=0;
@@ -185,6 +193,58 @@ await pg.evaluate(()=>document.scrollingElement&&0);
 const hid=await pg.evaluate(()=>{const l=document.querySelector('#ai-log').lastElementChild;l.scrollIntoView({block:'end'});const a=l.getBoundingClientRect(),c=document.querySelector('#ai-comp').getBoundingClientRect();return{a:a.bottom,c:c.top}});
 res('ui','いちばん下の回答は入力欄の上まで送れる',hid.a<=hid.c+1,hid);
 
+
+/* ---------- ログアウト・アカウントの削除・ほかの人のログインで、会話・書きかけ・待っている答えを消す ---------- */
+const TOKEN2=await S.sign('ui-other');
+{ await pg.setViewportSize({width:390,height:844});
+  await fbSet(pg,'ui-user',TOKEN);await pg.evaluate(()=>{location.hash='#/ai'});await pg.waitForTimeout(400);
+  const seed=async()=>{await askUI('ガブリアスのタイプは？');await pg.fill('#ai-q','書きかけの質問');await pg.dispatchEvent('#ai-q','input')};
+  const state=()=>pg.evaluate(()=>({log:AI_ST.log.filter(m=>!m.intro).length,q:AI_ST.q,box:(document.getElementById('ai-q')||{}).value||'',txt:(document.getElementById('ai-log')||{}).textContent||'',uid:AI_ST.uid}));
+  await seed();let s=await state();res('acct','準備：会話と書きかけがある',s.log>=2&&s.q==='書きかけの質問',s);
+  /* ほかの人のログイン（本物の onAuthStateChanged の処理） */
+  await fbSet(pg,'ui-other',TOKEN2);await pg.waitForTimeout(200);s=await state();
+  res('acct','ほかの人がログインしたら会話と書きかけを消す',s.log===0&&s.q===''&&s.box===''&&!/ドラゴン・じめん/.test(s.txt)&&s.uid==='ui-other',s);
+  /* ログアウト（acSignOut：本物の手順） */
+  await fbSet(pg,'ui-user',TOKEN);await pg.evaluate(()=>{location.hash='#/ai'});await pg.waitForTimeout(300);await seed();
+  /* パーティの同期のサーバーはこのテストに無いので、未送信の確かめ（userFlush）だけ「送れた」にする。サインアウト・acForget は本物 */
+  await pg.evaluate(async()=>{userFlush=async()=>true;await acSignOut()});await pg.waitForTimeout(200);s=await state();
+  res('acct','ログアウトで会話と書きかけを消す',s.log===0&&s.q===''&&s.box===''&&!/ドラゴン・じめん/.test(s.txt),s);
+  res('acct','ログアウトのあとはログインを案内',/ログイン/.test(await pg.textContent('#ai-root')));
+  /* アカウントの削除（acForget＝削除の手順で呼ばれる） */
+  await fbSet(pg,'ui-user',TOKEN);await pg.evaluate(()=>{location.hash='#/ai'});await pg.waitForTimeout(300);await seed();
+  await pg.evaluate(()=>{acForget()});await pg.waitForTimeout(100);s=await state();
+  res('acct','アカウントの削除で会話と書きかけを消す',s.log===0&&s.q===''&&s.box==='',s);
+  /* 待っている答え：答えが届く前にほかの人がログインしたら、その答えは出さない */
+  await pg.evaluate(()=>{AI_ST.log=[];aiView()});await pg.waitForTimeout(200);
+  let hold;const gate=new Promise(r=>hold=r);
+  await pg.unroute('https://pokechan-tap.pokechan.workers.dev/api/ai/**');
+  await pg.route('https://pokechan-tap.pokechan.workers.dev/api/ai/**',async r=>{const q=r.request(),hd={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json'};
+    if(q.method()==='OPTIONS')return r.fulfill({status:204,headers:hd});
+    if(q.method()==='POST')await gate;
+    const h={origin:ORIGIN,authorization:q.headers().authorization||''};if(q.method()==='POST')h['content-type']='application/json';
+    const x=await w.fetch(new Request(q.url().replace('https://pokechan-tap.pokechan.workers.dev','https://w.example'),{method:q.method(),headers:h,body:q.method()==='POST'?q.postData():undefined}),env,{waitUntil(){}});
+    return r.fulfill({status:x.status,headers:hd,body:await x.text()})});
+  await pg.fill('#ai-q','ガブリアスの種族値を教えて');await pg.click('#ai-send');await pg.waitForTimeout(150);
+  res('acct','準備：答えを待っている',await pg.evaluate(()=>AI_ST.busy&&!!document.querySelector('#ai-log .ai-wait')));
+  await fbSet(pg,'ui-other',TOKEN2);hold();await pg.waitForTimeout(500);s=await state();
+  res('acct','切りかえたあとに届いた答えは出さない',s.log===0&&!/108/.test(s.txt)&&!(await pg.evaluate(()=>AI_ST.busy)),s);
+  res('acct','切りかえたあとも送れる',!(await pg.$eval('#ai-send',b=>b.disabled)));
+  await fbSet(pg,'ui-user',TOKEN);await pg.evaluate(()=>{AI_ST.log=[];location.hash='#/ai'});await pg.waitForTimeout(300);
+}
+/* ---------- キーボードが出ていても、最後の答えとその根拠を入力欄の上まで送れる ---------- */
+{ await pg.evaluate(()=>aiView());await pg.waitForTimeout(200);await askUI('ガブリアスのタイプは？');await askUI('ガブリアスの種族値を教えて');
+  await pg.focus('#ai-q');await pg.evaluate(()=>aiKbApply(330));await pg.waitForTimeout(100);
+  await pg.click('#ai-log .ai-msg.bot:last-child .ai-ev summary');await pg.waitForTimeout(150);
+  const g2=await pg.evaluate(()=>{const ev=document.querySelector('#ai-log .ai-msg.bot:last-child .ai-ev'),c=document.querySelector('#ai-comp').getBoundingClientRect();
+    ev.scrollIntoView({block:'end'});const e=ev.getBoundingClientRect(),a=[...ev.querySelectorAll('a')].map(x=>{const rs=[...x.getClientRects()],r=rs[0],R=x.getBoundingClientRect();const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return{top:R.top,bot:R.bottom,hit:el===x||x.contains(el)}});
+    const c2=document.querySelector('#ai-comp').getBoundingClientRect();return{evBot:e.bottom,evTop:e.top,compTop:c2.top,compBot:c2.bottom,kbTop:innerHeight-330,links:a,open:ev.open}});
+  res('kb','キーボードが出ていても根拠の下まで入力欄の上に見える',g2.open&&g2.evBot<=g2.compTop+1&&g2.compBot<=g2.kbTop+1,g2);
+  res('kb','根拠のリンクを押せる（入力欄・キーボードに隠れない）',g2.links.length>0&&g2.links.every(l=>l.hit&&l.bot<=g2.compTop),g2.links);
+  await shot('390-keyboard-evidence');
+  const top=await pg.evaluate(()=>{const m=document.querySelector('#ai-log .ai-msg.bot:last-child');m.scrollIntoView({block:'start'});return{top:m.getBoundingClientRect().top,hd:document.getElementById('hdr').getBoundingClientRect().bottom}});
+  res('kb','答えの上の端まで戻って読める（見出しに隠れない）',top.top>=top.hd-1&&top.top<260,top);
+  await pg.evaluate(()=>aiKbApply(0));await pg.locator('#ai-q').blur();
+}
 /* ---------- 返ってきた文字は文字として出す（HTML にしない） ---------- */
 inject={status:'answered',scope:{gameId:'pokechamp',format:'single'},cards:[{templateId:'species_types',slots:{name:'<img src=x onerror="window.__x=1">',types:['<b>x</b>']},evidenceIds:['e1'],verificationStatus:'ingame'}],
   evidence:[{evidenceId:'e1',field:'types',sourceType:'ingame',source:{name:'<script>window.__y=1</script>',refs:[{name:'bad',url:'javascript:alert(1)'},{name:'ok',url:'https://pokeapi.co/'}]},checkedAt:'2026-10-19'}]};

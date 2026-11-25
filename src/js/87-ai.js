@@ -11,7 +11,16 @@ function aiUiOn(){
   if(AI_CFG.enabled===true)return true;
   try{return !!navigator.webdriver&&sessionStorage.getItem('pcaitest')==='1'}catch(e){return false}
 }
-const AI_ST={ctx:null,busy:false,log:[],q:'',seq:0};
+const AI_ST={ctx:null,busy:false,log:[],q:'',seq:0,uid:null,gen:0};
+/* 会話・書きかけ・待っている答えは、ログインしている人のものだけ。ログアウト・アカウントの削除・ほかの人のログインで全部消す。
+   待っている答えは gen（世代）で見分け、消したあとに届いた答えは出さない。会話は端末にも保存しない（この画面のメモリだけ） */
+function aiReset(){
+  AI_ST.gen++;AI_ST.log=[];AI_ST.q='';AI_ST.ctx=null;AI_ST.busy=false;AI_ST.uid=null;
+  const q=document.getElementById('ai-q');if(q)q.value='';
+  if(document.getElementById('ai-root')&&typeof keyOf==='function'&&keyOf(cur)==='ai')aiView();
+}
+function aiAuthChanged(uid){if((uid||null)!==AI_ST.uid)aiReset();AI_ST.uid=uid||null}
+const aiMine=(gen,uid)=>gen===AI_ST.gen&&!!AUTH.user&&AUTH.user.uid===uid;
 const AI_VLAB={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_calc:'サイトの計算・推定',site_estimate:'サイトの計算・推定',site_aggregate:'当サイト集計',insufficient:'根拠不足'};
 const AI_REASON={
   ai_disabled:'AI はいま止めています。',auth_required:'使うにはログインしてください。',origin_forbidden:'このページからは使えません。',member_suspended:'このアカウントは停止されています。',
@@ -166,6 +175,8 @@ function aiView(){
   setHeader('AI攻略アシスト（試験中）','#/tools');
   if(!aiUiOn()){V.innerHTML=`<div class="ai-root" data-notr><p class="note" style="padding-top:14px">この機能は準備中です。</p><div class="btns"><a class="btn btn-s" href="#/tools">ツールの一覧へ</a></div></div>`;return}
   const g=typeof curGame==='function'?curGame():{name:'Pokémon Champions'};
+  /* 前に会話した人と違う人なら、前の会話を出さない */
+  const nu=AUTH.user?AUTH.user.uid:null;if(AI_ST.uid&&AI_ST.uid!==nu)aiReset();if(nu)AI_ST.uid=nu;
   document.body.classList.add('ai-on');
   V.innerHTML=`<div class="ai-root" id="ai-root" data-notr>
     ${typeof LANG!=='undefined'&&LANG==='en'?'<p class="note">This feature is available in Japanese only.</p>':''}
@@ -205,12 +216,18 @@ function aiDrawLog(root){
   L.querySelectorAll('[data-ailocal]').forEach(b=>b.onclick=()=>{const k=b.dataset.ailocal;
     if(k==='build'){location.hash='#/pair';return}
     AI_ST.log.push({who:'bot',html:aiLocalHTML(k,null)});aiDrawLog(root)});
+  /* 根拠を開いたら、その下までを入力欄の上に見せる（キーボードが出ていても） */
+  L.querySelectorAll('.ai-ev').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)d.scrollIntoView({block:'end'})}));
   const last=L.lastElementChild;if(last)last.scrollIntoView({block:'end'});
 }
 async function aiCtx(root){
   const el=root.querySelector('#ai-quota');
+  /* ログインの状態は、ほかの画面と同じく Firebase を読み込んでから見る（開き直した直後でもログインのまま扱う） */
+  if(!AUTH.user&&typeof fbLoad==='function'){try{await fbLoad();await AUTH.wait}catch(e){}if(!document.body.contains(el))return;if(AUTH.user){aiView();return}}
   if(!AUTH.user){el.outerHTML=`<p class="ai-small ai-login">使うには <a href="#/account">ログイン</a> してください。</p>`;return}
+  const gen=AI_ST.gen,uid=AUTH.user.uid;
   try{const {status,j}=await aiFetch(`/api/ai/v1/context?gameId=${AI_GAME}`);
+    if(!aiMine(gen,uid))return;
     if(status!==200){el.querySelector('summary').textContent=aiR(j.reasonCode);return}
     AI_ST.ctx=j;aiQuota(root,j.usage)}catch(e){el.querySelector('summary').textContent=e.message}
 }
@@ -223,16 +240,20 @@ function aiQuota(root,u){
 }
 async function aiAsk(root,question,extra,opt){
   if(AI_ST.busy)return;
+  if(!AUTH.user){AI_ST.log.push({who:'bot',html:`<div class="ai-card ai-err"><p>${esc(aiR('auth_required'))}</p></div>`});aiDrawLog(root);return}
+  const gen=AI_ST.gen,uid=AUTH.user.uid;AI_ST.uid=uid;
   AI_ST.busy=true;root.querySelector('#ai-send').disabled=true;
   if(!(opt&&opt.resume))AI_ST.log.push({who:'me',text:question});
   const wait={who:'bot',wait:true};AI_ST.log.push(wait);aiDrawLog(root);
   try{
     const body={gameId:AI_GAME,question,requestId:aiRid(),...extra};
     const {status,j}=await aiFetch('/api/ai/v1/answer',body);
+    /* 待っている間にログアウト・ほかの人のログイン・会話の消去があれば、この答えは捨てる */
+    if(!aiMine(gen,uid))return;
     Object.assign(wait,{wait:false,status,j,body,question});
     if(j.usage)aiQuota(root,j.usage);
-  }catch(e){Object.assign(wait,{wait:false,html:`<div class="ai-card ai-err"><p>${esc(e.message)}</p></div>`})}
-  finally{AI_ST.busy=false;const b=root.querySelector('#ai-send');if(b)b.disabled=false;aiDrawLog(root)}
+  }catch(e){if(!aiMine(gen,uid))return;Object.assign(wait,{wait:false,html:`<div class="ai-card ai-err"><p>${esc(e.message)}</p></div>`})}
+  finally{if(gen===AI_ST.gen){AI_ST.busy=false;const r2=document.getElementById('ai-root');if(r2){const b=r2.querySelector('#ai-send');if(b)b.disabled=false;aiDrawLog(r2)}}}
 }
 const AI_ST_LAB={answered:'回答',partial:'一部だけ回答',needs_input:'確認させてください',insufficient_evidence:'根拠不足のため保留',unsupported:'ここでは答えられません',unavailable:'いまは答えられません'};
 function aiAnsHTML(m){

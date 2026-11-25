@@ -3684,7 +3684,7 @@ body.gkcm-on{overflow:hidden}
 .ai-quota .ai-qd p{margin:4px 0}
 .ai-small{font-size:12px;color:var(--dim);line-height:1.55}
 .ai-log{display:flex;flex-direction:column;gap:10px}
-.ai-msg{display:flex}.ai-msg.me{justify-content:flex-end}
+.ai-msg{display:flex;scroll-margin-top:64px}.ai-msg.me{justify-content:flex-end}
 .ai-bub{max-width:82%;padding:9px 13px;border-radius:18px 18px 4px 18px;background:var(--accf);color:var(--onacc);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .ai-msg.bot>*{max-width:100%;flex:1;min-width:0}
 .ai-st{font-weight:800;font-size:13px;color:var(--dim);margin:0 2px 4px}
@@ -3732,10 +3732,12 @@ body.gkcm-on{overflow:hidden}
   .ai-comp{position:fixed;left:12px;right:12px;bottom:calc(var(--tbB) + 70px)}
   body.ai-kb .ai-comp{bottom:calc(var(--ai-kb, 0px) + 8px)}
   body.ai-kb .tabbar,body.ai-kb .tb-lens{visibility:hidden}
-  .ai-msg{scroll-margin-bottom:calc(var(--tbB) + 146px)}
-  body.ai-kb .ai-msg{scroll-margin-bottom:calc(var(--ai-kb, 0px) + 76px)}
+  .ai-msg,.ai-ev{scroll-margin-bottom:calc(var(--tbB) + 146px)}
+  /* キーボードが出ているとき：ページの下にキーボードと入力欄の分の余白を足し、最後の答えと根拠を入力欄の上まで送れるようにする */
+  body.ai-kb .app{padding-bottom:calc(var(--ai-kb, 0px) + 120px)!important}
+  body.ai-kb .ai-msg,body.ai-kb .ai-ev{scroll-margin-bottom:calc(var(--ai-kb, 0px) + 76px)}
 }
 @media (min-width:700px){
   .ai-comp{position:sticky;bottom:12px;margin-top:14px}
-  .ai-msg{scroll-margin-bottom:96px}
+  .ai-msg,.ai-ev{scroll-margin-bottom:96px}
 }

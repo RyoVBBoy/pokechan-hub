@@ -72,13 +72,23 @@ function aiFindEntities(q,L){
    Xの〈技〉・Xが・Xで・Xから＝攻撃する側／Xに・Xへ・Xを＝受ける側／Xは …耐える・受ける＝受ける側、Xは …倒せる・与える＝攻撃する側 */
 function aiRoleHints(t,cands){
   const sp=cands.filter(c=>c.kind==='species'),mv=cands.filter(c=>c.kind==='move');
+  /* 受け身・受ける側の述語（倒される・やられる・受ける・耐える・落ちる・倒れる…）と、攻める側の述語（倒せる・与える…）。
+     受け身の文では「Xが／Xは」が受ける側、「Xに」が攻撃する側（「〜に倒される」）になり、ふつうの文と逆になる。
+     両方の述語がある文では、が・は・に からは決めない（逆にしてしまうのを防ぐ） */
+  const pas=/される|された|されて|されない|されたら|られる|られた|られて|られたら|やられ|撃たれ|うたれ|打たれ|殴られ|受け|うけ|くら|食ら|耐え|たえ|落ちる|おちる|倒れ|たおれ|沈む|しずむ|ひんし/.test(t);
+  const act=/倒せ|たおせ|与え|あたえ|落とせ|おとせ|倒す|たおす|倒して|攻撃して|攻撃する/.test(t);
+  /* 一覧にない受け身らしい形（〜かれる・〜たれる 等）は、どちらか分からないものとして が・は・に から決めない */
+  const gen=!pas&&/(?:[かさたなまらわがばぱ]れ|られ)(?:る|た|て|ない|ば|たら)/.test(t.replace(/倒れ|たおれ|取れ|とれ/g,''));
+  const mixed=(pas&&act)||gen;
   for(const c of sp){
-    const f=t.slice(c.end);let r=null;
-    if(/^の/.test(f)&&mv.some(m=>m.pos===c.end+1))r='attacker';
-    else if(/^(が|で|から)/.test(f))r='attacker';
-    else if(/^(に|へ|を)/.test(f))r='defender';
-    else if(/^は/.test(f)){const rest=f.slice(1);if(/耐え|たえ|受け|うけ|くら|食ら/.test(rest))r='defender';else if(/倒せ|たおせ|与え|あたえ|削れ|けずれ|落とせ/.test(rest))r='attacker'}
-    c.role=r;
+    const f=t.slice(c.end);let r=null,cue=null;
+    if(/^の/.test(f)&&mv.some(m=>m.pos===c.end+1)){r='attacker';cue='strong'}   /* Xの〈技〉 */
+    else if(/^から/.test(f)){r='attacker';cue='strong'}
+    else if(/^(を|へ)/.test(f)){r='defender';cue='strong'}
+    else if(/^で/.test(f)){r='attacker';cue='weak'}
+    else if(/^に/.test(f)){if(!mixed){r=pas?'attacker':'defender';cue='weak'}}
+    else if(/^(が|は)/.test(f)){if(!mixed){if(pas)r='defender';else if(act||/^が/.test(f))r='attacker';cue=r?'weak':null}}
+    c.role=r;c.cue=cue;
   }
   /* 「AとBの〈技〉」のように並べただけなら、どちらが攻撃するかは決めない */
   for(const c of sp){const f=t.slice(c.end);if(/^と/.test(f)){const nx=sp.find(x=>x.pos===c.end+1);if(nx){c.role='and';nx.role='and'}}}
@@ -92,12 +102,14 @@ function aiRoles(cands){
   if(a.length>1||d.length>1)return{ambiguous:true,cands:u};
   if(u.length===2){
     let A=a[0],D=d[0];
-    if(A&&!D)D=u.find(c=>c!==A&&!c.role);
-    if(D&&!A)A=u.find(c=>c!==D&&!c.role);
+    /* 片方しか決まらないときは、その手がかりが強い（の〈技〉・から・を・へ）ときだけ、もう片方を逆の役にする。弱い手がかり（が・は・に・で）だけなら聞く */
+    if(A&&!D){if(A.cue!=='strong')return{ambiguous:true,cands:u};D=u.find(c=>c!==A&&!c.role)}
+    if(D&&!A){if(D.cue!=='strong')return{ambiguous:true,cands:u};A=u.find(c=>c!==D&&!c.role)}
     if(!A||!D||A===D)return{ambiguous:true,cands:u};
     return{attacker:A,defender:D};
   }
-  if(u.length===1){const c=u[0];return c.role==='defender'?{defender:c}:{attacker:c}}
+  /* 1匹だけ：手がかりがあればその側、無ければ決めない（計算の欄で選ぶ） */
+  if(u.length===1){const c=u[0];return c.role==='defender'?{defender:c}:c.role==='attacker'?{attacker:c}:{}}
   return{};
 }
 function aiEvidenceOut(r,L){
@@ -134,7 +146,7 @@ function aiMakeAdapter(gameId,getL,o){
 const AI_FMT_LABEL={single:'シングル',double:'ダブル'};
 const AI_ADAPTERS={
   pokechamp:aiMakeAdapter('pokechamp',aiLedger,{engineRev:AI_ENGINE_REV,fmtDep:['damage_calc','usage_share','party_tool'],fmtWords:{single:/シングル/,double:/ダブル/},tools:{calc:(i,s)=>aiCalc(i,s),usage:(i,s,e)=>aiUsage(i,s,e)},
-    caps:()=>({intents:AI_INTENTS.filter(x=>x!=='unknown'),formats:['single','double'],
+    caps:()=>({intents:AI_INTENTS.filter(x=>x!=='unknown'),formats:['single','double'],formatLabels:AI_FMT_LABEL,
         calc:{contract:'calc-a1',engineRevision:AI_ENGINE_REV,conditions:['通常の姿（メガシンカ・戦闘中の姿の変化なし）','ランク0','HP満タン','天気・場・状態異常・壁なし','持ち物なし','急所なし','相性が等倍','単体を攻撃する、威力が決まった1回だけ当たる技','計算に影響しない特性だけ'],
           abilities:[...AI_CALC_ABILITY_OK].filter(k=>ABN[k]).sort()},
         usage:{source:'usage_seen',minCount:20,maxAgeHours:6,windowDays:30},
@@ -229,7 +241,7 @@ const MockProvider={
     const q=String(input.question),cs=input.candidates,usage={input:aiTokEst(JSON.stringify(input)),output:96,known:true};
     let intent='unknown';
     const nsp=new Set(cs.filter(c=>c.kind==='species').map(c=>c.ref)).size;
-    const R=[[/どっち|どちら|比べ|比較|vs|ＶＳ|より強/i,nsp>=2?'compare':'unknown'],[/ダメージ|確定|何発|乱数|削れ|倒せ|耐え/,'damage_calc'],[/使用率|よく使われ|採用率/,'usage_share'],[/診断|選出|構築|パーティ/,'party_tool'],
+    const R=[[/どっち|どちら|比べ|比較|vs|ＶＳ|より強/i,nsp>=2?'compare':'unknown'],[/ダメージ|確定|何発|乱数|削れ|倒せ|倒さ|倒れ|倒す|耐え|やられ|受け|くら|食ら|撃|打た|落ち|落とせ|かみつ|攻撃/,'damage_calc'],[/使用率|よく使われ|採用率/,'usage_share'],[/診断|選出|構築|パーティ/,'party_tool'],
       [/使える|使用可能|レギュ|禁止|ルール上/,'legality'],[/覚え/,'learns_move'],[/能力ポイント|\bap\b|ＡＰ|努力値/i,'sp_rule'],
       [/種族値|ステータス|能力値/,'species_stats'],[/タイプ/,'species_types'],[/特性/,'species_abilities'],[/メガ/,'species_megas'],[/威力|命中|分類|優先度/,'move_info']];
     for(const [re,k] of R)if(re.test(q)){intent=k;break}
@@ -318,7 +330,7 @@ async function aiCompose(ad,scope,plan,cands,body,env){
       const u=await ad.runTool('usage',{species:sp},scope,env);
       if(!u.ok)return{status:'insufficient_evidence',reasonCode:u.reason,cards:[aiHold(u.reason)],evidence:[...out.evidence.values()]};
       const ue={evidenceId:'usage:'+scope.format+':'+u.res.generatedAt+'#'+sp,entityId:sp,field:'usage_share',typedValue:u.res,scope:{...scope},sourceType:'site_aggregate',label:AI_LABEL.site_aggregate,
-        sourceRef:'usage_seen',source:{name:'当サイトの集計（選出画面の読み取り・対戦の記録で見た相手の6匹）',refs:[]},checkedAt:new Date(u.res.generatedAt+9*36e5).toISOString().slice(0,10),validFrom:u.res.from,validTo:u.res.to,status:'active'};
+        sourceRef:'usage_seen',source:{name:u.res.sourceName||'当サイトの集計（選出画面の読み取り・対戦の記録で見た相手の6匹）',refs:[]},checkedAt:new Date(u.res.generatedAt+9*36e5).toISOString().slice(0,10),validFrom:u.res.from,validTo:u.res.to,status:'active'};
       out.evidence.set(ue.evidenceId,ue);out.cards.push(aiCard('usage_share',{...u.res,name},[nmE,ue]));
     }
   }
@@ -506,7 +518,8 @@ function aiValidBody(b){
   if(!b||typeof b!=='object'||Array.isArray(b))return'body_invalid';
   if(Object.keys(b).some(k=>!AI_BODY_KEYS.includes(k)))return'field_unknown';
   if(typeof b.gameId!=='string'||!/^[a-z0-9_-]{1,32}$/.test(b.gameId))return'game_invalid';
-  if(b.format!==undefined&&b.format!==null&&b.format!=='single'&&b.format!=='double')return'format_invalid';
+  /* 形式の値はゲームごとに違う（アダプターの getCapabilities().formats で、ゲームが決まってから確かめる）。ここでは形だけ */
+  if(b.format!==undefined&&b.format!==null&&(typeof b.format!=='string'||!/^[a-z0-9_-]{1,16}$/.test(b.format)))return'format_invalid';
   if(b.requestedRulesetId!==undefined&&b.requestedRulesetId!==null&&(typeof b.requestedRulesetId!=='string'||!/^[A-Za-z0-9-]{1,16}$/.test(b.requestedRulesetId)))return'ruleset_invalid';
   if(typeof b.question!=='string'||!b.question.trim())return'question_missing';
   if([...b.question].length>AI_MAX_Q)return'question_too_long';
@@ -550,10 +563,11 @@ async function aiApi(req,env,u,ctx){
   let plan;try{plan=await aiPlanOf(db,uidH,now)}catch(e){return AE(503,'ai_db_unavailable')}
   if(path==='/api/ai/v1/context'){
     const gid=u.searchParams.get('gameId')||'',fmt=u.searchParams.get('format')||null;
-    if(!/^[a-z0-9_-]{1,32}$/.test(gid)||(fmt!==null&&fmt!=='single'&&fmt!=='double'))return AE(400,'query_invalid');
+    if(!/^[a-z0-9_-]{1,32}$/.test(gid)||(fmt!==null&&!/^[a-z0-9_-]{1,16}$/.test(fmt)))return AE(400,'query_invalid');
     let usage;try{usage=await aiUsageOf(db,uidH,plan,cfg,now)}catch(e){return AE(503,'ai_db_unavailable')}
     const ad=AI_ADAPTERS[gid];
     if(!ad)return AJ({status:'unsupported',reasonCode:'game_unsupported',enabled:true,usage});
+    if(fmt&&!(ad.getCapabilities().formats||[]).includes(fmt))return AE(400,'format_invalid');
     const s=ad.resolveScope({format:fmt});
     return AJ({status:'ok',enabled:true,scope:s.scope,ruleset:s.ruleset,capabilities:ad.getCapabilities(),usage,limits:{question:AI_MAX_Q}});
   }
@@ -571,7 +585,9 @@ async function aiApi(req,env,u,ctx){
   const ad=AI_ADAPTERS[body.gameId];
   let usage0;try{usage0=await aiUsageOf(db,uidH,plan,cfg,now)}catch(e){return AE(503,'ai_db_unavailable')}
   if(!ad)return AJ({status:'unsupported',scope:{gameId:body.gameId},cards:[aiCard('unsupported',{reasonCode:'game_unsupported'},[],'insufficient')],evidence:[],reasonCode:'game_unsupported',usage:usage0,requestId:rid});
-  /* 形式は、指定が無ければ質問の言葉から（アダプターの fmtWords。両方・どちらも無ければ決めない） */
+  /* 形式は、そのゲームの形式だけ（ほかのゲームの形式は 400）。指定が無ければ質問の言葉から（アダプターの fmtWords。両方・どちらも無ければ決めない） */
+  const fmts=(ad.getCapabilities().formats||[]);
+  if(body.format&&!fmts.includes(body.format))return AE(400,'format_invalid',{formats:fmts});
   let fmt0=body.format||null;
   if(!fmt0&&ad.fmtWords){const hit=Object.entries(ad.fmtWords).filter(([f,re])=>re.test(inp.question)).map(x=>x[0]);if(hit.length===1)fmt0=hit[0]}
   const sc=ad.resolveScope({format:fmt0,requestedRulesetId:body.requestedRulesetId});
@@ -613,7 +629,8 @@ async function aiApi(req,env,u,ctx){
   if(!plan2)res={status:'unavailable',reasonCode:'plan_invalid',cards:[aiCard('unavailable',{reasonCode:'plan_invalid'},[],'insufficient')],evidence:[]};
   /* 形式で答えが変わる質問で形式が無ければ、答えずに形式だけ聞く（枠は使わない）。どのゲームでも同じ流れ（アダプターの formatDependent・getCapabilities().formats） */
   else if(!scope.format&&ad.formatDependent&&ad.formatDependent(plan2.intent)){const fm=(ad.getCapabilities().formats||[]);
-    res={status:'needs_input',reasonCode:'format_missing',nextAction:{kind:'choose',field:'format',choices:fm.map(f=>({ref:f,label:AI_FMT_LABEL[f]||f}))},cards:[aiCard('needs_input',{field:'format',choices:fm.map(f=>({ref:f,label:AI_FMT_LABEL[f]||f}))},[],'insufficient')],evidence:[]}}
+    const fl=ad.getCapabilities().formatLabels||AI_FMT_LABEL,ch=fm.map(f=>({ref:f,label:fl[f]||f}));
+    res={status:'needs_input',reasonCode:'format_missing',nextAction:{kind:'choose',field:'format',choices:ch},cards:[aiCard('needs_input',{field:'format',choices:ch},[],'insufficient')],evidence:[]}}
   else{try{res=await aiCompose(ad,scope,plan2,cands,body,env)}catch(e){res={status:'unavailable',reasonCode:'compose_failed',cards:[aiCard('unavailable',{reasonCode:'compose_failed'},[],'insufficient')],evidence:[]}}}
   res.evidence=res.evidence||[];
   res.scope=scope;
