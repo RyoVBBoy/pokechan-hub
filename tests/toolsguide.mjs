@@ -110,7 +110,7 @@ for(const W of [390,1280]){
     W+'：スターを外すとダメージ計算がすぐ消える');
   if(W>=700)ok(!(await pg.$('#pcs-tools .pcs-t[href="#/calc"]')),W+'：右側のすぐ使うにも反映');
   await pg.click('#view .tprim-c[href="#/calc"]');
-  await pg.waitForURL('**/#/calc');
+  await pg.waitForFunction(()=>location.hash==='#/calc');
   await pg.goto(URL0+'#/tools');
   await star('calc').waitFor();
   ok(await checkPins(['assist','types','meta']),W+'：外したツールは開き直しで再表示されない');
@@ -123,7 +123,7 @@ for(const W of [390,1280]){
   await star('calc').click();
   ok(await checkPins(['calc','cmp']),W+'：追加したツールだけが新しい順で並ぶ');
   await pg.locator('#view .tquick .ttile[href="#/cmp"]').click();
-  await pg.waitForURL('**/#/cmp');
+  await pg.waitForFunction(()=>location.hash==='#/cmp');
   await pg.evaluate(()=>localStorage.setItem('pctools','{"pokechamp":["pip"]}'));
   await pg.goto(URL0+'#/tools');
   await star('pip').waitFor();
