@@ -20,7 +20,13 @@ let ITJR=null;const itemJa=k=>{if(!ITJR){ITJR={};Object.entries(ITJ).forEach(([n
 function pipData(){
   if(PIP.mode==='build')return pipBuildPages();
   const opp=opp6.map(n=>byNo[n]).filter(Boolean);
-  let A=null;if(team.length>=4&&opp.length){try{A=analyze(team.map(x=>x.no),opp6)}catch(e){A=null}}
+  let A=null;
+  if(team.length>=4&&opp.length){
+    try{
+      const myNos=team.map(x=>x.no),result=asAnalyze(myNos,opp6,oppPredict(myNos,opp6).w);
+      if(!result.none)A=result;
+    }catch(e){}
+  }
   const pages=[];
   /* 相手をまだ入れていないとき（ツールの PiP から）は、相手がいなくても作れるカード（タイプ相性・パーティの戦術メモ）だけ */
   const cards=opp.length?PIP.cfg.cards:PIP.cfg.cards.filter(c=>PIP_NOOPP.includes(c));
@@ -31,7 +37,7 @@ function pipData(){
     else if(c==='speed')pages.push({kind:'speed',A,opp});
     else if(c==='dmg')pages.push({kind:'dmg',A,opp});
     else if(c==='type')pages.push({kind:'type'});
-    else if(c==='sets')opp.forEach((p,j)=>pages.push({kind:'one',p,j,A}));
+    else if(c==='sets')opp.forEach(p=>pages.push({kind:'one',p,j:A?.opNos.indexOf(p.no)??-1,A}));
     else if(c==='memo')pages.push(...memoPipPages(opp));
   });
   return pages.length?pages:[{kind:'sum',opp}];
@@ -80,9 +86,10 @@ function pipDraw(){
     const row=(i,tag,y,col)=>{const m=A.M[i];
       pill(g,tag,28,y,col,'#fff',22);m.p.t.forEach((t,k)=>tIcon(g,t,110+k*34,y+2,30));
       g.fillStyle='#e7e9ea';g.font=`800 32px ${FF}`;g.fillText(m.p.n,184,y+30);
-      const hits=A.O.map((o,j)=>({o,d:A.D[i][j]})).filter(x=>x.d.pct>=50).sort((a,b)=>b.d.pct-a.d.pct).slice(0,3);
-      g.fillStyle='#c4c9cc';fitTxt(g,hits.length?`狙い：${hits.map(x=>x.o.p.n).join('・')}（${hits[0].d.mv?hits[0].d.mv.n:''}）`:'狙い：全体に等倍で削る',28,y+72,PIP_W-56,23,600)};
-    let y=96;A.lead.forEach(i=>{row(i,'先発',y,'#1d9bf0');y+=112});
+      const hits=A.O.map((o,j)=>({o,d:A.D[i][j],min:asMinDealt(A,i,j),tie:A.weatherTies?.[i]?.[j]})).filter(x=>x.min>=50).sort((a,b)=>b.min-a.min);
+      g.fillStyle='#c4c9cc';fitTxt(g,hits.length?`狙い：${hits[0].o.p.n}に${hits[0].tie?`天気で約${asTieDamage(hits[0].tie,'dealt')}`:`${hits[0].d.mv?.n||'攻撃'}で約${pct(hits[0].d.pct)}%`}`:'この型では50%以上削れる相手を確認できません',28,y+72,PIP_W-56,23,600)};
+    g.fillStyle='#c4c9cc';fitTxt(g,[asMegaLabel(A.M,A.megaI),A.wx?asWeatherLabel(A.wx):''].filter(Boolean).join('／'),28,112,PIP_W-56,23,600);
+    let y=134;A.lead.forEach(i=>{row(i,'先発',y,'#1d9bf0');y+=112});
     g.strokeStyle='#2f3336';g.lineWidth=2;g.beginPath();g.moveTo(20,y-12);g.lineTo(PIP_W-20,y-12);g.stroke();y+=8;
     A.back.forEach(i=>{row(i,'控え',y,'#536471');y+=112});
     foot();return;
@@ -108,15 +115,15 @@ function pipDraw(){
     A.O.forEach((o,j)=>{const x=150+j*cw;tIcon(g,o.p.t[0],x+cw/2-17,top,34);g.fillStyle='#c4c9cc';g.textAlign='center';fitTxt(g,o.p.n.slice(0,4),x+cw/2,top+62,cw-4,18,700);g.textAlign='left'});
     const rh=Math.min(120,(PIP_H-top-150)/rows.length);
     rows.forEach((i,k)=>{const y=top+84+k*rh;g.fillStyle='#e7e9ea';fitTxt(g,A.M[i].p.n,28,y+rh*.55,118,26,800);
-      A.O.forEach((o,j)=>{const d=A.D[i][j],x=150+j*cw,p=d.pct,lab=d.mv?koShort(koInfo(dmgRolls(A.M[i],d.mv,A.O[j],{}),A.O[j].max)):'—';
+      A.O.forEach((o,j)=>{const d=A.D[i][j],tie=A.weatherTies?.[i]?.[j],x=150+j*cw,p=asMinDealt(A,i,j),lab=tie?'天気で変動':d.mv?asWithWeather(A.wx,()=>withWx(A.M[i],o,()=>koShort(koInfo(dmgRolls(A.M[i],d.mv,o,{}),o.max)))):'—';
         rr(g,x+3,y+4,cw-6,rh-10,12);g.fillStyle=p>=100?'#00ba7c':p>=50?'rgba(0,186,124,.4)':p>=34?'rgba(0,186,124,.16)':'#16181c';g.fill();
         g.fillStyle=p>=50?'#fff':'#8b98a5';g.textAlign='center';g.font=`800 ${Math.min(30,cw*.38)}px ${FF}`;g.fillText(lab,x+cw/2,y+rh*.5);
-        g.font=`600 ${Math.min(17,cw*.24)}px Inter,${FF}`;g.fillText(p?pct(p)+'%':'',x+cw/2,y+rh*.5+22);g.textAlign='left'})});
+        g.font=`600 ${Math.min(17,cw*.24)}px Inter,${FF}`;g.fillText(tie?asTieDamage(tie,'dealt'):p?pct(p)+'%':'',x+cw/2,y+rh*.5+22);g.textAlign='left'})});
     g.fillStyle='#71767b';g.font=`600 19px ${FF}`;g.fillText('確1＝確定1発、乱1＝乱数1発（乱数16段階で計算）',28,PIP_H-62);
     foot();return;
   }
   /* 相手の型（1匹ずつ） */
-  const p=pg.p,A=pg.A;
+  const A=pg.A,p=A?.O[pg.j]?.p||pg.p;
   p.t.forEach((t,k)=>tIcon(g,t,28+k*58,30,52));
   g.fillStyle='#e7e9ea';fitTxt(g,p.n,28+p.t.length*58+10,74,PIP_W-60-p.t.length*58,50,800);
   g.fillStyle='#71767b';g.font=`700 24px ${FF}`;g.fillText(`${p.t.join('・')}　素早さ ${p.s[5]}（最速${maxSpe(p)}）`,28,124);
@@ -127,21 +134,21 @@ function pipDraw(){
     y=yy+52};
   lineOf('弱点',tb.filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]),'#ff7a00');
   const imm=tb.filter(x=>x[1]===0);if(imm.length)lineOf('無効',imm,'#8b98a5');
-  const d=LIVE.csv[p.no];
+  const d=LIVE.csv[pg.p.no];
   if(d){
-    const mvn=d.mv.map(([n,pc])=>{const id=MVKA[nrm(n)];return id===182?['まもる',pc]:id&&mName(id)?[mName(id),pc]:null}).filter(Boolean).slice(0,4);
+    const mvn=d.mv.map(([n,pc])=>{const id=MVKA[nrm(n)];return id&&mName(id)?[mName(id),pc]:null}).filter(Boolean).slice(0,4);
     const its=d.it.map(([n,pc])=>[itemJa(nrm(n))||n,pc]).slice(0,2),abs=d.ab.map(([n,pc])=>[ABN[ABK[nrm(n)]]||n,pc]).slice(0,1);
     g.fillStyle='#e7e9ea';g.font=`800 24px ${FF}`;g.fillText('よく使われる型',28,y+26);y+=36;g.fillStyle='#c4c9cc';
     fitTxt(g,mvn.map(([n,pc])=>`${n}${Math.round(pc)}%`).join('・'),28,y+24,PIP_W-56,22,600);y+=36;
     fitTxt(g,`持ち物 ${its.map(([n,pc])=>`${n}${Math.round(pc)}%`).join('・')}　特性 ${abs.map(([n])=>n).join('')}`,28,y+24,PIP_W-56,22,600);y+=48;
   }
-  if(A){
-    const j=pg.j,best=A.M.map((m,i)=>({i,d:A.D[i][j]})).sort((a,b)=>b.d.pct-a.d.pct)[0];
-    const thr=A.M.map((m,i)=>({i,r:A.R[j][i]})).sort((a,b)=>b.r.pct-a.r.pct)[0];
+  if(A&&pg.j>=0){
+    const j=pg.j,best=A.best.map(i=>({i,d:A.D[i][j],min:asMinDealt(A,i,j),tie:A.weatherTies?.[i]?.[j]})).sort((a,b)=>b.min-a.min)[0];
+    const thr=asThreats(A).find(x=>x.j===j)?.hits[0];
     g.fillStyle='#00ba7c';g.font=`800 24px ${FF}`;g.fillText('攻める',28,y+26);
-    g.fillStyle='#e7e9ea';fitTxt(g,best&&best.d.mv?`${A.M[best.i].p.n}の${best.d.mv.n}（約${pct(best.d.pct)}%）`:'—',130,y+26,PIP_W-158,24);y+=46;
+    g.fillStyle='#e7e9ea';fitTxt(g,best&&best.d.mv?`${A.M[best.i].p.n}の${best.tie?`（天気で約${asTieDamage(best.tie,'dealt')}）`:`${best.d.mv.n}（約${pct(best.d.pct)}%）`}`:'—',130,y+26,PIP_W-158,24);y+=46;
     g.fillStyle='#f4212e';g.font=`800 24px ${FF}`;g.fillText('警戒',28,y+26);
-    g.fillStyle='#e7e9ea';fitTxt(g,thr&&thr.r.mv?`${thr.r.mv.n}で${A.M[thr.i].p.n}に約${pct(thr.r.pct)}%`:'—',130,y+26,PIP_W-158,24);
+    g.fillStyle='#e7e9ea';fitTxt(g,thr&&thr.r.mv?`${thr.r.mv.n}で${A.M[thr.i].p.n}に約${pct(thr.r.pct)}%${thr.weather?`（${thr.weather}）`:''}`:'—',130,y+26,PIP_W-158,24);
   }
   foot();
 }
@@ -195,9 +202,14 @@ async function pipEncodeRec(){
 }
 let pipT=null;
 function pipSchedule(){clearTimeout(pipT);pipT=setTimeout(pipBuild,500)}
+function pipBattleKey(){
+  const ns=[...opp6,...team.map(x=>x.no)];
+  const top=topReady()?[TOPT.at,TOPT.n]:null;
+  return JSON.stringify([FMT,opp6,team.map(x=>[x.no,x.axis,x.set]),ns.map(n=>LIVE.csv[n]),top,PIP.cfg]);
+}
 async function pipBuild(){
   if(PIP.mode==='battle'&&!opp6.length&&keyOf(cur)!=='pip')return;
-  const sig=PIP.mode==='build'?JSON.stringify(['build',PIP.bidx,PIP.ball,team,PIP.cfg.sec]):JSON.stringify([opp6,team.map(x=>x.no),Object.keys(LIVE.csv).filter(k=>LIVE.csv[k]).length,PIP.cfg]);
+  const sig=PIP.mode==='build'?JSON.stringify(['build',PIP.bidx,PIP.ball,team,PIP.cfg.sec]):pipBattleKey();
   if(PIP.sig===sig&&(PIP.state==='ready'||PIP.state==='building'))return;
   PIP.sig=sig;PIP.state='building';pipUI();
   try{
@@ -246,7 +258,7 @@ function pipBuildPages(){
 }
 const pipAb=s=>s.ab?(ABN[s.ab.k]||s.ab.n||''):'';
 const pipIt=s=>s.it?(ITEMN[s.it.k]||s.it.n||''):L('なし','None');
-const pipMv=m=>m?(m.id===182?L('まもる','Protect'):mName(m.id)||m.n||''):'';
+const pipMv=m=>m?(mName(m.id)||m.n||''):'';
 const pipNat=s=>s.up>0&&s.dn>0?`${(NATS.find(n=>n[1]===s.up&&n[2]===s.dn)||[''])[0]}（${SN[s.up]}↑ ${SN[s.dn]}↓）`:L('補正なし','Neutral');
 function pipDrawBuild(g,pg){
   const {p,s,auto,st}=pg.m;

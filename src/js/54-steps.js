@@ -46,7 +46,7 @@ function teamStepsBind(root){
     if(!await askConfirm({title:'おすすめの型で埋めますか？',text:'まだ決めていない技・持ち物・能力ポイントと性格だけを、計算で組んだ型で埋めます。決めたところは変わりません。',ok:'埋める',danger:false}))return;
     const mons=team.map(x=>byNo[x.no]).filter(Boolean);
     /* トリックルーム向きのパーティ（dgTeam の tr）なら、トリックルーム入り・素早さを下げる型で組む（2026/11/10 依頼主の指摘） */
-    let arch=['axis'];try{const T=dgTeam(team,20);if(T.tr&&T.tr.on){const a=ARCHS.find(x=>x[0]==='tr');if(a)arch=a}}catch(e){}
+    let arch=['axis'];try{const T=dgTeam(team,20);if(T.tr&&(T.tr.on||T.tr.suit)){const a=ARCHS.find(x=>x[0]==='tr');if(a)arch=a}}catch(e){}
     let ss=[];try{ss=archSets(arch,mons)}catch(e){toast('型を組めませんでした');return}
     const usedIt=new Set(team.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean));
     /* メガシンカの枠：持ち物をもう決めた匹は変えない。パーティのメガストーンが2つ未満なら、持ち物が空いている匹から足す（型の例の持ち物より優先） */
