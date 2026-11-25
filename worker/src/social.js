@@ -109,9 +109,15 @@ async function socialRate(db,uid,now){
 }
 /* 投稿を書く（15秒に1件・1日100件を、書く文そのものの中で確かめる＝同時に送られても決まりをこえない。数え方は socialRate と同じ） */
 /* 停止の確かめも同じ文の中で（門を通ったあとに停止が作られても書かない。links.js の noteSancSQL。hs＝このリクエストのトークンの確認済みメールのハッシュ） */
-const noteIns=(db,uid,text,now,ip,to,med,hs=[])=>db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) SELECT ?1,?2,?3,?4,?5,?6
-  WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 ${noteSancSQL(hs.length)} RETURNING id`)
-  .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null,...hs.map(x=>x.h));
+/* lk（リンク付きのとき）：{op＝このリクエストの使い捨ての鍵, vh＝安全確認の覚えの鍵}。同じ文の中で、
+   ・同じリンクに期限内の「危険」の答えがあれば書かない（確かめたあとに別の投稿で危険と分かった）
+   ・返信先が、いまも見られる投稿か（消えた・隠れた・停止・非公開で見られない）を確かめる */
+const noteIns=(db,uid,text,now,ip,to,med,hs=[],lk=null)=>{const n=hs.length,po=7+n,pv=8+n;
+  return db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media${lk?',op':''}) SELECT ?1,?2,?3,?4,?5,?6${lk?',?'+po:''}
+  WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 ${noteSancSQL(n)}
+  ${lk?`AND NOT EXISTS(SELECT 1 FROM link_verdicts v WHERE v.h=?${pv} AND v.verdict='unsafe' AND v.expires_at>?3)
+  AND (?5=0 OR EXISTS(SELECT 1 FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=?5 AND pn.hidden=0 AND pn.repost_of=0 AND ${VIS('pu')}))`:''} RETURNING id`)
+  .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null,...hs.map(x=>x.h),...(lk?[lk.op,lk.vh]:[]))};
 async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
   if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags|me\/bookmarks)/.test(path))return null;
@@ -167,13 +173,20 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     if(lk.link){
       /* 安全確認はいちばん最後（ほかの確かめで断るものは外に送らない）。問題がなければ、投稿とリンクを1つの取引で書く */
       const c=await lkCheckForNote(env,db,meUid,lk.link,now);if(c.error)return J({error:c.error},c.status);
-      /* リンクの行は、いま書いた投稿（同じ人・同じ時刻）が本当に書けたときだけ（回数の決まりで書けなければ、リンクも書かない） */
-      /* last_insert_rowid() は使わない（書けなかったときに前の行の番号が残るため。Miniflare で確かめた）。
-         同じ人・同じ時刻の投稿は15秒の決まりで1つしかないので、それを鍵にする */
-      const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med,hs),
+      /* リンクの行は、このリクエストの使い捨ての鍵（op）で本当に書けた投稿だけにつける（回数の決まり・停止・危険の答え・返信先で書けなければ、リンクも書かない）。
+         last_insert_rowid() や「同じ人・同じ時刻」は使わない（書けなかったときに、別のリクエストの投稿を拾うおそれがあるため） */
+      const op=rndHex(16);
+      const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med,hs,{op,vh:c.t.h}),
         db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev,vh) SELECT n.id,?1,?2,?3,'ok','clean',?4,?5,?4,?4,0,?6
-          FROM notes n WHERE n.uid=?1 AND n.created_at=?4 AND n.repost_of=0 ORDER BY n.id DESC LIMIT 1 RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,c.t.h)]);
+          FROM notes n WHERE n.op=?7 AND n.uid=?1 RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,c.t.h,op)]);
       r=out[1]&&out[1].results&&out[1].results[0];
+      if(!r&&out[0]&&out[0].results&&out[0].results[0])throw new Error('note-link-mismatch');
+      if(!r){
+        /* 書けなかった理由：危険の答え・返信先（停止と回数は下で） */
+        const v=await db.prepare(`SELECT 1 AS x FROM link_verdicts WHERE h=? AND verdict='unsafe' AND expires_at>?`).bind(c.t.h,now).first();
+        if(v)return J({error:'このリンクは安全確認で危険の可能性があると判定されたため、付けられません。',code:'unsafe'},400);
+        if(to&&!(await db.prepare(`SELECT 1 AS x FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=?2 AND pn.hidden=0 AND pn.repost_of=0 AND ${VIS('pu')}`).bind(meUid,to).first()))
+          return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404)}
     }else r=await noteIns(db,meUid,text,now,ip,to,med,hs).first();
     /* 同時に送られて、15秒に1件・1日100件の決まりで書けなかった */
     if(!r){

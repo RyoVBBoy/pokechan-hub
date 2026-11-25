@@ -14,7 +14,7 @@ const tok=async uid=>{const h=enc({alg:'RS256',kid:'k1',typ:'JWT'}),p=enc({iss:'
 let n=0,bad=0;const ok=(c,m,i)=>{n++;if(!c){bad++;console.error('NG',m,JSON.stringify(i)?.slice(0,400))}};
 const WR={inflight:0,max:0,calls:0,delay:0};
 const mf=new Miniflare({modules:true,scriptPath:path.join(ROOT,'worker/dist/worker.js'),compatibilityDate:'2025-01-01',d1Databases:['DB'],
-  bindings:{FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',LINKS_POST:'1',LINKS_CLICK:'1',SANCTIONS_ON:'1',EMAIL_HMAC_KEY:'email-hmac-key-test-0123456789abcdef-it',WEBRISK_API_KEY:'wr-it-key-0000000000',LINKS_WEBRISK_CONC:'1',LINKS_WEBRISK_MS:'3000'},
+  bindings:{FB_ADAPTER_TOKEN:'adapter-token-it-0123456789abcdef-0123',FIREBASE_PROJECT_ID:PID,APP_TOKEN:'t',ADMIN_TOKEN:'admin-secret-123',LINKS_POST:'1',LINKS_CLICK:'1',SANCTIONS_ON:'1',EMAIL_HMAC_KEY:'email-hmac-key-test-0123456789abcdef-it',WEBRISK_API_KEY:'wr-it-key-0000000000',LINKS_WEBRISK_CONC:'1',LINKS_WEBRISK_MS:'3000'},
   outboundService:async req=>{const u=req.url;
     if(u.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[jwk]}),{headers:{'content-type':'application/json'}});
     if(u.startsWith('https://webrisk.googleapis.com/v1/uris:search?')){WR.calls++;WR.inflight++;WR.max=Math.max(WR.max,WR.inflight);
@@ -43,7 +43,7 @@ ok(!(await db.prepare(`UPDATE it_b SET mn=mn+1 WHERE id='w' AND mn<8 RETURNING m
 /* ---- 2. サーバーのプログラムを本物の D1 で ---- */
 const rs=await Promise.all([call('/api/links/config'),call('/api/links/config'),call('/api/tl')]);
 ok(rs.every(x=>x[0]===200),'まっさらの D1 で、同時に表を作っても動く',rs.map(x=>x[0]));
-ok((await db.prepare(`SELECT name FROM sqlite_master WHERE type='index' AND name IN ('sanctions_case_uid','sanctions_root_eh','fb_outbox_once','note_links_vh')`).all()).results.length===4,'足した索引がある','');
+ok((await db.prepare(`SELECT name FROM sqlite_master WHERE type='index' AND name IN ('sanctions_case_uid','sanctions_root_eh','fb_sync_due','note_links_vh','notes_op')`).all()).results.length===5,'足した索引がある','');
 const U={};for(const id of ['iA','iB','iC','iD','iE','iF','iG'])U[id]=await tok(id);
 for(const id in U){const r=await call('/api/me',{method:'POST',tok:U[id],body:{handle:'h'+id,name:id,agree:true}});ok(r[0]===200,'プロフィール '+id,r)}
 let r=await call('/api/notes',{method:'POST',tok:U.iA,body:{body:'本物の D1 でふつうの投稿'}});ok(r[0]===200&&r[1].id>0,'ふつうの投稿',r);
@@ -70,12 +70,35 @@ ok(r[0]===503&&bq.dn===5&&bq.mn===90000,'1か月の上限で閉じ、1日の回�
 /* 確認の記録への同時の停止 → 1つだけ */
 const ADM={admin:'admin-secret-123'};
 const nA=(await db.prepare(`SELECT id FROM notes WHERE uid='iA' LIMIT 1`).first()).id;
-const cs=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'hiA',kind:'attack',summary:'このリンクがフィッシングと確かめた（記録の番号で確認）',refs:[{t:'note',id:nA}]}});
-const sb={kind:'perpetrator',case_id:cs[1].case_id,rationale:'意図的にフィッシングのリンクを広めたと確認したため停止する',confirm:'SANCTION'};
+const cs=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'hiA',kind:'attack',summary:'このリンクがフィッシングと確かめた（記録の番号で確認）',refs:[{t:'note',id:nA}],attest:true,evidence_kinds:['direct']}});
+const sb={kind:'perpetrator',case_id:cs[1].case_id,rationale:'意図的にフィッシングのリンクを広めたと確認したため停止する',confirm:'SANCTION',basis:'deliberate_attack'};
 const ss=await Promise.all([1,2,3].map(()=>call('/api/admin/sanctions',{method:'POST',...ADM,body:sb})));
 ok(ss.filter(x=>x[0]===200).length===1&&ss.filter(x=>x[0]===409).length===2&&(await db.prepare(`SELECT COUNT(*) AS c FROM sanctions WHERE case_id=? AND kind='uid'`).bind(cs[1].case_id).first()).c===1,'同じ確認の記録へ同時に3つ → 停止は1つ（ほかは 409）',ss.map(x=>x[0]));
-ok((await db.prepare(`SELECT COUNT(*) AS c FROM fb_outbox WHERE uid='iA' AND action='disable'`).first()).c===1,'Firebase の依頼も1つ','');
+ok((await db.prepare(`SELECT COUNT(*) AS c FROM fb_sync WHERE uid='iA' AND gen>done_gen`).first()).c===1,'Firebase の同期の行も1つ（同じ人は1行）','');
+/* Firebase の同期の受け口を本物の D1 で：借りる（UPDATE … WHERE uid IN (SELECT … LIMIT) RETURNING）・記録・報告 */
+{const AT='adapter-token-it-0123456789abcdef-0123';
+  const fbp=async(p,b)=>{const r=await mf.dispatchFetch('https://x.dev'+p,{method:'POST',headers:{'content-type':'application/json','x-fb-adapter-token':AT},body:JSON.stringify(b)});return[r.status,await r.json().catch(()=>({}))]};
+  const [c1,c2]=await Promise.all([fbp('/api/fb/claim',{max:20}),fbp('/api/fb/claim',{max:20})]);
+  const it=[...c1[1].items||[],...c2[1].items||[]].filter(x=>x.uid==='iA');
+  ok(c1[0]===200&&c2[0]===200&&it.length===1&&it[0].want==='disabled','同時に2つ借りても、同じ人は1つだけ（本物の D1）',{c1:c1[1],c2:c2[1]});
+  const x=it[0];
+  let r1=await fbp('/api/fb/intent',{uid:'iA',lease:x.lease,gen:x.gen,action:'disable',observed_disabled:false});
+  let r2=await fbp('/api/fb/ack',{uid:'iA',lease:x.lease,gen:x.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
+  let r3=await fbp('/api/fb/ack',{uid:'iA',lease:x.lease,gen:x.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
+  const fr=await db.prepare(`SELECT owned,prior,done_gen,gen FROM fb_sync WHERE uid='iA'`).first();
+  ok(r1[0]===200&&r2[0]===200&&r3[0]===200&&r3[1].repeat===true&&fr.owned===1&&fr.prior===0&&fr.done_gen===fr.gen,'記録→報告・同じ報告をもう一度でも1回分（本物の D1）',{r1,r2,r3,fr})}
 r=await call('/api/notes',{method:'POST',tok:U.iA,body:{body:'停止中'}});ok(r[0]===403,'停止中は投稿できない',r);
+/* リンクの行は、このリクエストの使い捨ての鍵で書いた投稿だけにつく（本物の D1。同じ人の同じ時刻を鍵にしない） */
+{await db.prepare(`UPDATE link_budget SET dn=0,mn=0`).run();
+  const UK=await tok('iK');await call('/api/me',{method:'POST',tok:UK,body:{handle:'hiK',name:'iK',agree:true}});
+  /* 先に1回確かめて覚えさせる（同時に外へ送るのは1つまでの設定なので、覚えを使って同時に書く） */
+  r=await call('/api/notes',{method:'POST',tok:UK,body:{body:'先に1回',url:'https://note.com/it/shared-op'}});ok(r[0]===200,'先に1回（覚えさせる）',r);
+  const U2={};for(const id of ['iH','iI','iJ']){U2[id]=await tok(id);await call('/api/me',{method:'POST',tok:U2[id],body:{handle:'h'+id,name:id,agree:true}})}
+  const pr=await Promise.all(Object.keys(U2).map(id=>call('/api/notes',{method:'POST',tok:U2[id],body:{body:'同じリンク',url:'https://note.com/it/shared-op'}})));
+  const rows=(await db.prepare(`SELECT l.uid AS lu,n.uid AS nu,n.op FROM note_links l JOIN notes n ON n.id=l.note_id WHERE l.url='https://note.com/it/shared-op'`).all()).results;
+  ok(pr.every(x=>x[0]===200)&&rows.length===4&&rows.every(x=>x.lu===x.nu&&/^[0-9a-f]{32}$/.test(x.op))&&new Set(rows.map(x=>x.op)).size===4,'同じリンクを同時に3人（と先の1人）：どれも自分の投稿につく（本物の D1）',{st:pr.map(x=>x[0]),rows});
+  let dupErr=false;try{await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,op) VALUES('iH','x',1,'',?)`).bind(rows[0].op).run()}catch(e){dupErr=true}
+  ok(dupErr,'使い捨ての鍵は重ならない（本物の D1 の一意の索引）','')}
 /* 期限の見直し（決まった時刻の仕事） */
 await db.prepare(`INSERT INTO sanctions(kind,uid,permanent,starts_at,expires_at,reason,status,root_key,created_at,updated_at) VALUES('uid','iF',0,1,2,'old','active','it-exp',1,1)`).run();
 await db.prepare(`UPDATE users SET banned=2 WHERE uid='iF'`).run();

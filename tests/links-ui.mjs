@@ -105,6 +105,21 @@ for(const vp of [{width:390,height:844},{width:1280,height:900}]){
     ok(dest().length===0&&pg.ctx.pages().length===1&&!(await pg.$('.ulc')),W+'：'+nm+' → 開かない・タブも閉じる '+JSON.stringify(dest())+pg.ctx.pages().length);
     if(nm!=='許可の期限が切れた')ok(await pg.$(art+' .tw-ul--off'),W+'：'+nm+' → そのリンクは押せない文字に');
   }
+  /* ブラウザが新しいタブを止めたとき：押せるリンク（<a>）を出さない。「もう一度開く」はサーバーで新しい許可をとって確かめ直す */
+  const block=on=>pg.evaluate(o=>{if(!window.__wo)window.__wo=window.open;window.open=o?()=>null:window.__wo},on);
+  const toRetry=async()=>{REQ.length=0;await pg.goto(URL0+'#/tl');await pg.waitForTimeout(1300);await block(true);await pg.click(art+' .tw-ul');await pg.waitForTimeout(500);await pg.click('.ulc .xc-ok');await pg.waitForTimeout(900)};
+  await toRetry();
+  ok(await pg.$('.ulc .ulc-retry')&&!(await pg.$('.ulc a[href]'))&&dest().length===0,W+'：タブを止められたら「もう一度開く」ボタン（リンク先の <a> は置かない）');
+  await adm(`/api/admin/links/${NID}`,{action:'quarantine',reason:'確認のため止める',confirm:true});
+  await block(false);await pg.click('.ulc .ulc-retry');await pg.waitForTimeout(1200);
+  ok(dest().length===0&&pg.ctx.pages().length===1&&!(await pg.$('.ulc'))&&await pg.$(art+' .tw-ul--off'),W+'：もう一度押す前に止められたら開かない（確かめ直す）・タブも閉じる '+JSON.stringify(dest())+pg.ctx.pages().length);
+  await adm(`/api/admin/links/${NID}`,{action:'restore',reason:'問題なしと確認',confirm:true});
+  await toRetry();await block(false);
+  {const [p2]=await Promise.all([pg.ctx.waitForEvent('page'),pg.click('.ulc .ulc-retry')]);for(let i=0;i<40&&!dest().length;i++)await pg.waitForTimeout(100);
+    ok(dest().length===1&&dest()[0].ref==='',W+'：もう一度押して、確かめ直したあとに開く（リファラーなし） '+JSON.stringify(dest()));await p2.close();await pg.waitForTimeout(200)}
+  await toRetry();await pg.click('.ulc .ulc-retry');await pg.waitForTimeout(1200);
+  ok(dest().length===0&&!(await pg.$('.ulc a[href]'))&&/写して/.test(await pg.$eval('.ulc .ulc-st',e=>e.textContent).catch(()=>'')),W+'：ずっと止められるときは、アドレスを写してもらう（<a> は置かない）');
+  await pg.keyboard.press('Escape');await block(false);await pg.waitForTimeout(300);
   /* サーバーから届いた値も確かめ直す（形のおかしい値は押せない文字） */
   ok(await pg.evaluate(()=>[{state:'ok',host:'javascript:alert(1)'},{state:'ok',host:'a.com\\@b.net'},{state:'ok',host:'127.0.0.1'},{state:'blocked'},{state:'ok',host:'<b>x</b>'},{state:'ok'},{state:'off',host:'<img>'}]
     .every(l=>/tw-ul--off/.test(ulinkHTML({ulink:l}))&&!/javascript|<b>|<img/.test(ulinkHTML({ulink:l})))),W+'：形のおかしいホストは押せない文字');

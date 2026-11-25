@@ -69,24 +69,35 @@ function ulinkConfirm(id,s,intent,ttl,from){
   const exp=setTimeout(()=>{if(used)return;ok.disabled=true;st.textContent=L('確認の期限が切れました。もう一度リンクを押してください。','This confirmation expired. Press the link again.')},Math.max(1,ttl-2)*1000);
   const done=()=>{if(closed)return;closed=true;clearTimeout(exp);d.classList.remove('on');document.removeEventListener('keydown',key,true);setTimeout(()=>d.remove(),150);if(from&&document.body.contains(from))from.focus()};
   const key=e=>{if(e.key==='Escape'){e.preventDefault();done()}
-    else if(e.key==='Tab'){const f=[ok,no].filter(x=>!x.disabled),i=f.indexOf(document.activeElement);e.preventDefault();if(f.length)f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}};
+    else if(e.key==='Tab'){const f=[...p.querySelectorAll('button')].filter(x=>!x.disabled),i=f.indexOf(document.activeElement);e.preventDefault();if(f.length)f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}};
   document.addEventListener('keydown',key,true);
-  ok.onclick=async()=>{
-    if(used||ok.disabled)return;used=true;ok.disabled=true;st.textContent=L('確かめています…','Checking…');
-    /* 押した操作の中でタブを先に開く（あとから開くと止められるため）。中身はサーバーが許可するまで空のまま */
+  /* 開く：押した操作の中でタブを先に開く（あとから開くと止められるため）。中身はサーバーが許可するまで空のまま。
+     fresh＝確認の画面のあとに改めて押したとき（新しい許可をとってから go）。どちらも go でサーバーが確かめ直したときだけ行き先へ */
+  const goFlow=async(btn,fresh)=>{
     let tab=null;try{tab=window.open('about:blank','_blank')}catch(e){}
     if(tab)try{tab.opener=null}catch(e){}
+    const fail=(msg,inert)=>{if(tab)try{tab.close()}catch(e){}toast(msg);if(inert)ulinkInert(from);done()};
+    let it=intent;
+    if(fresh){let j0;try{j0=await authFetch(`/api/links/${+id}/open`,{})}catch(err){fail(err.message,err.data&&err.data.inert);return}
+      const s0=j0&&j0.ok&&ulinkSafe(j0.url);if(!s0||s0.url!==s.url||typeof j0.intent!=='string'||!/^[0-9a-f]{32}$/.test(j0.intent)){fail(L('このリンクは開けません','This link cannot be opened'));return}
+      it=j0.intent}
     let j;
-    try{j=await authFetch(`/api/links/${+id}/go`,{intent})}
-    catch(err){if(tab)try{tab.close()}catch(e){}toast(err.message);if(err.data&&err.data.inert)ulinkInert(from);done();return}
+    try{j=await authFetch(`/api/links/${+id}/go`,{intent:it})}
+    catch(err){fail(err.message,err.data&&err.data.inert);return}
     const g=j&&j.ok&&ulinkSafe(j.url);
-    if(!g||g.url!==s.url){if(tab)try{tab.close()}catch(e){}toast(L('このリンクは開けません','This link cannot be opened'));done();return}
+    if(!g||g.url!==s.url){fail(L('このリンクは開けません','This link cannot be opened'));return}
     if(tab&&ulinkGo(tab,g.url)){done();return}
-    /* タブを止められたとき：その場で押せるリンクを15秒だけ出す（新しいタブ・opener なし・リファラーなし） */
-    const a=document.createElement('a');a.className='xc-ok xc-plain';a.href=g.url;a.target='_blank';a.rel='noopener noreferrer nofollow ugc';a.referrerPolicy='no-referrer';a.textContent=L('このリンクを開く','Open this link');
-    st.textContent=L('ブラウザが新しいタブを止めました。下を押して開いてください。','Your browser blocked the new tab. Press below to open it.');
-    ok.replaceWith(a);a.focus();a.addEventListener('click',()=>setTimeout(done,0));setTimeout(()=>{if(!closed)done()},15000);
+    /* タブを止められたとき：押せるリンク（<a>）は置かない（置くと、そのあと止められたリンクでも確かめずに開けてしまう）。
+       「もう一度開く」ボタン＝押した中でタブを開き、サーバーで新しい許可をとって確かめ直す。それでも止められたら、上のアドレスを写して開いてもらう */
+    if(!fresh){const b2=document.createElement('button');b2.type='button';b2.className='xc-ok xc-plain ulc-retry';b2.textContent=L('もう一度開く','Try opening again');
+      st.textContent=L('ブラウザが新しいタブを止めました。下のボタンをもう一度押してください（もう一度確かめてから開きます）。','Your browser blocked the new tab. Press the button below again (it is checked again before opening).');
+      btn.replaceWith(b2);b2.focus();let used2=false;
+      b2.onclick=()=>{if(used2)return;used2=true;b2.disabled=true;st.textContent=L('確かめています…','Checking…');goFlow(b2,true)};
+      setTimeout(()=>{if(!closed)done()},30000);return}
+    st.textContent=L('ブラウザが新しいタブを止めています。上のアドレスを写して、ブラウザで開いてください。','Your browser keeps blocking new tabs. Copy the address above and open it in your browser.');
+    btn.disabled=true;
   };
+  ok.onclick=()=>{if(used||ok.disabled)return;used=true;ok.disabled=true;st.textContent=L('確かめています…','Checking…');goFlow(ok,false)};
   no.onclick=done;bg.onclick=done;
   no.focus();
 }

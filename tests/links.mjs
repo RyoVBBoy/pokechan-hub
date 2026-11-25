@@ -315,7 +315,13 @@ tick();r=await call('/api/notes',{method:'POST',tok:Z,body:{body:'ふつうの�
 tick();await clearSlots();r=await call('/api/notes',{method:'POST',tok:Z,body:{body:'攻撃のリンク',url:'https://note.com/zed/attack'}});const zLink=r[1].id;
 expect('確認済みメールはハッシュだけを記録（生のメールは残さない）',(await q(`SELECT ehash,kver FROM user_emails WHERE uid='uZ'`)).length===1&&!JSON.stringify(await q(`SELECT * FROM user_emails`)).toLowerCase().includes('zed.attacker'),await q(`SELECT * FROM user_emails`));
 const SUM='このリンクがフィッシングと確かめた（記録の番号と画面で確認）';
-const mkCase=async(h,refs,kind='attack',x={})=>call('/api/admin/cases',{method:'POST',...ADM,body:{handle:h,kind,summary:SUM,refs,...x}});
+/* 確認の記録：確かめた人の申し立て・根拠の種類。関連アカウントは、その人自身のリンクを運営者が止めてから（ふつうに紹介しただけのリンクでは作れない） */
+const qLink=id=>call(`/api/admin/links/${id}`,{method:'POST',...ADM,body:{action:'quarantine',reason:'確認のため止める',confirm:true}});
+const mkCase=async(h,refs,kind='attack',x={})=>{
+  if(kind==='linked'&&!x.noq)for(const r0 of refs)if(r0.t==='link')await qLink(r0.id);
+  const {noq,...y}=x;
+  return call('/api/admin/cases',{method:'POST',...ADM,body:{handle:h,kind,summary:SUM,refs,attest:true,evidence_kinds:kind==='linked'?['direct','linkage']:['direct'],
+    ...(kind==='linked'?{linkage_basis:'coordinated_reviewed',direct_summary:'この人自身が同じフィッシングのリンクを投稿したと確かめた'}:{}),...y}})};
 r=await call('/api/admin/cases',{method:'POST',body:{handle:'zed',kind:'attack',summary:SUM,refs:[{t:'note',id:zNote}]}});expect('確認の記録は管理者だけ',r[0]===401,r);
 r=await mkCase('zed',[]);expect('根拠のない確認の記録は作れない',r[0]===400,r);
 r=await mkCase('zed',[{t:'ip',id:1}]);expect('IP アドレスは根拠にできない',r[0]===400,r);
@@ -324,7 +330,7 @@ r=await mkCase('zed',[{t:'note',id:999999}]);expect('ない記録は根拠にで
 r=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'zed',kind:'attack',summary:'短い',refs:[{t:'note',id:zNote}]}});expect('確かめた内容は20文字以上',r[0]===400,r);
 r=await mkCase('zed',[{t:'link',id:zLink},{t:'note',id:zNote}],'attack');expect('確認の記録を作れる',r[0]===200&&r[1].case_id>0,r);const zc=r[1].case_id;
 const RAT='意図的にフィッシングのリンクを広めたと確認したため停止する';
-const sanc=(b)=>call('/api/admin/sanctions',{method:'POST',...ADM,body:{rationale:RAT,confirm:'SANCTION',...b}});
+const sanc=(b)=>call('/api/admin/sanctions',{method:'POST',...ADM,body:{rationale:RAT,confirm:'SANCTION',...(b.kind==='perpetrator'?{basis:'deliberate_attack'}:{}),...b}});
 r=await sanc({kind:'perpetrator'});expect('確認の記録なしでは停止できない',r[0]===400,r);
 r=await sanc({kind:'perpetrator',case_id:zc,rationale:'短い'});expect('理由は20文字以上',r[0]===400,r);
 r=await sanc({kind:'perpetrator',case_id:zc,confirm:true});expect('確認の言葉が要る',r[0]===400,r);
@@ -332,7 +338,7 @@ r=await sanc({kind:'linked',case_id:zc});expect('種類と確認の記録が合�
 r=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{kind:'perpetrator',case_id:zc,rationale:RAT,confirm:'SANCTION'},E:{...env,SANCTIONS_ON:''}});expect('SANCTIONS_ON が無ければ作れない',r[0]===503,r);
 /* 途中で失敗したら何も残さない（1つの取引） */
 {const real=env.DB,c0=(await q('SELECT COUNT(*) AS c FROM sanctions'))[0].c,Ef={...env,DB:{prepare:s=>real.prepare(/UPDATE sanction_cases SET status='sanctioned'/.test(s)?s.replace('sanction_cases','sanction_cases_nope'):s),batch:l=>real.batch(l)}};
-  r=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{kind:'perpetrator',case_id:zc,rationale:RAT,confirm:'SANCTION'},E:Ef});
+  r=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{kind:'perpetrator',case_id:zc,rationale:RAT,confirm:'SANCTION',basis:'deliberate_attack'},E:Ef});
   expect('作る途中で失敗したら、停止・メール・記録・表示のどれも残さない',r[0]===500&&(await q('SELECT COUNT(*) AS c FROM sanctions'))[0].c===c0&&(await q(`SELECT banned FROM users WHERE uid='uZ'`))[0].banned===0,{r,c0})}
 r=await sanc({kind:'perpetrator',case_id:zc});
 expect('確かめた攻撃者：いつまでもの停止＋確認済みメールの記録',r[0]===200&&r[1].permanent&&r[1].email==='recorded'&&/^[0-9a-f]{32}$/.test(r[1].root),r);const zs=r[1].id,zroot=r[1].root;
@@ -535,7 +541,7 @@ await env.DB.prepare('DELETE FROM link_budget').run();
 /* B2 1つの確認の記録への同時の停止（2つの isolate から）・同じ op の送り直し・根拠や対象が変わったら作らない・もとの停止の取り消し中 */
 {const AT=await mk('uAtk2','attacktwo',{email:'atk2@mail.test-gk.net'});const al=await postLink(AT,'https://note.com/attack2/shared');
   const ac=await mkCase('attacktwo',[{t:'link',id:al}]);
-  const body={kind:'perpetrator',case_id:ac[1].case_id,rationale:RAT,confirm:'SANCTION'};
+  const body={kind:'perpetrator',case_id:ac[1].case_id,rationale:RAT,confirm:'SANCTION',basis:'deliberate_attack'};
   const rs=await Promise.all([call('/api/admin/sanctions',{method:'POST',...ADM,body}),call('/api/admin/sanctions',{method:'POST',...ADM,body,W:w2})]);
   expect('B2 同じ確認の記録を2つの isolate から同時に → 1つだけ',rs.filter(x=>x[0]===200).length===1&&rs.filter(x=>x[0]===409).length===1&&(await q(`SELECT COUNT(*) AS c FROM sanctions WHERE case_id=? AND kind='uid'`,ac[1].case_id))[0].c===1,rs.map(x=>x[0]));
   const win=rs.find(x=>x[0]===200)[1];
@@ -557,7 +563,7 @@ await env.DB.prepare('DELETE FROM link_budget').run();
   expect('B2 保留の記録',(await q(`SELECT action FROM sanction_events WHERE sanction_id=?`,lid)).some(x=>x.action==='hold_parent_reversed'),'');
   const LK3=await mk('uLk3','linkthree');const l3=await postLink(LK3,'https://note.com/attack2/shared');
   r=await mkCase('linkthree',[{t:'link',id:l3}],'linked',{related_root:aroot});expect('B2 取り消された攻撃者には関連の確認の記録を作れない',r[0]===400,r);
-  expect('B2 取り消しと保留のとき Firebase を戻す依頼（決めるのはアダプター）',(await q(`SELECT COUNT(*) AS c FROM fb_outbox WHERE action='enable' AND uid IN ('uAtk2','uLk2')`))[0].c===2,await q(`SELECT uid,action FROM fb_outbox`))}
+  expect('B2 取り消しと保留のとき Firebase の同期を確かめ直しにする（戻すかはアダプターが動く直前に決まる）',(await q(`SELECT COUNT(*) AS c FROM fb_sync WHERE gen>done_gen AND uid IN ('uAtk2','uLk2')`))[0].c===2,await q(`SELECT uid,gen,done_gen FROM fb_sync`))}
 /* B3 門を通ったあとに停止が作られた投稿は書かない（書く文の中で確かめる） */
 {const RC=await mk('uRace3','racethree');const real=env.DB;let fired=false;
   const E={...env,DB:{prepare:s=>{if(!fired&&/^INSERT INTO notes\(uid,body/.test(s.trim())){fired=true;real.prepare(`INSERT INTO sanctions(kind,uid,permanent,starts_at,reason,status,root_key,created_at,updated_at) VALUES('uid','uRace3',1,?,'race test','active','race-root',?,?)`).bind(clock,clock,clock).runSync?.()}return real.prepare(s)},batch:l=>real.batch(l)}};
@@ -572,12 +578,152 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
   const j2=(await q(`SELECT * FROM job_runs WHERE name='sanction_sweep'`))[0];expect('B3 失敗も記録（次の回にもう一度）',j2.last_ok===0&&j2.fails===1&&j2.ok_at===j.ok_at,j2);
   r=await call('/api/admin/sanctions',ADM);expect('B3 管理画面に仕事の結果',r[1].jobs.some(x=>x.name==='sanction_sweep'),r[1].jobs)}
 }
+/* ---------- 14. レビュー3回目（関連アカウントの根拠・保留の見直し・メールの停止を外す・停止中の異議と削除） ---------- */
+{
+  const PA=await mk('uR3a','rthreeatk',{email:'r3.attacker@mail.test-gk.net'});
+  const al=await postLink(PA,'https://note.com/r3/bad');await qLink(al);
+  const ac=await mkCase('rthreeatk',[{t:'link',id:al}]);expect('R3 攻撃者の確認の記録',ac[0]===200,ac);
+  r=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'rthreeatk',kind:'attack',summary:SUM,refs:[{t:'link',id:al}],evidence_kinds:['direct']}});expect('R3 確かめた人の申し立て（attest）がなければ作れない',r[0]===400,r);
+  r=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'rthreeatk',kind:'attack',summary:SUM,refs:[{t:'link',id:al}],attest:true,evidence_kinds:['linkage']}});expect('R3 その人自身の違反の根拠（direct）がなければ作れない',r[0]===400,r);
+  r=await sanc({kind:'perpetrator',case_id:ac[1].case_id,basis:undefined});expect('R3 ずっとの停止は、理由（意図的な攻撃／停止逃れ）がなければ作らない',r[0]===400,r);
+  r=await sanc({kind:'perpetrator',case_id:ac[1].case_id,basis:'unsafe_verdict'});expect('R3 安全確認の結果だけでは、ずっとの停止にしない',r[0]===400,r);
+  r=await sanc({kind:'perpetrator',case_id:ac[1].case_id});expect('R3 攻撃者の停止',r[0]===200,r);const aroot=r[1].root,aid=r[1].id;
+  expect('R3 停止の記録に理由（basis）が残る',(await q('SELECT evidence FROM sanctions WHERE id=?',aid))[0].evidence.endsWith('|deliberate_attack'),'');
+  /* ふつうに攻略記事のリンクを紹介した人（同じ行き先）だけでは、関連アカウントにできない */
+  const GD=await mk('uR3g','guidefan');const gl=await postLink(GD,'https://note.com/r3/bad');
+  r=await mkCase('guidefan',[{t:'link',id:gl}],'linked',{related_root:aroot,noq:true});expect('R3 同じリンクを紹介しただけ（止めていないリンク）では関連アカウントにできない',r[0]===400,r);
+  r=await mkCase('guidefan',[{t:'link',id:gl}],'linked',{related_root:aroot,linkage_basis:'shared_url'});expect('R3 つながりの根拠が「同じリンク」だけでは作れない',r[0]===400&&/同じリンク/.test(r[1].error),r);
+  for(const nb of ['ip','device','report','scanner']){r=await mkCase('guidefan',[{t:'link',id:gl}],'linked',{related_root:aroot,linkage_basis:nb,noq:true});expect('R3 つながりの根拠に使えない：'+nb,r[0]===400,r)}
+  r=await mkCase('guidefan',[{t:'link',id:gl}],'linked',{related_root:aroot,evidence_kinds:['direct'],noq:true});expect('R3 つながりの根拠（linkage）がなければ作れない',r[0]===400,r);
+  r=await mkCase('guidefan',[{t:'link',id:gl}],'linked',{related_root:aroot,direct_summary:'短い',noq:true});expect('R3 その人自身がしたことを書かなければ作れない',r[0]===400,r);
+  expect('R3 紹介しただけの人は止まっていない',(await q(`SELECT banned FROM users WHERE uid='uR3g'`))[0].banned===0,'');
+  /* 根拠のそろった関連アカウント → 攻撃者の取り消しで保留 → 見直し */
+  const L1=await mk('uR3l','rthreelk1'),l1=await postLink(L1,'https://note.com/r3/bad');
+  const L2=await mk('uR3m','rthreelk2'),l2=await postLink(L2,'https://note.com/r3/bad');
+  const c1=await mkCase('rthreelk1',[{t:'link',id:l1}],'linked',{related_root:aroot}),c2=await mkCase('rthreelk2',[{t:'link',id:l2}],'linked',{related_root:aroot});
+  expect('R3 根拠のそろった関連アカウントの記録',c1[0]===200&&c2[0]===200,{c1,c2});
+  expect('R3 記録に根拠の種類とつながりの根拠を残す',(await q('SELECT ek,lbasis,dsum FROM sanction_cases WHERE id=?',c1[1].case_id))[0].ek==='direct,linkage','');
+  const s1=await sanc({kind:'linked',case_id:c1[1].case_id}),s2=await sanc({kind:'linked',case_id:c2[1].case_id});expect('R3 関連アカウントの停止',s1[0]===200&&s2[0]===200,{s1,s2});
+  r=await call(`/api/admin/sanctions/${s1[1].id}/resolve`,{method:'POST',...ADM,body:{decision:'release',reason:'見直したため',confirm:true}});expect('R3 保留でない停止は見直しで変えられない',r[0]===409,r);
+  await call(`/api/admin/sanctions/${aid}/reverse`,{method:'POST',...ADM,body:{reason:'攻撃者の停止は誤りだった',confirm:true}});
+  expect('R3 攻撃者の取り消しで関連は保留',(await q(`SELECT status FROM sanctions WHERE id IN (?,?)`,s1[1].id,s2[1].id)).every(x=>x.status==='held'),'');
+  r=await call(`/api/admin/sanctions/${s1[1].id}/resolve`,{method:'POST',...ADM,body:{decision:'reinstate',reason:'この人自身のリンクを確かめ直したため有効に戻す',confirm:true}});expect('R3 有効に戻すには確かめ直しの申し立てが要る',r[0]===400,r);
+  r=await call(`/api/admin/sanctions/${s1[1].id}/resolve`,{method:'POST',...ADM,body:{decision:'reinstate',reason:'短い',confirm:true,attest:true}});expect('R3 有効に戻す理由は20文字以上',r[0]===400,r);
+  r=await call(`/api/admin/sanctions/${s1[1].id}/resolve`,{method:'POST',...ADM,body:{decision:'reinstate',reason:'この人自身のリンクを確かめ直したため有効に戻す',confirm:true,attest:true}});
+  expect('R3 その人自身の違反の根拠があれば、確かめ直して有効に戻せる',r[0]===200&&(await q('SELECT status FROM sanctions WHERE id=?',s1[1].id))[0].status==='active',r);
+  tick();r=await call('/api/notes',{method:'POST',tok:L1,body:{body:'有効に戻ったので止まる'}});expect('R3 有効に戻した停止は効く',r[0]===403,r);
+  r=await call(`/api/admin/sanctions/${s2[1].id}/resolve`,{method:'POST',...ADM,body:{decision:'release',reason:'つながりだけで本人の違反はなかった',confirm:true}});
+  expect('R3 取り消して終える',r[0]===200&&(await q('SELECT status FROM sanctions WHERE id=?',s2[1].id))[0].status==='reversed',r);
+  tick();r=await call('/api/notes',{method:'POST',tok:L2,body:{body:'取り消されたので書ける'}});expect('R3 取り消した人は書ける',r[0]===200,r);
+  expect('R3 見直しのとき Firebase の同期も確かめ直しにする（取り残さない）',(await q(`SELECT COUNT(*) AS c FROM fb_sync WHERE uid IN ('uR3l','uR3m') AND gen>done_gen`))[0].c===2,await q(`SELECT uid,gen,done_gen FROM fb_sync`));
+  expect('R3 見直しの記録',(await q(`SELECT action FROM sanction_events WHERE sanction_id IN (?,?)`,s1[1].id,s2[1].id)).map(x=>x.action).filter(a=>a.startsWith('held_')).sort().join()==='held_reinstate,held_release','');
+  /* メールの停止だけを外す（そのメールが別の人に渡った等の異議を確かめた） */
+  const PB=await mk('uR3b','rthreeb',{email:'r3.b@mail.test-gk.net'});tick();const bn=(await call('/api/notes',{method:'POST',tok:PB,body:{body:'攻撃の投稿'}}))[1].id;
+  const bc=await mkCase('rthreeb',[{t:'note',id:bn}]);const bs=await sanc({kind:'perpetrator',case_id:bc[1].case_id});expect('R3 メールつきの停止',bs[0]===200&&bs[1].email==='recorded',bs);
+  const NB=await tok('uR3n',{email:'r3.b@mail.test-gk.net'});r=await call('/api/me',{method:'POST',tok:NB,body:{handle:'rthreenew',name:'N',agree:true}});expect('R3 同じメールの新しいアカウントは止まる',r[0]===403,r);
+  r=await call(`/api/admin/sanctions/${bs[1].id}/release-email`,{method:'POST',...ADM,body:{reason:'このメールは今は別の人が使っていると確かめた',confirm:true}});expect('R3 メールの停止を外すには確認の言葉が要る',r[0]===400,r);
+  r=await call(`/api/admin/sanctions/${bs[1].id}/release-email`,{method:'POST',...ADM,body:{reason:'短い',confirm:'RELEASE'}});expect('R3 理由は20文字以上',r[0]===400,r);
+  r=await call(`/api/admin/sanctions/${bs[1].id}/release-email`,{method:'POST',body:{reason:'このメールは今は別の人が使っていると確かめた',confirm:'RELEASE'}});expect('R3 運営者だけ',r[0]===401,r);
+  r=await call(`/api/admin/sanctions/${bs[1].id}/release-email`,{method:'POST',...ADM,body:{reason:'このメールは今は別の人が使っていると確かめた',confirm:'RELEASE'}});expect('R3 メールの停止を外す',r[0]===200&&r[1].released>=1,r);
+  r=await call('/api/me',{method:'POST',tok:NB,body:{handle:'rthreenew',name:'N',agree:true}});expect('R3 外したあとは、そのメールの新しい人は使える（同じ人と決めつけない）',r[0]===200,r);
+  tick();r=await call('/api/notes',{method:'POST',tok:PB,body:{body:'x'}});expect('R3 確かめた攻撃者の UID の停止はそのまま',r[0]===403,r);
+  /* 停止中でも異議（お問い合わせ）とアカウントの削除はできる */
+  r=await call('/api/me',{tok:PB});expect('R3 停止中の知らせに異議の窓口（ログイン不要）を書く',r[0]===403&&/お問い合わせ/.test(r[1].error)&&/ログイン不要/.test(r[1].error),r);
+  r=await call('/api/contact',{method:'POST',tok:PB,body:{kind:'other',body:'停止について異議があります。確かめてください。'}});expect('R3 停止中でもお問い合わせ（異議）を送れる',r[0]===200,r);
+  expect('R3 異議はだれのものか分かる（ログインのまま）',(await q(`SELECT uid FROM contacts ORDER BY id DESC LIMIT 1`))[0].uid==='uR3b','');
+  r=await call('/api/me/delete',{method:'POST',tok:PB,body:{}});expect('R3 停止中でもアカウントを削除できる',r[0]===200,r);
+  expect('R3 削除しても利用停止の記録は残る',(await q(`SELECT COUNT(*) AS c FROM sanctions WHERE uid='uR3b' AND status='active'`))[0].c===1,'');
+  r=await call('/api/notes',{method:'POST',tok:PB,body:{body:'x'}});expect('R3 停止中のほかの書きこみは止まったまま',r[0]===403,r);
+  const MB=await mk('uR3k','rthreeman');await call('/api/admin/ban',{method:'POST',...ADM,body:{handle:'rthreeman'}});
+  r=await call('/api/me/delete',{method:'POST',tok:MB,body:{}});expect('R3 手動の停止（前からの決まり）の削除は前と同じく止める',r[0]===403,r);
+}
+/* ---------- 15. レビュー3回目：リンクの行は、このリクエストの鍵（op）で書いた投稿だけにつく・同じ文の中で危険の答え・返信先を確かめる ---------- */
+{
+  const real=env.DB;
+  const wrapAt=(fn)=>{let fired=false;return{...env,DB:{prepare:s0=>{if(!fired&&/^INSERT INTO notes\(uid,body,created_at,ip,reply_to,media,op\)/.test(s0.trim())){fired=true;fn()}return real.prepare(s0)},batch:l=>real.batch(l)}}};
+  /* 同じ人・同じミリ秒にふつうの投稿が先に書けていた（同時の別のリクエスト）→ リンクの投稿は15秒の決まりで書けない。前の作り（同じ人・同じ時刻で探す）だとふつうの投稿にリンクがついた */
+  const U1=await mk('uOp1','opone');tick(20e3);await clearSlots();
+  await real.prepare(`INSERT INTO notes(uid,body,created_at,ip) VALUES('uOp1','同時に書けたふつうの投稿',?,'')`).bind(clock).run();
+  const plainId=(await q(`SELECT id FROM notes WHERE uid='uOp1' ORDER BY id DESC LIMIT 1`))[0].id;
+  r=await call('/api/notes',{method:'POST',tok:U1,body:{body:'リンク',url:'https://note.com/op/same-ms'}});
+  expect('R3 同じミリ秒のふつうの投稿にリンクの行をつけない',r[0]===400&&(await q(`SELECT COUNT(*) AS c FROM note_links WHERE note_id=?`,plainId))[0].c===0&&(await q(`SELECT COUNT(*) AS c FROM note_links WHERE uid='uOp1'`))[0].c===0,r);
+  /* 確かめたあと、書く前に、同じリンクが（別の投稿で）危険と分かった → 書かない */
+  const U2=await mk('uOp2','optwo');tick(20e3);await clearSlots();
+  const n0=(await q(`SELECT COUNT(*) AS c FROM notes WHERE uid='uOp2'`))[0].c;
+  r=await call('/api/notes',{method:'POST',tok:U2,body:{body:'リンク',url:'https://note.com/op/turns-bad'},E:wrapAt(()=>real.prepare(`UPDATE link_verdicts SET verdict='unsafe',types='SOCIAL_ENGINEERING',expires_at=? WHERE verdict='clean'`).bind(clock+864e5).runSync())});
+  expect('R3 書く文の中で、同じリンクの期限内の「危険」の答えを確かめる（投稿もリンクも書かない）',r[0]===400&&r[1].code==='unsafe'&&(await q(`SELECT COUNT(*) AS c FROM notes WHERE uid='uOp2'`))[0].c===n0,r);
+  await real.prepare(`DELETE FROM link_verdicts WHERE verdict='unsafe' AND types='SOCIAL_ENGINEERING'`).run();
+  /* 返信先が書く前に隠された・非公開になった → 書かない */
+  const PA=await mk('uOpP','opparent');tick(20e3);const pid=(await call('/api/notes',{method:'POST',tok:PA,body:{body:'返信先'}}))[1].id;
+  tick(20e3);await clearSlots();
+  r=await call('/api/notes',{method:'POST',tok:U2,body:{body:'返信',url:'https://note.com/op/reply',reply_to:pid},E:wrapAt(()=>real.prepare(`UPDATE notes SET hidden=1 WHERE id=?`).bind(pid).runSync())});
+  expect('R3 返信先が書く前に隠されたら書かない',r[0]===404&&(await q(`SELECT COUNT(*) AS c FROM notes WHERE reply_to=?`,pid))[0].c===0,r);
+  await real.prepare(`UPDATE notes SET hidden=0 WHERE id=?`).bind(pid).run();tick(20e3);await clearSlots();
+  r=await call('/api/notes',{method:'POST',tok:U2,body:{body:'返信',url:'https://note.com/op/reply',reply_to:pid},E:wrapAt(()=>real.prepare(`UPDATE users SET private=1 WHERE uid='uOpP'`).runSync())});
+  expect('R3 返信先の人が書く前に非公開にした（フォローしていない）なら書かない',r[0]===404&&(await q(`SELECT COUNT(*) AS c FROM notes WHERE reply_to=?`,pid))[0].c===0,r);
+  await real.prepare(`UPDATE users SET private=0 WHERE uid='uOpP'`).run();tick(20e3);await clearSlots();
+  r=await call('/api/notes',{method:'POST',tok:U2,body:{body:'返信',url:'https://note.com/op/reply',reply_to:pid}});expect('R3 見られる返信先なら書ける',r[0]===200&&(await q(`SELECT note_id FROM note_links WHERE note_id=?`,r[1].id)).length===1,r);
+  /* 門のあとに停止（リンク付きの投稿） */
+  const U3=await mk('uOp3','opthree');tick(20e3);await clearSlots();
+  r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'リンク',url:'https://note.com/op/sanc'},E:wrapAt(()=>real.prepare(`INSERT INTO sanctions(kind,uid,permanent,starts_at,reason,status,root_key,created_at,updated_at) VALUES('uid','uOp3',1,?,'race','active','race-op',?,?)`).bind(clock,clock,clock).runSync())});
+  expect('R3 門のあとに停止されたら、リンク付きの投稿も書かない（403）',r[0]===403&&(await q(`SELECT COUNT(*) AS c FROM notes WHERE uid='uOp3'`))[0].c===0&&(await q(`SELECT COUNT(*) AS c FROM note_links WHERE uid='uOp3'`))[0].c===0,r);
+  /* 同じリンクを同時に何人も → それぞれ自分の投稿につく */
+  const us=[];for(let i=0;i<4;i++)us.push(await mk('uOpM'+i,'opmany'+i));tick(20e3);await clearSlots();
+  const rs=await Promise.all(us.map(t=>call('/api/notes',{method:'POST',tok:t,body:{body:'同じリンク',url:'https://note.com/op/many'}})));
+  const rows=await q(`SELECT l.uid AS lu,n.uid AS nu,n.op FROM note_links l JOIN notes n ON n.id=l.note_id WHERE l.url='https://note.com/op/many'`);
+  expect('R3 同時に同じリンク：どのリンクの行も、その人の投稿（使い捨ての鍵つき）につく',rs.every(x=>x[0]===200)&&rows.length===4&&rows.every(x=>x.lu===x.nu&&/^[0-9a-f]{32}$/.test(x.op))&&new Set(rows.map(x=>x.op)).size===4,{st:rs.map(x=>x[0]),rows});
+  expect('R3 ふつうの投稿には鍵を書かない（前と同じ）',(await q(`SELECT COUNT(*) AS c FROM notes WHERE uid LIKE 'uOp%' AND op IS NOT NULL AND id NOT IN (SELECT note_id FROM note_links)`))[0].c===0&&(await q(`SELECT COUNT(*) AS c FROM notes n WHERE n.uid LIKE 'uOp%' AND n.op IS NULL AND n.id IN (SELECT note_id FROM note_links)`))[0].c===0,await q(`SELECT id,uid,body,hidden FROM notes WHERE op IS NOT NULL AND id NOT IN (SELECT note_id FROM note_links)`));
+}
+/* ---------- 16. レビュー3回目：鍵の印の覚えの範囲・D1 を前の状態に戻したとき・新しい版の印を記録してからハッシュを記録 ---------- */
+{
+  const K2='email-hmac-key-test-0123456789abcdef-K2',K3='email-hmac-key-test-0123456789abcdef-K3';
+  const fresh=async tag=>(await import(path.join(ROOT,'worker/dist/worker.js')+'?'+tag)).default;
+  const DB2=makeD1(),W2=await fresh('ks2'),E2=mkEnv({DB:DB2,EMAIL_HMAC_KEY:K2});
+  const q2=async(sql,...a)=>(await DB2.prepare(sql).bind(...a).all()).results;
+  const mk2=async(uid,h,W,E,email)=>{const t=await tok(uid,{email});const r=await call('/api/me',{method:'POST',tok:t,body:{handle:h,name:h,agree:true},W,E});return[t,r]};
+  const [ta,ra]=await mk2('uKs1','ksone',W2,E2,'ks.one@mail.test-gk.net');expect('R3 鍵K2の D1',ra[0]===200,ra);
+  expect('R3 はじめての版は、ハッシュより先に印を記録する',(await q2(`SELECT kver FROM key_sentinels`)).map(x=>x.kver).join()==='v1'&&(await q2(`SELECT COUNT(*) AS c FROM user_emails WHERE uid='uKs1'`))[0].c===1,await q2(`SELECT * FROM key_sentinels`));
+  /* 攻撃者の停止（メールの停止つき）を作っておく */
+  tick();const an=(await call('/api/notes',{method:'POST',tok:ta,body:{body:'攻撃'},W:W2,E:E2}))[1].id;
+  const cs=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'ksone',kind:'attack',summary:SUM,refs:[{t:'note',id:an}],attest:true,evidence_kinds:['direct']},W:W2,E:E2});
+  const ss=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{kind:'perpetrator',case_id:cs[1].case_id,rationale:RAT,confirm:'SANCTION',basis:'deliberate_attack'},W:W2,E:E2});expect('R3 メールつきの停止（K2）',ss[0]===200&&ss[1].email==='recorded',ss);
+  /* 別の isolate が、同じ版の名前でちがう鍵（EK）を持ったまま、この D1（戻したもの）につなぐ → 閉じる */
+  const W3=await fresh('ks3'),E3=mkEnv({DB:DB2,EMAIL_HMAC_KEY:EK});
+  const [tb,rb]=await mk2('uKs2','kstwo',W3,E3,'ks.two@mail.test-gk.net');
+  expect('R3 同じ版の名前でちがう鍵：書きこみは閉じる（ちがう鍵のハッシュを記録しない）',rb[0]===503&&(await q2(`SELECT COUNT(*) AS c FROM user_emails WHERE uid='uKs2'`))[0].c===0,rb);
+  r=await call('/api/admin/sanctions',{...ADM,W:W3,E:E3});expect('R3 管理画面に鍵の食い違い',r[1].health&&r[1].health.err==='key-mismatch'&&r[1].health.mismatch_versions.includes('v1'),r[1].health);
+  /* 同じ isolate のまま、D1 の印が変わった（前の状態に戻した）：60秒の覚えのあいだだけ前の確かめのまま、そのあとは確かめ直して閉じる */
+  const okTag=(await q2(`SELECT tag FROM key_sentinels WHERE kver='v1'`))[0].tag;
+  tick();r=await call('/api/notes',{method:'POST',tok:(await mk2('uKs3','ksthree',W2,E2,'ks.three@mail.test-gk.net'))[0],body:{body:'ふつう'},W:W2,E:E2});expect('R3 合っている鍵では書ける',r[0]===200,r);
+  await DB2.prepare(`UPDATE key_sentinels SET tag='00000000000000000000000000000000' WHERE kver='v1'`).run();
+  const t3=await tok('uKs3',{email:'ks.three@mail.test-gk.net'});
+  tick(20e3);r=await call('/api/notes',{method:'POST',tok:t3,body:{body:'60秒の中'},W:W2,E:E2});expect('R3 覚えは60秒まで（そのあいだは前の確かめ）',r[0]===200,r);
+  tick(61e3);r=await call('/api/notes',{method:'POST',tok:t3,body:{body:'60秒のあと'},W:W2,E:E2});expect('R3 60秒たつと確かめ直して閉じる（D1 を戻したときに古い確かめのままにしない）',r[0]===503,r);
+  await DB2.prepare(`UPDATE key_sentinels SET tag=? WHERE kver='v1'`).bind(okTag).run();
+  /* 新しい版（v2）を今の版にする：v2 の印を記録してから、v2 のハッシュを記録する */
+  const W4=await fresh('ks4'),E4=mkEnv({DB:DB2,EMAIL_HMAC_KEY:'',EMAIL_HMAC_KEYRING:JSON.stringify({v1:K2,v2:K3}),EMAIL_HMAC_KEY_CURRENT:'v2'});
+  const [t5,r5]=await mk2('uKs5','ksfive',W4,E4,'ks.five@mail.test-gk.net');
+  const sv2=(await q2(`SELECT created_at FROM key_sentinels WHERE kver='v2'`))[0],ue=(await q2(`SELECT kver,first_at FROM user_emails WHERE uid='uKs5'`));
+  expect('R3 新しい版の印を記録してから、その版でハッシュを記録',r5[0]===200&&sv2&&ue.length===1&&ue[0].kver==='v2'&&ue[0].first_at>=sv2.created_at,{r5,sv2,ue});
+  /* 印が合わない版があるあいだは、ハッシュを記録しない（停止がない D1 でも） */
+  const DB3=makeD1(),W5=await fresh('ks5'),E5=mkEnv({DB:DB3,EMAIL_HMAC_KEY:K2});
+  await mk2('uKs6','kssix',W5,E5,'ks.six@mail.test-gk.net');
+  await DB3.prepare(`UPDATE key_sentinels SET tag='11111111111111111111111111111111' WHERE kver='v1'`).run();await DB3.prepare(`DELETE FROM user_emails`).run();
+  const W6=await fresh('ks6'),E6=mkEnv({DB:DB3,EMAIL_HMAC_KEY:K2});
+  const [t7,r7]=await mk2('uKs7','ksseven',W6,E6,'ks.seven@mail.test-gk.net');
+  expect('R3 停止がなくても、印の合わない鍵ではハッシュを記録しない（ログインは前と同じく使える）',r7[0]===200&&(await (async()=>(await DB3.prepare(`SELECT COUNT(*) AS c FROM user_emails`).all()).results[0].c)())===0,r7);
+}
 /* ---------- 11. 1回のリクエストで増える D1 の問い合わせの数（報告に書く） ---------- */
 {const real=env.DB;let cnt=0;const Ec={...env,DB:{prepare:s=>{cnt++;return real.prepare(s)},batch:l=>real.batch(l)}};
   const QN=Ec.DB;const tl0=(()=>{cnt=0})();void tl0;
+  /* ときどき動く掃除（Math.random）を止めて数える（数がゆれないように） */
+  const rnd=Math.random;Math.random=()=>0.5;
+  /* 鍵の印の確かめは D1 の結びつきごとに60秒覚える：ふだんの数を数えるため、先に1回動かす */
+  await call('/api/tl',{tok:N,E:Ec});cnt=0;
   await call('/api/tl',{E:Ec});const anon=cnt;cnt=0;await call('/api/tl',{tok:N,E:Ec});const authed=cnt;cnt=0;
   tick();await call('/api/notes',{method:'POST',tok:N,body:{body:'数える'},E:Ec});const post=cnt;
   console.log(`  D1 の問い合わせ：ログインなしの /api/tl ${anon}・ログインありの /api/tl ${authed}・ふつうの投稿 ${post}（利用停止の確かめで増える分＝${authed-anon}）`);
+  Math.random=rnd;
   expect('ログインした人の読むだけで増える問い合わせ（前からの本人の確かめ1つ＋利用停止の確かめ2つ）は3つまで',authed-anon<=3,{anon,authed});void QN}
 /* ---------- 12. 合言葉をどこにも出さない ---------- */
 expect('Web Risk の合言葉・メールの鍵・メールは返事に出ない',!RESP.some(t=>t.includes(WR_KEY)||t.includes('email-hmac-key')||/zed\.attacker|mail\.test-gk\.net/i.test(t)),RESP.find(t=>t.includes(WR_KEY)));

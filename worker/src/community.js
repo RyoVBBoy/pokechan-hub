@@ -246,6 +246,8 @@ async function api(req,env,u,ctx){
         OR EXISTS(SELECT 1 FROM sanctions s JOIN user_emails ue ON ue.ehash=s.ehash WHERE s.kind='email' AND ue.uid=users.uid AND s.status='active' AND (s.permanent=1 OR s.expires_at>?1)) THEN 2 ELSE 0 END WHERE handle=?2 COLLATE NOCASE`).bind(now,h).run()
       :await db.prepare(`UPDATE users SET banned=1 WHERE handle=? COLLATE NOCASE`).bind(h).run();
     if(!(r.meta&&r.meta.changes))return J({error:'そのユーザーIDの人が見つかりません。'},404);
+    /* Firebase の同期：手動の停止は、この仕組みが止めたアカウントを戻さない理由になる。変わったので確かめ直す（行があるときだけ） */
+    await db.prepare(`UPDATE fb_sync SET gen=gen+1,next_at=0,updated_at=? WHERE uid=(SELECT uid FROM users WHERE handle=? COLLATE NOCASE)`).bind(now,h).run();
     const st=await db.prepare(`SELECT banned FROM users WHERE handle=? COLLATE NOCASE`).bind(h).first();
     return J({ok:true,banned:body.on!==false||!!(st&&st.banned),...(body.on===false&&st&&st.banned===2?{sanctioned:true,error:'手動の停止は解除しましたが、有効な利用停止の記録があるため停止のままです（「利用停止の記録」で確かめてください）。'}:{})});
   }

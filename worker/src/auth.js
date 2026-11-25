@@ -87,7 +87,8 @@ async function userApi(req,env,db,path,body,now){
   const me=await authOf(req,env);
   if(!me)return J({error:'ログインし直してください。'},401);
   const row=await db.prepare(`SELECT * FROM users WHERE uid=?`).bind(me.uid).first();
-  if(row&&row.banned)return J({error:'このアカウントは利用を停止しています。'},403);
+  /* 利用停止の記録による停止（banned=2）でも、アカウントの削除はできる（記録〔sanctions〕は残る）。手動の停止（1）は前と同じ */
+  if(row&&row.banned&&!(row.banned===2&&path==='/api/me/delete'&&req.method==='POST'))return J({error:SANC_MSG},403);
   /* 自分の情報 */
   if(path==='/api/me'&&req.method==='GET')return J({user:row?meUser(row):null,email:me.email,provider:me.provider});
   /* プロフィールの作成・変更 */
