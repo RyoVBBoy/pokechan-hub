@@ -13,7 +13,8 @@ async function contactInit(db){
   ]);
   CONTACT_READY=true;
 }
-const CONTACT_KINDS=['data','bug','idea','other'];
+/* appeal＝利用停止への異議、account＝アカウントの削除・自分の記録の相談（ログインできなくても送れる。本人かどうかは運営者が確かめてから対応し、自動では消さない） */
+const CONTACT_KINDS=['data','bug','idea','other','appeal','account'];
 async function contactApi(req,env,db,path,body,now,isAdmin,ip){
   if(path==='/api/contact'&&req.method==='POST'){
     await contactInit(db);

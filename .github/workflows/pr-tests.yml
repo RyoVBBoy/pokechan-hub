@@ -35,6 +35,10 @@ jobs:
           npm install --no-audit --no-fund
           for i in 1 2; do timeout 180 npx playwright install --with-deps chromium && break; echo "やり直し $i"; sleep 15; done || true
           npx playwright install chromium
+      - name: Firebase の道具（ロックファイルの版・スクリプトは動かさない。本物の Firebase にはつながない）
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tools/firebase-blocking
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tools/firebase-adapter
       - name: 組み立て（検索向けページは本番でないアドレスで）
         env:
           SITE_URL: https://example.invalid
@@ -43,4 +47,6 @@ jobs:
           python3 worker/build.py
           node tools/gen-pages.cjs
       - name: テスト
+        env:
+          FB_SDK_TEST: '1'
         run: node tests/run.mjs

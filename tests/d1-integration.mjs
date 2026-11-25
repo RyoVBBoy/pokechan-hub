@@ -70,8 +70,8 @@ ok(r[0]===503&&bq.dn===5&&bq.mn===90000,'1か月の上限で閉じ、1日の回�
 /* 確認の記録への同時の停止 → 1つだけ */
 const ADM={admin:'admin-secret-123'};
 const nA=(await db.prepare(`SELECT id FROM notes WHERE uid='iA' LIMIT 1`).first()).id;
-const cs=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'hiA',kind:'attack',summary:'このリンクがフィッシングと確かめた（記録の番号で確認）',refs:[{t:'note',id:nA}],attest:true,evidence_kinds:['direct']}});
-const sb={kind:'perpetrator',case_id:cs[1].case_id,rationale:'意図的にフィッシングのリンクを広めたと確認したため停止する',confirm:'SANCTION',basis:'deliberate_attack'};
+const cs=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'hiA',kind:'attack',summary:'このリンクがフィッシングと確かめた（記録の番号で確認）',refs:[{t:'note',id:nA}],attest:true,reviewer:'テスト担当',evidence_kinds:['direct']}});
+const sb={kind:'perpetrator',case_id:cs[1].case_id,rationale:'意図的にフィッシングのリンクを広めたと確認したため停止する',confirm:'SANCTION',reviewer:'テスト担当',basis:'deliberate_attack'};
 const ss=await Promise.all([1,2,3].map(()=>call('/api/admin/sanctions',{method:'POST',...ADM,body:sb})));
 ok(ss.filter(x=>x[0]===200).length===1&&ss.filter(x=>x[0]===409).length===2&&(await db.prepare(`SELECT COUNT(*) AS c FROM sanctions WHERE case_id=? AND kind='uid'`).bind(cs[1].case_id).first()).c===1,'同じ確認の記録へ同時に3つ → 停止は1つ（ほかは 409）',ss.map(x=>x[0]));
 ok((await db.prepare(`SELECT COUNT(*) AS c FROM fb_sync WHERE uid='iA' AND gen>done_gen`).first()).c===1,'Firebase の同期の行も1つ（同じ人は1行）','');

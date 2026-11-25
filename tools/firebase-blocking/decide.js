@@ -23,4 +23,16 @@ async function decide({user,check,timeoutMs=2000,onError='deny',breaker=DEFAULT_
   breaker&&breaker.ok();
   return res.deny?{block:true,message:NEUTRAL,why:'sanctioned'}:{block:false,why:'ok'};
 }
-module.exports={decide,NEUTRAL,makeBreaker};
+/* 環境の対応表（firebase-env.json。tools/firebase-env.json と同じ中身）から、承認された環境だけを選ぶ。
+   動いている Cloud Functions のプロジェクト（project）が対応表と違う・承認されていない・決まっていない値がある・本番と同じ値を使う（本番以外）なら投げる＝外へは送らない */
+function envFor(map,name,project){
+  const envs=map&&map.environments,e=envs&&envs[name];
+  if(!e)throw new Error('env-unknown');
+  if(e.approved!==true)throw new Error('env-not-approved');
+  for(const k of ['project','worker','workerEnvId'])if(typeof e[k]!=='string'||!e[k]||/^<.*>$/.test(e[k]))throw new Error('env-incomplete:'+k);
+  if(!/^https:\/\/[a-z0-9.-]+$/.test(e.worker))throw new Error('env-worker');
+  if(name!=='production'&&envs.production)for(const k of ['project','worker','workerEnvId'])if(e[k]===envs.production[k])throw new Error('env-shares-production:'+k);
+  if(project!==e.project)throw new Error('project-mismatch');
+  return{name,checkUrl:e.worker+'/api/fb/check',workerEnvId:e.workerEnvId,project:e.project};
+}
+module.exports={decide,NEUTRAL,makeBreaker,envFor};

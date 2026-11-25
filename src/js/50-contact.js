@@ -2,7 +2,7 @@
    ・#/contact：お問い合わせ（種類・内容・返事がほしいときの連絡先＝任意）
    ・#/contact/<どの画面から（encodeURIComponent した #/…）>：「間違いを報告」から来たとき。種類は「データの間違い」から始め、画面の名前を出す
    ・どの画面の下にも「間違いを報告」（index.html の data-report）。図鑑のページにも。ログインしなくても送れる */
-const CT_KINDS=[['data','データの間違い'],['bug','動かない・表示がおかしい'],['idea','ほしい機能・要望'],['other','そのほか']];
+const CT_KINDS=[['data','データの間違い'],['bug','動かない・表示がおかしい'],['idea','ほしい機能・要望'],['appeal','利用停止への異議'],['account','アカウントの削除・自分の記録'],['other','そのほか']];
 const reportLink=()=>'#/contact/'+encodeURIComponent(cur||'#/');
 /* どの画面かを、人が読める名前にする */
 function pageLabel(h){
@@ -21,7 +21,8 @@ function contactView(arg){
       <p class="note" style="padding-top:14px">${from?`<b>${esc(pageLabel(from))}</b>の間違いや、おかしなところを教えてください。いただいた内容は運営者が確認して直します。`:'サイトについてのご意見・ご要望・不具合などを送れます。ログインしなくても送れます。'}</p>
       <div class="ct-k" role="radiogroup" aria-label="種類">${CT_KINDS.map(([k,l])=>`<button class="pill" role="radio" data-k="${k}" aria-pressed="${k===kind}">${l}</button>`).join('')}</div>
       <div class="cform" style="padding:0 16px">
-        <label>内容<textarea id="ct-b" rows="6" maxlength="2000" placeholder="${kind==='data'?'例：ガブリアスの素早さの種族値が、ゲームでは〇〇でした。':'例：〇〇の画面で、△△を押すと動かなくなります（iPhone）。'}"></textarea></label>
+        <label>内容<textarea id="ct-b" rows="6" maxlength="2000" placeholder="${kind==='data'?'例：ガブリアスの素早さの種族値が、ゲームでは〇〇でした。':kind==='appeal'?'例：@ユーザーID の利用停止について。〇〇という理由で誤りだと思います。':kind==='account'?'例：@ユーザーID のアカウントを消したい（ログインできません）。':'例：〇〇の画面で、△△を押すと動かなくなります（iPhone）。'}"></textarea></label>
+        ${kind==='appeal'||kind==='account'?'<p class="note" style="padding-top:0">ログインできなくても送れます。運営者が本人かどうかを確かめてから対応します（送っただけでは、停止が解けたりアカウントが消えたりはしません）。返事の連絡先を書いてください。</p>':''}
         <label>返事がほしいときの連絡先（任意）<input id="ct-r" maxlength="100" autocomplete="email" placeholder="メールアドレスか X のID"></label>
       </div>
       <p class="note" style="color:var(--mute);padding-top:0">連絡先は運営者だけが見ます。ほかの人には表示されません。すべてのお問い合わせに返事ができるとは限りません。個人情報は書かないでください。</p>
