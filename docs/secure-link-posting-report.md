@@ -46,6 +46,7 @@ Commands (both runs): `npm install` · `node tools/build.mjs` · `python3 worker
 * Baseline: clean git worktree at `31ed89e` → build exit 0, `すべてのテストに合格しました`, 44/44 suites, calc-ref 1500/1500.
 * Candidate: implementation commits on this branch → build exit 0, `すべてのテストに合格しました`, 47/47 suites, calc-ref 1500/1500.
 * Every pre-existing suite has the same assertion count as baseline except `social` 287 → 292 (added flag OFF/ON checks; original URL-rejection assertion kept). New: `links` 231, `links-migrate` 8, `links-ui` 70 (390 px and 1280 px).
+* Review round 1 (code at `34b6ea2`, same commands): build exit 0, `すべてのテストに合格しました`, 47/47 suites, calc-ref 1500/1500. Versus `2d00eb8`: identical counts for every suite except `links` 231 → 310 and `links-ui` 70 → 82 (new feature assertions 314 → 405: links 310 + links-migrate 8 + links-ui 82 + social additions 5). CI for `9e700b5`: push run 45544173340 and PR run 45544238979 both success (reported by the reviewer and the check-suite event).
 * Not run here: the new `.github/workflows/pr-tests.yml` (runs on GitHub after push; check the PR's Checks tab). Real Google Web Risk, real Firebase and production D1 were never contacted.
 
 ## 7. Release blockers (all open)
