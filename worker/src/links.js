@@ -114,7 +114,7 @@ async function lkAddCol(db,t,c){try{await db.prepare(`ALTER TABLE ${t} ADD COLUM
 const LK_SCHEMA={notes:['op'],note_links:['note_id','uid','url','host','state','verdict','verdict_at','expires_at','rev','vh','pol'],link_intents:['token','note_id','who','rev','expires_at','used','used_at','pol'],link_state:['k','v','at','until'],elid_review:['uid','elids','at'],
   sanctions:['id','kind','uid','ehash','kver','permanent','expires_at','status','root_key','case_id','parent','elid','basis','reviewer'],sanction_cases:['id','target_uid','kind','refs','related_root','status','op','ek','lbasis','dsum','lsum','reviewer','signals'],
   user_emails:['uid','ehash','kver','elid'],key_sentinels:['kver','tag'],link_budget_d:['day','month','n'],link_leases:['slot','holder','expires_at'],
-  fb_sync:['uid','gen','done_gen','owned','prior','intent','intent_gen','lease','lease_until','attempts','next_at','dead','last_want','checked_at','pend_since','obs_disabled','obs_at','obs_gen','review','unknown','last_op','unk_op'],fb_metrics:['day','k','n'],fb_ops:['op','uid','gen','intent','kind','at','resolved_at','obs','how'],job_runs:['name','last_at','last_ok']};
+  fb_sync:['uid','gen','done_gen','owned','prior','intent','intent_gen','lease','lease_until','attempts','next_at','dead','last_want','checked_at','pend_since','obs_disabled','obs_at','obs_gen','review','unknown','last_op','unk_op','intent_lease'],fb_metrics:['day','k','n'],fb_ops:['op','uid','gen','intent','kind','at','resolved_at','obs','how'],job_runs:['name','last_at','last_ok']};
 const LK_INDEXES=['sanctions_root_eh','sanctions_root_uid','sanctions_case_uid','sanctions_kv','note_links_vh','fb_sync_due','notes_op'];
 async function linksInit(db){
   if(LK_READY)return;
@@ -175,16 +175,18 @@ async function linksInit(db){
     /* Firebase の同期の数（日ごと：done＝終えた・failed＝失敗・unknown＝結果が分からない・stale＝古い報告/期限切れ・lost＝返事が届かなかった報告の再送） */
     db.prepare(`CREATE TABLE IF NOT EXISTS fb_metrics(day TEXT NOT NULL,k TEXT NOT NULL,n INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(day,k))`),
     /* 結果が分からない Firebase の操作を1つずつ（op＝その回の借りた印）。timeout＝動いているアダプターが時間切れを報告した、crash＝止める/戻す記録のあと報告がないまま借りる時間が切れた。
-       片づくのは、その op の読み直し（observe）か運営者のやり直し（replay）だけ。timeout が残っているあいだは、そのアカウントを新しく変えない（claim しない） */
+       片づくのは、その op の読み直し（observe）か運営者のやり直し（replay）だけ。timeout・crash が残っているあいだは、そのアカウントを新しく変えない（claim しない） */
     db.prepare(`CREATE TABLE IF NOT EXISTS fb_ops(op TEXT PRIMARY KEY,uid TEXT NOT NULL,gen INTEGER,intent TEXT,kind TEXT NOT NULL,at INTEGER NOT NULL,resolved_at INTEGER,obs INTEGER,how TEXT)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS fb_ops_uid ON fb_ops(uid,resolved_at)`),
     /* 決まった時刻の仕事の結果（期限の見直しなど） */
     db.prepare(`CREATE TABLE IF NOT EXISTS job_runs(name TEXT PRIMARY KEY,last_at INTEGER,last_ok INTEGER,last_err TEXT,ok_at INTEGER,fails INTEGER NOT NULL DEFAULT 0)`)
   ]);
   /* この版より前の表（このブランチの前の版）に列を足す */
-  for(const [t,c] of [['note_links','rev INTEGER NOT NULL DEFAULT 0'],['note_links','vh TEXT'],['link_intents','used_at INTEGER'],['sanctions','root_key TEXT'],['sanctions','case_id INTEGER'],['sanction_events','root_key TEXT'],['sanction_cases','op TEXT'],['sanction_cases','ek TEXT'],['sanction_cases','lbasis TEXT'],['sanction_cases','dsum TEXT'],['notes','op TEXT'],['fb_sync','pend_since INTEGER'],['fb_sync','obs_disabled INTEGER'],['fb_sync','obs_at INTEGER'],['fb_sync','obs_gen INTEGER'],['fb_sync','review INTEGER NOT NULL DEFAULT 0'],['fb_sync','review_why TEXT'],['fb_sync','unknown INTEGER NOT NULL DEFAULT 0'],['fb_sync','intent_at INTEGER'],['fb_sync','unk_intent TEXT'],['sanctions','elid TEXT'],['sanctions','basis TEXT'],['sanctions','reviewer TEXT'],['sanction_cases','lsum TEXT'],['sanction_cases','reviewer TEXT'],['sanction_cases','signals TEXT'],['user_emails','elid TEXT'],['note_links','pol TEXT'],['link_intents','pol TEXT'],['fb_sync','last_op TEXT'],['fb_sync','unk_op TEXT'],['link_state','until INTEGER']])
+  for(const [t,c] of [['note_links','rev INTEGER NOT NULL DEFAULT 0'],['note_links','vh TEXT'],['link_intents','used_at INTEGER'],['sanctions','root_key TEXT'],['sanctions','case_id INTEGER'],['sanction_events','root_key TEXT'],['sanction_cases','op TEXT'],['sanction_cases','ek TEXT'],['sanction_cases','lbasis TEXT'],['sanction_cases','dsum TEXT'],['notes','op TEXT'],['fb_sync','pend_since INTEGER'],['fb_sync','obs_disabled INTEGER'],['fb_sync','obs_at INTEGER'],['fb_sync','obs_gen INTEGER'],['fb_sync','review INTEGER NOT NULL DEFAULT 0'],['fb_sync','review_why TEXT'],['fb_sync','unknown INTEGER NOT NULL DEFAULT 0'],['fb_sync','intent_at INTEGER'],['fb_sync','unk_intent TEXT'],['sanctions','elid TEXT'],['sanctions','basis TEXT'],['sanctions','reviewer TEXT'],['sanction_cases','lsum TEXT'],['sanction_cases','reviewer TEXT'],['sanction_cases','signals TEXT'],['user_emails','elid TEXT'],['note_links','pol TEXT'],['link_intents','pol TEXT'],['fb_sync','last_op TEXT'],['fb_sync','unk_op TEXT'],['fb_sync','intent_lease TEXT'],['link_state','until INTEGER']])
     await lkAddCol(db,t,c);
   await db.batch([
+    /* 旧版の実行中 intent は安全側に倒し、現在の lease に結びつける。新しい claim は古い intent を引き継がない。 */
+    db.prepare(`UPDATE fb_sync SET intent_lease=lease WHERE intent_lease IS NULL AND lease IS NOT NULL AND intent IS NOT NULL`),
     /* root_key のない前の行：parent をたどった一番上の行の番号にする（何段でも。輪になっても64段で止める） */
     db.prepare(`WITH RECURSIVE anc(id,rk,d) AS (SELECT id,COALESCE(root_key,'id:'||id),0 FROM sanctions WHERE parent IS NULL OR parent=0 OR parent NOT IN (SELECT id FROM sanctions)
         UNION ALL SELECT s.id,a.rk,a.d+1 FROM sanctions s JOIN anc a ON s.parent=a.id WHERE a.d<64)
@@ -648,9 +650,9 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     const lease=rndHex(16),skip=Array.isArray(body.skip)?body.skip.filter(x=>typeof x==='string').slice(0,50):[];
     await db.prepare(`INSERT INTO job_runs(name,last_at,last_ok,ok_at,fails) VALUES('fb_adapter',?1,1,?1,0) ON CONFLICT(name) DO UPDATE SET last_at=?1,last_ok=1,ok_at=?1`).bind(now).run();
     /* 止める/戻す記録（intent）のあと報告がないまま借りる時間が切れた回は、結果が分からない操作（crash）として1つずつ残す（運営者に見せる。そのあとの回の読み直しでは消さない） */
-    await db.prepare(`INSERT OR IGNORE INTO fb_ops(op,uid,gen,intent,kind,at) SELECT lease,uid,intent_gen,intent,'crash',?1 FROM fb_sync WHERE lease IS NOT NULL AND lease_until<=?1 AND intent IS NOT NULL AND intent_at>=lease_until-${FB_LEASE_MS}*20`).bind(now).run();
-    const x=await db.prepare(`UPDATE fb_sync SET lease=?1,lease_until=?2,updated_at=?3 WHERE uid=(SELECT uid FROM fb_sync WHERE dead=0 AND next_at<=?3 AND lease_until<=?3
-        AND NOT EXISTS(SELECT 1 FROM fb_ops o WHERE o.uid=fb_sync.uid AND o.kind='timeout' AND o.resolved_at IS NULL)
+    await db.prepare(`INSERT OR IGNORE INTO fb_ops(op,uid,gen,intent,kind,at) SELECT lease,uid,intent_gen,intent,'crash',?1 FROM fb_sync WHERE lease IS NOT NULL AND lease_until<=?1 AND intent IS NOT NULL AND intent_lease=lease`).bind(now).run();
+    const x=await db.prepare(`UPDATE fb_sync SET lease=?1,lease_until=?2,updated_at=?3,intent=NULL,intent_gen=NULL,intent_at=NULL,intent_lease=NULL WHERE uid=(SELECT uid FROM fb_sync WHERE dead=0 AND next_at<=?3 AND lease_until<=?3
+        AND NOT EXISTS(SELECT 1 FROM fb_ops o WHERE o.uid=fb_sync.uid AND o.resolved_at IS NULL)
         AND (done_gen<gen OR checked_at IS NULL OR checked_at<?4)${skip.length?` AND uid NOT IN (${skip.map((_,i)=>'?'+(i+5)).join(',')})`:''} ORDER BY (done_gen<gen) DESC,next_at,uid LIMIT 1) RETURNING uid,gen,owned,prior,attempts,lease_until,review`)
       .bind(lease,now+FB_LEASE_MS,now,now-FB_RECHECK_MS,...skip).first();
     if(!x)return J({items:[],lease_ms:FB_LEASE_MS});
@@ -678,10 +680,10 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
          最初は止まっていた（prior=1・この仕組みのものではない）のに、いま外で戻されていて、この仕組みが止める：この仕組みが止めたことにするが、持ち主がはっきりしないので review（自動では戻さない） */
       r=await db.prepare(`UPDATE fb_sync SET review=CASE WHEN owned=0 AND prior=1 AND ?5=0 THEN 1 ELSE review END,review_why=CASE WHEN owned=0 AND prior=1 AND ?5=0 THEN 'prior_disabled_then_enabled' ELSE review_why END,
         owned=CASE WHEN owned=1 THEN 1 WHEN prior IS NULL AND ?5=0 THEN 1 WHEN prior=1 AND ?5=0 THEN 1 ELSE owned END,prior=CASE WHEN owned=1 OR prior IS NOT NULL THEN prior ELSE ?5 END,
-        obs_disabled=?5,obs_at=?4,obs_gen=?3,intent='disable',intent_gen=?3,intent_at=?4,updated_at=?4 WHERE uid=?1 AND ${own} AND ${fbSancSQL('?1','?4')} RETURNING owned,prior,review`).bind(uid,lease,gen,now,obs?1:0).first();
+        obs_disabled=?5,obs_at=?4,obs_gen=?3,intent='disable',intent_gen=?3,intent_at=?4,intent_lease=?2,updated_at=?4 WHERE uid=?1 AND ${own} AND ${fbSancSQL('?1','?4')} RETURNING owned,prior,review`).bind(uid,lease,gen,now,obs?1:0).first();
     else
       /* 戻す直前：この仕組みが止めた・最初は止まっていなかった・持ち主がはっきりしている・いま有効な停止も手動の停止もない、をこの文の中で確かめる */
-      r=await db.prepare(`UPDATE fb_sync SET obs_disabled=?5,obs_at=?4,obs_gen=?3,intent='enable',intent_gen=?3,intent_at=?4,updated_at=?4 WHERE uid=?1 AND ${own} AND owned=1 AND COALESCE(prior,0)=0 AND review=0
+      r=await db.prepare(`UPDATE fb_sync SET obs_disabled=?5,obs_at=?4,obs_gen=?3,intent='enable',intent_gen=?3,intent_at=?4,intent_lease=?2,updated_at=?4 WHERE uid=?1 AND ${own} AND owned=1 AND COALESCE(prior,0)=0 AND review=0
         AND NOT ${fbSancSQL('?1','?4')} AND NOT EXISTS(SELECT 1 FROM users WHERE uid=?1 AND banned=1) RETURNING owned,prior,review`).bind(uid,lease,gen,now,obs?1:0).first();
     if(!r){await db.batch([db.prepare(`UPDATE fb_sync SET lease=NULL,lease_until=0,next_at=0 WHERE uid=? AND lease=?`).bind(uid,lease),fbMetric(db,now,'stale')]);return J({error:'状態が変わりました。',stale:true},409)}
     return J({ok:true,owned:!!r.owned,prior:r.prior==null?null:!!r.prior,review:!!r.review});
@@ -697,7 +699,7 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!cur)return J({error:'見つかりません。'},404);
     if(cur.lease!==lease||!(cur.lease_until>now)){
       if(res==='done'&&cur.lease!==lease&&cur.done_gen>=gen){await fbMetric(db,now,'lost').run();return J({ok:true,repeat:true})}
-      await db.batch([db.prepare(`UPDATE fb_sync SET ${fbObsSQL},next_at=0,lease=CASE WHEN lease=?2 THEN NULL ELSE lease END,lease_until=CASE WHEN lease=?2 THEN 0 ELSE lease_until END,updated_at=?4 WHERE uid=?1`).bind(uid,lease,gen,now,null,null,null,null,obs),fbMetric(db,now,'stale')]);
+      await db.batch([db.prepare(`INSERT OR IGNORE INTO fb_ops(op,uid,gen,intent,kind,at) SELECT lease,uid,intent_gen,intent,'crash',?3 FROM fb_sync WHERE uid=?1 AND lease=?2 AND lease_until<=?3 AND intent IS NOT NULL AND intent_lease=lease`).bind(uid,lease,now),db.prepare(`UPDATE fb_sync SET ${fbObsSQL},next_at=0,lease=CASE WHEN lease=?2 THEN NULL ELSE lease END,lease_until=CASE WHEN lease=?2 THEN 0 ELSE lease_until END,updated_at=?4 WHERE uid=?1`).bind(uid,lease,gen,now,null,null,null,null,obs),fbMetric(db,now,'stale')]);
       return J({error:'古い報告です（借りる時間が切れたか、ほかが借りています）。見た状態は残しました。',stale:true,recorded:obs!==null},409)}
     /* あるべき状態が途中で変わった：失敗には数えず、見た状態を残して借りている印を返し、すぐ確かめ直す（持ち主の記録は変えない） */
     if(res==='superseded'){
@@ -736,21 +738,25 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!uid||!op||typeof body.observed_disabled!=='boolean')return J({error:'形が正しくありません。'},400);
     /* 片づけるのは、その op の「結果が分からない」操作の記録（fb_ops）1つだけ。ほかの op・すでに片づいた op・記録のない op は、見た状態だけを残す（持ち主を推しはからない） */
     const ob=body.observed_disabled?1:0;
-    const op1=await db.prepare(`UPDATE fb_ops SET resolved_at=?3,obs=?4,how='observe' WHERE op=?1 AND uid=?2 AND resolved_at IS NULL RETURNING intent,kind`).bind(op,uid,now,ob).first();
-    if(!op1){const m0=await db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 RETURNING uid`).bind(uid,ob,now).first();
-      return m0?J({ok:true,recorded_only:true}):J({error:'見つかりません。'},404)}
+    /* fb_sync と fb_ops の解決は同じ D1 batch。未解決の同じ op だけが状態を変える。 */
     /* その操作が「止める」で、読み直すと止まっていた：この仕組みが止めたことにする（持ち主を失わない）。まだ片づいていない操作が残っていれば unknown のまま。
        どの場合も番号を上げて、すぐ今のあるべき状態に合わせ直す（遅れて終わった呼び出しが、あとから合わせた状態をくつがえしたかもしれないため） */
     /* settled＝アダプターが見た、その操作の Firebase を変える呼び出しの本当の終わり方（ok＝遅れて成功・error＝失敗・none＝変える呼び出しは時間切れではなかった）。
        止める操作が遅れて成功し、止まっている＝この仕組みが止めた。止まっているのに、止める呼び出しが成功していない＝ほかの人が外で止めた可能性：持ち主を推しはからず review（運営者が決める） */
     const st=['ok','error','none'].includes(body.settled)?body.settled:'none';
-    const own=op1.intent==='disable'&&ob===1&&st==='ok'?1:0,amb=op1.intent==='disable'&&ob===1&&st!=='ok'?1:0;
-    const r=await db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,
-      owned=CASE WHEN ?4=1 THEN 1 ELSE owned END,prior=CASE WHEN ?4=1 AND prior IS NULL THEN 0 ELSE prior END,
-      review=CASE WHEN ?5=1 AND owned=0 THEN 1 ELSE review END,review_why=CASE WHEN ?5=1 AND owned=0 THEN 'disabled_outside_unknown' ELSE review_why END,
-      unknown=CASE WHEN EXISTS(SELECT 1 FROM fb_ops o WHERE o.uid=?1 AND o.kind='timeout' AND o.resolved_at IS NULL) THEN 1 ELSE 0 END,unk_intent=NULL,unk_op=NULL,
-      gen=gen+1,pend_since=COALESCE(pend_since,?3),next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 RETURNING uid,unknown`).bind(uid,ob,now,own,amb).first();
-    return r?J({ok:true,still_unknown:!!r.unknown}):J({error:'見つかりません。'},404);
+    const pending=`EXISTS(SELECT 1 FROM fb_ops o WHERE o.op=?4 AND o.uid=?1 AND o.resolved_at IS NULL)`;
+    const disable=`EXISTS(SELECT 1 FROM fb_ops o WHERE o.op=?4 AND o.uid=?1 AND o.resolved_at IS NULL AND o.intent='disable')`;
+    const own=`(?2=1 AND ?5='ok' AND ${disable})`,amb=`(?2=1 AND ?5<>'ok' AND ${disable})`;
+    const out=await db.batch([db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,
+      owned=CASE WHEN ${own} THEN 1 ELSE owned END,prior=CASE WHEN ${own} AND prior IS NULL THEN 0 ELSE prior END,
+      review=CASE WHEN ${amb} THEN 1 ELSE review END,review_why=CASE WHEN ${amb} THEN 'disabled_outside_unknown' ELSE review_why END,
+      unknown=CASE WHEN EXISTS(SELECT 1 FROM fb_ops o WHERE o.uid=?1 AND o.op<>?4 AND o.resolved_at IS NULL) THEN 1 ELSE 0 END,unk_intent=NULL,unk_op=NULL,
+      gen=gen+1,pend_since=COALESCE(pend_since,?3),next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 AND ${pending} RETURNING uid,unknown`).bind(uid,ob,now,op,st),
+      db.prepare(`UPDATE fb_ops SET resolved_at=?3,obs=?4,how='observe' WHERE op=?1 AND uid=?2 AND resolved_at IS NULL AND EXISTS(SELECT 1 FROM fb_sync WHERE uid=?2)`).bind(op,uid,now,ob)]);
+    const r=out[0].results&&out[0].results[0];
+    if(r)return J({ok:true,still_unknown:!!r.unknown});
+    const m0=await db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 RETURNING uid`).bind(uid,ob,now).first();
+    return m0?J({ok:true,recorded_only:true}):J({error:'見つかりません。'},404);
   }
   if(path==='/api/fb/check'&&req.method==='POST'){
     /* ブロッキング関数から：その UID か確認済みメールに有効な停止があるか。答えは deny と、この Worker の環境の名前（FB_ENV_ID）だけ（理由・記録の中身は返さない）。メールは保存も記録もしない */
