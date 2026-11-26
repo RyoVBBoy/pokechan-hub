@@ -21,28 +21,30 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - name: Build
+        id: build
         run: npm run build
         env:
           SITE_URL: https://pokechan-hub.pages.dev
-      - name: Party selection and full recomputation
-        run: |
-          node tests/impl-fixes-20261124b.mjs
-          node tests/real-data-audit.mjs integration
+      - name: Party selection
+        run: node tests/impl-fixes-20261124b.mjs
+      - name: Real-data integration and full recomputation
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node tests/real-data-audit.mjs integration
       - name: Legal builds
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: node tests/real-data-audit.mjs legality
       - name: Performance (4x CPU)
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: node tests/real-data-audit.mjs performance
       - name: All regression tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           CALC_N: '1500'
           CALC_SEED: '20261123'
           CALC_CASES_REPORT: audit-calc-cases.json
           CALC_CASES_SUMMARY: audit-calc-cases-summary.json
           CALC_REF_REPORT: audit-calc-ref.json
-        run: npm test
+        run: npm test -- --keep-going
       - name: Preserve evidence
         if: always()
         uses: actions/upload-artifact@v4

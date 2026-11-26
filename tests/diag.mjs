@@ -350,7 +350,7 @@ const V8=await pg.evaluate(()=>{
   r.recount=x.rows.every((y,j)=>{const zs=T.rows[j].res.filter(z=>x.c.includes(z.i)),st=zs.filter(z=>z.r>=4).length,ok=zs.filter(z=>z.r>=3).length,wk=zs.filter(z=>z.r===2).length;return y.lvl===(st>=2?4:st===1?3:ok||wk?2:1)});
   r.lead=D.list.every(x=>x.c.includes(x.leads[0]));
   r.plan=JSON.stringify(selPlan(team).base.slice().sort())===JSON.stringify(D.best.c.slice().sort());
-  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/上位\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発/.test(t));
+  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/比較した\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発/.test(t));
   /* 選ばなかった匹に頼る相手：パーティ全体で◎○なのに、この選出で△以下 */
   r.lost=D.list.every(x=>x.lost.every(l=>{const j=T.rows.findIndex(z=>z.q.no===l.q.no);return T.rows[j].lvl>=3&&x.rows[j].lvl<=2}));
   /* ★の選出の順位 */
@@ -366,7 +366,7 @@ const V8=await pg.evaluate(()=>{
   D=dgSelect(team);const fb=D.T.ms.findIndex(o=>o.p.n==='フシギバナ');
   const c1=D.list.find(x=>x.c.includes(fb)&&x.c.includes(D.wxBy)),c2=D.list.find(x=>x.c.includes(fb)&&!x.c.includes(D.wxBy));
   const sp=c=>c.rows.map(y=>y.zs.find(z=>z.i===fb))[0].sa;
-  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,!c2.wxOk,dgSelWhy(D,c2).warn.some(t=>/味方の天気補正を入れていません/.test(t))];
+  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,c1.weather?.k==='sun'&&!c2.weather,dgSelWhy(D,c2).warn.some(t=>/味方の天気補正を入れていません/.test(t))];
   /* トリックルーム：張れる匹がいる選出だけ trUse */
   {const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
   setT(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);team[0].set=trSet(team[0].no);DG_SELC.clear();D=dgSelect(team);
@@ -391,10 +391,12 @@ const V9=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};
   const setT=ns=>{team.length=0;ns.forEach(s=>team.push({no:N(s).no}));TWX_K=null};
   setT(['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー']);
-  let D=dgSelect(team);const T=dgTeam(team,20),W=T.rows.reduce((t,_,j)=>t+(j<8?1.5:1),0);
+  let D=dgSelect(team);
   /* シングル：3匹それぞれの先発の点を手で数え直す */
   r.lead1=D.list.every(x=>x.lead1.length===3&&x.pairs===null&&x.lead1.every((l,k)=>!k||x.lead1[k-1].sc>=l.sc)&&x.leads[0]===x.lead1[0].i);
-  const x0=D.list[2];r.leadRe=x0.lead1.every(l=>{const v=T.rows.reduce((t,row,j)=>{const z=row.res.find(q=>q.i===l.i);const lv=z.r>=4?1:z.r>=3?.6:z.r===2?.25:0,d=z.op&&z.op.nMax===1&&z.spd!==1;return t+(j<8?1.5:1)*(lv-(d?.5:0))},0)/W;return Math.abs(v-l.sc)<1e-9});
+  // 先発の点は、パーティ全体ではなくこの選出で選ばれた相手の型から数え直す。
+  const x0=D.list[2],W=x0.rows.reduce((t,_,j)=>t+(j<8?1.5:1),0);
+  r.leadRe=x0.lead1.every(l=>{const v=x0.rows.reduce((t,row,j)=>{const z=row.zs.find(q=>q.i===l.i);const lv=z.r>=4?1:z.r>=3?.6:z.r===2?.25:0,d=z.op&&z.op.nMax===1&&z.spd!==1;return t+(j<8?1.5:1)*(lv-(d?.5:0))},0)/W;return Math.abs(v-l.sc)<1e-9});
   r.planLead1=selPlan(team).lead[0]===D.best.lead1[0].i;
   /* 点の内訳の合計＝点、順位は点の順（同点は×→一撃→◎○→後出し→先手） */
   r.parts=D.list.every(x=>Math.abs(x.P.cov+x.P.sw+x.P.swc+x.P.fast+x.P.danger+x.P.role+x.P.over-x.sc)<1e-9);
@@ -703,7 +705,7 @@ const U3=await pg.evaluate(()=>{const r={},T=dgTeam(team,20),box=document.getEle
   r.tables=[...list.querySelectorAll(':scope > .dg-r')].every((el,j)=>{const row=order[j],all=[...row.res].sort((a,b)=>b.r-a.r),ms=[...el.querySelectorAll('.dgm')];
     if(ms.length!==all.length)return false;
     return ms.every((m,k)=>{const z=all[k],dd=[...m.querySelectorAll('dd')].map(d=>d.textContent),txt=m.textContent;
-      const ko=!z.me?'—':z.me.nMin===1?'100%（確定）':z.me.nMax===1?Math.round(z.me.ohko/16*100)+'%':'0%（一撃では倒せない）';
+      const ko=Number.isFinite(z.koOnUse)?pctTxt(z.koOnUse):'—';
       return dd[0]===(z.me?z.me.mvn:'効く技がない')&&dd[2]===ko&&dd[3]===(z.me?dgKoTxt(z.me):'—')&&dd[5].includes(String(z.sa))&&dd[5].includes(String(z.so))&&z.why.every(w=>txt.includes(w))})});
   list.open=true;list.querySelectorAll('details').forEach(d=>d.open=true);r.over=document.body.scrollWidth<=innerWidth;
   list.querySelectorAll('details').forEach(d=>d.open=false);list.open=false;

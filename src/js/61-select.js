@@ -162,7 +162,12 @@ function dgSelWhy(S,x,ref){
   if(x.megaI>=0&&S.multi)good.push(`メガシンカ：${S.megaNm(x.megaI)}（この選出では${S.nm(x.megaI)}だけがメガシンカする場合で計算${(x.megaHold||[]).filter(i=>i!==x.megaI).length?`。${x.megaHold.filter(i=>i!==x.megaI).map(nm).join('・')}はメガシンカせず、メガストーンの効果なしで計算`:''}${x.megaAlt&&x.megaAlt.length?`。${x.megaAlt.map(a=>`${S.megaNm(a.i)}にした場合は点 ${a.sc.toFixed(3)}`).join('・')}`:''}）`);
   else if(x.megaI>=0)good.push(`メガシンカ：${S.megaNm(x.megaI)}`);
   if(x.weather)good.push(`${x.weather.by}の${ABN[x.weather.ab]||'特性'}で${({sun:'晴れ',rain:'雨',sand:'砂嵐',snow:'雪'})[x.weather.k]}になった場合を、対応する対面に反映しています${x.weather.guess?'（特性は推定）':''}`);
-  else if(X.tw&&X.wxBy>=0&&X.gain.length&&!x.wxOk)warn.push(`パーティの天気を作る${nm(X.wxBy)}がこの選出にいないため、味方の天気補正を入れていません`);
+  else{
+    const weatherSource=X.tw?X:S;
+    if(weatherSource.tw&&weatherSource.wxBy>=0&&weatherSource.gain.some(i=>x.c.includes(i))&&!x.c.includes(weatherSource.wxBy)){
+      warn.push(`パーティの天気を作る${nm(weatherSource.wxBy)}がこの選出にいないため、味方の天気補正を入れていません`);
+    }
+  }
   const suppressed=x.rows.filter(y=>y.zs.some(z=>z.weatherSuppressed));
   if(suppressed.length)warn.push(`天気の効果が無効になる対面あり（例 ${suppressed.slice(0,3).map(y=>y.r.q.n).join('・')}）`);
   const assumed=x.rows.filter(y=>y.r.abAssume);
@@ -229,7 +234,7 @@ function dgSelHTML(S,entries){
   const mons=x=>`<p class="dgu-sel">${x.c.map(i=>`<span class="dgu-mon${lds(x).includes(i)?' dgu-lead':''}">${nm(i)}${mk(x,i)}${lds(x).includes(i)?'<small>先発</small>':''}</span>`).join('')}</p>`;
   const W=dgSelWhy(S,B,S.list[1]);
   /* よい理由：数の札・先発の比較・2番目との比較に出すものは除く（文はそのまま） */
-  const good=W.good.filter(t=>!/^上位\d+匹のうち|^先発|^後出しして勝てる匹がいる相手|^2番目の選出/.test(t));
+  const good=W.good.filter(t=>!/^比較した\d+匹のうち|^先発|^後出しして勝てる匹がいる相手|^2番目の選出/.test(t));
   const kpi=`<div class="selu-kpi">
     <div><span>後出しして勝てる匹がいる相手</span><b>${B.sw}<small>/${N}匹</small></b>${B.swc?`<em>ほか条件つき ${B.swc}匹（きあいのタスキ頼み）</em>`:''}</div>
     <div><span>先に動ける匹がいる相手</span><b>${B.fast}<small>/${N}匹</small></b></div>
