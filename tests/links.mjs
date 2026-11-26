@@ -725,10 +725,10 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
   const A4=await mk('uR4a','rfouratk',{email:'r4.a1@mail.test-gk.net'});const a4l=await postLink(A4,'https://note.com/r4/bad');
   r=await call('/api/admin/cases',{method:'POST',...ADM,body:{handle:'rfouratk',kind:'attack',summary:SUM,refs:[{t:'link',id:a4l}],attest:true,evidence_kinds:['direct']}});expect('R4 確かめた人の名前がなければ確認の記録を作れない',r[0]===400&&/reviewer/.test(r[1].error),r);
   await qLink(a4l);const a4c=await mkCase('rfouratk',[{t:'link',id:a4l}]);
-  expect('R4 確認の記録に、確かめた人と、運営者が止めた印（自動の印と分けて）を残す',(await q('SELECT reviewer,signals FROM sanction_cases WHERE id=?',a4c[1].case_id)).every(x=>x.reviewer==='テスト担当'&&x.signals==='staff_quarantine'),await q('SELECT reviewer,signals FROM sanction_cases WHERE id=?',a4c[1].case_id));
+  expect('R4 確認の記録に、確かめた人と、運営者が止めた印（自動の印と分けて）を残す',(await q('SELECT reviewer,signals FROM sanction_cases WHERE id=?',a4c[1].case_id)).every(x=>x.reviewer==='self:テスト担当'&&x.signals==='staff_quarantine'),await q('SELECT reviewer,signals FROM sanction_cases WHERE id=?',a4c[1].case_id));
   r=await call('/api/admin/sanctions',{method:'POST',...ADM,body:{kind:'perpetrator',case_id:a4c[1].case_id,rationale:RAT,confirm:'SANCTION',basis:'deliberate_attack'}});expect('R4 確かめた人の名前がなければ停止できない',r[0]===400,r);
   const a4s=await sanc({kind:'perpetrator',case_id:a4c[1].case_id});expect('R4 攻撃者の停止',a4s[0]===200,a4s);
-  expect('R4 停止の行に理由（basis）と確かめた人を、専用の列で残す',(await q(`SELECT basis,reviewer FROM sanctions WHERE root_key=?`,a4s[1].root)).every(x=>x.basis==='deliberate_attack'&&x.reviewer==='テスト担当'),await q(`SELECT kind,basis,reviewer FROM sanctions WHERE root_key=?`,a4s[1].root));
+  expect('R4 停止の行に理由（basis）と確かめた人を、専用の列で残す',(await q(`SELECT basis,reviewer FROM sanctions WHERE root_key=?`,a4s[1].root)).every(x=>x.basis==='deliberate_attack'&&x.reviewer==='self:テスト担当'),await q(`SELECT kind,basis,reviewer FROM sanctions WHERE root_key=?`,a4s[1].root));
   /* 安全確認の結果（unsafe）だけのリンクは、関連アカウントの「その人自身の違反」にならない */
   const L4=await mk('uR4l','rfourlnk');const l4=await postLink(L4,'https://note.com/r4/bad');
   await env.DB.prepare(`UPDATE note_links SET state='unsafe' WHERE note_id=?`).bind(l4).run();
@@ -802,9 +802,39 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
     r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x',url:'https://note.com/r4/cap-bad'}});
     expect('R4 危険の覚えが上限でも、危険なリンクは付けられない',r[0]===400,r);
     expect('R4 危険の覚えが上限のときは、新しい危険を足さない（行は増えない）',(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe'`))[0].c===nu0,'');
-    tick(20e3);await clearSlots();const c0=WR.calls.length;r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x',url:'https://note.com/r4/cap-clean'}});
-    expect('R4 危険が多いときは問題なしを覚えない（付けられる・毎回確かめる）',r[0]===200&&WR.calls.length===c0+1&&(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='clean'`))[0].c===0,{r});
-    await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'fill%'`).run();delete WR.mode['note.com/r4/cap-bad']}
+    /* R5 上限の印（wr_saturated）：危険を覚えられなかったら閉じる（投稿・押す・許可を使う・戻す）。問い合わせもしない */
+    expect('R5 危険を覚えられなかったら上限の印を立てる',(await q(`SELECT v FROM link_state WHERE k='wr_saturated'`)).length===1,await q(`SELECT * FROM link_state`));
+    tick(20e3);await clearSlots();const c0=WR.calls.length;r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x2',url:'https://note.com/r4/cap-clean'}});
+    expect('R5 上限の印のあいだは、問題なしのリンクも付けられない・問い合わせない',r[0]===503&&WR.calls.length===c0,{r,d:WR.calls.length-c0});
+    const okL=(await q(`SELECT note_id FROM note_links WHERE state='ok' AND pol IS NOT NULL ORDER BY note_id DESC LIMIT 1`))[0];
+    r=await call(`/api/links/${okL.note_id}/open`,{method:'POST',body:{}});expect('R5 上限の印のあいだは、押しても開けない（503）',r[0]===503&&r[1].saturated===true,r);
+    const offL=(await q(`SELECT note_id FROM note_links WHERE state='quarantined' ORDER BY note_id DESC LIMIT 1`))[0];
+    if(offL){r=await call(`/api/admin/links/${offL.note_id}`,{method:'POST',admin:'admin-secret-123',body:{action:'restore',reason:'上限のときに戻す',confirm:true}});expect('R5 上限の印のあいだは、戻せない',r[0]===409,r)}
+    /* 上限で、問題なしの行を危険に変える（覚えの行がない・同じ行き先の投稿だけある場合も）：危険の行は 20000 をこえない・投稿は止める */
+    await env.DB.prepare(`DELETE FROM link_state`).run();
+    const cvN=(await q(`SELECT note_id,vh FROM note_links WHERE url='https://note.com/r4/cap-clean'`));
+    const cv=(await tryLink(U3,'https://cap-conv.test-gk.net/a'))[1].id,cv2=(await tryLink(await mk('uR5c','rfivec'),'https://cap-conv.test-gk.net/a'))[1].id;
+    expect('R5 上限の前に、同じ行き先の投稿を2つ（問題なし）',!!cv&&!!cv2,{cv,cv2,cvN});
+    await env.DB.prepare(`DELETE FROM link_verdicts WHERE h=(SELECT vh FROM note_links WHERE note_id=?)`).bind(cv).run();
+    WR.mode['cap-conv']='unsafe-3d';const nU0=(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`,clock))[0].c;
+    r=await call(`/api/admin/links/${cv}`,{method:'POST',admin:'admin-secret-123',body:{action:'recheck',reason:'上限で確かめ直す',confirm:true}});
+    const nU=(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`,clock))[0].c;
+    expect('R5 上限で危険と分かった：危険の行は上限をこえない・投稿は止める・同じ行き先のもう1つの投稿も止める・上限の印',r[0]===200&&r[1].verdict==='unsafe'&&nU0>=20000&&nU===nU0
+      &&(await q(`SELECT state FROM note_links WHERE note_id IN (?,?)`,cv,cv2)).every(x=>x.state==='unsafe')&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===1,{r,nU,nU0});
+    /* 同時に2つ：上限の1つ手前から、危険を2つ同時に入れても上限をこえない */
+    await env.DB.prepare(`DELETE FROM link_state`).run();
+    {const n=(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`,clock))[0].c;await env.DB.prepare(`DELETE FROM link_verdicts WHERE h IN (SELECT h FROM link_verdicts WHERE h LIKE 'fill%' LIMIT ?)`).bind(n-19999).run()}
+    const nB=(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`,clock))[0].c;
+    WR.mode['cap-sim']='unsafe-3d';const Ua=await mk('uR5a','rfivea'),Ub=await mk('uR5b','rfiveb');tick();await clearSlots();
+    const [s1,s2]=await Promise.all([call('/api/notes',{method:'POST',tok:Ua,body:{body:'s1',url:'https://cap-sim.test-gk.net/1'}}),call('/api/notes',{method:'POST',tok:Ub,body:{body:'s2',url:'https://cap-sim.test-gk.net/2'}})]);
+    const nA=(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`,clock))[0].c;
+    expect('R5 同時に2つの危険：どちらも付けられない（入らなかった方は閉じる）・上限をこえない・入らなかった方で印',['400,400','400,503'].includes([s1[0],s2[0]].sort().join())&&nB===19999&&nA===20000&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===1,{s1,s2,nB,nA});
+    /* 出ている許可：印の前に確認の画面を開き、印のあとで go → 閉じる */
+    /* 期限切れで減ったら外す（はじめて確かめたとき）：投稿もできる */
+    await env.DB.prepare(`UPDATE link_verdicts SET expires_at=? WHERE h LIKE 'fill%'`).bind(clock-1).run();
+    tick(20e3);await clearSlots();const c1=WR.calls.length;r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x3',url:'https://note.com/r4/cap-clean2'}});
+    expect('R5 危険が期限で減ったら印を外す（ふたたび投稿できる）',r[0]===200&&WR.calls.length===c1+1&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===0,{r});
+    await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'fill%'`).run();delete WR.mode['note.com/r4/cap-bad'];delete WR.mode['cap-conv'];delete WR.mode['cap-sim']}
   /* 回数の日付：日・月ごとに別々に数える（月末の 2999/89999 → 12/1・遅れて届いた 11/30・12/1 の順でも、12月は2・11月は上限まで） */
   {const ck=clock;const at=t=>{Date.now=()=>t};const U5=await mk('uR4w','rfourw');
     await env.DB.prepare('DELETE FROM link_budget_d').run();
@@ -824,6 +854,72 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
     await env.DB.prepare(`INSERT INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT vh2,'unsafe','MALWARE',?,? FROM (SELECT ? AS vh2)`).bind(clock,clock+36e5,(await q(`SELECT vh FROM note_links WHERE note_id<>? AND url='https://note.com/r4/policy'`,id6))[0]?.vh||'none').run().catch(()=>{});
     r=await call(`/api/links/${id6}/open`,{method:'POST',body:{}});
     expect('R4 古い方針の鍵の行は、開くときに今の鍵に直す',(await q(`SELECT vh FROM note_links WHERE note_id=?`,id6))[0].vh!=='old-policy-key'&&r[0]===200,r)}
+}
+/* ---------- 18. レビュー5回目：方針の版・出ている許可と上限の印・メールの系統（前の行）・確かめた人 ---------- */
+{
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  const P5=await mk('uR5p','rfivepol');
+  const pl=await postLink(P5,'https://note.com/r5/pol-a');
+  expect('R5 新しい投稿のリンクに今の方針の版が入る',(await q(`SELECT pol FROM note_links WHERE note_id=?`,pl))[0].pol?.startsWith('p1:'),await q(`SELECT pol FROM note_links WHERE note_id=?`,pl));
+  /* 前の方針で問題なしだったリンク：押すと確かめ直す（覚えを使わない）・今の版になる */
+  /* 方針が変わると覚えの鍵（vh＝方針の版＋行き先）も変わる：前の版の行は vh も pol も前のもの */
+  await env.DB.prepare(`DELETE FROM link_verdicts WHERE h=(SELECT vh FROM note_links WHERE note_id=?)`).bind(pl).run();
+  await env.DB.prepare(`UPDATE note_links SET pol='p0:OLD',vh='old-policy-vh' WHERE note_id=?`).bind(pl).run();
+  let c0=WR.calls.length;r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV});
+  expect('R5 前の方針の「問題なし」は使わず、押したときに確かめ直す',r[0]===200&&WR.calls.length===c0+1&&(await q(`SELECT pol FROM note_links WHERE note_id=?`,pl))[0].pol.startsWith('p1:'),{r,d:WR.calls.length-c0});
+  await env.DB.prepare(`UPDATE note_links SET pol='p0:OLD' WHERE note_id=?`).bind(pl).run();c0=WR.calls.length;
+  r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV});
+  expect('R5 pol だけ前のもの（vh は今の方針の覚えの鍵）：今の方針で覚えた答えを使ってよい・pol を今の版にする',r[0]===200&&WR.calls.length===c0&&(await q(`SELECT pol FROM note_links WHERE note_id=?`,pl))[0].pol.startsWith('p1:'),{r,d:WR.calls.length-c0});
+  /* 出ている許可：方針が変わったら使えない */
+  const it=r[1].intent;await env.DB.prepare(`UPDATE link_intents SET pol='p0:OLD' WHERE token=?`).bind(it).run();
+  r=await call(`/api/links/${pl}/go`,{method:'POST',body:{intent:it},ip:IPV});expect('R5 前の方針で出した許可は使えない（410）',r[0]===410&&r[1].expired,r);
+  /* 前の方針の「危険」は残す（開けない） */
+  const pu=await postLink(P5,'https://note.com/r5/pol-u');
+  await env.DB.prepare(`UPDATE note_links SET state='unsafe',verdict='unsafe',pol='p0:OLD',expires_at=? WHERE note_id=?`).bind(clock+864e5,pu).run();
+  r=await call(`/api/links/${pu}/open`,{method:'POST',body:{},ip:IPV});expect('R5 前の方針の「危険」は残る（開けない）',r[0]===410,r);
+  /* 前の方針のリンクを確かめ直している途中に止められた：止めた方が勝つ */
+  const pq=await postLink(P5,'https://pol-q.test-gk.net/r5');
+  await env.DB.prepare(`DELETE FROM link_verdicts WHERE h=(SELECT vh FROM note_links WHERE note_id=?)`).bind(pq).run();
+  await env.DB.prepare(`UPDATE note_links SET pol='p0:OLD',vh='old-policy-vh-q' WHERE note_id=?`).bind(pq).run();
+  WR.mode['pol-q']='defer';const po=call(`/api/links/${pq}/open`,{method:'POST',body:{},ip:IPV});await waitPend();
+  await call(`/api/admin/links/${pq}`,{method:'POST',admin:'admin-secret-123',body:{action:'quarantine',reason:'確かめ直しの途中で止める',confirm:true}});
+  relPend('{}');r=await po;delete WR.mode['pol-q'];
+  expect('R5 確かめ直しの途中で止められたら、開けない・止めたまま',r[0]!==200&&(await q(`SELECT state FROM note_links WHERE note_id=?`,pq))[0].state==='quarantined',r);
+  /* 上限の印：出ている許可も使えない */
+  const pg=await postLink(P5,'https://note.com/r5/sat-go');r=await call(`/api/links/${pg}/open`,{method:'POST',body:{},ip:IPV});const it2=r[1].intent;
+  await env.DB.prepare(`INSERT INTO link_state(k,v,at) VALUES('wr_saturated','unsafe-cache-full',?)`).bind(clock).run();
+  await env.DB.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT 'sat'||i,'unsafe','MALWARE',?1,?2 FROM (WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i<20000) SELECT i FROM c)`).bind(clock,clock+864e5).run();
+  r=await call(`/api/links/${pg}/go`,{method:'POST',body:{intent:it2},ip:IPV});expect('R5 上限の印のあいだは、出ている許可でも開けない（503）',r[0]===503&&r[1].saturated===true,r);
+  r=await call('/api/admin/sanctions',{...ADM});expect('R5 管理画面に上限の印を出す',!!r[1].link_saturated,r[1].link_saturated);
+  await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'sat%'`).run();
+  r=await call(`/api/links/${pg}/open`,{method:'POST',body:{},ip:IPV});expect('R5 危険が減れば印は外れる（もう一度開ける）',r[0]===200&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===0,r);
+  /* 回数の表の移しかえ（前の1行の表 link_budget → 日ごとの表） */
+  /* メールの系統：前の行（lg:〜）と同じハッシュなら、その系統をつぐ */
+  const KS={v1:EK,v2:'email-hmac-key-test-v2-0123456789abcdef',v3:'email-hmac-key-test-v3-0123456789abcdef'};
+  const E1={...env,EMAIL_HMAC_KEY:'',EMAIL_HMAC_KEYRING:JSON.stringify({v1:KS.v1}),EMAIL_HMAC_KEY_CURRENT:'v1'};
+  const E2={...env,EMAIL_HMAC_KEY:'',EMAIL_HMAC_KEYRING:JSON.stringify({v1:KS.v1,v2:KS.v2}),EMAIL_HMAC_KEY_CURRENT:'v2'};
+  const E3={...env,EMAIL_HMAC_KEY:'',EMAIL_HMAC_KEYRING:JSON.stringify(KS),EMAIL_HMAC_KEY_CURRENT:'v3'};
+  const ML={email:'r5.lineage@mail.test-gk.net'};
+  const LT=await tok('uR5l',ML);r=await call('/api/me',{method:'POST',tok:LT,body:{handle:'rfivelin',name:'L',agree:true},E:E1});expect('R5 系統：はじめのログイン',r[0]===200,r);
+  await env.DB.prepare(`UPDATE user_emails SET elid='lg:'||ehash,last_at=0 WHERE uid='uR5l'`).run();
+  tick();r=await call('/api/notes',{method:'POST',tok:await tok('uR5l',ML),body:{body:'鍵の版が変わった'},E:E2});
+  let ue=await q(`SELECT ehash,kver,elid FROM user_emails WHERE uid='uR5l' ORDER BY kver`);
+  expect('R5 前の行（lg:〜）と同じメール：新しい版の行も同じ系統（新しい系統を作らない）',r[0]===200&&ue.length===2&&ue[0].elid===ue[1].elid&&ue[0].elid.startsWith('lg:'),ue);
+  /* 2つの系統が当たる：小さい方を使い、見直しに出す */
+  await env.DB.prepare(`UPDATE user_emails SET elid=CASE WHEN kver='v1' THEN 'el:bbbbbbbbbbbbbbbb' ELSE 'el:aaaaaaaaaaaaaaaa' END,last_at=0 WHERE uid='uR5l'`).run();
+  tick();r=await call('/api/notes',{method:'POST',tok:await tok('uR5l',ML),body:{body:'もう一度鍵の版が変わった'},E:E3});
+  ue=await q(`SELECT kver,elid FROM user_emails WHERE uid='uR5l' AND kver='v3'`);
+  const er=await q(`SELECT elids FROM elid_review WHERE uid='uR5l'`);
+  expect('R5 2つの系統が当たったら、決まった順で小さい方・見直しに出す',r[0]===200&&ue[0]?.elid==='el:aaaaaaaaaaaaaaaa'&&er.length===1&&er[0].elids==='el:aaaaaaaaaaaaaaaa,el:bbbbbbbbbbbbbbbb',{ue,er});
+  r=await call('/api/admin/sanctions',{...ADM,E:E3});expect('R5 管理画面の health に系統の見直しを出す',r[1].health.elid_review===1&&r[1].elid_review.length===1&&r[1].health.ok===false,r[1].health);
+  await env.DB.prepare(`DELETE FROM elid_review`).run();
+  /* 確かめた人：ADMIN_REVIEWER があればサーバーが決める（送った名前は使わない） */
+  const RV=await mk('uR5r','rfiverev');const rl=await postLink(RV,'https://note.com/r5/rev');
+  await call(`/api/admin/links/${rl}`,{method:'POST',admin:'admin-secret-123',body:{action:'quarantine',reason:'確かめた人のテスト',confirm:true}});
+  const Er={...env,ADMIN_REVIEWER:'運営者A'};
+  const rc=await call('/api/admin/cases',{method:'POST',...ADM,E:Er,body:{handle:'rfiverev',kind:'attack',summary:SUM,refs:[{t:'link',id:rl}],attest:true,reviewer:'なりすまし',evidence_kinds:['direct']}});
+  expect('R5 ADMIN_REVIEWER があれば確かめた人は owner:〜（送った名前は使わない）',rc[0]===200&&(await q('SELECT reviewer FROM sanction_cases WHERE id=?',rc[1].case_id))[0].reviewer==='owner:運営者A',rc);
+  r=await call('/api/admin/sanctions',{...ADM,E:Er});expect('R5 管理画面に確かめた人の決め方',r[1].reviewer_mode==='owner',r[1].reviewer_mode);
 }
 /* ---------- 11. 1回のリクエストで増える D1 の問い合わせの数（報告に書く） ---------- */
 {const real=env.DB;let cnt=0;const Ec={...env,DB:{prepare:s=>{cnt++;return real.prepare(s)},batch:l=>real.batch(l)}};

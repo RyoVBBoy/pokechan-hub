@@ -142,7 +142,12 @@ for(const W of [390,1280]){
   await openPick(pg,'party');ok((await listNos(pg)).join()==='6,445',W+'：パーティのカテゴリ');await closePick(pg);
   /* ⑤ ログアウト中は端末に残る */
   /* 読み直したあと、サイトのプログラムを読み終えるまで待つ（GitHub の公開の機械は遅く、0.5秒では足りないことがあった） */
-  await pg.reload();await pg.waitForFunction(()=>typeof favOn==='function'&&typeof FAV!=='undefined',null,{timeout:20000});await pg.waitForTimeout(300);
+  /* 読み直す前に、端末に保存されたこと（localStorage の pcfavs）を確かめる。読み直したあとは、起動の合図（__APP_READY）を待ってから、保存された値と画面の状態を確かめる */
+  const stored=()=>pg.evaluate(()=>{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return{f25:!!(o[25]&&o[25].on),f6:!!(o[6]&&o[6].on)}});
+  await pg.waitForFunction(()=>{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return!!(o[25]&&o[25].on)&&!(o[6]&&o[6].on)},null,{timeout:10000}).catch(()=>{});
+  const before=await stored();ok(before.f25&&!before.f6,W+'：読み直す前に端末に保存されている',before);
+  await pg.reload();await pg.waitForFunction(()=>window.__APP_READY===true,null,{timeout:30000});
+  const after=await stored();ok(after.f25===before.f25&&after.f6===before.f6,W+'：読み直しても保存された値は同じ',{before,after});
   ok(await pg.evaluate(()=>favOn(25)&&!favOn(6)),W+'：読み直しても端末に残る');
   ok(pg.errs.length===0,W+'：エラーなし '+pg.errs.join('|'));
   await pg.ctx.close();

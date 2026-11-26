@@ -115,7 +115,13 @@ for(const W of [390,1280]){
   await star('calc').waitFor();
   ok(await checkPins(['assist','types','meta']),W+'：外したツールは開き直しで再表示されない');
   for(const id of ['assist','types','meta'])await star(id).click();
+  /* 読み直す前に、端末に保存されたこと（localStorage の pctools）を確かめる。読み直したあとは起動の合図（__APP_READY）を待つ */
+  const savedPins=()=>pg.evaluate(()=>{const o=JSON.parse(localStorage.getItem('pctools')||'{}');const g=curGame();return o[g.id]===undefined?null:o[g.id]});
+  await pg.waitForFunction(()=>{const o=JSON.parse(localStorage.getItem('pctools')||'{}');const v=o[curGame().id];return Array.isArray(v)&&v.length===0},null,{timeout:10000}).catch(()=>{});
+  const pinsBefore=await savedPins();ok(Array.isArray(pinsBefore)&&pinsBefore.length===0,W+'：読み直す前に、すべて外した状態が端末に保存されている',pinsBefore);
   await pg.reload();
+  await pg.waitForFunction(()=>window.__APP_READY===true,null,{timeout:30000});
+  ok(JSON.stringify(await savedPins())==='[]',W+'：読み直しても保存された値は同じ',await savedPins());
   await star('calc').waitFor();
   ok(await checkPins([])&&await pg.locator('#view .tquick').textContent().then(t=>t.includes('ここに追加')),
     W+'：すべて外した状態も再読み込み後に保つ');

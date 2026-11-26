@@ -248,6 +248,52 @@ d=await decide({user:{uid:'u'},check:weird,breaker:nb()});ok(d.block,'形のお�
   const M3={environments:{production:MAP.environments.production,staging:{approved:true,project:'stg-proj',worker:'https://stg.example.workers.dev',workerEnvId:'stg'}}};
   t2=null;try{envFor(M3,'staging','pokechan-hub')}catch(e){t2=e.message}ok(t2==='project-mismatch','動いているプロジェクトが対応表と違えば送らない（テストの関数から本番へ送らない）',t2);
   const e3=envFor(M3,'staging','stg-proj');ok(e3.checkUrl==='https://stg.example.workers.dev/api/fb/check'&&e3.workerEnvId==='stg','承認された環境なら、その Worker だけに送る',e3);}
+/* R5. 報告の取りちがえ：番号が進んだあとの「終えた」・受け取られなかった報告・重なった「結果が分からない」 */
+{FB.hang.clear();FB.late.clear();FB.fail.clear();FB.rfail.clear();
+  await env.DB.prepare(`UPDATE fb_sync SET done_gen=gen,dead=0,unknown=0,review=0,lease=NULL,lease_until=0`).run();
+  const met=async k=>((await env.DB.prepare(`SELECT COALESCE(SUM(n),0) AS n FROM fb_metrics WHERE k=?`).bind(k).first()).n);
+  const okAt=async()=>((await env.DB.prepare(`SELECT last_at FROM job_runs WHERE name='fb_sync_ok'`).first())||{}).last_at;
+  /* a 止める記録のあと、番号が進んだ（取り消された）：古い番号の「終えた」は superseded にする・成功の数と成功の時刻を進めない */
+  const Q=await perp('fbQ5','fbqqq5');
+  let c=await post('/api/fb/claim',{});let it=c[1].items[0];ok(it&&it.uid==='fbQ5','R5 その人を借りる',c);
+  r=await post('/api/fb/intent',{uid:it.uid,lease:it.lease,gen:it.gen,action:'disable',observed_disabled:false});ok(r[0]===200,'R5 止める記録',r);
+  FB.users.fbQ5.disabled=true;await rev(Q.id);
+  const d0=await met('done'),s0=await met('superseded'),k0=await okAt();tick(1000);
+  r=await post('/api/fb/ack',{uid:it.uid,lease:it.lease,gen:it.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
+  let R=await row('fbQ5');
+  ok(r[0]===200&&r[1].superseded===true&&R.done_gen<R.gen&&R.obs_disabled===1&&R.lease===null&&(await met('done'))===d0&&(await met('superseded'))===s0+1&&(await okAt())===k0,
+    'R5 番号が進んだあとの「終えた」は終えたことにしない（superseded・見た状態は残す・成功の数と時刻は進めない）',{r,R:{gen:R.gen,done_gen:R.done_gen},d:(await met('done'))-d0});
+  /* 同じ報告をもう一度：古い報告（数えない） */
+  r=await post('/api/fb/ack',{uid:it.uid,lease:it.lease,gen:it.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});ok(r[0]===409&&(await met('done'))===d0,'R5 同じ古い報告をもう一度送っても数えない',r);
+  let s=await run();ok(s.done===1&&FB.users.fbQ5.disabled===false,'R5 次の回で今のあるべき状態（戻す）に合わせる',s);
+  /* b 受け取られなかった報告（500）：終えたことに数えない・終わりの値 3 になるよう bad に数える */
+  const B5=await perp('fbB5','fbbbb5');
+  const f500=async(u,o)=>{if(String(u).endsWith('/api/fb/ack'))return new Response('{}',{status:500});return fetchImpl(u,o)};
+  s=await run({fetchImpl:f500});R=await row('fbB5');
+  ok(s.bad===1&&s.done===0&&R.done_gen<R.gen&&FB.users.fbB5.disabled===true,'R5 受け取られなかった報告は「終えた」に数えない（bad）',{s,R:{gen:R.gen,done_gen:R.done_gen}});
+  tick(61e3);s=await run();ok(s.done===1&&(await row('fbB5')).done_gen===(await row('fbB5')).gen,'R5 借りる時間が切れたあと、次の回で終える',s);
+  /* c 重なった「結果が分からない」：いま残っている回の印と違う observe は、見た状態だけを残す（片づけない・持ち主を推しはからない） */
+  const U5=await perp('fbU5','fbuuu5');
+  await env.DB.prepare(`UPDATE fb_sync SET unknown=1,unk_op='lease-two',unk_intent='disable',owned=0,prior=NULL WHERE uid='fbU5'`).run();
+  r=await post('/api/fb/observe',{uid:'fbU5',observed_disabled:true});ok(r[0]===400,'R5 observe には借りた印（op）が要る',r);
+  r=await post('/api/fb/observe',{uid:'fbU5',op:'lease-one',observed_disabled:true});R=await row('fbU5');
+  ok(r[0]===200&&r[1].recorded_only===true&&R.unknown===1&&R.owned===0&&R.obs_disabled===1,'R5 古い回の印の observe は見た状態だけ（片づけない・持ち主を推しはからない）',{r,R:{unknown:R.unknown,owned:R.owned}});
+  const g0=R.gen;r=await post('/api/fb/observe',{uid:'fbU5',op:'lease-two',observed_disabled:true});R=await row('fbU5');
+  ok(r[0]===200&&!r[1].recorded_only&&R.unknown===0&&R.unk_op===null&&R.owned===1&&R.gen===g0+1,'R5 いまの回の印の observe で片づける（止めたのはこの仕組み）',{r,R:{unknown:R.unknown,owned:R.owned}});
+  /* d 時間切れの回は、その回の借りた印を unk_op に残す。アダプターは observe でその印を送る */
+  const H5=await perp('fbH5','fbhhh5');FB.late.set('fbH5',500);
+  s=await run();R=await row('fbH5');
+  ok(s.unknown===1&&s.observed===1&&R.unknown===0&&R.unk_op===null&&R.owned===1,'R5 アダプターは時間切れの回の印で observe する（片づく）',{s,R:{unknown:R.unknown,unk_op:R.unk_op,owned:R.owned}});
+  FB.late.clear();await run();
+  /* e 割りこみ：借りる時間が切れて、ほかが借りた。前の人の「終えた」は数えない */
+  const I5=await perp('fbI5','fbiii5');
+  c=await post('/api/fb/claim',{});const ia=c[1].items[0];ok(ia&&ia.uid==='fbI5','R5 1人目が借りる',c);
+  await post('/api/fb/intent',{uid:ia.uid,lease:ia.lease,gen:ia.gen,action:'disable',observed_disabled:false});
+  tick(61e3);c=await post('/api/fb/claim',{});const ib=c[1].items[0];ok(ib&&ib.uid==='fbI5'&&ib.lease!==ia.lease,'R5 期限が切れると2人目が借りる',c);
+  const d1=await met('done');FB.users.fbI5.disabled=true;
+  r=await post('/api/fb/ack',{uid:ia.uid,lease:ia.lease,gen:ia.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
+  ok(r[0]===409&&(await met('done'))===d1&&(await row('fbI5')).lease===ib.lease,'R5 前の人の「終えた」は数えない・いまの人の借りた印はそのまま',r);
+  tick(61e3);await run();}
 {const fs=await import('node:fs');for(const dir of ['firebase-adapter','firebase-blocking']){const pk=JSON.parse(fs.readFileSync(path.join(ROOT,'tools',dir,'package.json'),'utf8')),lk=JSON.parse(fs.readFileSync(path.join(ROOT,'tools',dir,'package-lock.json'),'utf8'));
   const deps=Object.entries(pk.dependencies||{});ok(deps.length&&deps.every(([k,v])=>/^\d+\.\d+\.\d+$/.test(v)&&lk.packages['node_modules/'+k]&&lk.packages['node_modules/'+k].version===v&&lk.packages['node_modules/'+k].integrity),dir+'：版を固定し、ロックファイルに同じ版と中身の印がある',deps)}}
 ok(OUT.every(u=>u.includes('securetoken@system')||u.startsWith('https://webrisk.googleapis.com/')),'本物の Firebase などには通信しない',OUT.filter(u=>!u.includes('securetoken')));

@@ -184,6 +184,9 @@ function adminView(){
         el.innerHTML=`<p class="note" style="padding-top:0">変数：投稿 ${on(f.post)}・押す ${on(f.click)}・利用停止の記録 ${on(f.sanctions)}・Web Risk の合言葉 ${f.webrisk?'あり':'なし'}・メールの鍵 ${f.emailKey?'あり':'なし'}。
           通報・安全確認の結果だけでは停止しません。意図的な攻撃と確かめたときだけ、理由と根拠の番号を付けて記録します。</p>
           ${S.health&&!S.health.ok?`<div class="bnote" style="margin:0 16px 12px;color:var(--w2)">メールの鍵の状態に問題があります：${esc([S.health.err,(S.health.missing_tombstone_versions||[]).length?'停止に使う版がない '+S.health.missing_tombstone_versions.join(','):'',(S.health.missing_identity_versions||[]).length?'記録に使った版がない '+S.health.missing_identity_versions.join(','):''].filter(Boolean).join('・'))}</div>`:''}
+          ${S.link_saturated?`<div class="bnote" style="margin:0 16px 12px;color:var(--w2)">安全確認の「危険」の覚えが上限です（${esc(new Date(S.link_saturated.since).toLocaleString())}から）。そのあいだはリンクの投稿・開く・戻すを止めています。期限で減ると自動で外れます。</div>`:''}
+          ${(S.elid_review||[]).length?`<div class="bnote" style="margin:0 16px 12px;color:var(--w2)">メールの系統が2つ以上当たったアカウントがあります（小さい方を使っています。確かめてください）：${(S.elid_review||[]).map(x=>'@'+esc(x.handle||'?')+'（'+esc(x.elids)+'）').join('・')}</div>`:''}
+          <p class="note" style="padding:0 16px">確かめた人の記録：${S.reviewer_mode==='owner'?'サーバーの設定（ADMIN_REVIEWER）の名前で記録します。下の名前の欄は使いません。':'入力した名前を「申告」として記録します（合言葉は1つなので本人確認ではありません）。'}</p>
           <div class="sec"><h2>1. 確認の記録を作る</h2></div>
           <p class="note" style="padding-top:0">根拠は、その人のこのサイトの記録だけ（投稿 note・リンク link・リンクの記録 link_event・通報 report の番号）。IP アドレスや端末の情報は根拠にできません。</p>
           <div class="cform" style="padding:0 16px"><label>ユーザーID<input id="sc-h" autocomplete="off" autocapitalize="off"></label>

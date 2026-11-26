@@ -180,8 +180,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
          last_insert_rowid() や「同じ人・同じ時刻」は使わない（書けなかったときに、別のリクエストの投稿を拾うおそれがあるため） */
       const op=rndHex(16);
       const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med,hs,{op,vh:c.t.h}),
-        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev,vh) SELECT n.id,?1,?2,?3,'ok','clean',?4,?5,?4,?4,0,?6
-          FROM notes n WHERE n.op=?7 AND n.uid=?1 RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,c.t.h,op)]);
+        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev,vh,pol) SELECT n.id,?1,?2,?3,'ok','clean',?4,?5,?4,?4,0,?6,?8
+          FROM notes n WHERE n.op=?7 AND n.uid=?1 RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,c.t.h,op,LK_POLICY)]);
       r=out[1]&&out[1].results&&out[1].results[0];
       if(!r&&out[0]&&out[0].results&&out[0].results[0])throw new Error('note-link-mismatch');
       if(!r){

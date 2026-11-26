@@ -40,7 +40,9 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
   /* 時間切れの呼び出しは、uid ごとに「終わったか」を覚える（終わったものだけ読み直して observe。終わらないものは unknown のまま残す＝管理画面に出る） */
   const pend=new Map();
   const fb=(p,what,uid)=>withTimeout(p,timeoutMs,what,pp=>{unknownUids.add(uid);const e=pend.get(uid)||{n:0,done:0};e.n++;pend.set(uid,e);late.push(pp.catch(()=>{}).finally(()=>{e.done++}))});
-  const sum={done:0,failed:0,unknown:0,stale:0,noop:0,dead:0,lost:0,observed:0};
+  const sum={done:0,failed:0,unknown:0,stale:0,noop:0,dead:0,lost:0,observed:0,bad:0,superseded:0};
+  /* 時間切れになった uid ごとの、その時の借りた印（observe でこれを送る。Worker は、いま残っている印と同じときだけ片づける） */
+  const unkOp=new Map();
   for(let n=0;n<max;n++){
     const c=await post('/api/fb/claim',{skip:[...touched]});
     if(c.status!==200||!Array.isArray(c.j.items))throw new Error('claim '+c.status);
@@ -51,9 +53,11 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
     const ack=async b=>{for(let i=0;i<3;i++){let x;try{x=await post('/api/fb/ack',{...base,...b})}catch(e){continue}
         if(x.status===200){if(x.j.repeat)sum.lost++;return x.j}if(x.status===409)return{stale:true};return{bad:x.status}}
       return{lostAck:true}};
+    /* 報告の答えを数える（200 以外・409 以外は「受け取られなかった」＝bad。終えたことに数えない） */
+    const tally=(a,okKey)=>{if(a.stale)sum.stale++;else if(a.bad)sum.bad++;else if(a.lostAck)sum.lost++;else if(a.superseded){sum.superseded++;touched.delete(it.uid)}else sum[okKey]++};
     try{
-      if(it.want==='none'||it.want==='hold'||it.want==='review'){const a=await ack({result:'done',want:it.want});a.stale?sum.stale++:sum.noop++;continue}
-      let u;try{u=await fb(auth.getUser(it.uid),'get',it.uid)}catch(e){if(e&&e.code==='auth/user-not-found'){await ack({result:'done',want:'missing'});sum.noop++;continue}throw e}
+      if(it.want==='none'||it.want==='hold'||it.want==='review'){tally(await ack({result:'done',want:it.want}),'noop');continue}
+      let u;try{u=await fb(auth.getUser(it.uid),'get',it.uid)}catch(e){if(e&&e.code==='auth/user-not-found'){tally(await ack({result:'done',want:'missing'}),'noop');continue}throw e}
       await renew();
       if(it.want==='disabled'){
         const i=await post('/api/fb/intent',{...base,action:'disable',observed_disabled:!!u.disabled});
@@ -65,8 +69,7 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
         await fb(auth.revokeRefreshTokens(it.uid),'revoke',it.uid);
         const u2=await fb(auth.getUser(it.uid),'verify',it.uid);
         if(!u2.disabled)throw Object.assign(new Error('verify'),{code:'verify-failed'});
-        const a=await ack({result:'done',want:'disabled',observed_disabled:true,revoked:true});
-        a.stale?sum.stale++:a.lostAck?sum.lost++:sum.done++;
+        tally(await ack({result:'done',want:'disabled',observed_disabled:true,revoked:true}),'done');
       }else if(it.want==='enabled'){
         const i=await post('/api/fb/intent',{...base,action:'enable',observed_disabled:!!u.disabled});
         /* 409＝いま停止がある・手動の停止がある・最初から止まっていた・持ち主がはっきりしない・番号が進んだ・借りる時間が切れた：戻さない */
@@ -76,21 +79,22 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
         if(u.disabled)await fb(auth.updateUser(it.uid,{disabled:false}),'update',it.uid);
         const u2=await fb(auth.getUser(it.uid),'verify',it.uid);
         if(u2.disabled)throw Object.assign(new Error('verify'),{code:'verify-failed'});
-        const a=await ack({result:'done',want:'enabled',observed_disabled:false});
-        a.stale?sum.stale++:a.lostAck?sum.lost++:sum.done++;
+        tally(await ack({result:'done',want:'enabled',observed_disabled:false}),'done');
       }else{sum.stale++}
     }catch(e){
       /* あるべき状態が途中で変わった：いまの Firebase の状態を読み、失敗ではなく superseded として報告（すぐ次の回で合わせる） */
-      if(e&&e.superseded){let od;try{od=!!(await fb(auth.getUser(it.uid),'get',it.uid)).disabled}catch(e2){}
-        await ack({result:'superseded',want:it.want==='enabled'?'enabled':'disabled',...(typeof od==='boolean'?{observed_disabled:od}:{})});sum.superseded=(sum.superseded||0)+1;touched.delete(it.uid);continue}
+      /* ここの読み取りは時間切れでも「結果が分からない」にしない（何も変えない読み取りなので、遅れて終わっても外は変わらない） */
+      if(e&&e.superseded){let od;try{od=!!(await withTimeout(auth.getUser(it.uid),timeoutMs,'get')).disabled}catch(e2){}
+        const a=await ack({result:'superseded',want:it.want==='enabled'?'enabled':'disabled',...(typeof od==='boolean'?{observed_disabled:od}:{})});
+        if(a.bad)sum.bad++;else if(a.stale)sum.stale++;else{sum.superseded++;touched.delete(it.uid)}continue}
       const unk=!!(e&&e.timeout);
-      unk?sum.unknown++:sum.failed++;log((unk?'unknown ':'failed ')+String(it.uid).slice(0,6)+'…');
+      unk?sum.unknown++:sum.failed++;if(unk)unkOp.set(it.uid,it.lease);log((unk?'unknown ':'failed ')+String(it.uid).slice(0,6)+'…');
       const a=await ack({result:'failed',unknown:unk,want:it.want==='enabled'?'enabled':'disabled',error:String(e&&e.code||'error').slice(0,60)});
       if(a&&a.dead)sum.dead++}
   }
   /* 遅れて終わるかもしれない SDK の呼び出しを待ち、結果が分からないアカウントを読み直して、見た状態だけを残す（終えたことにはしない） */
   if(late.length){let t;await Promise.race([Promise.allSettled(late),new Promise(r=>{t=setTimeout(r,settleMs)})]);clearTimeout(t)}
-  for(const uid of unknownUids){const e=pend.get(uid);if(!e||e.done<e.n)continue;try{const u=await withTimeout(auth.getUser(uid),timeoutMs,'observe');const o=await post('/api/fb/observe',{uid,observed_disabled:!!u.disabled});if(o.status===200)sum.observed++}catch(e){}}
+  for(const uid of unknownUids){const e=pend.get(uid);if(!e||e.done<e.n)continue;try{const u=await withTimeout(auth.getUser(uid),timeoutMs,'observe');if(!unkOp.has(uid))continue;const o=await post('/api/fb/observe',{uid,op:unkOp.get(uid),observed_disabled:!!u.disabled});if(o.status===200&&!o.j.recorded_only)sum.observed++}catch(e){}}
   return sum;
 }
 /* 手で動かすとき：node tools/firebase-adapter/adapter.mjs --live --env <名前>
@@ -109,5 +113,5 @@ if(import.meta.url===`file://${process.argv[1]}`){
   const app=initializeApp({credential:cert(cred),projectId:env.project});
   const s=await runOnce({env,token:process.env.FB_ADAPTER_TOKEN,auth:getAuth(app),sdk:{projectId:app.options.projectId,serviceAccount:cred.client_email},log:m=>console.error(m)});
   console.log(JSON.stringify(s));
-  if(s.dead||s.unknown)process.exit(3);
+  if(s.dead||s.unknown||s.bad)process.exit(3);
 }
