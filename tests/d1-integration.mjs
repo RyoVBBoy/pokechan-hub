@@ -86,7 +86,10 @@ ok((await db.prepare(`SELECT COUNT(*) AS c FROM fb_sync WHERE uid='iA' AND gen>d
   let r2=await fbp('/api/fb/ack',{uid:'iA',lease:x.lease,gen:x.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
   let r3=await fbp('/api/fb/ack',{uid:'iA',lease:x.lease,gen:x.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
   const fr=await db.prepare(`SELECT owned,prior,done_gen,gen FROM fb_sync WHERE uid='iA'`).first();
-  ok(r1[0]===200&&r2[0]===200&&r3[0]===200&&r3[1].repeat===true&&fr.owned===1&&fr.prior===0&&fr.done_gen===fr.gen,'記録→報告・同じ報告をもう一度でも1回分（本物の D1）',{r1,r2,r3,fr})}
+  ok(r1[0]===200&&r2[0]===200&&r3[0]===200&&r3[1].repeat===true&&fr.owned===1&&fr.prior===0&&fr.done_gen===fr.gen,'記録→報告・同じ報告をもう一度でも1回分（本物の D1）',{r1,r2,r3,fr});
+  const o1=await db.prepare(`SELECT kind,how,resolved_at,intent FROM fb_ops WHERE op=?`).bind(x.lease).first();
+  ok(o1&&o1.intent==='disable'&&o1.how==='done'&&o1.resolved_at>0,'R7 操作の記録は intent と同じ取引で作られ、報告で片づく（本物の D1）',o1);
+}
 r=await call('/api/notes',{method:'POST',tok:U.iA,body:{body:'停止中'}});ok(r[0]===403,'停止中は投稿できない',r);
 /* リンクの行は、このリクエストの使い捨ての鍵で書いた投稿だけにつく（本物の D1。同じ人の同じ時刻を鍵にしない） */
 {await db.prepare(`DELETE FROM link_budget_d`).run();
@@ -107,5 +110,32 @@ await new Promise(r=>setTimeout(r,500));
 const jr=await db.prepare(`SELECT last_ok FROM job_runs WHERE name='sanction_sweep'`).first();
 ok((await db.prepare(`SELECT banned FROM users WHERE uid='iF'`).first()).banned===0&&jr&&jr.last_ok===1,'1時間ごとの仕事で、期限の来た停止の表示を戻し、結果を残す',jr);
 ok((await db.prepare(`SELECT banned FROM users WHERE uid='iA'`).first()).banned===2,'いつまでもの停止は戻さない','');
+/* R7（最後に動かす：iA の停止を取り消すため） */
+{const AT='adapter-token-it-0123456789abcdef-0123';
+  const fbp=async(p,b)=>{const r=await mf.dispatchFetch('https://x.dev'+p,{method:'POST',headers:{'content-type':'application/json','x-fb-adapter-token':AT},body:JSON.stringify(b)});return[r.status,await r.json().catch(()=>({}))]};
+  const SID=(await db.prepare(`SELECT id FROM sanctions WHERE uid='iA' AND kind='uid' AND status='active' ORDER BY id LIMIT 1`).first()).id;
+  /* R7 戻す呼び出しを送って落ちた（報告なし）：その操作は crash になり、片づくまでそのアカウントは借りられない（本物の D1） */
+  const sid=SID;
+  await call(`/api/admin/sanctions/${sid}/reverse`,{method:'POST',...ADM,body:{reason:'本物の D1 のテストで取り消す',confirm:true}});
+  let c3=await fbp('/api/fb/claim',{});const y=c3[1].items.find(z=>z.uid==='iA');
+  let r4=await fbp('/api/fb/intent',{uid:'iA',lease:y.lease,gen:y.gen,action:'enable',observed_disabled:true});
+  ok(y&&y.want==='enabled'&&r4[0]===200&&(await db.prepare(`SELECT kind FROM fb_ops WHERE op=?`).bind(y.lease).first()).kind==='pending','R7 戻す前の記録と pending の操作（本物の D1）',{y,r4});
+  await db.prepare(`UPDATE fb_sync SET lease_until=0 WHERE uid='iA'`).run();
+  c3=await fbp('/api/fb/claim',{});const o2=await db.prepare(`SELECT kind,resolved_at FROM fb_ops WHERE op=?`).bind(y.lease).first();
+  ok(!c3[1].items.some(z=>z.uid==='iA')&&o2.kind==='crash'&&o2.resolved_at===null,'R7 報告がないまま借りる時間が切れた：crash・そのアカウントは借りない（本物の D1）',{c3:c3[1],o2});
+  /* R7 読み直しの片づけの取引の2つ目の文を、本物の D1 の中で失敗させる（トリガー）：1つ目（操作の片づけ）も取り消される */
+  const g0=(await db.prepare(`SELECT gen FROM fb_sync WHERE uid='iA'`).first()).gen;
+  await db.exec(`CREATE TABLE it_inj(x INTEGER)`);await db.exec(`INSERT INTO it_inj VALUES(1)`);
+  await db.exec(`CREATE TRIGGER it_fail BEFORE UPDATE ON fb_sync WHEN (SELECT COUNT(*) FROM it_inj)>0 BEGIN SELECT RAISE(ABORT,'injected'); END`);
+  let r5=await fbp('/api/fb/observe',{uid:'iA',op:y.lease,observed_disabled:false,settled:'ok'});
+  const o3=await db.prepare(`SELECT resolved_at,how FROM fb_ops WHERE op=?`).bind(y.lease).first();
+  ok(r5[0]>=500&&o3.resolved_at===null&&o3.how===null&&(await db.prepare(`SELECT gen FROM fb_sync WHERE uid='iA'`).first()).gen===g0,'R7 取引の途中で失敗：操作の片づけも取り消され、番号も変わらない（本物の D1 の batch の取り消し）',{r5,o3});
+  c3=await fbp('/api/fb/claim',{});ok(!c3[1].items.some(z=>z.uid==='iA'),'R7 そのあいだもアカウントは借りられない（本物の D1）',c3[1]);
+  await db.exec(`DELETE FROM it_inj`);
+  r5=await fbp('/api/fb/observe',{uid:'iA',op:y.lease,observed_disabled:false,settled:'ok'});
+  const o4=await db.prepare(`SELECT resolved_at,how FROM fb_ops WHERE op=?`).bind(y.lease).first();
+  ok(r5[0]===200&&!r5[1].recorded_only&&o4.how==='observe'&&(await db.prepare(`SELECT gen FROM fb_sync WHERE uid='iA'`).first()).gen===g0+1,'R7 やり直すと片づき、番号も同じ取引で進む（本物の D1）',{r5,o4});
+  r5=await fbp('/api/fb/observe',{uid:'iA',op:y.lease,observed_disabled:false,settled:'ok'});ok(r5[1].recorded_only===true&&(await db.prepare(`SELECT gen FROM fb_sync WHERE uid='iA'`).first()).gen===g0+1,'R7 同じ読み直しは1回分だけ（本物の D1）',r5);
+  await db.exec(`DROP TRIGGER it_fail`)}
 }finally{await mf.dispose()}
 console.log(bad?`d1-integration: NG（${bad}/${n}）`:`d1-integration: OK（${n}項目・Miniflare/workerd の手元の D1）`);if(bad)process.exit(1);

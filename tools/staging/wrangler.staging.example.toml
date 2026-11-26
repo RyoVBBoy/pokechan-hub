@@ -1,0 +1,23 @@
+# ステージング（テスト専用）の Worker の設定の見本。本番では使わない・deploy.yml から読まない。
+# 使うときは wrangler.staging.toml に写して <…> を埋め、node tools/staging/check.mjs wrangler.staging.toml で確かめてから。
+# 本番（pokechan-tap・pokechan-community・本番の database_id）と同じ値は check.mjs が断る。
+name = "<gk-links-staging>"
+main = "worker/dist/worker.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "<gk-links-staging>"
+database_id = "<staging-d1-id>"
+
+# 本番の cron は入れない（期限の掃除だけ。テストの時刻で手で動かす）
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+LINKS_POST = "1"
+LINKS_CLICK = "1"
+SANCTIONS_ON = "1"
+FB_ENV_ID = "<staging-env-id>"
+ALLOWED_ORIGINS = "http://localhost:8788"
