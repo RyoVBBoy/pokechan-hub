@@ -92,7 +92,20 @@ Main merged again at `57853a2` (PRs #7/#8: search stars, party check, `pre-relea
 | **Bug found and fixed** | On real D1, `POST /api/fb/ack` returned 500 `no such column: last_error` for an `fb_sync` table created by an older version — the hand-written ALTER list missed columns. `linksInit` now records every `CREATE TABLE IF NOT EXISTS` and adds any missing column to existing tables (`lkEnsureCols`); `LK_SCHEMA` checks the added columns. | runs 45820696597 / 45821282416 (fail, tail log) → 45822084038 / 45822682308 (pass); `links-migrate.mjs` 14 → 16 (fails without the fix) |
 | Remote tests | `tests/staging-remote.mjs` **25/25** on real D1/Worker. | run 45822682308 (`af63b14`) |
 | Quota / cost | D1 2/10, 1.28 MB/5 GB; Workers scripts 2; expected $0 (billing not readable by the token). | steps 2 and 8 |
-| Log hygiene | Runs 1–3 printed the Cloudflare account name, which contains the owner's email; removed from run 4 onward. Owner should delete the logs of runs 45820696597, 45821282416, 45822084038. | — |
+| Log hygiene | Runs 1–3 printed the Cloudflare account name, which contains the owner's email; removed from run 4 onward. The owner-approved deletion of those three runs' logs was done through the GitHub API (each `DELETE …/logs` answered **204**; the logs URL now answers **404**; the runs themselves, commits and code are unchanged). | runs 45820696597, 45821282416, 45822084038 |
+
+### Dedicated staging token (2026-11-26, after the owner registered `CLOUDFLARE_STAGING_TOKEN`)
+| Item | Result | Evidence |
+|---|---|---|
+| Credential | `staging-d1.yml` now reads **only** `secrets.CLOUDFLARE_STAGING_TOKEN` (no fallback to the production deploy secret; an empty value stops the job). `tests/staging-check.mjs` (18 → 20) fails if the workflow references `secrets.CLOUDFLARE_API_TOKEN` or a `|| secrets.` fallback. | `49ca87c` |
+| Token type | `user/tokens/verify` → success, active, no expiry; `accounts/<id>/tokens/verify` → error 1000, so it is a user-owned API token (created under My Profile), not an account-owned token. | run 45856631545 step 1 |
+| Needed permissions | account 200, `workers/scripts` 200, `workers/subdomain` 200, `d1/database` 200; deploy, secrets, `d1 execute` and `tail` all worked. | step 1, 6, 7 |
+| Not needed (denied) | R2 buckets 403 (10000), Pages projects 403 (10000), account tokens 403 (9109), user tokens 403 (9109), user 403 (9109). The job stops if any of these answers 200. | step 1 |
+| Finding (warning, not fatal) | `GET /zones` lists **1** zone with this token. Staging needs no zone access; the owner can narrow the token's zone resources. The job prints only the count and the member's permission flags (never the zone name). | step 1 `::warning::` |
+| Isolation | Staging Worker bindings read back from the API: one D1 binding `DB` = the staging D1 id (≠ production `d1932bda-…`), no R2/KV/service/queue/Durable Object bindings, plain-text vars only, secrets `ADMIN_TOKEN`/`APP_TOKEN`/`EMAIL_HMAC_KEY`/`FB_ADAPTER_TOKEN` (per-run random), cron `[]`. Production Worker `pokechan-tap` last-modified `2026-11-26T03:06:08Z` and production D1 id/created-at were identical before and after the run (the job fails otherwise). | steps 2, 6, 8 |
+| Transient D1 error | Run 45856202702: the first request to the freshly created D1 got `D1_ERROR: internal error` (500) during table creation (37 of 39 tables). Init sets its ready flag only after success, so the next request finishes it. The test now retries the first call up to 4 times and logs the first status, and retries only idempotent SQL (SELECT / OR IGNORE / IF [NOT] EXISTS) up to 3 times. In the passing run neither retry was needed (first call 200, 0 SQL retries). | runs 45856202702 (fail) → 45856631545 (pass) |
+| Remote tests | `tests/staging-remote.mjs` **25/25** on real D1/Worker with the dedicated token. Only Worker error logged: the trigger the rollback test injects on purpose. | run 45856631545 (`73985ad`) |
+| Quota / cost | D1 2/10, 1,277,952 bytes of 5 GB; Workers scripts 2 (`gk-links-staging`, `pokechan-tap`); staging D1 39 tables. Expected $0 on the free plan (billing is not readable by the token). | steps 2 and 8 |
 
 ## 2. Ingress / render / authorization map
 | Path | Before | After |
