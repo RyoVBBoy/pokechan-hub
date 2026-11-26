@@ -213,7 +213,7 @@ function dgSelCmpHTML(S,a,b){
   const bestZ=y=>[...y.zs].sort((p,q)=>q.r-p.r)[0];
   return `<details class="sel-all"><summary>1番と2番の点の内訳・相手ごとの違い</summary>
     <table class="sel-pt"><tr><th></th><th>1番</th><th>2番</th></tr>${K.map(([k,l])=>`<tr><td>${esc(l)}</td><td>${f(a.P[k])}</td><td>${f(b.P[k])}</td></tr>`).join('')}<tr><td><b>合計</b></td><td><b>${a.sc.toFixed(3)}</b></td><td><b>${b.sc.toFixed(3)}</b></td></tr></table>
-    <p class="vcap">各項目は上位${S.N}匹の平均（上位8匹は1.5倍）。「選ばなかった匹に頼る相手」は、その相手への対応が△以下として「対応」の点に入っているので、別には引いていません（二重に数えないため）。点の差が0.001未満なら、×が少ない→選出の多くが一撃で倒される相手が少ない→◎○が多い→後出しできる相手が多い→先に動ける相手が多い、の順で決めます。${b.tie?'<b>1番と2番は同点で、この順で決めました。</b>':''}</p>
+    <p class="vcap">各項目は上位${S.N}匹の平均（上位8匹は1.5倍）。「選ばなかった匹に頼る相手」は、その相手への対応が△以下として「対応」の点に入っているので、別には引いていません（二重に数えないため）。表示上の点（小数第3位まで）が同じなら、×が少ない→選出の多くが一撃で倒される相手が少ない→◎○が多い→後出しできる相手が多い→先に動ける相手が多い、の順で決めます。${b.tie?'<b>1番と2番は同点で、この順で決めました。</b>':''}</p>
     ${diff.map(d=>`<div class="sel-d"><b>${esc(d.y.r.q.n)}</b>：1番 ${DG_LV[d.y.lvl][0]}${d.y.sw?'・後出し可':''}${d.y.danger?'・一撃の危険':''} ／ 2番 ${DG_LV[d.z.lvl][0]}${d.z.sw?'・後出し可':''}${d.z.danger?'・一撃の危険':''}
       <small>1番（${esc(a.c.map(nm).join('・'))}）：${d.y.zs.map(z=>esc(dgZTxt(S,z,{sw:1}))).join('<br>')}</small><small>2番（${esc(b.c.map(nm).join('・'))}）：${d.z.zs.map(z=>esc(dgZTxt(S,z,{sw:1}))).join('<br>')}</small></div>`).join('')}
   </details>`;
