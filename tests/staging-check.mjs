@@ -19,4 +19,7 @@ ok(checkStaging(good(),{envMap:MAP}).some(e=>/prod-d1-id/.test(e)),'本番の da
 ok(checkStaging(withFb(good()),{prodD1Id:'prod-id',envMap:MAP}).length===0,'Firebase の同期を試すときは対応表のステージングの環境で通る','');
 {const M2=JSON.parse(JSON.stringify(MAP));M2.environments.staging.project='pokechan-hub';ok(checkStaging(withFb(good()),{prodD1Id:'prod-id',envMap:M2}).some(e=>/firebase-env/.test(e)),'断る：Firebase の環境が本番と同じプロジェクト','')}
 const dep=fs.readFileSync(path.join(ROOT,'.github/workflows/deploy.yml'),'utf8');ok(!/staging/.test(dep),'本番の公開（deploy.yml）はステージングの設定を読まない','');
+{const wf=fs.readFileSync(path.join(ROOT,'.github/workflows/staging-d1.yml'),'utf8');
+ok(/CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_STAGING_TOKEN \}\}/.test(wf)&&!/secrets\.CLOUDFLARE_API_TOKEN/.test(wf)&&!/\|\|\s*secrets\./.test(wf),'ステージングの確かめはステージング専用の鍵だけを使う（本番の公開用の鍵に切りかえない）','');
+ok(/権限が広すぎる/.test(wf)&&/本番の Worker か D1 が変わった/.test(wf)&&/つなぎ先がおかしい/.test(wf),'ステージングの確かめは鍵の広さ・本番が変わっていないか・つなぎ先を確かめる','');}
 console.log(bad?`staging-check: NG（${bad}/${n}）`:`staging-check: OK（${n}項目）`);if(bad)process.exit(1);
