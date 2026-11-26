@@ -18,7 +18,9 @@ const mf=new Miniflare({modules:true,scriptPath:path.join(ROOT,'worker/dist/work
   outboundService:async req=>{const u=req.url;
     if(u.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[jwk]}),{headers:{'content-type':'application/json'}});
     if(u.startsWith('https://webrisk.googleapis.com/v1/uris:search?')){WR.calls++;WR.inflight++;WR.max=Math.max(WR.max,WR.inflight);
-      try{if(WR.delay)await new Promise(r=>setTimeout(r,WR.delay));return new Response('{}',{headers:{'content-type':'application/json'}})}finally{WR.inflight--}}
+      try{if(WR.delay)await new Promise(r=>setTimeout(r,WR.delay));
+        if(WR.bad&&decodeURIComponent(u).includes(WR.bad))return new Response(JSON.stringify({threat:{threatTypes:['MALWARE'],expireTime:new Date(Date.now()+3*864e5).toISOString()}}),{headers:{'content-type':'application/json'}});
+        return new Response('{}',{headers:{'content-type':'application/json'}})}finally{WR.inflight--}}
     return new Response('',{status:404})}});
 const db=await mf.getD1Database('DB');
 const call=async(p,{method='GET',tok,body,admin}={})=>{const h={'content-type':'application/json','cf-connecting-ip':'10.6.0.1'};if(tok)h.authorization='Bearer '+tok;if(admin)h['x-admin-token']=admin;
@@ -137,5 +139,31 @@ ok((await db.prepare(`SELECT banned FROM users WHERE uid='iA'`).first()).banned=
   ok(r5[0]===200&&!r5[1].recorded_only&&o4.how==='observe'&&(await db.prepare(`SELECT gen FROM fb_sync WHERE uid='iA'`).first()).gen===g0+1,'R7 やり直すと片づき、番号も同じ取引で進む（本物の D1）',{r5,o4});
   r5=await fbp('/api/fb/observe',{uid:'iA',op:y.lease,observed_disabled:false,settled:'ok'});ok(r5[1].recorded_only===true&&(await db.prepare(`SELECT gen FROM fb_sync WHERE uid='iA'`).first()).gen===g0+1,'R7 同じ読み直しは1回分だけ（本物の D1）',r5);
   await db.exec(`DROP TRIGGER it_fail`)}
+/* R8 危険の答え（覚えに入らない＝上限）：覚える・同じ行き先を止める・上限の印は1つの取引。最後の文を本物の D1 の中で失敗させると全部取り消され、印だけの文で閉じる */
+{await db.prepare(`DELETE FROM link_budget_d`).run();await db.prepare(`DELETE FROM link_state`).run();
+  for(const id of ['iH','iI']){U[id]=await tok(id);await call('/api/me',{method:'POST',tok:U[id],body:{handle:'h'+id,name:id,agree:true}})}
+  const clr=async()=>{await db.prepare(`DELETE FROM link_attempts`).run();await db.prepare(`UPDATE notes SET created_at=created_at-60000`).run()};
+  await clr();const p1=await call('/api/notes',{method:'POST',tok:U.iH,body:{body:'r8',url:'https://note.com/it/r8same'}});await clr();const p2=await call('/api/notes',{method:'POST',tok:U.iI,body:{body:'r8',url:'https://note.com/it/r8same'}});
+  ok(p1[0]===200&&p2[0]===200,'R8 同じ行き先の投稿を2つ（問題なし）',{p1,p2});
+  const now=Date.now();
+  await db.prepare(`WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i<20000) INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT 'it8fill'||i,'unsafe','MALWARE',?,? FROM c`).bind(now,now+864e5).run();
+  const vh=(await db.prepare(`SELECT vh FROM note_links WHERE note_id=?`).bind(p1[1].id).first()).vh;
+  await db.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'clean','',?,?)`).bind(vh,now,now+864e5).run();
+  const snap=async()=>({l:(await db.prepare(`SELECT state,rev FROM note_links WHERE note_id IN (?,?) ORDER BY note_id`).bind(p1[1].id,p2[1].id).all()).results,v:(await db.prepare(`SELECT verdict FROM link_verdicts WHERE h=?`).bind(vh).all()).results.map(x=>x.verdict),
+    f:(await db.prepare(`SELECT v FROM link_state WHERE k='wr_saturated'`).all()).results.map(x=>x.v),u:(await db.prepare(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe'`).first()).c});
+  const s0=await snap();WR.bad='r8same';
+  await db.exec(`CREATE TRIGGER it_r8 BEFORE INSERT ON link_state WHEN NEW.v='unsafe-cache-full' BEGIN SELECT RAISE(ABORT,'injected-r8'); END`);
+  try{
+    const rc=await call(`/api/admin/links/${p1[1].id}`,{method:'POST',...ADM,body:{action:'recheck',reason:'本物の D1 の取引の取り消し',confirm:true}});
+    const s1=await snap();
+    ok(JSON.stringify(s1.l)===JSON.stringify(s0.l)&&s1.v.join()==='clean'&&s1.u===s0.u,'R8 最後の文（上限の印）が失敗：投稿の状態・番号・覚えは書きかわらない（本物の D1 の batch の取り消し）',{rc,s0,s1});
+    ok(s1.f.join()==='unsafe-write-failed','R8 取引が書けなければ、印だけの文で上限の印を立てる（本物の D1）',s1);
+    const o2=await call(`/api/links/${p2[1].id}/open`,{method:'POST',body:{}});ok(o2[0]===503,'R8 そのあいだ、同じ行き先の古い投稿は開けない（本物の D1）',o2);
+  }finally{await db.exec(`DROP TRIGGER it_r8`)}
+  await db.prepare(`DELETE FROM link_state`).run();
+  const rc2=await call(`/api/admin/links/${p1[1].id}`,{method:'POST',...ADM,body:{action:'recheck',reason:'本物の D1 でふつうに書ける',confirm:true}});
+  const s2=await snap();
+  ok(rc2[0]===200&&rc2[1].verdict==='unsafe'&&s2.l.every(x=>x.state==='unsafe')&&s2.l.every((x,i)=>x.rev>s0.l[i].rev)&&s2.v.length===0&&s2.f.join()==='unsafe-cache-full'&&s2.u<=s0.u,'R8 1つの取引で：同じ行き先の投稿をどれも止める・問題なしの覚えを消す・上限の印・危険の行は増えない（本物の D1）',{rc2,s2});
+  WR.bad=null;await db.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'it8fill%'`).run();await db.prepare(`DELETE FROM link_state`).run()}
 }finally{await mf.dispose()}
 console.log(bad?`d1-integration: NG（${bad}/${n}）`:`d1-integration: OK（${n}項目・Miniflare/workerd の手元の D1）`);if(bad)process.exit(1);

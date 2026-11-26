@@ -482,17 +482,29 @@ async function lkThreat(env,db,checkUrl,now,opt={}){
       /* 1つの文で：上限（危険は LK_UNSAFE_MAX・問題なしは危険が LK_CACHE_MAX 未満のときだけ）を数えて入れる。同時に入れても上限をこえない。
          問題なしの行を危険に変えるのも「危険が1つ増える」ので上限に数える。もとから危険の行の期限をのばすのは上限に関係なく入れる */
       const UN=`(SELECT COUNT(*) FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?4)`;
-      const ins=await db.prepare(`INSERT INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT ?1,?2,?3,?4,?5
+      const admit=db.prepare(`INSERT INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT ?1,?2,?3,?4,?5
         WHERE ${UN}<(CASE WHEN ?2='unsafe' THEN ?6 ELSE ?7 END) OR EXISTS(SELECT 1 FROM link_verdicts WHERE h=?1 AND ((verdict='unsafe' AND expires_at>?4) OR ?2='clean'))
         ON CONFLICT(h) DO UPDATE SET verdict=excluded.verdict,types=excluded.types,checked_at=excluded.checked_at,expires_at=excluded.expires_at
         WHERE (excluded.verdict='unsafe' AND (link_verdicts.verdict<>'unsafe' OR link_verdicts.expires_at<excluded.expires_at)
             AND ((link_verdicts.verdict='unsafe' AND link_verdicts.expires_at>excluded.checked_at) OR ${UN}<?6))
           OR (excluded.verdict='clean' AND excluded.checked_at>=link_verdicts.checked_at AND NOT(link_verdicts.verdict='unsafe' AND link_verdicts.expires_at>excluded.checked_at))
-        RETURNING verdict`).bind(h,res.v,res.types.join(','),now,res.exp,LK_UNSAFE_MAX,LK_CACHE_MAX).first();
+        RETURNING verdict`).bind(h,res.v,res.types.join(','),now,res.exp,LK_UNSAFE_MAX,LK_CACHE_MAX);
       if(res.v==='unsafe'){
-        /* 覚えに入らなかった危険（上限）：上限の印を立てる（閉じる）。どの場合も、同じ行き先の投稿のリンクには危険と書く */
-        const kept=ins||await db.prepare(`SELECT 1 AS x FROM link_verdicts WHERE h=? AND verdict='unsafe' AND expires_at>=?`).bind(h,res.exp).first();
-        await db.batch([lkMarkVhUnsafe(db,h,now,res.exp),...(kept?[]:[db.prepare(`INSERT INTO link_state(k,v,at,until) VALUES('wr_saturated','unsafe-cache-full',?1,?2) ON CONFLICT(k) DO UPDATE SET at=excluded.at,until=MAX(COALESCE(link_state.until,0),excluded.until)`).bind(now,res.exp)])])}
+        /* 危険の答えは1つの取引で：覚えに入れる → 同じ行き先の投稿のリンクを危険にする → 覚えに入らなかった（上限）なら、
+           同じ行き先の「問題なし」の覚えを消し、上限の印を立てる。途中で失敗・止まっても半分だけ書かれることはない
+           （書けなければ何も覚えず、この問い合わせは error＝開かない・投稿しない方に倒れる。前の「問題なし」の覚えも、印のない状態も、そのまま残らない組み合わせにはならない） */
+        const KEPT=`EXISTS(SELECT 1 FROM link_verdicts WHERE h=?1 AND verdict='unsafe' AND expires_at>=?2)`;
+        try{await db.batch([admit,lkMarkVhUnsafe(db,h,now,res.exp),
+          db.prepare(`DELETE FROM link_verdicts WHERE h=?1 AND verdict='clean' AND NOT ${KEPT}`).bind(h,res.exp),
+          db.prepare(`INSERT INTO link_state(k,v,at,until) SELECT 'wr_saturated','unsafe-cache-full',?3,?2 WHERE NOT ${KEPT}
+            ON CONFLICT(k) DO UPDATE SET at=excluded.at,until=MAX(COALESCE(link_state.until,0),excluded.until)`).bind(h,res.exp,now)])}
+        catch(e){
+          /* 取引が書けなかった（すべて取り消された）：危険を知ったのに覚えられなかったので、1つだけの文で上限の印を立てて全部のリンクを閉じる
+             （同じ行き先の古い投稿の「問題なし」で開かれないように）。印も書けなければ error（この問い合わせは開かない・投稿しない） */
+          await db.prepare(`INSERT INTO link_state(k,v,at,until) VALUES('wr_saturated','unsafe-write-failed',?1,?2)
+            ON CONFLICT(k) DO UPDATE SET at=excluded.at,until=MAX(COALESCE(link_state.until,0),excluded.until)`).bind(now,res.exp).run();
+          return{v:'error',why:'cache',h,flagged:true}}}
+      else await admit.first();
       /* 上限：期限の切れた行と、古い「問題なし」だけを消す（期限内の「危険」は消さない） */
       await db.batch([db.prepare(`DELETE FROM link_verdicts WHERE expires_at<=?`).bind(now),
         db.prepare(`DELETE FROM link_verdicts WHERE verdict='clean' AND h IN (SELECT h FROM link_verdicts WHERE verdict='clean' ORDER BY checked_at DESC,h LIMIT -1 OFFSET MAX(0,${LK_CACHE_MAX}-(SELECT COUNT(*) FROM link_verdicts WHERE verdict='unsafe')))`)]);

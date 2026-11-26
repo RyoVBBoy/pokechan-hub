@@ -965,6 +965,73 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
   await env.DB.prepare(`UPDATE link_state SET until=? WHERE k='wr_saturated'`).bind(clock-1).run();
   r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV});expect('R6 期限が過ぎ、危険の行も少なければ外れる',r[0]===200&&(await q(`SELECT 1 FROM link_state`)).length===0,r);
 }
+/* ---------- 20. レビュー8回目：危険の答えを覚える・同じ行き先を止める・上限の印は1つの取引（途中で失敗しても半分だけにならない）・取引が書けなければ印だけ・同時に開く ---------- */
+{
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  const real=env.DB;
+  /* 危険の覚えを上限まで埋める（新しい危険は覚えに入らない） */
+  await env.DB.prepare(`WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i<20000) INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT 'r8fill'||i,'unsafe','MALWARE',?,? FROM c`).bind(clock,clock+864e5).run();
+  /* fail：取引（batch）に上限の印の文が入っていれば、失敗する文を足して全部取り消させる。fb：印だけの文（あとの手）も失敗させる */
+  const FLAGQ=/INSERT INTO link_state\(k,v,at,until\) SELECT 'wr_saturated'/,FBQ=/'unsafe-write-failed'/;
+  const mkF=(o={})=>({...env,DB:{prepare:q0=>{const st=real.prepare(q0);if(FLAGQ.test(q0))return{bind:(...a)=>Object.assign(st.bind(...a),{__flag:true})};
+      if(o.fb&&FBQ.test(q0))return{bind:()=>({run:async()=>{throw new Error('injected: flag write failed')}})};return st},
+    batch:async l=>{if(l.some(x=>x&&x.__flag)){await real.batch([...l,real.prepare('INSERT INTO r8_no_such_table VALUES(1)')]);throw new Error('unreachable')}return real.batch(l)}}});
+  const Ua=await mk('uR8a','reighta'),Ub=await mk('uR8b','reightb'),Uc=await mk('uR8c','reightc');
+  const URL8='https://r8-same.test-gk.net/p';
+  /* 上限の前に、同じ行き先の投稿を2つ（問題なしの覚え）。覚えを1つだけ戻すため、上限の印を消してから作る */
+  await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'r8fill%' AND rowid IN (SELECT rowid FROM link_verdicts WHERE h LIKE 'r8fill%' LIMIT 2)`).run();
+  const A=await postLink(Ua,URL8),B=await postLink(Ub,URL8);
+  await env.DB.prepare(`WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i<20000) INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT 'r8fill'||i,'unsafe','MALWARE',?,? FROM c`).bind(clock,clock+864e5).run();
+  const vh=(await q(`SELECT vh FROM note_links WHERE note_id=?`,A))[0].vh;
+  /* 危険が多いと問題なしは覚えに入らないので、問題なしの覚えはここで入れる（古い投稿が問題なしの覚えで開ける状態） */
+  await env.DB.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'clean','',?,?)`).bind(vh,clock,clock+864e5).run();
+  const nUnsafe=async()=>(await q(`SELECT COUNT(*) AS c FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`,clock))[0].c;
+  const st=async()=>({a:(await q(`SELECT state,rev FROM note_links WHERE note_id=?`,A))[0],b:(await q(`SELECT state,rev FROM note_links WHERE note_id=?`,B))[0],
+    v:(await q(`SELECT verdict FROM link_verdicts WHERE h=?`,vh)).map(x=>x.verdict),flag:(await q(`SELECT v FROM link_state WHERE k='wr_saturated'`)).map(x=>x.v)});
+  const s0=await st(),U0=await nUnsafe();
+  expect('R8 準備：同じ行き先の古い投稿2つは問題なし・覚えは問題なし・危険の覚えは上限・印なし',s0.a.state==='ok'&&s0.b.state==='ok'&&s0.v.join()==='clean'&&s0.flag.length===0&&U0>=20000,{s0,U0});
+  const recheck=(id,E)=>call(`/api/admin/links/${id}`,{method:'POST',admin:'admin-secret-123',body:{action:'recheck',reason:'レビュー8回目の確かめ直し',confirm:true},E});
+  WR.mode['r8-same']='unsafe-3d';tick(31*60e3);
+  /* a 取引の途中で失敗（印の文のあとに失敗する文）：取引の中は何も残らない＝覚え・投稿の状態はそのまま。代わりに印だけの文で全部を閉じる */
+  let r=await recheck(A,mkF());let s1=await st();
+  expect('R8 取引の途中で失敗：覚え・投稿の状態・番号は書きかわらない（半分だけにならない）',s1.a.state==='ok'&&s1.a.rev===s0.a.rev&&s1.b.state==='ok'&&s1.b.rev===s0.b.rev&&s1.v.join()==='clean'&&await nUnsafe()===U0,{r,s1});
+  expect('R8 取引が書けなければ、印だけの文で上限の印を立てる（危険を知ったのに覚えられなかった）',s1.flag.join()==='unsafe-write-failed',s1);
+  r=await openGo(B);expect('R8 そのあいだ、同じ行き先の古い投稿（問題なしの覚え）は開けない',r[0]===503&&r[2]==='open',r);
+  r=await openGo(A);expect('R8 確かめ直した投稿も開けない',r[0]===503,r);
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  /* b 取引も印だけの文も書けない：error（この問い合わせは止める方）。D1 に書けないときは許可（link_intents）も書けないので開けない */
+  r=await recheck(A,mkF({fb:true}));let s2=await st();
+  expect('R8 取引も印も書けなければ、この確かめ直しは戻さず止める側（問題なしにしない）・状態はそのまま',r[0]!==200||r[1].verdict!=='clean',{r,s2});
+  expect('R8 取引も印も書けないときも、半分だけ書かれた状態はない',s2.a.state==='ok'&&s2.a.rev===s0.a.rev&&s2.v.join()==='clean'&&s2.flag.length===0,s2);
+  /* c ふつうに書けるとき：1つの取引で、覚えに入らない危険 → 同じ行き先の投稿2つとも危険・番号が上がる・問題なしの覚えは消す・上限の印 */
+  tick(31*60e3);r=await recheck(A);let s3=await st();
+  expect('R8 1つの取引で：同じ行き先の投稿をどれも止める・番号が上がる・問題なしの覚えを消す・上限の印（危険の行は上限をこえない）',r[0]===200&&r[1].verdict==='unsafe'&&s3.a.state==='unsafe'&&s3.b.state==='unsafe'&&s3.a.rev>s0.a.rev&&s3.b.rev>s0.b.rev&&s3.v.length===0&&s3.flag.join()==='unsafe-cache-full'&&await nUnsafe()<=U0,{r,s3});
+  /* d 同時：古い投稿の確認の画面（許可）を先に出し、そのあと危険が分かる → その許可は使えない。危険の確かめと同時に開いても開かない */
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  const URL9='https://r8-race.test-gk.net/q';
+  await env.DB.prepare(`DELETE FROM link_verdicts WHERE rowid IN (SELECT rowid FROM link_verdicts WHERE h LIKE 'r8fill%' LIMIT 2)`).run();
+  const C=await postLink(Uc,URL9),D=await postLink(Ua,URL9);
+  await env.DB.prepare(`WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i<20000) INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT 'r8fill'||i,'unsafe','MALWARE',?,? FROM c`).bind(clock,clock+864e5).run();
+  {const vh9=(await q(`SELECT vh FROM note_links WHERE note_id=?`,D))[0].vh;await env.DB.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) VALUES(?,'clean','',?,?)`).bind(vh9,clock,clock+864e5).run()}
+  const op=await call(`/api/links/${D}/open`,{method:'POST',body:{},ip:IPV});
+  expect('R8 同時：危険が分かる前に、古い投稿の確認の画面（許可）が出た',op[0]===200&&!!op[1].intent,op);
+  WR.mode['r8-race']='defer';tick(31*60e3);const n0=WR.pending.length;
+  const rc=recheck(C);
+  for(let i=0;i<200&&WR.pending.length===n0;i++)await new Promise(z=>setTimeout(z,5));
+  /* 安全確認の答えを待っているあいだに、同じ行き先の古い投稿をもう一度開く（覚えは問題なしのまま） */
+  const midP=call(`/api/links/${D}/open`,{method:'POST',body:{},ip:IPV});
+  await new Promise(z=>setTimeout(z,30));
+  for(const pend of WR.pending.splice(n0))pend.res(new Response(JSON.stringify({threat:{threatTypes:['MALWARE'],expireTime:new Date(Date.now()+3*864e5).toISOString()}})));
+  const [rr,mid]=await Promise.all([rc,midP]);
+  let g=await call(`/api/links/${D}/go`,{method:'POST',body:{intent:op[1].intent},ip:IPV});
+  expect('R8 同時：危険が分かったあとは、前に出た許可で開けない',g[0]!==200&&!g[1].url,{g,rr});
+  if(mid[0]===200){g=await call(`/api/links/${D}/go`,{method:'POST',body:{intent:mid[1].intent},ip:IPV});expect('R8 同時：答えを待つあいだに出た許可でも開けない',g[0]!==200&&!g[1].url,g)}
+  else expect('R8 同時：答えを待つあいだに開こうとしても許可は出ない',mid[0]!==200,mid);
+  r=await openGo(D);expect('R8 同時：そのあとも開けない（危険・上限の印）',r[0]!==200,r);
+  expect('R8 同時：確かめ直しの答えは危険・両方の投稿が止まる・上限の印',rr[0]===200&&rr[1].verdict==='unsafe'&&(await q(`SELECT state FROM note_links WHERE note_id IN (?,?)`,C,D)).every(x=>x.state==='unsafe')&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===1,{rr,l:await q(`SELECT note_id,state FROM note_links WHERE note_id IN (?,?)`,C,D),f:await q(`SELECT * FROM link_state`)});
+  await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'r8fill%'`).run();await env.DB.prepare(`DELETE FROM link_state`).run();
+  delete WR.mode['r8-same'];delete WR.mode['r8-race'];
+}
 /* ---------- 11. 1回のリクエストで増える D1 の問い合わせの数（報告に書く） ---------- */
 {const real=env.DB;let cnt=0;const Ec={...env,DB:{prepare:s=>{cnt++;return real.prepare(s)},batch:l=>real.batch(l)}};
   const QN=Ec.DB;const tl0=(()=>{cnt=0})();void tl0;
