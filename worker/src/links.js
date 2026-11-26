@@ -111,10 +111,10 @@ let LK_READY=false;
 /* 足す列：すでにあるときの「duplicate column」だけを無視する（ほかの失敗はそのまま投げる＝閉じる） */
 async function lkAddCol(db,t,c){try{await db.prepare(`ALTER TABLE ${t} ADD COLUMN ${c}`).run()}catch(e){if(!/duplicate column/i.test(String(e&&e.message||e)))throw e}}
 /* 要る列・索引がそろっているか（そろっていなければ投げる＝この機能と利用停止の確かめは閉じる） */
-const LK_SCHEMA={notes:['op'],note_links:['note_id','uid','url','host','state','verdict','verdict_at','expires_at','rev','vh','pol'],link_intents:['token','note_id','who','rev','expires_at','used','used_at','pol'],link_state:['k','v','at'],elid_review:['uid','elids','at'],
+const LK_SCHEMA={notes:['op'],note_links:['note_id','uid','url','host','state','verdict','verdict_at','expires_at','rev','vh','pol'],link_intents:['token','note_id','who','rev','expires_at','used','used_at','pol'],link_state:['k','v','at','until'],elid_review:['uid','elids','at'],
   sanctions:['id','kind','uid','ehash','kver','permanent','expires_at','status','root_key','case_id','parent','elid','basis','reviewer'],sanction_cases:['id','target_uid','kind','refs','related_root','status','op','ek','lbasis','dsum','lsum','reviewer','signals'],
   user_emails:['uid','ehash','kver','elid'],key_sentinels:['kver','tag'],link_budget_d:['day','month','n'],link_leases:['slot','holder','expires_at'],
-  fb_sync:['uid','gen','done_gen','owned','prior','intent','intent_gen','lease','lease_until','attempts','next_at','dead','last_want','checked_at','pend_since','obs_disabled','obs_at','obs_gen','review','unknown','last_op','unk_op'],fb_metrics:['day','k','n'],job_runs:['name','last_at','last_ok']};
+  fb_sync:['uid','gen','done_gen','owned','prior','intent','intent_gen','lease','lease_until','attempts','next_at','dead','last_want','checked_at','pend_since','obs_disabled','obs_at','obs_gen','review','unknown','last_op','unk_op'],fb_metrics:['day','k','n'],fb_ops:['op','uid','gen','intent','kind','at','resolved_at','obs','how'],job_runs:['name','last_at','last_ok']};
 const LK_INDEXES=['sanctions_root_eh','sanctions_root_uid','sanctions_case_uid','sanctions_kv','note_links_vh','fb_sync_due','notes_op'];
 async function linksInit(db){
   if(LK_READY)return;
@@ -174,11 +174,15 @@ async function linksInit(db){
       last_error TEXT,last_want TEXT,checked_at INTEGER,created_at INTEGER,updated_at INTEGER)`),
     /* Firebase の同期の数（日ごと：done＝終えた・failed＝失敗・unknown＝結果が分からない・stale＝古い報告/期限切れ・lost＝返事が届かなかった報告の再送） */
     db.prepare(`CREATE TABLE IF NOT EXISTS fb_metrics(day TEXT NOT NULL,k TEXT NOT NULL,n INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(day,k))`),
+    /* 結果が分からない Firebase の操作を1つずつ（op＝その回の借りた印）。timeout＝動いているアダプターが時間切れを報告した、crash＝止める/戻す記録のあと報告がないまま借りる時間が切れた。
+       片づくのは、その op の読み直し（observe）か運営者のやり直し（replay）だけ。timeout が残っているあいだは、そのアカウントを新しく変えない（claim しない） */
+    db.prepare(`CREATE TABLE IF NOT EXISTS fb_ops(op TEXT PRIMARY KEY,uid TEXT NOT NULL,gen INTEGER,intent TEXT,kind TEXT NOT NULL,at INTEGER NOT NULL,resolved_at INTEGER,obs INTEGER,how TEXT)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS fb_ops_uid ON fb_ops(uid,resolved_at)`),
     /* 決まった時刻の仕事の結果（期限の見直しなど） */
     db.prepare(`CREATE TABLE IF NOT EXISTS job_runs(name TEXT PRIMARY KEY,last_at INTEGER,last_ok INTEGER,last_err TEXT,ok_at INTEGER,fails INTEGER NOT NULL DEFAULT 0)`)
   ]);
   /* この版より前の表（このブランチの前の版）に列を足す */
-  for(const [t,c] of [['note_links','rev INTEGER NOT NULL DEFAULT 0'],['note_links','vh TEXT'],['link_intents','used_at INTEGER'],['sanctions','root_key TEXT'],['sanctions','case_id INTEGER'],['sanction_events','root_key TEXT'],['sanction_cases','op TEXT'],['sanction_cases','ek TEXT'],['sanction_cases','lbasis TEXT'],['sanction_cases','dsum TEXT'],['notes','op TEXT'],['fb_sync','pend_since INTEGER'],['fb_sync','obs_disabled INTEGER'],['fb_sync','obs_at INTEGER'],['fb_sync','obs_gen INTEGER'],['fb_sync','review INTEGER NOT NULL DEFAULT 0'],['fb_sync','review_why TEXT'],['fb_sync','unknown INTEGER NOT NULL DEFAULT 0'],['fb_sync','intent_at INTEGER'],['fb_sync','unk_intent TEXT'],['sanctions','elid TEXT'],['sanctions','basis TEXT'],['sanctions','reviewer TEXT'],['sanction_cases','lsum TEXT'],['sanction_cases','reviewer TEXT'],['sanction_cases','signals TEXT'],['user_emails','elid TEXT'],['note_links','pol TEXT'],['link_intents','pol TEXT'],['fb_sync','last_op TEXT'],['fb_sync','unk_op TEXT']])
+  for(const [t,c] of [['note_links','rev INTEGER NOT NULL DEFAULT 0'],['note_links','vh TEXT'],['link_intents','used_at INTEGER'],['sanctions','root_key TEXT'],['sanctions','case_id INTEGER'],['sanction_events','root_key TEXT'],['sanction_cases','op TEXT'],['sanction_cases','ek TEXT'],['sanction_cases','lbasis TEXT'],['sanction_cases','dsum TEXT'],['notes','op TEXT'],['fb_sync','pend_since INTEGER'],['fb_sync','obs_disabled INTEGER'],['fb_sync','obs_at INTEGER'],['fb_sync','obs_gen INTEGER'],['fb_sync','review INTEGER NOT NULL DEFAULT 0'],['fb_sync','review_why TEXT'],['fb_sync','unknown INTEGER NOT NULL DEFAULT 0'],['fb_sync','intent_at INTEGER'],['fb_sync','unk_intent TEXT'],['sanctions','elid TEXT'],['sanctions','basis TEXT'],['sanctions','reviewer TEXT'],['sanction_cases','lsum TEXT'],['sanction_cases','reviewer TEXT'],['sanction_cases','signals TEXT'],['user_emails','elid TEXT'],['note_links','pol TEXT'],['link_intents','pol TEXT'],['fb_sync','last_op TEXT'],['fb_sync','unk_op TEXT'],['link_state','until INTEGER']])
     await lkAddCol(db,t,c);
   await db.batch([
     /* root_key のない前の行：parent をたどった一番上の行の番号にする（何段でも。輪になっても64段で止める） */
@@ -412,11 +416,14 @@ async function lkBudget(db,env,now){
    ・覚えを読めない・書けないときは閉じる */
 /* 危険の覚えが上限（wr_saturated）か。上限のあいだは、問い合わせも問題なしの覚えも使わず、リンクの投稿・押す・戻すを閉じる（危険を忘れて開く方には倒れない）。
    期限切れで危険の行が上限の9割より少なくなったら外す（そのときに数える） */
+/* 上限の印がないこと（投稿・許可を出す・許可を使う・戻すの、最後に書く文の中で確かめる。確かめてから書くまでのあいだに印が立っても書かない） */
+const LK_NOSAT=`NOT EXISTS(SELECT 1 FROM link_state WHERE k='wr_saturated')`;
 async function lkSaturated(db,now){
-  const r=await db.prepare(`SELECT at FROM link_state WHERE k='wr_saturated'`).first();if(!r)return false;
-  const n=(await db.prepare(`SELECT COUNT(*) AS n FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?`).bind(now).first()).n;
-  if(n<LK_UNSAFE_MAX*0.9){await db.prepare(`DELETE FROM link_state WHERE k='wr_saturated'`).run();return false}
-  return true;
+  const r=await db.prepare(`SELECT at,until FROM link_state WHERE k='wr_saturated'`).first();if(!r)return false;
+  /* 外すのは1つの文で：覚えられなかった危険の答えがすべて期限切れ（until）で、しかも危険の行が上限の9割より少ないときだけ。
+     そのあいだにほかのリクエストが印を立て直した（until をのばした）なら、この文は消さない */
+  await db.prepare(`DELETE FROM link_state WHERE k='wr_saturated' AND COALESCE(until,9e15)<=?1 AND (SELECT COUNT(*) FROM link_verdicts WHERE verdict='unsafe' AND expires_at>?1)<?2`).bind(now,Math.floor(LK_UNSAFE_MAX*0.9)).run();
+  return !!(await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first());
 }
 /* 危険の答えを、同じ行き先のすべての投稿のリンクに書く（覚えに入らなくても、投稿の側に残る。rev を上げて、出ている許可も使えなくする） */
 const lkMarkVhUnsafe=(db,h,now,exp)=>db.prepare(`UPDATE note_links SET state='unsafe',verdict='unsafe',verdict_at=?1,expires_at=?2,updated_at=?1,rev=rev+1 WHERE vh=?3 AND state='ok'`).bind(now,exp,h);
@@ -467,7 +474,7 @@ async function lkThreat(env,db,checkUrl,now,opt={}){
       if(res.v==='unsafe'){
         /* 覚えに入らなかった危険（上限）：上限の印を立てる（閉じる）。どの場合も、同じ行き先の投稿のリンクには危険と書く */
         const kept=ins||await db.prepare(`SELECT 1 AS x FROM link_verdicts WHERE h=? AND verdict='unsafe' AND expires_at>=?`).bind(h,res.exp).first();
-        await db.batch([lkMarkVhUnsafe(db,h,now,res.exp),...(kept?[]:[db.prepare(`INSERT INTO link_state(k,v,at) VALUES('wr_saturated','unsafe-cache-full',?) ON CONFLICT(k) DO UPDATE SET at=excluded.at`).bind(now)])])}
+        await db.batch([lkMarkVhUnsafe(db,h,now,res.exp),...(kept?[]:[db.prepare(`INSERT INTO link_state(k,v,at,until) VALUES('wr_saturated','unsafe-cache-full',?1,?2) ON CONFLICT(k) DO UPDATE SET at=excluded.at,until=MAX(COALESCE(link_state.until,0),excluded.until)`).bind(now,res.exp)])])}
       /* 上限：期限の切れた行と、古い「問題なし」だけを消す（期限内の「危険」は消さない） */
       await db.batch([db.prepare(`DELETE FROM link_verdicts WHERE expires_at<=?`).bind(now),
         db.prepare(`DELETE FROM link_verdicts WHERE verdict='clean' AND h IN (SELECT h FROM link_verdicts WHERE verdict='clean' ORDER BY checked_at DESC,h LIMIT -1 OFFSET MAX(0,${LK_CACHE_MAX}-(SELECT COUNT(*) FROM link_verdicts WHERE verdict='unsafe')))`)]);
@@ -640,7 +647,10 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!await fbTokOk(req,env,'FB_ADAPTER_TOKEN','x-fb-adapter-token'))return J({error:'見つかりません。'},404);
     const lease=rndHex(16),skip=Array.isArray(body.skip)?body.skip.filter(x=>typeof x==='string').slice(0,50):[];
     await db.prepare(`INSERT INTO job_runs(name,last_at,last_ok,ok_at,fails) VALUES('fb_adapter',?1,1,?1,0) ON CONFLICT(name) DO UPDATE SET last_at=?1,last_ok=1,ok_at=?1`).bind(now).run();
+    /* 止める/戻す記録（intent）のあと報告がないまま借りる時間が切れた回は、結果が分からない操作（crash）として1つずつ残す（運営者に見せる。そのあとの回の読み直しでは消さない） */
+    await db.prepare(`INSERT OR IGNORE INTO fb_ops(op,uid,gen,intent,kind,at) SELECT lease,uid,intent_gen,intent,'crash',?1 FROM fb_sync WHERE lease IS NOT NULL AND lease_until<=?1 AND intent IS NOT NULL AND intent_at>=lease_until-${FB_LEASE_MS}*20`).bind(now).run();
     const x=await db.prepare(`UPDATE fb_sync SET lease=?1,lease_until=?2,updated_at=?3 WHERE uid=(SELECT uid FROM fb_sync WHERE dead=0 AND next_at<=?3 AND lease_until<=?3
+        AND NOT EXISTS(SELECT 1 FROM fb_ops o WHERE o.uid=fb_sync.uid AND o.kind='timeout' AND o.resolved_at IS NULL)
         AND (done_gen<gen OR checked_at IS NULL OR checked_at<?4)${skip.length?` AND uid NOT IN (${skip.map((_,i)=>'?'+(i+5)).join(',')})`:''} ORDER BY (done_gen<gen) DESC,next_at,uid LIMIT 1) RETURNING uid,gen,owned,prior,attempts,lease_until,review`)
       .bind(lease,now+FB_LEASE_MS,now,now-FB_RECHECK_MS,...skip).first();
     if(!x)return J({items:[],lease_ms:FB_LEASE_MS});
@@ -687,7 +697,7 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!cur)return J({error:'見つかりません。'},404);
     if(cur.lease!==lease||!(cur.lease_until>now)){
       if(res==='done'&&cur.lease!==lease&&cur.done_gen>=gen){await fbMetric(db,now,'lost').run();return J({ok:true,repeat:true})}
-      await db.batch([db.prepare(`UPDATE fb_sync SET ${fbObsSQL},next_at=0,updated_at=?4 WHERE uid=?1`).bind(uid,null,gen,now,null,null,null,null,obs),fbMetric(db,now,'stale')]);
+      await db.batch([db.prepare(`UPDATE fb_sync SET ${fbObsSQL},next_at=0,lease=CASE WHEN lease=?2 THEN NULL ELSE lease END,lease_until=CASE WHEN lease=?2 THEN 0 ELSE lease_until END,updated_at=?4 WHERE uid=?1`).bind(uid,lease,gen,now,null,null,null,null,obs),fbMetric(db,now,'stale')]);
       return J({error:'古い報告です（借りる時間が切れたか、ほかが借りています）。見た状態は残しました。',stale:true,recorded:obs!==null},409)}
     /* あるべき状態が途中で変わった：失敗には数えず、見た状態を残して借りている印を返し、すぐ確かめ直す（持ち主の記録は変えない） */
     if(res==='superseded'){
@@ -697,7 +707,8 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
       const unk=body.unknown===true?1:0;
       const out=await db.batch([db.prepare(`UPDATE fb_sync SET attempts=attempts+1,last_error=?5,next_at=?4+?6,unknown=CASE WHEN ?7=1 THEN 1 ELSE unknown END,unk_intent=CASE WHEN ?7=1 THEN intent ELSE unk_intent END,unk_op=CASE WHEN ?7=1 THEN ?2 ELSE unk_op END,last_op=?2,dead=CASE WHEN attempts+1>=${FB_MAX_ATTEMPTS} THEN 1 ELSE 0 END,lease=NULL,lease_until=0,${fbObsSQL},updated_at=?4
         WHERE uid=?1 AND lease=?2 RETURNING dead,attempts`).bind(uid,lease,gen,now,String(body.error||'error').replace(/[^\w./:-]/g,'').slice(0,80),fbBackoff(cur.attempts+1),unk,null,obs),
-        fbMetricIf(db,now,unk?'unknown':'failed',uid,lease)]);
+        fbMetricIf(db,now,unk?'unknown':'failed',uid,lease),
+        ...(unk?[db.prepare(`INSERT OR IGNORE INTO fb_ops(op,uid,gen,intent,kind,at) SELECT ?1,uid,?3,?4,'timeout',?2 FROM fb_sync WHERE uid=?5 AND last_op=?1`).bind(lease,now,gen,cur.intent,uid)]:[])]);
       const r=out[0].results&&out[0].results[0];
       return J({ok:true,dead:!!(r&&r.dead),attempts:r&&r.attempts})}
     /* 終わった：止めた/戻したなら、Firebase を読み直して確かめた結果（observed_disabled）と、止めたならログインの印を取り消したこと（revoked）が要る */
@@ -723,15 +734,23 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!await fbTokOk(req,env,'FB_ADAPTER_TOKEN','x-fb-adapter-token'))return J({error:'見つかりません。'},404);
     const uid=typeof body.uid==='string'?body.uid:'',op=typeof body.op==='string'?body.op:'';
     if(!uid||!op||typeof body.observed_disabled!=='boolean')return J({error:'形が正しくありません。'},400);
-    /* 片づけてよいのは、いま残っている「結果が分からない」呼び出しと同じ借りた印（op）の読み直しだけ。違えば（古い回・重なった回）見た状態だけを残す */
-    const m0=await db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 AND NOT (unknown=1 AND unk_op=?4) RETURNING uid`).bind(uid,body.observed_disabled?1:0,now,op).first();
-    if(m0)return J({ok:true,recorded_only:true});
-    /* 時間切れだった呼び出しが「止める」で、読み直すと止まっていた：この仕組みが止めたことにする（持ち主を失わない）。
+    /* 片づけるのは、その op の「結果が分からない」操作の記録（fb_ops）1つだけ。ほかの op・すでに片づいた op・記録のない op は、見た状態だけを残す（持ち主を推しはからない） */
+    const ob=body.observed_disabled?1:0;
+    const op1=await db.prepare(`UPDATE fb_ops SET resolved_at=?3,obs=?4,how='observe' WHERE op=?1 AND uid=?2 AND resolved_at IS NULL RETURNING intent,kind`).bind(op,uid,now,ob).first();
+    if(!op1){const m0=await db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 RETURNING uid`).bind(uid,ob,now).first();
+      return m0?J({ok:true,recorded_only:true}):J({error:'見つかりません。'},404)}
+    /* その操作が「止める」で、読み直すと止まっていた：この仕組みが止めたことにする（持ち主を失わない）。まだ片づいていない操作が残っていれば unknown のまま。
        どの場合も番号を上げて、すぐ今のあるべき状態に合わせ直す（遅れて終わった呼び出しが、あとから合わせた状態をくつがえしたかもしれないため） */
+    /* settled＝アダプターが見た、その操作の Firebase を変える呼び出しの本当の終わり方（ok＝遅れて成功・error＝失敗・none＝変える呼び出しは時間切れではなかった）。
+       止める操作が遅れて成功し、止まっている＝この仕組みが止めた。止まっているのに、止める呼び出しが成功していない＝ほかの人が外で止めた可能性：持ち主を推しはからず review（運営者が決める） */
+    const st=['ok','error','none'].includes(body.settled)?body.settled:'none';
+    const own=op1.intent==='disable'&&ob===1&&st==='ok'?1:0,amb=op1.intent==='disable'&&ob===1&&st!=='ok'?1:0;
     const r=await db.prepare(`UPDATE fb_sync SET obs_disabled=?2,obs_at=?3,
-      owned=CASE WHEN unknown=1 AND unk_intent='disable' AND ?2=1 THEN 1 ELSE owned END,prior=CASE WHEN unknown=1 AND unk_intent='disable' AND ?2=1 AND prior IS NULL THEN 0 ELSE prior END,
-      unknown=0,unk_intent=NULL,unk_op=NULL,gen=gen+1,pend_since=COALESCE(pend_since,?3),next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 AND unknown=1 AND unk_op=?4 RETURNING uid`).bind(uid,body.observed_disabled?1:0,now,op).first();
-    return r?J({ok:true}):J({error:'見つかりません。'},404);
+      owned=CASE WHEN ?4=1 THEN 1 ELSE owned END,prior=CASE WHEN ?4=1 AND prior IS NULL THEN 0 ELSE prior END,
+      review=CASE WHEN ?5=1 AND owned=0 THEN 1 ELSE review END,review_why=CASE WHEN ?5=1 AND owned=0 THEN 'disabled_outside_unknown' ELSE review_why END,
+      unknown=CASE WHEN EXISTS(SELECT 1 FROM fb_ops o WHERE o.uid=?1 AND o.kind='timeout' AND o.resolved_at IS NULL) THEN 1 ELSE 0 END,unk_intent=NULL,unk_op=NULL,
+      gen=gen+1,pend_since=COALESCE(pend_since,?3),next_at=CASE WHEN lease_until>?3 THEN next_at ELSE 0 END,updated_at=?3 WHERE uid=?1 RETURNING uid,unknown`).bind(uid,ob,now,own,amb).first();
+    return r?J({ok:true,still_unknown:!!r.unknown}):J({error:'見つかりません。'},404);
   }
   if(path==='/api/fb/check'&&req.method==='POST'){
     /* ブロッキング関数から：その UID か確認済みメールに有効な停止があるか。答えは deny と、この Worker の環境の名前（FB_ENV_ID）だけ（理由・記録の中身は返さない）。メールは保存も記録もしない */
@@ -761,8 +780,11 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
       if(!tok)return J({error:'確認の画面の期限が切れました。もう一度リンクを押してください。',expired:true},410);
       /* 許可を使い切るのと、いまの状態を読むのを、1つの取引で（同じ時点の中身で比べる）。時刻は答える直前のもの */
       const t=Date.now();
-      const [ri,rs]=await db.batch([db.prepare(`UPDATE link_intents SET used=1,used_at=?4 WHERE token=?1 AND note_id=?2 AND who=?3 AND used=0 AND expires_at>?4 RETURNING rev,pol`).bind(tok,id,who,t),snap(t)]);
+      const [ri,rs,rf]=await db.batch([db.prepare(`UPDATE link_intents SET used=1,used_at=?4 WHERE token=?1 AND note_id=?2 AND who=?3 AND used=0 AND expires_at>?4 AND ${LK_NOSAT} RETURNING rev,pol`).bind(tok,id,who,t),snap(t),
+        db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`)]);
       const it=ri.results&&ri.results[0],l=rs.results&&rs.results[0];
+      /* 同じ取引の中で上限の印があった：許可は使わずに閉じる（印が外れたら、もう一度押せば開ける） */
+      if(rf.results&&rf.results[0])return J({error:'いまリンクの安全確認ができないため、開けません。時間をおいてください。',saturated:true},503);
       if(!it)return J({error:'確認の画面の期限が切れました。もう一度リンクを押してください。',expired:true},410);
       if(!l)return J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
       if(l.unsafe_exp){await lkMarkUnsafe(db,id,l.rev,t,l.unsafe_exp,l.vh);return INERT}
@@ -791,7 +813,11 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(l2.unsafe_exp||l2.state!=='ok'||l2.rev!==l.rev||!(l2.expires_at>t2))return INERT;
     const token=rndHex(16);
     if(l2.pol!==LK_POLICY)return INERT;
-    await db.prepare(`INSERT INTO link_intents(token,note_id,who,rev,expires_at,created_at,pol) VALUES(?,?,?,?,?,?,?)`).bind(token,id,who,l2.rev,t2+60e3,t2,LK_POLICY).run();
+    /* 許可を書く文の中で、上限の印・リンクの状態・rev・方針の版・同じ行き先の危険を確かめ直す（読んでから書くまでに変わっても許可を出さない） */
+    const ins=await db.prepare(`INSERT INTO link_intents(token,note_id,who,rev,expires_at,created_at,pol) SELECT ?1,?2,?3,?4,?5,?6,?7 WHERE ${LK_NOSAT}
+      AND EXISTS(SELECT 1 FROM note_links l WHERE l.note_id=?2 AND l.state='ok' AND l.rev=?4 AND l.pol=?7 AND l.expires_at>?6 AND NOT EXISTS(SELECT 1 FROM link_verdicts v WHERE v.h=l.vh AND v.verdict='unsafe' AND v.expires_at>?6))`)
+      .bind(token,id,who,l2.rev,t2+60e3,t2,LK_POLICY).run();
+    if(!ins.meta.changes){if(await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first())return J({error:'いまリンクの安全確認ができないため、開けません。時間をおいてください。',saturated:true},503);return INERT}
     return J({ok:true,url:l2.url,host:l2.host,intent:token,ttl:60});
   }
   /* ---- 運営者 ---- */
@@ -824,7 +850,8 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
       t=await lkThreat(env,db,v.check,now,{fresh:true});
       if(t.v!=='clean'&&act==='restore')return J({error:t.v==='unsafe'?'安全確認で危険の可能性があると判定されたため、戻せません。':'いま安全確認ができないため、戻せません。',verdict:t.v},409);
       let ch=1;
-      if(t.v==='clean')ch=(await db.prepare(`UPDATE note_links SET ${act==='restore'?"state='ok',rev=rev+1,":''}verdict='clean',verdict_at=?,expires_at=?,updated_at=?,vh=?,pol=? WHERE note_id=? AND rev=?`).bind(now,t.exp,now,t.h,LK_POLICY,id,l.rev).run()).meta.changes;
+      if(t.v==='clean')ch=(await db.prepare(`UPDATE note_links SET ${act==='restore'?"state='ok',rev=rev+1,":''}verdict='clean',verdict_at=?,expires_at=?,updated_at=?,vh=?,pol=? WHERE note_id=? AND rev=? AND ${LK_NOSAT}`).bind(now,t.exp,now,t.h,LK_POLICY,id,l.rev).run()).meta.changes;
+      if(!ch&&t.v==='clean'&&await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first())return J({error:'いまリンクの安全確認ができないため、戻せません（危険の覚えが上限です）。',saturated:true},409);
       /* 危険（止める方）は rev に関係なくいつも勝つ（lkThreat が同じ行き先の投稿をもう止めて rev を上げていても、ここで止めたことを書く） */
       else if(t.v==='unsafe')ch=(await db.prepare(`UPDATE note_links SET state=CASE WHEN state='ok' THEN 'unsafe' ELSE state END,rev=rev+1,verdict='unsafe',verdict_at=?,expires_at=MAX(COALESCE(expires_at,0),?),updated_at=?,vh=? WHERE note_id=?`).bind(now,t.exp,now,t.h,id).run()).meta.changes;
       if(!ch)return J({error:'確かめているあいだにリンクの状態が変わりました。もう一度確かめてください。',stale:true},409);
@@ -844,7 +871,10 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     const ex=await db.prepare(`SELECT lease_until FROM fb_sync WHERE uid=?`).bind(t.uid).first();
     if(!ex)return J({error:'この人の Firebase の同期の記録はありません。'},404);
     /* アダプターが借りているあいだはやり直さない（借りている印を消さない） */
-    const r=await db.prepare(`UPDATE fb_sync SET dead=0,attempts=0,next_at=0,last_error=NULL,unknown=0,unk_intent=NULL,unk_op=NULL,gen=gen+1,pend_since=COALESCE(pend_since,?1),updated_at=?1 WHERE uid=?2 AND lease_until<=?1 RETURNING gen`).bind(now,t.uid).first();
+    /* 運営者が Firebase の画面などで今の状態を確かめた前提で、結果が分からない操作の記録もここで片づける（how='replay'・消さずに残す） */
+    const rb=await db.batch([db.prepare(`UPDATE fb_ops SET resolved_at=?1,how='replay' WHERE uid=?2 AND resolved_at IS NULL AND NOT EXISTS(SELECT 1 FROM fb_sync WHERE uid=?2 AND lease_until>?1)`).bind(now,t.uid),
+      db.prepare(`UPDATE fb_sync SET dead=0,attempts=0,next_at=0,last_error=NULL,unknown=0,unk_intent=NULL,unk_op=NULL,gen=gen+1,pend_since=COALESCE(pend_since,?1),updated_at=?1 WHERE uid=?2 AND lease_until<=?1 RETURNING gen`).bind(now,t.uid)]);
+    const r=rb[1].results&&rb[1].results[0];
     if(!r)return J({error:'いまアダプターが扱っています。少し待ってからやり直してください。',busy:true},409);
     const who=await lkAdminWho(env,ip);
     try{await tipsLog(db,env,ip,now,'fb_replay',0,who+' '+reason)}catch(e){}
@@ -919,6 +949,8 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
       /* 知らせること：10回失敗・持ち主の見直し待ち・結果が分からないもの・1時間以上待っているもの（待ちが始まった時刻で）・アダプターが2時間以上動いていないのに待ちがある・動いているのに2時間以上成功がない */
       alert:(fb.dead||0)>0||(fb.review||0)>0||(fb.unknown||0)>0||(!!fb.oldest&&fb.oldest<now-36e5)||(!!fb.backlog&&(!fa||fa.last_at<now-72e5))||(!!fb.backlog&&!!fa&&fa.last_at>now-72e5&&(!fo||fo.last_at<now-72e5))};
     const dl=await db.prepare(`SELECT f.uid,us.handle,f.attempts,f.last_error,f.updated_at,f.dead,f.review,f.review_why,f.unknown FROM fb_sync f LEFT JOIN users us ON us.uid=f.uid WHERE f.dead=1 OR f.review=1 OR f.unknown=1 ORDER BY f.updated_at DESC LIMIT 50`).all();
+    const fops=(await db.prepare(`SELECT o.uid,us.handle,o.kind,o.intent,o.at FROM fb_ops o LEFT JOIN users us ON us.uid=o.uid WHERE o.resolved_at IS NULL ORDER BY o.at DESC LIMIT 50`).all()).results||[];
+    fbH.open_ops=fops;if(fops.length)fbH.alert=true;
     const er=(await db.prepare(`SELECT e.uid,us.handle,e.elids,e.at FROM elid_review e LEFT JOIN users us ON us.uid=e.uid ORDER BY e.at DESC LIMIT 50`).all()).results||[];
     const sat=await db.prepare(`SELECT v,at FROM link_state WHERE k='wr_saturated'`).first();
     return J({sanctions:r.results,cases:cs.results,enabled:lkOn(env,'SANCTIONS_ON'),jobs:jr.results,fb_sync:fbH,fb_dead:dl.results,

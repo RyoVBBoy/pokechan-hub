@@ -832,6 +832,11 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
     /* 出ている許可：印の前に確認の画面を開き、印のあとで go → 閉じる */
     /* 期限切れで減ったら外す（はじめて確かめたとき）：投稿もできる */
     await env.DB.prepare(`UPDATE link_verdicts SET expires_at=? WHERE h LIKE 'fill%'`).bind(clock-1).run();
+    /* 覚えられなかった危険の答えの期限（until）まで印は残る（危険の行が減っても、覚えられなかった答えを忘れない） */
+    tick(20e3);await clearSlots();r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x3a',url:'https://note.com/r4/cap-clean2'}});
+    expect('R6 危険の行が減っても、覚えられなかった危険の期限までは印を外さない',r[0]===503&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===1,{r});
+    /* 期限が過ぎた（ここでは期限を過去にして同じ状態を作る） */
+    await env.DB.prepare(`UPDATE link_state SET until=? WHERE k='wr_saturated'`).bind(clock-1).run();
     tick(20e3);await clearSlots();const c1=WR.calls.length;r=await call('/api/notes',{method:'POST',tok:U3,body:{body:'x3',url:'https://note.com/r4/cap-clean2'}});
     expect('R5 危険が期限で減ったら印を外す（ふたたび投稿できる）',r[0]===200&&WR.calls.length===c1+1&&(await q(`SELECT 1 FROM link_state WHERE k='wr_saturated'`)).length===0,{r});
     await env.DB.prepare(`DELETE FROM link_verdicts WHERE h LIKE 'fill%'`).run();delete WR.mode['note.com/r4/cap-bad'];delete WR.mode['cap-conv'];delete WR.mode['cap-sim']}
@@ -887,7 +892,7 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
   expect('R5 確かめ直しの途中で止められたら、開けない・止めたまま',r[0]!==200&&(await q(`SELECT state FROM note_links WHERE note_id=?`,pq))[0].state==='quarantined',r);
   /* 上限の印：出ている許可も使えない */
   const pg=await postLink(P5,'https://note.com/r5/sat-go');r=await call(`/api/links/${pg}/open`,{method:'POST',body:{},ip:IPV});const it2=r[1].intent;
-  await env.DB.prepare(`INSERT INTO link_state(k,v,at) VALUES('wr_saturated','unsafe-cache-full',?)`).bind(clock).run();
+  await env.DB.prepare(`INSERT INTO link_state(k,v,at,until) VALUES('wr_saturated','unsafe-cache-full',?1,?1)`).bind(clock).run();
   await env.DB.prepare(`INSERT OR REPLACE INTO link_verdicts(h,verdict,types,checked_at,expires_at) SELECT 'sat'||i,'unsafe','MALWARE',?1,?2 FROM (WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i<20000) SELECT i FROM c)`).bind(clock,clock+864e5).run();
   r=await call(`/api/links/${pg}/go`,{method:'POST',body:{intent:it2},ip:IPV});expect('R5 上限の印のあいだは、出ている許可でも開けない（503）',r[0]===503&&r[1].saturated===true,r);
   r=await call('/api/admin/sanctions',{...ADM});expect('R5 管理画面に上限の印を出す',!!r[1].link_saturated,r[1].link_saturated);
@@ -920,6 +925,45 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
   const rc=await call('/api/admin/cases',{method:'POST',...ADM,E:Er,body:{handle:'rfiverev',kind:'attack',summary:SUM,refs:[{t:'link',id:rl}],attest:true,reviewer:'なりすまし',evidence_kinds:['direct']}});
   expect('R5 ADMIN_REVIEWER があれば確かめた人は owner:〜（送った名前は使わない）',rc[0]===200&&(await q('SELECT reviewer FROM sanction_cases WHERE id=?',rc[1].case_id))[0].reviewer==='owner:運営者A',rc);
   r=await call('/api/admin/sanctions',{...ADM,E:Er});expect('R5 管理画面に確かめた人の決め方',r[1].reviewer_mode==='owner',r[1].reviewer_mode);
+}
+/* ---------- 19. レビュー6回目：上限の印は最後に書く文の中で確かめる（確かめてから書くまでに印が立った場合）・印は新しいものを消さない・再起動 ---------- */
+{
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  const real=env.DB,SAT=`INSERT INTO link_state(k,v,at,until) VALUES('wr_saturated','unsafe-cache-full',${clock},${clock+864e5}) ON CONFLICT(k) DO NOTHING`;
+  /* re＝この SQL の文を実行する直前に印を立てる（batch なら、その文を含む batch の直前） */
+  const mkE=re=>{let armed=false;const wrap=st=>({bind:(...a)=>{const b=st.bind(...a);return{__b:b,run:async()=>{await real.prepare(SAT).run();return b.run()},first:async()=>{await real.prepare(SAT).run();return b.first()},all:async()=>{await real.prepare(SAT).run();return b.all()}}}});
+    return{...env,DB:{prepare:q0=>{const st=real.prepare(q0);if(re.test(q0)){armed=true;return{bind:(...a)=>{const b=st.bind(...a);b.__arm=true;return Object.assign(b,{run:async()=>{await real.prepare(SAT).run();return st.bind(...a).run()},first:async()=>{await real.prepare(SAT).run();return st.bind(...a).first()}})}}}return st},
+      batch:async l=>{if(l.some(x=>x&&x.__arm)){await real.prepare(SAT).run()}return real.batch(l)}}}};
+  const F6=await mk('uR6f','rsixflag');
+  /* a 投稿：安全確認のあと、書く前に印が立つ */
+  tick();await clearSlots();const n0=(await q(`SELECT COUNT(*) AS c FROM notes`))[0].c;
+  let r=await call('/api/notes',{method:'POST',tok:F6,body:{body:'書く直前に印',url:'https://note.com/r6/inflight'},E:mkE(/^\s*INSERT INTO notes\(/)});
+  expect('R6 安全確認のあと書く前に印が立った投稿は書かない（503・投稿もリンクも増えない）',r[0]===503&&r[1].saturated===true&&(await q(`SELECT COUNT(*) AS c FROM notes`))[0].c===n0&&(await q(`SELECT 1 FROM note_links WHERE url='https://note.com/r6/inflight'`)).length===0,r);
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  /* b 許可を出す：読んだあと、許可を書く前に印が立つ */
+  const pl=await postLink(F6,'https://note.com/r6/open');
+  r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV,E:mkE(/^\s*INSERT INTO link_intents/)});
+  expect('R6 許可を書く直前に印が立ったら許可を出さない（503・許可は増えない）',r[0]===503&&r[1].saturated===true&&(await q(`SELECT COUNT(*) AS c FROM link_intents WHERE note_id=?`,pl))[0].c===0,r);
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  /* c 許可を使う：許可を出したあと、使う取引の直前に印が立つ */
+  r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV});const it=r[1].intent;
+  r=await call(`/api/links/${pl}/go`,{method:'POST',body:{intent:it},ip:IPV,E:mkE(/^\s*UPDATE link_intents SET used=1/)});
+  expect('R6 許可を使う取引の直前に印が立ったら開かない（503・許可は使わずに残す）',r[0]===503&&r[1].saturated===true&&(await q(`SELECT used FROM link_intents WHERE token=?`,it))[0].used===0,r);
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  /* d 戻す：確かめ直しのあと、書く前に印が立つ */
+  const pr=await postLink(F6,'https://note.com/r6/restore');
+  await call(`/api/admin/links/${pr}`,{method:'POST',admin:'admin-secret-123',body:{action:'quarantine',reason:'戻すテストのため止める',confirm:true}});
+  r=await call(`/api/admin/links/${pr}`,{method:'POST',admin:'admin-secret-123',body:{action:'restore',reason:'書く直前に印',confirm:true},E:mkE(/^\s*UPDATE note_links SET state='ok',rev=rev\+1/)});
+  expect('R6 戻す直前に印が立ったら戻さない（409・止めたまま）',r[0]===409&&(await q(`SELECT state FROM note_links WHERE note_id=?`,pr))[0].state==='quarantined',r);
+  /* e 印を外す文は1つ：新しく立て直した印（覚えられなかった危険の期限がのびた）は消さない */
+  await env.DB.prepare(`DELETE FROM link_state`).run();
+  await env.DB.prepare(`INSERT INTO link_state(k,v,at,until) VALUES('wr_saturated','unsafe-cache-full',?1,?2)`).bind(clock,clock+36e5).run();
+  r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV});
+  expect('R6 覚えられなかった危険の期限の前は、危険の行が少なくても印を外さない',r[0]===503&&(await q(`SELECT until FROM link_state WHERE k='wr_saturated'`))[0].until===clock+36e5,r);
+  /* f 再起動（新しい isolate・同じ D1）：印は D1 にあるので閉じたまま */
+  const E2={...env};r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV,E:E2});expect('R6 再起動しても印は残る（D1 に記録）',r[0]===503,r);
+  await env.DB.prepare(`UPDATE link_state SET until=? WHERE k='wr_saturated'`).bind(clock-1).run();
+  r=await call(`/api/links/${pl}/open`,{method:'POST',body:{},ip:IPV});expect('R6 期限が過ぎ、危険の行も少なければ外れる',r[0]===200&&(await q(`SELECT 1 FROM link_state`)).length===0,r);
 }
 /* ---------- 11. 1回のリクエストで増える D1 の問い合わせの数（報告に書く） ---------- */
 {const real=env.DB;let cnt=0;const Ec={...env,DB:{prepare:s=>{cnt++;return real.prepare(s)},batch:l=>real.batch(l)}};

@@ -18,7 +18,8 @@ export function pickEnv(map,name){
   const e=envs[name];if(!e)throw new Error('env-unknown');
   if(e.approved!==true)throw new Error('env-not-approved');
   for(const k of ['project','worker','workerEnvId','serviceAccount'])if(typeof e[k]!=='string'||!e[k]||PLACE.test(e[k]))throw new Error('env-incomplete:'+k);
-  if(!/^https:\/\/[a-z0-9.-]+$/.test(e.worker)&&!(e.allowLocal===true&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(e.worker)))throw new Error('env-worker');
+  /* http://127.0.0.1 などは、エミュレーターだけのプロジェクト（demo- で始まる）で allowLocal:true のときだけ */
+  if(!/^https:\/\/[a-z0-9.-]+$/.test(e.worker)&&!(e.allowLocal===true&&/^demo-[a-z0-9-]+$/.test(e.project)&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(e.worker)))throw new Error('env-worker');
   if(name!=='production'&&envs.production)for(const k of ['project','worker','workerEnvId','serviceAccount'])if(e[k]===envs.production[k])throw new Error('env-shares-production:'+k);
   return{name,...e};
 }
@@ -39,7 +40,9 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
   const late=[],touched=new Set(),unknownUids=new Set();
   /* 時間切れの呼び出しは、uid ごとに「終わったか」を覚える（終わったものだけ読み直して observe。終わらないものは unknown のまま残す＝管理画面に出る） */
   const pend=new Map();
-  const fb=(p,what,uid)=>withTimeout(p,timeoutMs,what,pp=>{unknownUids.add(uid);const e=pend.get(uid)||{n:0,done:0};e.n++;pend.set(uid,e);late.push(pp.catch(()=>{}).finally(()=>{e.done++}))});
+  /* 変える呼び出し（update）が遅れて本当にどう終わったか（ok/error）も覚え、observe で送る（Worker は成功したときだけ「この仕組みが止めた」にする） */
+  const fb=(p,what,uid)=>withTimeout(p,timeoutMs,what,pp=>{unknownUids.add(uid);const e=pend.get(uid)||{n:0,done:0};e.n++;pend.set(uid,e);
+    late.push(pp.then(()=>{if(what==='update')e.upd='ok'},()=>{if(what==='update')e.upd='error'}).finally(()=>{e.done++}))});
   const sum={done:0,failed:0,unknown:0,stale:0,noop:0,dead:0,lost:0,observed:0,bad:0,superseded:0};
   /* 時間切れになった uid ごとの、その時の借りた印（observe でこれを送る。Worker は、いま残っている印と同じときだけ片づける） */
   const unkOp=new Map();
@@ -94,7 +97,7 @@ export async function runOnce({env,token,auth,sdk,fetchImpl=globalThis.fetch,tim
   }
   /* 遅れて終わるかもしれない SDK の呼び出しを待ち、結果が分からないアカウントを読み直して、見た状態だけを残す（終えたことにはしない） */
   if(late.length){let t;await Promise.race([Promise.allSettled(late),new Promise(r=>{t=setTimeout(r,settleMs)})]);clearTimeout(t)}
-  for(const uid of unknownUids){const e=pend.get(uid);if(!e||e.done<e.n)continue;try{const u=await withTimeout(auth.getUser(uid),timeoutMs,'observe');if(!unkOp.has(uid))continue;const o=await post('/api/fb/observe',{uid,op:unkOp.get(uid),observed_disabled:!!u.disabled});if(o.status===200&&!o.j.recorded_only)sum.observed++}catch(e){}}
+  for(const uid of unknownUids){const e=pend.get(uid);if(!e||e.done<e.n)continue;try{const u=await withTimeout(auth.getUser(uid),timeoutMs,'observe');if(!unkOp.has(uid))continue;const o=await post('/api/fb/observe',{uid,op:unkOp.get(uid),observed_disabled:!!u.disabled,settled:e.upd||'none'});if(o.status===200&&!o.j.recorded_only)sum.observed++}catch(e){}}
   return sum;
 }
 /* 手で動かすとき：node tools/firebase-adapter/adapter.mjs --live --env <名前>

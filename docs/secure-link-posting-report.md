@@ -68,6 +68,13 @@ Main merged again at `57853a2` (PRs #7/#8: search stars, party check, `pre-relea
 | 6 Reviewer | `ADMIN_REVIEWER` ⇒ server-assigned `owner:<name>`; otherwise `self:<name>` (explicitly self-asserted). Single-owner restriction documented; multi-staff not supported. | §18: submitted name ignored when set; `reviewer_mode` in admin API. |
 | 7 External gates | Unchanged: Web Risk isolated test, D1 staging, Firebase emulator/staging, credentials, policy/legal/retention/cost/ban periods, owner release. Draft; no merge, deploy, flags or provisioning. | — |
 
+## 1g. Review round 6 (PR #5 owner review on `36d4cb0`, 2026-11-26, comment 7187590690)
+| Item | Resolution | Tests (executed here) |
+|---|---|---|
+| 1 Saturation in the final commit | `NOT EXISTS(wr_saturated)` inside the note INSERT, the `open` intent INSERT (also state/rev/pol/expiry/shared unsafe), the `go` consuming UPDATE (+ flag read in the same batch ⇒ 503, intent stays unused) and admin restore/recheck clean UPDATE. Flag keeps `until` = latest uncached unsafe expiry (`MAX`); recovery is one conditional DELETE (`until` passed **and** < 90 %), so a re-raised flag is never removed and no uncached unsafe answer is forgotten early. | `links.mjs` §19 (557): flag injected right before each final statement (publish, intent insert, go batch, restore) ⇒ blocked; mutation check: removing each predicate makes the matching test fail (4/4); unexpired `until` keeps the flag although unsafe rows are few; new isolate/same D1 keeps it; expiry clears it. §17 updated: flag held until `until`. |
+| 2 Unknown operations | `fb_ops` per operation (`timeout`/`crash`), resolved only by matching `op` observe or admin replay; unresolved timeout blocks new claims for the UID; `settled` from the adapter decides ownership; disabled-without-successful-disable ⇒ `review`; duplicates are observation-only; crash rows open + alert. | `fb-adapter.mjs` (188): A timeout blocks B; B→A and A→B completion orders; duplicate result; external disable ⇒ review; crash recorded and converged; admin replay; late result after replay; unresolved-timeout account not touched until replay. |
+| Release preparation | Firebase Auth/Functions emulator test (`tests/fb-emulator.mjs`, demo project, synthetic identities, no credentials, outbound blocked) added to `run.mjs` and `pr-tests.yml` (`FB_EMU_TEST=1`, firebase-tools 14.27.0). Remote D1 staging and isolated Web Risk key: preparation steps in runbook §7/§8 — not provisioned (owner approval). | `fb-emulator` 17 locally: hooks load, sign-up allowed, sanctioned sign-in blocked, adapter disable/reverse/expiry, late timeout resolved. |
+
 ## 2. Ingress / render / authorization map
 | Path | Before | After |
 |---|---|---|

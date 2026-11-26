@@ -39,6 +39,8 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund --prefix tools/firebase-blocking
           npm ci --ignore-scripts --no-audit --no-fund --prefix tools/firebase-adapter
+      - name: Firebase の公式エミュレーター（firebase-tools の版を固定。demo- のプロジェクトだけ・本物の資源にはつながない）
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund --prefix "$RUNNER_TEMP/fbtools" firebase-tools@14.27.0
       - name: 組み立て（検索向けページは本番でないアドレスで）
         env:
           SITE_URL: https://example.invalid
@@ -49,4 +51,6 @@ jobs:
       - name: テスト
         env:
           FB_SDK_TEST: '1'
+          FB_EMU_TEST: '1'
+          FB_EMU_BIN: ${{ runner.temp }}/fbtools/node_modules/.bin/firebase
         run: node tests/run.mjs

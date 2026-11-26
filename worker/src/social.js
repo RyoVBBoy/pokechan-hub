@@ -118,7 +118,7 @@ const REPLY_OK=`(?5=0 OR EXISTS(SELECT 1 FROM notes pn JOIN users pu ON pu.uid=p
 const noteIns=(db,uid,text,now,ip,to,med,hs=[],lk=null)=>{const n=hs.length,po=7+n,pv=8+n;
   return db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media${lk?',op':''}) SELECT ?1,?2,?3,?4,?5,?6${lk?',?'+po:''}
   WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 ${noteSancSQL(n)} AND ${REPLY_OK}
-  ${lk?`AND NOT EXISTS(SELECT 1 FROM link_verdicts v WHERE v.h=?${pv} AND v.verdict='unsafe' AND v.expires_at>?3)`:''} RETURNING id`)
+  ${lk?`AND NOT EXISTS(SELECT 1 FROM link_verdicts v WHERE v.h=?${pv} AND v.verdict='unsafe' AND v.expires_at>?3) AND NOT EXISTS(SELECT 1 FROM link_state WHERE k='wr_saturated')`:''} RETURNING id`)
   .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null,...hs.map(x=>x.h),...(lk?[lk.op,lk.vh]:[]))};
 async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
@@ -187,7 +187,9 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
       if(!r){
         /* 書けなかった理由：危険の答え（停止・返信先・回数は下で） */
         const v=await db.prepare(`SELECT 1 AS x FROM link_verdicts WHERE h=? AND verdict='unsafe' AND expires_at>?`).bind(c.t.h,now).first();
-        if(v)return J({error:'このリンクは安全確認で危険の可能性があると判定されたため、付けられません。',code:'unsafe'},400)}
+        if(v)return J({error:'このリンクは安全確認で危険の可能性があると判定されたため、付けられません。',code:'unsafe'},400);
+        /* 安全確認のあと、書く前に上限の印が立った（同じ文の中で止めた） */
+        if(await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first())return J({error:'いまリンクの安全確認が混み合っているため、リンク付きの投稿はできません。リンクを外すか、時間をおいてください。',saturated:true},503)}
     }else r=await noteIns(db,meUid,text,now,ip,to,med,hs).first();
     /* 同時に送られて、15秒に1件・1日100件の決まりで書けなかった */
     if(!r){

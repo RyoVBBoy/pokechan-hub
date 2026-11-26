@@ -30,7 +30,8 @@ function envFor(map,name,project){
   if(!e)throw new Error('env-unknown');
   if(e.approved!==true)throw new Error('env-not-approved');
   for(const k of ['project','worker','workerEnvId'])if(typeof e[k]!=='string'||!e[k]||/^<.*>$/.test(e[k]))throw new Error('env-incomplete:'+k);
-  if(!/^https:\/\/[a-z0-9.-]+$/.test(e.worker))throw new Error('env-worker');
+  /* http://127.0.0.1 などは、エミュレーターだけのプロジェクト（demo- で始まる。本物の資源につながらない）で allowLocal:true のときだけ */
+  if(!/^https:\/\/[a-z0-9.-]+$/.test(e.worker)&&!(e.allowLocal===true&&/^demo-[a-z0-9-]+$/.test(e.project)&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(e.worker)))throw new Error('env-worker');
   if(name!=='production'&&envs.production)for(const k of ['project','worker','workerEnvId'])if(e[k]===envs.production[k])throw new Error('env-shares-production:'+k);
   if(project!==e.project)throw new Error('project-mismatch');
   return{name,checkUrl:e.worker+'/api/fb/check',workerEnvId:e.workerEnvId,project:e.project};
