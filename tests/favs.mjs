@@ -10,6 +10,11 @@ import {chromium} from 'playwright';
 import path from 'node:path';
 import {makeD1} from './d1mock.mjs';
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
+import fs from 'node:fs';
+import os from 'node:os';
+/* ブラウザ本体に保存されたか（同じ file:// のほかのタブから読む）。ページの中の読み取りは、ブラウザ本体へ書き終わる前の値でも返すため、読み直す前はこちらで確かめる */
+const PROBE=(()=>{const d=fs.mkdtempSync(path.join(os.tmpdir(),'lsprobe-'));const f=path.join(d,'p.html');fs.writeFileSync(f,'<!doctype html><meta charset=utf-8><title>p</title>');return 'file://'+f})();
+const durable=async(ctx,fn,ms=15000)=>{const p2=await ctx.newPage();try{await p2.goto(PROBE);const t0=Date.now();while(Date.now()-t0<ms){if(await p2.evaluate(fn))return true;await p2.waitForTimeout(100)}return false}finally{await p2.close()}};
 const URL0='file://'+path.join(ROOT,'dist/index.html');
 const PID='pokechan-test',SHOT=process.env.SHOT||'';
 const enc=o=>Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -146,6 +151,7 @@ for(const W of [390,1280]){
   const stored=()=>pg.evaluate(()=>{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return{f25:!!(o[25]&&o[25].on),f6:!!(o[6]&&o[6].on)}});
   await pg.waitForFunction(()=>{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return!!(o[25]&&o[25].on)&&!(o[6]&&o[6].on)},null,{timeout:10000}).catch(()=>{});
   const before=await stored();ok(before.f25&&!before.f6,W+'：読み直す前に端末に保存されている',before);
+  ok(await durable(pg.ctx,()=>{try{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return!!(o[25]&&o[25].on)&&!(o[6]&&o[6].on)}catch(e){return false}}),W+'：読み直す前に、ブラウザ本体にも保存されている（ほかのタブから読める）','');
   await pg.reload();await pg.waitForFunction(()=>window.__APP_READY===true,null,{timeout:30000});
   const after=await stored();ok(after.f25===before.f25&&after.f6===before.f6,W+'：読み直しても保存された値は同じ',{before,after});
   ok(await pg.evaluate(()=>favOn(25)&&!favOn(6)),W+'：読み直しても端末に残る');
