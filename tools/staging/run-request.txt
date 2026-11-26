@@ -1,1 +1,1 @@
-2026-11-26 run 6 (dedicated token, retry transient 5xx)
+2026-11-26 run 7 (dedicated token, transient D1 retry)

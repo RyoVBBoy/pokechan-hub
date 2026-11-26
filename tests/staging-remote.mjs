@@ -10,9 +10,16 @@ if(!/^https:\/\/gk-links-staging\.[a-z0-9-]+\.workers\.dev$/.test(BASE)){console
 const WR=process.env.WRANGLER||'wrangler';
 let n=0,bad=0;const ok=(c,m,i)=>{n++;console.log((c?'ok ':'NG ')+m+(c?'':' '+JSON.stringify(i)?.slice(0,400)));if(!c)bad++};
 /* 本物の D1 に SQL（読む・書く）。結果は results の配列 */
-const sql=q=>{const r=spawnSync(WR,['d1','execute',DB,'--remote','--json','--command',q],{encoding:'utf8',env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:1<<24});
-  if(r.status!==0)throw new Error('d1 execute failed: '+(r.stderr||'').slice(0,300));
-  const j=JSON.parse(r.stdout);return (Array.isArray(j)?j:[j]).flatMap(x=>x.results||[])};
+/* 本物の D1 はときどき一時的な失敗（internal error など）を返すので、同じ文を3回まで間をあけて送り直す（読む文・IGNORE つきの文・1回だけ当たる文だけをここで使う） */
+const sleepS=ms=>{const t=Date.now()+ms;while(Date.now()<t){Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,Math.min(500,t-Date.now()))}};
+let sqlRetries=0;
+/* 送り直してよいのは、何度送っても同じになる文だけ（SELECT・OR IGNORE・IF [NOT] EXISTS）。ほかは1回だけ */
+const sqlSafe=q=>/^\s*SELECT\b/i.test(q)||/\bOR IGNORE\b|\bIF (NOT )?EXISTS\b/i.test(q);
+const sql=q=>{let last='';const max=sqlSafe(q)?3:1;for(let t=1;t<=max;t++){const r=spawnSync(WR,['d1','execute',DB,'--remote','--json','--command',q],{encoding:'utf8',env:{...process.env,WRANGLER_SEND_METRICS:'false'},maxBuffer:1<<24});
+    if(r.status===0){try{const j=JSON.parse(r.stdout);return (Array.isArray(j)?j:[j]).flatMap(x=>x.results||[])}catch(e){last='json: '+e.message}}
+    else last=((r.stderr||'')+' '+(r.stdout||'')).replace(/\s+/g,' ').slice(-300);
+    if(t<max){sqlRetries++;console.log('  (d1 execute をやり直す '+t+'/2: '+last.slice(0,160)+')');sleepS(5000*t)}}
+  throw new Error('d1 execute failed: '+last)};
 const H={'content-type':'application/json'};
 const call=async(p,{method='GET',body,admin,ad}={})=>{const h={...H};if(admin)h['x-admin-token']=ADMIN;if(ad)h['x-fb-adapter-token']=AT;
   const r=await fetch(BASE+p,{method,headers:h,body:body?JSON.stringify(body):undefined});let j=null;try{j=await r.json()}catch(e){}return[r.status,j||{}]};
@@ -23,7 +30,11 @@ let up=null;for(let i=0;i<30&&!up;i++){try{const r=await call('/api/links/config
 ok(!!up,'R1 ステージングの Worker に届く',up);if(!up)process.exit(1);
 ok(up[1].post===false&&up[1].click===true,'R1 Web Risk の鍵がないのでリンクの投稿は止まっている（click は設定どおり）',up[1]);
 /* 1. 移しかえ：前の版の表（ワークフローで先に入れた）が、はじめての呼び出しで新しい形になる（本物の D1） */
-let r=await call('/api/tl');ok(r[0]===200,'R1 はじめての呼び出し（表の作成・移しかえ）',r[0]);
+/* はじめての呼び出しが本物の D1 の一時的な失敗で 500 になっても、準備のしるし（READY）は成功してから立てるので、次の呼び出しで最後まで作れる */
+let r=await call('/api/tl'),first=r[0],tries=1;
+while(r[0]!==200&&tries<4){await new Promise(z=>setTimeout(z,4000*tries));r=await call('/api/tl');tries++}
+if(first!==200)console.log('  (はじめての呼び出しは '+first+'。'+tries+' 回目で 200)');
+ok(r[0]===200,'R1 はじめての呼び出し（表の作成・移しかえ。一時的な失敗のあとも次の呼び出しで最後まで作れる）',{first,tries,last:r[0]});
 const tb=sql(`SELECT name FROM sqlite_master WHERE type='table'`).map(x=>x.name);
 ok(['note_links','link_verdicts','link_state','link_intents','link_budget_d','sanctions','sanction_cases','fb_sync','fb_ops','key_sentinels'].every(t=>tb.includes(t)),'R1 新しい表がある（本物の D1）',tb);
 const fo=sql(`SELECT op,uid,kind,intent,resolved_at FROM fb_ops WHERE uid IN ('m1','m2','m3') ORDER BY uid`);
@@ -98,4 +109,5 @@ sql(`DELETE FROM link_state WHERE k='wr_saturated'`);
 r=await call(`/api/links/${ln}/open`,{method:'POST',body:{}});ok(!r[1].saturated,'R7 印を外すと上限の答えではなくなる（前の方針の行は確かめ直しへ。鍵がないので開かない）',r);
 /* 8. 管理画面の状態 */
 r=await call('/api/admin/sanctions',{...ADM});ok(r[0]===200&&r[1].fb_sync&&Array.isArray(r[1].fb_sync.open_ops),'R8 管理画面の同期の状態（本物の D1）',r[0]);
+console.log('staging-remote: d1 execute のやり直し '+sqlRetries+' 回');
 console.log(bad?`staging-remote: NG（${bad}/${n}）`:`staging-remote: OK（${n}項目・Cloudflare の本物の D1 と Worker：${BASE.replace(/^https:\/\//,'')}）`);process.exit(bad?1:0);
