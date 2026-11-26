@@ -1,1 +1,1 @@
-2026-11-26 run 7 (dedicated token, transient D1 retry)
+2026-11-26 run 8 (round 8: fail-closed guard)
