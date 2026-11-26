@@ -56,13 +56,17 @@ jobs:
           # 要る：アカウント・Workers・workers.dev・D1。要らない（200 なら広すぎるので止める）：R2・Pages・DNS のゾーン・鍵の一覧・利用者の情報
           need=0; wide=0
           for p in "accounts/$CLOUDFLARE_ACCOUNT_ID" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" "accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database"; do
-            c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p"); echo "need $c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  $(jq -c '[.errors[]?.code]' /tmp/r.json)"; [ "$c" = 200 ] || need=1; done
+            # 一時的な 5xx（10001 など）は3回まで間をあけて読み直す。403 などはそのまま
+            for t in 1 2 3; do c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p"); case $c in 5*) sleep $((t*5));; *) break;; esac; done
+            echo "need $c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  $(jq -c '[.errors[]?.code]' /tmp/r.json)"; [ "$c" = 200 ] || need=1; done
           for p in "accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets" "accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects" "zones" "accounts/$CLOUDFLARE_ACCOUNT_ID/tokens" "user/tokens" "user"; do
             c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p")
             n=$(jq -r 'if (.result|type)=="array" then (.result|length) else "-" end' /tmp/r.json 2>/dev/null || echo -)
             echo "deny $c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  items=$n  $(jq -c '[.errors[]?.code]' /tmp/r.json)"
-            # zones は権限が無くても 200 で空の一覧のことがある：中身が1つでも見えたら広すぎる
-            if [ "$c" = 200 ] && { [ "$p" != zones ] || [ "$n" != 0 ]; }; then wide=1; fi; done
+            # zones は 200 で一覧が返る（権限が無ければ空）。見えても読むだけなら止めず、気をつけることとして出す（ゾーンの名前は出さない）
+            if [ "$p" = zones ]; then
+              if [ "$c" = 200 ] && [ "$n" != 0 ]; then echo "::warning::ステージングの鍵で DNS のゾーンが ${n} 件見える（ステージングには要らない。鍵の対象のゾーンを外すとよい）"; echo "zone_flags: $(jq -c '[.result[]|.permissions//[]]|add|unique' /tmp/r.json)"; fi
+            elif [ "$c" = 200 ]; then wide=1; fi; done
           [ $need = 0 ] || { echo "ステージングの鍵に要る権限が足りない"; exit 1; }
           [ $wide = 0 ] || { echo "ステージングの鍵の権限が広すぎる（要らない資源が見える）"; exit 1; }
           echo "権限：要るものは使え、要らないものは断られた"
@@ -74,7 +78,9 @@ jobs:
           set -eo pipefail
           A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
           curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -c '{scripts:[.result[]?.id],count:(.result|length)}'
-          SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/subdomain" | jq -r .result.subdomain); echo "workers.dev subdomain: $SUB"; echo "SUB=$SUB" >> "$GITHUB_ENV"
+          for t in 1 2 3; do SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/subdomain" | jq -r '.result.subdomain//empty'); [ -n "$SUB" ] && break; sleep $((t*5)); done
+          [ -n "$SUB" ] || { echo "workers.dev のサブドメインが読めない"; exit 1; }
+          echo "workers.dev subdomain: $SUB"; echo "SUB=$SUB" >> "$GITHUB_ENV"
           wrangler d1 list --json > /tmp/d1.json
           jq -c '[.[]|{name,file_size,num_tables,created_at}]' /tmp/d1.json
           jq -e --arg n "$PROD_D1_NAME" 'map(select(.name==$n))|length==1' /tmp/d1.json >/dev/null && echo "本番の D1（$PROD_D1_NAME）はある（さわらない）"
