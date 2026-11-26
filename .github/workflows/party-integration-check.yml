@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [release/party-check-integration-20261126]
+    branches: [release/party-check-integration-20261126, release/party-check-worker-fix-20261126]
 permissions:
   contents: read
 jobs:
