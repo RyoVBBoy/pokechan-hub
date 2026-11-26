@@ -7,7 +7,11 @@ const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
 import os from 'node:os';
 /* ブラウザ本体に保存されたか（同じ file:// のほかのタブから読む）。ページの中の読み取りは、ブラウザ本体へ書き終わる前の値でも返すため、読み直す前はこちらで確かめる */
 const PROBE=(()=>{const d=fs.mkdtempSync(path.join(os.tmpdir(),'lsprobe-'));const f=path.join(d,'p.html');fs.writeFileSync(f,'<!doctype html><meta charset=utf-8><title>p</title>');return 'file://'+f})();
-const durable=async(ctx,fn,ms=15000)=>{const p2=await ctx.newPage();try{await p2.goto(PROBE);const t0=Date.now();while(Date.now()-t0<ms){if(await p2.evaluate(fn))return true;await p2.waitForTimeout(100)}return false}finally{await p2.close()}};
+/* 失敗したときの手がかり：ほかのタブが最後に読んだ値（DUR.last）と、ブラウザ本体の記録（storageState） */
+const DUR={last:null};
+const durable=async(ctx,fn,ms=15000,key)=>{const p2=await ctx.newPage();try{await p2.goto(PROBE);const t0=Date.now();while(Date.now()-t0<ms){if(await p2.evaluate(fn))return true;DUR.last=key?await p2.evaluate(k=>localStorage.getItem(k),key):null;await p2.waitForTimeout(100)}return false}finally{await p2.close()}};
+const durInfo=async(ctx,pg,key)=>{let st=null;try{st=(await ctx.storageState()).origins.map(o=>({o:o.origin,v:(o.localStorage.find(x=>x.name===key)||{}).value}))}catch(e){st=String(e)}
+  return{probe:DUR.last,page:await pg.evaluate(k=>localStorage.getItem(k),key).catch(e=>String(e)),url:pg.url().slice(0,60),state:st}};
 const URL0='file://'+path.join(ROOT,'dist/index.html');
 const SHOT=process.env.SHOT||'';
 let n=0;const ok=(c,m,x)=>{n++;if(!c){console.error('NG',m,x===undefined?'':JSON.stringify(x).slice(0,400));process.exitCode=1}};
@@ -123,10 +127,11 @@ for(const W of [390,1280]){
   const savedPins=()=>pg.evaluate(()=>{const o=JSON.parse(localStorage.getItem('pctools')||'{}');const g=curGame();return o[g.id]===undefined?null:o[g.id]});
   await pg.waitForFunction(()=>{const o=JSON.parse(localStorage.getItem('pctools')||'{}');const v=o[curGame().id];return Array.isArray(v)&&v.length===0},null,{timeout:10000}).catch(()=>{});
   const pinsBefore=await savedPins();ok(Array.isArray(pinsBefore)&&pinsBefore.length===0,W+'：読み直す前に、すべて外した状態が端末に保存されている',pinsBefore);
-  ok(await durable(ctx,()=>{try{const o=JSON.parse(localStorage.getItem('pctools')||'{}');return Array.isArray(o.pokechamp)&&o.pokechamp.length===0}catch(e){return false}}),W+'：読み直す前に、ブラウザ本体にも保存されている（ほかのタブから読める）','');
+  {const d=await durable(ctx,()=>{try{const o=JSON.parse(localStorage.getItem('pctools')||'{}');return Array.isArray(o.pokechamp)&&o.pokechamp.length===0}catch(e){return false}},15000,'pctools');
+   ok(d,W+'：読み直す前に、ブラウザ本体にも保存されている（ほかのタブから読める）',d?'':await durInfo(ctx,pg,'pctools'))}
   await pg.reload();
   await pg.waitForFunction(()=>window.__APP_READY===true,null,{timeout:30000});
-  ok(JSON.stringify(await savedPins())==='[]',W+'：読み直しても保存された値は同じ',await savedPins());
+  {const v=await savedPins();ok(JSON.stringify(v)==='[]',W+'：読み直しても保存された値は同じ',JSON.stringify(v)==='[]'?'':{v,...await durInfo(ctx,pg,'pctools')})}
   await star('calc').waitFor();
   ok(await checkPins([])&&await pg.locator('#view .tquick').textContent().then(t=>t.includes('ここに追加')),
     W+'：すべて外した状態も再読み込み後に保つ');
