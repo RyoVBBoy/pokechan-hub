@@ -1,0 +1,11 @@
+{
+  "_note": "Web Risk の手での確かめ（tools/webrisk-smoke.mjs）の試験用のアドレス。Google の資料（Web Risk の Lookup API・試験用のアドレスの説明）で確かめてから、cases の uri と verified_from を書き、approved を true にする。このままでは動かない（uri が決まっていない・approved:false）。",
+  "approved": false,
+  "verified_from": "<Google の資料のアドレス（https://cloud.google.com/… など）>",
+  "cases": [
+    {"case": "benign", "uri": "<問題のないはずのページ>", "expect": "clean"},
+    {"case": "malware", "uri": "<資料に書かれた MALWARE の試験用のアドレス>", "expect": "unsafe", "types": ["MALWARE"]},
+    {"case": "social", "uri": "<資料に書かれた SOCIAL_ENGINEERING の試験用のアドレス>", "expect": "unsafe", "types": ["SOCIAL_ENGINEERING"]},
+    {"case": "extended", "uri": "<資料に書かれた SOCIAL_ENGINEERING_EXTENDED_COVERAGE の試験用のアドレス>", "expect": "unsafe", "types": ["SOCIAL_ENGINEERING_EXTENDED_COVERAGE"]}
+  ]
+}
