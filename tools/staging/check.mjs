@@ -24,10 +24,14 @@ export function checkStaging(cfg,{prodD1Id='',envMap=null}={}){const errs=[];
   for(const x of (cfg.r2_buckets||[]))if(PROD.r2.includes(x.bucket_name))errs.push('R2 が本番と同じ: '+x.bucket_name);
   if(cfg.routes||cfg.route)errs.push('routes は使わない（workers.dev だけ。本番のアドレスに付けない）');
   const v=cfg.vars||{};const ao=String(v.ALLOWED_ORIGINS||'');for(const h of PROD.hosts)if(ao.includes(h))errs.push('ALLOWED_ORIGINS に本番のアドレス: '+h);
-  if(ph(v.FB_ENV_ID))errs.push('FB_ENV_ID が決まっていない');
+  /* 本番の Firebase のログインを受けない：FIREBASE_PROJECT_ID は必ず入れ、demo- のプロジェクトか、本番と違うプロジェクトにする（入れないと本番の pokechan-hub になる） */
+  const prodProj=(envMap&&envMap.environments&&envMap.environments.production&&envMap.environments.production.project)||'pokechan-hub';
+  if(ph(v.FIREBASE_PROJECT_ID))errs.push('FIREBASE_PROJECT_ID が決まっていない（入れないと本番の Firebase のログインを受ける）');else if(v.FIREBASE_PROJECT_ID===prodProj||v.FIREBASE_PROJECT_ID==='pokechan-hub')errs.push('FIREBASE_PROJECT_ID が本番と同じ');
+  /* FB_ENV_ID は Firebase の同期を試すときだけ（入れたら対応表の承認されたステージングの環境と同じ値） */
+  const fbOn='FB_ENV_ID' in v;if(fbOn&&ph(v.FB_ENV_ID))errs.push('FB_ENV_ID が決まっていない');
   for(const k of ['ADMIN_TOKEN','APP_TOKEN','WEBRISK_API_KEY','EMAIL_HMAC_KEY','EMAIL_HMAC_KEYRING','FB_ADAPTER_TOKEN','FB_HOOK_TOKEN','GEMINI_API_KEY'])if(k in v)errs.push(k+' を設定ファイルに書かない（wrangler secret put で、ステージング専用の値を）');
   const crons=(cfg.triggers&&cfg.triggers.crons)||[];if(crons.some(c=>c!=='0 * * * *'))errs.push('本番の cron（お知らせ・集計など）は入れない');
-  if(envMap){const st=Object.entries(envMap.environments||{}).filter(([k])=>k!=='production');const pr=(envMap.environments||{}).production||{};
+  if(envMap&&fbOn){const st=Object.entries(envMap.environments||{}).filter(([k])=>k!=='production');const pr=(envMap.environments||{}).production||{};
     const e=st.find(([,x])=>x.workerEnvId===v.FB_ENV_ID);
     if(!e)errs.push('firebase-env.json に、この FB_ENV_ID の環境がない');
     else for(const k of ['project','worker','workerEnvId','serviceAccount'])if(e[1][k]&&e[1][k]===pr[k])errs.push('firebase-env.json の '+e[0]+' が本番と同じ '+k);}

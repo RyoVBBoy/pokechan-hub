@@ -1,0 +1,118 @@
+# ステージング（gk-links-staging）の本物の Cloudflare の D1 と Worker で確かめる（PR #5・docs/secure-link-posting-runbook.md §7）。
+# 動くのは tools/staging/run-request.txt を変えて作業用のブランチに push したときだけ。本番の公開（deploy.yml）とは別。
+# 作る・消すのは gk-links-staging という名前の D1 と Worker だけ（本番の名前・本番の D1 の id と同じなら止める）。合成のデータだけ。
+# 合言葉はこの回だけの使い捨て（ログに出さない）。Web Risk の鍵・Firebase の合言葉は入れない（外の安全確認・Firebase は使わない）。
+name: ステージングの本物の D1 の確かめ（gk-links-staging）
+
+on:
+  push:
+    branches: ['feature/secure-link-posting']
+    paths: ['tools/staging/run-request.txt']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-d1
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROD_D1_ID: ${{ vars.D1_DATABASE_ID }}
+      PROD_D1_NAME: ${{ vars.D1_DATABASE_NAME || 'pokechan-community' }}
+      PROD_WORKER: ${{ vars.WORKER_NAME || 'pokechan-tap' }}
+      STG: gk-links-staging
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 道具（wrangler の版を固定）
+        run: npm install -g --no-audit --no-fund wrangler@3.114.17 && wrangler --version
+
+      - name: 1. ログインと権限を確かめる（合言葉は出さない）
+        run: |
+          set -eo pipefail
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "CLOUDFLARE_API_TOKEN がない"; exit 1; }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "CLOUDFLARE_ACCOUNT_ID がない"; exit 1; }
+          [ "$STG" != "$PROD_WORKER" ] && [ "$STG" != "$PROD_D1_NAME" ] || { echo "ステージングの名前が本番と同じ"; exit 1; }
+          A="https://api.cloudflare.com/client/v4"
+          echo "--- トークンの確認（ユーザーのトークン／アカウントのトークン）"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/user/tokens/verify" | jq -c '{kind:"user",success,status:.result.status,expires_on:.result.expires_on,errors:[.errors[]?.code]}'
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify" | jq -c '{kind:"account",success,status:.result.status,expires_on:.result.expires_on,errors:[.errors[]?.code]}'
+          echo "--- できること（読むだけの呼び出しで確かめる）"
+          for p in "accounts/$CLOUDFLARE_ACCOUNT_ID" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" "accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" "accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets" "user/tokens"; do
+            c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p"); echo "$c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  $(jq -c '[.errors[]?.code]' /tmp/r.json)"; done
+          echo "--- アカウント（名前と種類だけ）"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/accounts/$CLOUDFLARE_ACCOUNT_ID" | jq -c '{name:.result.name,type:.result.type}'
+          wrangler whoami 2>&1 | grep -viE "token|@" | head -20 || true
+
+      - name: 2. 今ある資源と無料枠のゆとり（本番の名前があることも確かめる）
+        run: |
+          set -eo pipefail
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -c '{scripts:[.result[]?.id],count:(.result|length)}'
+          SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/subdomain" | jq -r .result.subdomain); echo "workers.dev subdomain: $SUB"; echo "SUB=$SUB" >> "$GITHUB_ENV"
+          wrangler d1 list --json > /tmp/d1.json
+          jq -c '[.[]|{name,file_size,num_tables,created_at}]' /tmp/d1.json
+          jq -e --arg n "$PROD_D1_NAME" 'map(select(.name==$n))|length==1' /tmp/d1.json >/dev/null && echo "本番の D1（$PROD_D1_NAME）はある（さわらない）"
+          [ -z "$PROD_D1_ID" ] || jq -e --arg i "$PROD_D1_ID" --arg n "$PROD_D1_NAME" 'map(select(.uuid==$i and .name==$n))|length==1' /tmp/d1.json >/dev/null && echo "本番の D1 の id は変数と同じ"
+          echo "D1 の数: $(jq length /tmp/d1.json)（無料枠 10）・合計の大きさ: $(jq '[.[].file_size]|add' /tmp/d1.json) バイト（無料枠 5GB）"
+
+      - name: 3. ステージングの D1 を作り直す（gk-links-staging だけ）
+        run: |
+          set -eo pipefail
+          if jq -e --arg n "$STG" 'map(select(.name==$n))|length==1' /tmp/d1.json >/dev/null; then
+            OLD=$(jq -r --arg n "$STG" '.[]|select(.name==$n)|.uuid' /tmp/d1.json)
+            [ "$OLD" != "$PROD_D1_ID" ] || { echo "消そうとした id が本番と同じ"; exit 1; }
+            wrangler d1 delete "$STG" -y; fi
+          wrangler d1 create "$STG"
+          wrangler d1 list --json > /tmp/d1b.json
+          ID=$(jq -r --arg n "$STG" '.[]|select(.name==$n)|.uuid' /tmp/d1b.json)
+          [ -n "$ID" ] && [ "$ID" != "$PROD_D1_ID" ] || { echo "ステージングの D1 の id がおかしい"; exit 1; }
+          echo "staging D1 id: $ID"; echo "STG_D1_ID=$ID" >> "$GITHUB_ENV"
+
+      - name: 4. 設定を作り、本番と混ざっていないか確かめる（tools/staging/check.mjs）
+        run: |
+          set -eo pipefail
+          sed -e "s/<gk-links-staging>/$STG/g" -e "s/<staging-d1-id>/$STG_D1_ID/" tools/staging/wrangler.staging.example.toml > wrangler.staging.toml
+          printf 'ADMIN_REVIEWER = "staging"\n' >> wrangler.staging.toml
+          node tools/staging/check.mjs wrangler.staging.toml --prod-d1-id "${PROD_D1_ID:-none}" | head -3
+
+      - name: 5. 前の版の表と合成の行を入れる（移しかえの確かめ用）
+        run: wrangler d1 execute "$STG" --remote --file tools/staging/seed-old.sql -y
+
+      - name: 6. 組み立てて公開（ステージングの Worker だけ）・使い捨ての合言葉
+        run: |
+          set -eo pipefail
+          python3 worker/build.py
+          wrangler deploy --config wrangler.staging.toml
+          for k in ADMIN_TOKEN APP_TOKEN FB_ADAPTER_TOKEN EMAIL_HMAC_KEY; do v=$(openssl rand -hex 24); echo "::add-mask::$v"
+            printf %s "$v" | wrangler secret put "$k" --config wrangler.staging.toml >/dev/null
+            case $k in ADMIN_TOKEN) echo "STG_ADMIN=$v" >> "$GITHUB_ENV";; FB_ADAPTER_TOKEN) echo "STG_AT=$v" >> "$GITHUB_ENV";; esac; done
+          echo "staging endpoint: https://$STG.$SUB.workers.dev"
+          sleep 15
+
+      - name: 7. 本物の D1 と Worker で確かめる（tests/staging-remote.mjs）
+        env:
+          STG_DB: gk-links-staging
+        run: STG_BASE="https://$STG.$SUB.workers.dev" node tests/staging-remote.mjs
+
+      - name: 8. あとの資源と無料枠
+        if: always()
+        run: |
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          wrangler d1 list --json | jq -c '[.[]|{name,file_size,num_tables}]' || true
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -c '{scripts:[.result[]?.id],count:(.result|length)}' || true
+          wrangler d1 info "$STG" --json 2>/dev/null | jq -c '{name,file_size:.file_size,num_tables,read_queries_24h:.read_queries_24h,write_queries_24h:.write_queries_24h}' || true

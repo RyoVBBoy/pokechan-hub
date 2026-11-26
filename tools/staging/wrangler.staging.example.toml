@@ -11,13 +11,13 @@ binding = "DB"
 database_name = "<gk-links-staging>"
 database_id = "<staging-d1-id>"
 
-# 本番の cron は入れない（期限の掃除だけ。テストの時刻で手で動かす）
-[triggers]
-crons = ["0 * * * *"]
+# cron は入れない（アカウントの cron の数の無料枠を本番と分けあうため。期限の掃除は手元のテストで確かめる）
 
 [vars]
 LINKS_POST = "1"
 LINKS_CLICK = "1"
 SANCTIONS_ON = "1"
-FB_ENV_ID = "<staging-env-id>"
+# 本番の Firebase のログインを受けないように、エミュレーター用の demo- のプロジェクトにする（入れないと本番の pokechan-hub になる）
+FIREBASE_PROJECT_ID = "demo-gk-staging"
+# Firebase の同期を試すときだけ FB_ENV_ID を入れる（tools/firebase-env.json の承認されたステージングの環境と同じ値）
 ALLOWED_ORIGINS = "http://localhost:8788"
