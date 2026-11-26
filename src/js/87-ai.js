@@ -11,17 +11,17 @@ function aiUiOn(){
   if(AI_CFG.enabled===true)return true;
   try{return !!navigator.webdriver&&sessionStorage.getItem('pcaitest')==='1'}catch(e){return false}
 }
-const AI_ST={ctx:null,busy:false,log:[],q:'',seq:0,uid:null,gen:0};
+const AI_ST={ctx:null,busy:false,log:[],q:'',seq:0,uid:null,gen:0,conv:null};
 /* 会話・書きかけ・待っている答えは、ログインしている人のものだけ。ログアウト・アカウントの削除・ほかの人のログインで全部消す。
    待っている答えは gen（世代）で見分け、消したあとに届いた答えは出さない。会話は端末にも保存しない（この画面のメモリだけ） */
 function aiReset(){
-  AI_ST.gen++;AI_ST.log=[];AI_ST.q='';AI_ST.ctx=null;AI_ST.busy=false;AI_ST.uid=null;
+  AI_ST.gen++;AI_ST.log=[];AI_ST.q='';AI_ST.ctx=null;AI_ST.busy=false;AI_ST.uid=null;AI_ST.conv=null;
   const q=document.getElementById('ai-q');if(q)q.value='';
   if(document.getElementById('ai-root')&&typeof keyOf==='function'&&keyOf(cur)==='ai')aiView();
 }
 function aiAuthChanged(uid){if((uid||null)!==AI_ST.uid)aiReset();AI_ST.uid=uid||null}
 const aiMine=(gen,uid)=>gen===AI_ST.gen&&!!AUTH.user&&AUTH.user.uid===uid;
-const AI_VLAB={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_calc:'サイトの計算・推定',site_estimate:'サイトの計算・推定',site_aggregate:'当サイト集計',insufficient:'根拠不足'};
+const AI_VLAB={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_calc:'サイトの計算・推定',site_estimate:'サイトの計算・推定',site_aggregate:'当サイト集計',site_verified:'運営が証拠を確認した記録',insufficient:'根拠不足'};
 const AI_REASON={
   ai_disabled:'AI はいま止めています。',auth_required:'使うにはログインしてください。',origin_forbidden:'このページからは使えません。',member_suspended:'このアカウントは停止されています。',
   quota_day:'今日の回数を使い切りました。',quota_month:'今月の回数を使い切りました。',quota_concurrent:'ひとつ前の質問の処理中です。少し待ってください。',
@@ -39,6 +39,15 @@ const AI_REASON={
   form_ambiguous:'同じ名前の姿が複数あります。どれか選んでください。',species_missing:'ポケモンの名前を入れてください。',move_missing:'技の名前を入れてください。',calc_input_missing:'条件を確認できると計算できます。',
   local_tool_result:'パーティの診断・選出・構築は、それぞれの画面で計算した結果をこの端末で表示します。',input_budget:'質問が長すぎます。',
   format_missing:'シングルとダブルで答えが変わります。どちらの形式ですか？（この確認では回数を使いません）',roles_ambiguous:'どちらが攻撃して、どちらが受けるかを選んでください。',
+  b1_disabled:'パーティの相談は、いまは使えません。',no_match:'条件に合う確認済みの上位パーティはありません（条件はゆるめていません）。条件を変えるか、こだわり条件で組む画面をお試しください。',
+  no_verified_teams:'運営が確認した上位パーティの記録が、この形式にはまだありません。',teams_unavailable:'上位パーティの記録を読めませんでした。',
+  ruleset_unverified_b1:'現行のレギュレーションを公式の資料で確認できていないため、「今のおすすめ」とは言えません。下は過去のシーズンの確認済みの記録です。',
+  candidate_season_old:'一部は過去のシーズンの記録です（現行のレギュレーションで同じように強いとは限りません）。',
+  conversation_missing:'前の相談が見つかりません（30分で消えます）。もう一度、はじめから聞いてください。',conversation_full:'1つの相談は6回までです。新しく相談してください。',
+  conversation_invalid:'前の相談の番号が正しくありません。新しく相談してください。',format_changed:'形式が変わったため、前の相談の続きにはできません。新しく相談してください。',game_changed:'ゲームが変わったため、前の相談の続きにはできません。',
+  pick_out_of_range:'その番号の案はありません。',candidate_gone:'選んだ案は、いまは見られなくなりました（非公開・取り下げなど）。ほかの記録から選んでいます。',
+  data_updated:'データが更新されたため、条件に合うかを確かめ直しました。',ruleset_changed:'レギュレーションの記録が変わったため、候補を取り直しました。',mega_ambiguous:'どのメガシンカの姿かで候補が変わります。どれですか？（この確認では回数を使いません）',
+  ai_halted:'安全のため、AI を一時的に止めています。しばらくしてからお試しください。',provider_not_enabled:'AI の提供元が設定されていません。',
   compare_unsupported:'どちらが強いかは、条件（相手・型・形式）で変わるため、ここでは答えません。「ポケモン比較」で種族値とタイプ相性を並べて比べられます。'};
 const aiR=k=>AI_REASON[k]||'いまは答えられません。';
 const aiNm=ref=>{const m=/^sp:(\d+)$/.exec(ref||'');return m&&byNo[+m[1]]?byNo[+m[1]].n:''};
@@ -73,13 +82,28 @@ function aiCardText(c){
         <div class="ai-small">前提：${E(aiFmtN(s.format))}・Lv50・ランク0・HP満タン・持ち物なし・天気や場なし・急所なし・相性等倍。当サイトの計算上の目安（計算のリビジョン ${E(s.engineRevision)}）。</div>`}
     case 'usage_share':return `<b>${E(s.name)}</b> は、当サイトで記録した${E(aiFmtN(s.format))}の相手の選出画面 ${E(s.previews)} 件のうち <b>${E(s.count)} 件（${E(s.share)}%）</b> に出てきました（${E(s.from)}〜${E(s.to)}、${E(aiTime(s.generatedAt))} 集計）。
       <div class="ai-small">${E(s.dedup)}${s.capped?`。集計の上限（${E(s.cap)}件）に達しています`:''}。ランクバトル全体の使用率ではありません。</div>`;
+    case 'team_candidates':return aiTeamsHTML(s);
     case 'hold':return `<span class="ai-hold">保留：${E(aiR(s.reasonCode))}</span>`;
-    case 'needs_input':return E(aiR(s.field==='calc'?'calc_input_missing':s.field==='format'?'format_missing':s.field==='roles'?'roles_ambiguous':(s.choices||[]).length?'form_ambiguous':s.field==='species'?'species_missing':'move_missing'));
+    case 'needs_input':if(s.field==='conversation')return E(aiR(s.reason||'conversation_missing'));if(s.field==='candidate')return E(aiR('pick_out_of_range'));if(s.field==='mega')return E(aiR('mega_ambiguous'));
+      return E(aiR(s.field==='calc'?'calc_input_missing':s.field==='format'?'format_missing':s.field==='roles'?'roles_ambiguous':(s.choices||[]).length?'form_ambiguous':s.field==='species'?'species_missing':'move_missing'));
     case 'unsupported':return E(aiR(s.reasonCode));
     case 'unavailable':return E(aiR(s.reasonCode));
     case 'open_tool':return E(aiR('local_tool_result'));
   }
   return E(aiR(''));
+}
+/* B1：確認済みの上位パーティの候補（最大3件）。並び・理由はサーバーが確かめた値だけ */
+const aiRsnTxt=r=>r.id==='keeps'?`残したい条件（${r.names.join('・')}）を満たす`:r.id==='style'?`${r.label}の手がかりがある`:r.id==='similar'?`案${r.anchorIndex}と${r.shared}匹が同じ`:
+  r.id==='verified_rank'?`${r.season}で${r.rank?r.rank+'位':''}${r.rate?`（レート${r.rate}）`:''}の確認済みの記録`:'';
+function aiTeamsHTML(s){
+  const E=esc;
+  return `<div class="ai-tms">${(s.candidates||[]).map(c=>`<div class="ai-tm"><div class="ai-tm-h"><b>案${E(c.index)}</b> <span class="ai-small">${E(aiFmtN(c.fmt))}・${E(c.season.name)}${c.rank?`・${E(c.rank)}位`:''}${c.rate?`・レート${E(c.rate)}`:''}</span></div>
+    <div class="ai-tm-m">${c.members.map(m=>`<span class="ai-tm-p">${E(m.mega||m.name)}</span>`).join('')}</div>
+    <div class="ai-small">戦い方：${c.style?`${E(c.style.label)}（根拠：${c.style.basis.map(b=>E(b.who)+'の'+E(b.what)).join('・')}）`:'登録された技・特性からは決められません'}</div>
+    ${c.reasons.length?`<ul class="ai-tm-r">${c.reasons.map(r=>`<li>${E(aiRsnTxt(r))}</li>`).join('')}</ul>`:''}
+    <div class="ai-small">${c.ruleset.status==='current_verified'?`現行のレギュレーション（公式の資料で確認）・${c.ruleset.legal==='verified'?'全員が参加できると確認':'参加できるか確認できない匹がいます'}`:'過去のシーズン、または現行のレギュレーションを確認できていない記録です'}</div>
+    <div class="ai-small">運営が証拠を確認した上位の記録 ・ <a href="${E(/^#\/season\/\d+$/.test(c.source.route)?c.source.route:'#/season')}">${E(c.source.label)}</a></div></div>`).join('')}
+    ${s.constraints&&(s.constraints.keep.length||s.constraints.drop.length||s.constraints.style)?`<p class="ai-small">いまの条件：${[s.constraints.keep.length&&'残す '+s.constraints.keep.map(E).join('・'),s.constraints.drop.length&&'外す '+s.constraints.drop.map(E).join('・'),s.constraints.style&&'戦い方 '+E(s.constraints.style)].filter(Boolean).join('／')}</p>`:''}</div>`;
 }
 /* 根拠：項目ごとに「何の値か・どこから・確認の段階・確認日」を読める形で */
 function aiEvHTML(c,evs){
@@ -205,7 +229,7 @@ function aiKbWatch(){
 }
 function aiIntroHTML(){
   return `<div class="ai-card"><p>図鑑・ダメージ計算・当サイトの集計のデータから、根拠つきで答えます。答えられないことは「保留」と表示します。いまは試験用の模擬AIで動いています。</p>
-    <p class="ai-small">例：「ガブリアスの種族値は？」「ガブリアスのじしんでカイリューへのダメージは？」「能力ポイントの上限は？」</p>
+    <p class="ai-small">例：「ガブリアスの種族値は？」「ガブリアスのじしんでカイリューへのダメージは？」「能力ポイントの上限は？」「ダブルのおすすめのパーティ教えて」</p>
     <div class="ai-chips">${Object.entries(AI_TOOL).map(([k,[t]])=>`<button type="button" class="ai-cbtn" data-ailocal="${k}">${esc(k==='build'?'パーティ構築を開く':t+'の結果を見る')}</button>`).join('')}</div></div>`;
 }
 function aiDrawLog(root){
@@ -246,11 +270,15 @@ async function aiAsk(root,question,extra,opt){
   if(!(opt&&opt.resume))AI_ST.log.push({who:'me',text:question});
   const wait={who:'bot',wait:true};AI_ST.log.push(wait);aiDrawLog(root);
   try{
-    const body={gameId:AI_GAME,question,requestId:aiRid(),...extra};
+    const body={gameId:AI_GAME,question,requestId:aiRid(),...(AI_ST.conv?{conversationId:AI_ST.conv}:{}),...extra};
     const {status,j}=await aiFetch('/api/ai/v1/answer',body);
     /* 待っている間にログアウト・ほかの人のログイン・会話の消去があれば、この答えは捨てる */
     if(!aiMine(gen,uid))return;
     Object.assign(wait,{wait:false,status,j,body,question});
+    if(j.conversationId)AI_ST.conv=j.conversationId;
+    if(j.nextAction&&j.nextAction.kind==='new_conversation')AI_ST.conv=null;
+    /* 回数・頻度の上限：送った質問は消さずに入力欄へ戻す（あとでそのまま送れる） */
+    if(status===429){const qi=document.getElementById('ai-q');if(qi&&!qi.value){qi.value=question;AI_ST.q=question}}
     if(j.usage)aiQuota(root,j.usage);
   }catch(e){if(!aiMine(gen,uid))return;Object.assign(wait,{wait:false,html:`<div class="ai-card ai-err"><p>${esc(e.message)}</p></div>`})}
   finally{if(gen===AI_ST.gen){AI_ST.busy=false;const r2=document.getElementById('ai-root');if(r2){const b=r2.querySelector('#ai-send');if(b)b.disabled=false;aiDrawLog(r2)}}}
@@ -258,7 +286,7 @@ async function aiAsk(root,question,extra,opt){
 const AI_ST_LAB={answered:'回答',partial:'一部だけ回答',needs_input:'確認させてください',insufficient_evidence:'根拠不足のため保留',unsupported:'ここでは答えられません',unavailable:'いまは答えられません'};
 function aiAnsHTML(m){
   const j=m.j||{};
-  if(m.status!==200){m.bind=null;return `<div class="ai-card ai-err"><p>${esc(aiR(j.reasonCode))}</p>${j.resetAt?`<p class="ai-small">${esc(aiTime(j.resetAt))} 以降にまた使えます。</p>`:''}</div>`}
+  if(m.status!==200){m.bind=null;return `<div class="ai-card ai-err"><p>${esc(aiR(j.reasonCode))}</p>${j.resetAt?`<p class="ai-small">${esc(aiTime(j.resetAt))} 以降にまた使えます。</p>`:''}${m.status===429?`<p class="ai-small">質問は入力欄に残しました。AI を使わないツールは、回数に関係なく使えます。</p><div class="btns"><a class="btn btn-s" href="#/dex">図鑑</a><a class="btn btn-s" href="#/calc">ダメージ計算</a><a class="btn btn-s" href="#/pair/kd">こだわり条件で組む</a></div>`:''}</div>`}
   m.bind=el=>aiAnsBind(el,m);
   return `<div class="ai-ans" data-status="${esc(j.status)}"><div class="ai-st">${esc(j.reasonCode==='local_tool_result'?'この端末で計算した結果':AI_ST_LAB[j.status]||'')}</div>
     ${(j.cards||[]).map(c=>`<div class="ai-card" data-tpl="${esc(c.templateId)}">${['hold','needs_input','unsupported','unavailable','open_tool'].includes(c.templateId)?'':`<div class="ai-vs"><span class="ai-lab ai-lab-${esc(c.verificationStatus)}">${esc(AI_VLAB[c.verificationStatus]||'根拠不足')}</span></div>`}<div class="ai-tx">${aiCardText(c)}</div>${aiEvHTML(c,j.evidence)}</div>`).join('')}
@@ -271,6 +299,9 @@ function aiNextHTML(j,m){
   if(n.kind==='choose_roles')return n.options.length?`<div class="ai-chips">${n.options.map((o,i)=>`<button type="button" class="ai-cbtn" data-airole="${i}">${esc(o.label)}</button>`).join('')}</div>`:'';
   if(n.kind==='calc_form')return `<div class="ai-calcbox"></div>`;
   if(n.kind==='open_calc')return `<div class="btns"><a class="btn btn-s" href="#/calc">ダメージ計算の画面で計算する</a></div>`;
+  if(n.kind==='open_tool'&&n.tool==='kodawari')return `<div class="btns"><a class="btn btn-s" href="#/pair/kd">こだわり条件で組む</a></div>`;
+  if(n.kind==='followup')return `<p class="ai-small">続けて条件を足せます（同じ相談の条件は引きつぎます）：</p><div class="ai-chips">${(n.examples||[]).map(x=>`<button type="button" class="ai-cbtn" data-aifill="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
+  if(n.kind==='new_conversation')return `<div class="ai-chips"><button type="button" class="ai-cbtn" data-ainew="1">新しく相談する</button></div>`;
   if(n.kind==='open_tool'&&n.tool==='compare')return `<div class="btns"><a class="btn btn-s" href="${esc(/^#\/cmp(\/[\d-]+)?$/.test(n.route||'')?n.route:'#/cmp')}">ポケモン比較を開く</a></div>`;
   if(n.kind==='open_tool')return aiLocalHTML(n.tool,(j.scope&&j.scope.format)||(m.body&&m.body.format));
   return '';
@@ -280,9 +311,13 @@ function aiAnsBind(el,m){
   const resume=extra=>aiAsk(root,m.question,{...(b.format?{format:b.format}:{}),...(b.toolInput?{toolInput:b.toolInput}:{}),...extra},{resume:true});
   el.querySelectorAll('[data-aichoose]').forEach(x=>x.onclick=()=>{const v=x.dataset.aichoose,ti=b.toolInput||{};
     if(n.field==='format')return resume({format:v});
+    /* メガシンカの姿：選んだ姿を「残したい」として同じ相談に続ける */
+    if(n.field==='mega')return aiAsk(root,x.textContent+'を残したい',b.format?{format:b.format}:{});
     if(n.field==='attacker'||n.field==='defender'){const k=n.keep||{},calc={...(ti.calc||{})};
       for(const s of ['attacker','defender'])if(!calc[s]&&k[s])calc[s]=k[s];if(!calc.move&&k.move)calc.move=k.move;calc[n.field]={id:v};return resume({toolInput:{...ti,calc}})}
     resume({toolInput:{...ti,entities:{...(ti.entities||{}),[n.field]:v}}})});
+  el.querySelectorAll('[data-aifill]').forEach(x=>x.onclick=()=>{const qi=document.getElementById('ai-q');if(qi){qi.value=x.dataset.aifill;AI_ST.q=qi.value;qi.focus()}});
+  el.querySelectorAll('[data-ainew]').forEach(x=>x.onclick=()=>{AI_ST.conv=null;const qi=document.getElementById('ai-q');if(qi)qi.focus()});
   el.querySelectorAll('[data-airole]').forEach(x=>x.onclick=()=>{const o=n.options[+x.dataset.airole],ti=b.toolInput||{};
     resume({toolInput:{...ti,calc:{...(ti.calc||{}),attacker:{id:o.attacker},defender:{id:o.defender},...(n.move?{move:n.move}:{})}}})});
   const box=el.querySelector('.ai-calcbox');

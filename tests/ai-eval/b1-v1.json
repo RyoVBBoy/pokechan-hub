@@ -1,0 +1,1376 @@
+{
+"version": "b1-v1",
+"note": "B1（自由文のパーティ相談）の固定評価。期待値は手で書いたもの。候補はフィクスチャのキー（D1〜D6・SG1）。作り直さない。",
+"cases": [
+{
+"id": "A01",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": null,
+"status": "needs_input",
+"reason": "format_missing",
+"next": "choose",
+"consumed": false
+}
+]
+},
+{
+"id": "A02",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"holds": [
+"ruleset_unverified_b1"
+],
+"consumed": true
+}
+]
+},
+{
+"id": "A03",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "おすすめの構築ある？",
+"fmt": null,
+"status": "needs_input",
+"reason": "format_missing"
+}
+]
+},
+{
+"id": "A04",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "強いパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+}
+]
+},
+{
+"id": "A05",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "ダブルのおすすめのパーティ教えて",
+"fmt": null,
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+}
+]
+},
+{
+"id": "A06",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "シングルで勝てる構築教えて",
+"fmt": null,
+"status": "partial",
+"cands": [
+"SG1"
+]
+}
+]
+},
+{
+"id": "A07",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "パーティのおすすめは？",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+}
+]
+},
+{
+"id": "A08",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "おすすめ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+}
+]
+},
+{
+"id": "A09",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "PTおすすめ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+}
+]
+},
+{
+"id": "A10",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": null,
+"status": "needs_input",
+"reason": "format_missing"
+},
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"newConv": true
+}
+]
+},
+{
+"id": "A11",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "ガブリアスがカイリューにいわなだれを使ったら何発で倒れる？",
+"fmt": "single",
+"intent": "damage_calc",
+"attacker": "sp:445",
+"defender": "sp:149",
+"noCands": true
+}
+]
+},
+{
+"id": "A12",
+"cat": "ambiguous",
+"steps": [
+{
+"q": "ガブリアスがカイリューにいわなだれを当てたら何発？",
+"fmt": "single",
+"intent": "damage_calc",
+"attacker": "sp:445",
+"defender": "sp:149",
+"noCands": true
+}
+]
+},
+{
+"id": "B01",
+"cat": "compound",
+"steps": [
+{
+"q": "メガリザードンYを入れたおすすめのパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D6",
+"D4"
+],
+"holds": [
+"ruleset_unverified_b1"
+],
+"keepNames": [
+"メガリザードンY"
+]
+}
+]
+},
+{
+"id": "B02",
+"cat": "compound",
+"steps": [
+{
+"q": "リザードンを入れて、ガブリアスは外したおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D6",
+"D4"
+],
+"dropNames": [
+"ガブリアス"
+]
+}
+]
+},
+{
+"id": "B03",
+"cat": "compound",
+"steps": [
+{
+"q": "メガリザードンを入れたおすすめのパーティ教えて",
+"fmt": "double",
+"status": "needs_input",
+"reason": "mega_ambiguous",
+"choices": [
+"sp:10034",
+"sp:10035"
+],
+"consumed": false
+}
+]
+},
+{
+"id": "B04",
+"cat": "compound",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1"
+],
+"style": "rain",
+"basisHas": "ペリッパー"
+}
+]
+},
+{
+"id": "B05",
+"cat": "compound",
+"steps": [
+{
+"q": "トリルのおすすめの構築",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D2",
+"D6"
+],
+"style": "trickroom"
+}
+]
+},
+{
+"id": "B06",
+"cat": "compound",
+"steps": [
+{
+"q": "砂のおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D2",
+"D5"
+],
+"style": "sand"
+}
+]
+},
+{
+"id": "B07",
+"cat": "compound",
+"steps": [
+{
+"q": "晴れのおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D6",
+"D4"
+],
+"style": "sun"
+}
+]
+},
+{
+"id": "B08",
+"cat": "compound",
+"steps": [
+{
+"q": "サイクルのおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D3",
+"D5"
+],
+"style": "cycle"
+}
+]
+},
+{
+"id": "B09",
+"cat": "compound",
+"steps": [
+{
+"q": "雪のおすすめのパーティ",
+"fmt": "double",
+"status": "insufficient_evidence",
+"reason": "no_match",
+"next": "open_tool",
+"route": "#/pair/kd",
+"cands": [],
+"consumed": false
+}
+]
+},
+{
+"id": "B10",
+"cat": "compound",
+"steps": [
+{
+"q": "ガブリアスとアーマーガアを入れたトリルのおすすめのパーティ",
+"fmt": "double",
+"status": "insufficient_evidence",
+"reason": "no_match",
+"cands": [],
+"route": "#/pair/kd"
+}
+]
+},
+{
+"id": "B11",
+"cat": "compound",
+"steps": [
+{
+"q": "カイリューを入れたおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D4"
+]
+}
+]
+},
+{
+"id": "B12",
+"cat": "compound",
+"steps": [
+{
+"q": "ガブリアスを外したおすすめのパーティ",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D2",
+"D5",
+"D6"
+]
+}
+]
+},
+{
+"id": "C01",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": null,
+"status": "needs_input",
+"reason": "format_missing"
+},
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"q": "2つ目で、メガリザードンYは残したい",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D6"
+],
+"reasons": [
+"keeps",
+"similar"
+],
+"keepNames": [
+"メガリザードンY"
+]
+}
+]
+},
+{
+"id": "C02",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"q": "さっきの案でメガリザードンは残したい",
+"fmt": "double",
+"conv": "prev",
+"status": "needs_input",
+"reason": "mega_ambiguous",
+"choices": [
+"sp:10034",
+"sp:10035"
+],
+"consumed": false
+},
+{
+"q": "メガリザードンYを残したい",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D1",
+"D6",
+"D4"
+],
+"keepNames": [
+"メガリザードンY"
+]
+}
+]
+},
+{
+"id": "C03",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D5"
+],
+"style": "cycle",
+"reasons": [
+"style",
+"similar"
+]
+}
+]
+},
+{
+"id": "C04",
+"cat": "followup",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+]
+},
+{
+"q": "メガリザードンは残したい",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D1"
+],
+"keepNames": [
+"メガリザードンY"
+]
+}
+]
+},
+{
+"id": "C05",
+"cat": "followup",
+"steps": [
+{
+"q": "メガリザードンYを入れたおすすめのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D6",
+"D4"
+]
+},
+{
+"q": "ガブリアスは外して",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D6",
+"D4"
+],
+"keepNames": [
+"メガリザードンY"
+],
+"dropNames": [
+"ガブリアス"
+]
+},
+{
+"q": "サイクル寄りにして",
+"fmt": "double",
+"conv": "prev",
+"status": "insufficient_evidence",
+"reason": "no_match",
+"cands": [],
+"route": "#/pair/kd",
+"consumed": false
+}
+]
+},
+{
+"id": "C06",
+"cat": "followup",
+"steps": [
+{
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"status": "needs_input",
+"reason": "conversation_missing",
+"next": "new_conversation",
+"consumed": false
+}
+]
+},
+{
+"id": "C07",
+"cat": "followup",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+]
+},
+{
+"q": "3つ目で",
+"fmt": "double",
+"conv": "prev",
+"status": "needs_input",
+"reason": "pick_out_of_range",
+"consumed": false
+}
+]
+},
+{
+"id": "C08",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"setup": "expire",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "needs_input",
+"reason": "conversation_missing"
+}
+]
+},
+{
+"id": "C09",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"q": "2つ目をサイクル寄りに",
+"fmt": "single",
+"conv": "prev",
+"status": "needs_input",
+"reason": "format_changed"
+}
+]
+},
+{
+"id": "C10",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"setup": "turns6",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "needs_input",
+"reason": "conversation_full",
+"consumed": false
+}
+]
+},
+{
+"id": "C11",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"setup": "oldrev",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D5"
+],
+"holds": [
+"data_updated"
+]
+}
+]
+},
+{
+"id": "C12",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"setup": "hide:D2",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D1",
+"D3",
+"D5"
+],
+"holds": [
+"candidate_gone"
+]
+}
+]
+},
+{
+"id": "D01",
+"cat": "freshness",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"holds": [
+"ruleset_unverified_b1"
+],
+"rulesetAll": "past_or_unverified",
+"sourceType": "site_verified"
+}
+]
+},
+{
+"id": "D02",
+"cat": "freshness",
+"ruleset": {
+"seasons": [
+"S2"
+],
+"legalAll": true
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "answered",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"noHolds": [
+"ruleset_unverified_b1",
+"candidate_season_old"
+],
+"rulesetAll": "current_verified",
+"legalAll": "verified"
+}
+]
+},
+{
+"id": "D03",
+"cat": "freshness",
+"ruleset": {
+"seasons": [
+"S2"
+],
+"legalAll": true
+},
+"steps": [
+{
+"q": "メガリザードンYを入れたおすすめのパーティ教えて",
+"fmt": "double",
+"status": "partial",
+"cands": [
+"D1",
+"D6",
+"D4"
+],
+"holds": [
+"candidate_season_old"
+],
+"rulesetOf": {
+"D4": "past_or_unverified",
+"D1": "current_verified"
+}
+}
+]
+},
+{
+"id": "D04",
+"cat": "freshness",
+"ruleset": {
+"seasons": [
+"S2"
+],
+"legalExcept": [
+115
+]
+},
+"steps": [
+{
+"q": "トリルのおすすめの構築",
+"fmt": "double",
+"status": "answered",
+"cands": [
+"D2",
+"D6"
+],
+"legalOf": {
+"D2": "not_listed",
+"D6": "verified"
+}
+}
+]
+},
+{
+"id": "D05",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_priv"
+]
+}
+]
+},
+{
+"id": "D06",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_only",
+"L_foll"
+]
+}
+]
+},
+{
+"id": "D07",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_ban"
+]
+}
+]
+},
+{
+"id": "D08",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_hidden"
+]
+}
+]
+},
+{
+"id": "D09",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_auto",
+"L_self",
+"L_oper"
+]
+}
+]
+},
+{
+"id": "D10",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_stale"
+]
+}
+]
+},
+{
+"id": "D11",
+"cat": "freshness",
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"never": [
+"L_game",
+"L_five"
+]
+}
+]
+},
+{
+"id": "D12",
+"cat": "freshness",
+"fixture": "empty",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "insufficient_evidence",
+"reason": "no_verified_teams",
+"cands": [],
+"route": "#/pair/kd",
+"consumed": false
+}
+]
+},
+{
+"id": "E01",
+"cat": "isolation",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"uid": "bob",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "needs_input",
+"reason": "conversation_missing",
+"cands": []
+}
+]
+},
+{
+"id": "E02",
+"cat": "isolation",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"uid": "bob",
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"conv": "prev",
+"cands": [
+"D1"
+],
+"newConv": true
+}
+]
+},
+{
+"id": "E03",
+"cat": "isolation",
+"env": {
+"AI_B1_ENABLED": ""
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "unsupported",
+"reason": "b1_disabled",
+"consumed": false,
+"cands": []
+}
+]
+},
+{
+"id": "E04",
+"cat": "isolation",
+"env": {
+"AI_ENABLED": ""
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"httpNot": 200,
+"cands": []
+}
+]
+},
+{
+"id": "E05",
+"cat": "isolation",
+"env": {
+"AI_MOCK_MODE": "error"
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"http": 503,
+"reason": "provider_unavailable",
+"consumed": false
+}
+]
+},
+{
+"id": "E06",
+"cat": "isolation",
+"env": {
+"AI_MOCK_MODE": "bad_ids"
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "unavailable",
+"reason": "plan_invalid",
+"consumed": false,
+"cands": []
+}
+]
+},
+{
+"id": "E07",
+"cat": "isolation",
+"env": {
+"AI_MOCK_MODE": "free_text"
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "unavailable",
+"reason": "plan_invalid",
+"consumed": false,
+"cands": []
+}
+]
+},
+{
+"id": "E08",
+"cat": "isolation",
+"env": {
+"AI_MOCK_ORDER": "reverse"
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D3",
+"D2",
+"D1"
+],
+"calls": 2
+}
+]
+},
+{
+"id": "E09",
+"cat": "isolation",
+"env": {
+"AI_MOCK_ORDER": "bad"
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"calls": 2
+}
+]
+},
+{
+"id": "E10",
+"cat": "isolation",
+"env": {
+"AI_FREE_DAY": "1"
+},
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": null,
+"status": "needs_input",
+"consumed": false
+},
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"consumed": true
+},
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"http": 429,
+"reason": "quota_day",
+"resetAt": true
+}
+]
+},
+{
+"id": "E11",
+"cat": "isolation",
+"env": {
+"AI_FREE_DAY": "10",
+"AI_FREE_MONTH": "1"
+},
+"steps": [
+{
+"q": "雪のおすすめのパーティ",
+"fmt": "double",
+"status": "insufficient_evidence",
+"consumed": false
+},
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"consumed": true
+},
+{
+"q": "砂のおすすめのパーティ",
+"fmt": "double",
+"http": 429,
+"reason": "quota_month",
+"resetAt": "month"
+}
+]
+},
+{
+"id": "E12",
+"cat": "isolation",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "ranked",
+"game": "fakeb1",
+"status": "unsupported",
+"reason": "intent_unsupported",
+"cands": [],
+"consumed": false
+}
+]
+},
+{
+"id": "E13",
+"cat": "isolation",
+"env": {
+"AI_MOCK_MODE": "usage_over"
+},
+"steps": [
+{
+"q": "雨のおすすめのパーティ",
+"fmt": "double",
+"cands": [
+"D1"
+],
+"overMicro": true
+},
+{
+"q": "砂のおすすめのパーティ",
+"fmt": "double",
+"http": 503,
+"reason": "ai_halted"
+}
+]
+},
+{
+"id": "E14",
+"cat": "isolation",
+"fixture": "nodb",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"status": "unavailable",
+"reason": "teams_unavailable",
+"consumed": false
+}
+]
+},
+{
+"id": "E15",
+"cat": "isolation",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"setup": "forget",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "needs_input",
+"reason": "conversation_missing"
+}
+]
+},
+{
+"id": "C13",
+"cat": "followup",
+"steps": [
+{
+"q": "メガリザードンYを入れたおすすめのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D6",
+"D4"
+]
+},
+{
+"q": "さっきの案でメガリザードンは残したい",
+"fmt": "double",
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D1",
+"D6",
+"D4"
+],
+"keepNames": [
+"メガリザードンY"
+],
+"consumed": true
+}
+]
+},
+{
+"id": "C14",
+"cat": "followup",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+]
+},
+{
+"q": "2つ目をサイクル寄りに",
+"fmt": null,
+"conv": "prev",
+"status": "partial",
+"cands": [
+"D5"
+]
+}
+]
+},
+{
+"id": "D13",
+"cat": "freshness",
+"steps": [
+{
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"cands": [
+"D1",
+"D2",
+"D3"
+],
+"holds": [
+"ruleset_unverified_b1"
+]
+},
+{
+"setup": "ruleset:S2",
+"q": "2つ目をサイクル寄りに",
+"fmt": "double",
+"conv": "prev",
+"status": "answered",
+"cands": [
+"D5"
+],
+"holds": [
+"ruleset_changed"
+],
+"rulesetAll": "current_verified"
+}
+]
+},
+{
+"id": "E16",
+"cat": "isolation",
+"steps": [
+{
+"uid": "u_ban",
+"q": "今オススメのパーティ教えて",
+"fmt": "double",
+"http": 403,
+"reason": "member_suspended",
+"consumed": false
+}
+]
+}
+]
+}

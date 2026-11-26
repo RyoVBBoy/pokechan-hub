@@ -94,6 +94,31 @@ const N=50;
   const h=await hash('leaver');const left=(await ai.prepare(`SELECT COUNT(*) c FROM ai_requests WHERE uid_h=?`).bind(h).first()).c,arc=(await ai.prepare(`SELECT COALESCE(SUM(micro),0) s FROM ai_cost_archive`).first()).s;
   res('退会で AI の枠を消し、匿名の費用は残す（本物の D1）',r.status===200&&left===0&&arc>0,{st:r.status,left,arc});
   await mf.dispose()}
+/* 7) B1：会話の状態（同じ受付は1回だけ・6ターンまで）と、2回目の呼び出しの予約が同時でも予算を超えないこと（本物の D1） */
+{ globalThis.caches=globalThis.caches||{default:{match:async()=>null,put:async()=>{}}};
+  const A=(await import(path.join(ROOT,'worker/dist/worker_test.js'))).__ai;
+  const {seedB1}=await import('./ai-b1-fixture.mjs');
+  const b1=async(mf,uid,q,o={})=>{const r=await mf.dispatchFetch('https://w.example/api/ai/v1/answer',{method:'POST',headers:{origin:ORIGIN,authorization:'Bearer '+await tok(uid),'content-type':'application/json','cf-connecting-ip':'203.0.113.'+(uid.length%200)},
+    body:JSON.stringify({gameId:'pokechamp',format:'double',question:q,requestId:o.rid||rid(),...(o.conv?{conversationId:o.conv}:{})})});return{st:r.status,j:await r.json().catch(()=>({}))}};
+  { const {mf,ai}=await mk({AI_B1_ENABLED:'1'});await seedB1({DB:await mf.getD1Database('DB')},null,A);
+    const sv=(await ai.prepare(`SELECT v FROM ai_meta WHERE k='schema'`).first()).v;
+    const id=rid();const a=await b1(mf,'conv-user','今オススメのパーティ教えて',{rid:id}),a2=await b1(mf,'conv-user','今オススメのパーティ教えて',{rid:id});
+    const t1=(await ai.prepare(`SELECT turns FROM ai_conv WHERE id=?`).bind(a.j.conversationId||'').first()||{}).turns;
+    const st=[];for(let i=0;i<7;i++){const r=await b1(mf,'conv-user','サイクル寄りにして',{conv:a.j.conversationId});st.push(r.j.reasonCode||r.j.status)}
+    const t2=(await ai.prepare(`SELECT turns FROM ai_conv WHERE id=?`).bind(a.j.conversationId||'').first()||{}).turns;
+    res('B1：移行0002（schema 2）・候補3件・同じ受付は会話を1回だけ進める（本物の D1）',sv==='2'&&a.st===200&&(a.j.cards||[]).some(c=>c.templateId==='team_candidates'&&c.slots.candidates.length===3)&&a2.j.replayed&&t1===1,{sv,st:a.st,t1,re:a2.j.replayed});
+    res('B1：会話は6ターンまで（そのあとは新しい相談を案内）',t2===6&&st.slice(5).every(x=>x==='conversation_full')&&st.slice(0,5).every(x=>x!=='conversation_full'),{t2,st});
+    await mf.dispose()}
+  { const {mf,ai}=await mk({AI_B1_ENABLED:'1',AI_MOCK_DELAY_MS:'300'});await seedB1({DB:await mf.getD1Database('DB')},null,A);
+    const p=await ai.prepare(`SELECT in_per_m,out_per_m FROM ai_prices WHERE provider='mock' ORDER BY valid_from DESC`).first(),max=A.aiCost(p,A.AI_LIMITS.maxInputTokens,A.AI_LIMITS.maxOutputTokens);
+    /* 処理中（sent）の50件が同時に2回目の予約を足す：予算は 1回目50件＋20件ぶん → ちょうど20件だけ入る */
+    const mon=A.aiMonth(Date.now()),day=A.aiDay(Date.now());
+    for(let i=0;i<N;i++)await ai.prepare(`INSERT INTO ai_requests(uid_h,rid,in_h,plan,day,month,state,consumed,max_micro,cost_micro,provider,model,price_id,created_at,updated_at) VALUES(?,?,'h','free',?,?,'sent',0,?,?,'mock','mock-plan-1','p',1,1)`).bind('U'+i,'r'+i,day,mon,max,max).run();
+    const got=await Promise.all(Array.from({length:N},(_,i)=>A.aiReserveMore(ai,'U'+i,'r'+i,max,max*70,mon)));
+    const sum=(await ai.prepare(`SELECT SUM(cost_micro) s FROM ai_requests WHERE month=?`).bind(mon).first()).s;
+    res('B1：同時50件の2回目の予約は予算の範囲だけ（ちょうど20件・合計は予算以内）',got.filter(Boolean).length===20&&sum<=max*70,{ok:got.filter(Boolean).length,sum,budget:max*70});
+    await mf.dispose()}
+}
 res('外部への送信 0 件',OUT.length===0,OUT);
 fs.mkdirSync(path.join(ROOT,'tests/out'),{recursive:true});fs.writeFileSync(path.join(ROOT,'tests/out/ai-d1-results.json'),JSON.stringify({n,bad,parallel:N,runtime:'miniflare (workerd + D1)'},null,1));
 console.log(bad?`ai-d1: NG（${bad}件 / ${n}項目）`:`ai-d1: OK（${n}項目・同時${N}件）`);if(bad)process.exitCode=1;

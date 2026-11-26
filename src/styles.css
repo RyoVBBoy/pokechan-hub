@@ -3741,3 +3741,12 @@ body.gkcm-on{overflow:hidden}
   .ai-comp{position:sticky;bottom:12px;margin-top:14px}
   .ai-msg,.ai-ev{scroll-margin-bottom:96px}
 }
+
+/* Game Kid/s AI B1：上位パーティの候補（枠の中に枠を重ねない：区切り線で分ける） */
+.ai-tms{display:flex;flex-direction:column}
+.ai-tm{padding:10px 0;border-top:1px solid var(--glass-b)}
+.ai-tm:first-child{border-top:0;padding-top:2px}
+.ai-tm-h{margin-bottom:6px}
+.ai-tm-m{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.ai-tm-p{padding:3px 10px;border-radius:999px;background:var(--acc-t);font-size:13px;font-weight:700}
+.ai-tm-r{margin:6px 0;padding-left:18px;font-size:13px}

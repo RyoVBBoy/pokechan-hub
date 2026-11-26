@@ -6,7 +6,8 @@
     "build": "node tools/build.mjs && python3 worker/build.py && node tools/gen-pages.cjs",
     "test": "node tests/run.mjs",
     "test:ai-eval": "node tests/ai-eval.mjs",
-    "test:ai-d1": "node tests/ai-d1.mjs"
+    "test:ai-d1": "node tests/ai-d1.mjs",
+    "test:ai-b1": "node tests/ai-b1.mjs --eval-only"
   },
   "devDependencies": {
     "@smogon/calc": "0.12.0",

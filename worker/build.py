@@ -88,6 +88,18 @@ calc_src = '\n'.join(get(n) for n in CALC_FN)
 engine_rev = 'e' + hashlib.sha256(calc_src.encode()).hexdigest()[:12]
 special = sorted(set(re.findall(r"['\"]([a-z][a-z0-9-]{2,30})['\"]", calc_src)) | set(re.findall(r"(?<![\w'\"-])([a-z][a-z0-9-]{2,30})(?=\s*:)", calc_src)))
 _ai = open(os.path.join(SRC, 'ai.js'), encoding='utf-8').read()
+# B1：確かめたレギュレーションの記録（公式の資料のアドレス・期間・形式）。形が違えば組み立てを止める
+_rs = json.load(open(os.path.join(W, 'ai-rulesets.json'), encoding='utf-8'))
+_OFF = ('pokemonchampions.jp', 'pokemonchampions.com', 'pokemon.co.jp', 'pokemon.com', 'nintendo.co.jp', 'nintendo.com', 'pokemon-home.com')
+if not isinstance(_rs, list): raise Exception('AI: ai-rulesets.json は配列')
+for r in _rs:
+    for k in ('id', 'game', 'formats', 'from', 'officialUrl', 'checkedAt'):
+        if k not in r: raise Exception('AI: ruleset に ' + k + ' がありません: ' + json.dumps(r, ensure_ascii=False))
+    h = re.match(r'^https://([^/]+)/', r['officialUrl'])
+    if not h or not any(h.group(1) == d or h.group(1).endswith('.' + d) for d in _OFF): raise Exception('AI: ruleset の officialUrl が公式のアドレスではありません: ' + r['officialUrl'])
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', r['from']) or (r.get('to') and not re.match(r'^\d{4}-\d{2}-\d{2}$', r['to'])): raise Exception('AI: ruleset の期間の形が違います')
+    if not r['formats'] or any(f not in ('single', 'double') for f in r['formats']): raise Exception('AI: ruleset の形式が違います')
+_ai = open(os.path.join(SRC, 'ai_b1.js'), encoding='utf-8').read().replace('__AI_RULESETS__', json.dumps(_rs, ensure_ascii=False, separators=(',', ':'))) + '\n' + _ai
 _ok = re.search(r'AI_CALC_ABILITY_OK=new Set\(\[(.*?)\]\)', _ai, re.S).group(1)
 _okk = re.findall(r"'([a-z-]+)'", _ok)
 _bad = [k for k in _okk if k in special or k not in eng['ABN']]
@@ -107,7 +119,7 @@ code = (code.replace('__COMMUNITY__', open(os.path.join(SRC, 'auth.js'), encodin
 os.makedirs(os.path.join(W, 'dist'), exist_ok=True)
 open(os.path.join(W, 'dist/worker.js'), 'w', encoding='utf-8').write(code)
 # テスト用：同じ中身に、AI の内部の関数を取り出す口を付けたもの（公開しない）
-open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiRoles,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo};\n')
+open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiRoles,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,aiComposeB1,aiPublicTeams,ladderInit,ladderSig,MDK,MVN,megaOf,isStone,aiRuleset,AI_RULESETS,OpenAIProvider,aiOpenAICall,aiRedact,aiConvLoad,aiConvSave,aiHalt,aiHalted,aiBreaker,aiProviderFor,aiB1Constraints,aiTeamStyles,aiReserveMore,aiCost,aiPrice,AI_LIMITS,AI_OPENAI_URL,AI_PROMPT_VERSION,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo};\n')
 open(os.path.join(W, 'dist/ai_meta.json'), 'w', encoding='utf-8').write(json.dumps({'dataRevision': ledger['dataRevision'], 'engineRevision': engine_rev, 'records': len(ledger['recs']), 'entities': len(ledger['ents']), 'special': len(special), 'specialList': special}, ensure_ascii=False))
 print('AI ledger', len(ledger['recs']), 'records', ledger['dataRevision'], engine_rev)
 # dist の中の .js を ES モジュールとして扱う（テストで読み込むため）

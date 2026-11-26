@@ -16,7 +16,8 @@ export async function makeSigner(){
 }
 /* 移行SQLを文に分ける（トリガーの BEGIN…END の中の ; では切らない。行頭の -- は捨てる） */
 export function migrationStatements(){
-  const sql=fs.readFileSync(path.join(ROOT,'worker/migrations-ai/0001_ai_init.sql'),'utf8').split('\n').filter(l=>!/^\s*--/.test(l)).join('\n');
+  const dir=path.join(ROOT,'worker/migrations-ai');
+  const sql=fs.readdirSync(dir).filter(f=>/^\d{4}_.*\.sql$/.test(f)).sort().map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n').split('\n').filter(l=>!/^\s*--/.test(l)).join('\n');
   const out=[];let cur='',inTrig=false;
   for(const line of sql.split('\n')){
     cur+=line+'\n';
