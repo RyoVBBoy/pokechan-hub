@@ -99,6 +99,24 @@ r=await call('/api/notes',{method:'POST',tok:U.iA,body:{body:'停止中'}});ok(r
   ok(pr.every(x=>x[0]===200)&&rows.length===4&&rows.every(x=>x.lu===x.nu&&/^[0-9a-f]{32}$/.test(x.op))&&new Set(rows.map(x=>x.op)).size===4,'同じリンクを同時に3人（と先の1人）：どれも自分の投稿につく（本物の D1）',{st:pr.map(x=>x[0]),rows});
   let dupErr=false;try{await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,op) VALUES('iH','x',1,'',?)`).bind(rows[0].op).run()}catch(e){dupErr=true}
   ok(dupErr,'使い捨ての鍵は重ならない（本物の D1 の一意の索引）','')}
+/* R7: real local D1, operation resolution + reconciliation must roll back together. */
+{const AT='adapter-token-it-0123456789abcdef-0123',uid='r7-synthetic',op='r7-op';
+  const fbp=async(p,b)=>{const r=await mf.dispatchFetch('https://x.dev'+p,{method:'POST',headers:{'content-type':'application/json','x-fb-adapter-token':AT},body:JSON.stringify(b)});return[r.status,await r.json().catch(()=>({}))]};
+  await db.prepare(`INSERT INTO fb_sync(uid,gen,done_gen,owned,unknown) VALUES(?,1,0,0,1)`).bind(uid).run();
+  await db.prepare(`INSERT INTO fb_ops(op,uid,gen,intent,kind,at) VALUES(?,?,1,'disable','crash',1)`).bind(op,uid).run();
+  const state=()=>db.prepare(`SELECT f.gen,f.owned,f.unknown,o.resolved_at FROM fb_sync f JOIN fb_ops o ON o.uid=f.uid WHERE f.uid=? AND o.op=?`).bind(uid,op).first();
+  let cl=await fbp('/api/fb/claim',{});
+  ok(cl[0]===200&&!cl[1].items.some(x=>x.uid===uid),'R7 unresolved crash is excluded from claim (D1)',cl);
+  await db.exec(`CREATE TRIGGER r7_abort_resolution BEFORE UPDATE OF resolved_at ON fb_ops WHEN OLD.op='r7-op' BEGIN SELECT RAISE(ABORT,'r7 injected failure'); END;`);
+  let failed=false;try{const r=await fbp('/api/fb/observe',{uid,op,observed_disabled:true,settled:'ok'});failed=r[0]>=500}catch(e){failed=true}
+  const before=await state();
+  ok(failed&&before.gen===1&&before.owned===0&&before.unknown===1&&before.resolved_at===null,'R7 injected failure rolls back both writes (D1)',before);
+  await db.exec(`DROP TRIGGER r7_abort_resolution`);
+  const rs=await Promise.all([1,2].map(()=>fbp('/api/fb/observe',{uid,op,observed_disabled:true,settled:'ok'})));
+  const after=await state();
+  ok(rs.every(x=>x[0]===200)&&rs.filter(x=>!x[1].recorded_only).length===1&&after.gen===2&&after.owned===1&&after.unknown===0&&after.resolved_at!==null,'R7 duplicate concurrent observations resolve exactly once (D1)',{rs,after});
+  await db.batch([db.prepare(`DELETE FROM fb_ops WHERE uid=?`).bind(uid),db.prepare(`DELETE FROM fb_sync WHERE uid=?`).bind(uid)]);
+}
 /* 期限の見直し（決まった時刻の仕事） */
 await db.prepare(`INSERT INTO sanctions(kind,uid,permanent,starts_at,expires_at,reason,status,root_key,created_at,updated_at) VALUES('uid','iF',0,1,2,'old','active','it-exp',1,1)`).run();
 await db.prepare(`UPDATE users SET banned=2 WHERE uid='iF'`).run();
