@@ -122,7 +122,12 @@ await rev(Pid);s=await run();ok(FB.users.fbP.disabled===false,'持ち主の記�
   const drop=async(u,o)=>{if(String(u).endsWith('/api/fb/ack'))throw new Error('lost');return fetchImpl(u,o)};
   s=await run({fetchImpl:drop});R=await row('fbQ2');ok(FB.users.fbQ2.disabled===true&&R.done_gen<R.gen&&R.owned===1&&R.prior===0,'返事を送れずに落ちた：持ち主と最初の状態は止める前に記録してある',R);
   s=await run();ok(s.done===0,'借りている時間のあいだは、ほかのアダプターは拾わない',s);
-  tick(61e3);s=await run();R=await row('fbQ2');ok(s.done>=1&&R.done_gen===R.gen&&R.owned===1&&R.prior===0,'借りる時間のあとで別の回が拾い、同じ記録のまま終える',{s,R})}
+  /* R7：報告が届かないまま借りる時間が切れた操作は crash（遅れて外で終わるかもしれない）。片づくまで、そのアカウントを新しく変えない */
+  tick(61e3);{const u0=FB.calls.filter(c=>c[0]==='update'&&c[1]==='fbQ2').length;s=await run();R=await row('fbQ2');
+    const o=(await env.DB.prepare(`SELECT kind,resolved_at FROM fb_ops WHERE uid='fbQ2'`).all()).results;
+    ok(s.done===0&&R.done_gen<R.gen&&o.length===1&&o[0].kind==='crash'&&o[0].resolved_at===null&&FB.calls.filter(c=>c[0]==='update'&&c[1]==='fbQ2').length===u0,'R7 報告が届かないまま借りる時間が切れた：crash として残し、そのアカウントを新しく変えない',{s,R,o})}
+  r=await call('/api/admin/fb/replay',{method:'POST',...ADM,body:{handle:'fbqq2',reason:'Firebase の画面で今の状態を確かめた',confirm:true}});
+  s=await run();R=await row('fbQ2');ok(r[0]===200&&s.done>=1&&R.done_gen===R.gen&&R.owned===1&&R.prior===0,'運営者が確かめてやり直すと、同じ記録（持ち主）のまま終える',{s,R})}
 {const Q=await perp('fbQ','fbqqq');let first=true;
   const lost=async(u,o)=>{const rr=await fetchImpl(u,o);if(String(u).endsWith('/api/fb/ack')&&first){first=false;throw new Error('lost')}return rr};
   s=await run({fetchImpl:lost});R=await row('fbQ');ok(FB.users.fbQ.disabled===true&&R.done_gen===R.gen&&s.lost===1,'届いたのに返事が来なかった報告をもう一度送っても1回分（返事が届かなかった数として数える）',{s,R})}
@@ -195,7 +200,7 @@ ok((await env.DB.prepare(`SELECT n FROM fb_metrics WHERE k='unknown'`).first()).
 FB.late.delete('fbH');tick(31e3);s=await run({max:30});R=await row('fbH');ok(R.unknown===0&&R.done_gen===R.gen&&FB.users.fbH.disabled===true,'次の回で確かめて終える',{s,R});
 /* 16a. 待っても終わらない（落ちた・止まった）：結果が分からないまま残し、管理画面に知らせる */
 const H2=await perp('fbH2','fbhh2');FB.hang.add('fbH2');
-s=await run({max:30,settleMs:200});R=await row('fbH2');ok(R.unknown===1&&R.unk_intent==='disable','待っても終わらない呼び出しは、結果が分からないまま残す',R);
+s=await run({max:30,settleMs:200});R=await row('fbH2');{const o=(await env.DB.prepare(`SELECT kind,intent,resolved_at FROM fb_ops WHERE uid='fbH2'`).all()).results;ok(R.unknown===1&&o.length===1&&o[0].kind==='timeout'&&o[0].intent==='disable'&&o[0].resolved_at===null,'待っても終わらない呼び出しは、結果が分からないまま残す（止める操作の記録）',{R,o})}
 r=await call('/api/admin/sanctions',{...ADM});ok(r[1].fb_sync.unknown>=1&&r[1].fb_sync.alert===true,'結果が分からないものを管理画面に知らせる',r[1].fb_sync);
 FB.hang.delete('fbH2');tick(31e3);{const u0=FB.calls.filter(c=>c[0]==='update'&&c[1]==='fbH2').length;s=await run({max:30});
   ok(FB.users.fbH2.disabled===false&&FB.calls.filter(c=>c[0]==='update'&&c[1]==='fbH2').length===u0&&(await row('fbH2')).unknown===1,'結果が分からない操作が残っているあいだは、そのアカウントを新しく変えない（運営者が確かめるまで残る）',await row('fbH2'))}
@@ -281,7 +286,8 @@ d=await decide({user:{uid:'u'},check:weird,breaker:nb()});ok(d.block,'形のお�
   const f500=async(u,o)=>{if(String(u).endsWith('/api/fb/ack'))return new Response('{}',{status:500});return fetchImpl(u,o)};
   s=await run({fetchImpl:f500});R=await row('fbB5');
   ok(s.bad===1&&s.done===0&&R.done_gen<R.gen&&FB.users.fbB5.disabled===true,'R5 受け取られなかった報告は「終えた」に数えない（bad）',{s,R:{gen:R.gen,done_gen:R.done_gen}});
-  tick(61e3);s=await run();ok(s.done===1&&(await row('fbB5')).done_gen===(await row('fbB5')).gen,'R5 借りる時間が切れたあと、次の回で終える',s);
+  tick(61e3);s=await run();ok(s.done===0&&(await env.DB.prepare(`SELECT kind FROM fb_ops WHERE uid='fbB5' AND resolved_at IS NULL`).first())?.kind==='crash','R7 報告が受け取られなかった操作は crash（新しく変えない）',s);
+  r=await call('/api/admin/fb/replay',{method:'POST',...ADM,body:{handle:'fbbbb5',reason:'Firebase の画面で今の状態を確かめた',confirm:true}});s=await run();ok(s.done===1&&(await row('fbB5')).done_gen===(await row('fbB5')).gen,'R5 運営者が確かめてやり直したあと、次の回で終える',s);
   /* c 重なった「結果が分からない」：いま残っている回の印と違う observe は、見た状態だけを残す（片づけない・持ち主を推しはからない） */
   const U5=await perp('fbU5','fbuuu5');
   await env.DB.prepare(`UPDATE fb_sync SET unknown=1,unk_intent='disable',owned=0,prior=NULL WHERE uid='fbU5'`).run();
@@ -300,10 +306,13 @@ d=await decide({user:{uid:'u'},check:weird,breaker:nb()});ok(d.block,'形のお�
   const I5=await perp('fbI5','fbiii5');
   c=await post('/api/fb/claim',{});const ia=c[1].items[0];ok(ia&&ia.uid==='fbI5','R5 1人目が借りる',c);
   await post('/api/fb/intent',{uid:ia.uid,lease:ia.lease,gen:ia.gen,action:'disable',observed_disabled:false});
-  tick(61e3);c=await post('/api/fb/claim',{});const ib=c[1].items[0];ok(ib&&ib.uid==='fbI5'&&ib.lease!==ia.lease,'R5 期限が切れると2人目が借りる',c);
+  tick(61e3);c=await post('/api/fb/claim',{});ok(!(c[1].items[0]&&c[1].items[0].uid==='fbI5'),'R7 期限が切れても、1人目の止める操作が片づくまで2人目は借りない（外で遅れて終わるかもしれない）',c);
   const d1=await met('done');FB.users.fbI5.disabled=true;
   r=await post('/api/fb/ack',{uid:ia.uid,lease:ia.lease,gen:ia.gen,result:'done',want:'disabled',observed_disabled:true,revoked:true});
-  ok(r[0]===409&&(await met('done'))===d1&&(await row('fbI5')).lease===ib.lease,'R5 前の人の「終えた」は数えない・いまの人の借りた印はそのまま',r);
+  const oI=await env.DB.prepare(`SELECT how,resolved_at FROM fb_ops WHERE op=?`).bind(ia.lease).first();
+  ok(r[0]===409&&(await met('done'))===d1&&oI.how==='late_done'&&oI.resolved_at>0,'R7 1人目の遅れた報告：「終えた」には数えないが、外の呼び出しは終わったので操作は片づく',{r,oI});
+  c=await post('/api/fb/claim',{});const ib=c[1].items[0];ok(ib&&ib.uid==='fbI5'&&ib.lease!==ia.lease,'R7 片づいたあとで2人目が借りる（新しい借りた印）',c);
+  r=await post('/api/fb/ack',{uid:ib.uid,lease:ib.lease,gen:ib.gen,result:'superseded',want:'disabled'});
   tick(61e3);await run();}
 /* R6. 結果が分からない操作を1つずつ：A・B の時間切れ、終わる順の入れかわり、やり直し、ほかの人が外で止めた、落ちた（crash）、同じ結果が2回 */
 {FB.hang.clear();FB.late.clear();
@@ -338,12 +347,53 @@ d=await decide({user:{uid:'u'},check:weird,breaker:nb()});ok(d.block,'形のお�
   r=await post('/api/fb/intent',{uid:'fbC6',lease:it.lease,gen:it.gen,action:'disable',observed_disabled:false});ok(r[0]===200,'R6 落ちる前に止める記録',r);
   FB.users.fbC6.disabled=true;tick(61e3);
   s=await run({max:30});o=await ops('fbC6');
-  ok(o.length===1&&o[0].kind==='crash'&&o[0].op===it.lease&&o[0].resolved_at===null&&FB.users.fbC6.disabled===true&&(await row('fbC6')).done_gen===(await row('fbC6')).gen,'R6 落ちた回は crash の記録に残し、次の回で読み直して合わせる',{o,s});
+  ok(o.length===1&&o[0].kind==='crash'&&o[0].op===it.lease&&o[0].resolved_at===null&&(await row('fbC6')).done_gen<(await row('fbC6')).gen&&!FB.calls.some(c=>c[0]!=='get'&&c[1]==='fbC6'),'R7 落ちた回（その借りた印の止める操作）は crash に残し、片づくまでそのアカウントを新しく変えない',{o,s});
   r=await call('/api/admin/sanctions',{...ADM});ok(r[1].fb_sync.alert===true&&r[1].fb_sync.open_ops.some(x=>x.uid==='fbC6'&&x.kind==='crash'),'R6 片づいていない操作を管理画面に出す（知らせる）',r[1].fb_sync.open_ops);
   r=await call('/api/admin/fb/replay',{method:'POST',...ADM,body:{handle:'fbccc6',reason:'Firebase の画面で今の状態を確かめた',confirm:true}});
   ok(r[0]===200&&(await ops('fbC6'))[0].how==='replay','R6 運営者のやり直しで片づける（記録は残す）',await ops('fbC6'));
+  s=await run({max:30});ok((await row('fbC6')).done_gen===(await row('fbC6')).gen&&FB.users.fbC6.disabled===true,'R7 運営者が確かめてやり直したあと、次の回で読み直して合わせる',s);
   /* e やり直しのあとで、前の操作の結果が遅れて届いても、見た状態だけ */
   r=await post('/api/fb/observe',{uid:'fbC6',op:it.lease,observed_disabled:false,settled:'ok'});ok(r[0]===200&&r[1].recorded_only===true,'R6 やり直しのあとに届いた前の操作の結果は、見た状態だけ',r);
+  tick(61e3);await run({max:30});}
+/* R7. 外を変える呼び出しを送ったあとでアダプターが落ちた（報告なし）：遅れて外で終わるかもしれないので、運営者が確かめるまで新しく変えない */
+{FB.hang.clear();FB.late.clear();
+  await env.DB.prepare(`UPDATE fb_sync SET done_gen=gen,dead=0,unknown=0,review=0,lease=NULL,lease_until=0`).run();await env.DB.prepare(`UPDATE fb_ops SET resolved_at=1,how='test' WHERE resolved_at IS NULL`).run();
+  const claimOf=async uid=>{for(let i=0;i<20;i++){const c=await post('/api/fb/claim',{});const it=c[1].items[0];if(!it)return null;if(it.uid===uid)return it;await post('/api/fb/ack',{uid:it.uid,lease:it.lease,gen:it.gen,result:'superseded',want:'disabled'})}return null};
+  const opOf=lease=>env.DB.prepare(`SELECT kind,resolved_at,how,intent FROM fb_ops WHERE op=?`).bind(lease).first();
+  const touch=uid=>FB.calls.filter(c=>c[0]!=='get'&&c[1]===uid).length;
+  const RP=h=>call('/api/admin/fb/replay',{method:'POST',...ADM,body:{handle:h,reason:'Firebase の画面で今の状態を確かめた',confirm:true}});
+  /* a 止める呼び出しを送って落ちた → 取り消し → 遅れて止まる。次の回は戻さない（戻したあとで遅れた「止める」が着くかもしれない） */
+  const K7=await perp('fbK7','fbkkk7');let it=await claimOf('fbK7');
+  r=await post('/api/fb/intent',{uid:'fbK7',lease:it.lease,gen:it.gen,action:'disable',observed_disabled:false});
+  let o=await opOf(it.lease);ok(r[0]===200&&o&&o.kind==='pending'&&o.intent==='disable','R7 外を変える前の記録と同じ取引で、その借りた印の操作の記録（pending）を作る',{r,o});
+  await rev(K7.id);tick(61e3);FB.users.fbK7.disabled=true;const t0=touch('fbK7');
+  let s=await run({max:30});o=await opOf(it.lease);
+  ok(touch('fbK7')===t0&&FB.users.fbK7.disabled===true&&o.kind==='crash'&&o.resolved_at===null,'R7 止める呼び出しのあとで落ちた：取り消されても、片づくまで戻さない（crash）',{o,s});
+  r=await RP('fbkkk7');s=await run({max:30});ok(r[0]===200&&FB.users.fbK7.disabled===false&&(await row('fbK7')).owned===0,'R7 運営者が確かめてやり直すと戻す',{s,R:await row('fbK7')});
+  /* b 戻す呼び出しを送って落ちた → もう一度停止 → 遅れて戻る。次の回は止めない（止めたあとで遅れた「戻す」が着くかもしれない）→ やり直しのあとで止める */
+  const K8=await perp('fbK8','fbkkk8');s=await run({max:30});ok(FB.users.fbK8.disabled===true,'R7 止める（前提）',s);
+  await rev(K8.id);it=await claimOf('fbK8');
+  r=await post('/api/fb/intent',{uid:'fbK8',lease:it.lease,gen:it.gen,action:'enable',observed_disabled:true});ok(r[0]===200&&(await opOf(it.lease)).intent==='enable','R7 戻す前の記録と操作の記録',r);
+  await perp('fbK8','fbkkk8');tick(61e3);FB.users.fbK8.disabled=false;const t1=touch('fbK8');
+  s=await run({max:30});ok(touch('fbK8')===t1&&(await opOf(it.lease)).kind==='crash','R7 戻す呼び出しのあとで落ちた：新しい停止があっても、片づくまで変えない',s);
+  r=await RP('fbkkk8');s=await run({max:30});ok(FB.users.fbK8.disabled===true,'R7 やり直しのあとで止める',s);
+  /* c 借りる時間が切れたあとの「時間切れ」の報告：その操作は timeout のまま残る（片づけない） */
+  const K9=await perp('fbK9','fbkkk9');it=await claimOf('fbK9');
+  await post('/api/fb/intent',{uid:'fbK9',lease:it.lease,gen:it.gen,action:'disable',observed_disabled:false});tick(61e3);
+  r=await post('/api/fb/ack',{uid:'fbK9',lease:it.lease,gen:it.gen,result:'failed',unknown:true,want:'disabled',error:'timeout:update'});
+  o=await opOf(it.lease);ok(r[0]===409&&o.kind==='timeout'&&o.resolved_at===null,'R7 借りる時間のあとの時間切れの報告は timeout として残す',{r,o});
+  /* d 読み直しの結果を片づける取引の途中で失敗：どちらも書かない（片方だけにならない）・そのあいだもアカウントは借りられない・やり直すと片づく */
+  const real=env.DB;let inj=true;
+  env.DB={prepare:q=>real.prepare(q),batch:async l=>{if(inj&&l.some(x=>x&&/how='observe'/.test(x.sql||''))){inj=false;return real.batch([l[0],real.prepare(`INSERT INTO no_such_table_r7 VALUES(1)`)])}return real.batch(l)}};
+  const R0=await row('fbK9');
+  r=await post('/api/fb/observe',{uid:'fbK9',op:it.lease,observed_disabled:true,settled:'ok'});
+  env.DB=real;o=await opOf(it.lease);let R1=await row('fbK9');
+  ok(r[0]>=500&&o.resolved_at===null&&o.kind==='timeout'&&R1.gen===R0.gen&&R1.owned===R0.owned,'R7 途中で失敗した読み直しは、操作も持ち主・番号も変えない（1つの取引）',{r,o,g:[R0.gen,R1.gen]});
+  const c9=await post('/api/fb/claim',{});ok(!(c9[1].items[0]&&c9[1].items[0].uid==='fbK9'),'R7 そのあいだもアカウントは借りられない',c9);
+  if(c9[1].items[0])await post('/api/fb/ack',{uid:c9[1].items[0].uid,lease:c9[1].items[0].lease,gen:c9[1].items[0].gen,result:'superseded',want:'disabled'});
+  r=await post('/api/fb/observe',{uid:'fbK9',op:it.lease,observed_disabled:true,settled:'ok'});o=await opOf(it.lease);R1=await row('fbK9');
+  ok(r[0]===200&&!r[1].recorded_only&&o.how==='observe'&&R1.gen===R0.gen+1&&R1.owned===1,'R7 やり直すと片づき、持ち主・番号も同じ取引で変わる',{r,o});
+  r=await post('/api/fb/observe',{uid:'fbK9',op:it.lease,observed_disabled:true,settled:'ok'});ok(r[1].recorded_only===true&&(await row('fbK9')).gen===R1.gen,'R7 同じ読み直しをもう一度送っても2回変えない',r);
   tick(61e3);await run({max:30});}
 {const fs=await import('node:fs');for(const dir of ['firebase-adapter','firebase-blocking']){const pk=JSON.parse(fs.readFileSync(path.join(ROOT,'tools',dir,'package.json'),'utf8')),lk=JSON.parse(fs.readFileSync(path.join(ROOT,'tools',dir,'package-lock.json'),'utf8'));
   const deps=Object.entries(pk.dependencies||{});ok(deps.length&&deps.every(([k,v])=>/^\d+\.\d+\.\d+$/.test(v)&&lk.packages['node_modules/'+k]&&lk.packages['node_modules/'+k].version===v&&lk.packages['node_modules/'+k].integrity),dir+'：版を固定し、ロックファイルに同じ版と中身の印がある',deps)}}
