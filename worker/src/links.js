@@ -878,9 +878,9 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!ex)return J({error:'この人の Firebase の同期の記録はありません。'},404);
     /* アダプターが借りているあいだはやり直さない（借りている印を消さない） */
     /* 運営者が Firebase の画面などで今の状態を確かめた前提で、結果が分からない操作の記録もここで片づける（how='replay'・消さずに残す） */
-    const rb=await db.batch([db.prepare(`UPDATE fb_ops SET resolved_at=?1,how='replay' WHERE uid=?2 AND resolved_at IS NULL AND NOT EXISTS(SELECT 1 FROM fb_sync WHERE uid=?2 AND lease_until>?1)`).bind(now,t.uid),
-      db.prepare(`UPDATE fb_sync SET dead=0,attempts=0,next_at=0,last_error=NULL,unknown=0,unk_intent=NULL,unk_op=NULL,gen=gen+1,pend_since=COALESCE(pend_since,?1),updated_at=?1 WHERE uid=?2 AND lease_until<=?1 RETURNING gen`).bind(now,t.uid)]);
-    const r=rb[1].results&&rb[1].results[0];
+    const rb=await db.batch([db.prepare(`INSERT OR IGNORE INTO fb_ops(op,uid,gen,intent,kind,at) SELECT lease,uid,intent_gen,intent,'crash',?1 FROM fb_sync WHERE uid=?2 AND lease IS NOT NULL AND lease_until<=?1 AND intent IS NOT NULL AND intent_lease=lease`).bind(now,t.uid),db.prepare(`UPDATE fb_ops SET resolved_at=?1,how='replay' WHERE uid=?2 AND resolved_at IS NULL AND NOT EXISTS(SELECT 1 FROM fb_sync WHERE uid=?2 AND lease_until>?1)`).bind(now,t.uid),
+      db.prepare(`UPDATE fb_sync SET dead=0,attempts=0,next_at=0,last_error=NULL,unknown=0,unk_intent=NULL,unk_op=NULL,lease=NULL,lease_until=0,intent=NULL,intent_gen=NULL,intent_at=NULL,intent_lease=NULL,gen=gen+1,pend_since=COALESCE(pend_since,?1),updated_at=?1 WHERE uid=?2 AND lease_until<=?1 RETURNING gen`).bind(now,t.uid)]);
+    const r=rb[2].results&&rb[2].results[0];
     if(!r)return J({error:'いまアダプターが扱っています。少し待ってからやり直してください。',busy:true},409);
     const who=await lkAdminWho(env,ip);
     try{await tipsLog(db,env,ip,now,'fb_replay',0,who+' '+reason)}catch(e){}
