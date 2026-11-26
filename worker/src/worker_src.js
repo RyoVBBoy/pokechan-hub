@@ -200,6 +200,9 @@ const MV=ENG.MV,MVE=ENG.MVE,LSD=ENG.LSD,ABD=ENG.ABD,MVK=ENG.MVK,ABK=ENG.ABK,ABN=
 const B={weather:null};
 let FMT='single';
 const byNo=BYNO;
+/* Worker ではブラウザー側のパーティ天候を引き継がない。 */
+const appliedTeamWx=()=>null;
+let AS_WX;
 __ENGFUNCS__
 MEGAP.forEach(m=>{m.dno=m.base;byNo[m.no]=m});
 /* パーティコード：v1「445,6,…」／v2「図鑑番号:能力ポイント:性格:持ち物:技:特性」を「_」でつなぐ */
