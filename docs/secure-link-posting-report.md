@@ -84,6 +84,16 @@ Main merged again at `57853a2` (PRs #7/#8: search stars, party check, `pre-relea
 | Follow-up (comment 7190716940) | Real D1 rollback proven inside workerd: a SQLite trigger makes the second statement of the observe batch fail in Miniflare's D1 ⇒ the first statement (op resolution) is rolled back, gen unchanged, claim still blocked; retry resolves once, repeat is observation-only. Also in real D1: intent creates the pending op, `done` resolves it, an enable sent before a crash ⇒ `crash`, account not claimable. Staging: isolation checker + example config (nothing provisioned). | `d1-integration.mjs` 35 → 42; `staging-check.mjs` 15. |
 | Expectation change | The round-6 test that expected an automatic re-run after a crash now asserts the safety invariant (frozen until replay, then converges). | — |
 
+## 1i. Remote staging on Cloudflare (2026-11-26, owner request)
+| Item | Result | Evidence |
+|---|---|---|
+| Authentication | No Cloudflare credential exists in the agent session and a dedicated token could not be requested from it; the GitHub job used the existing repository deploy secret (user token, active, no expiry). Permissions observed: Workers scripts/subdomain/D1 read 200, R2 403, token listing 403. | `staging-d1.yml` step 1 |
+| Isolation | Only `gk-links-staging` Worker and D1 created; production `pokechan-tap` and D1 `pokechan-db` (id equals the `D1_DATABASE_ID` variable) listed but never touched; `check.mjs` passed; `FIREBASE_PROJECT_ID=demo-gk-staging`; no Web Risk key, no Firebase credentials, no cron, no R2. | steps 2–4 and 6 |
+| **Bug found and fixed** | On real D1, `POST /api/fb/ack` returned 500 `no such column: last_error` for an `fb_sync` table created by an older version — the hand-written ALTER list missed columns. `linksInit` now records every `CREATE TABLE IF NOT EXISTS` and adds any missing column to existing tables (`lkEnsureCols`); `LK_SCHEMA` checks the added columns. | runs 45820696597 / 45821282416 (fail, tail log) → 45822084038 / 45822682308 (pass); `links-migrate.mjs` 14 → 16 (fails without the fix) |
+| Remote tests | `tests/staging-remote.mjs` **25/25** on real D1/Worker. | run 45822682308 (`af63b14`) |
+| Quota / cost | D1 2/10, 1.28 MB/5 GB; Workers scripts 2; expected $0 (billing not readable by the token). | steps 2 and 8 |
+| Log hygiene | Runs 1–3 printed the Cloudflare account name, which contains the owner's email; removed from run 4 onward. Owner should delete the logs of runs 45820696597, 45821282416, 45822084038. | — |
+
 ## 2. Ingress / render / authorization map
 | Path | Before | After |
 |---|---|---|
