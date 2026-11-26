@@ -54,9 +54,8 @@ jobs:
           echo "--- できること（読むだけの呼び出しで確かめる）"
           for p in "accounts/$CLOUDFLARE_ACCOUNT_ID" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" "accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" "accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets" "user/tokens"; do
             c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p"); echo "$c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  $(jq -c '[.errors[]?.code]' /tmp/r.json)"; done
-          echo "--- アカウント（名前と種類だけ）"
-          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/accounts/$CLOUDFLARE_ACCOUNT_ID" | jq -c '{name:.result.name,type:.result.type}'
-          wrangler whoami 2>&1 | grep -viE "token|@" | head -20 || true
+          echo "--- アカウント（種類だけ。名前にはメールアドレスが入ることがあるので出さない）"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/accounts/$CLOUDFLARE_ACCOUNT_ID" | jq -c '{type:.result.type,name_present:(.result.name!=null)}'
 
       - name: 2. 今ある資源と無料枠のゆとり（本番の名前があることも確かめる）
         run: |
