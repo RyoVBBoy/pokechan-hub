@@ -87,7 +87,7 @@ jobs:
         run: |
           set -eo pipefail
           sed -e "s/<gk-links-staging>/$STG/g" -e "s/<staging-d1-id>/$STG_D1_ID/" tools/staging/wrangler.staging.example.toml > wrangler.staging.toml
-          printf 'ADMIN_REVIEWER = "staging"\n' >> wrangler.staging.toml
+          printf 'ADMIN_REVIEWER = "staging"\nDEBUG_ERR = "1"\n' >> wrangler.staging.toml
           node tools/staging/check.mjs wrangler.staging.toml --prod-d1-id "${PROD_D1_ID:-none}" | head -3
 
       - name: 5. 前の版の表と合成の行を入れる（移しかえの確かめ用）
@@ -107,7 +107,14 @@ jobs:
       - name: 7. 本物の D1 と Worker で確かめる（tests/staging-remote.mjs）
         env:
           STG_DB: gk-links-staging
-        run: STG_BASE="https://$STG.$SUB.workers.dev" node tests/staging-remote.mjs
+        run: |
+          wrangler tail "$STG" --format json > /tmp/tail.log 2>/tmp/tail.err &
+          TP=$!; sleep 8
+          set +e; STG_BASE="https://$STG.$SUB.workers.dev" node tests/staging-remote.mjs; rc=$?; set -e
+          sleep 5; kill $TP 2>/dev/null || true
+          echo "--- ステージングの Worker のエラー（console.error・例外。合言葉は入らない）"
+          jq -c 'select((.exceptions|length)>0 or ((.logs//[])|map(select(.level=="error"))|length)>0)|{url:.event.request.url,status:.event.response.status,exc:[.exceptions[]?|{name,message}],err:[.logs[]?|select(.level=="error")|.message]}' /tmp/tail.log 2>/dev/null | sed -E 's/[0-9a-f]{32}/<lease>/g' | head -40 || true
+          exit $rc
 
       - name: 8. あとの資源と無料枠
         if: always()
