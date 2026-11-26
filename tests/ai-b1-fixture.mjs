@@ -1,6 +1,6 @@
 // B1 のテスト用の上位パーティ（主DB）。ai-b1.mjs と ai-b1-ui.mjs で共通。
 /* ---------- フィクスチャ（主DB：シーズン・上位記録・利用者） ---------- */
-const M=(no,o={})=>({no,set:{...(o.it?{it:{k:o.it}}:{}),...(o.ab?{ab:{k:o.ab}}:{}),mv:(o.mv||[]).map(id=>({id}))}});
+export const M=(no,o={})=>({no,set:{...(o.it?{it:{k:o.it}}:{}),...(o.ab?{ab:{k:o.ab}}:{}),mv:(o.mv||[]).map(id=>({id})),...(o.sp?{sp:o.sp}:{})}});
 const UT=369,TW=366,TR=433,FO=252;
 export const TEAMS={
   D1:{s:'S2',fmt:'double',rank:3,rate:2100,team:[M(279,{ab:'drizzle',mv:[UT,542,182,TW]}),M(823,{mv:[UT]}),M(445),M(6,{it:'charizarditey'}),M(1000),M(730)]},
@@ -45,7 +45,7 @@ export async function seedB1(env,kind,A,opt={}){
       if(t.stale)await DB.prepare(`UPDATE season_teams SET rank=2 WHERE id=?`).bind(id).run()}
     ids[key]=id};
   const use=k=>!opt.only||opt.only.includes(k);
-  for(const [k,t] of Object.entries({...TEAMS,...(opt.extra?EXTRA:{})}))if(use(k))await ins(k,t);
+  for(const [k,t] of Object.entries({...TEAMS,...(opt.extra?EXTRA:{}),...(opt.add||{})}))if(use(k))await ins(k,t);
   for(const [k,o] of Object.entries(LEAKS)){const team=o.five?LEAK().slice(0,5):LEAK();if(use(k))await ins(k,{s:'S2',fmt:'double',rank:1,rate:2300,team,...o})}
   return ids;
 }

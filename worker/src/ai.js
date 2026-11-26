@@ -14,7 +14,7 @@ const AI_LIMITS={maxInputTokens:2000,maxOutputTokens:500,calls:1,timeoutMs:15000
 const AI_LABEL={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_calc:'サイトの計算・推定',site_estimate:'サイトの計算・推定',site_aggregate:'当サイト集計',site_verified:'運営が証拠を確認した記録',insufficient:'根拠不足'};
 /* 検証の強さ（弱いほうに合わせてカードの検証状態を決める） */
 const AI_RANK={official:6,ingame:5,external_match:4,site_verified:3,site_aggregate:3,site_calc:3,external_single:2,site_estimate:1,insufficient:0};
-const AI_INTENTS=['team_recommend','team_followup','compare','species_types','species_stats','species_abilities','species_megas','learns_move','move_info','sp_rule','damage_calc','usage_share','party_tool','official_news','legality','unknown'];
+const AI_INTENTS=['team_recommend','team_followup','compare','species_types','species_stats','species_abilities','species_megas','learns_move','move_info','sp_rule','damage_calc','usage_share','party_tool','official_news','report_guidance','legality','unknown'];
 const AI_TEMPLATES=['team_candidates','species_types','species_stats','species_abilities','species_megas','learns_move','move_info','sp_rule','damage_calc','usage_share','hold','needs_input','unsupported','unavailable','open_tool'];
 /* 計算に影響しない特性（Stage A で計算を許す特性）。build.py が「計算の関数の中に名前が出てこない」ことを確かめる */
 const AI_CALC_ABILITY_OK=new Set(['pressure','inner-focus','keen-eye','frisk','unnerve','natural-cure','regenerator','shed-skin','synchronize','early-bird','limber','oblivious','own-tempo','insomnia','vital-spirit','cursed-body','pickpocket','big-pecks','tangled-feet','run-away','pickup','illuminate','stench','shield-dust','magma-armor','immunity','sweet-veil','aroma-veil','damp','suction-cups','sticky-hold','rattled','steadfast','anticipation','forewarn','overcoat','weak-armor','cute-charm','poison-point','static','flame-body','effect-spore','rough-skin','gooey','mummy','wandering-spirit','gluttony','cheek-pouch','ripen','harvest','unburden','klutz','quick-feet','surge-surfer']);
@@ -286,6 +286,7 @@ const MockProvider={
       [/種族値|ステータス|能力値/,'species_stats'],[/タイプ/,'species_types'],[/特性/,'species_abilities'],[/メガ/,'species_megas'],[/威力|命中|分類|優先度/,'move_info']];
     for(const [re,k] of R)if(re.test(q)){intent=k;break}
     if(intent==='unknown'&&/勝てなくなった|勝てない|負けが続/.test(q))intent='party_tool';
+    if(/(通報|報告)(の|する)?(方法|やり方|仕方|窓口|先)|(チート|不正|改造|迷惑行為|妨害)(への|の)?(対策|対処|見分け)|(晒され|妨害され|不正をされ)/.test(q))intent='report_guidance';
     if(intent==='unknown'&&/最新(の)?(情報|お知らせ|ニュース)|公式(の)?(お知らせ|発表)|アップデート情報/.test(q))intent='official_news';
     const sp=cs.filter(c=>c.kind==='species'),mv=cs.filter(c=>c.kind==='move'),refs={};
     if(['species_types','species_stats','species_abilities','species_megas','usage_share','legality'].includes(intent)&&sp[0])refs.species=sp[0].ref;
@@ -354,6 +355,8 @@ async function aiCompose(ad,scope,plan,cands,body,env){
     const nos=ids.map(x=>+x.slice(3));
     return{status:'unsupported',reasonCode:'compare_unsupported',nextAction:{kind:'open_tool',tool:'compare',route:'#/cmp/'+nos.join('-')},cards:[aiCard('unsupported',{reasonCode:'compare_unsupported',tool:'compare',names:ids.map(x=>L.ents.get(x).label)},[],'insufficient')]};}
   /* 最新情報は B3 まで答えない：公式のお知らせの画面へ（モデルの記憶から補わない） */
+  /* 不正・迷惑行為の対策と正規の通報：ゲーム内の通報機能・公式のサポート・当サイトのお問い合わせへ（相手を特定・断定しない） */
+  if(i==='report_guidance')return{status:'needs_input',reasonCode:'report_guidance',nextAction:{kind:'open_tool',tool:'report',route:'#/contact'},cards:[aiCard('open_tool',{tool:'report'},[],'insufficient')]};
   if(i==='official_news')return{status:'needs_input',reasonCode:'open_news',nextAction:{kind:'open_tool',tool:'news',route:'#/news'},cards:[aiCard('open_tool',{tool:'news'},[],'insufficient')]};
   if(i==='party_tool'){const tool=plan.refs.tool||'diag';return{status:'needs_input',reasonCode:'local_tool_result',nextAction:{kind:'open_tool',tool},cards:[aiCard('open_tool',{tool},[],'site_calc')]}}
   if(i==='legality'){

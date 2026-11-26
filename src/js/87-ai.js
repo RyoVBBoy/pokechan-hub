@@ -53,6 +53,10 @@ const AI_REASON={
   unverified_claim:'未発表・未確認の情報は、確定した事実としては出せません。公式の発表を確かめてからお答えします。',
   game_mismatch:'ここではポケモンチャンピオンズの相談だけを扱います。ほかのゲームの候補や条件は使いません。',
   constraint_conflict:'同じポケモンを「入れる」と「外す」の両方に指定しています。どちらにしますか？',
+  legality_unverified:'参加できるポケモンの一覧や育成の決まりを確かめきれていない記録があるため、「今のおすすめ」とは言えません。',
+  ineligible_excluded:'今のルールで使えないと分かった構築（参加できないポケモン・覚えない技・ゲームにない持ち物など）は、候補から外しました。',
+  no_eligible_teams:'条件に合う記録はありますが、今のルールで使えると確かめられる構築がありません（条件はゆるめていません）。',
+  report_guidance:'不正や迷惑行為を見かけたら、ゲームの中の通報の機能か、ゲームの公式サポートの窓口を使ってください。相手を自分で特定したり、名前を晒したりはしないでください。当サイトでの迷惑行為は、お問い合わせから知らせられます。',
   open_news:'最新情報は、公式のお知らせの画面で確かめられます（ここではモデルの記憶から答えません）。',
   style_unverified:'その戦い方は、登録された技・特性から確かめられないため、絞り込みに使っていません。',
   beginner_unverified:'扱いやすさを確かめたデータはないため、初心者向けとは言えません。',no_guarantee:'勝てることは保証できません。確認済みの上位記録を並べています。',
@@ -99,7 +103,7 @@ function aiCardText(c){
       return E(aiR(s.field==='calc'?'calc_input_missing':s.field==='format'?'format_missing':s.field==='roles'?'roles_ambiguous':(s.choices||[]).length?'form_ambiguous':s.field==='species'?'species_missing':'move_missing'));
     case 'unsupported':return E(aiR(s.reasonCode));
     case 'unavailable':return E(aiR(s.reasonCode));
-    case 'open_tool':return E(aiR('local_tool_result'));
+    case 'open_tool':return E(aiR(s.tool==='report'?'report_guidance':s.tool==='news'?'open_news':'local_tool_result'));
   }
   return E(aiR(''));
 }
@@ -310,6 +314,7 @@ function aiNextHTML(j,m){
   if(n.kind==='choose_roles')return n.options.length?`<div class="ai-chips">${n.options.map((o,i)=>`<button type="button" class="ai-cbtn" data-airole="${i}">${esc(o.label)}</button>`).join('')}</div>`:'';
   if(n.kind==='calc_form')return `<div class="ai-calcbox"></div>`;
   if(n.kind==='open_calc')return `<div class="btns"><a class="btn btn-s" href="#/calc">ダメージ計算の画面で計算する</a></div>`;
+  if(n.kind==='open_tool'&&n.tool==='report')return `<div class="btns"><a class="btn btn-s" href="#/contact">当サイトへのお問い合わせ</a></div>`;
   if(n.kind==='open_tool'&&n.tool==='news')return `<div class="btns"><a class="btn btn-s" href="#/news">公式のお知らせを見る</a></div>`;
   if(n.kind==='after_match')return `<p class="ai-small">ルール・技や特性の一般的な仕組みの質問、試合が終わってからの振り返りはできます。</p>`;
   if(n.kind==='choose_constraint')return `<div class="ai-chips">${(n.choices||[]).map(c=>`<button type="button" class="ai-cbtn" data-aisay="${esc(c.label)}">${esc(c.label)}</button>`).join('')}</div>`;

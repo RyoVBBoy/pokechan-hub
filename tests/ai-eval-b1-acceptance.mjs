@@ -22,7 +22,7 @@ if(CASES.length!==60)throw new Error('通常の独立評価は60件のはず: '+
 /* 提供元に渡した入力（登録者・コメント・証拠を送っていないかを見る） */
 const SEEN=[];const gp0=A.MockProvider.generatePlan;A.MockProvider.generatePlan=async function(i,...r){SEEN.push(JSON.stringify(i));return gp0.call(this,i,...r)};
 const ALL=[...new Set(Object.values({...TEAMS,...EXTRA}).flatMap(t=>t.team.map(m=>m.no)).concat([10034,10035,10039,10046,10058,10281]))];
-const RS=(seasons,id='rs-accept-1')=>({id,game:'pokechamp',formats:['single','double'],from:'2000-01-01',to:'2099-12-31',seasons,legal:ALL,officialUrl:'https://www.pokemonchampions.jp/ja/news/',checkedAt:'2026-11-26'});
+const RS=(seasons,id='rs-accept-1')=>({id,game:'pokechamp',formats:['single','double'],start:'2000-01-01T00:00:00+09:00',end:'2100-01-01T00:00:00+09:00',legalComplete:true,seasons,legal:ALL,officialUrl:'https://www.pokemonchampions.jp/ja/news/',checkedAt:'2026-11-26'});
 const tokens=new Map();const tok=async u=>{if(!tokens.has(u))tokens.set(u,await S.sign(u));return tokens.get(u)};
 async function mkEnv(o={},seed={}){const AI=makeD1();await migrate(AI);const DB=makeD1();
   const env=baseEnv({AI_DB:AI,DB,AI_B1_ENABLED:'1',AI_RL_USER_MIN:'1000',AI_RL_IP_MIN:'1000',...o});

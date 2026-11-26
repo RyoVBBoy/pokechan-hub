@@ -19,9 +19,27 @@ const AI_REASON_IDS=['keeps','prefers','style','similar','verified_rank'];
 
 /* ---------- 確認済みのレギュレーションの記録（公式の資料・期間・形式・シーズンの対応）。無ければ「確認できない」 ---------- */
 const aiToday=t=>new Date(t+9*36e5).toISOString().slice(0,10);
+/* 期間は公式の開始・終了の時刻（時差つきの ISO 形式）。開始を含み、終了（＝次の開始）を含まない。日付だけでは当日の切りかえ（M-C→M-D は 2026-12-02 11:00 JST）を表せない */
 function aiRuleset(game,fmt,now){
-  const d=aiToday(now);
-  return (AI_RULESETS||[]).find(r=>r.game===game&&(r.formats||[]).includes(fmt)&&r.from<=d&&(!r.to||d<=r.to))||null;
+  return (AI_RULESETS||[]).find(r=>r.game===game&&(r.formats||[]).includes(fmt)&&Date.parse(r.start)<=now&&now<Date.parse(r.end))||null;
+}
+/* 1つの構築が、その期間のルールで使えるか。
+   verified＝参加できる一覧が完全と確かめてあり、全員（メガシンカ後の姿も）が載り、育成（技・特性・持ち物・能力ポイント）も決まりに合う
+   not_listed＝一覧が完全なのに載っていない匹がいる／set_invalid＝覚えない技・持てない特性・ゲームにない持ち物・能力ポイントの形が違う
+   unverified＝一覧が無い・完全と確かめていない・育成のデータが読めない */
+function aiTeamLegal(t,rs,ad,scope){
+  for(const m of t.mem){
+    const ls=ad.findEvidence(scope,'sp:'+m.no,'learnset'),ab=ad.findEvidence(scope,'sp:'+m.no,'abilities');
+    if(m.mv.length&&!ls)return 'unverified';
+    if(ls&&m.mv.some(id=>!ls.typedValue.includes(id)))return 'set_invalid';
+    if(m.setAb&&ab&&!ab.typedValue.some(a=>a[0]===m.setAb))return 'set_invalid';
+    if(m.setAb&&!ab)return 'unverified';
+    if(m.item&&!m.stone&&!isStone(m.item)&&!CH_ITEMS.has(m.item))return 'set_invalid';   /* ゲームにない持ち物（こだわりハチマキ等） */
+    if(m.item&&isStone(m.item)&&!m.stone)return 'set_invalid';
+    if(m.sp!==undefined&&!(Array.isArray(m.sp)&&m.sp.length===6&&m.sp.every(v=>Number.isInteger(v)&&v>=0&&v<=32)&&m.sp.reduce((a,b)=>a+b,0)<=66))return 'set_invalid';
+  }
+  if(!rs||rs.legalComplete!==true||!Array.isArray(rs.legal))return 'unverified';
+  return t.mem.every(m=>rs.legal.includes(m.no)&&(!m.megaNo||rs.legal.includes(m.megaNo)))?'verified':'not_listed';
 }
 
 /* ---------- だれでも見られる・確認済みの上位記録（ladder.js の決まりを共通で使う） ---------- */
@@ -44,7 +62,7 @@ async function aiPublicTeams(env,game,fmt){
       const it=s.it&&typeof s.it.k==='string'?s.it.k:null,ab=s.ab&&typeof s.ab.k==='string'?s.ab.k:null;
       const mv=(Array.isArray(s.mv)?s.mv:[]).map(v=>v&&+v.id).filter(n=>Number.isInteger(n)&&n>0).slice(0,4);
       const stone=it&&isStone(it)&&megaOf(m.no,it)?it:null,mg=stone?megaOf(m.no,stone):null;
-      return{no:m.no,stone,megaNo:mg?mg.no:null,ab:mg&&mg.ab?mg.ab:ab,mv}});
+      return{no:m.no,stone,megaNo:mg?mg.no:null,ab:mg&&mg.ab?mg.ab:ab,setAb:ab,item:it,mv,...(s.sp!==undefined?{sp:s.sp}:{})}});
     if(mem.some(m=>!byNo[m.no]))continue;
     out.push({id:x.id,season:{id:x.season_id,name:String(x.s_name||'').slice(0,40),start:x.s_start||null,end:x.s_end||null},fmt:x.fmt,rank:x.rank||null,rate:x.rate||null,mem,sig:ladderSig(x)});
   }
@@ -117,7 +135,7 @@ function aiCandidateCard(t,i,c,L,rs,anchor){
     members:t.mem.map(m=>({no:m.no,name:name(m.no),stone:m.stone,mega:m.megaNo?name(m.megaNo):null})),
     style:style?{k:style,label:AI_STYLES[style],basis:(st[style]||[]).map(e=>({who:name(e.who),what:e.what.startsWith('mv:')?(MVN[+e.what.slice(3)]||''):(ABN[e.what.slice(3)]||'')}))}:null,
     reasons:reasons.slice(0,2),conditions:{format:t.fmt,keep:(c.keep||[]).map(k=>k.mega==='any'?'メガ'+name(k.no)+'（X・Yのどちらでも）':kn(k)),drop:(c.drop||[]).map(name),prefer:(c.prefer||[]).map(name),style:c.style?AI_STYLES[c.style]:null},
-    ruleset:{id:cur?rs.id:null,status:cur?'current_verified':'past_or_unverified',legal:cur&&rs.legal?(t.mem.every(m=>rs.legal.includes(m.no)&&(!m.megaNo||rs.legal.includes(m.megaNo)))?'verified':'not_listed'):'unverified'},
+    ruleset:{id:cur&&t.legal==='verified'?rs.id:null,status:cur&&t.legal==='verified'?'current_verified':'past_or_unverified',legal:t.legal||'unverified',season:cur?'current':'past_or_unmapped'},
     verification:'verified_rank',source:{route:'#/season/'+t.season.id,label:'シーズンの上位パーティ（'+t.season.name+'）'}};
 }
 async function aiComposeB1(ad,scope,plan,cands,body,env,ctx){
@@ -162,7 +180,9 @@ async function aiComposeB1(ad,scope,plan,cands,body,env,ctx){
   if(prev&&prev.rev&&prev.rev!==scope.dataRevision)holds.push('data_updated');
   /* レギュレーションの記録（版）が変わったら、前の候補は使わず取り直したことを書く */
   if(prev&&prev.cands&&(prev.ruleset||null)!==(rs?rs.id:null))holds.push('ruleset_changed');
-  let pool=P.teams.filter(t=>aiKeepOk(t,c));
+  /* 使えるかを先に決め、決まりに合わないと分かった構築は候補にしない（今の期間でも過去の記録としても出さない） */
+  const teams=P.teams.map(t=>({...t,legal:aiTeamLegal(t,rs,ad,scope)})),inel=teams.filter(t=>t.legal==='not_listed'||t.legal==='set_invalid');
+  let pool=teams.filter(t=>t.legal!=='not_listed'&&t.legal!=='set_invalid'&&aiKeepOk(t,c));
   if(c.prefer.length){const pc=t=>c.prefer.filter(n=>t.mem.some(m=>m.no===n)).length;pool=pool.map((t,i)=>[t,i]).sort((a,b)=>pc(b[0])-pc(a[0])||a[1]-b[1]).map(x=>x[0])}
   if(anchor){const sim=t=>t.mem.filter(m=>anchor.mem.some(a=>a.no===m.no)).length;
     pool=pool.filter(t=>t.id===anchor.id||sim(t)>=3).sort((a,b)=>(b.id===anchor.id)-(a.id===anchor.id)||sim(b)-sim(a))}
@@ -170,8 +190,9 @@ async function aiComposeB1(ad,scope,plan,cands,body,env,ctx){
   const state={c,cands:top.map(t=>'team:'+t.id),fmt,rev:scope.dataRevision,ruleset:rs?rs.id:null};
   if(!top.length){
     /* 条件をゆるめない：ほかの条件を変えるか、こだわり条件で組む画面へ */
-    return{status:'insufficient_evidence',reasonCode:P.teams.length?'no_match':'no_verified_teams',nextAction:{kind:'open_tool',tool:'kodawari',route:'#/pair/kd'},
-      cards:[aiCard('hold',{reasonCode:P.teams.length?'no_match':'no_verified_teams',conditions:{keep:c.keep.length,drop:c.drop.length,style:c.style}},[],'insufficient')],_state:state};
+    const why=!P.teams.length?'no_verified_teams':(teams.filter(t=>aiKeepOk(t,c)).length&&inel.length)?'no_eligible_teams':'no_match';
+    return{status:'insufficient_evidence',reasonCode:why,nextAction:{kind:'open_tool',tool:'kodawari',route:'#/pair/kd'},
+      cards:[aiCard('hold',{reasonCode:why,conditions:{keep:c.keep.length,drop:c.drop.length,style:c.style}},[],'insufficient')],_state:state};
   }
   /* 2回目の呼び出し（あれば）：候補の並び・理由の選び方だけ。番号・組み合わせはこちらで確かめる */
   let cards=top.map((t,i)=>aiCandidateCard(t,i,c,L,rs,anchor));
@@ -190,7 +211,11 @@ async function aiComposeB1(ad,scope,plan,cands,body,env,ctx){
   if(/証拠|画像|スクショ/.test(qq))notes.push('proof_not_shown');
   if(/攻め寄り|守り寄り|受け寄り|攻撃的|耐久寄り|速攻/.test(qq)&&!plan.style)holds.push('style_unverified');
   if(!rs)holds.unshift('ruleset_unverified_b1');
-  else if(cards.some(x=>x.ruleset.status!=='current_verified'))holds.unshift('candidate_season_old');
+  else{
+    if(cards.some(x=>x.ruleset.legal==='unverified'))holds.unshift('legality_unverified');
+    if(cards.some(x=>x.ruleset.season!=='current'))holds.unshift('candidate_season_old');
+  }
+  if(inel.length)notes.push('ineligible_excluded');
   if(reset)holds.push(reset);
   for(const h of [...holds,...notes])out.push(aiHold(h));
   return{status:holds.some(h=>!['data_updated','ruleset_changed','format_changed','format_switched','game_changed'].includes(h))?'partial':'answered',reasonCode:holds[0]||undefined,cards:out,evidence,_state:state,

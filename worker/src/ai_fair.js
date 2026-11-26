@@ -12,12 +12,19 @@ const FP_REFUSE=[
   ['disrupt',/妨害/],
   ['private_info',/(連絡先|住所|本名|電話番号|個人情報|顔写真|学校|勤務先|アカウント|本垢|裏垢)(を|が)?(特定|調べ|突き止|晒|教えて)|特定して|晒(す|して|したい|し上げ)/],
   ['internal',/制限を(解除|外|無効)|秘密を(表示|見せ|教え|出)|(システム)?プロンプトを(表示|見せ|教え|出)|内部(の)?(情報|設定|データ)を|非公開の(設定|情報|データ)を(表示|見せ|教え|出)|管理者(の)?(権限|用の)|jailbreak|脱獄/i]];
+const FP_DEFENSE=/対策|防ぐ|防止|防げ|通報|報告|見分け|被害|されたら|された時|されたとき|対処|窓口|相談先|守る/;
+const FP_DOIT=/されない|バレ|ばれ|(する|使う|やる|入れる|仕込む|作る|改造の|チートの|改造)(方法|手順|やり方)|やり方を教え|手順を教え/;
 const FP_HOLD=/(未発表|未公開|リーク|発表前|非公式の噂)/;
-const FP_DONE=/昨日|おととい|一昨日|先週|先日|さっき終わ|終わった(試合|対戦|大会)|(試合|対戦|大会|バトル)(が|は|も)?終わ|試合後|対戦後|大会後|振り返|(対戦|試合|大会|ランクマ)中だった|(対戦|試合|大会)中でした/;
+/* いまの試合が終わったと言う文（「終わったら」は先の予定なので入れない） */
+const FP_ENDED=/(試合|対戦|大会|バトル|ランクマ|マッチ)(が|は|も)?(今|いま|さっき|もう|ちょうど)?終わ(った|りました)(?!ら)|さっき終わった|終わったところ|(対戦|試合|大会|ランクマ)中だった|(対戦|試合|大会)中でした/;
+/* 過去の別の試合への言及（振り返りの相談）。進行中の手がかり・状態があれば、これだけでは外さない */
+const FP_PAST=/昨日|おととい|一昨日|先週|先日|前回|振り返/;
+const FP_FUTURE=/終わったら|終わり次第|終わってから|あとで振り返/;
 const FP_LIVE=/選出画面|残り\s*[0-9０-９]+\s*秒|あと\s*[0-9０-９]+\s*秒|残り時間|(大会|対戦|試合|ランクマ|ランクバトル|フレンド戦|マッチ|バトル)中(?!だった|でした)|今(ランクマ|ランクバトル|大会|対戦|試合|フレンド戦)(?![^。]*(後|終わ))|(対戦|試合|バトル)(が)?始まっ|マッチング(した|中)|今の盤面|現在の盤面|[0-9０-９]+ターン目/;
 const FP_PRACTICE=/架空|仮想|例にして|例えば|たとえば|練習用|シミュレーション|仮定/;
 const FP_ADVICE=/(何|誰|だれ|どれ|どの子|どいつ|どのポケモン)(を|が)?(出す|出せば|出したら|選出|選ぶ|選べば|投げ)|出す[0-9０-９３]?匹|選出(を|して|は)?(決め|教え|考え|して)|(次|今)(に|の)?(出す|使う|打つ|撃つ|選ぶ)?(技|一手|行動)|一手|交代(する|させる|先|すべき|するなら|するポケモン|して)|居座る?(べき|か)|どっち|どちら|何ダメ|ダメージ|確定数|乱数|倒せる[？?]|耐える[？?]|相手の(6匹|６匹|持ち物|技|型|残り)/;
 const FP_SITUATION=/この(盤面|状況|場面|相手)|今の(盤面|状況|相手)|相手の(6匹|６匹)|次に/;
+const FP_INDIV=/おすすめ|オススメ|お勧め|パーティ|構築|選出|ダメージ|計算|何発|確定|使用率|相手|型|持ち物|技|交代|出す|勝て/;
 const FP_CONT=/同じ相手|さっきの相手|この相手|今の相手|その相手/;
 const FP_GENERAL=/一般(的な|の)?(仕様|ルール|仕組み)|仕組み|仕様を|とは[？?]?$|って何/;
 const FP_MSG={restrict:'進行中の対戦への個別の助言は控えています。試合が終わったら、選出や立ち回りを一緒に振り返れます。',
@@ -27,18 +34,24 @@ const FP_MSG={restrict:'進行中の対戦への個別の助言は控えてい�
 /* fp＝会話に残した状態 {phase,at,pending}。戻り値 {decision, phase, kind, reason} */
 function aiFairPlay(q,fp,now,matchPhase){
   const t=String(q||'').normalize('NFKC');
-  for(const [k,re] of FP_REFUSE)if(re.test(t))return{decision:'refuse',phase:(fp&&fp.phase)||'unknown',kind:k};
+  for(const [k,re] of FP_REFUSE)if(re.test(t)){
+    /* 防ぐ・見分ける・正規に通報する相談は、禁止語があっても拒否しない（隠す・ばれない・内部情報・自分がする手順は別） */
+    if(['cheat','exploit','disrupt'].includes(k)&&FP_DEFENSE.test(t)&&!FP_DOIT.test(t))continue;   /* 個人の特定・隠す・内部情報は、通報が目的と書いてあっても拒否 */
+    return{decision:'refuse',phase:(fp&&fp.phase)||'unknown',kind:k}}
   if(FP_HOLD.test(t))return{decision:'hold',phase:(fp&&fp.phase)||'unknown',kind:'unverified_claim'};
   const live0=fp&&fp.phase==='ongoing'&&now-fp.at<AI_CONV_TTL;
   let phase='unknown';
-  if(FP_DONE.test(t))phase='completed';
-  else if(FP_LIVE.test(t)||live0)phase='ongoing';
+  /* 順番：同じ文の「いま対戦中」がいちばん先 → いまの試合が終わった → 会話に残した進行中 → 過去の試合への言及 */
+  if(FP_LIVE.test(t))phase='ongoing';
+  else if(FP_ENDED.test(t))phase='completed';
+  else if(live0)phase='ongoing';
+  else if(FP_PAST.test(t)&&!FP_FUTURE.test(t))phase='completed';
   else if(matchPhase&&fp&&fp.pending==='clarify')phase=matchPhase;   /* 確認への答え（進行中のあとでは使わない） */
   else if(FP_PRACTICE.test(t))phase='practice';
   const advice=FP_ADVICE.test(t);
   if(phase==='ongoing'){
     if(FP_GENERAL.test(t)&&!advice&&!FP_SITUATION.test(t))return{decision:'allow_general',phase,kind:'game_mechanic'};
-    if(advice||FP_CONT.test(t)||FP_SITUATION.test(t)||(live0&&t.replace(/[\s？?。、!！]/g,'').length<=12))return{decision:'restrict',phase,kind:'live_advice'};
+    if(advice||FP_INDIV.test(t)||FP_CONT.test(t)||FP_SITUATION.test(t)||(live0&&t.replace(/[\s？?。、!！]/g,'').length<=12))return{decision:'restrict',phase,kind:'live_advice'};
     return{decision:'allow_general',phase,kind:'general'};
   }
   if(phase==='unknown'&&advice&&FP_SITUATION.test(t))return{decision:'clarify',phase,kind:'phase_unknown'};

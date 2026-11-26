@@ -7,7 +7,7 @@
     "test": "node tests/run.mjs",
     "test:ai-eval": "node tests/ai-eval.mjs",
     "test:ai-d1": "node tests/ai-d1.mjs",
-    "test:ai-b1": "node tests/ai-b1.mjs --eval-only && node tests/ai-eval-b1-acceptance.mjs && node tests/ai-eval-fair-play.mjs"
+    "test:ai-b1": "node tests/ai-b1.mjs --eval-only && node tests/ai-eval-b1-acceptance.mjs && node tests/ai-eval-fair-play.mjs && node tests/ai-b1-review.mjs"
   },
   "devDependencies": {
     "@smogon/calc": "0.12.0",

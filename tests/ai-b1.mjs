@@ -48,7 +48,7 @@ for(const c of EV.cases){
   let rsAdded=null;
   if(c.ruleset){const all=[...new Set(Object.values(TEAMS).flatMap(t=>t.team.map(m=>m.no)).concat([10034,10035,10039,10046]))];
     const legal=c.ruleset.legalAll?all:all.filter(n=>!(c.ruleset.legalExcept||[]).includes(n));
-    rsAdded={id:'rs-b1-test',game:'pokechamp',formats:['double'],from:'2000-01-01',to:'2099-12-31',seasons:c.ruleset.seasons.map(s=>ids[s]),legal,officialUrl:'https://www.pokemonchampions.jp/ja/news/',checkedAt:'2026-11-26'};A.AI_RULESETS.push(rsAdded)}
+    rsAdded={id:'rs-b1-test',game:'pokechamp',formats:['double'],start:'2000-01-01T00:00:00+09:00',end:'2100-01-01T00:00:00+09:00',legalComplete:true,seasons:c.ruleset.seasons.map(s=>ids[s]),legal,officialUrl:'https://www.pokemonchampions.jp/ja/news/',checkedAt:'2026-11-26'};A.AI_RULESETS.push(rsAdded)}
   for(const [si,s] of c.steps.entries()){
     const uid=s.uid||'alice',tag=`#${si+1}`;
     if(s.setup==='expire'&&conv)await env.AI_DB.prepare(`UPDATE ai_conv SET expires_at=1 WHERE id=?`).bind(conv).run();
@@ -57,7 +57,7 @@ for(const c of EV.cases){
     if(s.setup&&s.setup.startsWith('hide:'))await env.DB.prepare(`UPDATE season_teams SET hidden=1 WHERE id=?`).bind(ids[s.setup.slice(5)]).run();
     if(s.setup==='forget')await A.aiForgetUser(env,uid);
     if(s.setup&&s.setup.startsWith('ruleset:')&&!rsAdded){const all=[...new Set(Object.values(TEAMS).flatMap(t=>t.team.map(m=>m.no)).concat([10034,10035,10039,10046]))];
-      rsAdded={id:'rs-b1-test',game:'pokechamp',formats:['double'],from:'2000-01-01',to:'2099-12-31',seasons:[ids[s.setup.slice(8)]],legal:all,officialUrl:'https://www.pokemonchampions.jp/ja/news/',checkedAt:'2026-11-26'};A.AI_RULESETS.push(rsAdded)}
+      rsAdded={id:'rs-b1-test',game:'pokechamp',formats:['double'],start:'2000-01-01T00:00:00+09:00',end:'2100-01-01T00:00:00+09:00',legalComplete:true,seasons:[ids[s.setup.slice(8)]],legal:all,officialUrl:'https://www.pokemonchampions.jp/ja/news/',checkedAt:'2026-11-26'};A.AI_RULESETS.push(rsAdded)}
     const b0=await dayCount(env,uid);
     const T0=performance.now();
     const {st,j}=await ask(env,s.q,{fmt:s.fmt,uid,conv:s.conv==='prev'?conv:null,game:s.game});
