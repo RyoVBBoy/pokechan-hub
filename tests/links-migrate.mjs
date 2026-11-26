@@ -46,7 +46,17 @@ ok((await DB.prepare(`SELECT COUNT(*) AS c FROM notes`).first()).c===2&&(await D
 const again=await Promise.all([1,2,3].map(()=>call('/api/tl')));ok(again.every(x=>x[0]===200),'もう一度・同時に動いても大丈夫','');
 {const fo=(await DB.prepare(`SELECT op,uid,kind,intent,resolved_at FROM fb_ops ORDER BY uid`).all()).results;
   ok(JSON.stringify(fo)===JSON.stringify([{op:'legacy:u1',uid:'u1',kind:'crash',intent:'disable',resolved_at:null},{op:'oldop',uid:'u2',kind:'timeout',intent:'disable',resolved_at:null}]),'前の版の報告のない止める記録・結果が分からない記録を、操作の記録に1回だけ移す（新しい借りた印には結びつけない）',fo);
-  await DB.prepare(`UPDATE fb_ops SET resolved_at=1,how='test' WHERE uid='u1'`).run();await DB.prepare(`UPDATE fb_sync SET lease='newlease' WHERE uid='u1'`).run();
+  /* 前の版の表に、いまの宣言の列がすべて足されている（手で並べた ALTER に頼らない。ステージングの本物の D1 で last_error が無くて落ちたため） */
+  {const cols=t=>DB.prepare(`SELECT name FROM pragma_table_info(?)`).bind(t).all().then(x=>x.results.map(y=>y.name));
+   const fs=await cols('fb_sync'),nl=await cols('note_links');
+   ok(['last_error','review_why','intent_at','unk_intent','last_op','obs_disabled','pend_since','review','unknown','created_at','updated_at'].every(c=>fs.includes(c))&&['rev','vh','pol','verdict','expires_at'].every(c=>nl.includes(c)),'前の版の表に、いまの宣言の列がそろう（fb_sync・note_links）',{fs,nl})}
+  /* 前の版の表のままで、Firebase の報告（失敗・終えた）が通る */
+  {const R=async(p,b)=>{const r=await w.fetch(new Request('https://x.dev'+p,{method:'POST',headers:{'content-type':'application/json','x-fb-adapter-token':'adapter-token-migrate-0123456789abcdef'},body:JSON.stringify(b)}),{...env,FB_ADAPTER_TOKEN:'adapter-token-migrate-0123456789abcdef'},{waitUntil(){}});return[r.status,await r.json().catch(()=>({}))]};
+   await DB.prepare(`UPDATE fb_sync SET gen=2,done_gen=1,checked_at=NULL,lease=NULL,lease_until=0 WHERE uid='u3'`).run();
+   const c=await R('/api/fb/claim',{});const it=(c[1].items||[]).find(x=>x.uid==='u3');
+   const a=it&&await R('/api/fb/ack',{uid:'u3',lease:it.lease,gen:it.gen,result:'failed',want:'disabled',error:'x'});
+   ok(c[0]===200&&it&&a&&a[0]===200,'前の版の fb_sync のままで claim と ack が通る（500 にならない）',{c,a})}
+await DB.prepare(`UPDATE fb_sync SET lease='newlease' WHERE uid='u1'`).run();
   await Promise.all([1,2].map(()=>call('/api/tl')));
   ok((await DB.prepare(`SELECT COUNT(*) AS c FROM fb_ops`).first()).c===2,'移すのは1回だけ（あとで同じ形の行があっても作らない）','')}
 {const bd=(await DB.prepare(`SELECT day,month,n FROM link_budget_d ORDER BY day`).all()).results,ob=await DB.prepare(`SELECT * FROM link_budget WHERE id='webrisk'`).first();

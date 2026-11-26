@@ -109,79 +109,91 @@ function lkFromText(t){
 }
 let LK_READY=false;
 /* 足す列：すでにあるときの「duplicate column」だけを無視する（ほかの失敗はそのまま投げる＝閉じる） */
+/* CREATE TABLE IF NOT EXISTS の宣言から列を取り出し、いまある表に無い列を足す（PRIMARY KEY・UNIQUE は足せないので外す。NOT NULL は DEFAULT があるときだけ残す） */
+function lkSplitTop(x){const out=[];let d=0,cur='';for(const ch of x){if(ch==='(')d++;if(ch===')')d--;if(ch===','&&d===0){out.push(cur);cur=''}else cur+=ch}if(cur.trim())out.push(cur);return out}
+async function lkEnsureCols(db,q){
+  const m=q.match(/^CREATE TABLE IF NOT EXISTS (\w+)\(([\s\S]*)\)\s*$/);if(!m)return;
+  const t=m[1],have=new Set((await db.prepare(`SELECT name FROM pragma_table_info(?)`).bind(t).all()).results.map(x=>x.name));
+  for(const part of lkSplitTop(m[2])){const c=part.trim();if(/^(PRIMARY|UNIQUE|CHECK|FOREIGN|CONSTRAINT)\b/i.test(c))continue;
+    const name=c.split(/\s+/)[0];if(!name||have.has(name))continue;
+    let def=c.replace(/\bPRIMARY KEY\b(\s+AUTOINCREMENT)?/i,'').replace(/\bUNIQUE\b/i,'');if(/\bNOT NULL\b/i.test(def)&&!/\bDEFAULT\b/i.test(def))def=def.replace(/\bNOT NULL\b/i,'');
+    await lkAddCol(db,t,def.replace(/\s+/g,' ').trim())}}
 async function lkAddCol(db,t,c){try{await db.prepare(`ALTER TABLE ${t} ADD COLUMN ${c}`).run()}catch(e){if(!/duplicate column/i.test(String(e&&e.message||e)))throw e}}
 /* 要る列・索引がそろっているか（そろっていなければ投げる＝この機能と利用停止の確かめは閉じる） */
 const LK_SCHEMA={notes:['op'],note_links:['note_id','uid','url','host','state','verdict','verdict_at','expires_at','rev','vh','pol'],link_intents:['token','note_id','who','rev','expires_at','used','used_at','pol'],link_state:['k','v','at','until'],elid_review:['uid','elids','at'],
   sanctions:['id','kind','uid','ehash','kver','permanent','expires_at','status','root_key','case_id','parent','elid','basis','reviewer'],sanction_cases:['id','target_uid','kind','refs','related_root','status','op','ek','lbasis','dsum','lsum','reviewer','signals'],
   user_emails:['uid','ehash','kver','elid'],key_sentinels:['kver','tag'],link_budget_d:['day','month','n'],link_leases:['slot','holder','expires_at'],
-  fb_sync:['uid','gen','done_gen','owned','prior','intent','intent_gen','lease','lease_until','attempts','next_at','dead','last_want','checked_at','pend_since','obs_disabled','obs_at','obs_gen','review','unknown','last_op','unk_op'],fb_metrics:['day','k','n'],fb_ops:['op','uid','gen','intent','kind','at','resolved_at','obs','how','tok'],job_runs:['name','last_at','last_ok']};
+  fb_sync:['uid','gen','done_gen','owned','prior','intent','intent_gen','intent_at','lease','lease_until','attempts','next_at','dead','last_want','last_error','review_why','unk_intent','checked_at','pend_since','obs_disabled','obs_at','obs_gen','review','unknown','last_op','unk_op'],fb_metrics:['day','k','n'],fb_ops:['op','uid','gen','intent','kind','at','resolved_at','obs','how','tok'],job_runs:['name','last_at','last_ok']};
 const LK_INDEXES=['sanctions_root_eh','sanctions_root_uid','sanctions_case_uid','sanctions_kv','note_links_vh','fb_sync_due','notes_op'];
 async function linksInit(db){
   if(LK_READY)return;
+  /* 作る表の宣言を覚えておき、前の版の表に足りない列があればあとで足す（手で並べた ALTER の抜けで、前の版の表の列が足りなくなるのを防ぐ） */
+  const TS=[],T=q=>(TS.push(q),db.prepare(q));
   await db.batch([
     /* 利用者のリンク（bot の notes.link とは別）。rev＝状態が変わるたびに増える番号。vh＝安全確認の覚えの鍵（同じリンクは同じ） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS note_links(note_id INTEGER PRIMARY KEY,uid TEXT NOT NULL,url TEXT NOT NULL,host TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',verdict TEXT,verdict_at INTEGER,expires_at INTEGER,created_at INTEGER,updated_at INTEGER,rev INTEGER NOT NULL DEFAULT 0,vh TEXT)`),
+    T(`CREATE TABLE IF NOT EXISTS note_links(note_id INTEGER PRIMARY KEY,uid TEXT NOT NULL,url TEXT NOT NULL,host TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',verdict TEXT,verdict_at INTEGER,expires_at INTEGER,created_at INTEGER,updated_at INTEGER,rev INTEGER NOT NULL DEFAULT 0,vh TEXT)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS note_links_uid ON note_links(uid,created_at)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS note_links_state ON note_links(state,updated_at)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_intents(token TEXT PRIMARY KEY,note_id INTEGER NOT NULL,who TEXT NOT NULL,rev INTEGER NOT NULL,expires_at INTEGER NOT NULL,used INTEGER NOT NULL DEFAULT 0,created_at INTEGER,used_at INTEGER)`),
+    T(`CREATE TABLE IF NOT EXISTS link_intents(token TEXT PRIMARY KEY,note_id INTEGER NOT NULL,who TEXT NOT NULL,rev INTEGER NOT NULL,expires_at INTEGER NOT NULL,used INTEGER NOT NULL DEFAULT 0,created_at INTEGER,used_at INTEGER)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_intents_exp ON link_intents(expires_at)`),
     /* 安全確認の覚え（鍵＝方針の版＋リンク。危険の答えは業者の期限まで消さない） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_verdicts(h TEXT PRIMARY KEY,verdict TEXT NOT NULL,types TEXT,checked_at INTEGER,expires_at INTEGER)`),
+    T(`CREATE TABLE IF NOT EXISTS link_verdicts(h TEXT PRIMARY KEY,verdict TEXT NOT NULL,types TEXT,checked_at INTEGER,expires_at INTEGER)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_verdicts_exp ON link_verdicts(expires_at)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_verdicts_chk ON link_verdicts(verdict,checked_at)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_attempts(uid TEXT NOT NULL,at INTEGER NOT NULL)`),
+    T(`CREATE TABLE IF NOT EXISTS link_attempts(uid TEXT NOT NULL,at INTEGER NOT NULL)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_attempts_uid ON link_attempts(uid,at)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_clicks(who TEXT NOT NULL,at INTEGER NOT NULL)`),
+    T(`CREATE TABLE IF NOT EXISTS link_clicks(who TEXT NOT NULL,at INTEGER NOT NULL)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_clicks_who ON link_clicks(who,at)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_quota(day TEXT PRIMARY KEY,n INTEGER NOT NULL DEFAULT 0)`),
+    T(`CREATE TABLE IF NOT EXISTS link_quota(day TEXT PRIMARY KEY,n INTEGER NOT NULL DEFAULT 0)`),
     /* 外の安全確認の回数（1日・1か月を1行で。UTC で区切る） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_budget(id TEXT PRIMARY KEY,day TEXT NOT NULL DEFAULT '',dn INTEGER NOT NULL DEFAULT 0,month TEXT NOT NULL DEFAULT '',mn INTEGER NOT NULL DEFAULT 0)`),
+    T(`CREATE TABLE IF NOT EXISTS link_budget(id TEXT PRIMARY KEY,day TEXT NOT NULL DEFAULT '',dn INTEGER NOT NULL DEFAULT 0,month TEXT NOT NULL DEFAULT '',mn INTEGER NOT NULL DEFAULT 0)`),
     /* 外の安全確認の回数：UTC の日ごとに1行（月の回数は、その月の日の合計）。前の1行の形（link_budget）は使わない */
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_budget_d(day TEXT PRIMARY KEY,month TEXT NOT NULL,n INTEGER NOT NULL DEFAULT 0)`),
+    T(`CREATE TABLE IF NOT EXISTS link_budget_d(day TEXT PRIMARY KEY,month TEXT NOT NULL,n INTEGER NOT NULL DEFAULT 0)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_budget_d_m ON link_budget_d(month)`),
     /* 状態の印（wr_saturated＝危険の覚えが上限：上限のあいだはリンクの投稿・押す・戻すを閉じる） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_state(k TEXT PRIMARY KEY,v TEXT,at INTEGER)`),
+    T(`CREATE TABLE IF NOT EXISTS link_state(k TEXT PRIMARY KEY,v TEXT,at INTEGER)`),
     /* メールの系統が分かれていた（同じメールと確かめられたのに系統が2つ以上）：自動でまとめず運営者が見る */
-    db.prepare(`CREATE TABLE IF NOT EXISTS elid_review(uid TEXT NOT NULL,elids TEXT NOT NULL,at INTEGER,PRIMARY KEY(uid,elids))`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_leases(slot INTEGER PRIMARY KEY,holder TEXT,expires_at INTEGER NOT NULL DEFAULT 0)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS req_bad(who TEXT NOT NULL,at INTEGER NOT NULL)`),
+    T(`CREATE TABLE IF NOT EXISTS elid_review(uid TEXT NOT NULL,elids TEXT NOT NULL,at INTEGER,PRIMARY KEY(uid,elids))`),
+    T(`CREATE TABLE IF NOT EXISTS link_leases(slot INTEGER PRIMARY KEY,holder TEXT,expires_at INTEGER NOT NULL DEFAULT 0)`),
+    T(`CREATE TABLE IF NOT EXISTS req_bad(who TEXT NOT NULL,at INTEGER NOT NULL)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS req_bad_who ON req_bad(who,at)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS req_bad_at ON req_bad(at)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS link_events(id INTEGER PRIMARY KEY AUTOINCREMENT,at INTEGER,uid TEXT,note_id INTEGER,host TEXT,h TEXT,kind TEXT,detail TEXT)`),
+    T(`CREATE TABLE IF NOT EXISTS link_events(id INTEGER PRIMARY KEY AUTOINCREMENT,at INTEGER,uid TEXT,note_id INTEGER,host TEXT,h TEXT,kind TEXT,detail TEXT)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_events_at ON link_events(at)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_events_note ON link_events(note_id)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS link_events_uid ON link_events(uid,at)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS sanction_cases(id INTEGER PRIMARY KEY AUTOINCREMENT,target_uid TEXT NOT NULL,kind TEXT NOT NULL,summary TEXT NOT NULL,refs TEXT NOT NULL,related_root TEXT,status TEXT NOT NULL DEFAULT 'open',actor TEXT,created_at INTEGER,updated_at INTEGER,op TEXT)`),
+    T(`CREATE TABLE IF NOT EXISTS sanction_cases(id INTEGER PRIMARY KEY AUTOINCREMENT,target_uid TEXT NOT NULL,kind TEXT NOT NULL,summary TEXT NOT NULL,refs TEXT NOT NULL,related_root TEXT,status TEXT NOT NULL DEFAULT 'open',actor TEXT,created_at INTEGER,updated_at INTEGER,op TEXT)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS sanction_cases_t ON sanction_cases(target_uid,id)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS sanctions(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,uid TEXT,ehash TEXT,kver TEXT,permanent INTEGER NOT NULL DEFAULT 0,starts_at INTEGER,expires_at INTEGER,
+    T(`CREATE TABLE IF NOT EXISTS sanctions(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,uid TEXT,ehash TEXT,kver TEXT,permanent INTEGER NOT NULL DEFAULT 0,starts_at INTEGER,expires_at INTEGER,
       reason TEXT NOT NULL,evidence TEXT,source TEXT,actor TEXT,status TEXT NOT NULL DEFAULT 'active',appeal TEXT,parent INTEGER,created_at INTEGER,updated_at INTEGER,root_key TEXT,case_id INTEGER)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS sanctions_uid ON sanctions(uid,status)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS sanctions_eh ON sanctions(ehash,status)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS sanction_events(id INTEGER PRIMARY KEY AUTOINCREMENT,sanction_id INTEGER,at INTEGER,actor TEXT,action TEXT,note TEXT,root_key TEXT)`),
+    T(`CREATE TABLE IF NOT EXISTS sanction_events(id INTEGER PRIMARY KEY AUTOINCREMENT,sanction_id INTEGER,at INTEGER,actor TEXT,action TEXT,note TEXT,root_key TEXT)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS sanction_events_s ON sanction_events(sanction_id,id)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS user_emails(uid TEXT NOT NULL,ehash TEXT NOT NULL,kver TEXT NOT NULL,first_at INTEGER,last_at INTEGER,PRIMARY KEY(uid,ehash))`),
+    T(`CREATE TABLE IF NOT EXISTS user_emails(uid TEXT NOT NULL,ehash TEXT NOT NULL,kver TEXT NOT NULL,first_at INTEGER,last_at INTEGER,PRIMARY KEY(uid,ehash))`),
     db.prepare(`CREATE INDEX IF NOT EXISTS user_emails_eh ON user_emails(ehash)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS user_emails_kv ON user_emails(kver)`),
     /* 鍵の版ごとの確かめの印（鍵そのものではなく、鍵で決まった文字列を作った値。同じ版で鍵の中身を差しかえたら合わなくなる） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS key_sentinels(kver TEXT PRIMARY KEY,tag TEXT NOT NULL,created_at INTEGER)`),
+    T(`CREATE TABLE IF NOT EXISTS key_sentinels(kver TEXT PRIMARY KEY,tag TEXT NOT NULL,created_at INTEGER)`),
     /* Firebase 側の同期：アカウントごとに1行（命令の列ではなく「あるべき状態」を毎回 D1 から決める）。
        gen＝あるべき状態が変わるかもしれない出来事のたびに増える番号、done_gen＝そこまで Firebase に合わせた番号。
        owned＝この仕組みが止めた（止める前に記録する）、prior＝この仕組みが最初に触る前の Firebase の状態（止める前に記録。null＝まだ見ていない）。
        intent/intent_gen＝これから Firebase に何をするか（外を変える前に記録）。lease/lease_until＝1つのアダプターだけが扱う（番号で古い報告を断る）。
        attempts/next_at＝失敗のやり直し（だんだん間をあける）、dead＝10回失敗（運営者がやり直すまで止める・管理画面に出す）。checked_at＝最後に確かめた時刻（1日ごとに確かめ直す） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS fb_sync(uid TEXT PRIMARY KEY,gen INTEGER NOT NULL DEFAULT 1,done_gen INTEGER NOT NULL DEFAULT 0,owned INTEGER NOT NULL DEFAULT 0,prior INTEGER,
+    T(`CREATE TABLE IF NOT EXISTS fb_sync(uid TEXT PRIMARY KEY,gen INTEGER NOT NULL DEFAULT 1,done_gen INTEGER NOT NULL DEFAULT 0,owned INTEGER NOT NULL DEFAULT 0,prior INTEGER,
       intent TEXT,intent_gen INTEGER,lease TEXT,lease_until INTEGER NOT NULL DEFAULT 0,attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0,dead INTEGER NOT NULL DEFAULT 0,
       last_error TEXT,last_want TEXT,checked_at INTEGER,created_at INTEGER,updated_at INTEGER)`),
     /* Firebase の同期の数（日ごと：done＝終えた・failed＝失敗・unknown＝結果が分からない・stale＝古い報告/期限切れ・lost＝返事が届かなかった報告の再送） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS fb_metrics(day TEXT NOT NULL,k TEXT NOT NULL,n INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(day,k))`),
+    T(`CREATE TABLE IF NOT EXISTS fb_metrics(day TEXT NOT NULL,k TEXT NOT NULL,n INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(day,k))`),
     /* Firebase を変える操作を1つずつ（op＝その回の借りた印）。intent（変える前の記録）と同じ取引で pending として作る。
        終わり方：アダプターの報告（done・failed・superseded、借りる時間が切れたあとの報告も）＝片づける。時間切れの報告＝timeout。報告がないまま借りる時間が切れた＝crash。
        timeout と crash は、遅れて外で終わるかもしれないので、その op の読み直し（observe）か運営者のやり直し（replay）でしか片づかない。片づいていない操作があるアカウントは新しく変えない（claim しない） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS fb_ops(op TEXT PRIMARY KEY,uid TEXT NOT NULL,gen INTEGER,intent TEXT,kind TEXT NOT NULL,at INTEGER NOT NULL,resolved_at INTEGER,obs INTEGER,how TEXT,tok TEXT)`),
+    T(`CREATE TABLE IF NOT EXISTS fb_ops(op TEXT PRIMARY KEY,uid TEXT NOT NULL,gen INTEGER,intent TEXT,kind TEXT NOT NULL,at INTEGER NOT NULL,resolved_at INTEGER,obs INTEGER,how TEXT,tok TEXT)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS fb_ops_uid ON fb_ops(uid,resolved_at)`),
     /* 決まった時刻の仕事の結果（期限の見直しなど） */
-    db.prepare(`CREATE TABLE IF NOT EXISTS job_runs(name TEXT PRIMARY KEY,last_at INTEGER,last_ok INTEGER,last_err TEXT,ok_at INTEGER,fails INTEGER NOT NULL DEFAULT 0)`)
+    T(`CREATE TABLE IF NOT EXISTS job_runs(name TEXT PRIMARY KEY,last_at INTEGER,last_ok INTEGER,last_err TEXT,ok_at INTEGER,fails INTEGER NOT NULL DEFAULT 0)`)
   ]);
+  for(const q of TS)await lkEnsureCols(db,q);
   /* この版より前の表（このブランチの前の版）に列を足す */
   for(const [t,c] of [['note_links','rev INTEGER NOT NULL DEFAULT 0'],['note_links','vh TEXT'],['link_intents','used_at INTEGER'],['sanctions','root_key TEXT'],['sanctions','case_id INTEGER'],['sanction_events','root_key TEXT'],['sanction_cases','op TEXT'],['sanction_cases','ek TEXT'],['sanction_cases','lbasis TEXT'],['sanction_cases','dsum TEXT'],['notes','op TEXT'],['fb_sync','pend_since INTEGER'],['fb_sync','obs_disabled INTEGER'],['fb_sync','obs_at INTEGER'],['fb_sync','obs_gen INTEGER'],['fb_sync','review INTEGER NOT NULL DEFAULT 0'],['fb_sync','review_why TEXT'],['fb_sync','unknown INTEGER NOT NULL DEFAULT 0'],['fb_sync','intent_at INTEGER'],['fb_sync','unk_intent TEXT'],['sanctions','elid TEXT'],['sanctions','basis TEXT'],['sanctions','reviewer TEXT'],['sanction_cases','lsum TEXT'],['sanction_cases','reviewer TEXT'],['sanction_cases','signals TEXT'],['user_emails','elid TEXT'],['note_links','pol TEXT'],['link_intents','pol TEXT'],['fb_sync','last_op TEXT'],['fb_sync','unk_op TEXT'],['link_state','until INTEGER'],['fb_ops','tok TEXT']])
     await lkAddCol(db,t,c);
