@@ -47,4 +47,6 @@
 - 基準ケース `今オススメのパーティ教えて` → ダブル → `2つ目で、メガリザードンYは残したい`、現行データなし、非公開の強い候補、版変更、切替直後の応答、停止中、月末の枠。確認のターンでは消費せず、候補や助言が実際に返ったターンでだけ1回消費することを確認。
 - ビルド、既存回帰、AI固定評価、D1並列、モバイル／PCブラウザーを実行し、SHA・差分・ケースとアサーションの数・残件を記録する。
 
+- 実装時は [フェアプレイ仕様](./stage-b-fair-play-spec.md) を適用する。[独立評価データ](../../tests/ai-eval/stage-b1-acceptance.json) の通常60件とフェアプレイ28件を、固定の期待値を維持して実装のテストランナーへ接続する。複数ターンは順に同一の会話へ送り、mode・phase・kind は採点用ラベルとしてテスト入力に渡さない。未実装の後続機能は安全な案内の動作を判定する。
+
 [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) · [API data controls](https://developers.openai.com/api/docs/guides/your-data) · [Under-18 guidance](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance)
