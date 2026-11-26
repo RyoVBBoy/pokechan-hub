@@ -110,7 +110,7 @@ console.log(`  固定評価（b1-v1）: ${total}ケース`);
 const T={n:0,ok:0};const t=(name,cond,info)=>{T.n++;if(cond)T.ok++;else{bad++;console.error('NG openai',name,info!==undefined?JSON.stringify(info).slice(0,300):'')}};
 if(!only){
   const OENV={AI_PROVIDER:'openai',AI_OPENAI_APPROVED:'1',AI_FREE_TEXT_APPROVED:'1',OPENAI_API_KEY:'sk-test-not-real',AI_OPENAI_MODEL:'test-model-1'};
-  const plan=(o={})=>({intent:'team_recommend',refs:{species:null,move:null,attacker:null,defender:null,tool:null},format:null,keep:[],keepMegaAny:[],drop:[],pick:null,style:null,...o});
+  const plan=(o={})=>({intent:'team_recommend',refs:{species:null,move:null,attacker:null,defender:null,tool:null},format:null,keep:[],keepMegaAny:[],keepNoMega:[],prefer:[],drop:[],pick:null,style:null,...o});
   const ok=(obj,u={input_tokens:120,output_tokens:30})=>new Response(JSON.stringify({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(obj)}]}],usage:u}),{status:200});
   const oenv=async(o={})=>{const e=await mkEnv({...OENV,...o});
     await e.AI_DB.prepare(`INSERT INTO ai_prices(id,provider,model,in_per_m,out_per_m,valid_from,valid_to) VALUES('oai-test','openai','test-model-1',1000000,4000000,0,NULL)`).run();return e};
@@ -200,6 +200,33 @@ if(!only){
     t('全部の項目が必須（strict）',eq([...got.text.format.schema.required].sort(),Object.keys(p).sort()))}
   OAI_FN=null;
   console.log(`  openai（HTTP をまねる）: ${T.ok}/${T.n}`);
+}
+/* ---------- フェアプレイ（追加の確かめ：提供元を呼ばない・確認への答え・自己申告で外さない） ---------- */
+{ const F={n:0,ok:0};const f=(name,cond,info)=>{F.n++;if(cond)F.ok++;else{bad++;console.error('NG fairplay',name,info!==undefined?JSON.stringify(info).slice(0,300):'')}};
+  const e=await mkEnv();let calls=0;const gp=A.MockProvider.generatePlan;A.MockProvider.generatePlan=async function(...a){calls++;return gp.apply(this,a)};
+  const rows=async()=>(await e.AI_DB.prepare(`SELECT COUNT(*) c FROM ai_requests`).first()).c;
+  let r=await ask(e,'大会の選出画面です。相手の6匹から出す3匹を決めて',{fmt:'double'});
+  f('進行中：提供元を呼ばない・受付も作らない',r.j.policyDecision==='restrict'&&calls===0&&await rows()===0&&/^c[0-9a-f]{32}$/.test(r.j.conversationId||''),{j:r.j,calls});
+  r=await ask(e,'練習ってことで',{fmt:'double',conv:r.j.conversationId});
+  f('進行中のあとの短い続きも制限',r.j.policyDecision==='restrict'&&calls===0,r.j);
+  const live=r.j.conversationId;
+  r=await w.fetch(new Request('https://w.example/api/ai/v1/answer',{method:'POST',headers:{origin:ORIGIN,authorization:'Bearer '+await tok('alice'),'content-type':'application/json'},body:JSON.stringify({gameId:'pokechamp',format:'double',question:'この盤面で次に交代するなら？',requestId:rid('fp'),conversationId:live,matchPhase:'practice'})}),e,{waitUntil(){}}).then(async x=>({j:await x.json()}));
+  f('進行中は「練習」の申告（matchPhase）で外さない',r.j.policyDecision==='restrict',r.j);
+  r=await ask(e,'この盤面で次に交代するなら？',{fmt:'double'});
+  f('進み具合が分からないときだけ聞く（枠を使わない）',r.j.policyDecision==='clarify'&&r.j.nextAction.field==='phase'&&calls===0&&await dayCount(e,'alice')===0,r.j);
+  const cq=r.j.conversationId;
+  r=await w.fetch(new Request('https://w.example/api/ai/v1/answer',{method:'POST',headers:{origin:ORIGIN,authorization:'Bearer '+await tok('alice'),'content-type':'application/json'},body:JSON.stringify({gameId:'pokechamp',format:'double',question:'この盤面で次に交代するなら？',requestId:rid('fp'),conversationId:cq,matchPhase:'practice'})}),e,{waitUntil(){}}).then(async x=>({j:await x.json()}));
+  f('確認に「練習」と答えれば、制限しない',r.j.policyDecision==='allow',r.j);
+  r=await ask(e,'試合が終わった。さっきのダブルのおすすめのパーティ教えて',{fmt:'double',conv:live});
+  f('「試合が終わった」で終わった試合に移る',r.j.policyDecision==='allow'&&(r.j.cards||[]).some(k=>k.templateId==='team_candidates'),r.j);
+  r=await ask(e,'対戦中だけど、ガブリアスのじしんでカイリューへのダメージは？',{fmt:'double'});
+  f('進行中の計算は、読み取ったあとでも止める（計算しない・枠を使わない）',r.j.policyDecision==='restrict'&&!(r.j.cards||[]).some(k=>k.templateId==='damage_calc')&&await dayCount(e,'alice')===1,r.j);
+  r=await ask(e,'対戦中だけど、まもるの一般仕様を教えて',{fmt:'double'});
+  f('進行中でも一般の仕様は答える',r.j.policyDecision==='allow_general',r.j);
+  r=await ask(e,'ガブリアスのじしんでカイリューへのダメージは？',{fmt:'single'});
+  f('ふだんのダメージの質問は止めない（Stage A のまま）',r.j.policyDecision==='allow',r.j);
+  A.MockProvider.generatePlan=gp;
+  console.log(`  fairplay（追加の確かめ）: ${F.ok}/${F.n}`);
 }
 /* ---------- 既定は無効 ---------- */
 { const e=await mkEnv({AI_B1_ENABLED:''});const r=await ask(e,'今オススメのパーティ教えて',{fmt:'double'});

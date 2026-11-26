@@ -11,11 +11,17 @@ export const TEAMS={
   D4:{s:'S1',fmt:'double',rank:5,rate:2080,team:[M(6,{it:'charizarditey'}),M(130),M(302),M(324,{ab:'drought'}),M(186),M(149)]},
   SG1:{s:'S2',fmt:'single',rank:2,rate:2150,team:[M(445),M(149),M(6,{it:'charizarditex'}),M(212),M(1000),M(730)]}
 };
+/* 独立評価（stage-b1-acceptance.json）用に足す行：カイリューのいないシングル・メガシンカしないリザードン・図鑑にない番号の入った行 */
+export const EXTRA={
+  SG2:{s:'S2',fmt:'single',rank:5,rate:2100,team:[M(445),M(6,{it:'charizarditex'}),M(823,{mv:[UT]}),M(1000),M(730),M(212,{mv:[UT]})]},
+  D7:{s:'S2',fmt:'double',rank:50,rate:1900,team:[M(6),M(445),M(823,{mv:[UT]}),M(1000),M(730),M(861)]},
+  DX:{s:'S2',fmt:'double',rank:2,rate:2200,team:[M(999999),M(445),M(823),M(1000),M(730),M(861)]}
+};
 /* 出してはいけない行（どれも順位1・雨・メガリザードンY。漏れればすぐ分かる） */
 const LEAK=()=>[M(279,{ab:'drizzle',mv:[UT,TW]}),M(149),M(130),M(6,{it:'charizarditey'}),M(445),M(823,{mv:[UT]})];
 const LEAKS={L_priv:{uid:'u_priv'},L_only:{uid:'u_only'},L_foll:{uid:'u_foll'},L_ban:{uid:'u_ban'},L_hidden:{hidden:1},L_auto:{auto:1},L_self:{uid:'u_self',noReview:true},
   L_stale:{stale:true},L_oper:{by_admin:1,noReview:true},L_game:{game:'othergame'},L_five:{five:true}};
-export async function seedB1(env,kind,A){
+export async function seedB1(env,kind,A,opt={}){
   const DB=env.DB;
   await DB.prepare(`CREATE TABLE IF NOT EXISTS users(uid TEXT PRIMARY KEY,handle TEXT,name TEXT,banned INTEGER DEFAULT 0,private INTEGER DEFAULT 0)`).run();
   if(kind==='nodb')return{};
@@ -38,7 +44,8 @@ export async function seedB1(env,kind,A){
       await DB.prepare(`UPDATE season_teams SET reviewed_at=1,reviewed_by='op',reviewed_proof=?,review_sig=? WHERE id=?`).bind(proof,A.ladderSig(row),id).run();
       if(t.stale)await DB.prepare(`UPDATE season_teams SET rank=2 WHERE id=?`).bind(id).run()}
     ids[key]=id};
-  for(const [k,t] of Object.entries(TEAMS))await ins(k,t);
-  for(const [k,o] of Object.entries(LEAKS)){const team=o.five?LEAK().slice(0,5):LEAK();await ins(k,{s:'S2',fmt:'double',rank:1,rate:2300,team,...o})}
+  const use=k=>!opt.only||opt.only.includes(k);
+  for(const [k,t] of Object.entries({...TEAMS,...(opt.extra?EXTRA:{})}))if(use(k))await ins(k,t);
+  for(const [k,o] of Object.entries(LEAKS)){const team=o.five?LEAK().slice(0,5):LEAK();if(use(k))await ins(k,{s:'S2',fmt:'double',rank:1,rate:2300,team,...o})}
   return ids;
 }

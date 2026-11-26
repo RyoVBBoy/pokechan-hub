@@ -83,6 +83,14 @@ for(const vp of [{width:390,height:844},{width:1280,height:900}]){
   res('回数切れ：AI を使わないツール',(await pg.$$eval('#ai-log .ai-msg.bot:last-child a',as=>as.map(a=>a.getAttribute('href')))).join()==='#/dex,#/calc,#/pair/kd');
   const f=`tests/out/ai-b1-390-quota.png`;await pg.screenshot({path:path.join(ROOT,f)});SHOTS.push(f);
   res('画面のエラーなし（回数切れ）',!errs.length,errs);await ctx.close()}
+/* 独立評価 reliability-11：アカウントを切りかえた直後に届いた（遅い）答えは画面に出さない */
+{ env=await mkEnv({AI_FREE_DAY:'100',AI_FREE_MONTH:'100',AI_MOCK_DELAY_MS:'1200'});const {pg,ctx,errs}=await page({width:390,height:844});
+  await pg.fill('#ai-q','ダブルのおすすめのパーティ教えて');await pg.click('#ai-send');await pg.waitForTimeout(250);
+  await pg.evaluate(t=>{AUTH.user={uid:'b1-other',email:null,getIdToken:async()=>t};aiAuthChanged('b1-other')},await S.sign('b1-other'));
+  await pg.waitForTimeout(2000);
+  const shown=await pg.$$eval('#ai-log .ai-tm',x=>x.length),me=await pg.$$eval('#ai-log .ai-msg.me',x=>x.length);
+  res('切りかえ直後の遅い答えは出さない（独立評価 reliability-11）',shown===0&&me===0&&await pg.evaluate(()=>AI_ST.conv===null),{shown,me});
+  res('画面のエラーなし（切りかえ）',!errs.length,errs);await ctx.close()}
 await b.close();
 res('外部への送信 0 件',OUT.length===0,OUT);
 fs.writeFileSync(path.join(ROOT,'tests/out/ai-b1-ui-results.json'),JSON.stringify({total:R.n,bad,shots:SHOTS},null,1));
