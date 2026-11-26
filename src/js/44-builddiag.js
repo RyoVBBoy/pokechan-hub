@@ -44,11 +44,12 @@ function buildDiagHTML(entries,P0){
   const fastN=ms.filter(o=>o.prio||o.it==='choicescarf'||o.spe>=120).length;
   const rock4=ms.filter(o=>res(o,'いわ')>=4);
   /* ---- メガの切りかえ ---- */
-  const megas=ms.filter(o=>o.it&&isStone(o.it));
-  let megaRoute=null;
-  if(megas.length>=2&&P0&&P0.S){const idx=megas.map(o=>entries.indexOf(o.x));
-    const pick=P0.opps.map((q,j)=>{const v=idx.map(i=>P0.S[i][j]);const b=v.indexOf(Math.max(...v));return Math.max(...v)>=1&&v[b]>v[1-b]?b:-1});
-    megaRoute=megas.slice(0,2).map((o,k)=>({o,opps:P0.opps.filter((_,j)=>pick[j]===k)}))}
+  const megas=ms.filter(o=>o.mg);
+  const megaRoute=megas.length>=2&&P0?.DS?megas.map(o=>{
+    const i=entries.indexOf(o.x),scenario=P0.DS.list.find(x=>x.megaI===i);
+    const opps=scenario?.rows.filter(row=>row.zs.some(z=>z.i===i&&z.r>=4)).map(row=>row.r.q)||[];
+    return {o,opps};
+  }):null;
   /* ---- 失敗パターン10項目 ---- */
   const chk=[];const C=(ok,t,d,how)=>chk.push({ok,t,d,how});
   C(!(walls.length>=4||(walls.length>=3&&atks.length<3)),'受けが多すぎない',walls.length>=3?`受け寄りが${walls.length}匹（${names(walls)}）、攻め寄りが${atks.length}匹。`:`受け寄り${walls.length}匹・攻め寄り${atks.length}匹。`,'受け寄りの1匹を、弱点を突けるアタッカーに入れかえます。受け3・攻め3が目安です。');
@@ -56,7 +57,7 @@ function buildDiagHTML(entries,P0){
   C(!zero.length,'半減以下で受けられないタイプがない',zero.length?`<b style="color:var(--w2)">${zero.join('・')}</b>タイプの技を、6匹のだれも半減以下で受けられません（いちばん重い欠点）。`:'18タイプすべてに、半減以下で受けられる匹がいます。',zero.length?`${zero.join('・')}技を半減以下で受けられるポケモンを1匹入れます。`:'');
   const pr=ms.filter(o=>o.prio);
   C(pr.length>0||!withSet,'先制技がある',pr.length?`${names(pr)}が先制技を持っています。`:withSet?'登録した技に、先制技（優先度+1以上の攻撃技）がありません。':'育成が未登録のため、まだ判定できません。','削れた相手を先に倒せるよう、1匹は先制技を持たせます。');
-  C(megas.length<2||(megaRoute&&megaRoute.every(r=>r.opps.length)),'メガシンカの使い分けが決まっている',megas.length<2?(megas.length?`メガシンカは${N(megas[0])}の1匹です。`:'メガストーンを持つ匹はいません。'):megaRoute.every(r=>r.opps.length)?'上の「メガシンカの切りかえ」のとおり、相手で選び分けられます。':`${names(megas)}のうち、もう一方より有利に戦える相手がいない匹がいます。`,'2匹のメガシンカが同じ相手を見ているなら、片方の持ち物を変えるか、別の相手に強いメガシンカにします。');
+  C(megas.length<2||(megaRoute&&megaRoute.every(r=>r.opps.length)),'メガシンカの使い分けが決まっている',megas.length<2?(megas.length?`メガシンカは${N(megas[0])}の1匹です。`:'メガストーンを持つ匹はいません。'):megaRoute?.every(r=>r.opps.length)?'上の「メガシンカの切りかえ」のとおり、相手で選び分けられます。':`${names(megas)}のうち、メガシンカする選出で、有利な対面例を確認できない匹がいます。`,'2匹のメガシンカが同じ相手を見ているなら、片方の持ち物を変えるか、別の相手に強いメガシンカにします。');
   const apBad=ms.filter(o=>o.sp&&o.atkCls.length===1&&((o.atkCls[0]===0&&o.sp[3]>=20&&o.sp[1]<10)||(o.atkCls[0]===1&&o.sp[1]>=20&&o.sp[3]<10)));
   const trBad=ms.filter(o=>o.sp&&o.keys.includes('trickroom')&&o.sp[5]>=20);
   C(!apBad.length&&!trBad.length,'能力ポイントが役割に合っている',apBad.length||trBad.length?[apBad.length?`${names(apBad)}は使う攻撃技と、能力ポイントを振った攻撃の種類（物理/特殊）が合っていません。`:'',trBad.length?`${names(trBad)}はトリックルームを使うのに素早さに振っています。`:''].join(''):withSet?'登録した育成で、大きな食い違いはありません。':'育成が未登録の匹は、よくある振り方で見ています。','技の種類に合わせて、攻撃か特攻のどちらかに振り直します。');
@@ -68,7 +69,7 @@ function buildDiagHTML(entries,P0){
   const low=ms.filter(o=>o.lowAcc.length&&!o.prio&&!o.piv);
   C(!low.length,'命中の低い技に二の手がある',low.length?low.map(o=>`${N(o)}の${o.lowAcc.map(z=>esc(mName(z.id))).join('・')}`).join('、')+'は外れることがあり、外したときの先制技や交代技がありません。':'命中85未満の技を使う匹は、先制技か交代技も持っています（またはそうした技がありません）。','命中の高い技に変えるか、外したときに引ける味方を用意します。');
   const leads=P0&&P0.S?ms.filter(o=>{const i=entries.indexOf(o.x);const a=P0.S[i].reduce((t,v)=>t+v,0)/P0.S[i].length;return a>-.2}):[];
-  C(!P0||leads.length>=3,'先発の候補が3匹以上いる',P0?`多くの相手に互角以上に戦える匹：${leads.length?names(leads):'なし'}（${leads.length}匹）。`:'',`先発が1〜2匹に決まっていると、相手に読まれて対策されます。先発もできる匹を増やします。`);
+  C(!P0?.DS||leads.length>=3,'先発の候補が3匹以上いる',P0?.DS?`選出案で先発候補になった匹：${leads.length?names(leads):'なし'}（${leads.length}匹）。`:'',`先発が1〜2匹に決まっていると、相手に読まれて対策されます。先発もできる匹を増やします。`);
   const ng=chk.filter(c=>!c.ok).length;
   const row=c=>`<div class="bd-c ${c.ok?'ok':'ng'}"><b>${c.ok?'✓':'！'} ${c.t}</b><p>${c.d}</p>${!c.ok&&c.how?`<p class="pc-how"><b>こうすると良くなる：</b>${c.how}</p>`:''}</div>`;
   return `<div class="sec"><h2>受けと攻めの分担</h2></div>
@@ -79,7 +80,7 @@ function buildDiagHTML(entries,P0){
   <div class="sec"><h2>設置技</h2></div>
   <div class="pc-i pc-plan"><p>${setters.length?`<b>撒く側</b>：${setters.map(o=>`${N(o)}（${o.haz.map(k=>esc(mName(+Object.keys(MD).find(i=>MD[i][3]===k)))).join('・')}）`).join('、')}。先発で確実に撒けるよう、きあいのタスキや交代技があると動きやすくなります。`:'<b>撒く側</b>：登録した技に設置技はありません。'}</p>
     <p>${anti.length?`<b>対策する側</b>：${names(anti)}。`:fastN>=3?'<b>対策する側</b>：先に動ける匹が多く、撒かれる前に攻め切る形です。':'<b>対策する側</b>：設置技を消す技・はね返す特性がありません。'}${rock4.length?`<br><b style="color:var(--w2)">${names(rock4)}はいわ4倍</b>なので、ステルスロックに特に注意します。`:''}</p></div>
-  ${megaRoute?`<div class="sec"><h2>メガシンカの切りかえ</h2></div><div class="pc-i pc-plan">${megaRoute.map(r=>`<p><b>${N(r.o)}</b>をメガシンカ：${r.opps.length?`相手に ${r.opps.slice(0,5).map(q=>esc(formInfo(q).base)).join('・')} がいるとき`:'<span style="color:var(--w2)">こちらを選ぶべき相手が見つかりません</span>'}</p>`).join('')}</div>`:''}
+  ${megaRoute?`<div class="sec"><h2>メガシンカの切りかえ</h2></div><div class="pc-i pc-plan">${megaRoute.map(r=>`<p><b>${N(r.o)}</b>をメガシンカ：${r.opps.length?`このメガシンカで有利と判定された相手の例 ${r.opps.slice(0,5).map(q=>esc(formInfo(q).base)).join('・')}`:'<span style="color:var(--w2)">こちらを選ぶべき相手が見つかりません</span>'}</p>`).join('')}</div>`:''}
   <div class="sec"><h2>見直しポイント</h2><span style="font-size:12px;color:var(--dim)">10項目中 ${10-ng} 項目クリア</span></div>
   ${withSet<ms.length?`<p class="note" style="padding-top:0">育成（技・持ち物・能力ポイント）を登録していない匹は、種族値と覚える技で見ています。登録すると正確になります。</p>`:''}
   <div class="bd-list">${[...chk.filter(c=>!c.ok),...chk.filter(c=>c.ok)].map(row).join('')}</div>`;
@@ -101,9 +102,11 @@ function threeStepHTML(myNos,PR){
   if(!PR||!PR.top||PR.top.length<2||opp6.length<=PICK())return '';
   const tops=PR.top.slice(0,3);
   const nm1=n=>esc(byNo[n].n);
-  const scen=tops.map(t=>{const oNos=t.c.map(j=>opp6[j]);const A=analyze(myNos,oNos);
-    const plan=A.O.map((o,j)=>{const i=[...A.best].sort((a,b)=>A.offV(b,j)-A.offV(a,j))[0];const d=A.D[i][j];return{o,i,d}});
-    return{p:t.p,oNos,A,plan}});
+  const scen=tops.map(t=>{const oNos=t.c.map(j=>opp6[j]);const A=asAnalyze(myNos,oNos);
+    if(A.none)return null;
+    const plan=A.O.map((o,j)=>{const i=[...A.best].sort((a,b)=>A.offV(b,j)-A.offV(a,j))[0];const d=A.D[i][j];return{o,i,d,tie:A.weatherTies?.[i]?.[j],min:asMinDealt(A,i,j)}});
+    return{p:t.p,oNos,A,plan}}).filter(Boolean);
+  if(!scen.length)return '';
   const sc={};scen.forEach(s=>{s.A.best.forEach(i=>{sc[i]=(sc[i]||0)+s.p*(s.A.lead.includes(i)?1:.4)})});
   const leadI=Object.keys(sc).map(Number).sort((a,b)=>sc[b]-sc[a]).slice(0,LEADN());
   const inN=i=>scen.filter(s=>s.A.best.includes(i)).length;
@@ -111,11 +114,11 @@ function threeStepHTML(myNos,PR){
   <div class="pc-i pc-plan"><b>① 相手の選出の予想</b>
     ${scen.map((s,k)=>`<p><b>${k+1}.</b> ${s.oNos.map(nm1).join('・')} <span class="vcap">（${Math.round(s.p*100)}%）</span></p>`).join('')}
     ${(()=>{const t=oppRoleTags(opp6),g=f=>opp6.filter((_,j)=>t[j][f]).map(nm1);const a=[['メガ枠',g('mega')],['起点作り',g('setup')],['高数値アタッカー',g('ace')]].filter(x=>x[1].length);
-      return a.length?`<p class="vcap">相手の役のめやす：${a.map(([l,v])=>`${l}＝${v.join('・')}`).join('／')}。メガシンカできる匹は1匹まで、起点作りとアタッカーを組み合わせた選出を、少し来やすいものとして見ています。</p>`:''})()}
+      return a.length?`<p class="vcap">相手の役のめやす：${a.map(([l,v])=>`${l}＝${v.join('・')}`).join('／')}。メガシンカは同時に1匹までとして比較し、起点作りとアタッカーを組み合わせた選出を少し重く見ています。</p>`:''})()}
     <h4>② それぞれへの通し筋</h4>
-    ${scen.map((s,k)=>`<div class="pc-situ"><p><b>${k+1}で来たら</b>：${s.A.best.map(i=>`<b>${esc(s.A.M[i].p.n)}</b>`).join('・')}（先発 ${s.A.lead.map(i=>esc(s.A.M[i].p.n)).join('・')}）</p>
-      <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.d.mv?esc(x.d.mv.n)+'で':''}${Math.round(Math.min(x.d.pct,999))>=100?'一撃':'約'+Math.round(x.d.pct)+'%'}${x.d.pct<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
+    ${scen.map((s,k)=>`<div class="pc-situ"><p><b>${k+1}で来たら</b>：${s.A.best.map(i=>`<b>${esc(s.A.M[i].p.n)}</b>`).join('・')}（先発 ${s.A.lead.map(i=>esc(s.A.M[i].p.n)).join('・')}、${esc(asMegaLabel(s.A.M,s.A.megaI))}）</p>
+      <ul class="pc-story">${s.plan.map(x=>`<li>${esc(s.A.M[x.i].p.n)}が${esc(x.o.p.n)}に${x.tie?`天気で約${asTieDamage(x.tie,'dealt')}`:`${x.d.mv?esc(x.d.mv.n)+'で':''}約${Math.round(x.d.pct)}%`}${x.min<50?'<span class="vcap">（決め手に欠けるので、交代や削りと合わせる）</span>':''}</li>`).join('')}</ul></div>`).join('')}
     <h4>③ 初手</h4>
-    <p><b>${leadI.map(i=>esc(byNo[myNos[i]].n)).join('・')}</b>：3つの通し筋のうち${leadI.map(inN).join('・')}つに入り、どの予想でも先発として動きやすい匹です。先発を見て、相手がどの選出かを見きわめ、②の通し筋に切りかえます。</p>
+    <p><b>${leadI.map(i=>esc(byNo[scen[0].A.myNos[i]].n)).join('・')}</b>：${scen.length}つの通し筋のうち${leadI.map(inN).join('・')}つに入り、評価した予想で先発候補になった匹です。先発を見て、相手がどの選出かを見きわめ、②の通し筋に切りかえます。</p>
   </div>`;
 }

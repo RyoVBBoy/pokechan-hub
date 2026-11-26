@@ -14,8 +14,8 @@ s = ''.join(open(os.path.join(ROOT, 'src/js', f), encoding='utf-8').read() for f
 
 # 取り込む関数・定数（この順に並べる）
 NAMES = ('PICK LEADN FMTDIR stgM natM calcStats mvObj PROT ABSORB PINCH SKIN WSET WSPD ABIMPL ITEMN ITEMT RES_BERRY STI nrm rnd wpick '
-         'LF_BIND LF_CHOICE_OK LF_KEY lfId lfAtk lfDrain lfReq liveFit chooseSet buildSet digest MDK mkey WT wtOf MCHG MRECH MSELFKO MFIRST MFAIL MCOND MCOUNT simF varPow fixedDmg hitType '
-         'pR chM apM stgV disgLoss MEGA MEGAP isStone megaOf megasOf itemFor MFL mfl bcalc accOf wxPair withWx estHit0 estHit combos analyze effSpd BATTLE_FORM mkMon').split()
+         'LF_BIND LF_CHOICE_OK LF_KEY lfId lfAtk lfDrain lfReq liveFit chooseSet buildSet digest MDK mkey WT wtOf MCHG MRECH mvTurnK MSELFKO MFIRST MFAIL MCOND MCOUNT simF varPow fixedDmg hitType '
+         'WX_SUPP wxEffK MOHKO PRIO_BLOCK moveUsable SF_SEC SF_POW_ONLY sfOn sfSup MB_REP mbSeq MACC nuOffK nextUseCould pR chM apM stgV disgLoss MEGA MEGAP isStone megaOf megasOf itemFor FORM_WHY resolveForm learnBase MFL mfl bcalc mhCount hitStep hsInit bhits hitCountDist nextUse useSeq effPri accOf wxPairOptions asWithWeather withWeatherKind withWx estHit0 estHit combos asMatchMatrix analyze effSpd BATTLE_FORM mkMon').split()
 DATA = ['MV', 'LSD', 'ABD', 'MVK', 'ABK', 'ABN']
 
 
@@ -56,9 +56,15 @@ def obj(name, pat=None):
     return json.loads(m.group(1))
 
 
-funcs = '\n'.join(get(n) for n in NAMES)
+funcs = 'let AS_WX;\n' + '\n'.join(get(n) for n in NAMES)
 eng = {k: obj(k) for k in DATA}
 eng['MVE'] = obj('MVE', r'MVE=(\{.*?\});')
+# 2026/11/24：サイトは起動のときに MV（計算用）の型・威力・命中・分類・優先度・対象を MVU（チャンピオンズの値）で上書きしている（18-import.js）。
+# サーバーも同じにする（前はサーバーだけ きりさく 70・スターアサルト 150 など古い値で計算していた）
+for k, u in obj('MVU').items():
+    m = eng['MV'].get(k)
+    if not m or u[2] is None: continue
+    m[1], m[2], m[3], m[4], m[5], m[6] = u[0], u[2], u[3], u[1], u[5], u[6]
 # 技の名前（変化技も入れた全部の技。MV は攻撃技だけ）：対戦の振り返りで相手が使った「まもる」等も番号にするため
 eng['MVN'] = {k: v[0] for k, v in obj('MD').items()}
 sp = open(os.path.join(SRC, 'species.txt'), encoding='utf-8').read()

@@ -89,8 +89,8 @@ function mvpSet(fmt,no,opt){
   if(!itR)return{st:'item_conflict',no,why:`持ち物（${ITEMN[first[0]]||first[0]}）がパーティのほかのポケモンと重なり、集計にほかの持ち物も無い`};
   if(itR!==first&&itR[0]!==first[0])notes.push(`持ち物：いちばん多い${ITEMN[first[0]]||first[0]}（${first[1]}%）はパーティのほかのポケモンと重なるので、同じ集計の${ITEMN[itR[0]]||'持ち物なし'}（${itR[1]}%）`);
   /* 技：覚える技だけ、割合の高い順に4つ。攻撃技が1つも無ければ組めない */
-  const ls=(LSD[no]||[0,[]])[1];const mv=[];
-  for(const [k] of r.mv){if(mv.length>=4)break;const id=MVKA[nrm(k)];if(!id||!(ls.includes(id)||id===182))continue;mv.push({id,n:mName(id)})}
+  const ls=lsOf(no);const mv=[];
+  for(const [k] of r.mv){if(mv.length>=4)break;const id=MVKA[nrm(k)];if(!id||!ls.includes(id))continue;mv.push({id,n:mName(id)})}
   if(!mv.some(m=>MV[m.id]&&MV[m.id][2]>0))return{st:'insufficient',no,why:'覚える攻撃技が集計に無い'};
   /* 1対1の計算で正しく扱えない技（自分の能力が下がる・ためる・反動で動けない等、62-improve.js の IMP_NOMV）を含む型は、候補として比べない（型は変えない）。
      パーティのポケモン・相手の型（opt.anyMv）はそのまま使う */
@@ -134,7 +134,7 @@ const mvpSetRaw=(fmt,r)=>{const m=mvpSet(fmt,r.no,{stone:r.stone,anyLegal:true,a
 /* 1対1の結果を覚える（同じポケモン・同じ型・同じメガの状態・同じ天気・同じ相手なら同じ） */
 const MVP_MC=new Map();
 function mvpMatch(a,aSig,op,wx){
-  const k=aSig+'|'+op.sig+'|'+wx;if(MVP_MC.has(k))return MVP_MC.get(k);
+  const k=aSig+'|'+op.sig+'|'+wx+'|'+inTeam(a);if(MVP_MC.has(k))return MVP_MC.get(k);
   let z=null;try{const m=dgMatch(a,op.o);z={r:m.r,k:m.k,sw:m.swIn==='win',recv:!m.op||m.op.fmax<50,oh:!!(m.op&&m.op.nMax===1),hit:!!(m.me&&m.me.max>=50),fast:m.spd===1,t:m.t}}catch(e){z=null}
   MVP_MC.set(k,z);return z;
 }
@@ -155,19 +155,25 @@ function mvpEvalTeam(entries,fmt,opt){
   const scen=(users.length?(opt&&opt.none?[-1,...users]:users):[-1]).map(u=>({u,key:u<0?'none':'mega:'+mem[u].x.no,label:u<0?'メガシンカなし':`${byNo[megaOf(mem[u].x.no,mem[u].stone).no].n}（${formInfo(mem[u].p).base}がメガシンカ）`,
     stoneSt:u<0?null:mvpStoneSt(mem[u].stone,mem[u].x.no)}));
   return mvpCtx(entries,()=>{
-    let wx='';try{const w=teamWx();wx=w?w.k+':'+w.by:''}catch(e){}
-      scen.forEach(sc=>{
-        const mons=mem.map((m,i)=>{const mega=i===sc.u;const set=m.stone&&!mega?{...m.S.calc,item:null}:m.S.calc;
-          const sig=m.x.no+':'+JSON.stringify([set.ab,set.item,(set.moves||[]).map(v=>v.id+(v.prot?'p':'')),set.sp,set.up,set.dn]);
-          return{a:mkMon(m.p,'me',set),sig}});
+    const weatherKey=()=>{const w=teamWx();return w?w.k+':'+w.by:''};
+    const wx=weatherKey();
+    const prevMega=WX_MEGA;
+    try{scen.forEach(sc=>{
+        WX_MEGA=sc.u<0?null:mem[sc.u].x.no;
+        const scenarioWx=weatherKey();
+        const mons=mem.map((m,i)=>{const mega=i===sc.u;const set=m.stone&&!mega?{...m.S.calc,evolve:false}:m.S.calc;
+          const a=mkMon(m.p,'me',set);
+          const sig=m.x.no+':'+JSON.stringify([a.p.no,a.ab,a.item,(set.moves||[]).map(v=>v.id+(v.prot?'p':'')),set.sp,set.up,set.dn]);
+          return{a,sig}});
         /* 確かめ用：この場合でメガの姿で計算したポケモン（いつも0匹か1匹） */
         sc.megaIdx=mons.map((m,i)=>m.a.p.base?i:-1).filter(i=>i>=0);
-        sc.rows=O.list.map(op=>{const z=mons.map(m=>mvpMatch(m.a,m.sig,op,wx));
+        sc.rows=O.list.map(op=>{const z=mons.map(m=>mvpMatch(m.a,m.sig,op,scenarioWx));
           const ok=z.filter(Boolean);const n=mons.length,adv=ok.filter(v=>v.r>=4).length,sw=ok.filter(v=>v.sw).length,recv=ok.filter(v=>v.recv).length,oh=ok.filter(v=>v.oh).length,hit=ok.filter(v=>v.hit).length,any3=ok.filter(v=>v.r>=3).length;
           const wk=[];if(!any3)wk.push('none');if(!sw&&!recv)wk.push('nosw');if(n>=2&&oh>=Math.ceil(n/2))wk.push('ohko');if(!hit)wk.push('nohit');
           const top=op.rank<=MVP_TOPN;
           return{op,z,adv,sw,recv,oh,hit,wk:wk.map(k=>({k,crit:k==='ohko'||top}))}});
         sc.weak=[];sc.rows.forEach(r=>r.wk.forEach(w=>sc.weak.push({key:r.op.key+'|'+w.k,op:r.op,k:w.k,crit:w.crit})))});
+    }finally{WX_MEGA=prevMega}
       return{st:'ok',fmt,ver:MVP_DATA.version,meta:mvpMeta(fmt),mem:mem.map(m=>({no:m.x.no,src:m.S.src,item:m.S.calc.item||null,stone:m.stone,noItem:!!m.S.noItem,lg:mvpLegal(m.x.no)})),scen,wx,oppSkip:O.skip,unmapped:O.unmapped,
         /* 自動の型（推定）は攻撃技しか分からないので、役わりは攻撃技と特性だけ */
         abs:mem.map(m=>m.S.calc.ab||null),
@@ -200,10 +206,12 @@ function mvpCompare(E0,E1,outNo,inNo,i){
   /* 役わり（P3-04）：外すポケモンだけが持っていた役わりと、入れるポケモンが新しく加える役わり */
   let roles=null;
   if(E0.roles&&E1.roles&&ix0>=0&&ix1>=0){
-    const has=(R,r)=>R.some(rs=>rs.some(q=>q.k===r.k&&(r.k!=='weather'||q.w===r.w)));
+    /* 天気は種類も同じときだけ「残る」（2026/11/24：ひでり→あめふらしの入れかえで、晴れを失うのに失わない扱いだった） */
+    const same=(r,q)=>q.k===r.k&&(r.k!=='weather'||q.w===r.w);
+    const has=(R,skip,r)=>R.some((rs,j)=>j!==skip&&rs.some(q=>same(r,q)));
     /* 天気は、その天気で得をする特性（WX_GAIN）の仲間が残るときだけ大事な役わり（天気の効果そのものは1対1の計算に入っている） */
     const wxNeed=r=>r.k!=='weather'||(E1.abs||[]).some((a,j)=>j!==ix1&&(WX_GAIN[r.w]||[]).includes(a));
-    roles={lost:E0.roles[ix0].filter(r=>!has(E1.roles,r)).map(r=>({...r,sc:r.sc&&wxNeed(r)})),added:E1.roles[ix1].filter(r=>!has(E0.roles,r))}}
+    roles={lost:E0.roles[ix0].filter(r=>!has(E1.roles,-1,r)).map(r=>({...r,sc:r.sc&&wxNeed(r)})),added:E1.roles[ix1].filter(r=>!has(E0.roles,-1,r))}}
   const roleLoss=!!(roles&&roles.lost.some(r=>r.sc));
   const cf=P.reduce((t,p)=>t+p.cf,0),cm=P.reduce((t,p)=>t+p.cm,0);
   /* おすすめ（better）にしない条件は足し算にしない：大きな弱点を増やす・弱点の数が増える・素早さの操作か天気を失う、のどれか1つでも tradeoff */
