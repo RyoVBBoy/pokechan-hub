@@ -104,16 +104,27 @@ function shareView(arg){
    ・気をつけたい：相手から半分以上受けて、こちらは3割未満しか削れない */
 function monCounters(p){
   const spd=m=>m.st[5]*(m.item==='choicescarf'?1.5:1);
-  const T=mkMon(p,'op',detSet(p));
+  /* 対象はそのページの姿で計算する（formSet：元の姿のページでメガストーンの型は使わない。2026/11/20 RC2） */
+  const FS=formSet(p),set0=FS.set,kind=FS.kind,note=FS.note;
+  if(!set0)throw new Error('form:'+(FS.why||'insufficient-data'));
+  const T=mkMon(p,'op',set0);
+  /* 姿が決められない型は計算しない（理由を返す） */
+  if(T.formErr)return{err:T.formErr,ohko:[],strong:[],wall:[],threat:[],spd:0,set:set0,kind,note,form:T.p,skipped:0};
+  /* 相手役の行の名前・リンクは「計算した姿」（M.p）。使用率の高い型がメガストーンを持つと、元の姿の名前でメガの姿を計算していたため。
+     同じ姿は1回だけ（gmOpps の順で先の行）。対象と同じ姿は除く */
+  const seen=new Set([T.p.no]);let skipped=0;
   const rows=gmOpps().filter(q=>q.no!==p.no&&(q.base||q.no)!==p.no).map(q=>{
     const set=q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q);
-    const M=mkMon(q,'me',set),a=estHit(M,T),b=estHit(T,M);
-    return{q,my:a.pct,their:b.pct,mv:a.mv&&a.mv.n,tmv:b.mv&&b.mv.n,fast:spd(M)>spd(T)}});
+    const M=mkMon(q,'me',set);if(M.formErr){skipped++;return null}
+    if(seen.has(M.p.no))return null;seen.add(M.p.no);
+    const a=estHit(M,T),b=estHit(T,M);
+    /* 計算に入れた前提（2026/11/20）：素早さはこだわりスカーフを1.5倍で入れている。estHit は1回のダメージだけで、きあいのタスキ・がんじょう・ばけのかわは見ていない */
+    return{q:M.p,from:q,my:a.pct,their:b.pct,mv:a.mv&&a.mv.n,tmv:b.mv&&b.mv.n,fast:spd(M)>spd(T),scarf:M.item==='choicescarf',tScarf:T.item==='choicescarf',mHold:brHold(M)}}).filter(Boolean);
   const by=(f,s)=>rows.filter(f).sort(s).slice(0,8);
   return{
     ohko:by(r=>r.fast&&r.my>=100,(x,y)=>y.my-x.my),
     strong:by(r=>r.my>=50&&r.their<50&&!(r.fast&&r.my>=100),(x,y)=>(y.my-y.their)-(x.my-x.their)),
     wall:by(r=>r.their<35,(x,y)=>x.their-y.their),
     threat:by(r=>r.their>=50&&r.my<30,(x,y)=>(y.their-y.my)-(x.their-x.my)),
-    spd:Math.round(spd(T)),set:detSet(p)};
+    spd:Math.round(spd(T)),set:set0,kind,note,form:T.p,skipped,tHold:brHold(T)};
 }

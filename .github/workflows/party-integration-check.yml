@@ -1,0 +1,58 @@
+name: Party check integration verification (no deployment)
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [release/party-current-20261126]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://pokechan-hub.pages.dev
+      - name: Party selection and full recomputation
+        run: |
+          node tests/impl-fixes-20261124b.mjs
+          node tests/real-data-audit.mjs integration
+      - name: Legal builds
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs legality
+      - name: Performance (4x CPU)
+        if: ${{ !cancelled() }}
+        run: node tests/real-data-audit.mjs performance
+      - name: All regression tests
+        if: ${{ !cancelled() }}
+        env:
+          CALC_N: '1500'
+          CALC_SEED: '20261123'
+          CALC_CASES_REPORT: audit-calc-cases.json
+          CALC_CASES_SUMMARY: audit-calc-cases-summary.json
+          CALC_REF_REPORT: audit-calc-ref.json
+        run: npm test
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: party-integration-evidence
+          path: |
+            audit-integration.json
+            audit-legality.json
+            audit-performance.json
+            audit-calc-cases.json
+            audit-calc-cases-summary.json
+            audit-calc-ref.json
+          if-no-files-found: warn

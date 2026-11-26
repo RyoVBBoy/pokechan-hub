@@ -34,7 +34,7 @@ const kdMvK=id=>id===182?'protect':(MD[id]&&MD[id][3])||'';
 const kdAtk=id=>!!(MV[id]&&MV[id][2]>0);
 const kdHits=id=>{const o=mvObj(id);return o.maxH>1?(o.minH===o.maxH?o.maxH:3):1};
 const kdPrioMv=id=>kdAtk(id)&&MV[id][5]>0&&!KD_PRIO_NG.has(kdMvK(id))&&MV[id][2]*kdHits(id)>=40;
-const kdLs=p=>(LSD[p.no]||(p.base&&LSD[p.base])||[0,[]])[1];
+const kdLs=p=>lsOf(p);
 const kdKey2Id=k=>PR_KEY(k)||(k==='protect'?182:null);
 /* その型のときの姿（メガストーンならメガの姿） */
 const kdForm=(p,s)=>(s&&s.item&&megaOf(p.no,s.item))||p;
@@ -74,7 +74,7 @@ function kdItemWorks(p,s,it){
 function kdIssues(p,s,ctx){
   ctx=ctx||{};const out=[],ls=kdLs(p),f=kdForm(p,s);
   const keys=s.moves.map(kdMvK);
-  s.moves.forEach(id=>{if(id!==182&&!ls.includes(id))out.push({k:'learn',id,txt:`${mName(id)}を覚えない`})});
+  s.moves.forEach(id=>{if(!ls.includes(id))out.push({k:'learn',id,txt:`${mName(id)}を覚えない`})});
   if(new Set(s.moves).size!==s.moves.length)out.push({k:'dup',txt:'同じ技が2つある'});
   const abOk=f!==p?true:(ABD[p.no]||[]).some(a=>a[0]===s.ab);if(s.ab&&!abOk)out.push({k:'ab',txt:`特性${ABN[s.ab]||s.ab}を持てない`});
   if(s.item&&!(CH_ITEMS.has(s.item)||(isStone(s.item)&&megaOf(p.no,s.item))))out.push({k:'item',txt:`${ITEMN[s.item]||s.item}はこのポケモンが持てる、ゲームにある持ち物ではない`});
@@ -163,7 +163,7 @@ function kdMakeSet(p,stone,pt,aa,used,ctx){
   if(s.item&&used&&used.has(s.item)&&!isStone(s.item))s.item=null;
   /* 構築の役わりの技（トリックルーム・あまごい等）が無ければ入れる */
   const keep=[];
-  if(pt&&pt[4]){const want=pt[4].map(kdKey2Id).filter(id=>id&&(kdLs(p).includes(id)||id===182));
+  if(pt&&pt[4]){const want=pt[4].map(kdKey2Id).filter(id=>id&&kdLs(p).includes(id));
     const has=s.moves.filter(id=>want.includes(id));const ab=pt[3]&&(pt[3].includes(s.ab)||(stone&&megaOf(p.no,stone)&&pt[3].includes(megaOf(p.no,stone).ab)));
     if(!ab){const add=want.filter(id=>!has.includes(id)).slice(0,Math.max(0,(pt[5]||1)-has.length));
       add.forEach(id=>{const i=[...s.moves.keys()].reverse().find(i=>!want.includes(s.moves[i])&&!(kdAtk(s.moves[i])&&p.t.includes(MV[s.moves[i]][1])&&s.moves.filter(x=>kdAtk(x)&&p.t.includes(MV[x][1])).length===1));

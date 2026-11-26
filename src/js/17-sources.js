@@ -2,7 +2,7 @@
 const LV={official:['公式','#1d9bf0','公式サイト・公式発表で確認したもの'],ingame:['ゲーム内で確認','#00ba7c','実際のゲーム画面で値を確かめたもの'],multi:['複数の出典で一致','#7856ff','互いに独立した出典で同じ値だったもの'],single:['出典1つ','#8b98a5','1か所の出典（またはそれをもとにしたデータ）だけのもの'],unverified:['未確認・推定','#ff7a00','まとめ記事の情報や、このサイトの計算による目安']};
 const SRC={
  stats:{name:'種族値・タイプ',lv:'single',date:'2026/10/18',per:['t','s'],src:[['PokeTools（Champions図鑑）',null],['PokeAPI','https://pokeapi.co/']],
-  note:'208匹すべてで2つの値が一致しましたが、PokeToolsはPokeAPIのデータをもとにしているため、独立した確認にはなりません。Champions独自の調整があっても反映されていない可能性があります。'},
+  note:'2026/10/18 の照合（そのときの収録208匹）ですべての値が一致しましたが、PokeToolsはPokeAPIのデータをもとにしているため、独立した確認にはなりません。Champions独自の調整があっても反映されていない可能性があります。'},
  learn:{name:'覚える技・特性',lv:'multi',date:'2026/10/28',per:['a','m'],src:[['Pokémon Showdown（Champions用データ）','https://github.com/smogon/pokemon-showdown'],['PokeAPI（日本語名）','https://pokeapi.co/']],
   note:'Pokémon ShowdownのChampions用の習得技リスト（変化技を含む全技）と、収録ポケモン264匹の一覧を使っています。技の性能はゲーム内で書き写した510技と照らし合わせ、504技が一致しました（PPなどが違った5技はゲーム内の値を採用）。効果の説明は当サイトがデータからまとめた文章です。'},
  movedata:{name:'技のタイプ・分類・威力・命中・PP',lv:'ingame',date:'2026/10/19',src:[['ゲーム内の技の説明（510技を書き写し）',null],['PokeAPI（510技に含まれない技のみ）','https://pokeapi.co/']],
@@ -10,7 +10,7 @@ const SRC={
  typechart:{name:'タイプ相性',lv:'single',date:'2026/10/18',src:[['本編シリーズの相性表（第6世代以降・フェアリーを含む）',null]],
   note:'長く変わっていない仕様ですが、Championsで独自の変更がないかは確認していません。'},
  formula:{name:'Lv50の計算式・能力ポイントの上限',lv:'ingame',date:'2026/10/19',src:[['ゲームのチーム画面（6匹分のステータス）',null],['第三者のまとめ記事',null]],
-  note:'HP＝種族値＋ポイント＋75、ほか＝（種族値＋ポイント＋20）×性格補正（1.1倍・0.9倍、端数切り捨て）、合計66・1項目32まで。ゲームのステータス画面の6匹・36の数値すべてで、この式と一致しました。'},
+  note:'HP＝種族値＋ポイント＋75、ほか＝（種族値＋ポイント＋20）×能力補正（1.1倍・0.9倍、端数切り捨て。HPには無し）、合計66・1項目32まで。ゲームのステータス画面の6匹・36の数値すべてで、この式と一致しました。'},
  regulation:{name:'レギュレーションの期間',lv:'unverified',date:'2026/10/18',src:[['第三者のまとめ記事',null]],
   note:'M-A（4月8日〜）、M-B（6月17日〜）、M-C（9月9日〜）。公式の発表では確認していません。'},
  ladder:{name:'ラダー集計（よく使われる型・一緒に使われるポケモン）',lv:'single',date:'',src:[['Pokémon Champions Battle Data（非公式）','https://championsbattledata.com/']],
@@ -99,7 +99,7 @@ function vItem(p){
         ${v.t===0?`<input class="vin vtx" data-fix="t" value="${fx.t||''}" placeholder="正しいタイプ（例：ドラゴン・じめん）">`:''}</div>
       <div class="vf"><h4>種族値${btn('s')}</h4>
         <div class="vstat">${p.s.map((x,i)=>`<div><em>${SN[i]}</em><b>${x}</b><small>${i?x+20:x+75}</small></div>`).join('')}</div>
-        <p class="vcap">上段が種族値、下段がLv50・能力ポイント0・性格補正なしの実数値です。ゲームに出る数値の種類に合わせて見比べてください。</p>
+        <p class="vcap">上段が種族値、下段がLv50・能力ポイント0・能力補正なしの実数値です。ゲームに出る数値の種類に合わせて見比べてください。</p>
         ${v.s===0?`<div class="vstat">${p.s.map((x,i)=>`<div><em>${SN[i]}</em><input class="vin" type="number" inputmode="numeric" data-fix="s" data-i="${i}" value="${fx.s?fx.s[i]:x}"></div>`).join('')}</div><p class="vcap">正しい<b>種族値</b>を入れてください。</p>`:''}</div>
       <div class="vf"><h4>特性${btn('a')}</h4><div style="font-size:14px">${ab}</div>
         ${v.a===0?`<input class="vin vtx" data-fix="a" value="${fx.a||''}" placeholder="正しい特性">`:''}</div>

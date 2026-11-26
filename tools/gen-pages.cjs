@@ -94,13 +94,13 @@ ${ms.map(q=>`<a class="row" href="${R}pokemon/${q.no}/"><span class="av">${stamp
    const pc=v=>v>=100?'一撃で倒せる':`最大${Math.round(v)}%`;
    const rows=(a,f)=>a.length?a.map(r=>`<a class="row" href="${qa(r.q)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">${f(r)}</div></div></a>`).join(''):'<p class="note" style="padding-top:0">当てはまるポケモンは見つかりませんでした。</p>';
    const sec=(h,sub,a,f)=>`<div class="sec"><h2>${h}</h2></div><p class="note" style="padding-top:0">${sub}</p>${rows(a,f)}`;
-   const mine=r=>`${r.mv?esc(r.mv)+'で':''}${pc(r.my)}${r.fast?'・素早さで上':''}・${p.n}から受けるのは${r.their>=100?'一撃で倒されるほど':'最大'+Math.round(r.their)+'%'}`;
+   const mine=r=>`${r.mv?esc(r.mv)+'で':''}${pc(r.my)}${r.my>=100?brHoldTxt((c.form||p).n,c.tHold):''}${r.fast?(r.scarf?'・こだわりスカーフで素早さが上':'・素早さで上'):(r.tScarf?`・${(c.form||p).n}のこだわりスカーフで素早さが下`:'')}・${p.n}から受けるのは${r.their>=100?'一撃で倒されるほど':'最大'+Math.round(r.their)+'%'}`;
    const setTxt=[s.item&&ITEMN[s.item]?'持ち物'+ITEMN[s.item]:'',s.ab&&ABN[s.ab]?'特性'+ABN[s.ab]:'',(s.moves||[]).map(m=>m&&(m.n||(MD[m]&&mName(m)))).filter(Boolean).join('・')].filter(Boolean).join('、');
-   const top=[...c.ohko,...c.strong].slice(0,3).map(r=>formInfo(r.q).base);
+   const top=[...c.ohko,...c.strong].slice(0,3).map(r=>r.q.n);
    const html=`<nav class="crumb"><a href="${R}">ホーム</a> › <a href="${R}pokemon/">ポケモン一覧</a> › <a href="${R}pokemon/${p.no}/">${p.n}</a> › 対策</nav>
 <div class="sh1"><span class="av" style="width:64px;height:64px">${stamp(p)}</span><div><span class="no">対策・倒し方</span><h1>${p.n}の対策</h1><div class="chips">${p.t.map(chip).join('')}</div></div></div>
-<p class="lead">${p.n}の弱点は${weak.length?weak.map(x=>`<b>${x.t}</b>${x.m>=4?'（4倍）':''}`).join('・'):'ありません'}。${top.length?`使用率の高い型どうしで計算すると、<b>${top.join('・')}</b>などが有利に戦えます。`:''}</p>
-<div class="gdoc" style="padding-top:0"><p class="note" style="padding:0">計算の前提：${p.n}は${esc(setTxt)||'使用率の高い型'}（素早さ${c.spd}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれの使用率の高い型で計算しています。乱数・急所・持ち物の違いで結果は変わります。</p></div>
+<p class="lead">${p.n}の弱点は${weak.length?weak.map(x=>`<b>${x.t}</b>${x.m>=4?'（4倍）':''}`).join('・'):'ありません'}。${top.length?`下の前提の型どうしで計算すると、<b>${top.join('・')}</b>などが有利に戦えます。`:''}</p>
+<div class="gdoc" style="padding-top:0"><p class="note" style="padding:0">計算の前提：${c.form&&c.form!==p?`${p.n}の型はメガストーンを持つので、${c.form.n}の姿で計算しています。`:''}${c.note?esc(c.note):''}${[c.form||p,...[...c.ohko,...c.strong,...c.wall,...c.threat].map(r=>r.q)].some(q=>q&&(q.mega?[q.ab]:(ABD[q.no]||[]).map(a=>a[0])).some(a=>a==='protean'||a==='libero'))?PROTEAN_ASSUME:''}${p.n}は${c.kind?c.kind.t:'当サイトが計算で組んだ型（提案）'}（${esc(setTxt)||'—'}、素早さ${c.spd}）。1人が実際に使った型ではありません。こちらは合計種族値の高いポケモンとメガシンカの姿を、同じ決め方の型で計算しています。乱数・急所・持ち物の違いで結果は変わります。</p></div>
 ${(()=>{try{return `<div class="gdoc">${brStepsHTML(breakSteps(p,c))}</div>`}catch(e){return ''}})()}
 <div class="cta"><a class="btn btn-p" href="${R}#/calc">自分の育成でダメージ計算</a><a class="btn btn-s" href="${R}pokemon/${p.no}/">${p.n}の種族値・覚える技</a></div>
 ${sec(`${p.n}を上から一撃で倒せるポケモン`,'素早さで上回り、1回の攻撃で倒せる相手です。',c.ohko,mine)}

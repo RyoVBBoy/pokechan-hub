@@ -4,6 +4,7 @@
  "01-types.js",
  "02-data.js",
  "02-names.js",
+ "02-names-ref.js",
  "03-icons.js",
  "04-common.js",
  "05-header.js",

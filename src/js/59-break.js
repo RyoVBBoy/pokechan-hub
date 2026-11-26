@@ -40,8 +40,8 @@ const BR_AB={
   'iron-barbs':'接触技で攻撃するとダメージを返される。特殊技や触れない技で攻める。',
   'flame-body':'接触技で攻撃すると、やけどになることがある。物理アタッカーは特に注意。',
   static:'接触技で攻撃すると、まひになることがある。',
-  protean:'技を出すたびにその技のタイプに変わる。弱点が変わるので、タイプ相性より火力で押す。',
-  libero:'技を出すたびにその技のタイプに変わる。弱点が変わるので、タイプ相性より火力で押す。',
+  protean:'技を使う前にその技のタイプに変わる（本編の第9世代では場に出るたびに1回だけ。チャンピオンズのゲーム内では未確認）。このページの計算では発動しない前提なので、実際はタイプ一致で強くなることがある。弱点も変わるので、タイプ相性より火力で押す。',
+  libero:'技を使う前にその技のタイプに変わる（本編の第9世代では場に出るたびに1回だけ。チャンピオンズのゲーム内では未確認）。このページの計算では発動しない前提なので、実際はタイプ一致で強くなることがある。弱点も変わるので、タイプ相性より火力で押す。',
   moxie:'相手を倒すたびに攻撃が上がる。倒されそうな匹で無理に戦わず、受けられる匹に交代する。',
   'huge-power':'攻撃が2倍になっている。物理技は見た目の種族値よりずっと強いので、防御の高い匹で受ける。',
   'pure-power':'攻撃が2倍になっている。物理技は見た目の種族値よりずっと強いので、防御の高い匹で受ける。',
@@ -58,8 +58,11 @@ const brNeedBase=(s,sc=1)=>{for(let b=1;b<=255;b++)if(Math.floor(Math.floor((b+S
 
 function breakSteps(p,c){
   c=c||monCounters(p);
-  const s=c.set||detSet(p),M=mkMon(p,'op',s),st=M.st,nm0=p.base?p.n:formInfo(p).base,steps=[];
-  const def=monDef(p),weak=def.filter(x=>x.m>=2).sort((a,b)=>b.m-a.m),res=def.filter(x=>x.m>0&&x.m<1).sort((a,b)=>a.m-b.m),imm=def.filter(x=>x.m===0);
+  if(c.err)throw new Error('form:'+c.err);
+  /* 2026/11/20：名前・弱点・特性は「計算した姿」（F）から。型がメガストーンを持つときはメガシンカの姿で計算しているので、そう書く */
+  const s=c.set||detSet(p),M=mkMon(p,'op',s),F=M.p,st=M.st,nm0=F.n,steps=[];
+  const kd=c.kind||detSetKind(p),kt=kd.k==='theory'?'当サイトが組んだ型':'推定の型';
+  const def=monDef(F),weak=def.filter(x=>x.m>=2).sort((a,b)=>b.m-a.m),res=def.filter(x=>x.m>0&&x.m<1).sort((a,b)=>a.m-b.m),imm=def.filter(x=>x.m===0);
   const fr=m=>m>=4?'4倍':m<=.25?'1/4':'';
   /* ①弱点・物理か特殊か */
   const phy=st[0]*st[2],spc=st[0]*st[4],r=phy/spc;
@@ -68,19 +71,19 @@ function breakSteps(p,c){
   /* ②素早さ */
   const scarf=s.item==='choicescarf',sp=Math.floor(st[5]*(scarf?1.5:1)),nb=brNeedBase(sp),nbs=brNeedBase(sp,1.5);
   const prio=(s.moves||[]).filter(m=>m&&m.pow>0&&m.pri>0);
-  steps.push({h:'素早さで上を取る',t:`使用率の高い型の素早さは<b>${sp}</b>${scarf?'（こだわりスカーフ込み）':''}。${nb?`上から動くには、素早さ種族値${nb}以上のポケモンを最速（性格で素早さを上げ、能力ポイント${SP_CAP}）にする${nbs&&nbs<nb?`。こだわりスカーフなら${nbs}以上でよい`:''}。`:'素早さで上を取るのは難しいので、先制技やトリックルームで動く。'}${prio.length?`ただし先制技${brNames(prio.map(m=>m.n))}を持つので、HPが減った匹で上から殴ろうとしても先に倒されることがある。`:'遅い匹は、先制技でとどめを刺すか、1回耐えてから返す。'}`});
+  steps.push({h:'素早さで上を取る',t:`${kt}の素早さは<b>${sp}</b>${scarf?'（こだわりスカーフ込み）':''}。${nb?`上から動くには、素早さ種族値${nb}以上のポケモンを最速（性格で素早さを上げ、能力ポイント${SP_CAP}）にする${nbs&&nbs<nb?`。こだわりスカーフなら${nbs}以上でよい`:''}。`:'素早さで上を取るのは難しいので、先制技やトリックルームで動く。'}${prio.length?`ただし先制技${brNames(prio.map(m=>m.n))}を持つので、HPが減った匹で上から殴ろうとしても先に倒されることがある。`:'遅い匹は、先制技でとどめを刺すか、1回耐えてから返す。'}`});
   /* ③持ち物・特性 */
   const it=[];
   if(s.item&&BR_ITEM[s.item])it.push(BR_ITEM[s.item]);
   else if(s.item&&typeof RES_BERRY!=='undefined'&&RES_BERRY[s.item]){const t=RES_BERRY[s.item];it.push(`<b>${ITEMN[s.item]||s.item}</b>で、${t==='ノーマル'?'ノーマル技':'弱点の'+t+'技'}のダメージを1回半分にされる。一撃で倒せる計算でも耐えられることがあるので、2回目を当てられる匹で。`)}
   else if(s.item&&typeof MEGA!=='undefined'&&MEGA[s.item])it.push(`<b>メガシンカ</b>する型が多い。メガシンカの姿の種族値・特性で計算した崩し方も確かめる（このページの上の切りかえ）。`);
   if(M.ab&&BR_AB[M.ab])it.push(`特性<b>${ABN[M.ab]||M.ab}</b>：${BR_AB[M.ab]}`);
-  (ABD[p.no]||[]).map(a=>a[0]).filter(a=>a!==M.ab&&BR_AB[a]).slice(0,2).forEach(a=>it.push(`特性が<b>${ABN[a]||a}</b>なら：${BR_AB[a]}`));
+  (F.mega?[]:(ABD[F.no]||[])).map(a=>a[0]).filter(a=>a!==M.ab&&BR_AB[a]).slice(0,2).forEach(a=>it.push(`特性が<b>${ABN[a]||a}</b>なら：${BR_AB[a]}`));
   if(it.length)steps.push({h:'持ち物と特性に気をつける',t:it});
   /* ④技 */
   const mv=[],atk=(s.moves||[]).filter(m=>m&&m.pow>0);
   const boost=[...new Set([...(s.boost?[s.boost].flat():[]),...(M.boost?[M.boost].flat():[])].map(b=>typeof b==='string'?b:b&&(b.n||b.k)).filter(Boolean))];
-  const ls=(LSD[p.base||p.no]||LSD[p.no]||[0,[]])[1]||[];
+  const ls=lsOf(p);
   const boostN=boost.length?boost.map(b=>{const id=Object.keys(MD).find(i=>MD[i][3]===b);return id?mName(+id):b}):ls.filter(id=>MD[id]&&DU_BOOST[MD[id][3]]).map(id=>mName(id)).slice(0,2);
   if(boostN.length)mv.push(`${boost.length?'積み技':'覚える積み技'}${brNames(boostN)}で能力を上げて${boost.length?'くる':'くることがある'}。積まれる前に倒すか、ちょうはつ・あくび・ほえる・ドラゴンテール・くろいきりで止める。`);
   const heal=ls.filter(id=>MD[id]&&MD[id][3]!=='rest'&&brRole(id,'heal')).map(id=>mName(id)).slice(0,2);
@@ -102,31 +105,36 @@ function breakSteps(p,c){
   const ats=[...new Set(atk.map(m=>m.t))];
   if(ats.length){const rt=T.filter(t=>ats.every(a=>mult(a,[t])<=.5));
     const w=c.wall.slice(0,3).map(r=>r.q.n);
-    steps.push({h:'攻撃を受ける',t:`使用率の高い型の攻撃技は${ats.join('・')}タイプ。${rt.length?`<b>${rt.join('・')}</b>タイプなら全部を半減以下で受けられる。`:'1つのタイプで全部を半減できるタイプはないので、型の技をよく見て受ける。'}${w.length?`計算では${w.join('・')}などが35%未満しか受けない。`:''}`})}
+    steps.push({h:'攻撃を受ける',t:`${kt}の攻撃技は${ats.join('・')}タイプ。${rt.length?`<b>${rt.join('・')}</b>タイプなら全部を半減以下で受けられる。`:'1つのタイプで全部を半減できるタイプはないので、型の技をよく見て受ける。'}${w.length?`計算では${w.join('・')}などが35%未満しか受けない。`:''}`})}
   /* ひとこと */
   const best=[...c.ohko,...c.strong][0];
-  const lead=`${nm0}は${weak.length?weak.slice(0,2).map(x=>x.t).join('・')+'が弱点':'弱点のタイプがなく'}、素早さは${sp}。${best?`使用率の高い型どうしで計算すると、<b>${best.q.n}</b>の${best.mv?'「'+esc(best.mv)+'」':'攻撃'}が${best.my>=100?'一撃で倒せる':'最大'+Math.round(best.my)+'%'}など、下の方法で崩せる。`:'1匹で崩すのは難しいので、下の方法で2匹がかりで崩す。'}`;
-  return{lead,steps,set:s,sp,c};
+  const lead=`${nm0}は${weak.length?weak.slice(0,2).map(x=>x.t).join('・')+'が弱点':'弱点のタイプがなく'}、素早さは${sp}。${best?`下の前提の型どうしで計算すると、<b>${best.q.n}</b>の${best.mv?'「'+esc(best.mv)+'」':'攻撃'}が${best.my>=100?'一撃で倒せる':'最大'+Math.round(best.my)+'%'}など、下の方法で崩せる。`:'1匹で崩すのは難しいので、下の方法で2匹がかりで崩す。'}`;
+  return{lead,steps,set:s,sp,c,form:F,kind:kd};
 }
+/* 満タンから1回は倒されない手段（2026/11/20）：対策の一覧の「一撃」は estHit の1回のダメージだけで判定していて、これらを計算に入れていない。
+   だから判定は変えずに、行に条件として書く（ゲーム内でのはたらきは本編の決まりとして書く＝未確認 Q7） */
+const brHold=m=>m?[m.item==='focussash'&&'きあいのタスキ',m.ab==='sturdy'&&'がんじょう',m.ab==='disguise'&&'ばけのかわ'].filter(Boolean):[];
+const brHoldTxt=(n,h)=>h&&h.length?`（ただし${n}の型は${h.join('・')}を持つので、HPが満タンなら1回は耐えられる。この計算には入れていない）`:'';
+const brFirst=r=>r.fast?(r.scarf?'こだわりスカーフで先に動いて':'先に動いて'):(r.tScarf?'相手のこだわりスカーフで先に動かれるので、1回受けてから':'1回受けてから');
 /* 崩す役1匹の理由（技・ダメージ・素早さ・受けるダメージ） */
-const brWhy=(p,r)=>{const n=formInfo(p).base,pc=v=>v>=100?'一撃で倒せる':`最大${Math.round(v)}%`;
-  return `${r.fast?'先に動いて':'1回受けてから'}${r.mv?'「'+esc(r.mv)+'」で':''}${pc(r.my)}。${n}からは${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒されるほど受けるが、先に動けば間に合う':'最大'+Math.round(r.their)+'%'}。`};
+const brWhy=(p,r,F,tHold)=>{const n=(F||p).n,pc=v=>v>=100?'一撃で倒せる':`最大${Math.round(v)}%`;
+  return `${brFirst(r)}${r.mv?'「'+esc(r.mv)+'」で':''}${pc(r.my)}${r.my>=100?brHoldTxt(n,tHold):''}。${n}からは${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒されるほど受けるが、先に動けば間に合う':'最大'+Math.round(r.their)+'%'}。`};
 /* 崩す方法の一覧（番号は手順ではなく、別々の崩し方。2026/11/17 依頼主：「手順」→「方法」）（図鑑のタブと静的ページ counter/ で共通） */
 const brStepsHTML=B=>`<h3>崩す方法</h3><ol class="gtips">${B.steps.map(x=>`<li><b>${x.h}</b>${Array.isArray(x.t)?`<ul>${x.t.map(y=>`<li>${y}</li>`).join('')}</ul>`:'：'+x.t}</li>`).join('')}</ol>`;
 function breakHTML(p){
-  let B;try{B=breakSteps(p)}catch(e){return '<p class="empty">計算できませんでした。</p>'}
-  const {c}=B,s=B.set,href=q=>`#/p/${q.no}`;
+  let B;try{B=breakSteps(p)}catch(e){const w=/^form:/.test(e&&e.message||'')&&FORM_WHY[e.message.slice(5)];return `<p class="empty">${w?esc(w)+'。':'計算できませんでした。'}</p>`}
+  const {c}=B,s=B.set,F=B.form||p,href=q=>`#/p/${q.no}`;
   const setTxt=[s.item&&ITEMN[s.item]?'持ち物 '+ITEMN[s.item]:'',s.ab&&ABN[s.ab]?'特性 '+ABN[s.ab]:'',(s.moves||[]).map(m=>m&&m.n).filter(Boolean).join('・')].filter(Boolean).join('／');
   const rows=(a,f)=>a.length?a.slice(0,5).map(r=>`<a class="row" href="${href(r.q)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s" style="white-space:normal">${f(r)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join(''):'<p class="note" style="padding-top:0">当てはまるポケモンは見つかりませんでした。</p>';
   const sec=(h,sub,a,f)=>`<div class="sec"><h2>${h}</h2></div><p class="note" style="padding-top:0">${sub}</p>${rows(a,f)}`;
-  const n=p.base?p.n:formInfo(p).base,cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
+  const n=F.n,cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
   return `<div class="gdoc"><h2>${esc(n)}の崩し方</h2><p>${B.lead}</p>
     ${brStepsHTML(B)}
-    <p class="note" style="padding:8px 0 0">計算の前提：${esc(n)}は使用率の高い型（${esc(setTxt)||'—'}）。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれの使用率の高い型で計算しています。乱数・急所・育成の違いで結果は変わります。</p></div>
-  ${sec('上から一撃で倒せる','先に動けて、1回の攻撃で倒せる相手です。',c.ohko,r=>brWhy(p,r))}
-  ${sec('強く出られる',`半分以上削れて、${esc(n)}からは半分未満しか受けない相手です。`,c.strong,r=>brWhy(p,r))}
+    <p class="note" style="padding:8px 0 0">計算の前提：${F!==p?`${esc(p.n)}の型はメガストーンを持つので、${esc(n)}の姿で計算しています。`:''}${c.note?esc(c.note):''}${[B.form,...[...c.ohko,...c.strong,...c.wall,...c.threat].map(r=>r.q)].some(q=>q&&[...(q.mega?[q.ab]:(ABD[q.no]||[]).map(a=>a[0]))].some(a=>a==='protean'||a==='libero'))?PROTEAN_ASSUME:''}${esc(n)}は${esc(B.kind.t)}（${esc(setTxt)||'—'}）。1人が実際に使った型ではありません。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれ同じ決め方の型（集計があれば集計から組み合わせた推定、なければ当サイトの提案）で計算しています。乱数・急所・育成の違いで結果は変わります。</p></div>
+  ${sec('上から一撃で倒せる','先に動けて、1回の攻撃で倒せる相手です。',c.ohko,r=>brWhy(p,r,F,c.tHold))}
+  ${sec('強く出られる',`半分以上削れて、${esc(n)}からは半分未満しか受けない相手です。`,c.strong,r=>brWhy(p,r,F,c.tHold))}
   ${sec('受けてから返せる',`${esc(n)}の攻撃が35%未満しか入らないので、交代で受けてから反撃できる相手です。`,c.wall,r=>`${esc(n)}の攻撃は最大${Math.round(r.their)}%${r.tmv?'（'+esc(r.tmv)+'）':''}。こちらの${r.mv?'「'+esc(r.mv)+'」':'攻撃'}は${r.my>=100?'一撃で倒せる':'最大'+Math.round(r.my)+'%'}。`)}
-  ${sec('出すと危ない',`${esc(n)}から半分以上受けて、こちらは3割未満しか削れない相手です。${esc(n)}が見えたら、出すのを考え直しましょう。`,c.threat,r=>`${esc(n)}の${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒される':'最大'+Math.round(r.their)+'%'}。こちらは最大${Math.round(r.my)}%。`)}
+  ${sec('出すと危ない',`${esc(n)}から半分以上受けて、こちらは3割未満しか削れない相手です。${esc(n)}が見えたら、出すのを考え直しましょう。`,c.threat,r=>`${esc(n)}の${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒される'+(r.mHold&&r.mHold.length?`（こちらの型は${r.mHold.join('・')}を持つので、HPが満タンなら1回は耐えられる。この計算には入れていない）`:''):'最大'+Math.round(r.their)+'%'}。こちらは最大${Math.round(r.my)}%。`)}
   <div class="btns" style="flex-wrap:wrap"><a class="btn btn-s" href="#/calc">自分の育成でダメージ計算</a><a class="btn btn-s" href="#/memo/${p.base||p.no}">戦術メモに書く</a></div>
   <details class="gdoc"><summary>タイプ一致で弱点を突けるポケモン（合計種族値の高い順）</summary>${cs.map(q=>rowP(q)).join('')||'<p class="empty">該当するポケモンがいません。</p>'}</details>`;
 }

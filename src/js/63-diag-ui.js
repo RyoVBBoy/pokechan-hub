@@ -23,25 +23,30 @@ function dguGoodHTML(C,cnt,N){
 function dguSumHTML(){return `<div id="dgu-sum" class="dgu-card"><p class="dgu-loading">診断をまとめています…</p></div>`}
 function dguSumFill(entries,C){
   const box=document.getElementById('dgu-sum');if(!box)return;
-  let T,A;try{T=dgTeam(entries,20);A=dgAnalyze(T)}catch(e){box.innerHTML='';return}
-  const N=T.rows.length;if(!N){box.innerHTML='';return}
+  let T,A;
+  try{T=C?.diagnosis||dgTeam(entries,20);A=C?.analysis||dgAnalyze(T)}catch(e){}
+  const N=T?.rows.length||0;
+  if(!N){box.innerHTML='<div class="dgu-head"><h2>気をつけたい相手・場面</h2></div><p class="dgu-note" role="status">比較できる相手がいないため、対面の判定を保留しています。</p>';return}
+  const provisional=FMT==='double'||!A||T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
   const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(r=>cnt[r.lvl]++);
   /* 4分野の状態＝その分野の気になる点のいちばん重い重要度 */
-  const areaSev=a=>Math.max(0,...A.bad.filter(x=>x.area===a).map(x=>x.sev||0));
+  const issues=C?.fix?C.fix.filter(x=>x.k==='calc'):A?.bad||[];
+  const areaSev=a=>Math.max(0,...issues.filter(x=>x.area===a).map(x=>x.sev||0));
   /* 最も深刻な弱点：パーティのチェックの計算の弱点と同じ並び（partyCheck の fix のうち計算のもの＝重い順）の先頭3つ */
-  const W=(C&&C.fix?C.fix.filter(x=>x.k==='calc'):A.bad).slice(0,3);
-  const nBad=(C&&C.fix?C.fix.filter(x=>x.k==='calc'):A.bad).length;
-  box.innerHTML=`<div class="dgu-head"><h2>気をつけたい相手・場面</h2><span class="dgu-fmt">${FMTN()}・使用率の上位${N}匹と1匹ずつ計算</span></div>
+  const W=issues.slice(0,3),nBad=issues.length;
+  box.innerHTML=`<div class="dgu-head"><h2>気をつけたい相手・場面</h2><span class="dgu-fmt">${FMTN()}・${esc(T.opponentSource)}${N}匹と1匹ずつ計算</span></div>
     <nav class="dgu-jump" aria-label="診断の中を移動">${[['pcw0','優先ポイント'],['lose-box','苦手になりやすい場面'],['dg-box','相手ごとの対応力'],['imp-box','改善案']].filter(([id])=>document.getElementById(id)).map(([id,t])=>`<a href="#" data-dgu-go="${id}">${t}</a>`).join('')}</nav>
     <div class="dgu-sec"><h3>パーティの状態</h3>
-      <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${dguSevTag(areaSev(a))}</div>`).join('')}</div>
+      <div class="dgu-areas">${DGU_AREAS.map(a=>`<div class="dgu-area"><span class="dgu-an">${a}</span>${!areaSev(a)&&provisional?'<span class="dgu-sev sv1">判定は暫定</span>':dguSevTag(areaSev(a))}</div>`).join('')}</div>
+      <p class="dgu-note">${esc(C?.scope||'パーティ全体')}の結果です。${provisional?'推定の型や未反映の条件が含まれます。':''}${FMT==='double'?DG_DOUBLE_SCOPE:''}</p>
       ${dguBars(cnt,N)}
       ${T.tr&&T.tr.on?`<p class="dgu-note">トリックルーム中：${DGU_LV.map(([l,m])=>`${m}${T.rows.filter(r=>r.lvlTR===l).length}匹`).join('・')}（上の数はトリックルームなし）</p>`:''}
       <p class="dgu-note">点数はつけていません。分野ごとの見直しの優先度です。</p></div>
     <div class="dgu-sec"><h3>優先ポイント${nBad>3?`（${nBad}件中3件）`:''}</h3>
-      ${W.length?`<ol class="dgu-weak">${W.map((x,k)=>`<li><a href="#" data-dgu-go="pcw${k}">${dguSevTag(x.sev||1)}<span class="dgu-wa">${esc(x.area||'')}</span><span class="dgu-wt">${x.t}</span></a></li>`).join('')}</ol>`:'<p class="dgu-ok">✓ 優先して見直すポイントはありません。</p>'}</div>
+      ${W.length?`<ol class="dgu-weak">${W.map((x,k)=>`<li><a href="#" data-dgu-go="${esc(x.id||'dg-box')}">${dguSevTag(x.sev||1)}<span class="dgu-wa">${esc(x.area||'')}</span><span class="dgu-wt">${x.t}</span></a></li>`).join('')}</ol>`:'<p class="dgu-note">計算できた範囲で、優先して見直すポイントは見つかりませんでした。</p>'}</div>
     <div class="dgu-sec"><h3>まず試したい改善</h3>
-      ${W.length&&W[0].how?`<p class="dgu-how"><b>${esc(W[0].t.replace(/<[^>]+>/g,''))}</b>：${W[0].how}</p>`:''}
+      ${W.length&&W[0].how?`<p class="dgu-how"><b>優先ポイントへの対策例 ${esc(W[0].t.replace(/<[^>]+>/g,''))}</b> ${W[0].how}</p>`:''}
+      <p class="dgu-note">下はパーティ全体で、変更の前後を再計算した改善案です。${FMT==='double'?DG_DOUBLE_LIMITS:''}</p>
       <div id="dgu-imp" class="dgu-imp"><p class="dgu-loading">改善案を計算中…（変更後のパーティを計算し直しています）</p></div></div>`;
   box.querySelectorAll('[data-dgu-go]').forEach(a=>a.onclick=e=>{e.preventDefault();dgAdvOpen(a.dataset.dguGo);const t=document.getElementById(a.dataset.dguGo);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('dgu-flash');setTimeout(()=>t.classList.remove('dgu-flash'),1200)}});
   /* 選出の理由へ：構築と選出タブの「選出の比較」まで送る（タブの切りかえは ttJump） */
@@ -55,17 +60,17 @@ function dguImpHTML(R){
   const B=o.J.b,A=o.J.a,ch=[];
   [['x','答えがない相手'],['w','△以下の相手'],['nosw','後出しできない相手'],['ohko','半分以上を一撃で倒される相手'],['slow','だれも先に動けない相手']].forEach(([k,l])=>{if(B[k]!=null&&A[k]!=null&&B[k]!==A[k])ch.push(`<span class="dgu-chg ${A[k]<B[k]?'up':'dn'}">${l} ${B[k]}→${A[k]}</span>`)});
   if(B.st!=null&&A.st!=null&&B.st!==A.st)ch.push(`<span class="dgu-chg ${A.st>B.st?'up':'dn'}">◎ ${B.st}→${A.st}</span>`);
-  return `<p class="dgu-it"><span class="pc-area">${IMP_KIND[o.kind]}</span><b>${esc(o.title)}</b></p><p class="dgu-chgs">${ch.join('')}</p>
+  return `<p class="dgu-it"><span class="pc-area">${IMP_KIND[o.kind]}</span><b>${esc(o.title)}</b></p><p class="dgu-chgs">${o.J.tr?'通常時 ':''}${ch.join('')}</p>${o.J.tr?`<p class="dgu-note">トリックルーム中 ${impGainLabel(o.J.tr.gain)}</p>`:''}
     <button class="dgu-link" data-dgu-go2="imp-box">ほかの改善案（${R.list.length}件）と、変更前後の詳細を見る</button>`;
 }
 function dguImp(entries){
   const el=document.getElementById('dgu-imp');if(!el)return;
-  const show=R=>{const e=document.getElementById('dgu-imp');if(!e)return;e.innerHTML=dguImpHTML(R);
+  const stamp=teamActionStamp(entries);
+  const show=R=>{if(!el.isConnected||teamActionStamp()!==stamp)return;const e=el;e.innerHTML=dguImpHTML(R);
     e.querySelectorAll('[data-dgu-go2]').forEach(b=>b.onclick=()=>{dgAdvOpen(b.dataset.dguGo2);const t=document.getElementById(b.dataset.dguGo2);if(t)t.scrollIntoView({behavior:'smooth',block:'start'})});
-    const box=document.getElementById('imp-box');if(box&&typeof impRender==='function')impRender(box,R)};
+    const box=document.getElementById('imp-box');if(box&&typeof impRender==='function')impRender(box,R,stamp)};
   const c=typeof impCached==='function'&&impCached(entries);if(c){show(c);return}
-  const sig=impKey(entries);
-  const go=()=>{if(!document.getElementById('dgu-imp')||impKey(team)!==sig)return;
+  const go=()=>{if(!el.isConnected||teamActionStamp()!==stamp)return;
     let R;try{R=impGet(entries)}catch(e){const e2=document.getElementById('dgu-imp');if(e2){e2.innerHTML=`<p class="dgu-note">改善案を計算できませんでした。</p><button class="dgu-link" id="dgu-retry">もう一度計算する</button>`;e2.querySelector('#dgu-retry').onclick=()=>{e2.innerHTML='<p class="dgu-loading">改善案を計算中…</p>';setTimeout(go,30)}}return}
     show(R)};
   /* 描画が終わってから（ブラウザが空いたとき）計算する */
@@ -97,17 +102,17 @@ function dguCard(x,bad,swHTML,chips){
 }
 /* ===================== 第3段階：相手ごとの対応力とダメージの表（2026/11/10） =====================
    1匹の対面＝結論（〇〇（こちら）は 上から一撃（確定））＋表：技・ダメージ・一撃で倒せる確率・確定何発・相手の技・素早さ・行動順・後出し。
-   数はすべて dgMatch の結果そのまま（me・op・sa・so・spd・swIn）。一撃で倒せる確率＝乱数16段階のうち倒せる数（dgMove の ohko）。
+   数はすべて dgMatch の結果そのまま（me・op・sa・so・spd・swIn）。最初の1回で倒す確率は命中込み（dgMatch の koOnUse）。
    もとの理由の文（why・swTxt）は「計算根拠を見る」に全部残す */
-const DGU_SW={win:'後出しして勝てる',sashwin:'条件つきで後出しできる（きあいのタスキ頼み）',sash:'後出しできない（タスキで1だけ残るだけ）',survive:'1発目は耐えるが、撃ち合いで負ける',no:'交代で受ける1発目で倒される'};
-function dguKoPct(x){if(!x||!x.max)return '—';if(x.nMin===1)return '100%（確定）';if(x.nMax===1)return `${Math.round(x.ohko/16*100)}%`;return '0%（一撃では倒せない）'}
+const DGU_SW={win:'後出しして勝てる',sashwin:'条件つきで後出しできる（きあいのタスキ頼み）',sash:'後出しできない（タスキで1だけ残るだけ）',survive:'1発目は耐えるが、撃ち合いで負ける',unproven:'交代後の勝ちは判定保留',no:'交代で受ける1発目で倒される'};
+function dguKoPct(z){return Number.isFinite(z.koOnUse)?pctTxt(z.koOnUse):'—'}
 function dguMatchHTML(z,oppName,meName){
   const order=z.spd===1?(z.tr?'こちらが先（トリックルーム中）':'こちらが先'):z.spd===0?'同速（どちらが先かは五分）':(z.tr?'相手が先（トリックルーム中）':'相手が先');
   const rows=[
     ['技',z.me?esc(z.me.mvn):'効く技がない'],
     ['ダメージ',z.me?esc(dgDmgTxt(z.me,'op')):'—'],
-    ['一撃で倒せる確率',z.me?dguKoPct(z.me):'—'],
-    ['確定何発',z.me?esc(dgKoTxt(z.me)):'—'],
+    ['1回使って倒せる確率（命中込み）',dguKoPct(z)],
+    ['倒すまでの攻撃回数・ターン（命中前提）',z.me?esc(dgKoTxt(z.me)):'—'],
     ['相手の技',z.op?`${esc(z.op.mvn)}：${esc(dgDmgTxt(z.op,'me'))}（${esc(dgKoTxt(z.op))}）`:'こちらに効く技がない'],
     ['素早さ',`${esc(meName)} ${z.sa} 対 ${esc(oppName)} ${z.so}`],
     ['行動順',order],

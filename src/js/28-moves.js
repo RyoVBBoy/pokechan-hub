@@ -5,13 +5,13 @@ function movesPanel(p){
   const el=document.getElementById('mvpanel');if(!el)return;
   MVS.tab4=p.no;
   /* メガシンカの姿は、元の姿の覚える技・使用率を使う。特性はメガシンカ後の1つ */
-  const bn=p.base||p.no;
+  const bn=learnBase(p).no;/* 2026/11/24：覚える技の元は learnBase だけ（メガ→元の姿。地方・姿違いはその姿のまま） */
   const ls=LSD[bn]?LSD[bn][1]:[];
   const use=(LIVE.csv[bn]&&LIVE.csv[bn].mv)||[];
   const useOf={};use.forEach(([n,pc])=>{const id=MVKA[nrm(n)];if(id)useOf[id]=pc});
   const abl=ABD[p.no]||(p.ab?[[p.ab,0]]:[]);
   const abUse={};((LIVE.csv[bn]&&LIVE.csv[bn].ab)||[]).forEach(([n,pc])=>{const k=ABK[nrm(n)];if(k)abUse[k]=pc});
-  const rows=ls.map(id=>{const u=MVU[id]||[],d=MD[id]||[];return{id,n:mName(id),t:u[0],cls:u[1],pow:u[2],acc:u[3],pp:u[4],pri:u[5],tg:u[6],desc:d[1]||'',fl:d[2]||'',calc:!!MV[id]||id===182||id===197,use:useOf[id]}});
+  const rows=ls.map(id=>{const u=MVU[id]||[],d=MD[id]||[];return{id,n:mName(id),t:u[0],cls:u[1],pow:u[2],acc:u[3],pp:u[4],pri:u[5],tg:u[6],desc:d[1]||'',fl:d[2]||'',calc:!!MV[id]||PROT_IDS.has(id),use:useOf[id]}});
   const cnt={all:rows.length,0:rows.filter(r=>r.cls===0).length,1:rows.filter(r=>r.cls===1).length,2:rows.filter(r=>r.cls===2).length};
   const draw=()=>{
     const q=MVS.q.trim();
