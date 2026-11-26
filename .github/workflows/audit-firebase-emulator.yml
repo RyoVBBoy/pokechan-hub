@@ -1,0 +1,68 @@
+name: Firebase isolated Auth emulator audit (no deployment)
+on:
+  push:
+    branches: [audit/firebase-emulator-20261126]
+permissions:
+  contents: read
+jobs:
+  auth-emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned SDK and emulator CLI
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tools/firebase-adapter
+          npm install --prefix "$RUNNER_TEMP/fb-cli" --no-audit --no-fund --ignore-scripts firebase-tools@15.36.0
+      - name: Auth emulator only — synthetic demo project
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset GOOGLE_APPLICATION_CREDENTIALS FIREBASE_TOKEN GOOGLE_CLOUD_PROJECT GCLOUD_PROJECT
+          export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+          export GCLOUD_PROJECT=demo-gamekids-security
+          export CI=true
+          cat > "$RUNNER_TEMP/firebase-audit.json" <<'JSON'
+          {"emulators":{"auth":{"host":"127.0.0.1","port":9099},"ui":{"enabled":false},"singleProjectMode":true}}
+          JSON
+          cat > tools/firebase-adapter/audit-auth-emulator.mjs <<'JS'
+          import assert from 'node:assert/strict';
+          import {initializeApp,deleteApp} from 'firebase-admin/app';
+          import {getAuth} from 'firebase-admin/auth';
+          const project='demo-gamekids-security';
+          assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:9099');
+          assert.equal(process.env.GCLOUD_PROJECT,project);
+          const app=initializeApp({projectId:project});
+          const auth=getAuth(app);
+          const email='synthetic-audit@example.invalid',password='OnlyForLocalAudit123!';
+          const api='http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-demo-key';
+          const signIn=async()=>{const r=await fetch(api,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password,returnSecureToken:true})});return {status:r.status,json:await r.json()}};
+          let count=0;
+          const ok=(cond,label)=>{assert.ok(cond,label);console.log('PASS '+label);count++};
+          try {
+            const u=await auth.createUser({email,password,emailVerified:true});
+            ok(!u.disabled,'synthetic user created enabled');
+            const a=await signIn();
+            ok(a.status===200&&typeof a.json.idToken==='string','initial sign-in');
+            await auth.updateUser(u.uid,{disabled:true});
+            ok((await auth.getUser(u.uid)).disabled===true,'Admin SDK disables account');
+            await auth.revokeRefreshTokens(u.uid);
+            ok((await auth.getUser(u.uid)).tokensValidAfterTime!=null,'refresh-token revocation call recorded');
+            const b=await signIn();
+            ok(b.status!==200&&b.json.error?.message==='USER_DISABLED','disabled account cannot sign in');
+            await auth.updateUser(u.uid,{disabled:false});
+            ok((await auth.getUser(u.uid)).disabled===false,'Admin SDK re-enables account');
+            const c=await signIn();
+            ok(c.status===200&&typeof c.json.idToken==='string','sign-in restored');
+            await auth.deleteUser(u.uid);
+            await assert.rejects(auth.getUser(u.uid),e=>e.code==='auth/user-not-found');
+            ok(true,'synthetic account deleted');
+            console.log('Auth emulator checks: '+count+'/8');
+          } finally {await deleteApp(app)}
+          JS
+          "$RUNNER_TEMP/fb-cli/node_modules/.bin/firebase" emulators:exec --only auth --project demo-gamekids-security --config "$RUNNER_TEMP/firebase-audit.json" "node tools/firebase-adapter/audit-auth-emulator.mjs"
