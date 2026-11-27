@@ -13,7 +13,6 @@ const dpTyA=a=>a.map(t=>chip(t)).join('');
 function dpEvidenceHTML(p){
   const abs=(p.ab?[[p.ab,0]]:ABD[p.no]||[]).map(a=>a[0]);
   const ids=(LSD[p.no]||LSD[p.base]||[0,[]])[1];
-  const known=k=>ids.some(id=>MD[id]&&MD[id][3]===k);
   const facts={
     'huge-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
     'pure-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
@@ -34,10 +33,10 @@ function dpEvidenceHTML(p){
   const ordered=[...special,...abs.filter(k=>!special.includes(k))];
   const abRows=ordered.map(k=>'<details class="dp-li"><summary><span class="dp-li-t">'+esc(ABN[k]||k)+'</span><span class="dp-li-c" aria-hidden="true">›</span></summary><p>'+esc(facts[k]||ABDS[k]||'効果は特性の詳細で確認してください。')+'</p></details>').join('');
   const hit=abs.filter(k=>k==='huge-power'||k==='pure-power');
-  const raw=Math.floor((p.s[1]+32+20)*1.1);
+  const raw=calcStats(p,[0,32,0,0,0,0],1,3)[1];
   const bar=(label,v,max)=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;margin:8px 0"><span>'+esc(label)+'</span><b>'+v+'</b><span style="grid-column:1/-1;height:9px;border-radius:6px;background:var(--line);overflow:hidden"><span style="display:block;width:'+Math.min(100,v/max*100)+'%;height:100%;background:var(--acc);border-radius:6px"></span></span></div>';
   const chart=hit.length?'<section class="dp-sec"><h3 class="dp-st">特性で変わる攻撃</h3>'+bar('特性の補正なし',raw,raw*2)+bar(ABN[hit[0]]+'の補正あり',raw*2,raw*2)+'<p class="dp-fn">攻撃上昇補正・能力ポイント32。特性が有効な場合の計算上の攻撃値であり、最終ダメージではありません。</p></section>':'';
-  const mvIds=ids.filter(id=>MV[id]).filter(id=>{const k=MD[id]&&MD[id][3];return ['aquajet','suckerpunch','extremespeed','machpunch','bulletpunch','iceshard','shadow sneak','shadowsneak','fakeout','uturn','voltswitch','flipturn','partingshot','trickroom','tailwind','bellydrum','swordsdance','nastyplot','quiverdance','followme','ragepowder','wideguard'].includes(k)});
+  const mvIds=ids.filter(id=>MV[id]).filter(id=>{const k=MD[id]&&MD[id][3];return ['aquajet','suckerpunch','extremespeed','machpunch','bulletpunch','iceshard','shadowsneak','fakeout','uturn','voltswitch','flipturn','partingshot','trickroom','tailwind','bellydrum','swordsdance','nastyplot','quiverdance','followme','ragepowder','wideguard'].includes(k)});
   const tags=mvIds.slice(0,8).map(id=>'<a class="pill gchip" href="#/move/'+id+'">'+esc(mName(id))+'</a>').join('');
   const form=p.base?byNo[p.base]:null;
   const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
@@ -62,7 +61,7 @@ function dpOverviewHTML(p,g){
   /* 英語のときは文が日本語だけと知らせる（攻略ガイドと同じ、英語は未翻訳） */
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
-    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p></section>${evidence.html}
+    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p><details class="dp-li"><summary>役割・姿の詳しい説明</summary><p>${g.lead}</p></details></section>${evidence.html}
     ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
