@@ -62,7 +62,13 @@ function dpEvidenceHTML(p){
   const danceStats=calcStats(p,[2,32,0,0,0,32],1,3);
   const danceChart=dragonDance?'<details class="dp-li"><summary>りゅうのまい：攻撃・素早さの変化</summary>'+[1,5].map(i=>bar(statNames[i]+'（使用前）',danceStats[i],Math.floor(danceStats[i]*1.5))+bar(statNames[i]+'（1回使用後）',Math.floor(danceStats[i]*1.5),Math.floor(danceStats[i]*1.5))).join('')+'<p class="dp-fn">攻撃上昇・特攻下降補正、HP2・攻撃32・素早さ32。ランク0から1へ上昇した場合。特性・持ち物・場の補正なし。</p></details>':'';
   const priorityText=priority.length?'<details class="dp-li"><summary>先制攻撃の選択肢</summary>'+priority.map(id=>'<p>'+esc(mName(id))+'：優先度 +'+mvObj(id).pri+'</p>').join('')+'<p class="dp-fn">技の成功条件や優先度の高い相手の技、先制技を防ぐ効果に注意。</p></details>':'';
-  const moveEvidence=danceChart+priorityText;
+  const formatMoves=(label,entries)=>{
+    const rows=entries.filter(([id])=>hasMove(id)).map(([id,why])=>'<p><a href="#/move/'+id+'">'+esc(mName(id))+'</a>：'+esc(why)+'</p>').join('');
+    return rows?'<details class="dp-li"><summary>'+label+'</summary>'+rows+'</details>':'';
+  };
+  const singleRoles=formatMoves('シングル：戦い方の候補',[[349,'攻撃と素早さを上げる積み技'],[14,'攻撃を2段階上げる積み技'],[417,'特攻を2段階上げる積み技'],[245,'優先度+2の攻撃技。無効タイプなどに注意']]);
+  const doubleRoles=formatMoves('ダブル：味方と連携する技',[[366,'味方側の素早さを上げる'],[433,'同じ優先度内の素早さ順を逆転させる'],[266,'対象となる相手の技を自分に引き寄せる'],[476,'対象となる相手の技を自分に引き寄せる。粉技無効の相手などに注意'],[469,'対象となる範囲攻撃から味方側を守る'],[252,'場に出た最初のターンに使える先制技。ひるみ無効などに注意']]);
+  const moveEvidence=danceChart+priorityText+singleRoles+doubleRoles;
 
   const topStat=p.s.reduce((best,v,i)=>v>p.s[best]?i:best,0);
   const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。';
