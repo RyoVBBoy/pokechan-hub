@@ -40,7 +40,7 @@ const cases=await pg.evaluate(([N,SEED])=>{
     const m2=mv; // preserve actual target, including the single-target spread-toggle regression
     let rolls,eff;try{rolls=[];for(let k=85;k<=100;k++)rolls.push(bcalc(a,m2,d,{...o,r:k}).dmg);eff=bcalc(a,m2,d,o).eff}finally{B.weather=sw}
     if(!eff)continue;
-    out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id,tg:mv.tg},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
+    out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id,tg:mv.tg,mk:mkey({id:mv.id})},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
   }
   return out;
 },[N,SEED]);
@@ -57,7 +57,10 @@ const mk=(x,isA)=>{const p=new Pokemon(gen,'Mew',{level:50,ability:AB(x.ab),item
 let ok=0;const bad=[];
 for(const c of cases){
   const flags={};[...c.fl].forEach(ch=>{if(FL[ch])flags[FL[ch]]=1});
-  const mv=new Move(gen,c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
+  /* 相手の能力の変化を見ない技（せいなるつるぎ・DDラリアット）：当サイトは a11aca5 から能力の変化を見ないので、照合先にも本当の技の名前で渡す
+     （汎用の技だと照合先が変化を入れて食い違う。2026/11/27 の CI で能力-1・-4 の相手で見つかった） */
+  const NAMED={sacredsword:'Sacred Sword',darkestlariat:'Darkest Lariat'};
+  const mv=new Move(gen,NAMED[c.mv.mk]||(c.mv.cls?'Swift':'Stone Edge'),{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
   const f=new Field({gameType:c.o.format==='double'?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
   let r=calculate(gen,mk(c.a,1),mk(c.d,0),mv,f).damage;r=Array.isArray(r)?r:[r];
   if(JSON.stringify(r)===JSON.stringify(c.rolls))ok++;else bad.push({c,ref:r});
