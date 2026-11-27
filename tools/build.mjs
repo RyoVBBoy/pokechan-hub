@@ -92,6 +92,10 @@ ${SEC}/__/*
   ! Cross-Origin-Opener-Policy
 /sw.js
   Cache-Control: public, max-age=0, must-revalidate
+/piplab-hls.m3u8
+  Content-Type: application/vnd.apple.mpegurl
+/piplab-hls*.ts
+  Content-Type: video/mp2t
 /assets/app.*
   Cache-Control: public, max-age=31536000, immutable
 /*.html
