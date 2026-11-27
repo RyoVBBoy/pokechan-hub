@@ -393,7 +393,22 @@ async function badReq(db,env,ip,now){
 /* ---------- 安全確認（Google Cloud Web Risk Lookup v1 uris.search。決まったアドレスだけ・行き先は開かない） ---------- */
 /* 覚えの鍵に入れる方針の版（確かめる種類を変えたら版を上げる＝前の答えを使わない） */
 const LK_POLICY='p1:'+LK_WR_TYPES.join(',');
-const lkVh=checkUrl=>sha('lk|'+LK_POLICY+'|'+checkUrl);
+// Allowlist policy is deliberately narrow; no arbitrary paths, query parameters or fragments.
+const LK_ALLOW_POLICY='allowlist-v1';
+const lkAllowMode=env=>String(env.LINKS_POLICY||'')==='allowlist';
+const lkPolicy=env=>lkAllowMode(env)?LK_ALLOW_POLICY:LK_POLICY;
+const lkVh=(checkUrl,env={})=>sha('lk|'+lkPolicy(env)+'|'+checkUrl);
+function lkAllowed(raw){
+  const v=lkValidate(raw);if(v.error)return false;
+  const u=new URL(v.url),p=u.pathname;
+  if(u.hash)return false;
+  if(['www.youtube.com','youtube.com'].includes(u.hostname))
+    return p==='/watch'&&[...u.searchParams].length===1&&/^[A-Za-z0-9_-]{11}$/.test(u.searchParams.get('v')||'')&&/^\?v=[A-Za-z0-9_-]{11}$/.test(u.search);
+  if(u.search)return false;
+  if(u.hostname==='x.com')return /^\/[A-Za-z0-9_]{1,15}\/status\/[0-9]{1,20}$/.test(p);
+  if(['www.pokemon.co.jp','www.pokemon.com','champions.pokemon.com'].includes(u.hostname))return p==='/';
+  return false;
+}
 const lkTtl=env=>Math.max(5,Math.min(60,parseInt(env.LINKS_CLEAN_TTL_MIN||'30',10)||30))*60e3;
 const lkConc=env=>Math.max(1,Math.min(16,parseInt(env.LINKS_WEBRISK_CONC||'4',10)||4));
 const lkMs=env=>Math.max(500,Math.min(5000,+env.LINKS_WEBRISK_MS||3000));
@@ -446,11 +461,13 @@ async function lkSaturated(db,now){
 /* 危険の答えを、同じ行き先のすべての投稿のリンクに書く（覚えに入らなくても、投稿の側に残る。rev を上げて、出ている許可も使えなくする） */
 const lkMarkVhUnsafe=(db,h,now,exp)=>db.prepare(`UPDATE note_links SET state='unsafe',verdict='unsafe',verdict_at=?1,expires_at=?2,updated_at=?1,rev=rev+1 WHERE vh=?3 AND state='ok'`).bind(now,exp,h);
 async function lkThreat(env,db,checkUrl,now,opt={}){
-  const h=await lkVh(checkUrl);
+  const h=await lkVh(checkUrl,env);
+  if(lkAllowMode(env)&&!lkAllowed(checkUrl))return{v:'error',why:'allowlist',h};
   let c;try{c=await db.prepare(`SELECT verdict,types,expires_at FROM link_verdicts WHERE h=?`).bind(h).first()}catch(e){return{v:'error',why:'cache',h}}
   if(c&&c.verdict==='unsafe'&&c.expires_at>now)return{v:'unsafe',types:c.types?c.types.split(','):[],exp:c.expires_at,h,cached:true};
   try{if(await lkSaturated(db,now))return{v:'error',why:'saturated',h}}catch(e){return{v:'error',why:'cache',h}}
   if(c&&c.verdict==='clean'&&c.expires_at>now&&!opt.fresh)return{v:'clean',types:[],exp:c.expires_at,h,cached:true};
+  if(lkAllowMode(env))return lkAllowed(checkUrl)?{v:'clean',types:[],exp:now+lkTtl(env),h}:{v:'error',why:'allowlist',h};
   const key=String(env.WEBRISK_API_KEY||'');
   if(!key)return{v:'error',why:'nokey',h};
   let lease;try{lease=await lkLease(db,env,now)}catch(e){return{v:'error',why:'lease',h}}
@@ -550,6 +567,7 @@ async function lkForNote(env,db,me,uid,body,text,now){
   if(!await emailLink(db,uid,hs,now))return{error:'いまリンク付きの投稿は準備中です。',status:503};
   const v=lkValidate(raw);
   if(v.error){await lkEvent(db,now,{uid,kind:'reject_syntax',detail:v.code});return{error:v.error,code:v.code,status:400}}
+  if(lkAllowMode(env)&&!lkAllowed(v.url))return{error:'許可されたサイト・形式のリンクだけ投稿できます。',code:'allowlist',status:400};
   if(rest&&ngCheck(rest))return/リンク/.test(ngCheck(rest))?{error:LK_ERR.bare,code:'bare',status:400}:{error:ngCheck(rest),code:'ng',status:400};
   return{text:rest,link:v};
 }
@@ -577,10 +595,10 @@ async function lkReported(env,db,id,now){
 /* 確かめ直す。書くのは、確かめる前に読んだ rev のままで状態が ok のときだけ */
 async function lkRecheck(env,db,l,now,why){
   const v=lkValidate(l.url);
-  if(v.error){await db.prepare(`UPDATE note_links SET state='removed',rev=rev+1,updated_at=? WHERE note_id=? AND rev=?`).bind(now,l.note_id,l.rev).run();await lkEvent(db,now,{uid:l.uid,note_id:l.note_id,host:l.host,kind:'invalid',detail:v.code});return{v:'removed'}}
+  if(v.error||(lkAllowMode(env)&&!lkAllowed(l.url))){await db.prepare(`UPDATE note_links SET state='removed',rev=rev+1,updated_at=? WHERE note_id=? AND rev=?`).bind(now,l.note_id,l.rev).run();await lkEvent(db,now,{uid:l.uid,note_id:l.note_id,host:l.host,kind:'invalid',detail:v.code||'allowlist'});return{v:'removed'}}
   const t=await lkThreat(env,db,v.check,now,{fresh:why==='report'||why==='admin'});
   let ch=0;
-  if(t.v==='clean')ch=(await db.prepare(`UPDATE note_links SET verdict='clean',verdict_at=?,expires_at=?,updated_at=?,vh=?,pol=? WHERE note_id=? AND rev=? AND state='ok'`).bind(now,t.exp,now,t.h,LK_POLICY,l.note_id,l.rev).run()).meta.changes;
+  if(t.v==='clean')ch=(await db.prepare(`UPDATE note_links SET verdict='clean',verdict_at=?,expires_at=?,updated_at=?,vh=?,pol=? WHERE note_id=? AND rev=? AND state='ok'`).bind(now,t.exp,now,t.h,lkPolicy(env),l.note_id,l.rev).run()).meta.changes;
   else if(t.v==='unsafe'){ch=(await lkMarkUnsafe(db,l.note_id,l.rev,now,t.exp,t.h)).meta.changes;
     await lkEvent(db,now,{uid:l.uid,note_id:l.note_id,host:l.host,h:t.h,kind:'recheck_unsafe',detail:(why+':'+t.types.join(',')).slice(0,120)})}
   else await lkEvent(db,now,{uid:l.uid,note_id:l.note_id,host:l.host,h:t.h,kind:'check_error',detail:why+':'+t.why});
@@ -661,7 +679,7 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
   await socialInit(db);await linksInit(db);
   let m;
   if(path==='/api/links/config'&&req.method==='GET'){const kr=emailKeyring(env);
-    return J({post:lkOn(env,'LINKS_POST')&&lkOn(env,'SANCTIONS_ON')&&!kr.err&&!!kr.cur&&!!env.WEBRISK_API_KEY,click:lkOn(env,'LINKS_CLICK')})}
+    return J({post:lkOn(env,'LINKS_POST')&&lkOn(env,'SANCTIONS_ON')&&!kr.err&&!!kr.cur&&(lkAllowMode(env)||!!env.WEBRISK_API_KEY),click:lkOn(env,'LINKS_CLICK')})}
   /* ---- Firebase アダプター（tools/firebase-adapter、FB_ADAPTER_TOKEN）・ブロッキング関数（tools/firebase-blocking、FB_HOOK_TOKEN） ----
      アダプターの手順（UID ごと）：claim（借りる。あるべき状態を D1 から決めて返す）→ Firebase の今の状態を読む →
      intent（外を変える前に、最初の状態と、これからすることを記録。戻すときはここで停止がないことを確かめ直す）→ Firebase を変える → 読み直して確かめる → ack。
@@ -831,20 +849,20 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
       if(!it)return J({error:'確認の画面の期限が切れました。もう一度リンクを押してください。',expired:true},410);
       if(!l)return J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
       if(l.unsafe_exp){await lkMarkUnsafe(db,id,l.rev,t,l.unsafe_exp,l.vh);return INERT}
-      if(l.state!=='ok'||l.rev!==it.rev||lkValidate(l.url).error)return INERT;
+      if(l.state!=='ok'||l.rev!==it.rev||(lkValidate(l.url).error||(lkAllowMode(env)&&!lkAllowed(l.url))))return INERT;
       /* 方針の版が変わった（許可も投稿の答えも前の版）：もう一度押してもらう（開き直すと今の版で確かめ直す） */
-      if(it.pol!==LK_POLICY||l.pol!==LK_POLICY)return J({error:'安全確認の決まりが新しくなりました。もう一度リンクを押してください。',expired:true},410);
+      if(it.pol!==lkPolicy(env)||l.pol!==lkPolicy(env))return J({error:'安全確認の決まりが新しくなりました。もう一度リンクを押してください。',expired:true},410);
       if(!(l.expires_at>t))return J({error:'安全確認の期限が切れました。もう一度リンクを押してください。',expired:true},410);
       return J({ok:true,url:l.url,host:l.host});
     }
     let l=await snap(now).first();
     if(!l)return J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
-    if(l.state!=='ok'||lkValidate(l.url).error)return INERT;
+    if(l.state!=='ok'||(lkValidate(l.url).error||(lkAllowMode(env)&&!lkAllowed(l.url))))return INERT;
     /* 同じ行き先のほかの投稿で危険と分かっていれば（前の版の鍵で覚えた危険も）、この投稿の期限の前でも止める */
     if(l.unsafe_exp){await lkMarkUnsafe(db,id,l.rev,now,l.unsafe_exp,l.vh);return J({error:'このリンクは安全確認で危険の可能性があると判定されたため、開けません。',inert:true},410)}
     /* 前の版の行（vh がない）・方針の版（LK_POLICY）が変わった行：今の鍵と版にし、問題なしの答えは使わずに確かめ直す（expires_at=0）。rev を上げて前の版の許可を使えなくする */
-    {const vh=await lkVh(lkValidate(l.url).check);if(l.vh!==vh||l.pol!==LK_POLICY){
-      await db.prepare(`UPDATE note_links SET vh=?,pol=?,expires_at=0,rev=rev+1,updated_at=? WHERE note_id=? AND rev=? AND state='ok'`).bind(vh,LK_POLICY,now,id,l.rev).run();
+    {const vh=await lkVh(lkValidate(l.url).check,env);if(l.vh!==vh||l.pol!==lkPolicy(env)){
+      await db.prepare(`UPDATE note_links SET vh=?,pol=?,expires_at=0,rev=rev+1,updated_at=? WHERE note_id=? AND rev=? AND state='ok'`).bind(vh,lkPolicy(env),now,id,l.rev).run();
       l=await snap(now).first();if(!l)return J({error:'投稿が見つかりません。'},404);if(l.state!=='ok')return INERT}}
     if(l.unsafe_exp){await lkMarkUnsafe(db,id,l.rev,now,l.unsafe_exp,l.vh);return J({error:'このリンクは安全確認で危険の可能性があると判定されたため、開けません。',inert:true},410)}
     if(!(l.expires_at>now)){const t=await lkRecheck(env,db,l,now,'click');
@@ -855,11 +873,11 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
     if(!l2)return J({error:'投稿が見つかりません（削除された可能性があります）。'},404);
     if(l2.unsafe_exp||l2.state!=='ok'||l2.rev!==l.rev||!(l2.expires_at>t2))return INERT;
     const token=rndHex(16);
-    if(l2.pol!==LK_POLICY)return INERT;
+    if(l2.pol!==lkPolicy(env))return INERT;
     /* 許可を書く文の中で、上限の印・リンクの状態・rev・方針の版・同じ行き先の危険を確かめ直す（読んでから書くまでに変わっても許可を出さない） */
     const ins=await db.prepare(`INSERT INTO link_intents(token,note_id,who,rev,expires_at,created_at,pol) SELECT ?1,?2,?3,?4,?5,?6,?7 WHERE ${LK_NOSAT}
       AND EXISTS(SELECT 1 FROM note_links l WHERE l.note_id=?2 AND l.state='ok' AND l.rev=?4 AND l.pol=?7 AND l.expires_at>?6 AND NOT EXISTS(SELECT 1 FROM link_verdicts v WHERE v.h=l.vh AND v.verdict='unsafe' AND v.expires_at>?6))`)
-      .bind(token,id,who,l2.rev,t2+60e3,t2,LK_POLICY).run();
+      .bind(token,id,who,l2.rev,t2+60e3,t2,lkPolicy(env)).run();
     if(!ins.meta.changes){if(await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first())return J({error:'いまリンクの安全確認ができないため、開けません。時間をおいてください。',saturated:true},503);return INERT}
     return J({ok:true,url:l2.url,host:l2.host,intent:token,ttl:60});
   }
@@ -890,10 +908,10 @@ async function linksApi(req,env,db,path,u,body,now,ip,isAdmin){
       if(act==='restore'&&l.state==='removed')return J({error:'形の正しくないリンクは戻せません。'},400);
       const v=lkValidate(l.url);if(v.error)return J({error:'形の正しくないリンクです。'},400);
       /* 期限内の「危険」の覚えがあれば、問い合わせずに危険（戻せない） */
-      t=await lkThreat(env,db,v.check,now,{fresh:true});
+      t=lkAllowMode(env)&&!lkAllowed(l.url)?{v:'error',why:'allowlist'}:await lkThreat(env,db,v.check,now,{fresh:true});
       if(t.v!=='clean'&&act==='restore')return J({error:t.v==='unsafe'?'安全確認で危険の可能性があると判定されたため、戻せません。':'いま安全確認ができないため、戻せません。',verdict:t.v},409);
       let ch=1;
-      if(t.v==='clean')ch=(await db.prepare(`UPDATE note_links SET ${act==='restore'?"state='ok',rev=rev+1,":''}verdict='clean',verdict_at=?,expires_at=?,updated_at=?,vh=?,pol=? WHERE note_id=? AND rev=? AND ${LK_NOSAT}`).bind(now,t.exp,now,t.h,LK_POLICY,id,l.rev).run()).meta.changes;
+      if(t.v==='clean')ch=(await db.prepare(`UPDATE note_links SET ${act==='restore'?"state='ok',rev=rev+1,":''}verdict='clean',verdict_at=?,expires_at=?,updated_at=?,vh=?,pol=? WHERE note_id=? AND rev=? AND ${LK_NOSAT}`).bind(now,t.exp,now,t.h,lkPolicy(env),id,l.rev).run()).meta.changes;
       if(!ch&&t.v==='clean'&&await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first())return J({error:'いまリンクの安全確認ができないため、戻せません（危険の覚えが上限です）。',saturated:true},409);
       /* 危険（止める方）は rev に関係なくいつも勝つ（lkThreat が同じ行き先の投稿をもう止めて rev を上げていても、ここで止めたことを書く） */
       else if(t.v==='unsafe')ch=(await db.prepare(`UPDATE note_links SET state=CASE WHEN state='ok' THEN 'unsafe' ELSE state END,rev=rev+1,verdict='unsafe',verdict_at=?,expires_at=MAX(COALESCE(expires_at,0),?),updated_at=?,vh=? WHERE note_id=?`).bind(now,t.exp,now,t.h,id).run()).meta.changes;

@@ -1044,6 +1044,25 @@ expect('B3 同じ確認済みメールの前からのアカウントは表示も
   console.log(`  D1 の問い合わせ：ログインなしの /api/tl ${anon}・ログインありの /api/tl ${authed}・ふつうの投稿 ${post}（利用停止の確かめで増える分＝${authed-anon}）`);
   Math.random=rnd;
   expect('ログインした人の読むだけで増える問い合わせ（前からの本人の確かめ1つ＋利用停止の確かめ2つ）は3つまで',authed-anon<=3,{anon,authed});void QN}
+/* Zero-cost allowlist: no scanner calls, including when a key is accidentally present. */
+{
+  const E={...env,LINKS_POLICY:'allowlist',WEBRISK_API_KEY:''};
+  const U=await mk('allowlist-user','allowlistuser');
+  const before=WR.calls.length;
+  const cfg=await call('/api/links/config',{E});
+  expect('allowlist enabled without scanner key',cfg[0]===200&&cfg[1].post===true,cfg);
+  const post=async(url,extra={})=>{await clearSlots();tick();return call('/api/notes',{method:'POST',tok:U,body:{body:'確認',url},E:{...E,...extra}})};
+  for(const url of ['https://www.youtube.com/watch?v=AbCdEf12345','https://x.com/pokemon/status/123456','https://www.pokemon.co.jp/','https://champions.pokemon.com/']){
+    const p=await post(url);expect('allowlist accepts '+url,p[0]===200,p);
+    if(p[0]===200){const g=await openGo(p[1].id,{E});expect('allowlist opens '+url,g[0]===200&&g[1].url===url,g);}
+  }
+  for(const url of ['https://www.youtube.com.evil.net/watch?v=AbCdEf12345','https://evil.youtube.com/watch?v=AbCdEf12345','https://www.youtube.com/redirect','https://www.youtube.com/watch?v=AbCdEf12345&x=1','https://www.youtube.com/watch?v=AbCdEf12345#x','https://x.com/i/redirect','https://x.com/pokemon/status/123?x=1','https://www.pokemon.co.jp/unknown','https://note.com/a','https://youtu.be/AbCdEf12345']){
+    const p=await post(url);expect('allowlist rejects '+url,p[0]===400,p);
+  }
+  const p=await post('https://www.youtube.com/watch?v=AbCdEf12345',{WEBRISK_API_KEY:WR_KEY});
+  expect('allowlist does not fall back when key exists',p[0]===200,p);
+  expect('allowlist made zero scanner calls',WR.calls.length===before,WR.calls.length-before);
+}
 /* ---------- 12. 合言葉をどこにも出さない ---------- */
 expect('Web Risk の合言葉・メールの鍵・メールは返事に出ない',!RESP.some(t=>t.includes(WR_KEY)||t.includes('email-hmac-key')||/zed\.attacker|mail\.test-gk\.net/i.test(t)),RESP.find(t=>t.includes(WR_KEY)));
 Date.now=realNow;
