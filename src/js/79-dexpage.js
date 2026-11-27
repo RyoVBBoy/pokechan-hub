@@ -12,7 +12,7 @@ const dpTyA=a=>a.map(t=>chip(t)).join('');
    No invented overall strength scores. The deeper tabs retain their existing calculations. */
 function dpEvidenceHTML(p){
   const abs=(p.ab?[[p.ab,0]]:ABD[p.no]||[]).map(a=>a[0]);
-  const ids=(LSD[p.no]||LSD[p.base]||[0,[]])[1];
+  const ids=(LSD[p.no]||LSD[p.base]||[0,[]])[1]||[];
   const facts={
     'huge-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
     'pure-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
@@ -55,7 +55,9 @@ function dpEvidenceHTML(p){
   const tags=mvIds.slice(0,8).map(id=>'<a class="pill gchip" href="#/move/'+id+'">'+esc(mName(id))+'</a>').join('');
   const form=p.base?byNo[p.base]:null;
   const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
-  const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'種族値と覚える技から戦い方を選べる。';
+  const statNames=['HP','攻撃','防御','特攻','特防','素早さ'];
+  const topStat=p.s.reduce((best,v,i)=>v>p.s[best]?i:best,0);
+  const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。';
   return {headline:esc(headline),html:chart+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
 }
 
@@ -66,7 +68,7 @@ function dpOverviewHTML(p,g){
   const li=(t,d,o={})=>`<details class="dp-li${o.cls||''}"><summary><span class="dp-li-t">${t}</span>${o.tag?`<span class="dp-li-tag${o.tagc?' '+o.tagc:''}">${o.tag}</span>`:''}<span class="dp-li-c" aria-hidden="true">›</span></summary><p>${d}</p></details>`;
   /* 役割：はじめ（ひとことの役）を「メイン」、積み技など条件のある役は「条件つき」と分ける。役の判定は前と同じ */
   const roles=g.roles.map((r,i)=>{const cond=/（(.+)のとき）$/.exec(r.name);return li(esc(cond?r.name.replace(/（.+のとき）$/,''):r.name),String(r.text).replace(/[<>]/g,''),
-    {tag:i===0?'メイン':cond?esc(cond[1]):'',tagc:i===0?'is-main':cond?'is-cond':''})}).join('');
+    {tag:cond?esc(cond[1]):'候補',tagc:cond?'is-cond':''})}).join('');
   let forms='';
   if(base&&g.megaCh)forms=`<section class="dp-sec"><h3 class="dp-st">メガシンカで変わるところ</h3><ul class="dp-ul">${g.megaCh.map(x=>`<li>${x}</li>`).join('')}</ul>
     <a class="dp-link" href="#/p/${base.no}"><span>元の姿（${esc(base.n)}）</span><span aria-hidden="true">›</span></a></section>`;
