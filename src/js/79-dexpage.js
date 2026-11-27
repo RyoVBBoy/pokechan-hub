@@ -7,7 +7,46 @@ let DPF=null;   /* 型・育成タブの形式（はじめは対戦の形式 FMT
 const dpList=a=>a.join('・');
 const dpTyA=a=>a.map(t=>chip(t)).join('');
 /* ---- 1. 概要：どんなポケモンか・強いところ・弱いところ・向いている役割・姿の違い ---- */
+
+/* Evidence-first overview: only measured values, legal ability/move choices and explicit conditions.
+   No invented overall strength scores. The deeper tabs retain their existing calculations. */
+function dpEvidenceHTML(p){
+  const abs=(p.ab?[[p.ab,0]]:ABD[p.no]||[]).map(a=>a[0]);
+  const ids=(LSD[p.no]||LSD[p.base]||[0,[]])[1];
+  const known=k=>ids.some(id=>MD[id]&&MD[id][3]===k);
+  const facts={
+    'huge-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
+    'pure-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
+    'water-bubble':'みず技の火力を強化し、ほのお技の被ダメージを半減する。',
+    'fur-coat':'物理技に対する耐久を高める。',
+    'magic-bounce':'対象となる相手の変化技を跳ね返す。',
+    'zero-to-hero':'一度交代して戻るとマイティフォルムで戦える。',
+    'stance-change':'攻撃時と防御時の姿で能力が異なる。',
+    'emergency-exit':'攻撃を受けHPが半分以下になると交代が発生する場合がある。',
+    'prankster':'変化技の優先度が上がる。相手のあくタイプなどには制約がある。',
+    'intimidate':'場に出たとき相手の攻撃を下げる。無効化や反応する特性に注意。',
+    'multiscale':'HP満タン時に受ける攻撃のダメージを軽減する。',
+    'disguise':'最初の対象となる攻撃を受けると姿が変わる。',
+    'regenerator':'交代で引くとHPを回復する。',
+    'technician':'条件を満たす低威力技を強化する。'
+  };
+  const special=abs.filter(k=>facts[k]);
+  const ordered=[...special,...abs.filter(k=>!special.includes(k))];
+  const abRows=ordered.map(k=>'<details class="dp-li"><summary><span class="dp-li-t">'+esc(ABN[k]||k)+'</span><span class="dp-li-c" aria-hidden="true">›</span></summary><p>'+esc(facts[k]||ABDS[k]||'効果は特性の詳細で確認してください。')+'</p></details>').join('');
+  const hit=abs.filter(k=>k==='huge-power'||k==='pure-power');
+  const raw=Math.floor((p.s[1]+32+20)*1.1);
+  const bar=(label,v,max)=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;margin:8px 0"><span>'+esc(label)+'</span><b>'+v+'</b><span style="grid-column:1/-1;height:9px;border-radius:6px;background:var(--line);overflow:hidden"><span style="display:block;width:'+Math.min(100,v/max*100)+'%;height:100%;background:var(--acc);border-radius:6px"></span></span></div>';
+  const chart=hit.length?'<section class="dp-sec"><h3 class="dp-st">特性で変わる攻撃</h3>'+bar('特性の補正なし',raw,raw*2)+bar(ABN[hit[0]]+'の補正あり',raw*2,raw*2)+'<p class="dp-fn">攻撃上昇補正・能力ポイント32。特性が有効な場合の計算上の攻撃値であり、最終ダメージではありません。</p></section>':'';
+  const mvIds=ids.filter(id=>MV[id]).filter(id=>{const k=MD[id]&&MD[id][3];return ['aquajet','suckerpunch','extremespeed','machpunch','bulletpunch','iceshard','shadow sneak','shadowsneak','fakeout','uturn','voltswitch','flipturn','partingshot','trickroom','tailwind','bellydrum','swordsdance','nastyplot','quiverdance','followme','ragepowder','wideguard'].includes(k)});
+  const tags=mvIds.slice(0,8).map(id=>'<a class="pill gchip" href="#/move/'+id+'">'+esc(mName(id))+'</a>').join('');
+  const form=p.base?byNo[p.base]:null;
+  const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
+  const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'種族値と覚える技から戦い方を選べる。';
+  return {headline:esc(headline),html:chart+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
+}
+
 function dpOverviewHTML(p,g){
+  const evidence=dpEvidenceHTML(p);
   /* 2026/11/15 依頼主「Premium UI」：枠の中に枠を重ねない。見出し・余白・区切り線で分け、1行ずつ押すと説明が開く（› が回る）。説明の中身は前と同じ */
   const base=p.base?byNo[p.base]:null;
   const li=(t,d,o={})=>`<details class="dp-li${o.cls||''}"><summary><span class="dp-li-t">${t}</span>${o.tag?`<span class="dp-li-tag${o.tagc?' '+o.tagc:''}">${o.tag}</span>`:''}<span class="dp-li-c" aria-hidden="true">›</span></summary><p>${d}</p></details>`;
@@ -23,7 +62,7 @@ function dpOverviewHTML(p,g){
   /* 英語のときは文が日本語だけと知らせる（攻略ガイドと同じ、英語は未翻訳） */
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
-    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${g.lead}</p></section>
+    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p></section>${evidence.html}
     ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
