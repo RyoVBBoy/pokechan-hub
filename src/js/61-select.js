@@ -8,8 +8,8 @@
 let WX_OFF=false;
 const SEL_LV={4:1,3:.7,2:.25,1:0};
 const DG_SELC=new Map();
-const dgSelectionKey=(entries,rows)=>JSON.stringify([Math.min(PICK(),entries.length),entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),rows.length,dgDataSig(),'mega-per-sel']);
 function dgSelect(entries){return impWith(entries,()=>dgSelect0(entries))}
+const dgSelectionKey=(entries,rows)=>JSON.stringify([Math.min(PICK(),entries.length),entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),rows.length,dgDataSig(),'mega-per-sel']);
 // 表示と同じ小数第3位で丸めた点を比較する。
 const dgSelScore=x=>Number(x.sc.toFixed(3));
 function dgSelOrder(a,b){
