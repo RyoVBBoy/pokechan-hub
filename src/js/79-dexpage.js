@@ -69,14 +69,24 @@ function dpEvidenceHTML(p){
   const singleRoles=formatMoves('シングル：戦い方の候補',[[349,'攻撃と素早さを上げる積み技'],[14,'攻撃を2段階上げる積み技'],[417,'特攻を2段階上げる積み技'],[245,'優先度+2の攻撃技。無効タイプなどに注意']]);
   const doubleRoles=formatMoves('ダブル：味方と連携する技',[[366,'味方側の素早さを上げる'],[433,'同じ優先度内の素早さ順を逆転させる'],[266,'対象となる相手の技を自分に引き寄せる'],[476,'対象となる相手の技を自分に引き寄せる。粉技無効の相手などに注意'],[469,'対象となる範囲攻撃から味方側を守る'],[252,'場に出た最初のターンに使える先制技。ひるみ無効などに注意']]);
   const moveEvidence=danceChart+priorityText+singleRoles+doubleRoles;
+  const strengths=[];
+  if(hit.length) strengths.push([ABN[hit[0]]+'で攻撃2倍','特性が有効な場合の攻撃補正。最終ダメージとは異なります。']);
+  if(abs.includes('multiscale')) strengths.push(['HP満タン時のダメージ軽減','マルチスケイル選択時、HP満タンで対象の攻撃を受ける場合。']);
+  if(dragonDance) strengths.push(['攻撃と素早さを同時に強化','りゅうのまい採用時、成功すると各1段階上昇。']);
+  if(hasMove(187)) strengths.push(['攻撃ランクを最大まで上げる','はらだいこ採用時。最大HPの半分を消費するため残りHPに注意。']);
+  if(hasMove(245)) strengths.push(['優先度+2の先制攻撃','しんそく採用時。無効タイプや先制技を防ぐ効果に注意。']);
+  else if(hasMove(453)) strengths.push(['優先度+1の先制攻撃','アクアジェット採用時。無効化や先制技を防ぐ効果に注意。']);
+  if(abs.includes('inner-focus')) strengths.push(['ひるみ・いかくに対処','せいしんりょく選択時。']);
+  if(hasMove(366)) strengths.push(['味方側の素早さを強化','おいかぜ採用時。']);
 
   const topStat=p.s.reduce((best,v,i)=>v>p.s[best]?i:best,0);
   const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。';
-  return {headline:esc(headline),html:chart+(moveEvidence?'<section class="dp-sec"><h3 class="dp-st">技による性能の変化</h3>'+moveEvidence+'</section>':'')+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
+  return {strengths,headline:esc(headline),html:chart+(moveEvidence?'<section class="dp-sec"><h3 class="dp-st">技による性能の変化</h3>'+moveEvidence+'</section>':'')+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
 }
 
 function dpOverviewHTML(p,g){
   const evidence=dpEvidenceHTML(p);
+  const overviewPros=evidence.strengths.length?evidence.strengths:g.pros;
   /* 2026/11/15 依頼主「Premium UI」：枠の中に枠を重ねない。見出し・余白・区切り線で分け、1行ずつ押すと説明が開く（› が回る）。説明の中身は前と同じ */
   const base=p.base?byNo[p.base]:null;
   const li=(t,d,o={})=>`<details class="dp-li${o.cls||''}"><summary><span class="dp-li-t">${t}</span>${o.tag?`<span class="dp-li-tag${o.tagc?' '+o.tagc:''}">${o.tag}</span>`:''}<span class="dp-li-c" aria-hidden="true">›</span></summary><p>${d}</p></details>`;
@@ -93,7 +103,7 @@ function dpOverviewHTML(p,g){
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
     <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p><details class="dp-li"><summary>役割・姿の詳しい説明</summary><p>${g.lead}</p></details></section>${evidence.html}
-    ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.slice(0,3).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${overviewPros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${overviewPros.slice(0,3).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
       <p class="dp-fn">種族値と覚える技から見た目安です。どの役で使うかは型（技・持ち物）で決まり、条件のある役はその技を入れた型のときだけです。</p></section>`:''}
