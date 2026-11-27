@@ -57,7 +57,8 @@ const mk=(x,isA)=>{const p=new Pokemon(gen,'Mew',{level:50,ability:AB(x.ab),item
 let ok=0;const bad=[];
 for(const c of cases){
   const flags={};[...c.fl].forEach(ch=>{if(FL[ch])flags[FL[ch]]=1});
-  const mv=new Move(gen,c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
+  // These named moves ignore defender stat stages; a generic Stone Edge cannot model that rule.
+  const mv=new Move(gen,c.mv.id===663?'Darkest Lariat':c.mv.id===533?'Sacred Sword':c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
   const f=new Field({gameType:c.o.format==='double'?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
   let r=calculate(gen,mk(c.a,1),mk(c.d,0),mv,f).damage;r=Array.isArray(r)?r:[r];
   if(JSON.stringify(r)===JSON.stringify(c.rolls))ok++;else bad.push({c,ref:r});
