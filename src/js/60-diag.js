@@ -512,7 +512,11 @@ function dgDiff(T0,T1){
   flip('fast','先に動ける匹ができる','先に動ける匹がいなくなる',f.fast);
   flip('safe','半分以上を一撃で倒されなくなる','半分以上を一撃で倒されるようになる',f.safe);
   const added=T1.rows.filter(r=>!keep.has(r.q.no)).map(nm),gone=T0.rows.filter(r=>!by1.has(r.q.no)).map(nm);
-  return{up,dn,keep,b:dgMetric(T0,keep),a:dgMetric(T1,keep),note:added.length||gone.length?`比べたのは両方に共通の相手${common.length}匹（${gone.length?`${gone.join('・')}はパーティに入るので相手から外れる`:''}${gone.length&&added.length?'、':''}${added.length?`${added.join('・')}は外した匹が相手になるので変更後だけ`:''}）`:`比べたのは上位の相手${common.length}匹`};
+  const differences=[];
+  if(gone.length)differences.push(`${gone.join('・')}はパーティに入るので相手から外れる`);
+  if(added.length)differences.push(`${added.join('・')}は外した匹が相手になるので変更後だけ`);
+  const note=`比べたのは両方に共通の相手${common.length}匹${differences.length?`（${differences.join('、')}）`:''}`;
+  return{up,dn,keep,b:dgMetric(T0,keep),a:dgMetric(T1,keep),note};
 }
 const DG_FIX=new Map();
 function dgDefSwaps(entries,T){
@@ -528,8 +532,9 @@ function dgDefSwaps(entries,T){
   const outs=entries.map((x,i)=>i).filter(i=>!entries[i].axis).sort((a,b)=>contrib[a]-contrib[b]).slice(0,2);
   const res=[];
   outs.forEach(i=>{const rest=entries.filter((_,k)=>k!==i);
+    /* 後出し先が1匹分増える候補も、パーティ全体での再計算に回す。 */
     const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
-      const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>=2).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
+      const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>0).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
     sc.forEach(({c,S,won})=>{let T1;try{T1=dgTeam0(entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x),20,{megaNo:T.mega&&T.mega.no})}catch(e){return}
       const D=dgDiff(T,T1),b=D.b,a=D.a;
       if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,won:won.map(r=>r.q.n),b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
