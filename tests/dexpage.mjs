@@ -106,6 +106,15 @@ ok(!BRW.bad.length&&!BRW.noH.length,'対策は「崩す方法」と書く（「�
 ok(!BF.tsu.length,'10以上を「Nつ」と数えない '+BF.tsu.join('・'));
 ok(BF.ag.every(Boolean),'ギルガルドはブレードフォルムの攻撃で判定 '+JSON.stringify(BF.ag));
 ok(BF.pf.every(Boolean),'イルカマンはマイティフォルムで判定 '+JSON.stringify(BF.pf));
+/* Evidence overview: actual attack values, legal abilities, no fabricated ratings. */
+const EV=await pg.evaluate(()=>{const cases=[184,308,660,752,676,964,768,10057,10280];const rows=cases.map(no=>{const p=byNo[no],e=dpEvidenceHTML(p);return {no,headline:e.headline,html:e.html}});const bad=[...P,...MEGAP].filter(p=>{try{const e=dpEvidenceHTML(p);return !e.headline||/undefined|NaN|Infinity/.test(e.headline+e.html)}catch(err){return true}}).map(p=>p.no);return {rows,bad}});
+ok(!EV.bad.length,'根拠概要：全姿で生成できる '+EV.bad.join(','));
+ok(EV.rows[0].html.includes('112')&&EV.rows[0].html.includes('224')&&EV.rows[0].headline.includes('ちからもち'),'マリルリ：特性による攻撃の比較');
+ok(EV.rows[3].html.includes('すいほう')&&EV.rows[4].html.includes('ファーコート'),'すいほう・ファーコートの説明');
+ok(EV.rows[5].headline.includes('交代')&&EV.rows[6].headline.includes('交代'),'イルカマン・グソクムシャの発動条件');
+ok(EV.rows[7].html.includes('マジックミラー')&&EV.rows[7].html.includes('メガシンカ前後の種族値'),'メガアブソル：固有特性と変化量');
+ok(EV.rows[8].headline.includes('ちからもち'),'メガスターミー：物理火力の特性');
+await open(184);ok(await pg.evaluate(()=>document.body.scrollWidth<=innerWidth+1&&document.querySelector('[data-panel="0"]').textContent.includes('特性で変わる攻撃')),'スマホで根拠グラフが表示される');
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
