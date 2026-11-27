@@ -14,8 +14,15 @@ function pipIcons(){
 const PCARDS=[['plan','選出プラン'],['weak','弱点まとめ'],['speed','素早さ順'],['dmg','ダメージ早見'],['sets','相手の型'],['type','タイプ相性'],['memo','戦術メモ']];
 const PIP_NOOPP=['type','memo'];
 const PPRESET={jissen:['plan','memo','speed','dmg','sets'],hajime:['weak','type','sets']};
-PIP.cfg=(()=>{try{const c=JSON.parse(localStorage.getItem('pcpip')||'null');if(c&&Array.isArray(c.cards)&&c.cards.length)return c}catch(e){}return{cards:[...PPRESET.jissen],sec:4}})();
+/* 切り替えの間隔（2026/11/27 依頼主：3/4/6/8秒→4/6/8/10秒、10秒が「おすすめ」。はじめは4秒のまま）。
+   前に保存した3秒は4秒に移し、ほかの値（4/6/8）はそのまま。一覧にない値ははじめの4秒。 */
+const PIP_SECS=[4,6,8,10],PIP_SEC_REC=10,PIP_SEC_DEF=4;
+const pipSecFix=v=>{v=+v;return v===3?4:PIP_SECS.includes(v)?v:PIP_SEC_DEF};
+PIP.cfg=(()=>{try{const c=JSON.parse(localStorage.getItem('pcpip')||'null');if(c&&Array.isArray(c.cards)&&c.cards.length){const f=pipSecFix(c.sec);if(f!==c.sec){c.sec=f;try{localStorage.setItem('pcpip',JSON.stringify(c))}catch(e){}}return c}}catch(e){}return{cards:[...PPRESET.jissen],sec:PIP_SEC_DEF}})();
 const pipSave=()=>{try{localStorage.setItem('pcpip',JSON.stringify(PIP.cfg))}catch(e){}};
+/* 間隔のボタン（どの PiP の入口でも同じもの） */
+const pipSecHTML=()=>`<div class="mx2" style="margin-bottom:6px">${L('切り替えの間隔','Interval')}</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${PIP_SECS.map(n=>`<button class="pill" data-ps="${n}" aria-pressed="${n===PIP.cfg.sec}">${L(`${n}秒`,`${n}s`)}${n===PIP_SEC_REC?`<small class="pip-rec">${L('おすすめ','Recommended')}</small>`:''}</button>`).join('')}</div>`;
+const pipSecClick=e=>{const ps=e.target.closest('[data-ps]');if(!ps)return false;PIP.cfg.sec=pipSecFix(ps.dataset.ps);pipSave();pipSetUI();pipSchedule();return true};
 let ITJR=null;const itemJa=k=>{if(!ITJR){ITJR={};Object.entries(ITJ).forEach(([n,v])=>{if(!ITJR[v])ITJR[v]=n})}return ITJR[k]||null};
 function pipData(){
   if(PIP.mode==='build')return pipBuildPages();
@@ -154,17 +161,17 @@ function pipDraw(){
 }
 function pipGo(d){PIP.page=(PIP.page+d+PIP.pages.length)%PIP.pages.length;pipDraw()}
 /* ---- 動画ファイル（MP4）を作って、端末標準の PiP で表示 ----
-   カード1枚＝4秒の動画を作り、ループ再生します。再生中は自動で次のカードへ、一時停止でそのカードに止まります。
+   カード1枚＝選んだ間隔（4/6/8/10秒）の動画を作り、ループ再生します。再生中は自動で次のカードへ、一時停止でそのカードに止まります。
    JavaScriptが止められても（ゲーム中でも）動画の機能だけで動きます。 */
 const PIP_CFG={mux:'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.js'};
 if(window.__PIP_CFG)Object.assign(PIP_CFG,window.__PIP_CFG);
-const SEG_=()=>PIP.cfg.sec||4;
+const SEG_=()=>pipSecFix(PIP.cfg.sec);
 PIP.state='idle';
 function pipSetUI(){
+  document.querySelectorAll('[data-ps]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.ps===PIP.cfg.sec));
   const pc=document.getElementById('pip-cards');if(!pc)return;const a=PIP.cfg.cards;
   const noOpp=keyOf(cur)==='pip'&&!opp6.length;
   pc.innerHTML=PCARDS.map(([k,l])=>{const i=a.indexOf(k),off=noOpp&&!PIP_NOOPP.includes(k);return `<button class="pill${off?' pill-off':''}" data-pc="${k}" aria-pressed="${i>=0}"${off?' title="相手を入れると表示されます"':''}>${i>=0?`<b class="pn">${i+1}</b>`:''}${l}</button>`}).join('');
-  document.querySelectorAll('[data-ps]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.ps===PIP.cfg.sec));
   document.querySelectorAll('[data-pp]').forEach(b=>b.setAttribute('aria-pressed',JSON.stringify(PPRESET[b.dataset.pp])===JSON.stringify(a)));
 }
 function pipUI(){
@@ -299,6 +306,7 @@ function pipBuildPanel(){
   return `<div class="pipwrap" id="ed-pipw"><div class="pipt"><b>${L('PiPで見ながらゲームで育成','Build in the game with PiP')}</b><span class="atag on" style="margin-left:6px">β</span></div>
   <p class="vcap" style="margin:4px 0 10px">${L('ここで作った育成を<b>PiP（ピクチャ・イン・ピクチャ）</b>で画面に浮かべたまま、ゲームの育成画面に切り替えて入力できます。スクショを撮って行き来する必要はありません。値を変えると、数秒でPiPの中身も新しくなります。','Float this build in <b>PiP (picture-in-picture)</b> and switch to the game to enter it — no screenshots needed. Changes here update the PiP within a few seconds.')}</p>
   <div class="pills" style="padding:0 0 10px"><button class="pill" data-pball="0" aria-pressed="${!PIP.ball}">${L('この1匹','This Pokémon')}</button><button class="pill" data-pball="1" aria-pressed="${PIP.ball}">${L('パーティ全員','Whole team')}</button></div>
+  ${pipSecHTML()}
   <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="ed-pip" disabled>${L('カードを準備中…','Preparing cards…')}</button></div>
   <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>`;
 }
@@ -308,6 +316,7 @@ function pipBuildBind(idx){
   {const bx=document.getElementById('pip-box');if(bx&&PIP.vid&&!bx.contains(PIP.vid))bx.appendChild(PIP.vid)}
   w.addEventListener('click',e=>{
     if(e.target.closest('#ed-pip')){pipStart();return}
+    if(pipSecClick(e))return;
     const b=e.target.closest('[data-pball]');if(b){PIP.ball=b.dataset.pball==='1';w.querySelectorAll('[data-pball]').forEach(x=>x.setAttribute('aria-pressed',x===b));pipSchedule()}
   });
   pipUI();pipSchedule();
@@ -330,12 +339,13 @@ function pipView(){
     <p class="vcap" style="margin:4px 0 10px">${L('パーティの育成（持ち物・性格・能力ポイント・技）を浮かべたまま、ゲームの育成画面で入力できます。','Float your team builds while entering them in the game.')}</p>
     <div class="mx2" style="margin-bottom:6px">${L('表示するポケモン','Pokémon')}</div>
     <div class="pills" style="padding:0 0 12px;flex-wrap:wrap"><button class="pill" data-pball="1" aria-pressed="${PIP.ball}">${L('パーティ全員','Whole team')}</button>${ms}</div>
+    ${pipSecHTML()}
     <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="ed-pip" disabled>${L('カードを準備中…','Preparing cards…')}</button></div>`
     :`<p class="vcap">${L('パーティにまだポケモンがいません。','Your team is empty.')}</p><div class="btns"><a class="btn btn-p" href="#/team">${L('パーティを作る','Build a team')}</a></div>`)
   :`<p class="vcap" style="margin:4px 0 10px">${oppNames.length?L(`相手：${oppNames.join('・')}`,`Opponents: ${oppNames.join(', ')}`):L('相手を入れなくても「タイプ相性」と「戦術メモ」（パーティの戦術メモ）は表示できます。選出プラン・ダメージ早見などは、相手の6匹を入れると表示されます。','Type chart and team notes work without opponents. Enter the opponents for picks and damage.')}</p>
     <div class="btns" style="padding:0 0 10px"><a class="btn btn-s" href="#/assist">${oppNames.length?L('相手を入れなおす（選出アシスト）','Change opponents'):L('相手のポケモンを入れる（選出アシスト）','Enter opponents')}</a></div>
     <div class="pipset"><div class="mx2" style="margin-bottom:6px">${L('表示するカード（押した順に並びます）','Cards')}</div><div class="pills pcards" style="padding:0 0 10px;flex-wrap:wrap" id="pip-cards"></div>
-    <div class="mx2" style="margin-bottom:6px">${L('切り替えの間隔','Interval')}</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${[3,4,6,8].map(n=>`<button class="pill" data-ps="${n}">${n}秒</button>`).join('')}</div></div>
+    ${pipSecHTML()}</div>
     <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="as-pip" disabled>${L('カードを準備中…','Preparing cards…')}</button></div>`}
   <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>`;
   V.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{PIPV=b.dataset.pv;try{sessionStorage.setItem('pcpipv',PIPV)}catch(e){}PIP.sig=null;PIP.state='idle';pipView()});
@@ -344,13 +354,14 @@ function pipView(){
   if(PIPV==='build'){if(!team.length)return;PIP.mode='build';if(!team[PIP.bidx])PIP.bidx=0;
     w.addEventListener('click',e=>{
       if(e.target.closest('#ed-pip')){pipStart();return}
+      if(pipSecClick(e))return;
       const a=e.target.closest('[data-pball]');if(a){PIP.ball=true;pipView();pipSchedule();return}
       const b=e.target.closest('[data-pbi]');if(b){PIP.ball=false;PIP.bidx=+b.dataset.pbi;pipView();pipSchedule()}});
   }else{PIP.mode='battle';
     w.addEventListener('click',e=>{
       if(e.target.closest('#as-pip')){pipStart();return}
       const pc=e.target.closest('[data-pc]');if(pc){const c=pc.dataset.pc,a=PIP.cfg.cards,i=a.indexOf(c);if(i>=0){if(a.length>1)a.splice(i,1)}else a.push(c);pipSave();pipSetUI();pipSchedule();return}
-      const ps=e.target.closest('[data-ps]');if(ps){PIP.cfg.sec=+ps.dataset.ps;pipSave();pipSetUI();pipSchedule()}});
+      pipSecClick(e)});
     /* 相手がいないときは、相手がいなくても出せる「タイプ相性」を選んだ状態にする（戦術メモはパーティの戦術メモを書いたときだけカードになる） */
     if(!opp6.length&&!PIP.cfg.cards.includes('type')){PIP.cfg.cards.push('type');pipSave();pipSetUI()}
   }
