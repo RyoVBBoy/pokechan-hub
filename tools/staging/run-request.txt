@@ -1,1 +1,1 @@
-2026-11-26 run 8 (round 8: fail-closed guard)
+2026-11-27 run 9 (production link-flag audit)

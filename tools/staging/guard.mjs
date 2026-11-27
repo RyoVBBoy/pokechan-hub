@@ -3,6 +3,7 @@
 //   node tools/staging/guard.mjs prod     --list d1.json --name <本番の D1 の名前> --var-id <変数の本番の id>      → 本番の id を出す
 //   node tools/staging/guard.mjs stgrow   --list d1.json --name gk-links-staging --prod-id <本番の id>          → 消してよいステージングの id（なければ空）
 //   node tools/staging/guard.mjs stgnew   --list d1.json --name gk-links-staging --prod-id <本番の id>          → 作ったばかりのステージングの id
+//   node tools/staging/guard.mjs prodflags --settings prod-set.json   → 本番の Worker でリンクの投稿・押す・Web Risk の鍵が止まっているか（読むだけ・名前だけ出す）
 //   node tools/staging/guard.mjs deployed --settings set.json --schedules sch.json --name gk-links-staging --stg-id <id> --prod-id <本番の id>
 import fs from 'node:fs';
 import {PROD} from './check.mjs';
@@ -53,12 +54,26 @@ export function checkDeployed(settings,schedules,{name,stgId,prodId}){const errs
   const sc=schedules&&schedules.result&&schedules.result.schedules;
   if(!Array.isArray(sc))errs.push('cron の一覧が読めない');else if(sc.length)errs.push('cron がある（'+sc.length+'）');
   return errs}
+/* 本番の Worker（読むだけ）：リンクの投稿・押すは止まっている（LINKS_POST・LINKS_CLICK が "1" でない）、Web Risk の鍵を置いていない。
+   ほかの変数の値は見ない・出さない（返すのはリンクにかかわる名前と、止まっているかだけ） */
+export const LINK_VARS=['LINKS_POST','LINKS_CLICK','SANCTIONS_ON'];
+export function checkProdFlags(settings){
+  const b=settings&&settings.result&&settings.result.bindings;
+  if(!Array.isArray(b))return{errs:['本番の Worker の設定（bindings）が読めない'],seen:null};
+  const errs=[],seen={};
+  for(const k of LINK_VARS){const x=b.find(y=>y.name===k);seen[k]=!x?'unset':x.type!=='plain_text'?'set('+x.type+')':(x.text==='1'?'on':'off')}
+  seen.WEBRISK_API_KEY=b.some(y=>y.name==='WEBRISK_API_KEY')?'present':'absent';
+  if(seen.LINKS_POST==='on'||String(seen.LINKS_POST).startsWith('set('))errs.push('本番でリンクの投稿（LINKS_POST）が止まっていない');
+  if(seen.LINKS_CLICK==='on'||String(seen.LINKS_CLICK).startsWith('set('))errs.push('本番でリンクを押す（LINKS_CLICK）が止まっていない');
+  if(seen.WEBRISK_API_KEY==='present')errs.push('本番に Web Risk の鍵がある（本物の確かめが済むまで置かない）');
+  return{errs,seen}}
 if(import.meta.url===`file://${process.argv[1]}`){
   const a=process.argv.slice(2),cmd=a[0],arg=k=>{const i=a.indexOf('--'+k);return i>0?a[i+1]:''};
   const J=f=>{try{return JSON.parse(fs.readFileSync(f,'utf8'))}catch(e){fail('JSON が読めない: '+f)}};
   try{
     if(cmd==='prod')console.log(resolveProd(J(arg('list')),{name:arg('name'),varId:arg('var-id')}));
     else if(cmd==='stgrow'||cmd==='stgnew')console.log(resolveStg(J(arg('list')),{name:arg('name'),prodId:arg('prod-id'),mode:cmd==='stgnew'?'new':'old'}));
+    else if(cmd==='prodflags'){const r=checkProdFlags(J(arg('settings')));console.log(JSON.stringify(r.seen));if(r.errs.length)fail(r.errs.join(' / '));console.log('ok: 本番ではリンクの投稿・押すが止まっていて、Web Risk の鍵もない')}
     else if(cmd==='deployed'){const e=checkDeployed(J(arg('settings')),J(arg('schedules')),{name:arg('name'),stgId:arg('stg-id'),prodId:arg('prod-id')});
       if(e.length)fail(e.join(' / '));console.log('ok: DB＝ステージングの D1 だけ・決まった変数と合言葉4つだけ・cron なし')}
     else fail('使い方：prod | stgrow | stgnew | deployed')

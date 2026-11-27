@@ -50,12 +50,22 @@ ok(checkStaging(good(),{prodD1Id:PID,stgD1Id:'0fc26614-f2ab-476c-8d1e-b6b2f69622
   ok(G.checkDeployed(set(),{result:{schedules:[{cron:'0 * * * *'}]}},O).length>0,'guard 断る（公開したあと）：cron がある','');
   ok(G.checkDeployed(set(),{},O).length>0,'guard 断る（公開したあと）：cron の一覧が読めない','');
   ok(G.checkDeployed(set(),NOCRON,{...O,name:'pokechan-tap'}).length>0&&G.checkDeployed(set(),NOCRON,{...O,stgId:''}).length>0,'guard 断る（公開したあと）：名前・id が違う','');}
+const dep0=()=>fs.readFileSync(path.join(ROOT,'.github/workflows/deploy.yml'),'utf8');
+/* 本番のリンクの止まり方（読むだけ）：LINKS_POST・LINKS_CLICK が "1" なら・Web Risk の鍵があれば止める。ほかの変数の値は返さない */
+{const G=await import(path.join(ROOT,'tools/staging/guard.mjs'));const S=b=>({result:{bindings:b}});
+  const base=[{type:'plain_text',name:'ALLOWED_ORIGINS',text:'https://secret-ish.example'},{type:'secret_text',name:'ADMIN_TOKEN'},{type:'d1',name:'DB',id:'x'}];
+  let r=G.checkProdFlags(S(base));ok(r.errs.length===0&&r.seen.LINKS_POST==='unset'&&r.seen.WEBRISK_API_KEY==='absent'&&!JSON.stringify(r).includes('secret-ish'),'本番の確かめ：リンクの変数がなく鍵もなければ通る・ほかの変数の値を返さない',r);
+  r=G.checkProdFlags(S([...base,{type:'plain_text',name:'LINKS_POST',text:'0'},{type:'plain_text',name:'LINKS_CLICK',text:''}]));ok(r.errs.length===0&&r.seen.LINKS_POST==='off','本番の確かめ：0・空は止まっている',r);
+  for(const [m,x] of [['LINKS_POST が 1',{type:'plain_text',name:'LINKS_POST',text:'1'}],['LINKS_CLICK が 1',{type:'plain_text',name:'LINKS_CLICK',text:'1'}],['LINKS_POST が合言葉の形（値が見えない）',{type:'secret_text',name:'LINKS_POST'}],['Web Risk の鍵がある',{type:'secret_text',name:'WEBRISK_API_KEY'}]])
+    ok(G.checkProdFlags(S([...base,x])).errs.length>0,'本番の確かめ 断る：'+m,'');
+  ok(G.checkProdFlags({}).errs.length>0,'本番の確かめ 断る：設定が読めない','');}
+ok(!/LINKS_POST|LINKS_CLICK|WEBRISK_API_KEY|SANCTIONS_ON/.test(dep0()),'本番の公開（deploy.yml）はリンクの変数・Web Risk の鍵を設定しない（本物の確かめが済むまで止めたまま）','');
 const dep=fs.readFileSync(path.join(ROOT,'.github/workflows/deploy.yml'),'utf8');ok(!/staging/.test(dep),'本番の公開（deploy.yml）はステージングの設定を読まない','');
 {const wf=fs.readFileSync(path.join(ROOT,'.github/workflows/staging-d1.yml'),'utf8');
 ok(/CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_STAGING_TOKEN \}\}/.test(wf)&&!/secrets\.CLOUDFLARE_API_TOKEN/.test(wf)&&!/\|\|\s*secrets\./.test(wf),'ステージングの確かめはステージング専用の鍵だけを使う（本番の公開用の鍵に切りかえない）','');
 const iProd=wf.indexOf('guard.mjs prod --list /tmp/d1.json'),iDel=wf.indexOf('wrangler d1 delete'),iCreate=wf.indexOf('wrangler d1 create'),iDeploy=wf.indexOf('wrangler deploy');
 ok(iProd>0&&iProd<iDel&&iProd<iCreate&&iProd<iDeploy,'ワークフロー：本番の id を一覧から決めるのは、消す・作る・公開より前','');
 ok(!/:-none/.test(wf)&&!/pokechan-community/.test(wf)&&/--prod-d1-id "\$PROD_UUID" --stg-d1-id "\$STG_D1_ID"/.test(wf),'ワークフロー：none を渡さない・本番の名前のはじめの値に頼らない・確かめた id を渡す','');
-ok(/guard\.mjs deployed/.test(wf)&&/guard\.mjs stgrow/.test(wf)&&/guard\.mjs stgnew/.test(wf),'ワークフロー：消す前・作ったあと・公開したあとを guard で確かめる','');
+ok(/guard\.mjs prodflags/.test(wf)&&/guard\.mjs deployed/.test(wf)&&/guard\.mjs stgrow/.test(wf)&&/guard\.mjs stgnew/.test(wf),'ワークフロー：消す前・作ったあと・公開したあとを guard で確かめる','');
 ok(/権限が広すぎる/.test(wf)&&/本番の Worker か D1 が変わった/.test(wf)&&/guard\.mjs deployed/.test(wf),'ステージングの確かめは鍵の広さ・本番が変わっていないか・つなぎ先を確かめる','');}
 console.log(bad?`staging-check: NG（${bad}/${n}）`:`staging-check: OK（${n}項目）`);if(bad)process.exit(1);

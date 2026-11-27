@@ -93,6 +93,9 @@ jobs:
           jq -r --arg n "$PROD_D1_NAME" '.[]|select(.name==$n)|"\(.uuid) \(.created_at)"' /tmp/d1.json > /tmp/prodd.before
           [ -s /tmp/prodw.before ] && [ -s /tmp/prodd.before ] || { echo "本番の Worker か D1 が見つからない"; exit 1; }
           echo "本番の Worker の最終更新: $(cat /tmp/prodw.before)"
+          # 本番の Worker でリンクが止まっているか（読むだけ。ほかの変数の値は出さない。ファイルはこの回のあと消える）
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts/$PROD_WORKER/settings" > /tmp/prodset.json
+          node tools/staging/guard.mjs prodflags --settings /tmp/prodset.json; rm -f /tmp/prodset.json
 
       - name: 3. ステージングの D1 を作り直す（gk-links-staging だけ）
         run: |

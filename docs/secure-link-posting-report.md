@@ -115,6 +115,19 @@ Main merged again at `57853a2` (PRs #7/#8: search stars, party check, `pre-relea
 | Scope of "production untouched". | Stated precisely: the before/after comparison covers the production Worker's `modified_on` and the production D1 row's UUID and `created_at` only. It shows the Worker was not redeployed and the database was not replaced or deleted; **it does not prove that no rows were written**. Supporting (not proof): every write command in the job targets the name `gk-links-staging` or `wrangler.staging.toml`, and the staging Worker's only D1 binding is the staging UUID (checked). The token's D1 permission is account-wide, so it cannot exclude production writes by itself. | `staging-d1.yml` step 8 log wording |
 | Web Risk smoke printed but never failed. | `tools/webrisk-smoke.mjs` rewritten: approved fixtures file only (`approved:true`, Google-docs `verified_from`, both clean and unsafe cases, expected types); asserts HTTP 200, JSON content type, `{}`/`{threat}` shape, verdict, expected types, RFC 3339 future `expireTime`; exits 1 on any mismatch; requests capped (fixture count, max 10); GET `uris:search` only (no submit/update), key only in a header, prints no key/URL/body; refuses when `WEBRISK_API_KEY` is in the environment. Fixtures are not filled: this environment cannot read Google's docs, so `tools/webrisk-fixtures.example.json` is placeholders. **Not run** (no approved key). | `webrisk-smoke.mjs` 35 (fake fetch only). |
 
+## 1k. Zero-cost completion (owner decision 2026-11-27: Google Cloud billing and live Web Risk validation **deferred**)
+* **Deferred, not done:** no Google Cloud billing, no Web Risk key, no live `uris:search` call, no payment authorization or paid provisioning. `tools/webrisk-smoke.mjs` remains unrun; its behaviour is covered only by the fake-fetch suite (`webrisk-smoke` 35).
+* **Link posting stays disabled until live validation passes.** Three independent locks:
+  1. code: posting requires `LINKS_POST=1` **and** `SANCTIONS_ON`, `EMAIL_HMAC_KEY*` and `WEBRISK_API_KEY`; without the key every check fails closed (`links` §1);
+  2. `deploy.yml` sets none of `LINKS_POST`/`LINKS_CLICK`/`SANCTIONS_ON`/`WEBRISK_API_KEY` (`staging-check` asserts this);
+  3. a read-only production audit in `staging-d1.yml` (`guard.mjs prodflags`) reads the production Worker's binding list and stops if `LINKS_POST`/`LINKS_CLICK` is `"1"` (or hidden as a secret) or a `WEBRISK_API_KEY` exists. It prints only these names and on/off, never other values, because production keeps dashboard vars (`keep_vars = true`).
+* **Firebase emulator tests run locally as well as in CI:** `fb-emulator` 17 (firebase-tools 14.27.0, project `demo-gk`) and `fb-sdk` 14 (firebase-functions 7.4.0, firebase-admin 14.5.0). No real Firebase project is used.
+* **Security audits:**
+  * `npm audit`: 0 vulnerabilities for the root, `tools/firebase-adapter` and `tools/firebase-blocking` lockfiles.
+  * Credential-pattern scan of the whole branch diff (Google API keys, Anthropic/GitHub/Slack/AWS tokens, private keys, service-account JSON): no hits. The only addresses are test placeholders (`*.test-gk.net`, `example.invalid`, `pokechan-test`), Google's public `securetoken@system.gserviceaccount.com` and the commit author `noreply@anthropic.com`; the owner's address does not appear in any added line.
+  * Staging logs no longer print the account name, and the three earlier logs were deleted.
+* **Release still blocked** by: the live Web Risk validation (deferred), real Firebase staging, owner policy/legal approvals, and an independent review.
+
 ## 2. Ingress / render / authorization map
 | Path | Before | After |
 |---|---|---|
