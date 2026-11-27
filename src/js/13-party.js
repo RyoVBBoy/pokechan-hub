@@ -55,7 +55,15 @@ async function teamPickMany(){
   if(team.length>=6){toast('パーティは6匹までです');return}
   const n0=team.length;
   await pickMon(0,{add:true,multi:teamAddQuiet,slots:()=>team.map(x=>x.no),max:6});
-  if(keyOf(cur)==='team'&&document.getElementById('slots'))teamRender();
+  if(keyOf(cur)==='team'&&document.getElementById('slots')){
+    teamRender();
+    const guide=document.getElementById('ai-party-start-title');
+    if(guide&&team.length>n0)requestAnimationFrame(()=>{
+      if(!guide.isConnected)return;
+      guide.focus({preventScroll:true});
+      scrTo(0,0);
+    });
+  }
   if(team.length>n0)toast(team.length>=6?'パーティが6匹そろいました':`${team.length-n0}匹を追加しました（${team.length}/6）`);
 }
 function addTeam(no){
@@ -71,14 +79,22 @@ let PSUB=(()=>{try{const v=sessionStorage.getItem('pcpsub');return v==='sel'?'se
 let TTAB=(()=>{try{return sessionStorage.getItem('pcttab')||'sets'}catch(e){return 'sets'}})();
 function teamView(arg){
   setHeader('パーティ');
-  if(arg){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
+  const consult=arg==='consult'&&typeof aiUiOn==='function'&&aiUiOn(true)&&curGame().id==='pokechamp';
+  if(consult)TTAB='check';
+  if(arg&&arg!=='consult'){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
     if(ids.length){team=ids.map((no,i)=>({no,sel:i<PICK()}));saveTeam();cur='#/team';setUrl('#/team')}}
   V.innerHTML=`
+  ${consult?`<section class="stg-card ai-party-start" aria-labelledby="ai-party-start-title"><h2 id="ai-party-start-title" tabindex="-1">攻略AIに相談（ベータ版）</h2>
+    <p class="note">パーティの強みや、次に試す練習を相談できます。</p>
+    <div id="ai-party-start-action"></div></section>`:''}
   <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
   <div class="thd"><p class="note thd-n">6匹まで登録し、<b>「選出する」を押して、出す${PICK()}匹</b>を決めます（${FMTN()}）。</p><div class="tarch" id="tarch"></div></div>
   <div id="tonb"></div>
   <div class="grid3" id="slots"></div>
-  <nav class="tqa" aria-label="ほかのツール"><a class="tqa-ext" href="#/calc" title="ダメージ計算のツールを開きます">${SVG(I.calc,16)}<span>ダメージ計算</span><span class="tqa-arr" aria-hidden="true">↗</span></a></nav>
+  <nav class="tqa" aria-label="ほかのツール">
+    <a class="tqa-ext" href="#/calc" title="ダメージ計算のツールを開きます">${SVG(I.calc,16)}<span>ダメージ計算</span><span class="tqa-arr" aria-hidden="true">↗</span></a>
+    ${!consult&&typeof aiUiOn==='function'&&aiUiOn(true)&&curGame().id==='pokechamp'?aiPartyShortcutHTML():''}
+  </nav>
   <div class="seg" id="tt-seg" style="margin-top:8px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
   <div id="tt-pages" class="tt-pages">
   <div data-sw data-tp="sets"${TTAB!=='sets'?' hidden':''}>
@@ -102,6 +118,7 @@ function teamView(arg){
        その絵が出てから（次の描画のあと）計算する。計算の中身は同じ */
     const heavy=(k==='check'||k==='plan')&&team.length&&!['loading','error'].includes(dgState(team)),box=heavy&&document.getElementById(k==='check'?'tout':'tplan');
     if(box)box.innerHTML=ttLoadHTML(k);
+    if(consult&&heavy)aiPartyStartUpdate();
     segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1));
     if(box)requestAnimationFrame(()=>setTimeout(()=>{if(TTAB===k&&document.getElementById('tout'))teamRender()},40));else teamRender()};
   V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>ttGo(b.dataset.tt));
@@ -190,6 +207,7 @@ function teamRender(){
 
   {const st=document.getElementById('tsteps');if(st){st.innerHTML=teamStepsHTML();teamStepsBind(st)}}
   const out=document.getElementById('tout'),pl=document.getElementById('tplan');
+  if(typeof aiPartyStartUpdate==='function')aiPartyStartUpdate();
   if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと構築・選出の考え方が出ます。</p>';return}
   /* 診断に使うデータがそろうまで計算しない（2026/11/12、60-diag.js の dgState）。そろったら描き直す。古い読み込みの結果では描き直さない（dgPrepare の番号） */
   /* 画面を開いたときも、チェック・構築なら先に「計算しています」を出してから計算する */

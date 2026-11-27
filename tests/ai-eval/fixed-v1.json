@@ -1,0 +1,4142 @@
+{
+ "version": "fixed-v1",
+ "created": "2026-11-25",
+ "note": "期待値はAIの台帳を使わずに、サイトの元データと、ダメージ計算の画面（calcResult）から作った。テストでは作り直さない。",
+ "counts": {
+  "evidence": 60,
+  "calc": 52
+ },
+ "cases": [
+  {
+   "id": "E001",
+   "suite": "evidence",
+   "q": "ガブリアスのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 445,
+    "types": [
+     "ドラゴン",
+     "じめん"
+    ]
+   }
+  },
+  {
+   "id": "E002",
+   "suite": "evidence",
+   "q": "リザードンのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 6,
+    "types": [
+     "ほのお",
+     "ひこう"
+    ]
+   }
+  },
+  {
+   "id": "E003",
+   "suite": "evidence",
+   "q": "カイリューのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 149,
+    "types": [
+     "ドラゴン",
+     "ひこう"
+    ]
+   }
+  },
+  {
+   "id": "E004",
+   "suite": "evidence",
+   "q": "ウインディ（ヒスイ）のタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 10230,
+    "types": [
+     "ほのお",
+     "いわ"
+    ]
+   }
+  },
+  {
+   "id": "E005",
+   "suite": "evidence",
+   "q": "ライチュウ（アローラ）のタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 10100,
+    "types": [
+     "でんき",
+     "エスパー"
+    ]
+   }
+  },
+  {
+   "id": "E006",
+   "suite": "evidence",
+   "q": "メガリザードンXのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 10034,
+    "types": [
+     "ほのお",
+     "ドラゴン"
+    ]
+   }
+  },
+  {
+   "id": "E007",
+   "suite": "evidence",
+   "q": "メガガブリアスのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 10058,
+    "types": [
+     "ドラゴン",
+     "じめん"
+    ]
+   }
+  },
+  {
+   "id": "E008",
+   "suite": "evidence",
+   "q": "ミミッキュのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 778,
+    "types": [
+     "ゴースト",
+     "フェアリー"
+    ]
+   }
+  },
+  {
+   "id": "E009",
+   "suite": "evidence",
+   "q": "ルカリオのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 448,
+    "types": [
+     "かくとう",
+     "はがね"
+    ]
+   }
+  },
+  {
+   "id": "E010",
+   "suite": "evidence",
+   "q": "ドドゲザンのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 983,
+    "types": [
+     "あく",
+     "はがね"
+    ]
+   }
+  },
+  {
+   "id": "E011",
+   "suite": "evidence",
+   "q": "アシレーヌのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 730,
+    "types": [
+     "みず",
+     "フェアリー"
+    ]
+   }
+  },
+  {
+   "id": "E012",
+   "suite": "evidence",
+   "q": "サーフゴーのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 1000,
+    "types": [
+     "はがね",
+     "ゴースト"
+    ]
+   }
+  },
+  {
+   "id": "E013",
+   "suite": "evidence",
+   "q": "オーロンゲのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 861,
+    "types": [
+     "あく",
+     "フェアリー"
+    ]
+   }
+  },
+  {
+   "id": "E014",
+   "suite": "evidence",
+   "q": "ケンタロス（パルデア・ブレイズ種）のタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 10251,
+    "types": [
+     "かくとう",
+     "ほのお"
+    ]
+   }
+  },
+  {
+   "id": "E015",
+   "suite": "evidence",
+   "q": "メガゲンガーのタイプは？",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 10038,
+    "types": [
+     "ゴースト",
+     "どく"
+    ]
+   }
+  },
+  {
+   "id": "E016",
+   "suite": "evidence",
+   "q": "ガブリアスの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 445,
+    "stats": [
+     108,
+     130,
+     95,
+     80,
+     85,
+     102
+    ]
+   }
+  },
+  {
+   "id": "E017",
+   "suite": "evidence",
+   "q": "カイリューの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 149,
+    "stats": [
+     91,
+     134,
+     95,
+     100,
+     100,
+     80
+    ]
+   }
+  },
+  {
+   "id": "E018",
+   "suite": "evidence",
+   "q": "ミミッキュの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 778,
+    "stats": [
+     55,
+     90,
+     80,
+     50,
+     105,
+     96
+    ]
+   }
+  },
+  {
+   "id": "E019",
+   "suite": "evidence",
+   "q": "サーフゴーの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 1000,
+    "stats": [
+     87,
+     60,
+     95,
+     133,
+     91,
+     84
+    ]
+   }
+  },
+  {
+   "id": "E020",
+   "suite": "evidence",
+   "q": "ドドゲザンの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 983,
+    "stats": [
+     100,
+     135,
+     120,
+     60,
+     85,
+     50
+    ]
+   }
+  },
+  {
+   "id": "E021",
+   "suite": "evidence",
+   "q": "メガリザードンYの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 10035,
+    "stats": [
+     78,
+     104,
+     78,
+     159,
+     115,
+     100
+    ]
+   }
+  },
+  {
+   "id": "E022",
+   "suite": "evidence",
+   "q": "ペリッパーの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 279,
+    "stats": [
+     60,
+     50,
+     100,
+     95,
+     70,
+     65
+    ]
+   }
+  },
+  {
+   "id": "E023",
+   "suite": "evidence",
+   "q": "ブリジュラスの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 1018,
+    "stats": [
+     90,
+     105,
+     130,
+     125,
+     65,
+     85
+    ]
+   }
+  },
+  {
+   "id": "E024",
+   "suite": "evidence",
+   "q": "イダイトウ（メス）の種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 10248,
+    "stats": [
+     120,
+     92,
+     65,
+     100,
+     75,
+     78
+    ]
+   }
+  },
+  {
+   "id": "E025",
+   "suite": "evidence",
+   "q": "ウォッシュロトムの種族値を教えて",
+   "expect": {
+    "status": "answered",
+    "template": "species_stats",
+    "species": 10009,
+    "stats": [
+     50,
+     65,
+     107,
+     105,
+     107,
+     86
+    ]
+   }
+  },
+  {
+   "id": "E026",
+   "suite": "evidence",
+   "q": "ガブリアスの特性は？",
+   "expect": {
+    "status": "answered",
+    "template": "species_abilities",
+    "species": 445,
+    "abilities": [
+     "sand-veil",
+     "rough-skin"
+    ]
+   }
+  },
+  {
+   "id": "E027",
+   "suite": "evidence",
+   "q": "ミミッキュの特性は？",
+   "expect": {
+    "status": "answered",
+    "template": "species_abilities",
+    "species": 778,
+    "abilities": [
+     "disguise"
+    ]
+   }
+  },
+  {
+   "id": "E028",
+   "suite": "evidence",
+   "q": "カイリューの特性は？",
+   "expect": {
+    "status": "answered",
+    "template": "species_abilities",
+    "species": 149,
+    "abilities": [
+     "inner-focus",
+     "multiscale"
+    ]
+   }
+  },
+  {
+   "id": "E029",
+   "suite": "evidence",
+   "q": "サーフゴーの特性は？",
+   "expect": {
+    "status": "answered",
+    "template": "species_abilities",
+    "species": 1000,
+    "abilities": [
+     "good-as-gold"
+    ]
+   }
+  },
+  {
+   "id": "E030",
+   "suite": "evidence",
+   "q": "ペリッパーの特性は？",
+   "expect": {
+    "status": "answered",
+    "template": "species_abilities",
+    "species": 279,
+    "abilities": [
+     "keen-eye",
+     "drizzle",
+     "rain-dish"
+    ]
+   }
+  },
+  {
+   "id": "E031",
+   "suite": "evidence",
+   "q": "ガブリアスはじしんを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 445,
+    "move": 89,
+    "learns": true
+   }
+  },
+  {
+   "id": "E032",
+   "suite": "evidence",
+   "q": "カイリューはしんそくを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 149,
+    "move": 245,
+    "learns": true
+   }
+  },
+  {
+   "id": "E033",
+   "suite": "evidence",
+   "q": "ミミッキュはじゃれつくを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 778,
+    "move": 583,
+    "learns": true
+   }
+  },
+  {
+   "id": "E034",
+   "suite": "evidence",
+   "q": "ガブリアスはなみのりを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 445,
+    "move": 57,
+    "learns": true
+   }
+  },
+  {
+   "id": "E035",
+   "suite": "evidence",
+   "q": "ミミッキュはじしんを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 778,
+    "move": 89,
+    "learns": false
+   }
+  },
+  {
+   "id": "E036",
+   "suite": "evidence",
+   "q": "サーフゴーはしんそくを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 1000,
+    "move": 245,
+    "learns": false
+   }
+  },
+  {
+   "id": "E037",
+   "suite": "evidence",
+   "q": "ペリッパーはぼうふうを覚える？",
+   "expect": {
+    "status": "answered",
+    "template": "learns_move",
+    "species": 279,
+    "move": 542,
+    "learns": true
+   }
+  },
+  {
+   "id": "E038",
+   "suite": "evidence",
+   "q": "じしんの威力と命中は？",
+   "expect": {
+    "status": "answered",
+    "template": "move_info",
+    "move": 89,
+    "type": "じめん",
+    "power": 100,
+    "accuracy": 100
+   }
+  },
+  {
+   "id": "E039",
+   "suite": "evidence",
+   "q": "しんそくの威力と命中は？",
+   "expect": {
+    "status": "answered",
+    "template": "move_info",
+    "move": 245,
+    "type": "ノーマル",
+    "power": 80,
+    "accuracy": 100
+   }
+  },
+  {
+   "id": "E040",
+   "suite": "evidence",
+   "q": "ムーンフォースの威力と命中は？",
+   "expect": {
+    "status": "answered",
+    "template": "move_info",
+    "move": 585,
+    "type": "フェアリー",
+    "power": 95,
+    "accuracy": 100
+   }
+  },
+  {
+   "id": "E041",
+   "suite": "evidence",
+   "q": "ドラゴンアローの威力と命中は？",
+   "expect": {
+    "status": "answered",
+    "template": "move_info",
+    "move": 751,
+    "type": "ドラゴン",
+    "power": 50,
+    "accuracy": 100
+   }
+  },
+  {
+   "id": "E042",
+   "suite": "evidence",
+   "q": "１０まんボルトの威力と命中は？",
+   "expect": {
+    "status": "answered",
+    "template": "move_info",
+    "move": 85,
+    "type": "でんき",
+    "power": 90,
+    "accuracy": 100
+   }
+  },
+  {
+   "id": "E043",
+   "suite": "evidence",
+   "q": "アクアジェットの威力と命中は？",
+   "expect": {
+    "status": "answered",
+    "template": "move_info",
+    "move": 453,
+    "type": "みず",
+    "power": 40,
+    "accuracy": 100
+   }
+  },
+  {
+   "id": "E044",
+   "suite": "evidence",
+   "q": "つるぎのまいの威力は？",
+   "expect": {
+    "status": "insufficient_evidence",
+    "reasonCode": "evidence_missing"
+   }
+  },
+  {
+   "id": "E045",
+   "suite": "evidence",
+   "q": "まもるの威力は？",
+   "expect": {
+    "status": "insufficient_evidence",
+    "reasonCode": "evidence_missing"
+   }
+  },
+  {
+   "id": "E046",
+   "suite": "evidence",
+   "q": "リザードンのメガシンカは？",
+   "expect": {
+    "status": "partial",
+    "template": "species_megas",
+    "species": 6,
+    "megas": [
+     10034,
+     10035
+    ],
+    "hold": "ruleset_unverified"
+   }
+  },
+  {
+   "id": "E047",
+   "suite": "evidence",
+   "q": "ゲンガーのメガシンカは？",
+   "expect": {
+    "status": "partial",
+    "template": "species_megas",
+    "species": 94,
+    "megas": [
+     10038
+    ],
+    "hold": "ruleset_unverified"
+   }
+  },
+  {
+   "id": "E048",
+   "suite": "evidence",
+   "q": "ガブリアスのメガシンカは？",
+   "expect": {
+    "status": "partial",
+    "template": "species_megas",
+    "species": 445,
+    "megas": [
+     10058,
+     10309
+    ],
+    "hold": "ruleset_unverified"
+   }
+  },
+  {
+   "id": "E049",
+   "suite": "evidence",
+   "q": "能力ポイントの上限は？",
+   "expect": {
+    "status": "answered",
+    "template": "sp_rule",
+    "total": 66,
+    "per": 32
+   }
+  },
+  {
+   "id": "E050",
+   "suite": "evidence",
+   "q": "APの合計はいくつまで？",
+   "expect": {
+    "status": "answered",
+    "template": "sp_rule",
+    "total": 66,
+    "per": 32
+   }
+  },
+  {
+   "id": "E051",
+   "suite": "evidence",
+   "q": "ウインディのタイプは？",
+   "expect": {
+    "status": "needs_input",
+    "reasonCode": "form_ambiguous",
+    "choices": [
+     59,
+     10230
+    ]
+   }
+  },
+  {
+   "id": "E052",
+   "suite": "evidence",
+   "q": "ライチュウのタイプは？",
+   "expect": {
+    "status": "needs_input",
+    "reasonCode": "form_ambiguous",
+    "choices": [
+     26,
+     10100
+    ]
+   }
+  },
+  {
+   "id": "E053",
+   "suite": "evidence",
+   "q": "ケンタロスのタイプは？",
+   "expect": {
+    "status": "needs_input",
+    "reasonCode": "form_ambiguous",
+    "choices": [
+     128,
+     10250,
+     10251,
+     10252
+    ]
+   }
+  },
+  {
+   "id": "E054",
+   "suite": "evidence",
+   "q": "ルガルガンのタイプは？",
+   "expect": {
+    "status": "needs_input",
+    "reasonCode": "form_ambiguous",
+    "choices": [
+     745,
+     10126,
+     10152
+    ]
+   }
+  },
+  {
+   "id": "E055",
+   "suite": "evidence",
+   "q": "パンプジンのタイプは？",
+   "expect": {
+    "status": "needs_input",
+    "reasonCode": "form_ambiguous",
+    "choices": [
+     711,
+     10030,
+     10031,
+     10032
+    ]
+   }
+  },
+  {
+   "id": "E056",
+   "suite": "evidence",
+   "q": "Garchompのタイプ",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 445,
+    "types": [
+     "ドラゴン",
+     "じめん"
+    ]
+   }
+  },
+  {
+   "id": "E057",
+   "suite": "evidence",
+   "q": "Dragoniteのタイプ",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 149,
+    "types": [
+     "ドラゴン",
+     "ひこう"
+    ]
+   }
+  },
+  {
+   "id": "E058",
+   "suite": "evidence",
+   "q": "Gholdengoのタイプ",
+   "expect": {
+    "status": "answered",
+    "template": "species_types",
+    "species": 1000,
+    "types": [
+     "はがね",
+     "ゴースト"
+    ]
+   }
+  },
+  {
+   "id": "E059",
+   "suite": "evidence",
+   "q": "ガブリアスはいまのレギュレーションで使える？",
+   "expect": {
+    "status": "insufficient_evidence",
+    "reasonCode": "ruleset_unverified"
+   }
+  },
+  {
+   "id": "E060",
+   "suite": "evidence",
+   "q": "メガゲンガーはランクバトルで禁止？",
+   "expect": {
+    "status": "insufficient_evidence",
+    "reasonCode": "ruleset_unverified"
+   }
+  },
+  {
+   "id": "C001",
+   "suite": "calc",
+   "format": "single",
+   "q": "ポットデスのサイコキネシスでミミロップへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:855",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "weak-armor"
+    },
+    "defender": {
+     "id": "sp:428",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "cute-charm"
+    },
+    "move": "mv:94"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 41,
+    "max": 49,
+    "hp": 142,
+    "ko": {
+     "n": 3,
+     "p": 0.056396484375,
+     "sure": 4
+    },
+    "rolls": [
+     41,
+     42,
+     42,
+     43,
+     43,
+     44,
+     44,
+     45,
+     45,
+     46,
+     46,
+     47,
+     47,
+     48,
+     48,
+     49
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C002",
+   "suite": "calc",
+   "format": "single",
+   "q": "ペロリームのかえんほうしゃでイエッサン（オス）へのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:685",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "sweet-veil"
+    },
+    "defender": {
+     "id": "sp:876",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "inner-focus"
+    },
+    "move": "mv:53"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 31,
+    "max": 37,
+    "hp": 135,
+    "ko": {
+     "n": 4,
+     "p": 0.5524749755859375,
+     "sure": 5
+    },
+    "rolls": [
+     31,
+     31,
+     32,
+     32,
+     32,
+     33,
+     33,
+     34,
+     34,
+     34,
+     35,
+     35,
+     35,
+     36,
+     36,
+     37
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C003",
+   "suite": "calc",
+   "format": "single",
+   "q": "オーロンゲのじゃれつくでペルシアンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:861",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "frisk"
+    },
+    "defender": {
+     "id": "sp:53",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "limber"
+    },
+    "move": "mv:583"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 87,
+    "max": 103,
+    "hp": 172,
+    "ko": {
+     "n": 2,
+     "p": 1,
+     "sure": 2
+    },
+    "rolls": [
+     87,
+     88,
+     90,
+     90,
+     91,
+     93,
+     93,
+     94,
+     96,
+     96,
+     97,
+     99,
+     99,
+     100,
+     102,
+     103
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C004",
+   "suite": "calc",
+   "format": "single",
+   "q": "ドクロッグのれいとうパンチでニンフィアへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:454",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "anticipation"
+    },
+    "defender": {
+     "id": "sp:700",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "cute-charm"
+    },
+    "move": "mv:8"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 52,
+    "max": 62,
+    "hp": 172,
+    "ko": {
+     "n": 3,
+     "p": 0.435302734375,
+     "sure": 4
+    },
+    "rolls": [
+     52,
+     53,
+     53,
+     54,
+     55,
+     55,
+     56,
+     57,
+     57,
+     58,
+     58,
+     59,
+     60,
+     60,
+     61,
+     62
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C005",
+   "suite": "calc",
+   "format": "single",
+   "q": "ヤレユータンのシャドーボールでカイリキーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:765",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "inner-focus"
+    },
+    "defender": {
+     "id": "sp:68",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "steadfast"
+    },
+    "move": "mv:247"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 29,
+    "max": 35,
+    "hp": 169,
+    "ko": {
+     "n": 5,
+     "p": 0.0062732696533203125,
+     "sure": 6
+    },
+    "rolls": [
+     29,
+     30,
+     30,
+     30,
+     31,
+     31,
+     31,
+     32,
+     32,
+     32,
+     33,
+     33,
+     33,
+     34,
+     34,
+     35
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C006",
+   "suite": "calc",
+   "format": "single",
+   "q": "ドラパルトの１０まんボルトでルガルガン（まひるのすがた）へのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:887",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "cursed-body"
+    },
+    "defender": {
+     "id": "sp:745",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "keen-eye"
+    },
+    "move": "mv:85"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 53,
+    "max": 63,
+    "hp": 182,
+    "ko": {
+     "n": 3,
+     "p": 0.06103515625,
+     "sure": 4
+    },
+    "rolls": [
+     53,
+     54,
+     54,
+     55,
+     56,
+     56,
+     57,
+     57,
+     58,
+     59,
+     59,
+     60,
+     61,
+     61,
+     62,
+     63
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C007",
+   "suite": "calc",
+   "format": "single",
+   "q": "サダイジャののしかかりでドクロッグへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:844",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "shed-skin"
+    },
+    "defender": {
+     "id": "sp:454",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "anticipation"
+    },
+    "move": "mv:34"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 64,
+    "max": 76,
+    "hp": 190,
+    "ko": {
+     "n": 3,
+     "p": 1,
+     "sure": 3
+    },
+    "rolls": [
+     64,
+     65,
+     66,
+     66,
+     67,
+     68,
+     69,
+     69,
+     70,
+     71,
+     72,
+     72,
+     73,
+     74,
+     75,
+     76
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C008",
+   "suite": "calc",
+   "format": "single",
+   "q": "ニョロトノのだいちのちからでペロリームへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:186",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "damp"
+    },
+    "defender": {
+     "id": "sp:685",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "sweet-veil"
+    },
+    "move": "mv:414"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 39,
+    "max": 46,
+    "hp": 157,
+    "ko": {
+     "n": 4,
+     "p": 0.999755859375,
+     "sure": 5
+    },
+    "rolls": [
+     39,
+     39,
+     40,
+     40,
+     40,
+     41,
+     41,
+     42,
+     42,
+     43,
+     43,
+     44,
+     44,
+     45,
+     45,
+     46
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C009",
+   "suite": "calc",
+   "format": "single",
+   "q": "オーロットのグラススライダーでカビゴンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:709",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "natural-cure"
+    },
+    "defender": {
+     "id": "sp:143",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "immunity"
+    },
+    "move": "mv:803"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 51,
+    "max": 61,
+    "hp": 267,
+    "ko": {
+     "n": 5,
+     "p": 0.9789352416992188,
+     "sure": 6
+    },
+    "rolls": [
+     51,
+     52,
+     52,
+     54,
+     54,
+     54,
+     55,
+     55,
+     57,
+     57,
+     57,
+     58,
+     58,
+     60,
+     60,
+     61
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C010",
+   "suite": "calc",
+   "format": "single",
+   "q": "グレンアルマのワイドフォースでルガルガン（まひるのすがた）へのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:936",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "weak-armor"
+    },
+    "defender": {
+     "id": "sp:745",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "keen-eye"
+    },
+    "move": "mv:797"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 69,
+    "max": 82,
+    "hp": 182,
+    "ko": {
+     "n": 3,
+     "p": 1,
+     "sure": 3
+    },
+    "rolls": [
+     69,
+     70,
+     70,
+     72,
+     72,
+     73,
+     75,
+     75,
+     76,
+     76,
+     78,
+     78,
+     79,
+     79,
+     81,
+     82
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C011",
+   "suite": "calc",
+   "format": "single",
+   "q": "ヤドランのねっとうでマニューラへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:80",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "oblivious"
+    },
+    "defender": {
+     "id": "sp:461",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "pressure"
+    },
+    "move": "mv:503"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 52,
+    "max": 63,
+    "hp": 177,
+    "ko": {
+     "n": 3,
+     "p": 0.193115234375,
+     "sure": 4
+    },
+    "rolls": [
+     52,
+     54,
+     54,
+     54,
+     55,
+     55,
+     57,
+     57,
+     58,
+     58,
+     58,
+     60,
+     60,
+     61,
+     61,
+     63
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C012",
+   "suite": "calc",
+   "format": "single",
+   "q": "ニンフィアのどろかけでプクリンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:700",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "cute-charm"
+    },
+    "defender": {
+     "id": "sp:40",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "cute-charm"
+    },
+    "move": "mv:189"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 17,
+    "max": 20,
+    "hp": 247,
+    "ko": {
+     "n": 9,
+     "p": 0,
+     "sure": 0
+    },
+    "rolls": [
+     17,
+     17,
+     17,
+     17,
+     17,
+     18,
+     18,
+     18,
+     18,
+     18,
+     19,
+     19,
+     19,
+     19,
+     19,
+     20
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C013",
+   "suite": "calc",
+   "format": "single",
+   "q": "ルガルガン（まひるのすがた）のでんこうせっかでホルードへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:745",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "keen-eye"
+    },
+    "defender": {
+     "id": "sp:660",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "pickup"
+    },
+    "move": "mv:98"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 23,
+    "max": 28,
+    "hp": 164,
+    "ko": {
+     "n": 6,
+     "p": 0.0002983212471008301,
+     "sure": 8
+    },
+    "rolls": [
+     23,
+     24,
+     24,
+     24,
+     24,
+     25,
+     25,
+     25,
+     26,
+     26,
+     26,
+     26,
+     27,
+     27,
+     27,
+     28
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C014",
+   "suite": "calc",
+   "format": "single",
+   "q": "アーマーガアのつばめがえしでサメハダーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:823",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "pressure"
+    },
+    "defender": {
+     "id": "sp:319",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "rough-skin"
+    },
+    "move": "mv:332"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 85,
+    "max": 102,
+    "hp": 149,
+    "ko": {
+     "n": 2,
+     "p": 1,
+     "sure": 2
+    },
+    "rolls": [
+     85,
+     87,
+     88,
+     88,
+     90,
+     91,
+     91,
+     93,
+     94,
+     94,
+     96,
+     97,
+     97,
+     99,
+     100,
+     102
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C015",
+   "suite": "calc",
+   "format": "single",
+   "q": "パンプジン（ギガだましゅ）のエナジーボールでカビゴンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:10032",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "pickup"
+    },
+    "defender": {
+     "id": "sp:143",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "immunity"
+    },
+    "move": "mv:412"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 33,
+    "max": 40,
+    "hp": 267,
+    "ko": {
+     "n": 7,
+     "p": 0.01801355928182602,
+     "sure": 0
+    },
+    "rolls": [
+     33,
+     34,
+     34,
+     34,
+     36,
+     36,
+     36,
+     36,
+     37,
+     37,
+     37,
+     37,
+     39,
+     39,
+     39,
+     40
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C016",
+   "suite": "calc",
+   "format": "single",
+   "q": "ニンフィアのりんしょうでラグラージへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:700",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "cute-charm"
+    },
+    "defender": {
+     "id": "sp:260",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "damp"
+    },
+    "move": "mv:496"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 25,
+    "max": 30,
+    "hp": 179,
+    "ko": {
+     "n": 6,
+     "p": 0.0000011324882507324219,
+     "sure": 8
+    },
+    "rolls": [
+     25,
+     25,
+     26,
+     26,
+     26,
+     27,
+     27,
+     27,
+     27,
+     28,
+     28,
+     28,
+     29,
+     29,
+     29,
+     30
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C017",
+   "suite": "calc",
+   "format": "single",
+   "q": "ジュペッタのシャドーパンチでハリーセンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:354",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "insomnia"
+    },
+    "defender": {
+     "id": "sp:211",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "poison-point"
+    },
+    "move": "mv:325"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 52,
+    "max": 63,
+    "hp": 172,
+    "ko": {
+     "n": 3,
+     "p": 0.53662109375,
+     "sure": 4
+    },
+    "rolls": [
+     52,
+     54,
+     54,
+     54,
+     55,
+     55,
+     57,
+     57,
+     58,
+     58,
+     58,
+     60,
+     60,
+     61,
+     61,
+     63
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C018",
+   "suite": "calc",
+   "format": "double",
+   "q": "サダイジャのドラゴンダイブでライチュウ（アローラ）へのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:844",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "shed-skin"
+    },
+    "defender": {
+     "id": "sp:10100",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "surge-surfer"
+    },
+    "move": "mv:407"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 68,
+    "max": 81,
+    "hp": 139,
+    "ko": {
+     "n": 2,
+     "p": 0.9765625,
+     "sure": 3
+    },
+    "rolls": [
+     68,
+     69,
+     70,
+     71,
+     72,
+     72,
+     73,
+     74,
+     75,
+     76,
+     76,
+     77,
+     78,
+     79,
+     80,
+     81
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C019",
+   "suite": "calc",
+   "format": "double",
+   "q": "ホルードのほのおのパンチでルチャブルへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:660",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "pickup"
+    },
+    "defender": {
+     "id": "sp:701",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "limber"
+    },
+    "move": "mv:7"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 23,
+    "max": 28,
+    "hp": 157,
+    "ko": {
+     "n": 6,
+     "p": 0.1259341835975647,
+     "sure": 7
+    },
+    "rolls": [
+     23,
+     24,
+     24,
+     24,
+     24,
+     25,
+     25,
+     25,
+     26,
+     26,
+     26,
+     26,
+     27,
+     27,
+     27,
+     28
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C020",
+   "suite": "calc",
+   "format": "double",
+   "q": "グレンアルマのサイコキネシスでバオッキーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:936",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "weak-armor"
+    },
+    "defender": {
+     "id": "sp:514",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "gluttony"
+    },
+    "move": "mv:94"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 78,
+    "max": 93,
+    "hp": 150,
+    "ko": {
+     "n": 2,
+     "p": 1,
+     "sure": 2
+    },
+    "rolls": [
+     78,
+     79,
+     79,
+     81,
+     82,
+     82,
+     84,
+     85,
+     85,
+     87,
+     87,
+     88,
+     90,
+     90,
+     91,
+     93
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C021",
+   "suite": "calc",
+   "format": "double",
+   "q": "ガメノデスのドラゴンクローでムシャーナへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:689",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "pickpocket"
+    },
+    "defender": {
+     "id": "sp:518",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "forewarn"
+    },
+    "move": "mv:337"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 39,
+    "max": 47,
+    "hp": 223,
+    "ko": {
+     "n": 5,
+     "p": 0.07810592651367188,
+     "sure": 6
+    },
+    "rolls": [
+     39,
+     40,
+     40,
+     41,
+     41,
+     42,
+     42,
+     43,
+     43,
+     44,
+     44,
+     45,
+     45,
+     46,
+     46,
+     47
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C022",
+   "suite": "calc",
+   "format": "double",
+   "q": "カモネギのアイアンテールでロズレイドへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:83",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "keen-eye"
+    },
+    "defender": {
+     "id": "sp:407",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "natural-cure"
+    },
+    "move": "mv:231"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 49,
+    "max": 58,
+    "hp": 137,
+    "ko": {
+     "n": 3,
+     "p": 1,
+     "sure": 3
+    },
+    "rolls": [
+     49,
+     49,
+     50,
+     51,
+     51,
+     52,
+     52,
+     53,
+     53,
+     54,
+     55,
+     55,
+     56,
+     56,
+     57,
+     58
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C023",
+   "suite": "calc",
+   "format": "double",
+   "q": "ルガルガン（まひるのすがた）のどろかけでロズレイドへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:745",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "keen-eye"
+    },
+    "defender": {
+     "id": "sp:407",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "natural-cure"
+    },
+    "move": "mv:189"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 4,
+    "max": 5,
+    "hp": 167,
+    "ko": {
+     "n": 9,
+     "p": 0,
+     "sure": 0
+    },
+    "rolls": [
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     5
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C024",
+   "suite": "calc",
+   "format": "double",
+   "q": "ヤドランのだいもんじでヤミラミへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:80",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "oblivious"
+    },
+    "defender": {
+     "id": "sp:302",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "keen-eye"
+    },
+    "move": "mv:126"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 52,
+    "max": 62,
+    "hp": 125,
+    "ko": {
+     "n": 3,
+     "p": 1,
+     "sure": 3
+    },
+    "rolls": [
+     52,
+     53,
+     53,
+     54,
+     55,
+     55,
+     56,
+     57,
+     57,
+     58,
+     58,
+     59,
+     60,
+     60,
+     61,
+     62
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C025",
+   "suite": "calc",
+   "format": "double",
+   "q": "ラグラージのれいとうビームでニンフィアへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:260",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "damp"
+    },
+    "defender": {
+     "id": "sp:700",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "cute-charm"
+    },
+    "move": "mv:58"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 27,
+    "max": 32,
+    "hp": 172,
+    "ko": {
+     "n": 6,
+     "p": 0.8263232111930847,
+     "sure": 7
+    },
+    "rolls": [
+     27,
+     27,
+     27,
+     28,
+     28,
+     28,
+     29,
+     29,
+     29,
+     30,
+     30,
+     30,
+     31,
+     31,
+     31,
+     32
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C026",
+   "suite": "calc",
+   "format": "double",
+   "q": "ピカチュウのボルトチェンジでドドゲザンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:25",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "static"
+    },
+    "defender": {
+     "id": "sp:983",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "pressure"
+    },
+    "move": "mv:521"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 25,
+    "max": 30,
+    "hp": 177,
+    "ko": {
+     "n": 6,
+     "p": 0.000003635883331298828,
+     "sure": 8
+    },
+    "rolls": [
+     25,
+     25,
+     25,
+     25,
+     25,
+     27,
+     27,
+     27,
+     27,
+     27,
+     28,
+     28,
+     28,
+     28,
+     28,
+     30
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C027",
+   "suite": "calc",
+   "format": "double",
+   "q": "ペロリームのかえんほうしゃでメタモンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:685",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "sweet-veil"
+    },
+    "defender": {
+     "id": "sp:132",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "limber"
+    },
+    "move": "mv:53"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 56,
+    "max": 67,
+    "hp": 123,
+    "ko": {
+     "n": 2,
+     "p": 0.515625,
+     "sure": 3
+    },
+    "rolls": [
+     56,
+     57,
+     58,
+     58,
+     59,
+     60,
+     60,
+     61,
+     62,
+     62,
+     63,
+     64,
+     64,
+     65,
+     66,
+     67
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C028",
+   "suite": "calc",
+   "format": "double",
+   "q": "カビゴンのりんしょうでエンニュートへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:143",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "immunity"
+    },
+    "defender": {
+     "id": "sp:758",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "oblivious"
+    },
+    "move": "mv:496"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 36,
+    "max": 43,
+    "hp": 143,
+    "ko": {
+     "n": 4,
+     "p": 1,
+     "sure": 4
+    },
+    "rolls": [
+     36,
+     36,
+     37,
+     37,
+     37,
+     39,
+     39,
+     39,
+     39,
+     40,
+     40,
+     40,
+     42,
+     42,
+     42,
+     43
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C029",
+   "suite": "calc",
+   "format": "double",
+   "q": "ペルシアンのイカサマでサーナイトへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:53",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "limber"
+    },
+    "defender": {
+     "id": "sp:282",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "synchronize"
+    },
+    "move": "mv:492"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 39,
+    "max": 46,
+    "hp": 175,
+    "ko": {
+     "n": 4,
+     "p": 0.0889434814453125,
+     "sure": 5
+    },
+    "rolls": [
+     39,
+     39,
+     40,
+     40,
+     40,
+     41,
+     41,
+     42,
+     42,
+     43,
+     43,
+     44,
+     44,
+     45,
+     45,
+     46
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C030",
+   "suite": "calc",
+   "format": "double",
+   "q": "カビゴンのかみなりパンチでヘルガーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:143",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "immunity"
+    },
+    "defender": {
+     "id": "sp:229",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "early-bird"
+    },
+    "move": "mv:9"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 69,
+    "max": 82,
+    "hp": 182,
+    "ko": {
+     "n": 3,
+     "p": 1,
+     "sure": 3
+    },
+    "rolls": [
+     69,
+     70,
+     71,
+     72,
+     72,
+     73,
+     74,
+     75,
+     76,
+     77,
+     77,
+     78,
+     79,
+     80,
+     81,
+     82
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C031",
+   "suite": "calc",
+   "format": "double",
+   "q": "カモネギのエアスラッシュでスターミーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:83",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "keen-eye"
+    },
+    "defender": {
+     "id": "sp:121",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "illuminate"
+    },
+    "move": "mv:403"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 25,
+    "max": 30,
+    "hp": 167,
+    "ko": {
+     "n": 6,
+     "p": 0.06983226537704468,
+     "sure": 7
+    },
+    "rolls": [
+     25,
+     25,
+     25,
+     25,
+     25,
+     27,
+     27,
+     27,
+     27,
+     27,
+     28,
+     28,
+     28,
+     28,
+     28,
+     30
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C032",
+   "suite": "calc",
+   "format": "double",
+   "q": "ダストダスのダストシュートでミミロップへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:569",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "stench"
+    },
+    "defender": {
+     "id": "sp:428",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "cute-charm"
+    },
+    "move": "mv:441"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 94,
+    "max": 112,
+    "hp": 142,
+    "ko": {
+     "n": 2,
+     "p": 1,
+     "sure": 2
+    },
+    "rolls": [
+     94,
+     96,
+     97,
+     99,
+     99,
+     100,
+     102,
+     103,
+     103,
+     105,
+     106,
+     108,
+     108,
+     109,
+     111,
+     112
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C033",
+   "suite": "calc",
+   "format": "double",
+   "q": "ゲンガーのどろぼうでガメノデスへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:94",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "cursed-body"
+    },
+    "defender": {
+     "id": "sp:689",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "pickpocket"
+    },
+    "move": "mv:168"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 15,
+    "max": 18,
+    "hp": 179,
+    "ko": {
+     "n": 9,
+     "p": 0,
+     "sure": 0
+    },
+    "rolls": [
+     15,
+     15,
+     15,
+     15,
+     16,
+     16,
+     16,
+     16,
+     16,
+     16,
+     17,
+     17,
+     17,
+     17,
+     17,
+     18
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C034",
+   "suite": "calc",
+   "format": "double",
+   "q": "デンリュウののしかかりでレパルダスへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:181",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "static"
+    },
+    "defender": {
+     "id": "sp:510",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "limber"
+    },
+    "move": "mv:34"
+   },
+   "expect": {
+    "status": "answered",
+    "template": "damage_calc",
+    "min": 43,
+    "max": 51,
+    "hp": 171,
+    "ko": {
+     "n": 4,
+     "p": 1,
+     "sure": 4
+    },
+    "rolls": [
+     43,
+     43,
+     44,
+     44,
+     45,
+     45,
+     46,
+     46,
+     47,
+     47,
+     48,
+     48,
+     49,
+     49,
+     50,
+     51
+    ],
+    "ref": "screen:calcResult"
+   }
+  },
+  {
+   "id": "C035",
+   "suite": "calc",
+   "format": "single",
+   "q": "連続技のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "sand-veil"
+    },
+    "defender": {
+     "id": "sp:149",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "inner-focus"
+    },
+    "move": "mv:350"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "ability_unsupported",
+     "move_unsupported",
+     "move_not_learnable"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C036",
+   "suite": "calc",
+   "format": "single",
+   "q": "メガの姿のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:10034",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "tough-claws"
+    },
+    "defender": {
+     "id": "sp:149",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "inner-focus"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "form_unsupported"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C037",
+   "suite": "calc",
+   "format": "single",
+   "q": "計算に影響する特性のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "rough-skin"
+    },
+    "defender": {
+     "id": "sp:149",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "multiscale"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "ability_unsupported"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C038",
+   "suite": "calc",
+   "format": "single",
+   "q": "変化技のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "rough-skin"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:14"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_not_attack",
+     "ability_unsupported"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C039",
+   "suite": "calc",
+   "format": "single",
+   "q": "覚えない技のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "rough-skin"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:245"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_not_learnable",
+     "ability_unsupported"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C040",
+   "suite": "calc",
+   "format": "single",
+   "q": "能力ポイントの上限超えのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      32,
+      32,
+      32,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "rough-skin"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "sp_invalid"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C041",
+   "suite": "calc",
+   "format": "single",
+   "q": "1つ32超えのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      33,
+      0,
+      0,
+      0,
+      31
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "rough-skin"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "sp_invalid"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C042",
+   "suite": "calc",
+   "format": "single",
+   "q": "性格の誤りのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 1
+     },
+     "ability": "rough-skin"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "nature_invalid"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C043",
+   "suite": "calc",
+   "format": "single",
+   "q": "ギルガルドのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:681",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "stance-change"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "form_unsupported"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C044",
+   "suite": "calc",
+   "format": "single",
+   "q": "持てない特性のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "pressure"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "ability_not_learnable"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C045",
+   "suite": "calc",
+   "format": "single",
+   "q": "図鑑にないのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:99999",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "pressure"
+    },
+    "defender": {
+     "id": "sp:6",
+     "sp": [
+      2,
+      0,
+      32,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "blaze"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "species_unknown"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C046",
+   "suite": "calc",
+   "format": "single",
+   "q": "条件の不足のダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:445"
+    },
+    "defender": {
+     "id": "sp:6"
+    },
+    "move": "mv:89"
+   },
+   "expect": {
+    "status": "needs_input",
+    "reasonCodes": [
+     "calc_input_missing"
+    ],
+    "noNumbers": true
+   }
+  },
+  {
+   "id": "C047",
+   "suite": "calc",
+   "format": "single",
+   "q": "ハラバリーのはかいこうせんでペンドラーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:939",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "static"
+    },
+    "defender": {
+     "id": "sp:545",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "poison-point"
+    },
+    "move": "mv:63"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_unsupported"
+    ],
+    "noNumbers": true,
+    "why": "対応表の外の技（hyperbeam）"
+   }
+  },
+  {
+   "id": "C048",
+   "suite": "calc",
+   "format": "single",
+   "q": "ピカチュウのいびきでハリーセンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:25",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "static"
+    },
+    "defender": {
+     "id": "sp:211",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "poison-point"
+    },
+    "move": "mv:173"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_unsupported"
+    ],
+    "noNumbers": true,
+    "why": "対応表の外の技（snore）"
+   }
+  },
+  {
+   "id": "C049",
+   "suite": "calc",
+   "format": "single",
+   "q": "ゲンガーのゴーストダイブでマンムーへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:94",
+     "sp": [
+      32,
+      0,
+      2,
+      0,
+      32,
+      0
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "cursed-body"
+    },
+    "defender": {
+     "id": "sp:473",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "oblivious"
+    },
+    "move": "mv:566"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_unsupported"
+    ],
+    "noNumbers": true,
+    "why": "対応表の外の技（phantomforce）"
+   }
+  },
+  {
+   "id": "C050",
+   "suite": "calc",
+   "format": "single",
+   "q": "アップリューのギガインパクトでピカチュウへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:841",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "ripen"
+    },
+    "defender": {
+     "id": "sp:25",
+     "sp": [
+      4,
+      30,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": -1,
+      "dn": -1
+     },
+     "ability": "static"
+    },
+    "move": "mv:416"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "ability_unsupported"
+    ],
+    "noNumbers": true,
+    "why": "対応表の外の技（gigaimpact）"
+   }
+  },
+  {
+   "id": "C051",
+   "suite": "calc",
+   "format": "single",
+   "q": "オーロットのあなをほるでヌメルゴンへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:709",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 3,
+      "dn": 1
+     },
+     "ability": "natural-cure"
+    },
+    "defender": {
+     "id": "sp:706",
+     "sp": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 3
+     },
+     "ability": "gooey"
+    },
+    "move": "mv:91"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_unsupported"
+    ],
+    "noNumbers": true,
+    "why": "対応表の外の技（dig）"
+   }
+  },
+  {
+   "id": "C052",
+   "suite": "calc",
+   "format": "single",
+   "q": "ポットデスのアシストパワーでチルタリスへのダメージは？",
+   "calc": {
+    "attacker": {
+     "id": "sp:855",
+     "sp": [
+      0,
+      0,
+      0,
+      32,
+      2,
+      32
+     ],
+     "nature": {
+      "up": 5,
+      "dn": 3
+     },
+     "ability": "weak-armor"
+    },
+    "defender": {
+     "id": "sp:334",
+     "sp": [
+      32,
+      32,
+      2,
+      0,
+      0,
+      0
+     ],
+     "nature": {
+      "up": 1,
+      "dn": 5
+     },
+     "ability": "natural-cure"
+    },
+    "move": "mv:500"
+   },
+   "expect": {
+    "status": "unsupported",
+    "reasonCodes": [
+     "move_unsupported"
+    ],
+    "noNumbers": true,
+    "why": "対応表の外の技（storedpower）"
+   }
+  }
+ ]
+}

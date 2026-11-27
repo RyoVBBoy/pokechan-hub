@@ -4,7 +4,10 @@
   "description": "ポケチャン攻略Hub（サイト本体・検索向けページ・サーバー）",
   "scripts": {
     "build": "node tools/build.mjs && python3 worker/build.py && node tools/gen-pages.cjs",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "test:ai-eval": "node tests/ai-eval.mjs",
+    "test:ai-d1": "node tests/ai-d1.mjs",
+    "test:ai-b1": "node tests/ai-b1.mjs --eval-only && node tests/ai-eval-b1-acceptance.mjs && node tests/ai-eval-fair-play.mjs && node tests/ai-b1-review.mjs"
   },
   "devDependencies": {
     "@smogon/calc": "0.12.0",
