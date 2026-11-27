@@ -126,6 +126,14 @@ Main merged again at `57853a2` (PRs #7/#8: search stars, party check, `pre-relea
   * `npm audit`: 0 vulnerabilities for the root, `tools/firebase-adapter` and `tools/firebase-blocking` lockfiles.
   * Credential-pattern scan of the whole branch diff (Google API keys, Anthropic/GitHub/Slack/AWS tokens, private keys, service-account JSON): no hits. The only addresses are test placeholders (`*.test-gk.net`, `example.invalid`, `pokechan-test`), Google's public `securetoken@system.gserviceaccount.com` and the commit author `noreply@anthropic.com`; the owner's address does not appear in any added line.
   * Staging logs no longer print the account name, and the three earlier logs were deleted.
+* **Allowlist mode (owner commits `7b3f22e`…`1453999`, reviewed here):**
+  * With `LINKS_POLICY=allowlist`, the Worker accepts only exact `youtube.com`/`www.youtube.com` `/watch?v=<11 chars>`, `x.com/<user>/status/<digits>` and the root of `www.pokemon.co.jp`, `www.pokemon.com` and `champions.pokemon.com`, and makes no Web Risk call.
+  * Each URL still goes through `lkValidate` first (ports, credentials, encodings, IP hosts and redirect-shaped paths are rejected), and query strings and fragments are rejected except the single YouTube `v`.
+  * Cached unsafe verdicts and saturation still apply. The policy version (`allowlist-v1`) is in the verdict key and on links/intents, so a mode switch forces a fresh check.
+  * Any other `LINKS_POLICY` value falls back to Web Risk mode, which fails closed without a key.
+  * No code issue found; no leftover fixed-policy reference.
+  * Policy note, not a code defect: `x.com` serves user content, so this mode limits link *shapes*, not content (the UI no longer claims a safety scan).
+  * Production: the audit now also reports `LINKS_POLICY` (by name, `unset`/`allowlist`/`other`), and still fails whenever `LINKS_POST`/`LINKS_CLICK` is on, whatever the policy.
 * **Release still blocked** by: the live Web Risk validation (deferred), real Firebase staging, owner policy/legal approvals, and an independent review.
 
 ## 2. Ingress / render / authorization map

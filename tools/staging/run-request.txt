@@ -1,3 +1,1 @@
-2026-11-27 run 9 (production link-flag audit)
-
-2026-11-27 allowlist integration remote validation; no external scanner or Firebase.
+2026-11-27 run 11 (prod audit incl. LINKS_POLICY, after allowlist review)

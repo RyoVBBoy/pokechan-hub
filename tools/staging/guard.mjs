@@ -63,6 +63,8 @@ export function checkProdFlags(settings){
   const errs=[],seen={};
   for(const k of LINK_VARS){const x=b.find(y=>y.name===k);seen[k]=!x?'unset':x.type!=='plain_text'?'set('+x.type+')':(x.text==='1'?'on':'off')}
   seen.WEBRISK_API_KEY=b.some(y=>y.name==='WEBRISK_API_KEY')?'present':'absent';
+  {const x=b.find(y=>y.name==='LINKS_POLICY');seen.LINKS_POLICY=!x?'unset':x.type!=='plain_text'?'set('+x.type+')':(x.text==='allowlist'?'allowlist':'other')}
+  if(String(seen.LINKS_POLICY).startsWith('set('))errs.push('本番の LINKS_POLICY が値の見えない形で置かれている');
   if(seen.LINKS_POST==='on'||String(seen.LINKS_POST).startsWith('set('))errs.push('本番でリンクの投稿（LINKS_POST）が止まっていない');
   if(seen.LINKS_CLICK==='on'||String(seen.LINKS_CLICK).startsWith('set('))errs.push('本番でリンクを押す（LINKS_CLICK）が止まっていない');
   if(seen.WEBRISK_API_KEY==='present')errs.push('本番に Web Risk の鍵がある（本物の確かめが済むまで置かない）');

@@ -58,6 +58,9 @@ const dep0=()=>fs.readFileSync(path.join(ROOT,'.github/workflows/deploy.yml'),'u
   r=G.checkProdFlags(S([...base,{type:'plain_text',name:'LINKS_POST',text:'0'},{type:'plain_text',name:'LINKS_CLICK',text:''}]));ok(r.errs.length===0&&r.seen.LINKS_POST==='off','本番の確かめ：0・空は止まっている',r);
   for(const [m,x] of [['LINKS_POST が 1',{type:'plain_text',name:'LINKS_POST',text:'1'}],['LINKS_CLICK が 1',{type:'plain_text',name:'LINKS_CLICK',text:'1'}],['LINKS_POST が合言葉の形（値が見えない）',{type:'secret_text',name:'LINKS_POST'}],['Web Risk の鍵がある',{type:'secret_text',name:'WEBRISK_API_KEY'}]])
     ok(G.checkProdFlags(S([...base,x])).errs.length>0,'本番の確かめ 断る：'+m,'');
+  r=G.checkProdFlags(S([...base,{type:'plain_text',name:'LINKS_POLICY',text:'allowlist'}]));ok(r.errs.length===0&&r.seen.LINKS_POLICY==='allowlist','本番の確かめ：許可リストの方針だけなら（投稿が止まっていれば）通る・方針は名前で出す',r);
+  ok(G.checkProdFlags(S([...base,{type:'plain_text',name:'LINKS_POLICY',text:'allowlist'},{type:'plain_text',name:'LINKS_POST',text:'1'}])).errs.length>0,'本番の確かめ 断る：許可リストの方針でも投稿が開いている','');
+  ok(G.checkProdFlags(S([...base,{type:'secret_text',name:'LINKS_POLICY'}])).errs.length>0,'本番の確かめ 断る：LINKS_POLICY が値の見えない形','');
   ok(G.checkProdFlags({}).errs.length>0,'本番の確かめ 断る：設定が読めない','');}
 ok(!/LINKS_POST|LINKS_CLICK|WEBRISK_API_KEY|SANCTIONS_ON/.test(dep0()),'本番の公開（deploy.yml）はリンクの変数・Web Risk の鍵を設定しない（本物の確かめが済むまで止めたまま）','');
 const dep=fs.readFileSync(path.join(ROOT,'.github/workflows/deploy.yml'),'utf8');ok(!/staging/.test(dep),'本番の公開（deploy.yml）はステージングの設定を読まない','');
