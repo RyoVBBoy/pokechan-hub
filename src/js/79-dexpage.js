@@ -36,12 +36,27 @@ function dpEvidenceHTML(p){
   const raw=calcStats(p,[0,32,0,0,0,0],1,3)[1];
   const bar=(label,v,max)=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;margin:8px 0"><span>'+esc(label)+'</span><b>'+v+'</b><span style="grid-column:1/-1;height:9px;border-radius:6px;background:var(--line);overflow:hidden"><span style="display:block;width:'+Math.min(100,v/max*100)+'%;height:100%;background:var(--acc);border-radius:6px"></span></span></div>';
   const chart=hit.length?'<section class="dp-sec"><h3 class="dp-st">特性で変わる攻撃</h3>'+bar('特性の補正なし',raw,raw*2)+bar(ABN[hit[0]]+'の補正あり',raw*2,raw*2)+'<p class="dp-fn">攻撃上昇補正・能力ポイント32。特性が有効な場合の計算上の攻撃値であり、最終ダメージではありません。</p></section>':'';
+  const speed=calcStats(p,[0,0,0,0,0,32],5,1)[5];
+  const comparisons=[
+    ['water-bubble','みず技の威力補正',2,'みず技を使う場合'],
+    ['fur-coat','物理防御の補正',2,'特性が有効な場合'],
+    ['ice-scales','特殊技の被ダメージ補正',0.5,'特性が有効な場合'],
+    ['multiscale','被ダメージ補正',0.5,'HP満タン時'],
+    ['swift-swim','素早さ',2,'雨のとき'],
+    ['chlorophyll','素早さ',2,'晴れのとき'],
+    ['sand-rush','素早さ',2,'砂嵐のとき'],
+    ['slush-rush','素早さ',2,'雪のとき']
+  ].filter(([k])=>abs.includes(k));
+  const extra=comparisons.map(([k,label,m,cond])=>{
+    const isSpeed=label==='素早さ',v=isSpeed?speed:100,max=Math.max(v,v*m);
+    return '<details class="dp-li"><summary>'+esc(ABN[k]||k)+'：'+esc(label)+'</summary>'+bar('補正なし',v,max)+bar('補正あり',v*m,max)+'<p class="dp-fn">'+esc(cond)+(isSpeed?'。素早さ上昇補正・能力ポイント32。':'。補正なしを100とした比較。最終ダメージではありません。')+'</p></details>';
+  }).join('');
   const mvIds=ids.filter(id=>MV[id]).filter(id=>{const k=MD[id]&&MD[id][3];return ['aquajet','suckerpunch','extremespeed','machpunch','bulletpunch','iceshard','shadowsneak','fakeout','uturn','voltswitch','flipturn','partingshot','trickroom','tailwind','bellydrum','swordsdance','nastyplot','quiverdance','followme','ragepowder','wideguard'].includes(k)});
   const tags=mvIds.slice(0,8).map(id=>'<a class="pill gchip" href="#/move/'+id+'">'+esc(mName(id))+'</a>').join('');
   const form=p.base?byNo[p.base]:null;
   const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
   const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'種族値と覚える技から戦い方を選べる。';
-  return {headline:esc(headline),html:chart+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
+  return {headline:esc(headline),html:chart+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
 }
 
 function dpOverviewHTML(p,g){
@@ -62,8 +77,8 @@ function dpOverviewHTML(p,g){
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
     <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p><details class="dp-li"><summary>役割・姿の詳しい説明</summary><p>${g.lead}</p></details></section>${evidence.html}
-    ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
-    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.slice(0,3).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
       <p class="dp-fn">種族値と覚える技から見た目安です。どの役で使うかは型（技・持ち物）で決まり、条件のある役はその技を入れた型のときだけです。</p></section>`:''}
     ${forms}
