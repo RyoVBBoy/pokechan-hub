@@ -120,13 +120,13 @@ function monGuide(p,o={}){
   /* 2026/11/16 依頼主の報告（イダイトウが「攻撃を削って防御」の型になる）：HPだけが高く、防御・特防がどちらも80未満なら受け役にしない */
   if(bulkS>=.65&&Math.max(B,D)>=80&&(heal.length||abK.includes('regenerator')||piv.length))R('bulky',bulkS+.2,'受けて粘る役（サイクル）',`耐久は${lvl(pbS)===lvl(sbS)?'物理・特殊ともに'+lvl(pbS):'物理が'+lvl(pbS)+'・特殊が'+lvl(sbS)}。${heal.length?mName(heal[0])+'で回復でき、':''}${abK.includes('regenerator')?ABN.regenerator+'で引っ込むたびに回復できるので、':''}交代を繰り返す戦い方に向く。`,'bulky');
   if(sup.length>=2)R('support',.4+.08*sup.length,'起点作り',`${list(sup.slice(0,4).map(mName))}など、味方を助ける技が多い。自分は倒れてもよいので、後ろのアタッカーが動きやすい状況を作る。`,'support');
-  if(tr.length)R('tr',spdS<.3?.95:.6,'トリックルームを使う役',spdS<.3?'自分も遅いので、トリックルームを張ったあとにそのまま先手で攻撃できる。':'トリックルームを張って、遅い味方を活かす。自分は速いので、張ったあとは交代して味方に任せることが多い。',spdS<.3&&offS>=.4?'tr':null);
-  else if(spdS<.25&&offS>=.6)R('slow',.55,'トリックルームで活きるアタッカー',`素早さはとても低いが${atkStat}は高い。味方のトリックルームの中では、先に動いて大きなダメージを与えられる。`,null);
+  if(tr.length)R('tr',spdS<.3?.95:.6,'トリックルームを使う役',spdS<.3?'自分も遅いので、トリックルーム中、同じ優先度で相手より遅ければ先に攻撃できる。':'トリックルームを張って、遅い味方を活かす。自分は速いので、張ったあとは交代して味方に任せることが多い。',spdS<.3&&offS>=.4?'tr':null);
+  else if(spdS<.25&&offS>=.6)R('slow',.55,'トリックルームで活きるアタッカー',`素早さはとても低いが${atkStat}は高い。味方のトリックルーム中、同じ優先度で相手より遅ければ先に動ける。`,null);
   if(wset)R('wset',1.05,`天気（${GM_WN[WSET[wset]]}）を作る役`,`特性${ABN[wset]}で、場に出るだけで天気が${GM_WN[WSET[wset]]}になる。天気で強くなる味方と組むと、出すたびに天気を作り直せる。`,null);
   if(wspd)R('wspd',.75,`${GM_WN[WSPD[wspd]]}で速くなるアタッカー`,`特性${ABN[wspd]}で、天気が${GM_WN[WSPD[wspd]]}のときは素早さが2倍になる。天気を作る味方と一緒に出したい。`,null);
-  if(abK.includes('intimidate'))R('intim',.58,'いかくで相手を弱らせる役',`特性${ABN.intimidate}で、出るたびに相手の攻撃を下げられる。物理アタッカーの多い相手に強く、交代で何度も出すと効果が大きい。`,null);
-  if(prio.length&&offS>=.45)R('prio',.5,'先制技でとどめを刺す役',`${list(prio.slice(0,2).map(m=>m.n))}で、速い相手にも先に攻撃できる。削れた相手へのとどめに使う。`,null);
-  if(piv.length&&spdS>=.5)R('pivot',.46,'交代しながら削る役',`${list(piv.map(mName))}で、攻撃しながら有利な味方に交代できる。先発で相手を見てから動くのに向く。`,null);
+  if(abK.includes('intimidate'))R('intim',.58,'いかくで相手を弱らせる役',`特性${ABN.intimidate}で、場に出たとき相手の攻撃を下げられる場合がある。物理アタッカーの多い相手に強く、交代で何度も出すと効果が大きい。`,null);
+  if(prio.length&&offS>=.45)R('prio',.5,'先制技でとどめを刺す役',`${list(prio.slice(0,2).map(m=>m.n))}で、優先度と発動条件が合えば速い相手より先に攻撃できる。`,null);
+  if(piv.length&&spdS>=.5)R('pivot',.46,'交代しながら削る役',`${list(piv.map(mName))}で、技が成功すると味方に交代できる。先発で相手を見てから動くのに向く。`,null);
   if(dbl.some(id=>['fakeout','followme','ragepowder'].includes(key(id)))||dbl.length>=2)R('double',.36,'ダブルの補助',`${list(dbl.slice(0,3).map(mName))}を覚える。ダブルでは味方を守ったり、相手の動きを止めたりできる。`,null);
   roles.sort((a,b)=>b.sc-a.sc);
   const topRoles=roles.slice(0,4);
@@ -174,7 +174,7 @@ function monGuide(p,o={}){
   if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${ps[ai]}${bfl(ai)}はメガシンカも入れた${RANKP.length}匹で${rk(ai)}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
   if(pbS>=.7&&pbS>=sbS)pros.push(['物理技に強い',`HP${h}・防御${B}で、物理技を受けても倒れにくい。物理アタッカーの多い相手に出しやすい。`,2,'def']);
   else if(sbS>=.7)pros.push(['特殊技に強い',`HP${h}・特防${D}で、特殊技を受けても倒れにくい。特殊アタッカーの多い相手に出しやすい。`,2,'def']);
-  if(piv.length)pros.push(['交代しながら攻撃できる',`${esc(list(piv.slice(0,2).map(mName)))}で、攻撃や補助のあとに有利な味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
+  if(piv.length)pros.push(['交代技で戦える',`${esc(list(piv.slice(0,2).map(mName)))}で、技が成功すると攻撃や補助のあとに味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
   const weakenMv=have(['willowisp','thunderwave','toxic','yawn','taunt','knockoff','trick']);
   if(weakenMv.length)pros.push(['相手を弱らせる技がある',`${esc(list(weakenMv.slice(0,3).map(mName)))}を覚える。相手の攻撃を下げたり、動きを止めたりして、味方が戦いやすくなる。`,1.6,'def']);
   if(h<=65&&Math.max(B,D)>=95)cons.push(['HPが低め',`${B>=D?'防御':'特防'}${Math.max(B,D)}は高いが、HP${h}が低いので、思ったほどは耐えない。等倍の強い技を続けて受けると倒れやすいので、受けに出すときは半減以下で受けられる相手を選ぶ。`,3,'HPが低く、思ったほどは耐えない']);
@@ -182,8 +182,8 @@ function monGuide(p,o={}){
   if(x4.length)cons.push([`${list(x4.map(x=>x[0]))}が4倍の弱点`,`${list(x4.map(x=>x[0]))}タイプの技は4倍のダメージになり、耐久があっても一撃で倒されやすい。${list(x4.map(x=>x[0]))}技を持つ相手の前には出さないようにする。`,3,`${list(x4.map(x=>x[0]))}技を4倍で受ける`]);
   if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}${weak.length<10?'つ':'個'}が弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
   if(spdS<.25)cons.push(['素早さが低い',`最速にしても${maxSpe(p)}で、多くの相手に先に攻撃される。トリックルームを使うか、先に攻撃を受けても耐えられる相手に合わせて出す。`,2,'素早さが低く、先に攻撃されやすい']);
-  if(offS<.3)cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
-  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、きあいのタスキで確実に1回動く使い方が向く。'}`,2,'打たれ弱い']);
+  if(offS<.3&&!abK.some(k=>['huge-power','pure-power','water-bubble','technician','hustle','guts','adaptability','strong-jaw','solar-power'].includes(k)))cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
+  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、HP満タン時にきあいのタスキで一撃を耐える使い方が向く。'}`,2,'打たれ弱い']);
   if(!cons.length&&weak.length)cons.push([`${weak[0][0]}技に弱い`,`${list(weak.map(x=>x[0]))}が弱点。${weak[0][0]}技を持つ相手が出てきたら、受けられる味方に交代する。`,1,`${weak[0][0]}技に弱い`]);
   pros.sort((a,b)=>b[2]-a[2]);cons.sort((a,b)=>b[2]-a[2]);
   /* ひとこと：いちばんの強みと、それに合う役割（守りの強みなら受け・交代・補助、攻めの強みならアタッカー・積み） */
@@ -191,8 +191,8 @@ function monGuide(p,o={}){
   const role=roles.find(r=>want.includes(r.k))||topRoles[0];
   /* 「向いている役割」も、ひとことで挙げた役割を先頭にする */
   if(role&&topRoles.includes(role)){topRoles.splice(topRoles.indexOf(role),1);topRoles.unshift(role)}else if(role){topRoles.pop();topRoles.unshift(role)}
-  const strong=pros[0]?pros[0][0].replace(/が高い$/,'の高さ').replace(/に強い$/,'への強さ').replace(/^弱点が(.+)だけ$/,'弱点が$1だけという耐性').replace(/^弱点がない$/,'弱点のない耐性').replace(/^受けられるタイプが多い$/,'受けられるタイプの多さ').replace(/^交代しながら攻撃できる$/,'交代しながら戦える器用さ').replace(/^相手を弱らせる技がある$/,'相手を弱らせる技'):'';
-  const lead=`${esc(p.n)}は、${strong?strong+'を活かして、':''}${role?esc(role.name).replace(/（.*$/,'')+'として活躍しやすいポケモン':'いろいろな役をこなせるポケモン'}。${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+  const strong=pros[0]?pros[0][0].replace(/が高い$/,'の高さ').replace(/に強い$/,'への強さ').replace(/^弱点が(.+)だけ$/,'弱点が$1だけという耐性').replace(/^弱点がない$/,'弱点のない耐性').replace(/^受けられるタイプが多い$/,'受けられるタイプの多さ').replace(/^交代技で戦える$/,'交代しながら戦える器用さ').replace(/^相手を弱らせる技がある$/,'相手を弱らせる技'):'';
+  const lead=`${esc(p.n)}は、${strong?strong+'を活かして、':''}${role?esc(role.name).replace(/（.*$/,'')+'として活躍しやすいポケモン':'技や特性から戦い方を検討するポケモン'}。${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
   const item=([t,d])=>`<div class="gpt"><b>${esc(t)}</b><p>${d}</p></div>`;
   const dn=defNotes(p);
   const numHTML=`<dl class="gnum">
@@ -355,9 +355,9 @@ function monGuide(p,o={}){
     const atkR=offS>=.6&&!prankSup?roles.find(r=>r.k==='attacker'):null;
     const role2=wxr||prankSup||atkR||roles.find(r=>want.includes(r.k)&&r.k!=='setup')||roles.find(r=>r.k!=='setup')||role;
     const offPro=pros.find(x=>x[3]==='off');
-    const strong2=prankSup&&role2===prankSup?'いたずらごころで補助技を先に出せること':atkR&&role2===atkR?(offPro?offPro[0].replace(/が高い$/,'の高さ'):''):strong;
+    const strong2=prankSup&&role2===prankSup?'いたずらごころ選択時の変化技の優先度':atkR&&role2===atkR?(offPro?offPro[0].replace(/が高い$/,'の高さ'):''):strong;
     const opt=roles.filter(r=>r!==role2&&['setup','support','bulky','tr','pivot'].includes(r.k)).slice(0,2).map(r=>esc(r.name).replace(/（.*$/,''));
-    const lead2=`${esc(p.n)}は、${strong2&&!wxr?strong2+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'いろいろな役をこなせるポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+    const lead2=`${esc(p.n)}は、${strong2&&!wxr?strong2+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'技や特性から戦い方を検討するポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
     /* 2026/11/16 依頼主に届いた報告（メガガブリアスの図鑑：通常・メガ・メガZ で「どんなポケモン？」が同じ）：
        姿ごとの違いを種族値・タイプ・特性のデータから1文足す。メガの姿＝元の姿から何が変わるか、元の姿＝それぞれのメガで何が変わるか */
     const fdiff=(a,b)=>{const d=SN.map((n,i)=>({n,i,a:a.s[i],b:b.s[i],d:b.s[i]-a.s[i]})).filter(x=>x.d);
