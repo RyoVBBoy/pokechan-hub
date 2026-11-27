@@ -101,16 +101,16 @@ function monGuide(p,o={}){
       const why=item==='choicescarf'?`素早さが中くらいなので、${ITEMN.choicescarf}で上から攻撃できる相手を増やす。`:item==='lifeorb'?`素早さが高いので、技を固定されない${ITEMN.lifeorb}で火力を上げる。`:`素早さは低いが${atkStat}が高いので、${ITEMN[item]}で弱点を突いたときの火力を上げ、受けに来た相手も押し切る。`;
       return mkSet(`${atkName}アタッカー`,why,pickAb(['power','speed','weaken','absorb']),item,item==='choicescarf'||item==='lifeorb'?5:ai,ai===1?3:1,spOf(ai,5),pickAtk(4))},
     setup:()=>{const s=setup[0],isSh=key(s)==='shellsmash',bd=key(s)==='bellydrum';const item=isSh&&bulkS<.5?'focussash':bd?'sitrusberry':bulkS>=.55?'leftovers':'lifeorb';
-      return mkSet('積みアタッカー',`${mName(s)}で能力を上げてから、タイプの違う技で一気に倒していく。${item==='focussash'?'耐久が低いので'+ITEMN.focussash+'で1回は確実に積む。':item==='sitrusberry'?ITEMN.sitrusberry+'でHPを戻しながら戦う。':item==='leftovers'?'耐久もあるので、'+ITEMN.leftovers+'で回復しながら何度も積む。':ITEMN.lifeorb+'で、積んだあとの火力をさらに上げる。'}`,
+      return mkSet('積みアタッカー',`${mName(s)}で能力を上げてから、タイプの違う技で一気に倒していく。${item==='focussash'?'耐久が低いので'+ITEMN.focussash+'でHP満タン時に一撃を耐えられる場合がある。':item==='sitrusberry'?ITEMN.sitrusberry+'でHPを戻しながら戦う。':item==='leftovers'?'耐久もあるので、'+ITEMN.leftovers+'で回復しながら何度も積む。':ITEMN.lifeorb+'で、積んだあとの火力をさらに上げる。'}`,
         pickAb(['power','speed','bulk','stat']),item,spdS>=.4&&!['curse'].includes(key(s))?5:ai,ai===1?3:1,key(s)==='curse'?spOf(0,ai):spOf(ai,5),[s,...pickAtk(3)])},
     bulky:()=>{const at=pickAtk(2),aux=[...heal.slice(0,1),...sup.filter(id=>['willowisp','toxic','stealthrock','thunderwave','yawn','spikes','taunt'].includes(key(id))).slice(0,1),...piv.slice(0,1),...have(['knockoff','protect'])];
       const mv=[...aux.slice(0,2),...at,...aux.slice(2)];
       return mkSet('受けて粘る役（サイクル）',`HPと${lowDef===2?'防御':'特防'}を伸ばし、${heal.length?mName(heal[0])+'で回復しながら':'交代を繰り返しながら'}何度も場に出る。${ITEMN.leftovers}で少しずつ回復する。`,
         pickAb(['pivot','bulk','weaken','absorb','statusab','stat']),'leftovers',lowDef,ai===1?3:1,spOf(0,lowDef),mv)},
     support:()=>{const fast=spdS>=.55;const s=sup.slice(0,3);
-      return mkSet('起点作り',`${list(s.map(mName))}で味方が戦いやすい状況を作る。${bulkS<.4?'耐久が低いので'+ITEMN.focussash+'で確実に1回は動く。':ITEMN.sitrusberry+'で長く場に残る。'}`,
+      return mkSet('起点作り',`${list(s.map(mName))}で味方が戦いやすい状況を作る。${bulkS<.4?'耐久が低いので'+ITEMN.focussash+'でHP満タン時に一撃を耐えられる場合がある。':ITEMN.sitrusberry+'で長く場に残る。'}`,
         pickAb(['speed','weaken','field','bulk']),bulkS<.4?'focussash':'sitrusberry',fast?5:lowDef,ai===1?3:1,fast?spOf(0,5):spOf(0,lowDef),[...s,...pickAtk(1,[]).slice(0,1),...sup.slice(3)])},
-    tr:()=>mkSet('トリックルームのアタッカー',`自分でトリックルームを使い、遅さを活かして先に攻撃する。素早さは下げる性格にして、ポイントは振らない。`,
+    tr:()=>mkSet('トリックルームのアタッカー',`自分でトリックルームを使い、同じ優先度で相手より遅い場合に先に攻撃できる。素早さは下げる性格にして、ポイントは振らない。`,
       pickAb(['weaken','bulk','power']),bulkS>=.5?'sitrusberry':'lifeorb',ai,5,spOf(0,ai),[tr[0],...pickAtk(3)])
   };
   /* ---- 向いている役割 ---- */
@@ -126,7 +126,7 @@ function monGuide(p,o={}){
   if(wspd)R('wspd',.75,`${GM_WN[WSPD[wspd]]}で速くなるアタッカー`,`特性${ABN[wspd]}で、天気が${GM_WN[WSPD[wspd]]}のときは素早さが2倍になる。天気を作る味方と一緒に出したい。`,null);
   if(abK.includes('intimidate'))R('intim',.58,'いかくで相手を弱らせる役',`特性${ABN.intimidate}で、場に出たとき相手の攻撃を下げられる場合がある。物理アタッカーの多い相手に強く、交代で何度も出すと効果が大きい。`,null);
   if(prio.length&&offS>=.45)R('prio',.5,'先制技でとどめを刺す役',`${list(prio.slice(0,2).map(m=>m.n))}で、優先度と発動条件が合えば速い相手より先に攻撃できる。`,null);
-  if(piv.length&&spdS>=.5)R('pivot',.46,'交代しながら削る役',`${list(piv.map(mName))}で、技が成功すると味方に交代できる。先発で相手を見てから動くのに向く。`,null);
+  if(piv.length&&spdS>=.5)R('pivot',.46,'交代技を使う役',`${list(piv.map(mName))}で、技が成功すると味方に交代できる。先発で相手を見てから動くのに向く。`,null);
   if(dbl.some(id=>['fakeout','followme','ragepowder'].includes(key(id)))||dbl.length>=2)R('double',.36,'ダブルの補助',`${list(dbl.slice(0,3).map(mName))}を覚える。ダブルでは味方を守ったり、相手の動きを止めたりできる。`,null);
   roles.sort((a,b)=>b.sc-a.sc);
   const topRoles=roles.slice(0,4);
@@ -182,7 +182,7 @@ function monGuide(p,o={}){
   if(x4.length)cons.push([`${list(x4.map(x=>x[0]))}が4倍の弱点`,`${list(x4.map(x=>x[0]))}タイプの技は4倍のダメージになり、耐久があっても一撃で倒されやすい。${list(x4.map(x=>x[0]))}技を持つ相手の前には出さないようにする。`,3,`${list(x4.map(x=>x[0]))}技を4倍で受ける`]);
   if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}${weak.length<10?'つ':'個'}が弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
   if(spdS<.25)cons.push(['素早さが低い',`最速にしても${maxSpe(p)}で、多くの相手に先に攻撃される。トリックルームを使うか、先に攻撃を受けても耐えられる相手に合わせて出す。`,2,'素早さが低く、先に攻撃されやすい']);
-  if(offS<.3&&!abK.some(k=>['huge-power','pure-power','water-bubble','technician','hustle','guts','adaptability','strong-jaw','solar-power'].includes(k)))cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
+  if(offS<.3&&!abK.some(k=>['huge-power','pure-power','water-bubble','technician','hustle','guts','adaptability','strong-jaw','solar-power'].includes(k)))cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}という種族値。実際の火力は技・特性・持ち物・相手によって変わる。`,1.5,'火力は高くない']);
   if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、HP満タン時にきあいのタスキで一撃を耐える使い方が向く。'}`,2,'打たれ弱い']);
   if(!cons.length&&weak.length)cons.push([`${weak[0][0]}技に弱い`,`${list(weak.map(x=>x[0]))}が弱点。${weak[0][0]}技を持つ相手が出てきたら、受けられる味方に交代する。`,1,`${weak[0][0]}技に弱い`]);
   pros.sort((a,b)=>b[2]-a[2]);cons.sort((a,b)=>b[2]-a[2]);
@@ -234,7 +234,7 @@ function monGuide(p,o={}){
   const mvParts=[];
   if(bestStab.length)mvParts.push(['タイプ一致の主力技','威力が1.5倍になる、いちばん頼りになる技。',bestStab.slice(0,4).map(m=>m.id)]);
   if(hard.length)mvParts.push(['タイプ一致技では倒しにくい相手',`${list(hard)}タイプには、タイプ一致技がどれも等倍より低い。${covM.length?'次の技で弱点を突ける。':'弱点を突ける技がないので、味方に任せる。'}`,covM.map(m=>m.id)]);
-  if(prio.length)mvParts.push(['先制技','素早さに関係なく先に攻撃できる。削れた相手へのとどめに。',prio.slice(0,3).map(m=>m.id)]);
+  if(prio.length)mvParts.push(['先制技','優先度と発動条件が合えば素早さの高い相手より先に攻撃できる。削れた相手へのとどめに。',prio.slice(0,3).map(m=>m.id)]);
   if(aux.length)mvParts.push(['補助に使える技','能力を上げる・回復する・相手を邪魔するなど、攻撃以外で役立つ技。',aux]);
   /* 型ごとのくわしい説明：実数値・この型の役割・技の入れ替え候補・苦手な相手（ダメージ計算から） */
   const mvCard=(id,why)=>{const u=MVU[id]||[],d=MD[id]||[];return `<div class="mvr gmvr"><div class="mvr-h"><a href="${lk('#/move/'+id)}" style="color:var(--fg)"><b>${esc(mName(id))}</b></a>${u[0]?chip(u[0]):''}<span class="mvc c${u[1]}">${['物理','特殊','変化'][u[1]]||''}</span></div>
@@ -262,9 +262,9 @@ function monGuide(p,o={}){
       setup:'相手が交代したときや、攻撃の弱い相手の前で能力を上げ、そのまま後ろの相手まで倒していくエース。積む前に倒されないよう、出す場面を選ぶ。',
       bulky:'相手の攻撃を受けて、交代を繰り返しながら少しずつ削る役。不利な相手からは早めに交代する。',
       support:'先発で場を整え、後ろのアタッカーが戦いやすい状況を作る役。倒れる前に補助技を使い切る。',
-      tr:'トリックルームを張り、その中で先に攻撃する役。トリックルームが終わるターンを数えて動く。',
+      tr:'トリックルームを張り、同じ優先度で相手より遅い場合に先に攻撃する役。トリックルームが終わるターンを数えて動く。',
       double:'味方と2匹で同じ相手を狙い、1ターンに1匹ずつ倒していく役。',dsup:'相手の攻撃を自分に集めて、味方を守る役。'}[s.k]||'';
-    return base+(pv.length?`不利な相手の前では${esc(mName(pv[0]))}で交代し、有利な味方につなぐ。`:'')+(pr.length?`${esc(mName(pr[0]))}で、削れた相手に先にとどめを刺せる。`:'')+(s.item==='focussash'?'きあいのタスキで1回は確実に動ける。':'')};
+    return base+(pv.length?`不利な相手の前では${esc(mName(pv[0]))}で交代し、有利な味方につなぐ。`:'')+(pr.length?`${esc(mName(pr[0]))}で、削れた相手に先にとどめを刺せる。`:'')+(s.item==='focussash'?'きあいのタスキはHP満タン時に一撃を耐えるための持ち物。連続技などには注意。':'')};
   const hardOf=s=>{try{
     const me=mkMon(p,'me',{ab:s.ab,item:s.item,moves:s.moves.filter(id=>MV[id]).map(mvObj),sp:s.sp,up:s.up,dn:s.dn});
     const rows=gmOpps().filter(q=>q.no!==p.no&&q.no!==(base&&base.no)).map(q=>{const op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));const a=estHit(me,op),b=estHit(op,me);
