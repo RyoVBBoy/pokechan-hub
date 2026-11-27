@@ -56,9 +56,17 @@ function dpEvidenceHTML(p){
   const form=p.base?byNo[p.base]:null;
   const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
   const statNames=['HP','攻撃','防御','特攻','特防','素早さ'];
+  const hasMove=id=>ids.includes(id)&&!!MV[id];
+  const dragonDance=hasMove(349);
+  const priority=ids.filter(id=>MV[id]&&mvObj(id)&&mvObj(id).pri>0&&mvObj(id).cls<2);
+  const danceStats=calcStats(p,[2,32,0,0,0,32],1,3);
+  const danceChart=dragonDance?'<details class="dp-li"><summary>りゅうのまい：攻撃・素早さの変化</summary>'+[1,5].map(i=>bar(statNames[i]+'（使用前）',danceStats[i],Math.floor(danceStats[i]*1.5))+bar(statNames[i]+'（1回使用後）',Math.floor(danceStats[i]*1.5),Math.floor(danceStats[i]*1.5))).join('')+'<p class="dp-fn">攻撃上昇・特攻下降補正、HP2・攻撃32・素早さ32。ランク0から1へ上昇した場合。特性・持ち物・場の補正なし。</p></details>':'';
+  const priorityText=priority.length?'<details class="dp-li"><summary>先制攻撃の選択肢</summary>'+priority.map(id=>'<p>'+esc(mName(id))+'：優先度 +'+mvObj(id).pri+'</p>').join('')+'<p class="dp-fn">技の成功条件や優先度の高い相手の技、先制技を防ぐ効果に注意。</p></details>':'';
+  const moveEvidence=danceChart+priorityText;
+
   const topStat=p.s.reduce((best,v,i)=>v>p.s[best]?i:best,0);
   const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。';
-  return {headline:esc(headline),html:chart+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
+  return {headline:esc(headline),html:chart+(moveEvidence?'<section class="dp-sec"><h3 class="dp-st">技による性能の変化</h3>'+moveEvidence+'</section>':'')+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
 }
 
 function dpOverviewHTML(p,g){
