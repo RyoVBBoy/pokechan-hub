@@ -198,6 +198,8 @@ async function userApi(req,env,db,path,body,now){
     await db.prepare(`DELETE FROM user_data WHERE uid=?`).bind(me.uid).run();
     await pushInit(db);await db.prepare(`DELETE FROM push_subs WHERE uid=?`).bind(me.uid).run();
     await db.prepare(`DELETE FROM users WHERE uid=?`).bind(me.uid).run();
+    /* AI の利用枠（AI_DB）も消す。AI 側の障害で退会を止めない（失敗しても90日の期限削除で消える）。3秒まで待つ */
+    if(typeof aiForgetUser==='function'&&env.AI_DB){try{await Promise.race([aiForgetUser(env,me.uid),new Promise(r=>setTimeout(r,3000))])}catch(e){}}
     return J({ok:true});
   }
   return J({error:'見つかりません。'},404);

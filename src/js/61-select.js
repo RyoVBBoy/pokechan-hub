@@ -8,6 +8,7 @@
 let WX_OFF=false;
 const SEL_LV={4:1,3:.7,2:.25,1:0};
 const DG_SELC=new Map();
+const dgSelectionKey=(entries,rows)=>JSON.stringify([Math.min(PICK(),entries.length),entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),rows.length,dgDataSig(),'mega-per-sel']);
 function dgSelect(entries){return impWith(entries,()=>dgSelect0(entries))}
 // 表示と同じ小数第3位で丸めた点を比較する。
 const dgSelScore=x=>Number(x.sc.toFixed(3));
@@ -31,7 +32,7 @@ function dgSelect0(entries){
   const n=entries.length,K=Math.min(PICK(),n);if(n<=K)return null;
   let T;try{T=dgTeam(entries,20)}catch(e){return null}
   const R=T.rows;if(!R.length||dgSelectionIssue(T,entries,K))return null;
-  const key=JSON.stringify([K,entries.map(x=>[x.no,x.set||0,!!x.axis,!!x.sel]),R.length,dgDataSig(),'mega-per-sel']);
+  const key=dgSelectionKey(entries,R);
   if(DG_SELC.has(key))return DG_SELC.get(key);
   const nm=i=>formInfo(T.ms[i].p).base;
   const ax=entries.findIndex(x=>x.axis);

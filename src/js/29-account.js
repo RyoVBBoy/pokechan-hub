@@ -22,7 +22,7 @@ async function fbLoad(){
   const a=app.initializeApp(cfg);const auth=au.getAuth(a);auth.languageCode='ja';
   AUTH.redir=AUTH_SAMEORIGIN&&au.getRedirectResult?au.getRedirectResult(auth).catch(e=>{AUTH.redirectErr=e}):Promise.resolve();
   AUTH.fb={au,auth};
-  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch){AUTH.profile=u?undefined:null;refreshBrand()}if(u){if(ch)acOwner(u.uid);try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}else if(ch){try{localStorage.removeItem('pcin')}catch(e){}}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
+  AUTH.wait=new Promise(res=>au.onAuthStateChanged(auth,u=>{const ch=(AUTH.user&&AUTH.user.uid)!==(u&&u.uid);AUTH.user=u;if(ch){AUTH.profile=u?undefined:null;refreshBrand();if(typeof aiAuthChanged==='function')aiAuthChanged(u&&u.uid)}if(u){if(ch)acOwner(u.uid);try{localStorage.setItem('pcin','1')}catch(e){}if(ch&&typeof teamSync==='function')setTimeout(()=>teamSync(true),0)}else if(ch){try{localStorage.removeItem('pcin')}catch(e){}}AUTH.ready=true;res();if(ch&&['account'].includes(keyOf(cur)))accountView()}));
   return AUTH.fb;
 }
 /* この端末のパーティ・お気に入り・戦術メモがだれのものか（localStorage pcowner＝ログインした人の uid。2026/11/12）。
@@ -43,6 +43,8 @@ async function acSignOut(){
 }
 function acForget(){
   if(typeof userLocalReset==='function')userLocalReset();
+  /* AI の会話・書きかけ・待っている答えも消す（ログアウト・アカウントの削除） */
+  if(typeof aiReset==='function')aiReset();
   try{localStorage.removeItem('pcowner');localStorage.removeItem('pcin')}catch(e){}
 }
 async function authFetch(path,body){

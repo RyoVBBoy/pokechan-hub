@@ -132,6 +132,7 @@ function stFill(entries){
     ${has?stOwnHTML(own,auto):''}
     ${has?'<p class="stg-autol">自動の診断（計算から）</p>':''}
     ${sec1.replace('<h3>このパーティの戦い方</h3>','<h3>戦い方の型</h3>')}${sec2}${sec3}${sec4}`;
+  if(typeof aiPartyStartUpdate==='function')aiPartyStartUpdate(entries,T);
   stBind(box);
   if(typeof dgMegaBind==='function')dgMegaBind(box);
   box.querySelectorAll('[data-dgu-tab]').forEach(b=>b.onclick=()=>ttJump(b.dataset.dguTab,'sel-box'));
