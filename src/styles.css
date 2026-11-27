@@ -3789,3 +3789,5 @@ body.gkcm-on{overflow:hidden}
 .ai-party-mark{flex:none}
 .ai-party-mark-cut{stroke:var(--bg)}
 .ai-party-mark-fill{fill:var(--bg)}
+
+.ai-party-dialog .ai-comp[hidden]{display:none}

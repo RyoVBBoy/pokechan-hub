@@ -63,12 +63,40 @@ async function mkEnv(o={}){
   return baseEnv({AI_DB:AI,DB,...o});
 }
 const tok=async u=>{if(!users.has(u))users.set(u,await S.sign(u));return users.get(u)};
-async function call(env,p,{method,uid='alice',body,origin=ORIGIN,headers={},raw,token}={}){
+async function call(env,p,{method,uid='alice',body,origin=ORIGIN,headers={},raw,token,worker=w}={}){
   const h={...headers};if(origin)h.origin=origin;if(uid&&token!==null)h.authorization='Bearer '+(token||await tok(uid));
   if(body!==undefined&&!h['content-type'])h['content-type']='application/json';
-  const r=await w.fetch(new Request('https://w.example'+p,{method:method||(body!==undefined||raw!==undefined?'POST':'GET'),headers:h,body:raw!==undefined?raw:body!==undefined?JSON.stringify(body):undefined}),env,{waitUntil(){}});
+  const r=await worker.fetch(new Request('https://w.example'+p,{method:method||(body!==undefined||raw!==undefined?'POST':'GET'),headers:h,body:raw!==undefined?raw:body!==undefined?JSON.stringify(body):undefined}),env,{waitUntil(){}});
   const text=await r.text();let j={};try{j=JSON.parse(text)}catch(e){}
   return{st:r.status,j,text,h:r.headers};
+}
+if(cfg.ai.auditHold&&cfg.ai.adminPreview){
+  const {default:worker}=await import(path.join(ROOT,'worker/dist/worker.js'));
+  const origin='https://pokechan-hub.pages.dev',endpoint='/api/admin/ai-preview';
+  const token='admin-preview-test-only';
+  const env=baseEnv({DB:makeD1(),ADMIN_TOKEN:token,AI_PROVIDER:'openai',AI_OPENAI_APPROVED:'1'});
+  const headers={'x-admin-token':token};
+  const partyCheck={members:[445,149],total:20,stable:2,basis:'fallback',example:25,responses:[445,149]};
+  const cases=[
+    ['他サイトのリクエストは拒否',{origin:'https://example.test',headers},403,'origin_forbidden'],
+    ['ログイン済みでも管理用の合言葉なしを拒否',{origin},403,'preview_admin_required'],
+    ['不正な合言葉で回答は得られない',{origin,headers:{'x-admin-token':'wrong'},body:{sample:'strengths',format:'single',partyCheck}},403,'preview_admin_required'],
+    ['合言葉だけでは回答できない',{origin,headers,uid:null,body:{sample:'strengths',format:'single',partyCheck}},401,'auth_required'],
+    ['改変した認証トークンでは認証できない',{origin,headers,token:'wrong'},401,'auth_required'],
+    ['指定の例題を検証できる',{origin,headers},200],
+    ['自由な入力は扱わない',{origin,headers,body:{sample:'other',format:'single',partyCheck}},400,'body_invalid'],
+    ['型が不正な診断は拒否',{origin,headers,body:{sample:'strengths',format:'single',partyCheck:{...partyCheck,stable:21}}},400,'tool_input_invalid']
+  ];
+  for(const [label,args,status,code] of cases){
+    const r=await call(env,endpoint,{...args,worker});
+    K('defense',label);
+    res('defense',label,r.st===status&&(code?r.j.reasonCode===code:r.j.preview===true),r);
+  }
+  const answer=await call(env,endpoint,{worker,origin,headers,body:{sample:'practice',format:'single',partyCheck}});
+  K('defense','別のAI用DBも提供元設定も使わずに模擬回答');
+  res('defense','診断の要約からカードを返しキャッシュさせない',
+    answer.st===200&&answer.j.preview&&answer.j.cards?.[0]?.slots?.stable===2&&answer.h.get('cache-control')==='no-store',answer);
+  KE();
 }
 const ask=(env,question,o={})=>call(env,'/api/ai/v1/answer',{uid:o.uid,body:{gameId:o.gameId||'pokechamp',format:o.format||'single',question,requestId:o.rid||rid(),...(o.toolInput?{toolInput:o.toolInput}:{}),...(o.rs!==undefined?{requestedRulesetId:o.rs}:{})}});
 const BIG={AI_FREE_DAY:'100000',AI_FREE_MONTH:'100000',AI_RL_USER_MIN:'100000',AI_RL_IP_MIN:'100000',AI_RL_GLOBAL_MIN:'100000'};

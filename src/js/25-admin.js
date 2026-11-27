@@ -19,7 +19,7 @@ function adminView(){
   <p class="note" style="padding-top:14px">通報された書き込みの確認と削除ができます。サーバーに設定した<b>管理用の合言葉（ADMIN_TOKEN）</b>を入れてください。アプリや背面タップ用の合言葉（APP_TOKEN）では入れません。合言葉はこの端末にだけ保存されます。</p>
   <div class="cform" style="padding:0 16px"><label>管理用の合言葉<input type="password" id="adm-tok" value="${esc(tok)}" autocomplete="off"></label></div>
   <div class="btns"><button class="btn btn-p" id="adm-save">保存して読み込む</button></div>
-  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="quota" aria-pressed="${admTab==='quota'}">使用量</button><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button><button class="pill" data-at="tips" aria-pressed="${admTab==='tips'}">Tips</button></div>
+  <div class="pills" style="padding:0 16px 8px;flex-wrap:wrap"><button class="pill" data-at="quota" aria-pressed="${admTab==='quota'}">使用量</button><button class="pill" data-at="contact" aria-pressed="${admTab==='contact'}">お問い合わせ</button><button class="pill" data-at="hits" aria-pressed="${admTab==='hits'}">アクセス</button><button class="pill" data-at="reports" aria-pressed="${admTab==='reports'}">通報</button><button class="pill" data-at="recent" aria-pressed="${admTab==='recent'}">最近の書き込み</button><button class="pill" data-at="banned" aria-pressed="${admTab==='banned'}">停止中のアカウント</button><button class="pill" data-at="season" aria-pressed="${admTab==='season'}">シーズン</button><button class="pill" data-at="news" aria-pressed="${admTab==='news'}">公式のお知らせ</button><button class="pill" data-at="tips" aria-pressed="${admTab==='tips'}">Tips</button>${typeof AI_CFG!=='undefined'&&AI_CFG.adminPreview?'<button class="pill" data-at="ai-preview" aria-pressed="'+(admTab==='ai-preview')+'">AI相談の検証</button>':''}</div>
   <div id="adm-list">${tok?'<p class="empty">読み込み中…</p>':'<p class="empty">合言葉を入れてください。</p>'}</div></div>`;
   document.getElementById('adm-save').onclick=()=>{try{sessionStorage.setItem('pcadmin',document.getElementById('adm-tok').value.trim())}catch(e){}adminView()};
   V.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{admTab=b.dataset.at;adminView()});
@@ -32,7 +32,16 @@ function adminView(){
     ks.forEach(async k=>{try{const r=await fetch(COMM_API+'/m/'+k,{headers:{'X-Admin-Token':tok}});if(!r.ok)return;const im=document.createElement('img');im.src=URL.createObjectURL(await r.blob());im.alt='';box.appendChild(im)}catch(e){}})});
   const load=async()=>{
     try{
-      if(admTab==='reports'){
+      if(admTab==='ai-preview'){
+        if(typeof fbLoad==='function'&&!AUTH.user){try{await fbLoad();await AUTH.wait}catch(e){}}
+        if(!el.isConnected)return;
+        if(!AUTH.user){
+          el.innerHTML='<p class="note">AI相談の検証にはサイトへのログインが必要です。</p><a class="btn btn-s" href="#/account">ログインする</a>';
+          return;
+        }
+        if(!await aiPreviewStart(tok)||!el.isConnected)return;
+        el.innerHTML='<p class="note">運営者限定の検証が使えます。例題を選んで模擬回答を確認できます。</p><a class="btn btn-p" href="#/team">パーティ画面を開く</a>';
+      }else if(admTab==='reports'){
         const j=await aget('/api/admin/reports');
         el.innerHTML=j.reports.length?j.reports.map(r=>`<div class="lcard">
           <div class="lcard-h"><span class="atag ${r.n>=3?'on':''}">${kindJa[r.kind]||r.kind}</span><b>通報 ${r.n}件</b><span class="lt">${ago(r.last)}</span></div>

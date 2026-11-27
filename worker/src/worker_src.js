@@ -326,7 +326,7 @@ function secureRes(res,req,env){
   h.delete('Access-Control-Allow-Origin');
   /* AI（/api/ai/）は AI 用の許可リスト（AI_ALLOWED_ORIGINS）だけ。コミュニティ用の許可リストは使わない */
   const aiPath=u.pathname==='/api/ai'||u.pathname.startsWith('/api/ai/');
-  if(aiPath?AI_ORIGIN(o,env):ORIGIN_OK(o,env)){h.set('Access-Control-Allow-Origin',o);h.set('Access-Control-Max-Age','600')}
+  if(u.pathname.replace(/\/+$/,'')===AI_ADMIN_PREVIEW_PATH?AI_ADMIN_PREVIEW_ORIGINS.has(o):aiPath?AI_ORIGIN(o,env):ORIGIN_OK(o,env)){h.set('Access-Control-Allow-Origin',o);h.set('Access-Control-Max-Age','600')}
   else if(media)h.set('Access-Control-Allow-Origin','*');   /* 画像は公開してよいもの（非表示のものはそもそも返さない） */
   h.append('Vary','Origin');
   h.set('X-Content-Type-Options','nosniff');

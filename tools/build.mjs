@@ -31,7 +31,7 @@ const cfgFile = path.join(ROOT, 'config/public.json');
 const cfg = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, 'utf8')) : {};
 const fb = cfg.firebase || {};
 const ai = cfg.ai || {};
-const pub = { firebase: fb.apiKey ? { apiKey: fb.apiKey, authDomain: fb.authDomain, projectId: fb.projectId, appId: fb.appId } : null, apple: !!cfg.apple, ai: { enabled: ai.enabled === true, partyConsult: ai.partyConsult === true, auditHold: ai.auditHold !== false } };
+const pub = { firebase: fb.apiKey ? { apiKey: fb.apiKey, authDomain: fb.authDomain, projectId: fb.projectId, appId: fb.appId } : null, apple: !!cfg.apple, ai: { enabled: ai.enabled === true, partyConsult: ai.partyConsult === true, auditHold: ai.auditHold !== false, adminPreview: ai.auditHold !== false && ai.adminPreview === true } };
 const cfgTag = `<script>window.PC_CONFIG=${JSON.stringify(pub).replace(/</g, '\\u003c')};</script>`;
 
 fs.rmSync(DIST, { recursive: true, force: true });
