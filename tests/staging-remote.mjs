@@ -28,7 +28,7 @@ const ADM={admin:true};
 /* 0. 公開されるまで待つ（新しい workers.dev は少しかかる） */
 let up=null;for(let i=0;i<30&&!up;i++){try{const r=await call('/api/links/config');if(r[0]===200)up=r}catch(e){}if(!up)await new Promise(r=>setTimeout(r,4000))}
 ok(!!up,'R1 ステージングの Worker に届く',up);if(!up)process.exit(1);
-ok(up[1].post===false&&up[1].click===true,'R1 Web Risk の鍵がないのでリンクの投稿は止まっている（click は設定どおり）',up[1]);
+ok(up[1].post===true&&up[1].click===true,'R1 許可リスト方式では Web Risk の鍵なしでリンク機能が使える',up[1]);
 /* 1. 移しかえ：前の版の表（ワークフローで先に入れた）が、はじめての呼び出しで新しい形になる（本物の D1） */
 /* はじめての呼び出しが本物の D1 の一時的な失敗で 500 になっても、準備のしるし（READY）は成功してから立てるので、次の呼び出しで最後まで作れる */
 let r=await call('/api/tl'),first=r[0],tries=1;
@@ -107,6 +107,19 @@ sql(`INSERT OR REPLACE INTO link_state(k,v,at,until) VALUES('wr_saturated','unsa
 r=await call(`/api/links/${ln}/open`,{method:'POST',body:{}});ok(r[0]===503&&r[1].saturated===true,'R7 上限の印があれば開かない（本物の D1）',r);
 sql(`DELETE FROM link_state WHERE k='wr_saturated'`);
 r=await call(`/api/links/${ln}/open`,{method:'POST',body:{}});ok(!r[1].saturated,'R7 印を外すと上限の答えではなくなる（前の方針の行は確かめ直しへ。鍵がないので開かない）',r);
+/* Allowlist real Worker: synthetic stored notes, public open/go (no live Firebase or scanner). */
+ok(r[0]===410&&!r[1].url,'Allowlist blocks old unapproved destination',r);
+sql(`INSERT INTO notes(uid,body,created_at,ip) VALUES('sA','allowlist fixture',${now+2},'')`);
+const aid=sql(`SELECT id FROM notes WHERE uid='sA' ORDER BY id DESC LIMIT 1`)[0].id;
+sql(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev,vh,pol) VALUES(${aid},'sA','https://www.youtube.com/watch?v=AbCdEf12345','www.youtube.com','ok','clean',${now},0,${now},${now},0,'old-vh','p0:OLD')`);
+const ao=await call(`/api/links/${aid}/open`,{method:'POST',body:{}});
+ok(ao[0]===200&&ao[1].url==='https://www.youtube.com/watch?v=AbCdEf12345'&&!!ao[1].intent,'Allowlist approved URL opens without scanner',ao);
+if(ao[0]===200){
+ const ag=await call(`/api/links/${aid}/go`,{method:'POST',body:{intent:ao[1].intent}});
+ ok(ag[0]===200&&ag[1].url===ao[1].url,'Allowlist confirmation succeeds',ag);
+ const replay=await call(`/api/links/${aid}/go`,{method:'POST',body:{intent:ao[1].intent}});
+ ok(replay[0]!==200&&!replay[1].url,'Allowlist one-use intent',replay);
+}
 /* 8. 管理画面の状態 */
 r=await call('/api/admin/sanctions',{...ADM});ok(r[0]===200&&r[1].fb_sync&&Array.isArray(r[1].fb_sync.open_ops),'R8 管理画面の同期の状態（本物の D1）',r[0]);
 console.log('staging-remote: d1 execute のやり直し '+sqlRetries+' 回');
