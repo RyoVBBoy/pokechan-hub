@@ -58,8 +58,8 @@ function ulinkConfirm(id,s,intent,ttl,from){
   const ho=document.createElement('p');ho.className='ulc-host';ho.setAttribute('data-notr','');ho.textContent=s.host;
   const full=document.createElement('p');full.className='ulc-url';full.setAttribute('data-notr','');full.textContent=s.url;
   const w=document.createElement('p');w.className='ulc-w';
-  w.textContent=L('このサイトの外のページです。安全確認で問題が見つからなかったことは、安全の保証ではありません。ログイン情報・個人情報・支払いの情報は入力しないでください。',
-    'This page is outside this site. Passing our safety check does not guarantee it is safe. Do not enter login, personal or payment details.');
+  w.textContent=L('このサイトの外のページです。リンクを開けることは、安全の保証ではありません。ログイン情報・個人情報・支払いの情報は入力しないでください。',
+    'This page is outside this site. Permission to open a link does not guarantee it is safe. Do not enter login, personal or payment details.');
   const st=document.createElement('p');st.className='ulc-st';st.setAttribute('role','status');
   const ok=document.createElement('button');ok.type='button';ok.className='xc-ok xc-plain';ok.textContent=L('開く','Open');
   const no=document.createElement('button');no.type='button';no.className='xc-no';no.textContent=L('キャンセル','Cancel');
@@ -103,7 +103,7 @@ function ulinkConfirm(id,s,intent,ttl,from){
 }
 /* 投稿欄のリンク欄（twComposer・返信）。設定が「開いている」ときだけ出す。
    本文に https:// で始まるリンク1つだけを貼ったときは、リンク欄に移して知らせる（貼った文はそのまま、まわりの文は消さない） */
-function ulinkField(id){return `<div class="twc-ul" id="${id}-w" hidden><input id="${id}" class="twc-ui" type="url" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" placeholder="${esc(L('リンク（https:// で始まるもの・1つだけ）','Link (https:// only, one per post)'))}" aria-label="${esc(L('リンク','Link'))}"><p class="twc-uh">${L('リンクは本文の文字数に数えません。ログインの印や合言葉を含むリンクは付けないでください。メッセージ・掲示板・募集ではこれまでどおりリンクは使えません。','Links do not count toward the text limit. Do not include login tokens or passwords. Links are still not allowed in messages, boards or the lobby.')}</p></div>`}
+function ulinkField(id){return `<div class="twc-ul" id="${id}-w" hidden><input id="${id}" class="twc-ui" type="url" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" placeholder="${esc(L('リンク（https:// で始まるもの・1つだけ）','Link (https:// only, one per post)'))}" aria-label="${esc(L('リンク','Link'))}"><p class="twc-uh">${L('許可されたサイト・形式のリンクだけ利用できます。リンクは本文の文字数に数えません。ログインの印や合言葉を含むリンクは付けないでください。メッセージ・掲示板・募集ではこれまでどおりリンクは使えません。','Only permitted sites and URL formats are supported. Links do not count toward the text limit. Do not include login tokens or passwords. Links are still not allowed in messages, boards or the lobby.')}</p></div>`}
 async function ulinkBind(t,id){
   const w=document.getElementById(id+'-w'),f=document.getElementById(id);if(!w||!f)return ()=>'';
   const c=await ulinkCfg();if(!document.body.contains(w))return ()=>'';
