@@ -102,9 +102,10 @@ function dpOverviewHTML(p,g){
   /* 英語のときは文が日本語だけと知らせる（攻略ガイドと同じ、英語は未翻訳） */
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
-    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p><details class="dp-li"><summary>役割・姿の詳しい説明</summary><p>${g.lead}</p></details></section>${evidence.html}
+    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p><details class="dp-li"><summary>役割・姿の詳しい説明</summary><p>${g.lead}</p></details></section>
     ${overviewPros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${overviewPros.slice(0,3).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
-    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>注意するポイント</h3><div class="dp-list">${g.cons.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${evidence.html}
     ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
       <p class="dp-fn">種族値と覚える技から見た目安です。どの役で使うかは型（技・持ち物）で決まり、条件のある役はその技を入れた型のときだけです。</p></section>`:''}
     ${forms}
