@@ -10,7 +10,7 @@ import {PROD} from './check.mjs';
 export const STG_NAME='gk-links-staging';
 export const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /* 公開したステージングの Worker にあってよいもの（これ以外のつなぎ先・変数・合言葉があれば止める） */
-export const STG_VARS=['LINKS_POST','LINKS_CLICK','SANCTIONS_ON','FIREBASE_PROJECT_ID','ALLOWED_ORIGINS','ADMIN_REVIEWER','DEBUG_ERR'];
+export const STG_VARS=['LINKS_POLICY','LINKS_POST','LINKS_CLICK','SANCTIONS_ON','FIREBASE_PROJECT_ID','ALLOWED_ORIGINS','ADMIN_REVIEWER','DEBUG_ERR'];
 export const STG_SECRETS=['ADMIN_TOKEN','APP_TOKEN','EMAIL_HMAC_KEY','FB_ADAPTER_TOKEN'];
 const fail=m=>{const e=new Error(m);e.guard=true;throw e};
 const rows=l=>{if(!Array.isArray(l))fail('D1 の一覧が配列ではない');return l};
