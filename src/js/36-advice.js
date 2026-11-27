@@ -5,15 +5,15 @@
 const ADV_REFS=[];/* {t:'記事の題名',src:'サイト名',url:'https://…'} */
 const ADVK={
   setup:['swordsdance','dragondance','nastyplot','quiverdance','shellsmash','calmmind','bulkup','bellydrum','shiftgear','coil','victorydance','tidyup','agility','rockpolish','tailglow','geomancy','curse','filletaway','noretreat','growth','workup'],
-  tr:['trickroom'],tail:['tailwind'],fake:['fakeout'],redir:['followme','ragepowder'],screen:['reflect','lightscreen','auroraveil'],
+  tr:['trickroom'],tail:['tailwind'],fake:['fakeout'],redir:['followme','ragepowder'],psychic:['psychicterrain'],guard:['wideguard'],screen:['reflect','lightscreen','auroraveil'],
   weather:{drizzle:'あめ',drought:'はれ',sandstream:'すなあらし',snowwarning:'ゆき'},choice:['choicescarf','choiceband','choicespecs']
 };
 const advKey=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 /* 相手が使いそうな技・特性・持ち物（集計があれば上位、なければ計算用の型と持てる特性） */
 function advOpp(A,j){
-  const o=A.O[j],no=opp6[j],d=LIVE.csv[no];
-  const mv=new Set(d?d.mv.filter(([,p])=>p>=10).map(([n])=>advKey(n)):(o.moves||[]).map(m=>m&&MD[m.id]?MD[m.id][3]:'').filter(Boolean));
-  const ab=new Set(d?d.ab.filter(([,p])=>p>=15).map(([n])=>advKey(n)):(ABD[no]||[]).map(([k])=>advKey(k)));
+  const o=A.O[j],no=A.opNos[j],d=LIVE.csv[no];
+  const mv=new Set(d?d.mv.filter(([,p])=>p>=10).map(([n])=>MD[MVJ[n.normalize('NFKC')]]?.[3]||advKey(n)):(o.moves||[]).map(m=>m&&MD[m.id]?MD[m.id][3]:'').filter(Boolean));
+  const ab=new Set(d?d.ab.filter(([,p])=>p>=15).map(([n])=>advKey(ABJ[n.normalize('NFKC')]||n)):(ABD[no]||[]).map(([k])=>advKey(k)));
   const it=new Set(d?d.it.filter(([,p])=>p>=15).map(([n])=>advKey(n)):[]);
   return{o,no,mv,ab,it,has:k=>k.some(x=>mv.has(x))};
 }
@@ -43,25 +43,57 @@ function asAdvice(A,PR){
     L(`選出が物理アタッカー中心（${phys.map(nm).join('・')}）です。いかくで攻撃を下げられると崩れやすいので、特殊技で戦えるポケモンを混ぜるか、交代で下がった能力を戻せるようにしましょう。`,
       `Your picks are mostly physical (${phys.map(nm).join(', ')}). Mix in a special attacker or be ready to switch to reset the drop.`),2);
   /* 5. 素早さ：相手の方が速いポケモンが多い */
-  const slowVs=opps.filter((x,j)=>likely(j)&&A.best.filter(i=>!A.fast[i][j]).length>=Math.ceil(A.best.length*.67));
+  const slowVs=opps.filter((x,j)=>likely(j)&&A.best.filter(i=>A.speedDiff[i][j]<0).length>=Math.ceil(A.best.length*.67));
   if(slowVs.length>=2)add('warn',L(`先手を取られやすい：${list(slowVs.map(x=>nm(x.o)))}`,`Likely to be outsped by: ${list(slowVs.map(x=>nm(x.o)))}`),
     L('選出の多くより速い相手がいます。先制技・こだわりスカーフ・素早さを下げる技・耐えてから反撃できる耐久など、上から殴られても崩れない形を意識しましょう。',
       'Several opponents outspeed most of your picks. Priority moves, a Choice Scarf, speed control or enough bulk to take a hit first help here.'),2);
-  /* 6. 弱点の重なり（一貫性）：同じタイプの技が選出の2匹以上に抜群 */
-  for(const t of T){const weak=picks.filter(m=>mult(t,m.p.t)>=2);if(weak.length<2)continue;
-    const users=opps.filter((x,j)=>likely(j)&&x.o.p.t.includes(t));if(!users.length)continue;
-    const res=picks.filter(m=>mult(t,m.p.t)<1);
-    add(res.length?'tip':'warn',L(`${t}技が通りやすい`,`${tName(t)} moves hit hard`),
-      L(`${t}タイプの技が選出の${weak.length}匹（${weak.map(nm).join('・')}）に抜群で、相手には${list(users.map(x=>nm(x.o)))}がいます。${res.length?`受けられるのは${res.map(nm).join('・')}なので、交代先として意識しましょう。`:'半減以下で受けられるポケモンがいないので、先に倒すか選出を見直しましょう。'}`,
-        `${tName(t)} moves are super effective on ${weak.length} of your picks (${weak.map(nm).join(', ')}), and they have ${list(users.map(x=>nm(x.o)))}. ${res.length?`${res.map(nm).join(', ')} can switch in.`:'Nothing resists it — KO them first or rethink your picks.'}`),res.length?1:3);
-    if(out.length>8)break}
-  /* 7. 受け出し先：いちばん危ない相手の技を半減以下で受けられるポケモンがいるか */
-  const th=A.O.map((o,j)=>({j,s:A.best.reduce((a,i)=>a+Math.min(A.R[j][i].pct,150),0)})).sort((a,b)=>b.s-a.s)[0];
-  if(th){const mv=A.best.map(i=>A.R[th.j][i].mv).find(Boolean);
-    if(mv&&mv.t){const res=picks.filter(m=>mult(mv.t,m.p.t)<1);
-      if(!res.length)add('warn',L(`${nm(A.O[th.j])}の${mv.n}を受けられない`,`No safe switch-in for ${nm(A.O[th.j])}'s ${mv.n}`),
-        L(`選出に${mv.t}タイプを半減以下で受けられるポケモンがいません。先発で有利な相手を当てて先に削るか、控えに受けられるポケモンを入れることを考えましょう。`,
-          `None of your picks resists ${tName(mv.t)}. Pressure it early or bring something that resists it.`),3)}}
+  /* 6. 同じタイプの攻撃が複数の選出メンバーに実際に抜群だった場合。 */
+  const coverage=new Map();
+  const threats=asThreats(A);
+  for(const th of threats){
+    if(!likely(th.j))continue;
+    for(const {i,r} of th.hits){
+      if(r.eff<2||!r.type)continue;
+      if(!coverage.has(r.type))coverage.set(r.type,{members:new Set(),opponents:new Set()});
+      const match=coverage.get(r.type);
+      match.members.add(nm(A.M[i]));match.opponents.add(nm(th.o));
+    }
+  }
+  for(const [t,{members,opponents}] of coverage){
+    if(members.size<2)continue;
+    add('tip',L(`${t}技で弱点を突かれる`,`Weak to ${tName(t)} moves`),
+      L(`計算した型では、${list([...opponents])}の${t}技が${list([...members])}に抜群です。`,
+        `In the estimated sets, ${tName(t)} attacks from ${list([...opponents])} hit ${list([...members])} super effectively.`),2);
+  }
+  /* 7. 交代案は控えの後出し判定で裏付ける。 */
+  const threat=threats.find(x=>x.severe);
+  if(threat){
+    const before=B.weather;
+    let choices;
+    try{
+      B.weather=null;
+      choices=asWithWeather(A.wx,()=>A.back.flatMap(i=>{
+        const m=A.M[i],cases=A.weatherTies?.[i]?.[threat.j];
+        if(dgCalcUnsupported(m).length||dgCalcUnsupported(threat.o).length)return [];
+        const checks=cases?cases.map(x=>withWeatherKind(x.k,()=>dgMatch(m,threat.o))):[dgMatch(m,threat.o)];
+        if(checks.some(z=>z.swIn!=='win'))return [];
+        return [{m,finish:[...new Set(checks.map(z=>z.me.mvn+dgAccLabel(z.me)))].join('／')}];
+      }));
+    }finally{B.weather=before}
+    const top=threat.hits[0],n=nm(threat.o),damage=Math.round(top.r.pct),defender=nm(A.M[top.i]);
+    const detail=L(`${defender}に${top.r.mv.n}で約${damage}%の見積もりです${top.weather?`（${top.weather}の場合）`:''}。`,
+      `${top.r.mv.n} is estimated to deal about ${damage}% to ${defender}${top.weather?' in the worse weather case':''}. `);
+    if(choices.length){
+      const who=list(choices.map(({m,finish})=>`${nm(m)}の${finish}`));
+      add('tip',L(`${n}への交代候補`,`Possible switch-ins against ${n}`),
+        detail+L(`計算上は${who}で交代後に倒し切れる候補があります。残りHPと場の条件を確かめてください。`,
+          `The matchup calculation identifies ${who} as a potential answer after switching. Check remaining HP and field conditions.`),3);
+    }else{
+      add('warn',L(`${n}への後出しに注意`,`Be careful switching into ${n}`),
+        detail+L('控えで安定して後出しから倒せる候補は確認できませんでした。先発や選出の組み合わせを見直してください。',
+          'The calculation found no reliable switch-in among your reserves. Reconsider your lead or picks.'),3);
+    }
+  }
   /* 8. メガシンカの候補：1試合に1匹だけ。どれがメガかを見極める */
   const mg=opps.filter(x=>megasOf(x.no).length&&(!LIVE.csv[x.no]||[...x.it].some(k=>MEGA[k])));
   if(mg.length>=2)add('tip',L(`メガシンカ候補が${mg.length}匹：${list(mg.map(x=>nm(x.o)))}`,`${mg.length} possible Mega Evolutions: ${list(mg.map(x=>nm(x.o)))}`),
@@ -72,14 +104,27 @@ function asAdvice(A,PR){
   if(ch.length)add('tip',L(`こだわりアイテムの可能性：${list(ch.map(x=>nm(x.o)))}`,`Possible Choice items: ${list(ch.map(x=>nm(x.o)))}`),
     L('こだわり系の持ち物は、交代するまで同じ技しか出せません。1回技を見たら、その技を受けられるポケモンに交代して流れをつかみましょう。',
       'Choice-locked Pokémon repeat the same move until they switch. After seeing the move, switch to something that takes it well.'),1);
+  const psychic=opps.filter((x,j)=>likely(j)&&(x.o.ab==='psychic-surge'||x.ab.has('psychicsurge')||x.has(ADVK.psychic)));
+  const priority=picks.filter(m=>m.moves.some(mv=>!mv.prot&&effPri(m,mv)>0));
+  if(psychic.length&&priority.length)add('warn',
+    L(`サイコフィールドに注意：${list(psychic.map(x=>nm(x.o)))}`,`Watch for Psychic Terrain: ${list(psychic.map(x=>nm(x.o)))}`),
+    L(`サイコフィールド中は、地面にいる相手に${list(priority.map(nm))}の先制技が通りません。この効果は選出の点数に未反映です。`,
+      `Psychic Terrain blocks ${list(priority.map(nm))}'s priority moves against grounded opponents. The selection score does not include this effect.`),4);
   /* 10. ダブル：ねこだまし・このゆびとまれ・おいかぜ */
   if(FMT==='double'){
     const fk=opps.filter((x,j)=>likely(j)&&x.has(ADVK.fake));
     if(fk.length)add('tip',L(`ねこだまし：${list(fk.map(x=>nm(x.o)))}`,`Fake Out: ${list(fk.map(x=>nm(x.o)))}`),
       L('1ターン目に片方の行動を止められます。止められて困るポケモンは先発にしない、またはまもるで受けると安全です。','They can flinch one Pokémon on turn 1. Avoid leading with the one you can\'t afford to stop, or Protect.'),1);
     const rd=opps.filter((x,j)=>likely(j)&&x.has(ADVK.redir));
+    const guard=opps.filter((x,j)=>likely(j)&&x.has(ADVK.guard));
+    const spread=picks.flatMap(m=>m.moves.filter(mv=>mv.tg));
     if(rd.length)add('tip',L(`技を引きつける相手：${list(rd.map(x=>nm(x.o)))}`,`Redirection: ${list(rd.map(x=>nm(x.o)))}`),
-      L('このゆびとまれ・いかりのこなで単体技が吸われます。全体技で一緒に削るか、先に倒しましょう。','Single-target moves get redirected. Use spread moves or KO the redirector first.'),2);
+      L('このゆびとまれ・いかりのこなで単体技の対象が変わることがあります。範囲技を使うなら、味方にも当たる技か、ワイドガードで防がれるかを確認してください。',
+        'Follow Me or Rage Powder may redirect single-target moves. Before using a spread move, check for ally damage and Wide Guard.'),2);
+    if(guard.length&&spread.length)add('warn',
+      L(`範囲技を防ぐ相手：${list(guard.map(x=>nm(x.o)))}`,`Possible Wide Guard: ${list(guard.map(x=>nm(x.o)))}`),
+      L(`ワイドガードで${list([...new Set(spread.map(mv=>mv.n))])}などの範囲技を防がれることがあります。選出の点数には反映していません。`,
+        'Wide Guard can block your spread attacks. The selection score does not include this effect.'),4);
     const tw=opps.filter((x,j)=>likely(j)&&x.has(ADVK.tail));
     if(tw.length)add('tip',L(`おいかぜ：${list(tw.map(x=>nm(x.o)))}`,`Tailwind: ${list(tw.map(x=>nm(x.o)))}`),
       L('4ターンの間、相手の素早さが2倍になります。まもるでターンを稼ぐか、こちらも素早さを操作できると安心です。','Their Speed doubles for 4 turns. Stall with Protect or bring your own speed control.'),2);

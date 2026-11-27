@@ -17,7 +17,7 @@ function tierCompute(){
     let sum=0,ws=0;const good=[],bad=[];
     opps.forEach((q,j)=>{const o=O[j];if(!o||(q.base||q.no)===(p.base||p.no))return;
       const s=duelS(me,o);sum+=s*w[j];ws+=w[j];
-      if(s>=1)good.push(q);else if(s<=-1)bad.push(q)});
+      if(s>=1)good.push(o.p);else if(s<=-1)bad.push(o.p)});
     return{p,m:ws?sum/ws:0,good,bad,u:urank.get(p.no)||null,spe:Math.round(spd(me)),mega:me.p!==p?me.p:null}}).filter(Boolean);
   const ms=rows.map(r=>r.m),mn=Math.min(...ms),mx=Math.max(...ms);
   const umax=Math.max(1,...rows.map(r=>r.u||0));
@@ -38,7 +38,7 @@ function tierWhy(r,T){
 }
 function tierHTML(T,link){
   const L2=link||(q=>`#/p/${q.no}`);
-  const head=`<p class="note" style="padding-top:12px">${T.live?`ランクバトルの使用率と、使用率の上位${T.opps}匹との1対1の計算（使用率の高い型どうし・お互いの最大ダメージと素早さ）から、当サイトが並べた強さの目安です。`:`ランクバトルの集計が読めなかったため、合計種族値の高いポケモンどうしの1対1の計算だけで並べています。`}育成や組み合わせしだいで評価は変わります。</p>
+  const head=`<p class="note" style="padding-top:12px">${T.live?`ランクバトルの使用率と、使用率の上位${T.opps}匹との1対1の計算（集計から組み合わせた推定の型どうし・お互いの最大ダメージと素早さ）から、当サイトが並べた強さの目安です。`:`ランクバトルの集計が読めなかったため、合計種族値の高いポケモンどうしの1対1の計算だけで並べています。`}育成や組み合わせしだいで評価は変わります。</p>
     <p class="note" style="padding-top:0;color:var(--mute)">${new Date(T.at).toLocaleDateString('ja-JP')} 時点・${T.fmt==='double'?'ダブル':'シングル'}・${T.n}匹</p>`;
   const sec=t=>{const l=T.rows.filter(r=>r.tier===t);return l.length?`<div class="sec"><h2><span class="tr-t tr-${t}">${t}</span>${({S:'環境の中心',A:'とても強い',B:'活躍できる',C:'組み合わせしだい'})[t]}</h2><span style="font-size:12px;color:var(--dim)">${l.length}匹</span></div>
     ${l.map(r=>`<a class="row tr-r" href="${L2(r.p)}"><span class="av">${stamp(r.p)}</span><div class="row-m"><div class="row-t">${nm(r.p)}</div><div class="chips">${r.p.t.map(chip).join('')}</div>

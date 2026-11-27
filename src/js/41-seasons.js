@@ -17,7 +17,14 @@ async function useTeam(name,list){
   if(team.length){const e=TEAMS.list.findIndex(x=>!x.team.length);
     if(e>=0)i=e;else if(!await askConfirm({title:'パーティを入れかえますか？',text:`パーティの枠がいっぱいです。「${teamName(TEAMS.cur)}」を、このパーティに入れかえます。`,ok:'入れかえる',danger:false}))return}
   if(i!==TEAMS.cur)switchTeam(i);
-  team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const o={no:x.no,sel:k<PICK()},s=cleanSet(x.set);if(s&&(s.sp||s.mv.length))o.set={...s,src:'copy'};return o});
+  /* メガシンカの姿の番号（手で作った共有リンク #/share/10309 等）は、元の姿＋そのメガストーンに直して入れる（resolveForm、2026/11/20）。
+     持ち物が別のときは直さない（姿を勝手に決めない。計算する画面が理由を出す） */
+  team=list.filter(x=>byNo[x.no]).slice(0,6).map((x,k)=>{const q=byNo[x.no],s=cleanSet(x.set);let no=x.no,stone=null;
+    if(q.mega){const R=resolveForm(x.no,s&&s.it&&s.it.k);if(R.ok){no=R.base.no;stone=R.stone}}
+    const o={no,sel:k<PICK()};
+    if(s&&(s.sp||s.mv.length))o.set={...s,src:'copy'};
+    if(stone){o.set=o.set||{ab:null,it:null,mv:[],sp:null,up:-1,dn:-1,src:'copy'};o.set.it={n:ITEMN[stone]||stone,k:stone}}
+    return o});
   if(!TEAMS.list[i].name)TEAMS.list[i].name=String(name||'').slice(0,20);
   saveTeam();toast(`「${teamName(i)}」に入れました`);nav('#/team');
 }
@@ -170,7 +177,7 @@ function szShotBind(s){const b=document.getElementById('sz-shot');if(b)b.onclick
 const rankLabel=r=>r.rank?(r.rank<10?'最終1桁':r.rank<100?'最終2桁':r.rank<1000?'最終3桁':`最終${r.rank}位`)+`（${r.rank}位）`:`レート${r.rate}`;
 const resultBadges=rs=>(rs||[]).length?`<div class="sz-badges">${rs.map(r=>{const v=r.source?r.source==='verified':false;return `<span class="sz-badge${v?' on':''}">${SVG(I.trophy,14)}<span data-notr>${esc(r.season)}</span> ${r.fmt==='double'?'ダブル':'シングル'} ${rankLabel(r)}・${v?'確認済み':'自己申告'}</span>`}).join('')}</div>`:'';
 /* ---- 自分のパーティと比べる：選出アシストと同じ計算（analyze）で、両方から見た最善の選出と、お互いに何%入るかを出す ----
-   相手の育成は、登録されていればそれを使い、なければ「使用率の高い型」を仮定する */
+   相手の育成は、登録されていればそれを使い、なければ「推定の型」を仮定する */
 function szVs(t){
   const my=team.map(x=>x.no).filter(n=>byNo[n]),op=t.team.map(x=>x.no).filter(n=>byNo[n]);
   if(!my.length)return `<div class="bnote" style="margin:8px 0">先に<a href="#/team" style="color:var(--acc)">パーティ</a>を作ってください（いま選んでいるパーティと比べます）。</div>`;
@@ -200,7 +207,7 @@ function szVs(t){
     <p class="sz-vp"><b>こちら → 相手</b>（左のポケモンが、上の相手に与えるダメージ）</p>
     <div class="sz-tw"><table class="sz-tb">${headOf(A.O.map(o=>o.p))}<tbody>${order.map(row).join('')}</tbody></table></div>
     <details class="sz-det"><summary>相手 → こちら（受けるダメージ）を見る</summary><div class="sz-tw"><table class="sz-tb">${headOf(order.map(i=>A.M[i].p))}<tbody>${A.O.map((_,j)=>rowR(j)).join('')}</tbody></table></div></details>
-    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（◎はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「使用率の高い型」）':'「使用率の高い型」'}で計算しています。</p>
+    <p class="note" style="padding:4px 0 0">表は、いちばんダメージの大きい技で、相手の最大HPの何%を削れるか（◎はおすすめの選出。確1＝1回で倒せる）。相手の育成は${Object.keys(opSet).length?'登録されたもの（ないポケモンは「推定の型」）':'「推定の型」'}で計算しています。</p>
     <div class="btns" style="padding:8px 0 0"><button class="btn btn-s" data-goassist>選出アシストでくわしく見る</button></div></div>`;
 }
 /* 出典のリンク（アドレスの名前だけを出す。リンク先の評価はしない＝nofollow） */
