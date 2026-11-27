@@ -49,7 +49,7 @@ async function authFetch(path,body){
   const h={'Content-Type':'application/json'};
   if(AUTH.user)h.Authorization='Bearer '+await AUTH.user.getIdToken();
   let r;try{r=await fetch(COMM_API+path,body?{method:'POST',headers:h,body:JSON.stringify(body)}:{headers:h})}catch(e){throw new Error('通信できませんでした。電波のよいところでもう一度試してください。')}
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||'通信エラー'),{status:r.status});return j;
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||'通信エラー'),{status:r.status,data:j});return j;
 }
 async function loadProfile(force){
   if(!AUTH.user){AUTH.profile=null;refreshBrand();return null}

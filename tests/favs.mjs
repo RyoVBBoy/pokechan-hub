@@ -10,6 +10,15 @@ import {chromium} from 'playwright';
 import path from 'node:path';
 import {makeD1} from './d1mock.mjs';
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
+import fs from 'node:fs';
+import os from 'node:os';
+/* ブラウザ本体に保存されたか（同じ file:// のほかのタブから読む）。ページの中の読み取りは、ブラウザ本体へ書き終わる前の値でも返すため、読み直す前はこちらで確かめる */
+const PROBE=(()=>{const d=fs.mkdtempSync(path.join(os.tmpdir(),'lsprobe-'));const f=path.join(d,'p.html');fs.writeFileSync(f,'<!doctype html><meta charset=utf-8><title>p</title>');return 'file://'+f})();
+/* 失敗したときの手がかり：ほかのタブが最後に読んだ値（DUR.last）と、ブラウザ本体の記録（storageState） */
+const DUR={last:null};
+const durable=async(ctx,fn,ms=15000,key)=>{const p2=await ctx.newPage();try{await p2.goto(PROBE);const t0=Date.now();while(Date.now()-t0<ms){if(await p2.evaluate(fn))return true;DUR.last=key?await p2.evaluate(k=>localStorage.getItem(k),key):null;await p2.waitForTimeout(100)}return false}finally{await p2.close()}};
+const durInfo=async(ctx,pg,key)=>{let st=null;try{st=(await ctx.storageState()).origins.map(o=>({o:o.origin,v:(o.localStorage.find(x=>x.name===key)||{}).value}))}catch(e){st=String(e)}
+  return{probe:DUR.last,page:await pg.evaluate(k=>localStorage.getItem(k),key).catch(e=>String(e)),url:pg.url().slice(0,60),state:st}};
 const URL0='file://'+path.join(ROOT,'dist/index.html');
 const PID='pokechan-test',SHOT=process.env.SHOT||'';
 const enc=o=>Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -142,7 +151,15 @@ for(const W of [390,1280]){
   await openPick(pg,'party');ok((await listNos(pg)).join()==='6,445',W+'：パーティのカテゴリ');await closePick(pg);
   /* ⑤ ログアウト中は端末に残る */
   /* 読み直したあと、サイトのプログラムを読み終えるまで待つ（GitHub の公開の機械は遅く、0.5秒では足りないことがあった） */
-  await pg.reload();await pg.waitForFunction(()=>typeof favOn==='function'&&typeof FAV!=='undefined',null,{timeout:20000});await pg.waitForTimeout(300);
+  /* 読み直す前に、端末に保存されたこと（localStorage の pcfavs）を確かめる。読み直したあとは、起動の合図（__APP_READY）を待ってから、保存された値と画面の状態を確かめる */
+  const stored=()=>pg.evaluate(()=>{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return{f25:!!(o[25]&&o[25].on),f6:!!(o[6]&&o[6].on)}});
+  await pg.waitForFunction(()=>{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return!!(o[25]&&o[25].on)&&!(o[6]&&o[6].on)},null,{timeout:10000}).catch(()=>{});
+  const before=await stored();ok(before.f25&&!before.f6,W+'：読み直す前に端末に保存されている',before);
+  {const d=await durable(pg.ctx,()=>{try{const o=JSON.parse(localStorage.getItem('pcfavs')||'{}');return!!(o[25]&&o[25].on)&&!(o[6]&&o[6].on)}catch(e){return false}},15000,'pcfavs');
+   /* ほかのタブからの読み取りは file:// ではブラウザ本体へ書き終わる時期が決まらず、値が正しく残っていても見えないことがある（CI で確かめた）。合否には使わず、読み直しのあとの値で確かめる */
+   if(!d)console.log('  note '+W+'：ほかのタブからはまだ見えなかった（合否には使わない）',JSON.stringify(await durInfo(pg.ctx,pg,'pcfavs')).slice(0,300))}
+  await pg.reload();await pg.waitForFunction(()=>window.__APP_READY===true,null,{timeout:30000});
+  const after=await stored();ok(after.f25===before.f25&&after.f6===before.f6,W+'：読み直しても保存された値は同じ',{before,after});
   ok(await pg.evaluate(()=>favOn(25)&&!favOn(6)),W+'：読み直しても端末に残る');
   ok(pg.errs.length===0,W+'：エラーなし '+pg.errs.join('|'));
   await pg.ctx.close();

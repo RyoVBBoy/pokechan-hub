@@ -1,0 +1,10 @@
+{
+  "name": "gamekids-firebase-adapter",
+  "private": true,
+  "description": "Firebase sanction adapter (not deployed; owner approval required). Install with npm ci only.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "firebase-admin": "14.5.0"
+  }
+}

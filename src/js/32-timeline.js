@@ -165,6 +165,7 @@ function twHtml(n,big){
       <button class="tw-more" data-more aria-label="そのほかの操作">${SVG(I.more,18)}</button></div>
       ${n.reply_to?`<div class="tw-re">返信先：${n.reply_handle?`<a href="#/u/${esc(n.reply_handle)}" data-notr>@${esc(n.reply_handle)}</a>`:'<span>削除された投稿</span>'}</div>`:''}
       <div class="tw-b" data-notr>${linkTags(n.body)}</div>${twMediaHTML(n)}${n.link&&/^https:\/\//.test(n.link)?`<a class="tw-link" href="${esc(twInApp(n.link)||n.link)}"${twInApp(n.link)?'':' target="_blank" rel="noopener nofollow"'}><b>${/(^|\.)pokechan-hub\.pages\.dev$/.test((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())||(()=>{try{return new URL(n.link).host===location.host}catch(e){return false}})()?'くわしく見る':'公式サイトで読む'}</b><small>${esc((()=>{try{return new URL(n.link).hostname}catch(e){return ''}})())}</small></a>`:''}
+      ${typeof ulinkHTML==='function'?ulinkHTML(n):''}
       ${typeof tipsToolBtn==='function'?tipsToolBtn(n):''}
       ${big?`<div class="tw-dt"><time datetime="${twIso(n.created_at)}">${esc(twDate(n.created_at))}</time></div>`:''}
       <div class="tw-a"><button class="tw-like tw-rep" data-reply aria-label="返信">${SVG(TW_IC.reply,18)}<span>${n.replies||''}</span></button><button class="tw-like tw-rpb" data-rp aria-pressed="${!!n.reposted}" aria-label="リポスト">${SVG(TW_IC.repost,18)}<span>${n.reposts||''}</span></button><button class="tw-like" data-like aria-pressed="${n.liked}" aria-label="いいね">${SVG(TW_IC.heart,18)}<span>${n.likes||''}</span></button><button class="tw-like tw-bm" data-bm aria-pressed="${!!n.saved}" aria-label="${n.saved?'ブックマークから外す':'ブックマーク'}">${SVG(TW_IC.bookmark,18)}</button><button class="tw-like tw-sh" data-share aria-label="共有">${SVG(TW_IC.share,18)}</button></div>
@@ -204,6 +205,8 @@ function twBind(root,reload){
       if(e.metaKey||e.ctrlKey){twOpenTab();return}
       nav('#/n/'+id)};
     el.onauxclick=e=>{if(e.button!==1||el.classList.contains('tw--big')||twSkip(e.target))return;e.preventDefault();twOpenTab()};
+    /* 利用者のリンク（87-ulink.js）：押すとサーバーで確かめてから確認の画面 */
+    {const ub=el.querySelector('[data-ul]');if(ub)ub.onclick=()=>ulinkOpen(id,ub)}
     el.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>twViewer(b.closest('.tw-md').dataset.mk.split(','),+b.dataset.mi));
     el.querySelector('[data-reply]').onclick=()=>{if(!AUTH.profile){toast(AUTH.user?'先にプロフィールを作ってください':'返信するにはログインしてください');nav('#/account');return}
       twReplySheet(el,id,()=>{const sp=el.querySelector('[data-reply] span');sp.textContent=(+sp.textContent||0)+1;if(keyOf(cur)==='n')noteView(cur.split('/')[2])})};
@@ -267,24 +270,26 @@ function twFeed(el,path,emptyMsg,o={}){
 function twComposer(prof,onDone){
   return{html:`<div class="twc">${twAv(prof)}<div class="twc-m">
       <textarea id="twc-t" rows="2" maxlength="${TW_MAX*2}" placeholder="いまどうしてる？（#タグ を付けると、みんなが探しやすくなります）"></textarea>
+      ${ulinkField('twc-u')}
       <div class="twc-pv" id="twc-pv"></div>
       <div class="twc-f"><label class="twc-img" aria-label="画像を付ける（4枚まで）">${SVG(I.image,20)}<input type="file" id="twc-f" accept="image/*" multiple hidden></label><span class="twc-n" id="twc-n"></span><button class="btn btn-p twc-b" id="twc-b" disabled>投稿する</button></div></div></div>`,
     bind(){
       const t=document.getElementById('twc-t'),b=document.getElementById('twc-b'),c=document.getElementById('twc-n'),fi=document.getElementById('twc-f'),pv=document.getElementById('twc-pv');
-      let imgs=[];
-      const upd=()=>{const n=[...t.value.trim()].length,left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=(n<1&&!imgs.length)||left<0;t.style.height='auto';t.style.height=t.scrollHeight+'px'};
+      let imgs=[],ulv=()=>'';
+      const upd=()=>{const n=[...t.value.trim()].length,left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=(n<1&&!imgs.length&&!ulv())||left<0;t.style.height='auto';t.style.height=t.scrollHeight+'px'};
       const drawPv=()=>{pv.innerHTML=imgs.map((x,i)=>`<span class="twc-th"><img src="${x.url}" alt=""><button data-rm="${i}" aria-label="この画像を外す">${SVG(I.x,14)}</button></span>`).join('');
         pv.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{URL.revokeObjectURL(imgs[+x.dataset.rm].url);imgs.splice(+x.dataset.rm,1);drawPv();upd()})};
       fi.onchange=async()=>{const fs=[...fi.files].slice(0,4-imgs.length);fi.value='';if(!fs.length){toast('画像は4枚までです');return}
         for(const f of fs){try{const x=await twShrink(f);x.url=URL.createObjectURL(x.blob);imgs.push(x)}catch(err){toast(err.message)}}drawPv();upd()};
       t.oninput=upd;
+      ulinkBind(t,'twc-u').then(g=>{ulv=g;const f=document.getElementById('twc-u');if(f)f.oninput=upd});
       /* ほかの画面から文と画像を入れて開く（78-strategy.js の「この戦い方を投稿する」） */
       if(typeof TWC_PRE!=='undefined'&&TWC_PRE){const pre=TWC_PRE;TWC_PRE=null;t.value=pre.text||'';upd();
         (async()=>{for(const bl of pre.blobs||[]){try{const x=await twShrink(new File([bl],'card.png',{type:bl.type||'image/png'}));x.url=URL.createObjectURL(x.blob);imgs.push(x)}catch(err){}}drawPv();upd()})()}
       b.onclick=async()=>{b.disabled=true;
         try{const media=[];for(let i=0;i<imgs.length;i++){b.textContent=`画像を送信中 ${i+1}/${imgs.length}`;media.push(await twUpload(imgs[i]))}
-          b.textContent='投稿する';await authFetch('/api/notes',{body:t.value,media});
-          t.value='';imgs.forEach(x=>URL.revokeObjectURL(x.url));imgs=[];drawPv();upd();toast('投稿しました');onDone()}
+          b.textContent='投稿する';const ul=ulv();await authFetch('/api/notes',ul?{body:t.value,media,url:ul}:{body:t.value,media});
+          t.value='';{const f=document.getElementById('twc-u');if(f)f.value=''}imgs.forEach(x=>URL.revokeObjectURL(x.url));imgs=[];drawPv();upd();toast('投稿しました');onDone()}
         catch(err){b.textContent='投稿する';toast(err.message);upd()}};
     }};
 }
@@ -330,14 +335,17 @@ function twReplySheet(el,id,onDone){
   o.innerHTML=`<div class="psheet-bg"></div><div class="psheet-p" role="dialog" aria-modal="true" aria-label="返信">
     <div class="twr-q"><b data-notr>@${esc(h)}</b><span data-notr>${esc(body.slice(0,80))}</span></div>
     <textarea id="twr-t" class="twr-t" rows="3" maxlength="${TW_MAX*2}" placeholder="返信を書く"></textarea>
+    ${ulinkField('twr-u')}
     <div class="twc-f"><span class="twc-n" id="twr-n"></span><button class="btn btn-p twc-b" id="twr-b" disabled>返信する</button></div>
     <button class="psheet-x">やめる</button></div>`;
   document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('on'));
   const t=o.querySelector('#twr-t'),b=o.querySelector('#twr-b'),c=o.querySelector('#twr-n');
   const close=()=>{o.classList.remove('on');setTimeout(()=>o.remove(),180)};
   o.querySelector('.psheet-bg').onclick=close;o.querySelector('.psheet-x').onclick=close;
-  t.oninput=()=>{const left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=!t.value.trim()||left<0};
-  b.onclick=async()=>{b.disabled=true;try{await authFetch('/api/notes',{body:t.value,reply_to:id});toast('返信しました');close();onDone&&onDone()}catch(err){toast(err.message);b.disabled=false}};
+  let ulv=()=>'';
+  t.oninput=()=>{const left=TW_MAX-[...t.value].length;c.textContent=left<=20?left:'';c.classList.toggle('over',left<0);b.disabled=(!t.value.trim()&&!ulv())||left<0};
+  ulinkBind(t,'twr-u').then(g=>{ulv=g;const f=o.querySelector('#twr-u');if(f)f.oninput=t.oninput});
+  b.onclick=async()=>{b.disabled=true;try{const ul=ulv();await authFetch('/api/notes',ul?{body:t.value,reply_to:id,url:ul}:{body:t.value,reply_to:id});toast('返信しました');close();onDone&&onDone()}catch(err){toast(err.message);b.disabled=false}};
   setTimeout(()=>t.focus(),60);
 }
 /* 1件の投稿：返信先（あれば）→ 投稿 → 返信を書く欄 → 返信の一覧 */

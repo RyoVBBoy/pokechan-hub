@@ -1,0 +1,19 @@
+{
+  "_note": "Firebase の利用停止の同期・ブロッキング関数がつなぐ環境の対応表（docs/secure-link-posting-runbook.md §6）。どの環境も approved:false のあいだは動かない（はじめは全部止める）。値は依頼主が承認したものだけを書く。'<…>' はまだ決まっていない値で、そのままでは動かない。",
+  "environments": {
+    "production": {
+      "approved": false,
+      "project": "pokechan-hub",
+      "worker": "https://pokechan-tap.pokechan.workers.dev",
+      "workerEnvId": "<production FB_ENV_ID, set by owner>",
+      "serviceAccount": "<approved service account email, set by owner>"
+    },
+    "staging": {
+      "approved": false,
+      "project": "<staging Firebase project id, set by owner>",
+      "worker": "<staging Worker https URL, set by owner>",
+      "workerEnvId": "<staging FB_ENV_ID, set by owner>",
+      "serviceAccount": "<staging service account email, set by owner>"
+    }
+  }
+}

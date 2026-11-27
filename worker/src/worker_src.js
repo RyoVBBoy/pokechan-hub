@@ -347,6 +347,8 @@ export default{
     const at=Number(ev.scheduledTime)||Date.now();
     if(!ev.cron||ev.cron==='47 * * * *')ctx.waitUntil(newsFetchCron(env,at));
     if(!ev.cron||ev.cron==='0 * * * *')ctx.waitUntil(newsPublishCron(env,at));
+    /* 期限が来た利用停止の記録による停止（banned=2）を戻す（1時間に1回。手動の停止は戻さない。links.js） */
+    if((!ev.cron||ev.cron==='0 * * * *')&&env.DB)ctx.waitUntil(sanctionSweep(env.DB,at).catch(()=>{}));
     /* ランキングbot：前と同じ回（毎日 3:23 と、日本時間 10:47・16:47・22:47）だけ。1日1回投稿する */
     const uh=new Date(at).getUTCHours();
     if(!ev.cron||ev.cron==='23 18 * * *'||(ev.cron==='47 * * * *'&&[1,7,13].includes(uh)))ctx.waitUntil(rankCron(env))},

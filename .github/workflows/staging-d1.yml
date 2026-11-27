@@ -1,0 +1,166 @@
+# ステージング（gk-links-staging）の本物の Cloudflare の D1 と Worker で確かめる（PR #5・docs/secure-link-posting-runbook.md §7）。
+# 動くのは tools/staging/run-request.txt を変えて作業用のブランチに push したときだけ。本番の公開（deploy.yml）とは別。
+# 作る・消すのは gk-links-staging という名前の D1 と Worker だけ（本番の名前・本番の D1 の id と同じなら止める）。合成のデータだけ。
+# 合言葉はこの回だけの使い捨て（ログに出さない）。Web Risk の鍵・Firebase の合言葉は入れない（外の安全確認・Firebase は使わない）。
+# Cloudflare の鍵はステージング専用の CLOUDFLARE_STAGING_TOKEN だけ（本番の公開用の鍵には切りかえない。無ければ止める）。
+name: ステージングの本物の D1 の確かめ（gk-links-staging）
+
+on:
+  push:
+    branches: ['feature/secure-link-posting']
+    paths: ['tools/staging/run-request.txt']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-d1
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROD_D1_ID: ${{ vars.D1_DATABASE_ID }}
+      PROD_D1_NAME: ${{ vars.D1_DATABASE_NAME }}
+      PROD_WORKER: ${{ vars.WORKER_NAME || 'pokechan-tap' }}
+      STG: gk-links-staging
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 道具（wrangler の版を固定）
+        run: npm install -g --no-audit --no-fund wrangler@3.114.17 && wrangler --version
+
+      - name: 1. ログインと権限を確かめる（合言葉は出さない）
+        run: |
+          set -eo pipefail
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "CLOUDFLARE_STAGING_TOKEN がない（本番の鍵には切りかえない）"; exit 1; }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "CLOUDFLARE_ACCOUNT_ID がない"; exit 1; }
+          [ -n "$PROD_D1_NAME" ] && [ -n "$PROD_D1_ID" ] || { echo "本番の D1 の名前か id の変数（D1_DATABASE_NAME・D1_DATABASE_ID）がない"; exit 1; }
+          [ "$STG" = "gk-links-staging" ] && [ "$STG" != "$PROD_WORKER" ] && [ "$STG" != "$PROD_D1_NAME" ] || { echo "ステージングの名前が本番と同じか、gk-links-staging ではない"; exit 1; }
+          A="https://api.cloudflare.com/client/v4"
+          echo "--- トークンの確認（ユーザーのトークン／アカウントのトークン）"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/user/tokens/verify" | jq -c '{kind:"user",success,status:.result.status,expires_on:.result.expires_on,errors:[.errors[]?.code]}'
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify" | jq -c '{kind:"account",success,status:.result.status,expires_on:.result.expires_on,errors:[.errors[]?.code]}'
+          echo "--- できること（読むだけの呼び出しで確かめる）"
+          # 要る：アカウント・Workers・workers.dev・D1。要らない（200 なら広すぎるので止める）：R2・Pages・DNS のゾーン・鍵の一覧・利用者の情報
+          need=0; wide=0
+          for p in "accounts/$CLOUDFLARE_ACCOUNT_ID" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" "accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database"; do
+            # 一時的な 5xx（10001 など）は3回まで間をあけて読み直す。403 などはそのまま
+            for t in 1 2 3; do c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p"); case $c in 5*) sleep $((t*5));; *) break;; esac; done
+            echo "need $c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  $(jq -c '[.errors[]?.code]' /tmp/r.json)"; [ "$c" = 200 ] || need=1; done
+          for p in "accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets" "accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects" "zones" "accounts/$CLOUDFLARE_ACCOUNT_ID/tokens" "user/tokens" "user"; do
+            c=$(curl -s -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/$p")
+            n=$(jq -r 'if (.result|type)=="array" then (.result|length) else "-" end' /tmp/r.json 2>/dev/null || echo -)
+            echo "deny $c ${p#accounts/$CLOUDFLARE_ACCOUNT_ID}  items=$n  $(jq -c '[.errors[]?.code]' /tmp/r.json)"
+            # zones は 200 で一覧が返る（権限が無ければ空）。見えても読むだけなら止めず、気をつけることとして出す（ゾーンの名前は出さない）
+            if [ "$p" = zones ]; then
+              if [ "$c" = 200 ] && [ "$n" != 0 ]; then echo "::warning::ステージングの鍵で DNS のゾーンが ${n} 件見える（ステージングには要らない。鍵の対象のゾーンを外すとよい）"; echo "zone_flags: $(jq -c '[.result[]|.permissions//[]]|add|unique' /tmp/r.json)"; fi
+            elif [ "$c" = 200 ]; then wide=1; fi; done
+          [ $need = 0 ] || { echo "ステージングの鍵に要る権限が足りない"; exit 1; }
+          [ $wide = 0 ] || { echo "ステージングの鍵の権限が広すぎる（要らない資源が見える）"; exit 1; }
+          echo "権限：要るものは使え、要らないものは断られた"
+          echo "--- アカウント（種類だけ。名前にはメールアドレスが入ることがあるので出さない）"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/accounts/$CLOUDFLARE_ACCOUNT_ID" | jq -c '{type:.result.type,name_present:(.result.name!=null)}'
+
+      - name: 2. 今ある資源と無料枠のゆとり（本番の名前があることも確かめる）
+        run: |
+          set -eo pipefail
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -c '{scripts:[.result[]?.id],count:(.result|length)}'
+          for t in 1 2 3; do SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/subdomain" | jq -r '.result.subdomain//empty'); [ -n "$SUB" ] && break; sleep $((t*5)); done
+          [ -n "$SUB" ] || { echo "workers.dev のサブドメインが読めない"; exit 1; }
+          echo "workers.dev subdomain: $SUB"; echo "SUB=$SUB" >> "$GITHUB_ENV"
+          wrangler d1 list --json > /tmp/d1.json
+          jq -c '[.[]|{name,file_size,num_tables,created_at}]' /tmp/d1.json
+          # 本番の D1 の id は、一覧のその名前のちょうど1つの行から決め、変数と同じか確かめる（ない・null・違う・名前が決まった表にない → ここで止める。消す・作る・公開の前）
+          PROD_UUID=$(node tools/staging/guard.mjs prod --list /tmp/d1.json --name "$PROD_D1_NAME" --var-id "$PROD_D1_ID")
+          echo "本番の D1（$PROD_D1_NAME）は一覧の1行・id は変数と同じ（さわらない）"; echo "PROD_UUID=$PROD_UUID" >> "$GITHUB_ENV"
+          echo "D1 の数: $(jq length /tmp/d1.json)（無料枠 10）・合計の大きさ: $(jq '[.[].file_size]|add' /tmp/d1.json) バイト（無料枠 5GB）"
+          # 本番の Worker と D1 の「前」の印（最後に同じか確かめる）
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -r --arg w "$PROD_WORKER" '.result[]|select(.id==$w)|.modified_on' > /tmp/prodw.before
+          jq -r --arg n "$PROD_D1_NAME" '.[]|select(.name==$n)|"\(.uuid) \(.created_at)"' /tmp/d1.json > /tmp/prodd.before
+          [ -s /tmp/prodw.before ] && [ -s /tmp/prodd.before ] || { echo "本番の Worker か D1 が見つからない"; exit 1; }
+          echo "本番の Worker の最終更新: $(cat /tmp/prodw.before)"
+          # 本番の Worker でリンクが止まっているか（読むだけ。ほかの変数の値は出さない。ファイルはこの回のあと消える）
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts/$PROD_WORKER/settings" > /tmp/prodset.json
+          node tools/staging/guard.mjs prodflags --settings /tmp/prodset.json; rm -f /tmp/prodset.json
+
+      - name: 3. ステージングの D1 を作り直す（gk-links-staging だけ）
+        run: |
+          set -eo pipefail
+          [ -n "$PROD_UUID" ] || { echo "本番の id が決まっていない"; exit 1; }
+          OLD=$(node tools/staging/guard.mjs stgrow --list /tmp/d1.json --name "$STG" --prod-id "$PROD_UUID")
+          if [ -n "$OLD" ]; then wrangler d1 delete "$STG" -y; fi
+          wrangler d1 create "$STG"
+          wrangler d1 list --json > /tmp/d1b.json
+          # 作ったあとも本番の行が同じか、ステージングの行がちょうど1つで本番と違うか
+          [ "$(node tools/staging/guard.mjs prod --list /tmp/d1b.json --name "$PROD_D1_NAME" --var-id "$PROD_D1_ID")" = "$PROD_UUID" ] || { echo "本番の D1 の行が変わった"; exit 1; }
+          ID=$(node tools/staging/guard.mjs stgnew --list /tmp/d1b.json --name "$STG" --prod-id "$PROD_UUID")
+          echo "staging D1 id: $ID"; echo "STG_D1_ID=$ID" >> "$GITHUB_ENV"
+
+      - name: 4. 設定を作り、本番と混ざっていないか確かめる（tools/staging/check.mjs）
+        run: |
+          set -eo pipefail
+          sed -e "s/<gk-links-staging>/$STG/g" -e "s/<staging-d1-id>/$STG_D1_ID/" tools/staging/wrangler.staging.example.toml > wrangler.staging.toml
+          printf 'ADMIN_REVIEWER = "staging"\nDEBUG_ERR = "1"\n' >> wrangler.staging.toml
+          node tools/staging/check.mjs wrangler.staging.toml --prod-d1-id "$PROD_UUID" --stg-d1-id "$STG_D1_ID" | head -3
+
+      - name: 5. 前の版の表と合成の行を入れる（移しかえの確かめ用）
+        run: wrangler d1 execute "$STG" --remote --file tools/staging/seed-old.sql -y
+
+      - name: 6. 組み立てて公開（ステージングの Worker だけ）・使い捨ての合言葉
+        run: |
+          set -eo pipefail
+          python3 worker/build.py
+          wrangler deploy --config wrangler.staging.toml
+          for k in ADMIN_TOKEN APP_TOKEN FB_ADAPTER_TOKEN EMAIL_HMAC_KEY; do v=$(openssl rand -hex 24); echo "::add-mask::$v"
+            printf %s "$v" | wrangler secret put "$k" --config wrangler.staging.toml >/dev/null
+            case $k in ADMIN_TOKEN) echo "STG_ADMIN=$v" >> "$GITHUB_ENV";; FB_ADAPTER_TOKEN) echo "STG_AT=$v" >> "$GITHUB_ENV";; esac; done
+          echo "staging endpoint: https://$STG.$SUB.workers.dev"
+          # 公開したステージングの Worker：DB＝ステージングの D1 だけ・決まった変数と合言葉4つだけ（本物の合言葉なし）・cron なし。違えば止める
+          A2="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$STG"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A2/settings" > /tmp/set.json
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A2/schedules" > /tmp/sch.json
+          jq -c '{bindings:[.result.bindings[]|{type,name,id:(.id//.database_id//null)}|select(.type!="secret_text")],secrets:[.result.bindings[]|select(.type=="secret_text")|.name],cron:[]}' /tmp/set.json
+          jq -c '{cron:[.result.schedules[]?.cron]}' /tmp/sch.json
+          node tools/staging/guard.mjs deployed --settings /tmp/set.json --schedules /tmp/sch.json --name "$STG" --stg-id "$STG_D1_ID" --prod-id "$PROD_UUID"
+          sleep 15
+
+      - name: 7. 本物の D1 と Worker で確かめる（tests/staging-remote.mjs）
+        env:
+          STG_DB: gk-links-staging
+        run: |
+          wrangler tail "$STG" --format json > /tmp/tail.log 2>/tmp/tail.err &
+          TP=$!; sleep 8
+          set +e; STG_BASE="https://$STG.$SUB.workers.dev" node tests/staging-remote.mjs; rc=$?; set -e
+          sleep 5; kill $TP 2>/dev/null || true
+          echo "--- ステージングの Worker のエラー（console.error・例外。合言葉は入らない）"
+          jq -c 'select((.exceptions|length)>0 or ((.logs//[])|map(select(.level=="error"))|length)>0)|{url:.event.request.url,status:.event.response.status,exc:[.exceptions[]?|{name,message}],err:[.logs[]?|select(.level=="error")|.message]}' /tmp/tail.log 2>/dev/null | sed -E 's/[0-9a-f]{32}/<lease>/g' | head -40 || true
+          exit $rc
+
+      - name: 8. あとの資源と無料枠
+        if: always()
+        run: |
+          set +e
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          wrangler d1 list --json | jq -c '[.[]|{name,file_size,num_tables}]' || true
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -c '{scripts:[.result[]?.id],count:(.result|length)}' || true
+          wrangler d1 info "$STG" --json 2>/dev/null | jq -c '{name,file_size:.file_size,num_tables,read_queries_24h:.read_queries_24h,write_queries_24h:.write_queries_24h}' || true
+          echo "--- 本番がさわられていないか（前と同じか）"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$A/workers/scripts" | jq -r --arg w "$PROD_WORKER" '.result[]|select(.id==$w)|.modified_on' > /tmp/prodw.after
+          wrangler d1 list --json | jq -r --arg n "$PROD_D1_NAME" '.[]|select(.name==$n)|"\(.uuid) \(.created_at)"' > /tmp/prodd.after
+          if [ -s /tmp/prodw.before ]; then
+            cmp -s /tmp/prodw.before /tmp/prodw.after && cmp -s /tmp/prodd.before /tmp/prodd.after && echo "本番の Worker（最終更新 $(cat /tmp/prodw.after)）と本番の D1 の行（id・作った日）は前と同じ（中身に書かれていないことの証明ではない）" || { echo "本番の Worker か D1 が変わった"; exit 1; }
+          fi

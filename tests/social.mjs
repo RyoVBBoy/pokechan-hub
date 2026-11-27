@@ -59,6 +59,17 @@ r=await call('/api/notes',{method:'POST',tok:A,body:{body:'すぐ次の投稿'}}
 tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'あ'.repeat(141)}});expect('141文字は拒否',r[0]===400,r);
 r=await call('/api/notes',{method:'POST',tok:A,body:{body:'😀'.repeat(140)}});expect('絵文字140文字は受け付ける',r[0]===200,r);
 tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'見てね https://example.com'}});expect('リンクは拒否',r[0]===400,r);
+/* リンクの投稿（2026/11/25 links.js）：変数で止めているとき（はじめ）は前と同じく断る。開いても安全確認などの設定がそろっていなければ、リンク付きだけ閉じる（ふつうの投稿は前のまま）。
+   開いたときのくわしい確かめは tests/links.mjs */
+expect('リンクの投稿ははじめ止めてある',!env.LINKS_POST,env.LINKS_POST);
+tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'x',url:'https://example.com/a'}});expect('止めているときはリンク欄も断る',r[0]===400,r);
+env.LINKS_POST='1';
+tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'見てね https://note.com/a'}});expect('開いても設定がそろっていなければリンク付きは閉じる',r[0]===503,r);
+tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'見てね example.com'}});expect('開いてもドメインの書き方は前と同じく断る',r[0]===400,r);
+tick();r=await call('/api/notes',{method:'POST',tok:A,body:{body:'開いていてもふつうの投稿はできる'}});expect('開いていてもふつうの投稿',r[0]===200,r);
+/* このあとの数の確かめを変えないよう、いまの投稿は消しておく */
+await call(`/api/notes/${r[1].id}/delete`,{method:'POST',tok:A,body:{}});
+delete env.LINKS_POST;tick();
 r=await call('/api/notes',{method:'POST',tok:A,body:{body:'   '}});expect('空は拒否',r[0]===400,r);
 /* ページング：bob が25件 */
 for(let i=1;i<=25;i++){tick();r=await call('/api/notes',{method:'POST',tok:B,body:{body:'bob '+i}});if(r[0]!==200){expect('bob の投稿',false,r);break}}

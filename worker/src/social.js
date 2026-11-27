@@ -66,6 +66,8 @@ async function socialInit(db){
     db.prepare(`CREATE INDEX IF NOT EXISTS notes_reply ON notes(reply_to,id)`),
     db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS notes_repost ON notes(repost_of,uid) WHERE repost_of>0`)
   ]);
+  /* 利用者のリンク・利用停止の記録の表（links.js。足すだけ・消さない） */
+  await linksInit(db);
   SOCIAL_READY=true;
 }
 /* 投稿の一覧で返す形（uid やIPアドレスは出さない） */
@@ -89,9 +91,11 @@ const NOTE_COLS=`n.id AS rid,COALESCE(o.id,n.id) AS id,COALESCE(o.body,n.body) A
   EXISTS(SELECT 1 FROM likes l WHERE l.uid=?1 AND l.note_id=COALESCE(o.id,n.id)) AS liked,
   EXISTS(SELECT 1 FROM notes x WHERE x.uid=?1 AND x.repost_of=COALESCE(o.id,n.id)) AS reposted,
   EXISTS(SELECT 1 FROM bookmarks bk WHERE bk.uid=?1 AND bk.note_id=COALESCE(o.id,n.id)) AS saved,
-  CASE WHEN o.id IS NULL THEN ${CARDVIS('u')} ELSE ${CARDVIS('ou')} END AS card`;
+  CASE WHEN o.id IS NULL THEN ${CARDVIS('u')} ELSE ${CARDVIS('ou')} END AS card,
+  (SELECT json_array(nl.url,nl.host,nl.state) FROM note_links nl WHERE nl.note_id=COALESCE(o.id,n.id)) AS ulink`;
 const mediaOut=r=>{let m=[];try{m=r.media?JSON.parse(r.media):[]}catch(e){}return Array.isArray(m)?m:[]};
-const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
+/* link＝運営の bot のリンク（notes.link、利用者は書けない）。ulink＝利用者のリンク（note_links、links.js の lkOut） */
+const noteOut=r=>({id:r.id,body:r.body,link:r.link||null,...(r.ulink?{ulink:lkOut(r,r.lkc)}:{}),media:r.media_hidden?[]:mediaOut(r),media_hidden:r.media_hidden?mediaOut(r).length:0,created_at:r.created_at,likes:r.likes||0,replies:r.replies||0,reposts:r.reposts||0,liked:!!r.liked,reposted:!!r.reposted,saved:!!r.saved,mine:!!r.mine,
   user:{handle:r.handle,name:r.name,av:r.av||null,...(r.off?{off:true}:{}),...(r.card?{card:true}:{})},...(r.tool?{tool:r.tool}:{}),reply_to:r.reply_to||null,reply_handle:r.reply_to?(r.reply_handle||''):null,rp:r.rp_handle?{handle:r.rp_handle,name:r.rp_name}:null});
 const pageOut=rows=>({notes:rows.map(noteOut),next:rows.length===PAGE?rows[rows.length-1].rid:null});
 /* 返信・リポストの数を数え直す */
@@ -103,6 +107,19 @@ async function socialRate(db,uid,now){
   if(r&&r.d>=100)return '1日に投稿できる回数（100件）を超えました。';
   return null;
 }
+/* 投稿を書く（15秒に1件・1日100件を、書く文そのものの中で確かめる＝同時に送られても決まりをこえない。数え方は socialRate と同じ） */
+/* 停止の確かめも同じ文の中で（門を通ったあとに停止が作られても書かない。links.js の noteSancSQL。hs＝このリクエストのトークンの確認済みメールのハッシュ） */
+/* 返信先が、書く人（?1）にいまも見られる投稿か（消えていない・隠れていない・書いた人が停止中でない・非公開なら本人か許可されたフォロワー）。
+   リンクのあり・なしにかかわらず、投稿を書く文の中で確かめる（書く前に非公開にされても書かない・お知らせも出ない） */
+/* いいね・リポスト・ブックマーク・返信の相手の投稿：書く人（?1）に見られる投稿だけ（非公開でフォローを許可されていなければ、ない投稿と同じ答え・お知らせも出ない） */
+const NOTE_SEEN=`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0 AND ${VIS('u')}`;
+const REPLY_OK=`(?5=0 OR EXISTS(SELECT 1 FROM notes pn JOIN users pu ON pu.uid=pn.uid AND pu.banned=0 WHERE pn.id=?5 AND pn.hidden=0 AND pn.repost_of=0 AND ${VIS('pu')}))`;
+/* lk（リンク付きのとき）：{op＝このリクエストの使い捨ての鍵, vh＝安全確認の覚えの鍵}。同じ文の中で、同じリンクに期限内の「危険」の答えがあれば書かない */
+const noteIns=(db,uid,text,now,ip,to,med,hs=[],lk=null)=>{const n=hs.length,po=7+n,pv=8+n;
+  return db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media${lk?',op':''}) SELECT ?1,?2,?3,?4,?5,?6${lk?',?'+po:''}
+  WHERE NOT EXISTS(SELECT 1 FROM notes WHERE uid=?1 AND created_at>?3-15000) AND (SELECT COUNT(*) FROM notes WHERE uid=?1 AND created_at>?3-86400000)<100 ${noteSancSQL(n)} AND ${REPLY_OK}
+  ${lk?`AND NOT EXISTS(SELECT 1 FROM link_verdicts v WHERE v.h=?${pv} AND v.verdict='unsafe' AND v.expires_at>?3) AND NOT EXISTS(SELECT 1 FROM link_state WHERE k='wr_saturated')`:''} RETURNING id`)
+  .bind(uid,text,now,ip,to,med.length?JSON.stringify(med):null,...hs.map(x=>x.h),...(lk?[lk.op,lk.vh]:[]))};
 async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const later=p=>{if(ctx&&ctx.waitUntil)ctx.waitUntil(p);else return p};
   if(!/^\/api\/(tl|notes|follow|notifs|u\/|search|tags|me\/bookmarks)/.test(path))return null;
@@ -113,7 +130,9 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   const meRow=me?await db.prepare(`SELECT uid,handle,name,banned FROM users WHERE uid=?`).bind(me.uid).first():null;
   const meUid=meRow&&!meRow.banned?meRow.uid:'';
   const need=()=>!me?J({error:'ログインしてください。'},401):!meRow?J({error:'先にプロフィールを作ってください。'},403):meRow.banned?J({error:'このアカウントは利用を停止しています。'},403):null;
-  const withMine=rows=>rows.map(r=>({...r,mine:meUid&&r.handle===meRow.handle}));
+  /* lkc：利用者のリンクを押せるか（LINKS_CLICK）。止めているときは一覧でも押せない文字にする（links.js の lkOut） */
+  const lkc=lkOn(env,'LINKS_CLICK');
+  const withMine=rows=>rows.map(r=>({...r,mine:meUid&&r.handle===meRow.handle,lkc}));
 
   /* タイムライン：みんな／フォロー中 */
   if(path==='/api/tl'&&req.method==='GET'){
@@ -131,18 +150,55 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   /* 投稿する */
   if(path==='/api/notes'&&req.method==='POST'){
     const e=need();if(e)return e;
-    const text=clean(body.body,NOTE_MAX*2+2);
+    /* リンクを開いているとき（links.js）：形の違う値は断り、長さは形を直す前に確かめる（黙って切らない）。止めているときは前と同じ */
+    const lkp=lkOn(env,'LINKS_POST');
+    if(lkp){const bad=(body.body!=null&&typeof body.body!=='string')?'本文を読めませんでした。':(body.reply_to!=null&&typeof body.reply_to!=='number'&&typeof body.reply_to!=='string')?'返信先を読めませんでした。'
+        :(typeof body.body==='string'&&body.body.length>LK_BODY_RAW_MAX)?`投稿は${NOTE_MAX}文字までです。`:null;
+      /* 形のおかしいものも回数を数え（接続元ごと）、リンクを付けようとしていれば本人の枠も使う。超えたら429 */
+      if(bad){if(await badReq(db,env,ip,now)||(lkIntent(body,typeof body.body==='string'?body.body:'')&&!await lkSlot(db,meUid,now)))return J({error:'形のおかしい送信が続いています。少し時間をおいてください。'},429);
+        return J({error:bad},400)}}
+    let text=clean(body.body,lkp?LK_BODY_RAW_MAX:NOTE_MAX*2+2);
+    const lk=await lkForNote(env,db,me,meUid,body,text,now);
+    if(lk.error)return J({error:lk.error,...(lk.code?{code:lk.code}:{})},lk.status||400);
+    text=lk.text;
     /* 画像（先に /api/media で送ったもの）。画像だけの投稿もできる */
     const med=await mediaAttach(db,meUid,body.media,0);
     if(Array.isArray(body.media)&&body.media.length&&!med.length)return J({error:'画像を送り直してください（時間がたって消えた可能性があります）。'},400);
-    if(text.length<1&&!med.length)return J({error:'本文を入れてください。'},400);
+    if(text.length<1&&!med.length&&!lk.link)return J({error:'本文を入れてください。'},400);
     if([...text].length>NOTE_MAX)return J({error:`投稿は${NOTE_MAX}文字までです。`},400);
     const ng=(text&&ngCheck(text))||await socialRate(db,meUid,now);if(ng)return J({error:ng},400);
     /* 返信なら、返信先が見られる投稿か確かめる（リポストの行には返信できない） */
     const to=parseInt(body.reply_to,10)>0?parseInt(body.reply_to,10):0;
-    const pa=to?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(to).first():null;
+    /* 見られない返信先（非公開でフォローを許可されていない など）は、ない投稿と同じ答え（あることを知らせない） */
+    const pa=to?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=?2 AND n.hidden=0 AND n.repost_of=0 AND ${VIS('u')}`).bind(meUid,to).first():null;
     if(to&&!pa)return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404);
-    const r=await db.prepare(`INSERT INTO notes(uid,body,created_at,ip,reply_to,media) VALUES(?,?,?,?,?,?) RETURNING id`).bind(meUid,text,now,ip,to,med.length?JSON.stringify(med):null).first();
+    let r;const hs=GATE_HS.get(req)||[];
+    if(lk.link){
+      /* 安全確認はいちばん最後（ほかの確かめで断るものは外に送らない）。問題がなければ、投稿とリンクを1つの取引で書く */
+      const c=await lkCheckForNote(env,db,meUid,lk.link,now);if(c.error)return J({error:c.error},c.status);
+      /* リンクの行は、このリクエストの使い捨ての鍵（op）で本当に書けた投稿だけにつける（回数の決まり・停止・危険の答え・返信先で書けなければ、リンクも書かない）。
+         last_insert_rowid() や「同じ人・同じ時刻」は使わない（書けなかったときに、別のリクエストの投稿を拾うおそれがあるため） */
+      const op=rndHex(16);
+      const out=await db.batch([noteIns(db,meUid,text,now,ip,to,med,hs,{op,vh:c.t.h}),
+        db.prepare(`INSERT INTO note_links(note_id,uid,url,host,state,verdict,verdict_at,expires_at,created_at,updated_at,rev,vh,pol) SELECT n.id,?1,?2,?3,'ok','clean',?4,?5,?4,?4,0,?6,?8
+          FROM notes n WHERE n.op=?7 AND n.uid=?1 RETURNING note_id AS id`).bind(meUid,lk.link.url,lk.link.host,now,c.t.exp,c.t.h,op,lkPolicy(env))]);
+      r=out[1]&&out[1].results&&out[1].results[0];
+      if(!r&&out[0]&&out[0].results&&out[0].results[0])throw new Error('note-link-mismatch');
+      if(!r){
+        /* 書けなかった理由：危険の答え（停止・返信先・回数は下で） */
+        const v=await db.prepare(`SELECT 1 AS x FROM link_verdicts WHERE h=? AND verdict='unsafe' AND expires_at>?`).bind(c.t.h,now).first();
+        if(v)return J({error:'このリンクは安全確認で危険の可能性があると判定されたため、付けられません。',code:'unsafe'},400);
+        /* 安全確認のあと、書く前に上限の印が立った（同じ文の中で止めた） */
+        if(await db.prepare(`SELECT 1 AS x FROM link_state WHERE k='wr_saturated'`).first())return J({error:'いまリンクの安全確認が混み合っているため、リンク付きの投稿はできません。リンクを外すか、時間をおいてください。',saturated:true},503)}
+    }else r=await noteIns(db,meUid,text,now,ip,to,med,hs).first();
+    /* 同時に送られて、15秒に1件・1日100件の決まりで書けなかった */
+    if(!r){
+      /* 書けなかった：門のあとに停止が作られたか（同じ文の中の確かめで止まった）・回数の決まりか */
+      const sx=await db.prepare(`SELECT 1 AS x WHERE 1 ${noteSancSQL(hs.length)}`).bind(meUid,null,now,null,null,null,...hs.map(x=>x.h)).first();
+      if(!sx)return J({error:SANC_MSG},403);
+      /* 返信先が書く前に見られなくなった（隠れた・非公開にされた・書いた人が停止された） */
+      if(to&&!(await db.prepare(`SELECT 1 AS x WHERE ${REPLY_OK}`).bind(meUid,null,null,null,to).first()))return J({error:'返信先の投稿が見つかりません（削除された可能性があります）。'},404);
+      return J({error:await socialRate(db,meUid,now)||'連続の投稿は15秒あけてください。'},400)}
     if(r&&med.length)await mediaAttach(db,meUid,med.map(x=>x.k),r.id);
     const tg=tagsOf(text);if(r&&tg.length)await db.batch(tg.map(t=>db.prepare(`INSERT OR IGNORE INTO note_tags(tag,note_id,created_at) VALUES(?,?,?)`).bind(t,r.id,now)));
     if(pa&&r){const q=[recount(db,to)];
@@ -175,14 +231,14 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     await mediaDrop(env,db,'note_id=?',id);
     if(own&&own.reply_to)await recount(db,own.reply_to).run();
     if(own&&own.repost_of)await recount(db,own.repost_of).run();
-    await db.batch([db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM bookmarks WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
+    await db.batch([db.prepare(`DELETE FROM note_links WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM note_tags WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM likes WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM bookmarks WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM notifs WHERE note_id=?`).bind(id),db.prepare(`DELETE FROM reports WHERE kind='note' AND target=?`).bind(id)]);
     return J({ok:true});
   }
   /* ブックマーク（on:false で外す）。本人だけの保存なので、相手への通知・数はない。1人2000件まで */
   if((m=path.match(/^\/api\/notes\/(\d+)\/bookmark$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
     if(body.on===false){await db.prepare(`DELETE FROM bookmarks WHERE uid=? AND note_id=?`).bind(meUid,id).run();return J({ok:true,saved:false})}
-    const n=await db.prepare(`SELECT id FROM notes WHERE id=? AND hidden=0 AND repost_of=0`).bind(id).first();
+    const n=await db.prepare(NOTE_SEEN).bind(meUid,id).first();
     if(!n)return J({error:'投稿が見つかりません。'},404);
     const c=await db.prepare(`SELECT COUNT(*) AS c FROM bookmarks WHERE uid=?`).bind(meUid).first();
     if(c&&c.c>=2000)return J({error:'ブックマークは2000件までです。いらないものを外してください。'},429);
@@ -200,7 +256,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   /* いいね（on:false で取り消し） */
   if((m=path.match(/^\/api\/notes\/(\d+)\/like$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
-    const n=await db.prepare(`SELECT id,uid,body FROM notes WHERE id=? AND hidden=0 AND repost_of=0`).bind(id).first();
+    /* 取り消し（on:false）は見られなくなった投稿でもできる。付けるのは見られる投稿だけ */
+    const n=body.on===false?await db.prepare(`SELECT id,uid,body FROM notes WHERE id=? AND hidden=0 AND repost_of=0`).bind(id).first():await db.prepare(NOTE_SEEN).bind(meUid,id).first();
     if(!n)return J({error:'投稿が見つかりません。'},404);
     if(body.on===false){
       await db.batch([db.prepare(`DELETE FROM likes WHERE uid=? AND note_id=?`).bind(meUid,id),
@@ -223,7 +280,7 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
   /* リポスト（on:false で取り消し）。元の投稿の番号を指定する */
   if((m=path.match(/^\/api\/notes\/(\d+)\/repost$/))&&req.method==='POST'){
     const e=need();if(e)return e;const id=+m[1];
-    const n=await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(id).first();
+    const n=body.on===false?await db.prepare(`SELECT n.id,n.uid,n.body FROM notes n JOIN users u ON u.uid=n.uid AND u.banned=0 WHERE n.id=? AND n.hidden=0 AND n.repost_of=0`).bind(id).first():await db.prepare(NOTE_SEEN).bind(meUid,id).first();
     if(!n)return J({error:'投稿が見つかりません。'},404);
     if(body.on===false){
       await db.batch([db.prepare(`DELETE FROM notes WHERE uid=? AND repost_of=?`).bind(meUid,id),
@@ -248,6 +305,8 @@ async function socialApi(req,env,db,path,u,body,now,ip,ctx){
     /* 運営の Tips の投稿（2026/11/16）：通報で自動に隠さない（1件で画像・3件で投稿の決まりを使わない）。通報は管理画面の「通報」に並び、運営者が確かめる */
     /* 公式の運営の札のアカウント（2026/11/19）も同じ：通報で自動に隠さず、運営者が確かめる */
     const own=await db.prepare(`SELECT n.uid,${OFFX('x')} AS off FROM notes n LEFT JOIN users x ON x.uid=n.uid WHERE n.id=?`).bind(id).first();
+    /* 利用者のリンク付きの投稿は、通報で安全確認をし直す（通報だけで止めたり停止したりはしない。links.js） */
+    await later(lkReported(env,db,id,now));
     if(own&&(own.uid==='bot:tips'||own.off))return J({ok:true,review:true});
     const c=await db.prepare(`SELECT COUNT(*) AS n FROM reports WHERE kind='note' AND target=?`).bind(id).first();
     /* 画像つきの投稿は、通報1件で画像を確認待ちにする（運営者が確認して戻す） */
@@ -423,6 +482,7 @@ async function socialDeleteUser(db,uid,env){
     db.prepare(`DELETE FROM likes WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM notifs WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM note_tags WHERE note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid),
+    db.prepare(`DELETE FROM note_links WHERE uid=? OR note_id IN (SELECT id FROM notes WHERE uid=?)`).bind(uid,uid),
     db.prepare(`DELETE FROM notes WHERE uid=?`).bind(uid),
     db.prepare(`UPDATE notes SET likes=MAX(0,likes-1) WHERE id IN (SELECT note_id FROM likes WHERE uid=?)`).bind(uid),
     db.prepare(`DELETE FROM likes WHERE uid=?`).bind(uid),
