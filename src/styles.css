@@ -3683,3 +3683,7 @@ body.gkcm-on{overflow:hidden}
 @media(min-width:700px){
   .tw-vs{padding:64px 80px;box-sizing:border-box}
 }
+/* PiP の切り替えの間隔：おすすめの札（2026/11/27） */
+#pip-sec .pill{display:inline-flex;align-items:center;gap:6px}
+#pip-sec .pip-rec{font-size:11px;font-weight:800;padding:1px 6px;border-radius:999px;background:var(--acc-t);color:var(--acc)}
+#pip-sec .pill[aria-pressed=true] .pip-rec{background:var(--onfg);color:var(--fg)}
