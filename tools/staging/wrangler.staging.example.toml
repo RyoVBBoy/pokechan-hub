@@ -14,6 +14,7 @@ database_id = "<staging-d1-id>"
 # cron は入れない（アカウントの cron の数の無料枠を本番と分けあうため。期限の掃除は手元のテストで確かめる）
 
 [vars]
+LINKS_POLICY = "allowlist"
 LINKS_POST = "1"
 LINKS_CLICK = "1"
 SANCTIONS_ON = "1"
