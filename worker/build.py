@@ -136,7 +136,9 @@ code = (code.replace('__COMMUNITY__', open(os.path.join(SRC, 'auth.js'), encodin
         .replace('__FIREBASE_PROJECT_ID__', fb_pid)
         .replace('__SPECIES__', sp.replace('`', '')).replace('__RAW__', raw).replace('__TC__', tc))
 os.makedirs(os.path.join(W, 'dist'), exist_ok=True)
-audit_hold = (cfg.get('ai') or {}).get('auditHold') is not False
+ai_cfg = cfg.get('ai') or {}
+audit_hold = ai_cfg.get('auditHold') is not False
+code = code.replace('__AI_ADMIN_PREVIEW__', json.dumps(audit_hold and ai_cfg.get('adminPreview') is True))
 open(os.path.join(W, 'dist/worker.js'), 'w', encoding='utf-8').write(code.replace('__AI_AUDIT_HOLD__', json.dumps(audit_hold)))
 # テスト用：同じ中身に、AI の内部の関数を取り出す口を付けたもの（公開しない）
 open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code.replace('__AI_AUDIT_HOLD__', 'false') + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiRoles,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,aiComposeB1,aiPublicTeams,aiFairPlay,aiFpNext,ladderInit,ladderSig,MDK,MVN,megaOf,isStone,aiRuleset,AI_RULESETS,OpenAIProvider,aiOpenAICall,aiRedact,aiConvLoad,aiConvSave,aiHalt,aiHalted,aiBreaker,aiProviderFor,aiB1Constraints,aiTeamStyles,aiReserveMore,aiCost,aiPrice,AI_LIMITS,AI_OPENAI_URL,AI_PROMPT_VERSION,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo};\n')

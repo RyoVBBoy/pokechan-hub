@@ -240,6 +240,40 @@ for(const width of [390,1280]){
   res(width+' 初回ユーザー経路で画面のエラーなし',!errs.length,errs);
   await ctx.close();
 }
+/* 運営者用のプレビューは実装済みの公開停止を維持したまま試せる。 */
+{
+  const {pg,ctx,errs}=await page({width:390,height:844});
+  const demoToken='admin-ui-test-token';
+  const previewEnv=baseEnv({DB:makeD1(),ADMIN_TOKEN:demoToken});
+  await pg.route('**/api/admin/ai-preview',async r=>{
+    const q=r.request(),headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json'};
+    if(q.method()==='OPTIONS')return r.fulfill({status:204,headers});
+    const h={origin:'https://pokechan-hub.pages.dev',authorization:q.headers().authorization||'','x-admin-token':q.headers()['x-admin-token']||''};
+    if(q.method()==='POST')h['content-type']='application/json';
+    const {default:deployed}=await import(path.join(ROOT,'worker/dist/worker.js'));
+    const response=await deployed.fetch(new Request('https://w.example/api/admin/ai-preview',{method:q.method(),headers:h,body:q.postData()||undefined}),previewEnv,{waitUntil(){}});
+    return r.fulfill({status:response.status,headers,body:await response.text()});
+  });
+  await pg.evaluate(()=>{AI_CFG.auditHold=true;DGD.allow='off';LIVE.st='fail';team=[{no:445,sel:true},{no:149,sel:true}];nav('#/team')});
+  await pg.waitForSelector('#tt-seg');
+  res('運営者確認前はAIに相談が表示されない',await pg.locator('.ai-party-link').count()===0);
+  await pg.evaluate(()=>nav('#/admin'));
+  await pg.locator('#adm-tok').fill(demoToken);
+  await pg.locator('#adm-save').click();
+  await pg.getByRole('button',{name:'AI相談の検証'}).click();
+  await pg.getByRole('link',{name:'パーティ画面を開く'}).click();
+  await pg.getByRole('link',{name:'AIに相談',exact:true}).click();
+  await pg.getByRole('button',{name:'この結果について相談する'}).click();
+  const dialog=pg.locator('#ai-party-dialog');
+  await dialog.getByRole('button',{name:'このパーティの強みは？'}).click();
+  await dialog.getByText('次の練習で試すこと').waitFor();
+  res('運営者本人の操作で回答カードが出る',await dialog.getByText('運営者限定・模擬回答').isVisible());
+  res('質問の入力欄は模擬検証では出さない',!await dialog.locator('#ai-q').isVisible());
+  await pg.evaluate(()=>{AUTH.user=null;aiAuthChanged(null)});
+  res('ログアウトでプレビューパネルと入口を消す',await dialog.count()===0&&await pg.locator('.ai-party-start').count()===0);
+  res('運営者用プレビューに画面のエラーなし',!errs.length,errs);
+  await ctx.close();
+}
 await b.close();
 res('外部への送信 0 件',OUT.length===0,OUT);
 fs.writeFileSync(path.join(ROOT,'tests/out/ai-b1-ui-results.json'),JSON.stringify({total:R.n,bad,shots:SHOTS},null,1));

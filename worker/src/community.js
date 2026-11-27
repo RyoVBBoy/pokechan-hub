@@ -53,9 +53,11 @@ async function cleanup(db){
 }
 const J=(o,st=200)=>new Response(JSON.stringify(o),{status:st,headers:{...CORS,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
 async function api(req,env,u,ctx){
+  const path=u.pathname.replace(/\/+$/,'');
+  if(path===AI_ADMIN_PREVIEW_PATH&&!AI_ADMIN_PREVIEW_ORIGINS.has(req.headers.get('origin')))return AE(403,'origin_forbidden');
   if(!env.DB)return J({error:'掲示板はまだ準備中です。'},503);
   const db=env.DB;await dbInit(db);await socialInit(db);await mediaInit(db);
-  const ip=req.headers.get('cf-connecting-ip')||'0.0.0.0',path=u.pathname.replace(/\/+$/,''),now=Date.now();
+  const ip=req.headers.get('cf-connecting-ip')||'0.0.0.0',now=Date.now();
   /* 管理者は ADMIN_TOKEN（利用者に配る APP_TOKEN とは別）。未設定なら管理機能は使えない */
   const adminTok=req.headers.get('x-admin-token')||'';
   let isAdmin=!!env.ADMIN_TOKEN&&String(env.ADMIN_TOKEN).length>=12&&adminTok.length===String(env.ADMIN_TOKEN).length&&await sha(adminTok)===await sha(String(env.ADMIN_TOKEN));
@@ -68,6 +70,7 @@ async function api(req,env,u,ctx){
     else if(adminTok&&!isAdmin){await db.prepare(`INSERT INTO sec_fail(who,at) VALUES(?,?)`).bind(who,now).run();
       if(Math.random()<.05)await db.prepare(`DELETE FROM sec_fail WHERE at<?`).bind(now-864e5).run()}
   }
+  if(path===AI_ADMIN_PREVIEW_PATH)return aiAdminPreview(req,db,env,isAdmin);
   /* 画像は JSON ではなく中身そのものを受け取るので、先に分ける（media.js） */
   if(path==='/api/media'&&req.method==='POST')return mediaUpload(req,env,db,now);
   /* 運営の Tips の画像（管理用の合言葉だけ。tips.js） */

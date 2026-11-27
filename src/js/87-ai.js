@@ -7,8 +7,27 @@
 const AI_CFG=(typeof window!=='undefined'&&window.PC_CONFIG&&window.PC_CONFIG.ai)||{};
 const AI_API='https://pokechan-tap.pokechan.workers.dev';
 const AI_GAME='pokechamp';
+const AI_PREVIEW_PATH='/api/admin/ai-preview';
+const AI_PREVIEW_QUESTIONS={strengths:'このパーティの強みは？',practice:'次に何を練習する？'};
+let AI_PREVIEW=null;
+function aiPreviewToken(){
+  try{return sessionStorage.getItem('pcadmin')||''}catch(e){return ''}
+}
+function aiPreviewActive(){
+  return AI_CFG.auditHold===true&&AI_CFG.adminPreview===true&&!!AUTH.user&&
+    AI_PREVIEW?.uid===AUTH.user.uid&&AI_PREVIEW.token===aiPreviewToken();
+}
+async function aiPreviewStart(token){
+  const user=AUTH.user;
+  if(!user)throw new Error(aiR('auth_required'));
+  const {status,j}=await aiFetch(AI_PREVIEW_PATH,null,token);
+  if(status!==200||j.preview!==true)throw new Error(j.error||aiR(j.reasonCode));
+  if(AUTH.user!==user||token!==aiPreviewToken())return false;
+  AI_PREVIEW={uid:user.uid,token};
+  return true;
+}
 function aiUiOn(party=false){
-  if(AI_CFG.auditHold!==false)return false;
+  if(AI_CFG.auditHold!==false)return party&&aiPreviewActive();
   if(party?AI_CFG.partyConsult===true:AI_CFG.enabled===true)return true;
   try{return !!navigator.webdriver&&sessionStorage.getItem('pcaitest')==='1'}catch(e){return false}
 }
@@ -16,6 +35,10 @@ const AI_ST={party:null,ctx:null,busy:false,log:[],q:'',seq:0,uid:null,gen:0,con
 /* 会話・書きかけ・待っている答えは、ログインしている人のものだけ。ログアウト・アカウントの削除・ほかの人のログインで全部消す。
    待っている答えは gen（世代）で見分け、消したあとに届いた答えは出さない。会話は端末にも保存しない（この画面のメモリだけ） */
 function aiReset(){
+  if(AI_PREVIEW){
+    AI_PREVIEW=null;
+    for(const el of document.querySelectorAll('.ai-party-link,.ai-party-start'))el.remove();
+  }
   AI_ST.party?.close(false,false);
   AI_ST.gen++;AI_ST.log=[];AI_ST.q='';AI_ST.ctx=null;AI_ST.busy=false;AI_ST.uid=null;AI_ST.conv=null;
   const q=document.getElementById('ai-q');if(q)q.value='';
@@ -25,6 +48,7 @@ function aiAuthChanged(uid){if((uid||null)!==AI_ST.uid)aiReset();AI_ST.uid=uid||
 const aiMine=(gen,uid)=>gen===AI_ST.gen&&!!AUTH.user&&AUTH.user.uid===uid;
 const AI_VLAB={official:'公式資料',ingame:'実機で確認',external_match:'外部参照と一致',external_single:'外部参照（1出典・未照合）',site_calc:'サイトの計算・推定',site_estimate:'サイトの計算・推定',site_aggregate:'当サイト集計',site_verified:'運営が証拠を確認した記録',insufficient:'根拠不足'};
 const AI_REASON={
+  preview_admin_required:'管理用の合言葉を確認してください。',body_invalid:'検証用の入力を読み取れませんでした。',
   ai_disabled:'AI はいま止めています。',auth_required:'使うにはログインしてください。',origin_forbidden:'このページからは使えません。',member_suspended:'このアカウントは停止されています。',
   quota_day:'今日の回数を使い切りました。',quota_month:'今月の回数を使い切りました。',quota_concurrent:'ひとつ前の質問の処理中です。少し待ってください。',
   rate_member:'短い時間に送りすぎました。少し待ってください。',rate_ip:'短い時間に送りすぎました。少し待ってください。',rate_global:'いま混み合っています。少し待ってください。',
@@ -70,9 +94,10 @@ const AI_REASON={
 const aiR=k=>AI_REASON[k]||'いまは答えられません。';
 const aiNm=ref=>{const m=/^sp:(\d+)$/.exec(ref||'');return m&&byNo[+m[1]]?byNo[+m[1]].n:''};
 const aiTime=t=>{try{return new Date(t).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return''}};
-async function aiFetch(path,body){
+async function aiFetch(path,body,adminToken){
   if(!AUTH.user)throw Object.assign(new Error(aiR('auth_required')),{status:401});
   const h={Authorization:'Bearer '+await AUTH.user.getIdToken()};if(body)h['Content-Type']='application/json';
+  if(path===AI_PREVIEW_PATH&&adminToken)h['X-Admin-Token']=adminToken;
   let r;try{r=await fetch(AI_API+path,body?{method:'POST',headers:h,body:JSON.stringify(body)}:{headers:h})}catch(e){throw new Error('通信できませんでした。')}
   const j=await r.json().catch(()=>({}));return{status:r.status,j};
 }
@@ -263,7 +288,7 @@ function aiPartyConsultOpen(button,entries,result){
   dialog.className='ai-party-dialog';
   dialog.setAttribute('aria-labelledby','ai-party-title');
   const prior={log:AI_ST.log,q:AI_ST.q};
-  const party={format:FMT,signature:aiPartySignature(entries),data};
+  const party={preview:aiPreviewActive(),format:FMT,signature:aiPartySignature(entries),data};
   AI_ST.party=party;
   AI_ST.log=[];
   AI_ST.q='';
@@ -291,6 +316,7 @@ function aiPartyConsultOpen(button,entries,result){
 function aiView(host){
   if(!host)setHeader('AI攻略アシスト（試験中）','#/tools');
   if(!aiUiOn(!!host)){(host||V).innerHTML=`<div class="ai-root" data-notr><p class="note" style="padding-top:14px">この機能は準備中です。</p><div class="btns"><a class="btn btn-s" href="#/tools">ツールの一覧へ</a></div></div>`;return}
+  const preview=!!AI_ST.party?.preview;
   const g=typeof curGame==='function'?curGame():{name:'Pokémon Champions'};
   /* 前に会話した人と違う人なら、前の会話を出さない */
   const nu=AUTH.user?AUTH.user.uid:null;if(AI_ST.uid&&AI_ST.uid!==nu)aiReset();if(nu)AI_ST.uid=nu;
@@ -298,19 +324,27 @@ function aiView(host){
   const mount=host||V;
   mount.innerHTML=`<div class="ai-root" id="ai-root" data-notr>
     ${typeof LANG!=='undefined'&&LANG==='en'?'<p class="note">This feature is available in Japanese only.</p>':''}
-    <div class="ai-top"><span class="ai-chip">${esc(g.name||'')}</span><details class="ai-quota" id="ai-quota"><summary>残りの回数</summary><div class="ai-qd"></div></details></div>
+    <div class="ai-top"><span class="ai-chip">${esc(g.name||'')}</span>${preview?'<span class="ai-small">運営者限定・模擬回答</span>':'<details class="ai-quota" id="ai-quota"><summary>残りの回数</summary><div class="ai-qd"></div></details>'}</div>
     <div class="ai-log" id="ai-log" aria-live="polite"></div>
-    <form class="ai-comp" id="ai-comp" autocomplete="off"><label class="sr-only" for="ai-q">質問</label>
+    <form class="ai-comp" id="ai-comp" autocomplete="off"${preview?' hidden':''}><label class="sr-only" for="ai-q">質問</label>
       <textarea id="ai-q" maxlength="1000" rows="1" placeholder="質問を入力" enterkeyhint="send">${esc(AI_ST.q)}</textarea>
-      <button id="ai-send" type="submit" aria-label="送信">${AI_SEND_SVG}</button></form></div>`;
+      <button id="ai-send" type="submit" aria-label="送信">${AI_SEND_SVG}</button></form>
+    ${preview?`<div class="ai-chips">${Object.entries(AI_PREVIEW_QUESTIONS).map(([id,q])=>`<button type="button" class="ai-cbtn" data-ai-sample="${id}">${esc(q)}</button>`).join('')}</div>`:''}</div>`;
   const root=mount.querySelector('#ai-root'),q=root.querySelector('#ai-q');
-  if(!AI_ST.log.length)AI_ST.log.push(AI_ST.party?{who:'bot',html:`<div class="ai-card"><p>相談に使う情報：${esc(aiFmtN(AI_ST.party.format))}・${AI_ST.party.data.members.map(no=>esc(byNo[no]?.n||no)).join('・')}・この端末で計算した結果（対応の目安 ${AI_ST.party.data.stable}／${AI_ST.party.data.total}匹）</p><p class="ai-small">入力した質問と表示中の診断の要約を送信します。対戦前の準備や練習に使えます。例「このパーティの強みは？」「次に何を練習する？」</p></div>`}:{who:'bot',intro:true});
+  if(!AI_ST.log.length)AI_ST.log.push(AI_ST.party?{who:'bot',html:`<div class="ai-card"><p>相談に使う情報：${esc(aiFmtN(AI_ST.party.format))}・${AI_ST.party.data.members.map(no=>esc(byNo[no]?.n||no)).join('・')}・この端末で計算した結果（対応の目安 ${AI_ST.party.data.stable}／${AI_ST.party.data.total}匹）</p><p class="ai-small">${preview?'例題を選ぶと、チェック結果の要約から模擬回答を表示します。':'入力した質問と表示中の診断の要約を送信します。対戦前の準備や練習に使えます。例「このパーティの強みは？」「次に何を練習する？」'}</p></div>`}:{who:'bot',intro:true});
   aiDrawLog(root);
   const grow=()=>{q.style.height='auto';q.style.height=Math.min(q.scrollHeight,140)+'px'};
   q.addEventListener('input',()=>{AI_ST.q=q.value;grow()});grow();
   q.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();root.querySelector('#ai-comp').requestSubmit()}});
   root.querySelector('#ai-comp').addEventListener('submit',e=>{e.preventDefault();const v=q.value.trim();if(!v||AI_ST.busy)return;q.value='';AI_ST.q='';grow();aiAsk(root,v,{})});
-  aiKbWatch();aiCtx(root);
+  if(preview){
+    const form=root.querySelector('#ai-comp');
+    form.inert=true;
+    root.querySelectorAll('[data-ai-sample]').forEach(button=>button.onclick=()=>{
+      const sample=button.dataset.aiSample;
+      aiAsk(root,AI_PREVIEW_QUESTIONS[sample],{},{sample});
+    });
+  }else{aiKbWatch();aiCtx(root)}
 }
 /* キーボード：入力欄を見える範囲の下に置き、下のメニューと重ならないようにする（visualViewport） */
 function aiKbApply(kb){document.documentElement.style.setProperty('--ai-kb',Math.max(0,Math.round(kb))+'px');document.body.classList.toggle('ai-kb',kb>40);
@@ -359,6 +393,8 @@ function aiQuota(root,u){
 }
 async function aiAsk(root,question,extra,opt){
   if(AI_ST.busy)return;
+  const preview=AI_ST.party?.preview;
+  if(preview&&(!aiPreviewActive()||!Object.hasOwn(AI_PREVIEW_QUESTIONS,opt?.sample||'')))return;
   if(AI_ST.party){
     if(AI_ST.party.signature!==aiPartySignature(team)){
       AI_ST.log.push({who:'bot',html:'<div class="ai-card">パーティチェックの結果が更新されました。閉じて、新しい結果から相談してください。</div>'});
@@ -375,7 +411,9 @@ async function aiAsk(root,question,extra,opt){
   const wait={who:'bot',wait:true};AI_ST.log.push(wait);aiDrawLog(root);
   try{
     const body={gameId:AI_GAME,question,requestId:aiRid(),...(AI_ST.conv?{conversationId:AI_ST.conv}:{}),...extra};
-    const {status,j}=await aiFetch('/api/ai/v1/answer',body);
+    const {status,j}=preview
+      ?await aiFetch(AI_PREVIEW_PATH,{sample:opt.sample,format:extra.format,partyCheck:extra.toolInput.partyCheck},AI_PREVIEW.token)
+      :await aiFetch('/api/ai/v1/answer',body);
     /* 待っている間にログアウト・ほかの人のログイン・会話の消去があれば、この答えは捨てる */
     if(!aiMine(gen,uid))return;
     Object.assign(wait,{wait:false,status,j,body,question});

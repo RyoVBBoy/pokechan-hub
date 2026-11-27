@@ -620,6 +620,34 @@ function aiValidBody(b){
         if(s.ability!==undefined&&(typeof s.ability!=='string'||!/^[a-z-]{1,32}$/.test(s.ability)))return'tool_input_invalid'}}}
   return null;
 }
+const AI_ADMIN_PREVIEW_PATH='/api/admin/ai-preview';
+const AI_ADMIN_PREVIEW_ORIGINS=new Set(['https://pokechan-hub.pages.dev','https://game-kids.app','https://www.game-kids.app']);
+function aiPartyAnswer(party){
+  const {total,stable,basis,example,responses}=party;
+  return {status:'answered',cards:[aiCard('party_check_summary',{
+    total,stable,basis,example:byNo[example]?.n||null,responses:responses.map(no=>byNo[no].n)
+  },[],'site_calc')]};
+}
+async function aiAdminPreview(req,db,env,isAdmin){
+  if(!__AI_ADMIN_PREVIEW__)return AE(503,'ai_disabled');
+  if(!isAdmin)return AE(403,'preview_admin_required');
+  if(req.method!=='GET'&&req.method!=='POST')return AE(405,'method');
+  const me=await authOf(req,env);
+  if(!me)return AE(401,'auth_required');
+  const member=await db.prepare('SELECT banned FROM users WHERE uid=?').bind(me.uid).first();
+  if(member?.banned)return AE(403,'member_suspended');
+  if(req.method==='GET')return AJ({status:'ok',preview:true});
+  const read=await aiReadBody(req);
+  if(read.err)return AE(...read.err);
+  const b=read.j;
+  const questions={strengths:'このパーティの強みは？',practice:'次に何を練習する？'};
+  if(!b||typeof b!=='object'||Array.isArray(b)||Object.keys(b).length!==3||
+    typeof b.sample!=='string'||!Object.hasOwn(questions,b.sample)||!['single','double'].includes(b.format)||!b.partyCheck)return AE(400,'body_invalid');
+  const bad=aiValidBody({gameId:'pokechamp',format:b.format,question:questions[b.sample],
+    requestId:'preview-sample',toolInput:{partyCheck:b.partyCheck}});
+  if(bad)return AE(400,bad);
+  return AJ({...aiPartyAnswer(b.partyCheck),evidence:[],preview:true});
+}
 async function aiApi(req,env,u,ctx){
   /* 1) 明示的に有効にしていなければ、何にもつながずに終える */
   if(__AI_AUDIT_HOLD__||env.AI_ENABLED!=='1')return AE(503,'ai_disabled');
@@ -754,7 +782,7 @@ async function aiApi(req,env,u,ctx){
   else if(!plan2)res={status:'unavailable',reasonCode:'plan_invalid',cards:[aiCard('unavailable',{reasonCode:'plan_invalid'},[],'insufficient')],evidence:[]};
   else if(party){
     if(plan2.intent===AI_PARTY_INTENT){
-      res={status:'answered',cards:[aiCard('party_check_summary',{total:party.total,stable:party.stable,basis:party.basis,example:byNo[party.example]?.n||null,responses:party.responses.map(no=>byNo[no].n)},[],'site_calc')]};
+      res=aiPartyAnswer(party);
     }else{
       res={status:'unsupported',reasonCode:'party_check_scope',nextAction:{kind:'party_tools'},cards:[aiCard('unsupported',{reasonCode:'party_check_scope'},[],'insufficient')]};
     }
