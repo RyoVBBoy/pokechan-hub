@@ -13,8 +13,9 @@ try{Miniflare=createRequire(path.join(dir||'/nonexistent','index.js'))('miniflar
 const S=await makeSigner();
 const OUT=[];
 let bad=0,n=0;const res=(name,cond,info)=>{n++;if(!cond){bad++;console.error('NG',name,info!==undefined?JSON.stringify(info).slice(0,500):'')}else console.log('  ok',name)};
+// 配信用Workerでの公開停止は ai.mjs で確認する。ここではテスト用WorkerでD1の内部動作を検証する。
 async function mk(o={}){
-  const mf=new Miniflare({modules:true,scriptPath:path.join(ROOT,'worker/dist/worker.js'),compatibilityDate:'2025-06-01',d1Databases:['AI_DB','DB'],
+  const mf=new Miniflare({modules:true,scriptPath:path.join(ROOT,'worker/dist/worker_test.js'),compatibilityDate:'2025-06-01',d1Databases:['AI_DB','DB'],
     bindings:baseEnv({AI_RL_USER_MIN:'100000',AI_RL_IP_MIN:'100000',AI_RL_GLOBAL_MIN:'100000',AI_FREE_DAY:'100000',AI_FREE_MONTH:'100000',...o}),
     outboundService:req=>{if(req.url.includes('securetoken@system.gserviceaccount.com'))return new Response(JSON.stringify({keys:[S.jwk]}),{headers:{'content-type':'application/json'}});OUT.push(req.url);return new Response('blocked',{status:599})}});
   const ai=await mf.getD1Database('AI_DB');
