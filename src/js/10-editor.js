@@ -27,7 +27,7 @@ function setToSaved(p,c){
   let sp=c.sp,up=c.up??-1,dn=c.dn??-1;
   if(!sp){const phys=p.s[1]>=p.s[3],ai=phys?1:3;sp=[2,0,0,0,0,0];sp[ai]=32;sp[5]=32;up=ai;dn=phys?3:1}
   return{ab:c.ab?{n:ABN[c.ab]||c.ab,k:c.ab}:null,it:c.item?{n:ITEMN[c.item]||c.item,k:c.item}:null,
-    mv:(c.moves||[]).slice(0,4).map(m=>m.prot?{n:'まもる',id:182}:m.id>0?{n:m.n,id:m.id}:null).filter(Boolean),sp:[...sp],up,dn};
+    mv:(c.moves||[]).slice(0,4).map(m=>m.prot?protSaved(m):m.id>0?{n:m.n,id:m.id}:null).filter(Boolean),sp:[...sp],up,dn};
 }
 let ED=null;
 /* 自動保存の表示（2026/11/12）：保存中… → 自動保存済み ✓／保存できませんでした。
@@ -63,7 +63,7 @@ function editView(a){
   while(base.mv.length<4)base.mv.push(null);
   ED={idx,no:p.no,s:base,dirty:false};
   if(EDS.idx!==idx||EDS.no!==p.no){clearTimeout(EDS.t);EDS.st='';EDS.idx=idx;EDS.no=p.no}
-  const ls=LSD[p.no],abl=ABD[p.no]||[];
+  const ls=lsOf(p).length?[0,lsOf(p)]:null,abl=ABD[p.no]||[];
   const mvIds=ls?ls[1].filter(id=>MV[id]):[];
   /* ランクバトルの採用率（2026/11/09 依頼主：持ち物の採用率もきちんと反映）。読めていれば持ち物・技の横に％を出し、持ち物は使われている順に上へ */
   const LD=LIVE.csv[p.no]||null,itPct={},mvPct={};
@@ -72,8 +72,9 @@ function editView(a){
   const byT={};mvIds.forEach(id=>{const t=MV[id][1];(byT[t]=byT[t]||[]).push(id)});
   const mvOpts=(cur)=>{
     let h=`<option value="">（なし）</option>`;
-    if(!ls||ls[0])h+=`<option value="182"${cur&&(cur.id===182||cur.id===197)?' selected':''}>まもる${pctT(mvPct[182])}</option>`;
-    if(cur&&cur.id!==182&&cur.id!==197&&!mvIds.includes(cur.id)&&!(ls&&ls[1].includes(cur.id)))h+=`<option value="x" selected>${cur.n}（計算には使いません）</option>`;
+    /* まもる・みきりは別々の技として、覚えるものだけ出す（2026/11/24。前はみきりを出さず、みきりの型を「まもる」と表示していた） */
+    [182,197].forEach(id=>{if(ls?ls[1].includes(id):id===182)h+=`<option value="${id}"${cur&&cur.id===id?' selected':''}>${mName(id)}　${MVU[id]?MVU[id][0]+'・':''}変化${pctT(mvPct[id])}</option>`});
+    if(cur&&!(ls&&ls[1].includes(cur.id))&&!(!ls&&(mvIds.includes(cur.id)||cur.id===182)))h+=`<option value="x" selected>${esc(cur.n||mName(cur.id)||'')}（このポケモンは覚えません）</option>`;
     const ord=[...p.t,...T.filter(t=>!p.t.includes(t))];
     ord.forEach(t=>{if(!byT[t])return;h+=`<optgroup label="${t}">`+byT[t].sort((a,b)=>MV[b][2]-MV[a][2]).map(id=>{const m=MV[id];
       return `<option value="${id}"${cur&&cur.id===id?' selected':''}>${m[0]}　${['物理','特殊','変化'][m[4]]||''}${m[2]?' 威力'+m[2]:''}${pctT(mvPct[id])}</option>`}).join('')+'</optgroup>'});
@@ -94,8 +95,8 @@ function editView(a){
     return h+abl.map(([k,hid])=>`<option value="${k}"${cur&&cur.k===k?' selected':''}>${ABN[k]||k}${hid?'（隠れ特性）':''}${ABIMPL.has(k)?'':'　※計算では効果なし'}</option>`).join('')};
   V.innerHTML=`<div id="ed-root">
   <div class="row" style="border-bottom:1px solid var(--line)"><span class="av">${stamp(p)}</span><div class="row-m"><div class="row-t">${nm(p)}</div><div class="chips">${p.t.map(chip).join('')}</div><span class="ed-save" id="ed-save" role="status" aria-live="polite"></span></div></div>
-  ${fresh?`<details class="ed-intro"><summary><span>${LD?'使用率の高い型':'自動で決めた型'}で計算中です。値を変えると、あなたの育成になります。</span></summary><p>いまは${LD?'ランクバトルの集計から組んだ<b>使用率の高い型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として自動で保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</p></details>`:''}
-  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}使用率の高い型を入れる</button></div>
+  ${fresh?`<details class="ed-intro"><summary><span>${LD?'集計から組み合わせた推定の型':'当サイトの提案の型'}で計算中です。値を変えると、あなたの育成になります。</span></summary><p>いまは${LD?'ランクバトルの集計から組んだ<b>推定の型</b>':'<b>自動で決めた型</b>（ランクバトルの集計を読めていないため）'}で計算しています。下の値を変えると、<b>あなたの育成</b>として自動で保存され、ダメージ計算・選出アシスト・パーティのチェックに使われます。</p></details>`:''}
+  <div class="btns" style="flex-wrap:wrap"><button class="btn btn-s" id="ed-pop">${SVG(I.zap,16)}推定の型を入れる</button></div>
   <div class="sec"><h2>特性・持ち物</h2></div>
   <div class="natr"><span style="width:56px">特性</span><select class="sel" id="ed-ab">${abOpts()}</select></div>
   <p class="note" id="ed-abd" style="padding:0 16px 6px">${ED.s.ab&&ABDS[ED.s.ab.k]?esc(ABDS[ED.s.ab.k]):''}</p>
@@ -118,14 +119,15 @@ function editView(a){
     <div class="btns"><button class="btn btn-p" id="ed-solve">能力ポイントを計算</button></div>
   </details>
   <div class="btns" style="flex-wrap:wrap"><a class="btn btn-p" href="#/team">完了</a><button class="btn btn-s" id="ed-clear" style="flex:none;padding:0 18px">未設定に戻す</button></div>
-  <p class="note" style="color:var(--mute)">入力した内容は自動で保存されます（ログイン中は、ほかの端末とも同じになります）。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×性格補正（Lv50）。</p>
+  <p class="note" style="color:var(--mute)">入力した内容は自動で保存されます（ログイン中は、ほかの端末とも同じになります）。HP＝種族値＋ポイント＋75、ほかの能力＝（種族値＋ポイント＋20）×能力補正（1.1／1.0／0.9、端数切り捨て。HPには能力補正なし）（Lv50）。色の印：赤＝上がる能力で補正前の値が10で割り切れる、青＝下がる能力で補正前の値の一の位が1。能力補正を変えるには ${NAT_VP} VP かかります。</p>
   </div>`;
   const save=()=>{const cur=team[ED.idx];if(!cur||cur.no!==ED.no)return;
     const o=ED.s;cur.set={ab:o.ab,it:o.it,mv:o.mv.filter(Boolean),sp:[...o.sp],up:o.up,dn:o.dn,src:'manual'};edSaved(saveTeam()!==false)};
   const upd=()=>{const o=ED.s,r=calcStats(p,o.sp,o.up,o.dn);
-    r.forEach((v,i)=>{document.getElementById('ed-o'+i).textContent=v;document.getElementById('ed-v'+i).textContent=o.sp[i];
+    r.forEach((v,i)=>{const dir=i&&o.up!==o.dn?(o.up===i?'↑':o.dn===i?'↓':''):'';document.getElementById('ed-o'+i).textContent=v+dir;document.getElementById('ed-v'+i).textContent=o.sp[i];
       const el=document.getElementById('ed-sp'+i);el.value=o.sp[i];el.style.setProperty('--p',(o.sp[i]/SP_CAP*100)+'%');
-      const o2=document.getElementById('ed-o'+i);o2.style.color=o.up===i?'#ff8a7a':o.dn===i?'#7ab8ff':''});
+      /* 2026/11/24：色は能力補正の印の決まり（natMark）のときだけ。上がる・下がるは ↑↓ で出す（前は上がる能力をいつも赤、下がる能力をいつも青にしていた） */
+      const o2=document.getElementById('ed-o'+i),mk=natMark(p,o.sp,o.up,o.dn,i);o2.style.color=mk?NAT_MARK_COL[mk]:'';o2.dataset.mark=mk;o2.title=mk==='red'?'赤い印：補正前の値が10で割り切れる':mk==='blue'?'青い印：補正前の値の一の位が1':''});
     document.getElementById('ed-left').textContent=SP_TOTAL-o.sp.reduce((a,b)=>a+b,0);
     const sp=r[5],sc=o.it&&o.it.k==='choicescarf'?Math.floor(sp*1.5):0,eff=sc||sp;
     document.getElementById('ed-spd').innerHTML=L(`素早さ <b>${sp}</b>${sc?`（スカーフ込み <b>${sc}</b>）`:''}は、`,`Speed <b>${sp}</b>${sc?` (with Choice Scarf <b>${sc}</b>)`:''}: `)+spdRankHTML(eff,p.no)};
@@ -138,7 +140,7 @@ function editView(a){
   document.getElementById('ed-it').onchange=e=>{const k=e.target.value;if(k==='x')return;ED.s.it=k?{n:ITEMN[k],k}:null;touch()};
   document.querySelectorAll('[data-mv]').forEach(el=>el.onchange=e=>{const k=+el.dataset.mv,v=e.target.value;if(v==='x')return;
     const id=+v;if(id&&ED.s.mv.some((m,j)=>j!==k&&m&&m.id===id)){toast('同じ技はえらべません');el.value=ED.s.mv[k]?String(ED.s.mv[k].id):'';return}
-    ED.s.mv[k]=!v?null:id===182?{n:'まもる',id:182}:{n:mName(id),id};touch()});
+    ED.s.mv[k]=!v?null:{n:mName(id),id};touch()});
   document.getElementById('ed-solve').onclick=()=>{const vals=SN.map((_,i)=>+document.getElementById('ed-r'+i).value);
     if(vals.some(v=>!(v>0))){toast('6つの数値をすべて入れてください');return}
     const r=solveStats(p,vals,null);if(!r){toast('この実数値になる配分が見つかりませんでした。数値を確かめてください');return}

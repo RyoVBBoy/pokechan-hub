@@ -91,7 +91,7 @@ const R4=await pg.evaluate(()=>{
   r.match=[noSw?!!f1&&f1.t.includes(noSw+'匹'):!f1,noK?!!f2&&f2.t.includes(noK+'匹'):!f2];
   r.typeEv=C.fix.filter(x=>x.k==='type').every(x=>x.ev&&x.ev.length&&!/参考/.test(x.ev[0]));
   r.calcEv=C.fix.filter(x=>x.k==='calc').every(x=>x.ev&&x.ev.length&&x.sev>=1&&x.area);
-  r.unk=/計算に入っていない特性/.test(C.premise);
+  r.unk=/計算に入っていない(特性|効果)/.test(C.premise);/* 2026/11/24 監査ブランチで「効果」（特性と持ち物）に言い方を変えた */
   /* ★で選出を見るとき・ダブル */
   team.forEach((x,i)=>x.sel=i<3);const C3=partyCheck(team);r.sel=C3.fix.every(x=>x.k!=='type')&&/選出に選んだ/.test(C3.scope);
   setFmt('double');team.forEach((x,i)=>x.sel=i<4);const C4=partyCheck(team);r.dbl=/ダブル/.test(C4.premise)&&/ダブル/.test(C4.scope);setFmt('single');
@@ -166,7 +166,7 @@ const V2=await pg.evaluate(tc=>{
   const mm=dgMatch(g,d);r.ms=mm.why.join(' ').includes('相手のHPが満タンのとき、こちらの攻撃の1発目だけ');
   /* 上から：一撃でないときは「〇発で倒しきれる」「一撃で倒せるとは限らない」 */
   const ib=mkMon(N('イダイトウ'),'me',detSet(N('イダイトウ'))),hp=mkMon(N('カバルドン'),'op',detSet(N('カバルドン')));const mh=dgMatch(ib,hp);
-  r.fast=mh.k!=='ko_fast'||(mh.myN===1?/一撃（確定）/.test(mh.t):(/発で倒しきれる/.test(mh.t)&&mh.why.some(w=>/一撃で倒せるとは限らない/.test(w))));
+  r.fast=mh.k!=='ko_fast'||(mh.myN===1?/一撃（確定）/.test(mh.t):mh.me.turnKind?/ターンで倒し切る/.test(mh.t):(/発で倒しきれる/.test(mh.t)&&mh.why.some(w=>/一撃で倒せるとは限らない/.test(w))));
   return r},TC);
 ok(V2.chart===0,'タイプ相性が @smogon/calc と '+V2.chart+'か所ちがう');
 ok(V2.psy.every(Boolean),'エスパー技：ゴーストに等倍・あくに無効 '+V2.psy);
@@ -210,7 +210,12 @@ ok(V3.skin.every(Boolean),'スカイスキンの書き方 '+V3.skin);
 /* 2026/11/10 トリックルーム構築 */
 const V4=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};
+  const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
   team.length=0;['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'].forEach(s=>team.push({no:N(s).no}));
+  /* 2026/11/24：覚えられるだけ（技が未登録）ではトリックルームを張ったことにしない。遅さの弱点も消さない */
+  const T0=dgTeam0(team,20),A0=dgAnalyze(T0);r.learnOnly=!T0.tr.on&&T0.tr.setters.length===0&&T0.tr.cand.some(x=>T0.ms[x.i].p.n==='ブリムオン')&&T0.tr.unset&&!T0.rows.some(row=>row.resTR)&&A0.bad.some(b=>/だれよりも速い相手/.test(b.t));
+  /* 技に入れると張れる匹になる */
+  team[0].set=trSet(team[0].no);
   const T=dgTeam0(team,20);r.on=T.tr.on&&T.tr.setters.some(x=>T.ms[x.i].p.n==='ブリムオン');
   r.rows=T.rows.every(row=>row.resTR&&row.resTR.length&&row.lvlTR>=1);
   /* トリックルーム中は遅い方が先：こちらが遅い対面で spd が 1 になる */
@@ -225,6 +230,7 @@ const V4=await pg.evaluate(()=>{
   const yd=mkMon(N('リキキリン'),'me',{ab:'armor-tail',item:null,moves:[mvObj(248)],sp:[2,0,0,32,0,0],up:3,dn:5}),o=mkMon(N('ガブリアス'),'op',detSet(N('ガブリアス')));
   r.fs=!dgBest(yd,o);
   return r});
+ok(V4.learnOnly,'覚えられるだけのトリックルームを張ったことにしている（または遅さの弱点を消している）');
 ok(V4.on,'トリックルーム構築を見つけられない');
 ok(V4.rows,'トリックルーム中の計算がない');
 ok(V4.inv,'トリックルーム中に遅い方が先にならない');
@@ -235,14 +241,17 @@ ok(V4.fs,'みらいよちを撃ち合いの技にしている');
 /* 構築の型のバッジ */
 const V5=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};const run=(names,mod)=>{team.length=0;names.forEach(s=>team.push({no:N(s).no}));mod&&mod();TWX_K=null;return teamArch(team).map(a=>a.k)};
-  r.tr=run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']).includes('tr');
+  const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
+  r.tr=run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'],()=>{team[0].set=trSet(team[0].no)}).includes('tr');
+  /* 覚えられるだけなら「技が未登録」の札（張れる型としては出さない） */
+  run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);r.trUnset=teamArch(team).some(a=>a.k==='tr'&&a.unset);
   r.sun=run(['リザードン','フシギバナ','ルチャブル','ガブリアス'],()=>{team[0].set={it:{k:'charizarditey',n:''},mv:[]}}).includes('sun');
   r.rain=run(['ペリッパー','イダイトウ','ブリジュラス']).includes('rain');
   const sc={it:{k:'choicescarf',n:''},mv:[{id:89,n:'じしん'}]},ss={it:{k:'focussash',n:''},mv:[{id:89,n:'じしん'}]},lo={it:{k:'lifeorb',n:''},mv:[{id:89,n:'じしん'}]};
   r.tm=run(['ガブリアス','ルカリオ','ドドゲザン'],()=>{team[0].set=sc;team[1].set=ss;team[2].set=lo}).includes('tm');
   run(['ガブリアス','サーフゴー','アシレーヌ']);r.none=/判定中/.test(teamArchHTML(team))&&!teamArch(team).length;
   return r});
-ok(V5.tr&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
+ok(V5.tr&&V5.trUnset&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
 /* 2026/11/10 依頼主の指摘：技を登録したトリックルーム向きのパーティが「晴れ・対面」になった */
 const V6=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};team.length=0;['ブリムオン','リキキリン','コータス','ドサイドン','カビゴン','オニシズクモ'].forEach(s=>team.push({no:N(s).no}));
@@ -304,7 +313,7 @@ const V7=await pg.evaluate(()=>{
   r.notCounted=T.rows.every(row=>row.stable.every(z=>z.r>=4)&&row.res.filter(z=>z.me&&z.k==='lose').every(z=>!row.stable.includes(z)&&!row.ok.includes(z)));
   r.hasLoseWithMove=all.some(z=>z.me&&z.me.max>0&&z.k==='lose');
   /* 入れかえ案は変更後の6匹で計算し直して良くなる */
-  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam0(team.map((y,k)=>k===x.i?{no:x.c.no,set:x.S.sv}:y),20);const m=dgMetric(T1,x.D.keep);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko&&m.slow===x.a.slow});
+  const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam(team.map((y,k)=>k===x.i?{no:x.c.no,set:x.S.sv}:y),20);const m=dgMetric(T1,x.D.keep);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko&&m.slow===x.a.slow});
   r.swSingle=S.some(x=>x.won.length===1&&x.a.nosw<x.b.nosw);
   /* 入れる匹の育成：外す匹の技・持ち物を引きつがない。技は覚えるもの、特性は持てるもの、持ち物はゲームにあって残る5匹と重ならない */
   r.swSet=S.every(x=>{const sv=x.S.sv,out=team[x.i].set,ls=(LSD[x.c.no]||[0,[]])[1],rest=team.filter((_,k)=>k!==x.i).map(y=>y.set.it.k);
@@ -343,7 +352,7 @@ const V8=await pg.evaluate(()=>{
   r.recount=x.rows.every((y,j)=>{const zs=T.rows[j].res.filter(z=>x.c.includes(z.i)),st=zs.filter(z=>z.r>=4).length,ok=zs.filter(z=>z.r>=3).length,wk=zs.filter(z=>z.r===2).length;return y.lvl===(st>=2?4:st===1?3:ok||wk?2:1)});
   r.lead=D.list.every(x=>x.c.includes(x.leads[0]));
   r.plan=JSON.stringify(selPlan(team).base.slice().sort())===JSON.stringify(D.best.c.slice().sort());
-  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/上位\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発/.test(t));
+  const W=dgSelWhy(D,D.best,D.list[1]);r.why=W.good.some(t=>/比較した\d+匹のうち ◎\d+・○\d+・△\d+・×\d+/.test(t))&&W.good.some(t=>/先発/.test(t));
   /* 選ばなかった匹に頼る相手：パーティ全体で◎○なのに、この選出で△以下 */
   r.lost=D.list.every(x=>x.lost.every(l=>{const j=T.rows.findIndex(z=>z.q.no===l.q.no);return T.rows[j].lvl>=3&&x.rows[j].lvl<=2}));
   /* ★の選出の順位 */
@@ -352,17 +361,19 @@ const V8=await pg.evaluate(()=>{
   FMT='double';D=dgSelect(team);r.double=[D.K===4,D.list.length===15,D.list.every(x=>x.c.length===4),selPlan(team).lead.length===2];FMT='single';
   /* メガストーンを持つ匹は選出に1匹まで・軸は必ず入れる */
   setT(['ガブリアス','ガルーラ','リザードン','サーフゴー','アシレーヌ','カイリュー']);team[0].set={it:{k:'garchompite',n:''},mv:[]};team[1].set={it:{k:'kangaskhanite',n:''},mv:[]};
-  D=dgSelect(team);r.mega=D.excluded===4&&D.list.length===16&&D.list.every(x=>!(x.c.includes(0)&&x.c.includes(1)));
+  D=dgSelect(team);/* 2026/11/24：メガストーン2匹の選出も除かず（20通り）、2匹とも入る4通りは1匹ずつメガにして比べ、どちらをメガにしたかを持つ */r.mega=D.excluded===0&&D.list.length===20&&D.list.filter(x=>x.c.includes(0)&&x.c.includes(1)).length===4&&D.list.filter(x=>x.c.includes(0)&&x.c.includes(1)).every(x=>[0,1].includes(x.megaI)&&x.megaAlt.length===1);
   team[3].axis=true;D=dgSelect(team);r.axis=D.list.every(x=>x.c.includes(3));
   /* パーティの天気：天気を作る匹を選ばない選出では、ようりょくそを天気なしで計算 */
   setT(['リザードン','フシギバナ','ルチャブル','ガブリアス','サーフゴー','アシレーヌ']);team[0].set={it:{k:'charizarditey',n:''},mv:[]};team[1].set={ab:{k:'chlorophyll',n:''},mv:[]};TWX_K=null;
   D=dgSelect(team);const fb=D.T.ms.findIndex(o=>o.p.n==='フシギバナ');
   const c1=D.list.find(x=>x.c.includes(fb)&&x.c.includes(D.wxBy)),c2=D.list.find(x=>x.c.includes(fb)&&!x.c.includes(D.wxBy));
   const sp=c=>c.rows.map(y=>y.zs.find(z=>z.i===fb))[0].sa;
-  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,!c2.wxOk,dgSelWhy(D,c2).warn.some(t=>/天気にならず/.test(t))];
+  r.wx=[D.gain.length===1,sp(c1)===2*sp(c2)||sp(c1)>sp(c2)*1.9,c1.weather?.k==='sun'&&!c2.weather,dgSelWhy(D,c2).warn.some(t=>/味方の天気補正を入れていません/.test(t))];
   /* トリックルーム：張れる匹がいる選出だけ trUse */
-  setT(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);D=dgSelect(team);
+  {const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
+  setT(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);team[0].set=trSet(team[0].no);DG_SELC.clear();D=dgSelect(team);
   r.tr=D.tr.on&&D.list.every(x=>x.trUse===D.tr.setters.some(s=>x.c.includes(s.i)));
+  setT(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);DG_SELC.clear();D=dgSelect(team);r.tr=r.tr&&!D.list.some(x=>x.trUse)}
   return r});
 ok(V8.single.every(Boolean),'シングルの選出の比較 '+V8.single);
 ok(V8.cnt,'選出の ◎〜× の合計が相手の数と合わない');
@@ -373,7 +384,7 @@ ok(V8.why,'選出の理由に数の根拠がない');
 ok(V8.lost,'選ばなかった匹に頼る相手の判定');
 ok(V8.mine,'★の選出の順位');
 ok(V8.double.every(Boolean),'ダブルの選出の比較 '+V8.double);
-ok(V8.mega,'メガストーン2匹の選出を除いていない');
+ok(V8.mega,'メガストーン2匹の選出を除かず、1匹ずつメガで比べていない');
 ok(V8.axis,'軸が選出に入っていない');
 ok(V8.wx.every(Boolean),'天気を作る匹を選ばない選出の計算 '+V8.wx);
 ok(V8.tr,'トリックルームを張れる匹がいる選出だけトリックルーム中で計算');
@@ -382,10 +393,12 @@ const V9=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};
   const setT=ns=>{team.length=0;ns.forEach(s=>team.push({no:N(s).no}));TWX_K=null};
   setT(['ガブリアス','サーフゴー','アシレーヌ','ドドゲザン','ウルガモス','カイリュー']);
-  let D=dgSelect(team);const T=dgTeam(team,20),W=T.rows.reduce((t,_,j)=>t+(j<8?1.5:1),0);
+  let D=dgSelect(team);
   /* シングル：3匹それぞれの先発の点を手で数え直す */
   r.lead1=D.list.every(x=>x.lead1.length===3&&x.pairs===null&&x.lead1.every((l,k)=>!k||x.lead1[k-1].sc>=l.sc)&&x.leads[0]===x.lead1[0].i);
-  const x0=D.list[2];r.leadRe=x0.lead1.every(l=>{const v=T.rows.reduce((t,row,j)=>{const z=row.res.find(q=>q.i===l.i);const lv=z.r>=4?1:z.r>=3?.6:z.r===2?.25:0,d=z.op&&z.op.nMax===1&&z.spd!==1;return t+(j<8?1.5:1)*(lv-(d?.5:0))},0)/W;return Math.abs(v-l.sc)<1e-9});
+  // 先発の点は、パーティ全体ではなくこの選出で選ばれた相手の型から数え直す。
+  const x0=D.list[2],W=x0.rows.reduce((t,_,j)=>t+(j<8?1.5:1),0);
+  r.leadRe=x0.lead1.every(l=>{const v=x0.rows.reduce((t,row,j)=>{const z=row.zs.find(q=>q.i===l.i);const lv=z.r>=4?1:z.r>=3?.6:z.r===2?.25:0,d=z.op&&z.op.nMax===1&&z.spd!==1;return t+(j<8?1.5:1)*(lv-(d?.5:0))},0)/W;return Math.abs(v-l.sc)<1e-9});
   r.planLead1=selPlan(team).lead[0]===D.best.lead1[0].i;
   /* 点の内訳の合計＝点、順位は点の順（同点は×→一撃→◎○→後出し→先手） */
   r.parts=D.list.every(x=>Math.abs(x.P.cov+x.P.sw+x.P.swc+x.P.fast+x.P.danger+x.P.role+x.P.over-x.sc)<1e-9);
@@ -443,7 +456,7 @@ const V10=await pg.evaluate(()=>{
   r.premise=/こちらにいちばん不利な特性で計算/.test(dgPremise(T));
   /* ダブルの先発の比較：簡易比較で、未計算のことと「いつも最適とは限らない」を書く */
   FMT='double';const E=dgSelect(team),hd=dgLeadHTML(E,E.best);FMT='single';
-  r.dbl=[/簡易比較/.test(hd),/範囲技/.test(hd)&&/同時に攻撃/.test(hd)&&/味方のサポート/.test(hd)&&/まもる/.test(hd),/勝率や実戦での強さではなく/.test(hd),/いつも最適な先発とは限りません/.test(hd),!/最適な先発です/.test(hd),/同時に1匹を狙う場合は数えていません/.test(hd)];
+  r.dbl=[/簡易比較/.test(hd),/範囲技も1匹に当たる場合/.test(hd)&&/同時攻撃/.test(hd)&&/味方の巻き込み・支援/.test(hd)&&/まもる/.test(hd),/対面の比較に使う指標/.test(hd),/暫定評価/.test(hd),!/最適な先発です/.test(hd),/同時に1匹を狙う場合は数えていません/.test(hd)];
   /* 1発で倒しきれない連続技でない相手：マルチスケイルの数え方が前と同じ（1回の技なら初撃半分） */
   const one=dgMatch(T.M[T.ms.findIndex(m=>m.p.n==='ガブリアス')],row.o);r.single=Math.abs(one.me.fmin*2-one.me.min)<1e-9;
   return r});
@@ -505,7 +518,7 @@ const V12=await pg.evaluate(()=>{
   /* 攻撃役のガブリアスには耐久の型を出さない（2026/11/16）。役目を大きく失う変更を見分ける決まり（impRoleLoss）は、その型を手で作って確かめる */
   const gi=team.findIndex(x=>x.no===N('ガブリアス').no),gb=impSaved(team[gi].no,monGuide(N('ガブリアス'),{raw:true,}).make('bulky')||monGuide(N('カバルドン'),{raw:true}).make('bulky'));
   gb.it=team[gi].set.it;const es=team.map((x,k)=>k===gi?{...x,set:{...gb,sp:[32,0,32,0,2,0],up:2,dn:3,src:'manual'}}:x);
-  const loss=impRoleLoss(R.T0,impRecalc(R.T0,es,gi),gi);window.__drop=[String(loss)];
+  const loss=impRoleLoss(R.T0,impRecalc(es),gi);window.__drop=[String(loss)];
   r.dropped=![...R.list,...R.dropped].some(o=>/ガブリアスを耐久の型に/.test(o.title))&&/上から倒せる相手が\d+→0匹/.test(loss||'');
   /* ゲームにある持ち物・覚える技だけ・持ち物が重ならない・メガストーンは変えない */
   r.valid=L.every(o=>{const it=o.entries.map(x=>x.set&&x.set.it&&x.set.it.k).filter(Boolean);
@@ -548,8 +561,9 @@ const V13=await pg.evaluate(()=>{
   const chk=R=>R.list.filter(o=>o.kind!=='sel').every(o=>{const T1=impWith(o.entries,()=>dgTeam0(o.entries,20)),D=dgDiff(R.T0,T1),m=impMetric(T1,D.keep);return ['x','w','nosw','ohko','slow','st'].every(k=>m[k]===o.J.a[k])});
   team.length=0;['リザードン','フシギバナ','ルチャブル','ガブリアス','サーフゴー','アシレーヌ'].forEach(s=>team.push({no:N(s).no}));team[0].set={it:{k:'charizarditey',n:''},mv:[]};team[1].set={ab:{k:'chlorophyll',n:''},mv:[]};TWX_K=null;DG_SELC.clear();
   let R=dgImprove(team);r.wx=[chk(R),R.list.length];
-  team.length=0;['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'].forEach(s=>team.push({no:N(s).no}));TWX_K=null;DG_SELC.clear();
-  R=dgImprove(team);r.tr=[chk(R),R.list.length];
+  {const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
+  team.length=0;['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'].forEach(s=>team.push({no:N(s).no}));team[0].set=trSet(team[0].no);TWX_K=null;DG_SELC.clear();
+  R=dgImprove(team);r.tr=[chk(R),R.list.length,R.T0.tr.on]}
   return r});
 ok(V13.wx[0],'天気のパーティの改善案の計算し直し '+V13.wx);
 ok(V13.tr[0],'トリックルームのパーティの改善案の計算し直し '+V13.tr);
@@ -588,11 +602,12 @@ await pg.evaluate(()=>{const N=s=>P.find(x=>x.n===s);const sets={ドラパルト
   TWX_K=null;IMP_CACHE.clear();DG_SELC.clear();saveTeam();sessionStorage.setItem('pcttab','check');TTAB='check';teamRender()});
 const U0=await pg.evaluate(async()=>{await new Promise(r=>setTimeout(r,20));const e=document.getElementById('dgu-sum'),i=document.getElementById('dgu-imp');return [!!e,!!i&&/計算中/.test(i.textContent)]});
 await pg.waitForTimeout(4500);
-const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum'),T=dgTeam(team,20),A=dgAnalyze(T),C=partyCheck(team),S=dgSelect(team);
+const U=await pg.evaluate(()=>{const r={},box=document.getElementById('dgu-sum'),C=partyCheck(team),T=C.diagnosis,S=dgSelect(team);
   const cnt={1:0,2:0,3:0,4:0};T.rows.forEach(x=>cnt[x.lvl]++);
   r.bars=[4,3,2,1].every(l=>{const b=box.querySelector('.dgu-l'+l+' .dgu-bn').textContent;return b.startsWith(cnt[l]+'匹')&&b.includes('（'+Math.round(cnt[l]/T.rows.length*100)+'%）')});
-  r.areas=[...box.querySelectorAll('.dgu-area')].map(a=>{const n=a.querySelector('.dgu-an').textContent,s=Math.max(0,...A.bad.filter(x=>x.area===n).map(x=>x.sev));return a.querySelector('.dgu-sev').textContent.includes(DGU_SEV[s][0])}).every(Boolean);
   const calc=C.fix.filter(x=>x.k==='calc');
+  const provisional=FMT==='double'||T.unk.length||T.formErr.length||!T.mySet.every(Boolean)||!T.liveAll;
+  r.areas=[...box.querySelectorAll('.dgu-area')].map(a=>{const n=a.querySelector('.dgu-an').textContent,s=Math.max(0,...calc.filter(x=>x.area===n).map(x=>x.sev));return a.querySelector('.dgu-sev').textContent.includes(!s&&provisional?'判定は暫定':DGU_SEV[s][0])}).every(Boolean);
   r.weak=[...box.querySelectorAll('.dgu-weak .dgu-wt')].map(x=>x.textContent).join('|')===calc.slice(0,3).map(x=>x.t.replace(/<[^>]+>/g,'')).join('|');
   r.order=calc.every((x,k)=>!k||calc[k-1].sev>=x.sev);
   r.jump=[...box.querySelectorAll('[data-dgu-go]')].every(a=>!!document.getElementById(a.dataset.dguGo));
@@ -692,7 +707,7 @@ const U3=await pg.evaluate(()=>{const r={},T=dgTeam(team,20),box=document.getEle
   r.tables=[...list.querySelectorAll(':scope > .dg-r')].every((el,j)=>{const row=order[j],all=[...row.res].sort((a,b)=>b.r-a.r),ms=[...el.querySelectorAll('.dgm')];
     if(ms.length!==all.length)return false;
     return ms.every((m,k)=>{const z=all[k],dd=[...m.querySelectorAll('dd')].map(d=>d.textContent),txt=m.textContent;
-      const ko=!z.me?'—':z.me.nMin===1?'100%（確定）':z.me.nMax===1?Math.round(z.me.ohko/16*100)+'%':'0%（一撃では倒せない）';
+      const ko=Number.isFinite(z.koOnUse)?pctTxt(z.koOnUse):'—';
       return dd[0]===(z.me?z.me.mvn:'効く技がない')&&dd[2]===ko&&dd[3]===(z.me?dgKoTxt(z.me):'—')&&dd[5].includes(String(z.sa))&&dd[5].includes(String(z.so))&&z.why.every(w=>txt.includes(w))})});
   list.open=true;list.querySelectorAll('details').forEach(d=>d.open=true);r.over=document.body.scrollWidth<=innerWidth;
   list.querySelectorAll('details').forEach(d=>d.open=false);list.open=false;

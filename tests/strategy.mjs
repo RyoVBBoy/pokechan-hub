@@ -38,9 +38,9 @@ for(const [k,S] of Object.entries(SC)){
   ok(R.strengths<=3&&R.how,'強みは3つまで・ポケモンの名前と使い方つき '+R.strengths);
   if(R.sel){ok(R.sel.length===R.selShown.length&&R.sel.every(n=>R.selShown.includes(n)),'選出は dgSelect の1番 '+R.selShown.join('・'));
     ok(/いつも最適とは限らない/.test(R.t)&&/基本の選出/.test(R.t),'選出は「基本の選出・いつも最適とは限らない」と書く');
-    ok(R.hs.includes('戦い方の流れ（目安）')&&/必ずこの通りになるわけではありません/.test(R.t),'流れは目安と書く')}
+    ok(R.hs.includes('戦い方の流れ（目安）')&&/実際の相手の型や残りHP、場の条件を確認/.test(R.t),'流れは目安と書く')}
   else ok(/より多くポケモンを入れてください/.test(R.t),'選出できないときは案内');
-  if(k==='double')ok(/範囲技・味方のサポート/.test(R.t)&&/簡易比較/.test(R.t),'ダブルは計算の限界を書く');
+  if(k==='double')ok(/範囲技も1匹に当たる場合/.test(R.t)&&/ダブルは1対1の対面を組み合わせた暫定評価/.test(R.t),'ダブルは計算の限界を書く');
   if(k==='rain'){ok(R.arch.includes('rain')&&/イダイトウが得をする/.test(R.t),'雨：作る役と得をする仲間の名前');
     ok(!R.sel.includes('ペリッパー')?/雨を作るペリッパーが入っていません/.test(R.t):true,'雨を作る役が選出にいなければ、そう書く')}
   if(k==='mega'){ok(R.mega>=2&&R.megaBar&&R.noMega,'メガ2匹以上：どのメガで計算したかと切りかえ・メガなしの比較');
