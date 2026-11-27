@@ -314,6 +314,7 @@ const V7=await pg.evaluate(()=>{
   r.hasLoseWithMove=all.some(z=>z.me&&z.me.max>0&&z.k==='lose');
   /* 入れかえ案は変更後の6匹で計算し直して良くなる */
   const S=dgDefSwaps(team,T);r.sw=S.length>0&&S.every(x=>{const T1=dgTeam(team.map((y,k)=>k===x.i?{no:x.c.no,set:x.S.sv}:y),20);const m=dgMetric(T1,x.D.keep);return m.nosw===x.a.nosw&&m.nosw<x.b.nosw&&m.x<=x.b.x&&m.w<=x.b.w&&m.ohko<=x.b.ohko&&m.slow===x.a.slow});
+  r.swSingle=S.some(x=>x.won.length===1&&x.a.nosw<x.b.nosw);
   /* 入れる匹の育成：外す匹の技・持ち物を引きつがない。技は覚えるもの、特性は持てるもの、持ち物はゲームにあって残る5匹と重ならない */
   r.swSet=S.every(x=>{const sv=x.S.sv,out=team[x.i].set,ls=(LSD[x.c.no]||[0,[]])[1],rest=team.filter((_,k)=>k!==x.i).map(y=>y.set.it.k);
     return sv.mv.length>=3&&sv.mv.every(m=>m.id===182||ls.includes(m.id))&&!sv.mv.some(m=>out.mv.some(o=>o.id===m.id)&&!ls.includes(m.id))&&(ABD[x.c.no]||[]).some(a=>a[0]===sv.ab.k)&&sv.it&&(CH_ITEMS.has(sv.it.k)||isStone(sv.it.k))&&!rest.includes(sv.it.k)&&sv.sp.reduce((a,b)=>a+b,0)>=60&&sv.up>=0});
@@ -337,6 +338,7 @@ ok(V7.swDiff,'入れかえ案の良くなる・悪くなるの比べ方');
 ok(V7.kinds&&V7.surviveOk,'後出しできない／後出しして負けるを分けていない');
 ok(V7.notCounted&&V7.hasLoseWithMove,'攻撃技を持っているだけで対策に数えている');
 ok(V7.sw,'入れかえ案を計算し直すと良くならない '+JSON.stringify(V7));
+ok(V7.swSingle,'後出しできる相手が1匹増える入れかえ案を、全体を再計算しても改善する場合に表示する');
 ok(V7.pcSw,'パーティのチェックに計算し直した入れかえ案が出ない');
 /* 第5段階：選出の比較（シングル20通り・ダブル15通り・メガは1匹まで・軸・パーティの天気・トリックルーム） */
 const V8=await pg.evaluate(()=>{

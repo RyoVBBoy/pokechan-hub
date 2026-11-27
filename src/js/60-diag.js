@@ -696,10 +696,10 @@ function dgDefSwaps(entries,T){
     /* 後出し先が1匹分増える候補も、パーティ全体での再計算に回す。 */
     const sc=pool.map(c=>{const S=dgSwapSet(c,rest);if(!S)return null;let a;try{a=mkMon(c,'me',savedToCalc(c.no,S.sv))}catch(e){return null}
       const won=noSw.filter(r=>{try{return dgMatch(a,r.o).swIn==='win'}catch(e){return false}});return{c,S,won}}).filter(z=>z&&z.won.length>0).sort((a,b)=>b.won.length-a.won.length||b.c.bst-a.c.bst).slice(0,5);
-    sc.forEach(({c,S})=>{let T1;try{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x);T1=impRecalc(es)}catch(e){return}
+    sc.forEach(({c,S,won})=>{let T1;try{const es=entries.map((x,k)=>k===i?{no:c.no,sel:!!x.sel,set:S.sv}:x);T1=impRecalc(es)}catch(e){return}
       if(impTrEvaluation(T,T1)?.loss)return;
       const D=dgDiff(T,T1),b=D.b,a=D.a;
-      if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
+      if(a.nosw<b.nosw&&a.x<=b.x&&a.w<=b.w&&a.ohko<=b.ohko)res.push({i,c,S,won:won.map(r=>r.q.n),b,a,D,gain:(b.nosw-a.nosw)*2+(b.ohko-a.ohko)+(b.w-a.w)+(b.slow-a.slow)*.5})})});
   res.sort((x,y)=>y.gain-x.gain);
   /* 2026/11/14 第3段階 P3-02：入れかえ案の計算（76-mvp.js、メガは1匹ずつ）でも確かめ、新しい大きな弱点ができる・素早さの操作か天気を失う案は出さない（数は mvpDrop） */
   const used=new Set(),out=[];let drop=0,E0=null;
