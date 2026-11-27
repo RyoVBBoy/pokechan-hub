@@ -30,7 +30,7 @@ await tab(3);ok(await pg.$$eval('#mvpanel .mvr',x=>x.length)>=40&&/技の入れ�
 const RP=await pg.evaluate(()=>[...document.querySelectorAll('.dp-rp')].map(e=>e.innerText).slice(0,2));
 ok(RP.length&&RP.every(t=>/良くなること/.test(t)&&/失うこと/.test(t)),'入れかえ候補に良くなること・失うこと');
 await tab(5);ok(await pg.$$eval('#brpanel .row',x=>x.length)>=3&&/上から一撃/.test(await pg.evaluate(()=>document.querySelector('[data-panel="5"]').innerText)),'対策＝崩し方と場面ごとの相手（理由つき）');
-await tab(0);const O=await pg.evaluate(()=>document.querySelector('[data-panel="0"]').innerText);
+await tab(0);const O=await pg.evaluate(()=>document.querySelector('[data-panel="0"]').textContent);
 ok(/物理アタッカーとして使いやすい/.test(O)&&!/積んで勝負を決める役として使いやすい/.test(O)&&/型によっては/.test(O),'概要：積み技のない型まで積む役とは書かない '+O.split('\n')[2]);
 ok(/ほかの姿/.test(O)&&/メガ Z/.test(O),'概要：ほかの姿の違い');
 /* 姿ごとのデータ：メガガブリアスZはドラゴンだけ（こおり4倍ではない）・タイプ一致はドラゴン */
@@ -114,7 +114,7 @@ ok(EV.rows[3].html.includes('すいほう')&&EV.rows[4].html.includes('ファー
 ok(EV.rows[5].headline.includes('交代')&&EV.rows[6].headline.includes('交代'),'イルカマン・グソクムシャの発動条件');
 ok(EV.rows[7].html.includes('マジックミラー')&&EV.rows[7].html.includes('メガシンカ前後の種族値'),'メガアブソル：固有特性と変化量');
 ok(EV.rows[8].headline.includes('ちからもち'),'メガスターミー：物理火力の特性');
-await open(184);ok(await pg.evaluate(()=>document.body.scrollWidth<=innerWidth+1&&document.querySelector('[data-panel="0"]').textContent.includes('特性で変わる攻撃')),'スマホで根拠グラフが表示される');
+await open(184);await tab(0);ok(await pg.evaluate(()=>document.body.scrollWidth<=innerWidth+1&&document.querySelector('[data-panel="0"]').textContent.includes('特性で変わる攻撃')),'スマホで根拠グラフが表示される');
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
