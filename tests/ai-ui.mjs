@@ -39,6 +39,16 @@ export const __set=u=>{user=u;fire()};export class GoogleAuthProvider{};export c
   if(o.ai)await pg.addInitScript(()=>{try{sessionStorage.setItem('pcaitest','1')}catch(e){}});
   await pg.goto(URL0+'#/');await pg.waitForTimeout(500);
   if(o.ai)await pg.evaluate(()=>{AI_CFG.auditHold=false});
+  else if(JSON.parse(fs.readFileSync(path.join(ROOT,'config/public.json'),'utf8')).ai.auditHold){
+    const hidden=await pg.evaluate(()=>{
+      AI_CFG.enabled=true;AI_CFG.partyConsult=true;
+      sessionStorage.setItem('pcaitest','1');
+      const blocked=AI_CFG.auditHold===true&&!aiUiOn()&&!aiUiOn(true);
+      AI_CFG.enabled=false;AI_CFG.partyConsult=false;sessionStorage.removeItem('pcaitest');
+      return blocked;
+    });
+    res('ui','配信設定の公開停止はテストフラグより優先',hidden);
+  }
   return{pg,ctx,errs};
 }
 const login=pg=>pg.evaluate(t=>{AUTH.user={uid:'ui-user',email:null,getIdToken:async()=>t}},TOKEN);
