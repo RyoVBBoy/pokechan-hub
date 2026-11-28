@@ -253,6 +253,11 @@ ok(AN2===3,'③ 匹を足すと分析が変わる');
 const TY=await pg.evaluate(()=>{const Y=tbTypes([{no:N('ガブリアス')},{no:N('ドドゲザン')}]);const ice=Y.def.find(d=>d.t==='こおり');return ice.w===1&&Y.est&&Y.at.includes('じめん')});
 ok(TY,'タイプの表の数（ガブリアスはこおり4倍・技が無ければタイプ一致で数える）');
 /* パーティに入れる：集計の型の仮定の能力ポイントは入れない。登録した育成の能力ポイントは残す */
+const JG=await pg.evaluate(()=>{
+ const mk=(keys,st='ok')=>({st,dup:[],mem:[{no:445}],scen:keys.map(key=>({key,rows:[{q:{no:149},z:[{r:4}]}],weak:[],u:-1}))});
+ return {missing:!tbJointGate(mk(['none']),mk(['none'],'nodata'),445,0),different:!tbJointGate(mk(['none','mega:445']),mk(['none']),445,0),same:!tbJointGate(mk(['none']),mk(['none']),445,0)};
+});
+ok(JG.missing&&JG.different&&JG.same,'統合育成は未評価・比較条件欠落・改善なしを採用しない '+JSON.stringify(JG));
 const SPX=await pg.evaluate(()=>{const S=mvpSet('single',N('ドドゲザン'),{});const F=tbForParty([{no:N('ガブリアス'),set:{mv:[{id:89}],sp:[2,32,0,0,0,32]},src:'team'},{no:N('ドドゲザン'),set:S.sv,src:'pokekit'}]);
   return{reg:!!F.mem[0].set.sp,kit:F.mem[1].set.sp===null&&F.mem[1].set.mv.length>0,note:F.notes.length===1}});
 ok(SPX.reg&&SPX.kit&&SPX.note,'集計の型の仮定の能力ポイントはパーティに入れない（登録した値は残す）');
