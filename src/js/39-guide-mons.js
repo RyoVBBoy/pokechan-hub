@@ -629,11 +629,16 @@ function monGuide(p,o={}){
     /* Joint search over complete legal builds. Every candidate is checked against
        the same opponents, with the same nature and ability. No synthetic win score. */
     const integratedPlans=(me,opponents)=>{
-      if(!opponents.length||me.formErr||s.moves.length!==4)return '';
+      const skip=reason=>{if(typeof o.auditSkipped==='function')o.auditSkipped(reason);return ''};
+      if(!opponents.length)return skip('no fixtures');
+      if(me.formErr)return skip('form');
+      if(s.moves.length!==4)return skip('move count');
       const original=s.moves.filter(id=>MV[id]),locked=s.moves.filter(id=>!MV[id]||mvObj(id).pri>0);
       // Knock Off is evaluated here only against fixtures without held items.
       const supported=id=>!!MV[id]&&(simple.has(id)||id===282);
-      if(!original.length||original.some(id=>!supported(id))||opponents.some(o=>o.item||o.disg||o.formErr))return '';
+      if(!original.length)return skip('no attacks');
+      if(original.some(id=>!supported(id)))return skip('unsupported move');
+      if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
       const stab=[...new Set(original.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
       const setup=s.moves.find(id=>[349,187,14,417,483,504,347,339].includes(id));
       const items=setup?['lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses']:['lifeorb','sitrusberry','choiceband','choicespecs','choicescarf','expertbelt','muscleband','wiseglasses'];
@@ -667,7 +672,7 @@ function monGuide(p,o={}){
         }
         const v={x,rows};cache.set(k,v);return v;
       };
-      const baseline=evaluate(s);if(!baseline)return '';
+      const baseline=evaluate(s);if(!baseline)return skip('unsupported baseline');
       const compare=(a,b)=>a.rows.every((r,i)=>r.quality+1e-9>=b.rows[i].quality&&r.margin>=b.rows[i].margin&&r.order>=b.rows[i].order);
       const improves=(a,b)=>compare(a,b)&&a.rows.some((r,i)=>r.quality>b.rows[i].quality+1e-9||r.margin>b.rows[i].margin||r.order>b.rows[i].order);
       // Seed each legal held item and one-slot move alternative before searching AP.
@@ -817,7 +822,7 @@ function monGuide(p,o={}){
     /* 役割の並びも、ひとことの役を先頭に。積む役には「積み技を入れた型のとき」と添える */
     const roles2=[role2,...topRoles.filter(r=>r!==role2)].filter(Boolean).slice(0,4).map(r=>r.k==='setup'?{...r,name:r.name+'（積み技を入れた型のとき）'}:r);
     return{lead:lead2+formLead,pros:pros.slice(0,3),cons:cons.slice(0,3),num:numHTML,roles:roles2,megaCh,megas:megas.map(m=>({m,stone:Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no)})),
-      sets:SETS,setHTML,live:liveF?gmLiveHTML(p,lk):'',liveF,usage:base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk),
+      sets:SETS,setHTML,auditBenchmark:o.auditCoverage?benchmarkHTML:undefined,live:liveF?gmLiveHTML(p,lk):'',liveF,usage:base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk),
       mvParts,abl,partners,good,axis:axisHTML,repl,stab:stabTypes,item}}
   if(base)return megaHead+sections;
   const megaHTML=megas.map(m=>monGuide(m,o)).join('');
