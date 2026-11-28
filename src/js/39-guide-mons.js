@@ -472,6 +472,60 @@ function monGuide(p,o={}){
       if(!best||best.margin<=baseMargin||best.sp.every((v,i)=>v===s.sp[i]))return '';
       return '<details class="gset-alt"><summary>オボンのみの発動を含めた耐久配分候補</summary><p>'+best.sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+best.sp.reduce((a,b)=>a+b,0)+'）</p><p>はらだいこ後のHP '+initial.hp+'/'+initial.max+' → '+best.a.hp+'/'+best.a.max+'（オボンのみ消費済み）</p><p>比較対象の技：'+incoming.map(m=>esc(mName(m.id))).join('・')+'。最も厳しい最大ダメージ後の残りHP（計算上） '+baseMargin+' → '+best.margin+'</p><p class="vcap">攻撃・特攻・素早さの配分を固定し、残りのHP・防御・特防の全合法配分を比較。満タンから積み技が成功した後、指定の相手の技を1回受ける条件。負の値は不足HPを示します。他の相手や積むターンの安全性は保証しません。</p></details>';
     };
+    /* Item-specific candidate search, one opponent at a time.
+       Keep the original nature and moves, compare the same attack and defensive threats.
+       Choice items are excluded from setup sets (move locking). */
+    const itemPlans=(me,op)=>{
+      const setup=[349,187,14,417,483,504,347,339].find(id=>s.moves.includes(id));
+      const items=setup?['lifeorb','sitrusberry','leftovers','focussash']:['lifeorb','sitrusberry','leftovers','focussash','choiceband','choicespecs','choicescarf'];
+      const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+      // Use unboosted single-turn damage bounds. No end-turn recovery or recoil is modeled here.
+      const attacks=me.moves.filter(m=>simple.has(m.id)&&!(m.maxH>1)&&moveUsable(m,{a:me,d:op}).ok);
+      const threats=op.moves.filter(m=>simple.has(m.id)&&!(m.maxH>1)&&moveUsable(m,{a:op,d:me}).ok);
+      if(!attacks.length||!threats.length||me.formErr||op.formErr||[me,op].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]))return '';
+      const bounds=(a,d,m)=>{
+        if(!moveUsable(m,{a,d}).ok)return null;
+        if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
+        const r=dmgRolls(a,m,d,opt),v=r.dist?r.dist.map(x=>x[0]):r;
+        return v.length&&v.every(Number.isFinite)?{lo:Math.min(...v),hi:Math.max(...v)}:null;
+      };
+      const baseline=attacks.map(m=>({m,b:bounds(me,op,m)})).filter(x=>x.b&&x.b.lo>0).sort((a,b)=>b.b.lo-a.b.lo||a.m.id-b.m.id)[0];
+      if(!baseline)return '';
+      const target=baseline.m,baseSpeed=effSpd(me,op),opSpeed=effSpd(op,me),budget=s.sp.reduce((a,b)=>a+b,0);
+      const floorSpeed=Math.min(baseSpeed,opSpeed+1);
+      // Preserve the reference damage and the existing speed target where possible.
+      // A bounded neighborhood search avoids enumerating millions of legal spreads on page load.
+      const evaluate=(item,sp)=>{
+        const a=build(p,{...s,item,sp},'me');if(a.formErr)return null;
+        const b=bounds(a,op,target);if(!b)return null;
+        const incoming=threats.map(m=>bounds(op,a,m));
+        if(incoming.some(x=>!x))return null;
+        const worst=Math.max(...incoming.map(x=>x.hi)),speed=effSpd(a,op);
+        return {item,sp,a,b,worst,speed,margin:a.hp-worst,meets:b.lo>=baseline.b.lo&&speed>=floorSpeed};
+      };
+      const better=(a,b)=>!b||Number(a.meets)>Number(b.meets)||(a.meets===b.meets&&(a.meets?(a.margin>b.margin||(a.margin===b.margin&&a.b.lo>b.b.lo)):(a.b.lo>b.b.lo||(a.b.lo===b.b.lo&&a.speed>b.speed))));
+      const rows=[];
+      for(const item of [...new Set([s.item,...items])]){
+        if(!item||!items.includes(item)||!Object.prototype.hasOwnProperty.call(ITEMN,item)||CALC_UNIMPL_IT.includes(item))continue;
+        let best=evaluate(item,[...s.sp]);if(!best)continue;
+        for(let pass=0;pass<2;pass++){
+          const origin=[...best.sp];let next=best;
+          for(const from of [0,1,2,3,4,5])for(const to of [0,1,2,3,4,5]){
+            if(from===to)continue;
+            for(const n of [1,2,4,8,16,32]){
+              if(origin[from]<n||origin[to]+n>32)continue;
+              const sp=[...origin];sp[from]-=n;sp[to]+=n;
+              if(sp.reduce((a,b)=>a+b,0)!==budget)continue;
+              const x=evaluate(item,sp);if(x&&better(x,next))next=x;
+            }
+          }
+          best=next;if(best.sp.every((v,i)=>v===origin[i]))break;
+        }
+        rows.push(best);
+      }
+      if(rows.length<2)return '';
+      return '<details class="gset-alt"><summary>持ち物別の能力配分比較（通常時）</summary><p class="vcap">同じ相手・技・能力補正で比較。基準：'+esc(mName(target.id))+'の最小ダメージ'+baseline.b.lo+'、素早さ'+floorSpeed+'以上。各持ち物を個別に装備した候補で、条件を満たすものは耐久を優先。満たせない候補も区別して掲載します。</p>'+rows.map(x=>'<div class="gdoc"><b>'+esc(ITEMN[x.item])+'</b><p>'+x.sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+budget+'）</p><p>'+esc(mName(target.id))+' '+x.b.lo+'〜'+x.b.hi+' / '+op.max+' HP・受ける最大ダメージ '+x.worst+' / '+x.a.max+' HP・素早さ '+x.speed+'</p><p>'+ (x.meets?'基準の火力・素早さを維持':'基準未達：比較用候補')+(x.item==='focussash'?'／満タン時のタスキ発動はこの生ダメージ比較に含まない':x.item==='leftovers'?'／ターン終了時の回復は含まない':x.item==='sitrusberry'?'／被弾後の回復は含まない':x.item==='lifeorb'?'／攻撃後の反動は含まない':'')+'</p></div>').join('')+'<p class="vcap">限定した配分移動を2巡探索。全配分の最適解ではありません。通常時・非急所・満タン・天候なしの比較で、積み技後の状態や対戦全体の勝率は評価しません。</p></details>';
+    };
     const setupHTML=(me,op)=>{
       const sections=[349,187,14,417,483,504,347,339].map(id=>{
         const a=setupState(me,id,op);if(!a)return '';
@@ -493,7 +547,7 @@ function monGuide(p,o={}){
         const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
         const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
         if(!out.length&&!inc.length)return '';
-        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+berryPlan(me,op)+'</details>';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+berryPlan(me,op)+itemPlans(me,op)+'</details>';
       }).join('');
       return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
