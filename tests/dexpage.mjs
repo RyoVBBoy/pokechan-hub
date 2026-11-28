@@ -215,6 +215,8 @@ const IA=await pg.evaluate(()=>{
             const dealt=Math.min(op.hp,Math.max(...raw));
             post.hp=Math.max(0,post.hp-Math.max(1,Math.floor((2*dealt*recoil[0]+recoil[1])/(2*recoil[1]))));
           }
+          const drain={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]}[mv.id];
+          if(drain&&Math.max(...raw)>0&&row.hit.acc>0&&post.hp>0)post.hp=Math.min(post.max,post.hp+Math.floor((2*Math.min(op.hp,Math.max(0,Math.min(...raw)))*drain[0]+drain[1])/(2*drain[1])));
           if(post.item==='lifeorb'&&post.ab!=='magic-guard'&&Math.max(...raw)>0&&row.hit.acc>0)post.hp=Math.max(0,post.hp-Math.max(1,Math.floor(post.max/10)));
           const rp=post.hp>0?dmgRolls(post,mv,op,opt):[0],rv=post.hp===0?[0]:mv.maxH>1?hitRemainingDist(post,mv,op,opt).map(([hp])=>op.hp-hp):(rp.dist?rp.dist.map(x=>x[0]):rp);
           const postIncoming=post.hp===0?[0]:op.moves.map(m=>{const z=dmgRolls(op,m,post,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&post.hp===z.surv.max?Math.min(n,post.hp-1):n+(z.loss||0)))});
@@ -359,6 +361,25 @@ const RC=await pg.evaluate(()=>{
 });
 console.log('move recoil audit '+JSON.stringify({total:RC.rows.length,failed:RC.rows.filter(x=>x.error),localDataGaps:RC.missing,guard:RC.guard}));
 ok(RC.rows.every(x=>!x.error)&&RC.guard,'技の反動：割合・端数・特性・ひんし・入力検証 '+JSON.stringify(RC.rows.filter(x=>x.error)));
+const DH=await pg.evaluate(()=>{
+  const rows=[],gaps=[];
+  const fractions={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]};
+  for(const [key,[n,d]] of Object.entries(fractions)){
+    const id=Number(key),m={id,drain:100*n/d};
+    if(!MV[id]||mvObj(id).drain!==m.drain)gaps.push({id,actual:MV[id]?mvObj(id).drain:null,expected:m.drain});
+    for(const hp of [0,1,84,167,168])for(const dealt of [0,1,2,3,30,50,149,150,151,168]){
+      const a={hp,max:168,item:null,stg:{atk:0}},before=JSON.stringify(a);
+      const out=reviewedDrainAfterHit(a,m,dealt,{ab:'rough-skin'});
+      const expected=hp===0?0:Math.min(168,hp+Math.floor((2*dealt*n+d)/(2*d)));
+      rows.push({id,hp,dealt,error:!out||out.hp!==expected||JSON.stringify(a)!==before||out.stg===a.stg});
+    }
+  }
+  const a={hp:84,max:168,item:null,stg:{}},m={id:409,drain:50};
+  const guard=reviewedDrainAfterHit({...a,item:'bigroot'},m,10,{})===null&&reviewedDrainAfterHit(a,m,10,{ab:'liquid-ooze'})===null&&reviewedDrainAfterHit({...a,healblock:true},m,10,{})===null&&reviewedDrainAfterHit(a,{...m,drain:75},10,{})===null;
+  return {rows,gaps,guard};
+});
+console.log('drain HP audit '+JSON.stringify({total:DH.rows.length,failed:DH.rows.filter(x=>x.error),localDataGaps:DH.gaps,guard:DH.guard}));
+ok(DH.rows.every(x=>!x.error)&&DH.guard,'吸収技のHP回復・上限・端数・入力検証 '+JSON.stringify(DH.rows.filter(x=>x.error)));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));

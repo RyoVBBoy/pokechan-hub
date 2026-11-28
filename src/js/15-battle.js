@@ -760,6 +760,18 @@ function reviewedMoveRecoilAfterHit(a,mv,dealt){
   out.hp=Math.max(0,a.hp-Math.max(1,Math.round(dealt*ratio[0]/ratio[1])));
   return out;
 }
+/* Pinned Showdown e7f50cd: data/moves.ts drain fractions and
+   sim/battle.ts spreadDamage / heal. Normal single-target recovery only;
+   Liquid Ooze, Big Root and healing prevention need separate review. */
+const REVIEWED_DRAIN={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]};
+function reviewedDrainAfterHit(a,mv,dealt,d){
+  const ratio=REVIEWED_DRAIN[mv.id];
+  if(!ratio||!d||d.ab==='liquid-ooze'||a.item==='bigroot'||a.healblock||a.volatiles?.healblock||!Number.isSafeInteger(dealt)||dealt<0||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  if(!Number.isFinite(mv.drain)||Math.abs(mv.drain-100*ratio[0]/ratio[1])>1e-9)return null;
+  const out={...a,stg:{...a.stg}};
+  if(dealt&&a.hp)out.hp=Math.min(a.max,a.hp+Math.round(dealt*ratio[0]/ratio[1]));
+  return out;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
