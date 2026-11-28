@@ -282,6 +282,25 @@ ok(SV.full==='focussash'&&!SV.chip&&SV.sturdy==='sturdy'&&!SV.bypass&&SV.disguis
 /* Compare the compressed state distribution against explicit enumeration of
    every independent damage roll (up to three hits). Synthetic ability states
    isolate mechanics; this is not a claim of legal builds or device validation. */
+const FX=await pg.evaluate(()=>{
+  const mk=(no,ab)=>mkMon(byNo[no],'me',{ab,item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445,'rough-skin'),d=mk(65,'magic-guard'),rows=[];
+  const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+  for(const id of [69,101,162]){
+    if(!MV[id])continue;
+    const m=mvObj(id);
+    for(const hp of [1,2,49,50,51,99,100,101])for(const type of ['ノーマル','ゴースト','エスパー','いわ'])for(const item of [null,'lifeorb']){
+      const target={...d,hp,max:Math.max(d.max,hp),p:{...d.p,t:[type]}};
+      const attacker={...a,item};
+      const expected=(type==='ゴースト'&&id!==101)||(type==='ノーマル'&&id===101)?0:id===162?Math.max(1,Math.floor(hp/2)):50;
+      const raw=bcalc(attacker,m,target,{...opt,r:100}),rolls=dmgRolls(attacker,m,target,opt);
+      rows.push({id,hp,type,item,error:raw.dmg!==expected||!rolls.length||Array.from(rolls).some(n=>n!==expected)});
+    }
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error),available:[69,101,162].filter(id=>!!MV[id])};
+});
+console.log('fixed damage audit '+JSON.stringify(FX));
+ok(FX.total>0&&!FX.failed.length,'固定ダメージ：HP・無効タイプ・持ち物補正 '+JSON.stringify(FX));
 const HR=await pg.evaluate(()=>{
   const make=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=make(445,'rough-skin',null),d=make(65,'magic-guard',null);
