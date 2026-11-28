@@ -842,6 +842,19 @@ console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
 ok(IA.every(x=>!x.missing&&x.render&&x.errors.length===0&&x.valid>0&&x.attempts<=360),'統合探索：合法性・計算一致・探索上限 '+JSON.stringify(IA));
+const CR=await pg.evaluate(()=>{
+  const a={hit:{id:1},quality:.4,repeatQuality:.4,margin:50,postMargin:40,postHP:80,endHP:40,recoveryHP:20,order:-1,postOrder:-1};
+  const failures=[];let total=0;
+  for(const k of ['quality','repeatQuality','margin','postMargin','postHP','endHP','recoveryHP','order','postOrder']){
+    const b={...a,hit:{id:2},[k]:a[k]+(['quality','repeatQuality'].includes(k)?.1:1)};
+    total++;if([a,b].sort(gmIntegratedChoiceRank)[0]!==b)failures.push('move '+k);
+    total++;if(gmIntegratedBuildRank({rows:[a,a]},{rows:[a,b]})<=0)failures.push('build '+k);
+    total++;if(gmIntegratedBuildRank({rows:[a,b]},{rows:[a,a]})>=0)failures.push('reverse '+k);
+  }
+  total++;if([{...a,hit:{id:2}},a].sort(gmIntegratedChoiceRank)[0]!==a)failures.push('tie');
+  return {total,failures};
+});
+ok(CR.total===28&&!CR.failures.length,'統合探索順位：全評価指標・逆順・同値 '+JSON.stringify(CR));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
