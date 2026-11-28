@@ -178,7 +178,7 @@ function partyMegaDisplay(x,p){
   const f=resolveForm(p.no,k);
   if(!f.ok||!f.mega)return {form:p,label:''};
   const name=ITEMN[k]||x.set.it.n||k;
-  return {form:f.form,label:`<div class="row-s" style="font-weight:700;text-align:center;position:relative;overflow-wrap:anywhere"><span class="ftag ftag-mega">MEGA</span> ${esc(name)}</div>`};
+  return {form:f.form,label:`<div class="row-s party-mega-label" style="font-weight:700;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;max-width:100%;margin:0"><span class="ftag ftag-mega" style="white-space:nowrap;background:linear-gradient(110deg,#ff8894,#ffc56c,#f1e578,#9bdd9b,#86d5ef,#b8a4f5);color:#20212b;font-weight:800">MEGA</span><span class="party-mega-item" style="display:block;max-width:100%;font-size:clamp(8px,2.4vw,11px);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(name)}">${esc(name)}</span></div>`};
 }
 function teamRender(){
   ['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('t-busy')});
