@@ -321,6 +321,28 @@ const ALTSTAT=await pg.evaluate(()=>{
 });
 console.log('alternate stat audit '+JSON.stringify(ALTSTAT));
 ok(ALTSTAT.rows.length>0&&!ALTSTAT.failed.length,'特殊参照技：能力ランクとフリーズドライ相性 '+JSON.stringify(ALTSTAT.failed));
+const VP=await pg.evaluate(()=>{
+  const mk=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445),d=mk(65),rows=[];
+  const speed=(x,n)=>({...x,st:x.st.map((v,i)=>i===5?n:v)});
+  const check=(id,x,y,expected,label)=>{if(!MV[id])return;const actual=varPow(x,mvObj(id),y,{});rows.push({id,label,expected,actual,error:actual!==expected})};
+  for(const [sa,sd,gyro,electro] of [[100,100,26,60],[99,100,26,40],[200,100,13,80],[300,100,9,120],[400,100,7,150],[10,100,150,40],[199,100,13,60],[299,100,9,80],[399,100,7,120]]){
+    check(360,speed(a,sa),speed(d,sd),gyro,'speed '+sa+'/'+sd);
+    check(486,speed(a,sa),speed(d,sd),electro,'speed '+sa+'/'+sd);
+  }
+  for(const max of [159,160,201])for(const hp of [1,Math.floor(max/2),max-1,max])for(const id of [284,323])check(id,{...a,hp,max},d,Math.max(1,Math.floor(150*hp/max)),'HP '+hp+'/'+max);
+  for(const stages of [[0,0,0,0,0],[2,-2,1,0,1],[6,6,6,6,6],[-6,-6,-6,-6,-6]])for(const id of [500,681])check(id,{...a,stg:Object.fromEntries(['atk','def','spa','spd','spe'].map((k,i)=>[k,stages[i]]))},d,20+20*stages.filter(n=>n>0).reduce((t,n)=>t+n,0),'stages '+stages.join(','));
+  const weighted=[...P,...MEGAP].filter(p=>(WT[p.no]||WT[p.base])>0);
+  const byWeight=weighted.slice().sort((x,y)=>(WT[x.no]||WT[x.base])-(WT[y.no]||WT[y.base]));
+  const sample=[byWeight[0],byWeight[Math.floor(byWeight.length/2)],byWeight.at(-1)].filter(Boolean);
+  for(const p of sample)for(const q of sample)for(const ab of ['pressure','heavy-metal','light-metal']){
+    const ratio=(WT[p.no]||WT[p.base])/(WT[q.no]||WT[q.base])*(ab==='heavy-metal'?2:ab==='light-metal'?0.5:1);
+    for(const id of [484,535])check(id,{...a,p,ab},{...d,p:q},ratio>=5?120:ratio>=4?100:ratio>=3?80:ratio>=2?60:40,'weight '+p.no+'/'+q.no+'/'+ab);
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error),available:[284,323,360,484,486,500,535,681].filter(id=>!!MV[id])};
+});
+console.log('variable power audit '+JSON.stringify(VP));
+ok(VP.total>0&&!VP.failed.length,'威力変動技：素早さ・HP・能力ランク・体重 '+JSON.stringify(VP));
 const HR=await pg.evaluate(()=>{
   const make=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=make(445,'rough-skin',null),d=make(65,'magic-guard',null);
