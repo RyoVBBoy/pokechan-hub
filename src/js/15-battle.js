@@ -625,6 +625,35 @@ function hitStep(a,mv,d,i,r,cr,o,st){
   }finally{d.hp=hp0;d.item=it0;d.disg=dg0;d.stg=stg0}
 }
 const hsInit=(d,pb)=>({hp:d.hp,item:d.item,disg:d.disg,stg:{...d.stg},pb});
+/* Two independent enemy attacks, conditional on both being attempted and
+   connecting. Enumerate rolls in both orders; no partner/action simulation.
+   Restrict reactive states to the ones represented by hitStep. */
+function reviewedDoubleFocus(a,m,b,n,d){
+  if(!a||!b||!d||!m||!n||a===b||a.p.no===b.p.no||d.formErr||a.formErr||b.formErr)return null;
+  if(!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
+  const allowed=new Set(['pressure','multiscale','sturdy','disguise','stamina','weak-armor','rough-skin','huge-power','levitate','magic-guard','inner-focus','technician','shell-armor','battle-armor','thick-fat']);
+  if(!allowed.has(d.ab)||!(d.item==null||['focussash','airballoon','leftovers','lifeorb','expertbelt','muscleband','wiseglasses','choicescarf','choiceband','choicespecs'].includes(d.item)||reviewedFixedMegaItem(d)))return null;
+  if([a,b].some(x=>x.ab==='parental-bond'||x.item||CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]))return null;
+  if([m,n].some(x=>x.maxH>1||x.prot||fixedDmg(a,x,d)!=null||MCHG.has(mkey(x))||MRECH.has(mkey(x))))return null;
+  const orders=[];
+  for(const seq of [[[a,m],[b,n]],[[b,n],[a,m]]]){
+    let min=d.hp,max=0,ko=0;
+    for(let r=85;r<=100;r++)for(let t=85;t<=100;t++){
+      let st=hsInit(d,false);
+      for(let i=0;i<2&&st.hp>0;i++){
+        const [x,mv]=seq[i];
+        if(!moveUsable(mv,{a:x,d:{...d,hp:st.hp,item:st.item,stg:st.stg}}).ok)return null;
+        // An immunity stops this attack only, never the other attack.
+        const y=hitStep(x,mv,d,0,i?t:r,false,{format:'double',spread:!!mv.tg,surv:true,protean:false},st);
+        st={...y.ns,stop:false};
+      }
+      const hp=Math.max(0,st.hp);min=Math.min(min,hp);max=Math.max(max,hp);if(!hp)ko++;
+    }
+    orders.push({first:seq[0][0].p.no,min,max,ko,rolls:256});
+  }
+  return {orders,min:Math.min(...orders.map(x=>x.min)),max:Math.max(...orders.map(x=>x.max))};
+}
+
 /* 1回の使用。当たる回数は n（o.hits・決まった回数・スキルリンク・mhCount） */
 function bhits(a,mv,d,o){
   o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
