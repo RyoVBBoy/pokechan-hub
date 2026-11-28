@@ -290,20 +290,54 @@ function monGuide(p,o={}){
     return{head,why,bad}}catch(e){return null}};
   /* Reusable allocation evidence: compare actual stats against the same nature and zero AP.
      Speed comparisons deliberately use explicit opponent assumptions, not usage claims. */
+  /* Search the exact legal AP range, including nature rounding plateaus.
+     Preserve the strict speed target; redistribute only to HP/defenses. */
+  const speedAllocation=(s,target)=>{
+    const current=calcStats(p,s.sp,s.up,s.dn);
+    if(!Number.isInteger(target)||current[5]<=target)return null;
+    let need=-1;
+    for(let n=0;n<=s.sp[5];n++){
+      const sp=[...s.sp];sp[5]=n;
+      if(calcStats(p,sp,s.up,s.dn)[5]>target){need=n;break}
+    }
+    if(need<0||need===s.sp[5])return null;
+    const freed=s.sp[5]-need,sp=[...s.sp];sp[5]=need;
+    // Compare each single-point addition using actual HP × defense products.
+    // Prefer the weakest of physical/special neutral bulk; do not claim matchup optimality.
+    const bulk=v=>Math.min(v[0]*v[2],v[0]*v[4]);
+    for(let j=0;j<freed;j++){
+      const choices=[0,2,4].filter(i=>sp[i]<32).map(i=>{
+        const x=[...sp];x[i]++;
+        const st=calcStats(p,x,s.up,s.dn);
+        return {i,score:bulk(st),sum:st[0]*(st[2]+st[4])};
+      }).sort((a,b)=>b.score-a.score||b.sum-a.sum||a.i-b.i);
+      if(!choices.length)return null;
+      sp[choices[0].i]++;
+    }
+    const stats=calcStats(p,sp,s.up,s.dn);
+    if(stats[5]<=target||sp.some(v=>v<0||v>32)||sp.reduce((a,b)=>a+b,0)!==s.sp.reduce((a,b)=>a+b,0))return null;
+    return {need,freed,sp,stats,current,target};
+  };
   const allocationEvidence=s=>{
     const st=calcStats(p,s.sp,s.up,s.dn),zero=calcStats(p,[0,0,0,0,0,0],s.up,s.dn);
     const rows=s.sp.map((v,i)=>({i,v,from:zero[i],to:st[i]})).filter(x=>x.v>0);
     const speeds=P.filter(q=>q.no!==p.no).map(q=>({q,v:calcStats(q,[0,0,0,0,0,32],5,1)[5]}));
     const crossed=speeds.filter(x=>x.v>=zero[5]&&x.v<st[5]).sort((a,b)=>b.v-a.v||a.q.no-b.q.no).slice(0,3);
     const ties=speeds.filter(x=>x.v===st[5]).sort((a,b)=>a.q.no-b.q.no).slice(0,3);
-    return {rows,crossed,ties,speed:st[5]};
+    const candidates=crossed.map(x=>({q:x.q,plan:speedAllocation(s,x.v)})).filter(x=>x.plan);
+    const adjustment=candidates[0]||null;
+    return {rows,crossed,ties,speed:st[5],adjustment};
   };
   const allocationHTML=s=>{
     const e=allocationEvidence(s);
+    const adj=e.adjustment;
+    const candidate=adj?'<p><b>素早さを調整する候補</b></p><p>'+esc(adj.q.n)+'（素早さ'+adj.plan.target+'）を同じ優先度で抜くために必要な最小ポイント：'+adj.plan.need+'。'+adj.plan.freed+'ポイントを耐久へ振り替える例。</p><p>'+adj.plan.sp.map((v,i)=>v?esc(SN[i])+v:'').filter(Boolean).join('・')+'</p><p>'+[0,2,4,5].map(i=>esc(SN[i])+' '+adj.plan.current[i]+' → '+adj.plan.stats[i]).join('／')+'</p><p class="vcap">この相手だけを目標とした候補です。ほかの相手への行動順が変わる場合があります。耐久配分はHP×防御・HP×特防の小さい方を優先した簡易比較で、実際の確定数を保証しません。</p>':'';
+
     return '<details class="gset-alt"><summary>能力配分の計算根拠</summary><ul class="gtips">'+e.rows.map(x=>'<li>'+esc(SN[x.i])+' '+x.v+'ポイント：'+x.from+' → '+x.to+'</li>').join('')+'</ul>'+
       '<p class="vcap">同じ能力補正でポイント0の場合と比較しています。</p>'+
       (e.crossed.length?'<p>素早さ配分によって先に動けるようになる相手の例：'+e.crossed.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
       (e.ties.length?'<p>同速になる相手の例：'+e.ties.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
+      candidate+
       '<p class="vcap">相手は収録通常データ、素早さ上昇補正・素早さ32。自分の素早さ'+e.speed+'。同じ優先度、特性・持ち物・ランク・場の補正なし。環境での使用率や勝率を示すものではありません。</p></details>';
   };
   /* Fixed, legal comparison targets; not claimed to be popular or optimal.
