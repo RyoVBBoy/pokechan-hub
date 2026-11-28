@@ -139,12 +139,27 @@ const COVER=await pg.evaluate(()=>{
     let g=null,error=null;
     try{g=monGuide(p,{parts:true})}catch(e){error=String(e)}
     const sets=Array.isArray(g?.sets)?g.sets:[];
-    const invalid=sets.filter(x=>!Array.isArray(x.moves)||x.moves.some(id=>!learn.includes(id)||!(MV[id]||MD[id]))||new Set(x.moves).size!==x.moves.length||x.moves.length>4||!Array.isArray(x.sp)||x.sp.length!==6||x.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||x.sp.reduce((a,b)=>a+b,0)>66).length;
-    return {no:p.no,name:p.n,form:p.base?'mega':'other',attacks:attacks.length,status:status.length,abilities:abilities.map(a=>a[0]),sets:sets.length,invalid,error,integratedPilot:[149,184,212,65].includes(p.no)};
+    const invalid=sets.flatMap((x,i)=>{
+      const why=[];
+      if(!Array.isArray(x.moves)||!x.moves.length||x.moves.some(id=>!learn.includes(id)||!(MV[id]||MD[id]))||new Set(x.moves).size!==x.moves.length||x.moves.length>4)why.push('moves');
+      if(!Array.isArray(x.sp)||x.sp.length!==6||x.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||x.sp.reduce((a,b)=>a+b,0)>66)why.push('AP');
+      if(!abilities.some(a=>a[0]===x.ab))why.push('ability');
+      if(!((x.up===-1&&x.dn===-1)||(Number.isInteger(x.up)&&Number.isInteger(x.dn)&&x.up>=1&&x.up<=5&&x.dn>=1&&x.dn<=5&&x.up!==x.dn)))why.push('nature');
+      if(x.item&&!Object.prototype.hasOwnProperty.call(ITEMN,x.item))why.push('item');
+      try{const f=resolveForm(p.no,x.item||null);if(!f.ok||(p.base?(!f.mega||f.form.no!==p.no):!!f.mega))why.push('form')}catch(e){why.push('form exception')}
+      return why.length?[{i,why}]:[];
+    });
+    const formats=[...new Set(sets.map(x=>x.fmt||'single'))];
+    return {no:p.no,name:p.n,form:p.base?'mega':'other',attacks:attacks.length,status:status.length,abilities:abilities.map(a=>a[0]),sets:sets.length,invalid:invalid.length,invalidDetails:invalid,formats,error,integratedPilot:[149,184,212,65].includes(p.no)};
   });
   return {total:rows.length,withLearn:rows.filter(x=>x.attacks>0).length,withSets:rows.filter(x=>x.sets>0).length,pilots:rows.filter(x=>x.integratedPilot).length,errors:rows.filter(x=>x.error||x.invalid||!x.sets),rows};
 });
 console.log('form coverage '+JSON.stringify(COVER));
+const selectable=await pg.evaluate(()=>[...new Set([...P,...MEGAP].map(p=>p.no))]);
+const gaps=COVER.rows.filter(x=>selectable.includes(x.no)&&(x.error||x.invalid||!x.formats.includes('single')||!x.formats.includes('double')));
+ok(!gaps.length,'全選択可能な姿の合法育成・両形式 '+JSON.stringify(gaps));
+const DT=await pg.evaluate(()=>monGuide(byNo[132],{parts:true}).sets.filter(x=>x.k==='transform').map(x=>({fmt:x.fmt,ab:x.ab,item:x.item,moves:x.moves,sp:x.sp})));
+ok(['single','double'].every(f=>DT.some(x=>x.fmt===f&&x.ab==='imposter'&&x.item==='choicescarf'&&x.moves.length===1&&x.moves[0]===144&&x.sp[0]===32)),'メタモンの合法な変身型 '+JSON.stringify(DT));
 ok(COVER.total>0&&COVER.rows.length===COVER.total&&COVER.pilots===4,'全姿の育成対応状況を個別に記録 '+COVER.total+'姿');
 /* Audit actual generated integrated candidates, rather than only checking HTML. */
 const IA=await pg.evaluate(()=>{
