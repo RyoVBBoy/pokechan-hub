@@ -782,9 +782,15 @@ function reviewedDrainAfterHit(a,mv,dealt,d){
    Keep the ability/item scope explicit; expand only after separate review. */
 const REVIEWED_SETUP={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1},97:{spe:2},334:{def:2},133:{spd:2},397:{spe:2},187:{atk:6}};
 const REVIEWED_SETUP_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof','simple','contrary']);
+// A stone is inert in these isolated actions once the exact Mega form is resolved.
+function reviewedFixedMegaItem(a){
+  if(!a||!a.p||!a.item||a.formErr||!MEGA[a.item])return false;
+  const r=resolveForm(a.p.no,a.item);
+  return !!(r.ok&&r.mega&&r.form.no===a.p.no&&r.stone===a.item);
+}
 function reviewedSetupState(me,id,op){
   const stages=REVIEWED_SETUP[id];
-  if(!stages||!op||!REVIEWED_SETUP_AB.has(me.ab)||![null,'lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses','leftovers'].includes(me.item))return null;
+  if(!stages||!op||!REVIEWED_SETUP_AB.has(me.ab)||(![null,'lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses','leftovers'].includes(me.item)&&!reviewedFixedMegaItem(me)))return null;
   if(!Number.isInteger(me.hp)||!Number.isInteger(me.max)||me.hp<1||me.hp>me.max||!me.stg||['atk','def','spa','spd','spe'].some(k=>!Number.isInteger(me.stg[k])||Math.abs(me.stg[k])>6))return null;
   const a={...me,stg:{...me.stg}};
   if(id===187){
@@ -826,9 +832,18 @@ function reviewedLeftoversEnd(a){
   if(a.item==='leftovers'&&a.hp>0&&!a.fainted&&!a.healblock&&!a.volatiles?.healblock)out.hp=Math.min(a.max,a.hp+Math.max(1,Math.floor(a.max/16)));
   return out;
 }
+// Self-targeted direct healing: Prankster adds one, Triage adds three.
+ // No Quick Claw, Trick Room, action denial or other order-changing field effects.
+function reviewedRecoveryOrder(a,id,d,m){
+  if(!REVIEWED_DIRECT_HEAL.has(id)||!a||!d||!m)return null;
+  const selfPriority=a.ab==='triage'?3:a.ab==='prankster'?1:0;
+  const attackPriority=effPri(d,m);
+  if(selfPriority!==attackPriority)return Math.sign(selfPriority-attackPriority);
+  return Math.sign(effSpd(a,d)-effSpd(d,a));
+}
 function reviewedRecoveryExchange(a,id,order,incoming){
   if(![-1,0,1].includes(order)||typeof incoming!=='function'||!a||!Number.isInteger(a.hp)||a.hp<1||a.hp>=a.max)return null;
-  if(![null,'leftovers','lifeorb','expertbelt','muscleband','wiseglasses'].includes(a.item))return null;
+  if(![null,'leftovers','lifeorb','expertbelt','muscleband','wiseglasses'].includes(a.item)&&!reviewedFixedMegaItem(a))return null;
   const hit=x=>{const n=incoming(x);return Number.isSafeInteger(n)&&n>=0?{...x,stg:{...x.stg},hp:Math.max(0,x.hp-n)}:null};
   const run=first=>{
     let x={...a,stg:{...a.stg}};
