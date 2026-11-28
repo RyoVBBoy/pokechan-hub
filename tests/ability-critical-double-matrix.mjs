@@ -14,7 +14,7 @@ const deps={hitType:(_a,m)=>m.t,ABSORB:{},mult:()=>1,mkey:m=>m.id,
  B:__B,varPow:(_a,m)=>m.pow,chM:(c,m)=>(c*m+2048)>>12,
  apM:(v,m)=>pR(v*m/4096),SKIN:{},ITEMT:{},mfl:()=>false,PINCH:{},
  pR,RES_BERRY:{},rnd:()=>0,sfOn:()=>false,MB_REP:new Set(['meteorbeam','electroshot']),wxEffK:(a,d)=>(__B.weather&&__B.weather.k&&!['cloud-nine','air-lock'].includes(a&&a.ab)&&!['cloud-nine','air-lock'].includes(d&&d.ab))?__B.weather.k:null,effPri:(a,mv)=>(mv&&mv.pri)||0};
-const start=bs.indexOf('function bcalc('),end=bs.indexOf('/* ---- 連続技を1発ずつ',start);
+const start=bs.indexOf('const REVIEWED_ALWAYS_CRIT='),end=bs.indexOf('/* ---- 連続技を1発ずつ',start);
 assert.ok(start>=0&&end>start);
 const bcalc=new Function(...Object.keys(deps),bs.slice(start,end)+';return bcalc;')(...Object.values(deps));
 const mon=(ab='',atkStage=0,defStage=0,status='')=>({
