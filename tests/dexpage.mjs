@@ -172,7 +172,7 @@ const IC=await pg.evaluate(()=>{
       const s=g.sets.find(x=>x.fmt==='single'&&!x.live&&!x.usage);
       if(!s)return {no:p.no,name:p.n,status:'no local single build'};
       const t=performance.now(),h=g.auditBenchmark(s),ms=Math.round(performance.now()-t),r=reports[0];
-      if(!r)return {no:p.no,name:p.n,status:h.includes('比較は計算できませんでした')?'exception':skips[0]||'no benchmark',ms,moves:s.moves,ab:s.ab,item:s.item,baselineFailure:baselineFailures[0]||null};
+      if(!r)return {no:p.no,name:p.n,status:h.includes('比較は計算できませんでした')?'exception':skips.length&&(!h.includes('改善候補がないという判定ではありません')||h.includes('今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした'))?'invalid report':skips[0]||'no benchmark',ms,moves:s.moves,ab:s.ab,item:s.item,baselineFailure:baselineFailures[0]||null};
       const stone=p.base?Object.keys(MEGA).find(k=>MEGA[k][p.base]===p.no):null;
       const megaBad=!!p.base&&(!stone||r.eligibleItems.length!==1||r.eligibleItems[0]!==stone||r.attemptedItems.length!==1||r.attemptedItems[0]!==stone||[r.baseline,...r.best].some(v=>{
         const x=v.x,f=resolveForm(p.no,x.item);
@@ -216,6 +216,9 @@ const reasonCounts=IC.filter(x=>x.status!=='evaluated').reduce((a,x)=>{
   a[reason]=(a[reason]||0)+1;return a;
 },{});
 console.log('integrated coverage exclusions '+JSON.stringify({total:IC.length,evaluated:ICS.counts.evaluated||0,excluded:IC.length-(ICS.counts.evaluated||0),reasonCounts}));
+const excludedMoves=IC.filter(x=>x.status!=='evaluated').flatMap(x=>(x.baselineFailure?.moves||[]).map(id=>({id,no:x.no,reason:x.status})));
+console.log('integrated excluded move frequency '+JSON.stringify(excludedMoves.reduce((a,x)=>{const k=x.reason+':'+x.id;a[k]=(a[k]||0)+1;return a},{})));
+ok(IC.filter(x=>['unsupported move','unsupported status move','multiple setup moves'].includes(x.status)).every(x=>Array.isArray(x.baselineFailure?.moves)&&x.baselineFailure.moves.length>0),'未対応の技を具体的に記録');
 ok(IC.length===selectable.length&&IC.every(x=>x.status!=='exception'&&x.status!=='invalid report'),'統合エンジン全姿の適用範囲・例外検査 '+JSON.stringify(ICS.counts));
 /* Audit actual generated integrated candidates, rather than only checking HTML. */
 const IA=await pg.evaluate(()=>{
