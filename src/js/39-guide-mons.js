@@ -361,6 +361,37 @@ function monGuide(p,o={}){
       const lo=Math.min(...vals),hi=Math.max(...vals),ko=koInfo(r,d.hp);
       return {m,lo,hi,hp:d.max,ko,acc:accOf(a,m,d)};
     };
+    // Exact one-axis search, with the other allocations held fixed.
+    // Only show targets that the existing build achieves and can preserve with fewer AP.
+    const minAP=(idx,goal)=>{
+      for(let n=0;n<=s.sp[idx];n++){
+        const sp=[...s.sp];sp[idx]=n;
+        const candidate=build(p,{...s,sp},'me');
+        if(goal(candidate))return n;
+      }
+      return null;
+    };
+    const thresholds=(me,op,out,inc)=>{
+      const rows=[];
+      // Restrict to simple physical/special single-hit moves and ordinary damage states.
+      // Do not infer multi-turn survival from first-hit damage.
+      const safe=(a,d,m)=>!d.disg&&d.item!=='focussash'&&d.ab!=='sturdy'&&d.item!=='focusband'&&m.maxH<=1&&a.ab!=='parental-bond';
+      for(const x of out){
+        if(!safe(me,op,x.m)||x.ko.sure!==1||x.ko.n!==1||x.acc!==100)continue;
+        const idx=x.m.cls===0?1:3;
+        const n=minAP(idx,c=>{const y=result(c,op,x.m);return !!y&&y.ko.sure===1&&y.ko.n===1&&y.acc===100});
+        if(n!==null&&n<s.sp[idx])rows.push(esc(mName(x.m.id))+'：確定1発を維持する'+esc(SN[idx])+'の最小ポイント '+n+'（'+(s.sp[idx]-n)+'ポイント節約可能）');
+      }
+      for(const x of inc){
+        if(!safe(op,me,x.m)||x.hi>=me.hp||x.hi<=0)continue;
+        for(const idx of [0,x.m.cls===0?2:4]){
+          if(!s.sp[idx])continue;
+          const n=minAP(idx,c=>{const y=result(op,c,x.m);return !!y&&y.hi<c.hp});
+          if(n!==null&&n<s.sp[idx])rows.push(esc(mName(x.m.id))+'：最大ダメージを1回耐える'+esc(SN[idx])+'の最小ポイント '+n+'（'+(s.sp[idx]-n)+'ポイント節約可能）');
+        }
+      }
+      return rows.length?'<details class="gset-alt"><summary>ダメージを基準にした配分候補</summary><ul class="gtips">'+rows.map(t=>'<li>'+t+'</li>').join('')+'</ul><p class="vcap">他の能力配分を固定し、1項目ずつ検査しています。候補同士を同時に適用できるとは限りません。満タン・非急所・指定した技と相手だけの比較です。節約分は未配分です。</p></details>':'';
+    };
     const line=x=>esc(mName(x.m.id))+'：'+x.lo+'〜'+x.hi+' / '+x.hp+' HP（'+(100*x.lo/x.hp).toFixed(1)+'〜'+(100*x.hi/x.hp).toFixed(1)+'%）・'+esc(koLabel(x.ko))+'（命中時）'+(x.acc<100?'・命中 '+x.acc+'%':'');
     const sw=B.weather;B.weather=null;
     try{
@@ -372,7 +403,7 @@ function monGuide(p,o={}){
         const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
         const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
         if(!out.length&&!inc.length)return '';
-        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+'</details>';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+'</details>';
       }).join('');
       return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
