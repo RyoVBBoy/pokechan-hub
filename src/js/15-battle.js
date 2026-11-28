@@ -798,7 +798,7 @@ function hitRemainingDist(a,mv,d,o={}){
 /* Conditional self-stage changes for the reviewed immediate attacks.
    No turn simulation: connected must be established by the caller. White Herb,
    other items and effects are deliberately not modeled here. */
-const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
+const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1},359:{spe:-1},838:{def:-1,spd:-1},665:{spe:-1}};
 // Isolated self-inflicted stage changes: these abilities do not alter
 // the reviewed move deltas (except the explicit multipliers and Sheer Force). External stage drops and end-turn effects
 // are not part of this predicate.
