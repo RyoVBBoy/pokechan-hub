@@ -228,6 +228,46 @@ const SV=await pg.evaluate(()=>{
   return {full:full.surv?.k,chip:!!chip.surv,sturdy:sturdy.surv?.k,bypass:!!bypass.surv,disguise:disguise.loss,expectedLoss:Math.floor(d.max/8),raw:Math.max(...full)};
 });
 ok(SV.full==='focussash'&&!SV.chip&&SV.sturdy==='sturdy'&&!SV.bypass&&SV.disguise===SV.expectedLoss,'単発技の生存条件・HP減少の計算メタデータ '+JSON.stringify(SV));
+/* Compare the compressed state distribution against explicit enumeration of
+   every independent damage roll (up to three hits). Synthetic ability states
+   isolate mechanics; this is not a claim of legal builds or device validation. */
+const HR=await pg.evaluate(()=>{
+  const make=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=make(445,'rough-skin',null),d=make(65,'magic-guard',null);
+  const opt={format:'single',spread:false,crit:false,protean:true,surv:true};
+  const cases=[
+    ['single',a,mvObj(89),d,1],
+    ['sash',a,mvObj(89),{...d,item:'focussash'},1],
+    ['sturdy',a,mvObj(89),{...d,ab:'sturdy'},1],
+    ['bypass',{...a,ab:'mold-breaker'},mvObj(89),{...d,ab:'sturdy'},1],
+    ['disguise',a,mvObj(89),{...d,ab:'disguise',disg:true},1],
+    ['two hits',a,mvObj(331),{...d,item:'focussash'},2],
+    ['three hits',a,mvObj(331),{...d,ab:'stamina'},3],
+    ['triple axel',a,mvObj(813),{...d,ab:'disguise',disg:true},3],
+    ['parental bond',{...a,ab:'parental-bond'},mvObj(89),{...d,item:'focussash'},1]
+  ];
+  const rows=[];
+  for(const [name,aa,m,dd,n] of cases){
+    if(!m||!MV[m.id]){rows.push({name,error:'missing move'});continue}
+    const o={...opt,hits:n,nHits:n},hitN=bhits(aa,m,dd,{...o,r:100}).n;
+    const counts=new Map();let trials=0;
+    function walk(rolls){
+      if(rolls.length===hitN){
+        const b=bhits(aa,m,dd,{...o,rolls}),hp=Math.max(0,Math.min(dd.max,b.state.hp));
+        counts.set(hp,(counts.get(hp)||0)+1);trials++;return;
+      }
+      for(let k=85;k<=100;k++)walk([...rolls,k]);
+    }
+    walk([]);
+    const t=performance.now(),actual=hitRemainingDist(aa,m,dd,o),ms=performance.now()-t;
+    const ref=new Map([...counts].map(([hp,c])=>[hp,c/trials]));
+    const error=actual.length!==ref.size||actual.some(([hp,p])=>!ref.has(hp)||Math.abs(ref.get(hp)-p)>1e-10)||Math.abs(actual.reduce((s,x)=>s+x[1],0)-1)>1e-10;
+    rows.push({name,trials,states:actual.length,error,ms:Math.round(ms*100)/100});
+  }
+  return rows;
+});
+console.log('remaining HP audit '+JSON.stringify(HR));
+ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
 ok(IA.every(x=>!x.missing&&x.render&&x.errors.length===0&&x.valid>0&&x.attempts<=360),'統合探索：合法性・計算一致・探索上限 '+JSON.stringify(IA));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
