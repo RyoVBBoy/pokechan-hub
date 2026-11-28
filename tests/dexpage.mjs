@@ -463,6 +463,23 @@ const RE=await pg.evaluate(()=>{
 });
 console.log('recovery exchange audit '+JSON.stringify(RE));
 ok(!RE.failed.length&&RE.guard,'回復行動：先後・同速・ひんし・HP依存被弾 '+JSON.stringify(RE));
+const LE=await pg.evaluate(()=>{
+  const rows=[];
+  for(const max of [1,2,15,16,17,159,160,167,168,201])for(const hp of [...new Set([0,1,Math.floor(max/2),max-1,max])])for(const item of [null,'leftovers','lifeorb'])for(const healblock of [false,true]){
+    const a={hp,max,item,healblock,stg:{atk:1}},before=JSON.stringify(a),out=reviewedLeftoversEnd(a);
+    const expected=item==='leftovers'&&hp>0&&!healblock?Math.min(max,hp+Math.max(1,Math.floor(max/16))):hp;
+    rows.push({max,hp,item,healblock,error:!out||out.hp!==expected||JSON.stringify(a)!==before||out.stg===a.stg});
+  }
+  for(const max of [159,160,167,168])for(const hp of [1,Math.floor(max/2),max-1])for(const damage of [0,1,50,100,200])for(const order of [-1,0,1]){
+    const a={hp,max,item:'leftovers',stg:{}},x=reviewedRecoveryExchange(a,105,order,()=>damage);
+    const first=Math.max(0,Math.min(max,hp+Math.round(max/2))-damage),after=Math.max(0,hp-damage),second=after?Math.min(max,after+Math.round(max/2)):0;
+    const expected=(order===0?[first,second]:[order===1?first:second]).map(h=>h?Math.min(max,h+Math.max(1,Math.floor(max/16))):0);
+    rows.push({max,hp,damage,order,error:!x||x.minEndHP!==Math.min(...expected)||x.maxEndHP!==Math.max(...expected)});
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error)};
+});
+console.log('leftovers recovery audit '+JSON.stringify(LE));
+ok(!LE.failed.length,'たべのこし：端数・満タン・ひんし・回復封じ・回復行動の先後 '+JSON.stringify(LE));
 const SA=await pg.evaluate(()=>{
   const rows=[];
   const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
