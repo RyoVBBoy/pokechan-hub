@@ -347,6 +347,30 @@ const VP=await pg.evaluate(()=>{
 });
 console.log('variable power audit '+JSON.stringify(VP));
 ok(VP.total>0&&!VP.failed.length,'威力変動技：素早さ・HP・能力ランク・体重 '+JSON.stringify(VP));
+const CR=await pg.evaluate(()=>{
+  const mk=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445),d={...mk(65),p:{...byNo[65],t:['ノーマル']}},rows=[];
+  const opt={format:'single',spread:false,crit:false,protean:false,r:100};
+  for(const id of [480,524,870]){
+    if(!MV[id])continue;
+    const m=mvObj(id);
+    for(const aa of ['pressure','mold-breaker','sniper'])for(const da of ['pressure','shell-armor','battle-armor']){
+      const attacker={...a,ab:aa},target={...d,ab:da},expected=aa==='mold-breaker'||da==='pressure';
+      const hit=bcalc(attacker,m,target,opt),replay=bhits(attacker,m,target,opt);
+      const lowered={...attacker,stg:{...attacker.stg,atk:-2,spa:-2}};
+      const raised={...target,stg:{...target.stg,def:2,spd:2}};
+      const altered=bcalc(lowered,m,raised,opt),screen=bcalc(attacker,m,target,{...opt,screen:true});
+      rows.push({id,aa,da,expected,error:hit.crit!==expected||replay.hits[0]?.crit!==expected||(expected?(altered.dmg!==hit.dmg||screen.dmg!==hit.dmg):(altered.dmg>=hit.dmg||screen.dmg>=hit.dmg))});
+    }
+    const normal=bcalc(a,m,d,opt),sniper=bcalc({...a,ab:'sniper'},m,d,opt);
+    rows.push({id,sniper:true,error:sniper.dmg<normal.dmg||Math.abs(sniper.dmg-normal.dmg*1.5)>1});
+  }
+  const m=mvObj(89),ordinary=bcalc(a,m,d,opt),requested=bcalc(a,m,d,{...opt,crit:true}),blocked=bcalc(a,m,{...d,ab:'shell-armor'},{...opt,crit:true});
+  rows.push({ordinary:true,error:ordinary.crit!==false||requested.crit!==true||blocked.crit!==false||requested.dmg<=ordinary.dmg||blocked.dmg!==ordinary.dmg});
+  return {rows,failed:rows.filter(x=>x.error),available:[480,524,870].filter(id=>!!MV[id])};
+});
+console.log('critical hit audit '+JSON.stringify(CR));
+ok(CR.rows.length>1&&!CR.failed.length,'確定急所・急所防止・能力ランク・壁・スナイパー '+JSON.stringify(CR.failed));
 const HR=await pg.evaluate(()=>{
   const make=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=make(445,'rough-skin',null),d=make(65,'magic-guard',null);
