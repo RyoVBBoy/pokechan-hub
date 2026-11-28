@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(path.join(root,p),'utf8');
 const src=read('src/js/15-battle.js'),data=read('src/js/02-data.js');
-const start=src.indexOf('function bcalc('),end=src.indexOf('/* ---- 連続技を1発ずつ',start);
+const start=src.indexOf('const REVIEWED_ALWAYS_CRIT='),end=src.indexOf('/* ---- 連続技を1発ずつ',start);
 assert.ok(start>=0&&end>start);
 const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
 const __B={weather:null};/* 2026-11-24: shared weather state for the new wxEffK/effPri helpers */
