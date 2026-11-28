@@ -378,6 +378,22 @@ const CR=await pg.evaluate(()=>{
 });
 console.log('critical hit audit '+JSON.stringify(CR));
 ok(CR.rows.length>1&&!CR.failed.length,'確定急所・急所防止・能力ランク・壁・スナイパー '+JSON.stringify(CR.failed));
+const DGARD=await pg.evaluate(()=>{
+  const mk=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445),d={...mk(184),p:{...byNo[184],t:['ノーマル']}},rows=[];
+  for(const id of REVIEWED_GUARD_ATTACKS)if(MV[id]){
+    const m=mvObj(id);
+    for(const multipleTargets of [false,true]){
+      const before=JSON.stringify([a,d]),normal=reviewedDoubleGuard(a,m,d,{guard:'none',multipleTargets}),protect=reviewedDoubleGuard(a,m,d,{guard:'protect',multipleTargets}),wide=reviewedDoubleGuard(a,m,d,{guard:'wideGuard',multipleTargets});
+      const rolls=dmgRolls(a,m,d,{format:'double',spread:multipleTargets,crit:false,protean:false,noNext:true});
+      rows.push({id,multipleTargets,error:!normal||!protect||!wide||normal.blocked||normal.min!==Math.min(...rolls)||normal.max!==Math.max(...rolls)||!protect.blocked||protect.min!==0||protect.max!==0||wide.blocked!==!!m.tg||wide.min!==(m.tg?0:normal.min)||wide.max!==(m.tg?0:normal.max)||before!==JSON.stringify([a,d])});
+    }
+  }
+  const guard=reviewedDoubleGuard({...a,ab:'unseen-fist'},mvObj(89),d,{guard:'protect',multipleTargets:true})===null;
+  return {total:rows.length,failed:rows.filter(x=>x.error),guard};
+});
+console.log('double guard audit '+JSON.stringify(DGARD));
+ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
 const DO=await pg.evaluate(()=>{
   const mk=(no,speed)=>{const a=mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});return {...a,st:a.st.map((v,i)=>i===5?speed:v),ab:'pressure',status:null,item:null}};
   const rows=[];
