@@ -243,7 +243,7 @@ const IA=await pg.evaluate(()=>{
           const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&a.hp===z.surv.max?Math.min(n,a.hp-1):n+(z.loss||0)))});
           if(row.hit.lo!==Math.min(...raw)||row.hit.hi!==Math.max(...raw)||row.hit.acc!==accOf(a,mv,op)||row.margin!==a.hp-Math.max(...incoming)||row.remaining!==a.hp||row.speed!==effSpd(a,op)||row.order!==Math.sign(effSpd(a,op)-effSpd(op,a)))errors.push('calculator mismatch');
           const ref=r.baseline.rows[j];
-          const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}}[mv.id];
+          const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}}[mv.id];
           const post={...a,stg:{...a.stg}};
           if(deltas&&Math.max(...raw)>0&&row.hit.acc>0)for(const [k,n] of Object.entries(deltas))post.stg[k]=Math.max(-6,Math.min(6,post.stg[k]+n));
           const recoil={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]}[mv.id];
@@ -257,7 +257,7 @@ const IA=await pg.evaluate(()=>{
           const rp=post.hp>0?dmgRolls(post,mv,op,opt):[0],rv=post.hp===0?[0]:mv.maxH>1?hitRemainingDist(post,mv,op,opt).map(([hp])=>op.hp-hp):(rp.dist?rp.dist.map(x=>x[0]):rp);
           const postIncoming=post.hp===0?[0]:op.moves.map(m=>{const z=dmgRolls(op,m,post,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&post.hp===z.surv.max?Math.min(n,post.hp-1):n+(z.loss||0)))});
           const loss=mv.maxH>1?rv:rv.map(n=>rp.surv&&op.hp===rp.surv.max?Math.min(n,op.hp-1):n+(rp.loss||0));
-          if(row.repeat.lo!==Math.min(...rv)||row.repeat.hi!==Math.max(...rv)||Math.abs(row.repeatQuality-Math.min(1,Math.min(...loss)/op.hp)*accOf(post,mv,op)/100)>1e-9||row.postMargin!==post.hp-Math.max(...postIncoming)||row.postHP!==post.hp||Object.keys(post.stg).some(k=>row.postStages[k]!==post.stg[k]))errors.push('post-move calculator mismatch');
+          if(row.repeat.lo!==Math.min(...rv)||row.repeat.hi!==Math.max(...rv)||Math.abs(row.repeatQuality-Math.min(1,Math.min(...loss)/op.hp)*accOf(post,mv,op)/100)>1e-9||row.postMargin!==post.hp-Math.max(...postIncoming)||row.postHP!==post.hp||row.postOrder!==(post.hp>0?Math.sign(effSpd(post,op)-effSpd(op,post)):-1)||row.postSpeed!==(post.hp>0?effSpd(post,op):0)||Object.keys(post.stg).some(k=>row.postStages[k]!==post.stg[k]))errors.push('post-move calculator mismatch');
           if(row.quality+1e-9<ref.quality||row.repeatQuality+1e-9<ref.repeatQuality||row.margin<ref.margin||row.postMargin<ref.postMargin||row.postHP<ref.postHP||row.order<ref.order)errors.push('regression');
         }
       }
@@ -408,10 +408,11 @@ const HM=await pg.evaluate(()=>{
 console.log('variable hit audit '+JSON.stringify(HM));
 ok(HM.every(x=>!x.error),'連続技の攻撃回数分布・スキルリンク・追加命中判定 '+JSON.stringify(HM));
 const PS=await pg.evaluate(()=>{
-  const expected={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+  const expected={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
   const rows=[];
   for(const [key,delta] of Object.entries(expected)){
     const id=Number(key),m=mvObj(id);
+    if(!MV[id])continue;
     for(const [ab,factor] of [['rough-skin',1],['contrary',-1],['simple',2]])for(const initial of [-6,0,6])for(const connected of [true,false]){
       const a={ab,item:null,stg:{atk:initial,def:initial,spa:initial,spd:initial,spe:initial}},before=JSON.stringify(a),out=reviewedSelfStageAfterHit(a,m,connected);
       const target=Object.fromEntries(Object.keys(a.stg).map(k=>[k,Math.max(-6,Math.min(6,initial+(connected?(delta[k]||0)*factor:0)))]));
@@ -583,15 +584,20 @@ console.log('mega recovery and order audit '+JSON.stringify(MO));
 ok(MO.mega>0&&!MO.failed.length,'メガ固定石・回復技の優先度・同速 '+JSON.stringify(MO));
 const SA=await pg.evaluate(()=>{
   const rows=[];
-  const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+  const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
   for(const [key,delta] of Object.entries(deltas))for(const ab of ['levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof'])for(const stage of [-6,-5,0,5,6])for(const connected of [false,true]){
-    const id=Number(key),a={ab,item:null,stg:Object.fromEntries(['atk','def','spa','spd','spe'].map(k=>[k,stage]))},before=JSON.stringify(a);
+    const id=Number(key);if(!MV[id])continue;const a={ab,item:null,stg:Object.fromEntries(['atk','def','spa','spd','spe'].map(k=>[k,stage]))},before=JSON.stringify(a);
     const x=reviewedSelfStageAfterHit(a,mvObj(id),connected),expected={...a.stg};
     if(connected)for(const [k,v] of Object.entries(delta))expected[k]=Math.max(-6,Math.min(6,stage+v));
     rows.push({id,ab,stage,connected,error:!REVIEWED_POST_STAGE_AB.has(ab)||!x||JSON.stringify(x.stg)!==JSON.stringify(expected)||JSON.stringify(a)!==before});
   }
   return {total:rows.length,failed:rows.filter(x=>x.error)};
 });
+const SB=await pg.evaluate(()=>[488,885,872,871].filter(id=>!!MV[id]).map(id=>{
+  const m=mvObj(id),a={ab:'sheer-force',item:null,stg:{atk:0,def:0,spa:0,spd:0,spe:0}},x=reviewedSelfStageAfterHit(a,m,true);
+  return {id,error:!sfSup(a,m)||!x||Object.values(x.stg).some(v=>v!==0)};
+}));
+ok(SB.every(x=>!x.error),'自己能力上昇：ちからずくによる追加効果の抑止 '+JSON.stringify(SB));
 console.log('expanded post-stage audit '+JSON.stringify(SA));
 ok(!SA.failed.length,'能力低下技：追加特性7種との組み合わせ '+JSON.stringify(SA));
 console.log('remaining HP audit '+JSON.stringify(HR));
