@@ -206,7 +206,8 @@ const DC=await pg.evaluate(()=>[...new Map([...P,...MEGAP].map(p=>[p.no,p])).val
     const h=g.auditBenchmark(s);
     const focus=reports[0]?.focus||[],focusInvalid=focus.some(f=>f.orders.length!==2||f.orders.some(x=>x.rolls!==256||x.ko<0||x.ko>256||x.min<0||x.max<x.min)||f.min!==Math.min(...f.orders.map(x=>x.min))||f.max!==Math.max(...f.orders.map(x=>x.max)));
     const friendly=reports[0]?.friendly||[],friendlyInvalid=friendly.some(f=>!f.targeted||f.min<0||f.max<f.min||f.max>f.hp||mvObj(f.id).tg!==2);
-    const rows=reports[0]?.rows||[],invalid=focusInvalid||friendlyInvalid||rows.some(r=>r.one.length!==2||r.many.length!==2||r.one.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(r.many[i])||(r.tg?r.many[i]>v:r.many[i]!==v)));
+    const support=reports[0]?.support||[],supportInvalid=support.some(f=>!['helpingHand','friendGuard'].includes(f.kind)||!f.source||f.normal.length!==2||f.modified.length!==2||f.normal.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(f.modified[i])||(f.kind==='helpingHand'?f.modified[i]<v:f.modified[i]>v)));
+    const rows=reports[0]?.rows||[],invalid=focusInvalid||friendlyInvalid||supportInvalid||rows.some(r=>r.one.length!==2||r.many.length!==2||r.one.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(r.many[i])||(r.tg?r.many[i]>v:r.many[i]!==v)));
     return {no:p.no,name:p.n,status:!h.includes('ダブル：攻撃対象別の計算例')||!h.includes('ダブルの統合最適化は未対応')||invalid?'invalid double benchmark':rows.length?'double damage benchmark':'no supported double attacks',rows:rows.length,focus:focus.length,spread:rows.filter(r=>r.tg&&r.many.some((v,i)=>v<r.one[i])).length,moves:s.moves,ab:s.ab,item:s.item};
   }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
 }));
@@ -377,6 +378,22 @@ const CR=await pg.evaluate(()=>{
 });
 console.log('critical hit audit '+JSON.stringify(CR));
 ok(CR.rows.length>1&&!CR.failed.length,'確定急所・急所防止・能力ランク・壁・スナイパー '+JSON.stringify(CR.failed));
+const DS=await pg.evaluate(()=>{
+  const mk=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445),d={...mk(184),p:{...byNo[184],t:['ノーマル']}},rows=[];
+  for(const id of [89,58,85])if(MV[id]){
+    const m=mvObj(id);
+    for(const r of [85,92,100])for(const spread of [false,true]){
+      const opt={format:'double',spread,crit:false,protean:false,r};
+      const base=bcalc(a,m,d,opt).dmg,help=bcalc(a,m,d,{...opt,helpingHand:true}).dmg,guard=bcalc(a,m,d,{...opt,friendGuard:true}).dmg;
+      const single=bcalc(a,m,d,{...opt,format:'single'}).dmg,ignored=bcalc(a,m,d,{...opt,format:'single',helpingHand:true,friendGuard:true}).dmg;
+      rows.push({id,r,spread,error:base<=0||help<=base||Math.abs(guard-base*.75)>1||single!==ignored});
+    }
+  }
+  return rows;
+});
+console.log('double support audit '+JSON.stringify(DS));
+ok(DS.length>0&&DS.every(x=>!x.error),'てだすけ・フレンドガード・シングル非適用 '+JSON.stringify(DS));
 const FF=await pg.evaluate(()=>{
   const mk=(no,ab)=>mkMon(byNo[no],'me',{ab,item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=mk(445,'rough-skin'),base=mk(184,'huge-power'),rows=[];
