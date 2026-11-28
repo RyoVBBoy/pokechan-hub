@@ -676,6 +676,35 @@ function hitDist(a,mv,d,o){
   const out=new Map();for(const v of S.values())out.set(v.t,(out.get(v.t)||0)+v.p);
   return [...out.entries()].sort((x,y)=>x[0]-y[0]);
 }
+/* Actual remaining HP distribution after one successful move, reusing hitStep.
+   Unlike hitDist's theoretical damage, stop at fainting and count Disguise HP cost.
+   Conditional on first hit; hitCountDist includes later accuracy checks.
+   Recovery berries, recoil and end-of-turn effects are outside this helper. */
+function hitRemainingDist(a,mv,d,o={}){
+  const opt={...o,surv:true},out=new Map(),k=mkey(mv);
+  for(const [n,w] of hitCountDist(a,mv,d,opt)){
+    const pb=a.ab==='parental-bond'&&n===1&&!(opt.spread&&mv.tg)&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
+    let states=new Map();
+    const put=(map,st,p)=>{const key=JSON.stringify(st),v=map.get(key);if(v)v.p+=p;else map.set(key,{st,p})};
+    put(states,hsInit(d,pb),1);
+    for(let i=0;i<(pb?2:n);i++){
+      const next=new Map();
+      for(const {st,p} of states.values()){
+        if(st.dead||st.stop){put(next,st,p);continue}
+        for(let r=85;r<=100;r++){
+          const {ns}=hitStep(a,mv,d,i,r,!!opt.crit,opt,st);
+          put(next,ns,p/16);
+        }
+      }
+      states=next;
+    }
+    for(const {st,p} of states.values()){
+      const hp=Math.max(0,Math.min(d.max,st.hp));
+      out.set(hp,(out.get(hp)||0)+p*w);
+    }
+  }
+  return [...out.entries()].sort((a,b)=>a[0]-b[0]);
+}
 /* 1回使ったあとの状態（2026/11/24）：次の使用のダメージを出すため、こちら・相手の写しを作る（もとのものは変えない）。
    こちら：必ず起きる自分の能力の変化（りゅうせいぐん 特攻−2・インファイトは攻撃に関係しない…技の効果の表 MVE.s の確率100%）・メテオビーム/エレクトロビームの特攻+1・使ったノーマルジュエル。
    相手：bhits の終わりの状態（持ち物・ばけのかわ・ランク）とHP（満タンでない＝マルチスケイル等は働かない） */
