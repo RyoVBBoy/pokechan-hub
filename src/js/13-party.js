@@ -178,7 +178,7 @@ function partyMegaDisplay(x,p){
   const f=resolveForm(p.no,k);
   if(!f.ok||!f.mega)return {form:p,label:''};
   const name=ITEMN[k]||x.set.it.n||k;
-  return {form:f.form,label:`<div class="row-s" style="font-weight:700;text-align:center;position:relative;overflow-wrap:anywhere"><span class="ftag ftag-mega">MEGA</span> ${esc(name)} <span>${L('（メガシンカ後）','(Mega form)')}</span></div>`};
+  return {form:f.form,label:`<div class="row-s" style="font-weight:700;text-align:center;position:relative;overflow-wrap:anywhere"><span class="ftag ftag-mega">MEGA</span> ${esc(name)}</div>`};
 }
 function teamRender(){
   ['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('t-busy')});
