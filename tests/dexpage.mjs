@@ -170,6 +170,7 @@ const IA=await pg.evaluate(()=>{
     if(!r)return {no,missing:true,totalMs,render:h.includes('技・持ち物・能力ポイントの一体比較')};
     const errors=[];
     if(!r.opponents.length||!r.attempts||r.attempts>360||r.valid>r.attempts)errors.push('search bounds');
+    if(!Array.isArray(r.eligibleItems)||!r.eligibleItems.length||!Array.isArray(r.attemptedItems)||r.eligibleItems.some(item=>!r.attemptedItems.includes(item)))errors.push('held item search coverage');
     const weather=B.weather;B.weather=null;
     try{
       for(const v of [r.baseline,...r.best]){
@@ -190,7 +191,7 @@ const IA=await pg.evaluate(()=>{
         }
       }
     }finally{B.weather=weather}
-    return {no,errors,attempts:r.attempts,valid:r.valid,candidates:r.best.length,elapsedMs:Math.round(r.elapsedMs),totalMs:Math.round(totalMs),render:h.includes('技・持ち物・能力ポイントの一体比較')};
+    return {no,errors,attempts:r.attempts,valid:r.valid,candidates:r.best.length,eligibleItems:r.eligibleItems,attemptedItems:r.attemptedItems,elapsedMs:Math.round(r.elapsedMs),totalMs:Math.round(totalMs),render:h.includes('技・持ち物・能力ポイントの一体比較')};
   });
 });
 console.log('integrated audit '+JSON.stringify(IA));
