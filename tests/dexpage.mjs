@@ -129,6 +129,38 @@ const PA=await pg.evaluate(()=>{
   });
 });
 ok(PA.every(x=>x.legal&&x.moves&&x.allocation&&x.damage&&x.finite),'先行育成例：合法性・能力配分・火力耐久の根拠 '+JSON.stringify(PA));
+/* Audit actual generated integrated candidates, rather than only checking HTML. */
+const IA=await pg.evaluate(()=>{
+  return [149,184].map(no=>{
+    const p=byNo[no],reports=[],g=monGuide(p,{parts:true,auditIntegrated:x=>reports.push(x)}),i=g.sets.findIndex(s=>Array.isArray(s.refs));
+    if(i<0)return {no,missing:true};
+    const s=g.sets[i],t=performance.now(),h=g.setHTML(s,i),totalMs=performance.now()-t,r=reports[0];
+    if(!r)return {no,missing:true,totalMs,render:h.includes('技・持ち物・能力ポイントの一体比較')};
+    const errors=[];
+    if(!r.opponents.length||!r.attempts||r.attempts>360||r.valid>r.attempts)errors.push('search bounds');
+    const weather=B.weather;B.weather=null;
+    try{
+      for(const v of [r.baseline,...r.best]){
+        const x=v.x;
+        if(x.moves.length!==4||new Set(x.moves).size!==4||!x.moves.every(id=>LSD[no][1].includes(id)&&(MD[id]||MV[id]))||x.sp.length!==6||x.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||x.sp.reduce((a,b)=>a+b,0)!==66||!ITEMN[x.item])errors.push('illegal build');
+        for(let j=0;j<r.opponents.length;j++){
+          const op=r.opponents[j],row=v.rows[j],a=mkMon(p,'me',{...x,moves:x.moves.filter(id=>MV[id]).map(mvObj)});
+          if(no===149){a.stg.atk=1;a.stg.spe=1}
+          if(no===184){a.stg.atk=6;a.hp-=Math.floor(a.max/2);if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)){a.hp+=Math.floor(a.max/4);a.item=null}}
+          const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+          const mv=mvObj(row.hit.id),rr=dmgRolls(a,mv,op,opt),raw=rr.dist?rr.dist.map(x=>x[0]):rr;
+          const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt);return Math.max(...(z.dist?z.dist.map(x=>x[0]):z))});
+          if(row.hit.lo!==Math.min(...raw)||row.hit.hi!==Math.max(...raw)||row.hit.acc!==accOf(a,mv,op)||row.margin!==a.hp-Math.max(...incoming)||row.remaining!==a.hp||row.speed!==effSpd(a,op)||row.order!==Math.sign(effSpd(a,op)-effSpd(op,a)))errors.push('calculator mismatch');
+          const ref=r.baseline.rows[j];
+          if(row.quality+1e-9<ref.quality||row.margin<ref.margin||row.order<ref.order)errors.push('regression');
+        }
+      }
+    }finally{B.weather=weather}
+    return {no,errors,attempts:r.attempts,valid:r.valid,candidates:r.best.length,elapsedMs:Math.round(r.elapsedMs),totalMs:Math.round(totalMs),render:h.includes('技・持ち物・能力ポイントの一体比較')};
+  });
+});
+console.log('integrated audit '+JSON.stringify(IA));
+ok(IA.every(x=>!x.missing&&x.render&&x.errors.length===0&&x.valid>0&&x.attempts<=360),'統合探索：合法性・計算一致・探索上限 '+JSON.stringify(IA));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
