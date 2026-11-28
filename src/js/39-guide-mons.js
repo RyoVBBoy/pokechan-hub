@@ -635,7 +635,10 @@ function monGuide(p,o={}){
       if(s.moves.length!==4)return skip('move count');
       const original=s.moves.filter(id=>MV[id]),locked=s.moves.filter(id=>!MV[id]||mvObj(id).pri>0);
       // Knock Off is evaluated here only against fixtures without held items.
-      const supported=id=>!!MV[id]&&(simple.has(id)||id===282);
+      // Fixed-power immediate single-hit attacks. Additional effects after the
+      // hit are not evaluated by this one-use objective (see displayed limits).
+      const extraSimple=new Set([667,441,56,412,414,224,126,408,438]);
+      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id));
       if(!original.length)return skip('no attacks');
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
