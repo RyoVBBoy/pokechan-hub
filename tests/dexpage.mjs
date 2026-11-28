@@ -213,12 +213,12 @@ const DC=await pg.evaluate(()=>[...new Map([...P,...MEGAP].map(p=>[p.no,p])).val
     const friendly=reports[0]?.friendly||[],friendlyInvalid=friendly.some(f=>!f.targeted||f.min<0||f.max<f.min||f.max>f.hp||mvObj(f.id).tg!==2);
     const support=reports[0]?.support||[],supportInvalid=support.some(f=>!['helpingHand','friendGuard'].includes(f.kind)||!f.source||f.normal.length!==2||f.modified.length!==2||f.normal.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(f.modified[i])||(f.kind==='helpingHand'?f.modified[i]<v:f.modified[i]>v)));
     const joint=reports[0]?.doubleJoint, jointInvalid=joint!=null&&(!Number.isInteger(joint.attempts)||joint.attempts<1||joint.attempts>48||!Array.isArray(joint.best)||joint.best.length>3||joint.best.some(v=>!reviewedDoublePolicyDominance(joint.baseline,v.profiles)||reviewedDoublePolicyDominance(v.profiles,joint.baseline))),rows=reports[0]?.rows||[],invalid=jointInvalid||focusInvalid||friendlyInvalid||supportInvalid||rows.some(r=>r.one.length!==2||r.many.length!==2||r.one.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(r.many[i])||(r.tg?r.many[i]>v:r.many[i]!==v)));
-    return {no:p.no,name:p.n,status:!h.includes('ダブル：攻撃対象別の計算例')||!h.includes('ダブルの統合比較は限定条件のみ対応します')||reports.length!==1||invalid?'invalid double benchmark':rows.length?'double damage benchmark':'no supported double attacks',rows:rows.length,focus:focus.length,joint:joint?{attempts:joint.attempts,accepted:joint.accepted,best:joint.best.length}:null,spread:rows.filter(r=>r.tg&&r.many.some((v,i)=>v<r.one[i])).length,moves:s.moves,ab:s.ab,item:s.item};
+    return {no:p.no,name:p.n,status:!h.includes('ダブル：攻撃対象別の計算例')||!h.includes('ダブルの統合比較は限定条件のみ対応します')||reports.length!==1||invalid?'invalid double benchmark':rows.length?'double damage benchmark':'no supported double attacks',rows:rows.length,focus:focus.length,joint:joint?{attempts:joint.attempts,accepted:joint.accepted,best:joint.best.length}:null,jointReason:reports[0]?.jointReason,spread:rows.filter(r=>r.tg&&r.many.some((v,i)=>v<r.one[i])).length,moves:s.moves,ab:s.ab,item:s.item};
   }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
 }));
 const DCS={total:DC.length,counts:DC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:DC};
 console.log('double integrated coverage '+JSON.stringify(DCS));
-console.log('double joint actual coverage '+JSON.stringify({total:DC.length,evaluated:DC.filter(x=>x.joint).length,withCandidates:DC.filter(x=>x.joint?.best>0).length,attempts:DC.reduce((n,x)=>n+(x.joint?.attempts||0),0)}));
+console.log('double joint actual coverage '+JSON.stringify({total:DC.length,evaluated:DC.filter(x=>x.joint).length,withCandidates:DC.filter(x=>x.joint?.best>0).length,attempts:DC.reduce((n,x)=>n+(x.joint?.attempts||0),0),reasons:DC.reduce((a,x)=>{const k=x.jointReason||x.status;a[k]=(a[k]||0)+1;return a},{})}));
 ok(DC.length===selectable.length&&DC.every(x=>['double damage benchmark','no supported double attacks','no local double build'].includes(x.status))&&DC.some(x=>x.spread>0),'ダブル：対象数補正・単体技不変・未対応範囲 '+JSON.stringify(DCS.counts));
 // An evaluated report and a deliberately skipped build are different outcomes.
 const reasonCounts=IC.filter(x=>x.status!=='evaluated').reduce((a,x)=>{
@@ -408,7 +408,7 @@ const JLIMIT=await pg.evaluate(()=>{
 });
 ok(JLIMIT.members===6&&JLIMIT.total===72&&JLIMIT.all,'統合育成の探索予算 '+JSON.stringify(JLIMIT));
 const JBR=await pg.evaluate(()=>{
- const p=byNo[445],learn=(lsOf(445)||[]).filter(id=>MV[id]||MD[id]).slice(0,4);
+ const p=byNo[445],learn=(lsOf(p)||[]).filter(id=>MV[id]||MD[id]).slice(0,4);
  const ab=(ABD[445]||[])[0]?.[0],base={ab:{k:ab},it:{k:'expertbelt'},mv:learn.map(id=>({id,n:mName(id)})),sp:[2,32,0,0,0,32],up:1,dn:3};
  const x={ab,item:'expertbelt',moves:learn,sp:[2,28,4,0,0,32],up:1,dn:3};
  const before=JSON.stringify([base,x]),v=impJointSaved(p.no,base,x,new Set());
