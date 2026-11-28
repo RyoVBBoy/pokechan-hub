@@ -400,6 +400,41 @@ const SU=await pg.evaluate(()=>{
 });
 console.log('shared setup audit '+JSON.stringify(SU));
 ok(!SU.failed.length,'共通積み技：ランク加算・上限・持ち物・HP条件 '+JSON.stringify(SU.failed));
+const RH=await pg.evaluate(()=>{
+  const rows=[],availability=[];
+  for(const id of [105,303,135,208,456]){
+    availability.push({id,present:!!MD[id]&&!MV[id]});
+    for(const max of [1,2,9,10,159,160,167,168,201])for(const hp of [...new Set([0,1,Math.floor(max/2),Math.max(0,max-1),max])])for(const canAct of [false,true]){
+      const a={hp,max,stg:{atk:1,def:0,spa:0,spd:0,spe:0}},before=JSON.stringify(a),out=reviewedDirectHeal(a,id,canAct);
+      const expected=canAct&&hp>0?Math.min(max,hp+Math.floor((max+1)/2)):hp;
+      rows.push({id,max,hp,canAct,error:!out||out.hp!==expected||JSON.stringify(a)!==before||out.stg===a.stg});
+    }
+  }
+  const a={hp:50,max:101,stg:{}};
+  const guards=[355,659,235,236,234,156,273,89].every(id=>reviewedDirectHeal(a,id,true)===null)&&reviewedDirectHeal({...a,healblock:true},105,true)===null&&reviewedDirectHeal({...a,hp:102},105,true)===null&&reviewedDirectHeal(a,105,'yes')===null;
+  return {rows,availability,guards};
+});
+console.log('direct heal audit '+JSON.stringify({total:RH.rows.length,failed:RH.rows.filter(x=>x.error),availability:RH.availability,guards:RH.guards}));
+ok(RH.rows.every(x=>!x.error)&&RH.guards,'通常回復技：最大HP・端数・行動可否・入力検証 '+JSON.stringify(RH.rows.filter(x=>x.error)));
+const RE=await pg.evaluate(()=>{
+  const rows=[];
+  for(const max of [159,160,167,168])for(const hp of [1,Math.floor(max/2),max-1])for(const damage of [0,1,50,100,200])for(const order of [-1,0,1]){
+    const a={hp,max,item:null,stg:{atk:0}},before=JSON.stringify(a);
+    // Synthetic full-HP-dependent incoming loss, independently evaluated.
+    const incoming=x=>x.hp===max?Math.floor(damage/2):damage;
+    const x=reviewedRecoveryExchange(a,105,order,incoming);
+    const healed=Math.min(max,hp+Math.floor((max+1)/2));
+    const first=Math.max(0,healed-(healed===max?Math.floor(damage/2):damage));
+    const after=Math.max(0,hp-damage),second=after===0?0:Math.min(max,after+Math.floor((max+1)/2));
+    const expected=order===0?[first,second]:[order===1?first:second];
+    rows.push({max,hp,damage,order,error:!x||x.minHP!==Math.min(...expected)||x.maxHP!==Math.max(...expected)||x.guaranteedSurvival!==expected.every(h=>h>0)||JSON.stringify(a)!==before});
+  }
+  const a={hp:50,max:100,item:null,stg:{}};
+  const guard=reviewedRecoveryExchange(a,105,1,()=>NaN)===null&&reviewedRecoveryExchange({...a,item:'sitrusberry'},105,1,()=>20)===null&&reviewedRecoveryExchange(a,105,2,()=>20)===null;
+  return {total:rows.length,failed:rows.filter(x=>x.error),guard};
+});
+console.log('recovery exchange audit '+JSON.stringify(RE));
+ok(!RE.failed.length&&RE.guard,'回復行動：先後・同速・ひんし・HP依存被弾 '+JSON.stringify(RE));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
