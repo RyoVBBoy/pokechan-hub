@@ -394,6 +394,13 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const JLIMIT=await pg.evaluate(()=>{
+  const s={moves:[1,2,3,4],item:'a',sp:[0,0,0,0,0,0]};
+  const candidates=Array.from({length:20},(_,i)=>({...s,item:'i'+i}));
+  const reports=Array.from({length:6},()=>reviewedDoublePolicySearch(s,candidates,()=>true,x=>[{id:null,scores:[x.item==='a'?0:1]}],12));
+  return {members:reports.length,total:reports.reduce((a,b)=>a+b.attempts,0),all:reports.every(r=>r.attempts===12)};
+});
+ok(JLIMIT.members===6&&JLIMIT.total===72&&JLIMIT.all,'統合育成の探索予算 '+JSON.stringify(JLIMIT));
 const JBR=await pg.evaluate(()=>{
  const p=byNo[445],learn=(lsOf(445)||[]).filter(id=>MV[id]||MD[id]).slice(0,4);
  const ab=(ABD[445]||[])[0]?.[0],base={ab:{k:ab},it:{k:'expertbelt'},mv:learn.map(id=>({id,n:mName(id)})),sp:[2,32,0,0,0,32],up:1,dn:3};

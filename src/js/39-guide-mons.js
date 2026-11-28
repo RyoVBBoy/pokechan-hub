@@ -621,7 +621,7 @@ function monGuide(p,o={}){
           for(let z=0;z<Math.min(12,moves.length+items.length+aps.length-2);z++)for(let i=0;i<=z;i++)for(let j=0;j<=z-i;j++){
             const k=z-i-j;if(moves[i]&&items[j]&&aps[k])candidates.push({...s,moves:moves[i],item:items[j],sp:aps[k]});
           }
-          doubleJoint=reviewedDoublePolicySearch(s,candidates,legal,evaluateJoint,48);
+          doubleJoint=reviewedDoublePolicySearch(s,candidates,legal,evaluateJoint,o.jointOnly&&Number.isInteger(o.jointLimit)&&o.jointLimit>=1?Math.min(48,o.jointLimit):48);
           if(doubleJoint){doubleJoint.focusCases=focus.length;doubleJoint.statusReviewed=statusReviewed.slice();doubleJoint.statusUnreviewed=statusSlots.filter(id=>!statusReviewed.includes(id));}
         }
         if(typeof o.auditDouble==='function')o.auditDouble({rows,focus,friendly,support,orderRows,guardRows,speedPlans,doubleJoint});

@@ -135,10 +135,12 @@ function dgImprove0(entries){
     /* 2026/11/16 依頼主の報告：攻撃役（解説の型に受けの型がない匹）には、攻撃のポイント・性格を削って耐久に回す案を出さない */
     let gk=[];try{gk=monGuide(p,{raw:true}).keys}catch(e){}
     const atkRole=!gk.includes('bulky')&&(gk.includes('attacker')||gk.includes('setup')||!gk.length);
-    // Explicitly bounded: at most one joint search per improvement request.
-    if(typeof FMT!=='undefined'&&FMT==='double'&&i===0&&M.p&&base.ab?.k&&base.mv.length===4){
+    // Evaluate each member independently against the original team (up to six).
+    // An unsupported individual must not abort the existing improvement search.
+    if(typeof FMT!=='undefined'&&FMT==='double'&&i<6&&M.p&&base.ab?.k&&base.mv.length===4){
+      try{
       const original={fmt:'double',ab:base.ab.k,item:base.it?.k,moves:base.mv.map(m=>m.id),sp:base.sp.slice(),up:base.up,dn:base.dn};
-      const result=monGuide(M.p,{jointOnly:original,noAxis:true});
+      const result=monGuide(M.p,{jointOnly:original,noAxis:true,jointLimit:12});
       for(const v of result?.best||[]){
         const sv=impJointSaved(x.no,base,v.x,used(i));if(!sv)continue;
         const removed=base.mv.filter(m=>!sv.mv.some(n=>n.id===m.id));
@@ -147,6 +149,7 @@ function dgImprove0(entries){
         const bad=sv.mv.filter(m=>IMP_NOMV.has(MD[m.id]?.[3]));
         tryEntry('joint',i,{...x,set:sv},nm(i)+'の統合育成候補','固定比較条件での個体評価を通過した候補。パーティ全体の既存対面評価も再計算しています。ダブルの実戦勝率を保証するものではありません。',bad);
       }
+      }catch(e){dropped.push({title:nm(i)+'の統合育成候補',loss:'個体の統合比較を完了できませんでした。既存の改善案は引き続き計算します。'});}
     }
     /* ---- 技：比較対面で最善に選ばれた回数と採用率を区別し、採用率の高い攻撃技を保護する ---- */
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
