@@ -153,6 +153,10 @@ function monGuide(p,o={}){
       {title:'りゅうのまい物理型（検証用）',why:'HP満タンから積む機会を探し、先制技と通常攻撃を使い分ける。攻撃・素早さを最大配分した比較用の例。',ab:'multiscale',item:'lifeorb',up:1,dn:3,sp:[2,32,0,0,0,32],moves:[349,245,89,337],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/554956'],['Game8','https://game8.jp/pokemon-champions/776110']],reasons:['攻撃・素早さを同時に上げる','削れた相手への先制攻撃','はがねなどへの打点','行動固定のないドラゴン一致技'],itemWhy:'攻撃技の威力を上げる代わりにHPを消費する。マルチスケイルの再発動を妨げる場合がある。'}
     ]:p.no===184?[
       {title:'はらだいこ物理型（検証用）',why:'HPを確保して積む機会を探し、先制技と一致攻撃を使い分ける。HP・攻撃を最大配分した比較用の例。',ab:'huge-power',item:'sitrusberry',up:1,dn:3,sp:[32,32,0,0,2,0],moves:[187,453,583,282],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/555066'],['Game8','https://game8.jp/pokemon-champions/779109']],reasons:['HPを消費して攻撃ランクを最大にする','低い素早さを優先度で補う','みず技が通りにくい相手への一致打点','持ち物を落とせる相手への攻撃手段'],itemWhy:'HPが発動条件を満たす場合に回復する。はらだいこ後の残りHPと発動条件を確認する。'}
+    ]:p.no===212?[
+      {title:'つるぎのまい物理型（検証用）',why:'テクニシャンと先制技を使う物理型の比較例。',ab:'technician',item:'lifeorb',up:1,dn:3,sp:[32,32,0,0,2,0],moves:[14,418,404,282],fmt:'single',k:'setup',refs:[],reasons:['攻撃を上げる','特性が適用される先制技','むし一致技','持ち物への対策'],itemWhy:'火力を上げる代わりに反動がある。'}
+    ]:p.no===65?[
+      {title:'わるだくみ特殊型（検証用）',why:'特攻と素早さを中心に配分した比較例。',ab:'magic-guard',item:'lifeorb',up:5,dn:1,sp:[2,0,0,32,0,32],moves:[417,94,247,411],fmt:'single',k:'setup',refs:[],reasons:['特攻を上げる','エスパー一致技','ゴースト打点','かくとう打点'],itemWhy:'マジックガードの反動無効と火力補正を利用する。'}
     ]:[];
     for(const v of reviewed){
       if(v.moves.length===4&&new Set(v.moves).size===4&&v.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&abK.includes(v.ab)&&Object.prototype.hasOwnProperty.call(ITEMN,v.item)&&v.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&v.sp.reduce((a,b)=>a+b,0)===66&&v.up!==v.dn)SETS.unshift(v);
@@ -350,7 +354,7 @@ function monGuide(p,o={}){
       {no:445,ab:'rough-skin',moves:[89,337],sp:[2,32,0,0,0,32],up:1,dn:3}
     ];
     const build=(q,x,side)=>mkMon(q,side,{...x,moves:x.moves.filter(id=>MV[id]).map(mvObj)});
-    const simple=new Set([89,337,245,453,583,127,401,710]);
+    const simple=new Set([89,337,245,453,583,127,401,710,7,8,9,53,57,58,85,94,188,247,242,399,404,406,418,430,442,585,98,421,444,157,411]);
     const result=(a,d,m)=>{
       if(!simple.has(m.id)||!moveUsable(m,{a,d}).ok||a.formErr||d.formErr)return null;
       if([a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNIMPL_IT.includes(x.item)))return null;
@@ -432,8 +436,8 @@ function monGuide(p,o={}){
     const setupState=(me,id,op)=>{
       const stages={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1},187:{atk:6}}[id];
       if(!stages||!s.moves.includes(id)||!ls.includes(id)||!MD[id])return null;
-      if(!['multiscale','huge-power','inner-focus'].includes(me.ab))return null;
-      if(![null,'lifeorb','sitrusberry'].includes(me.item))return null;
+      if(!['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body'].includes(me.ab))return null;
+      if(![null,'lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses'].includes(me.item))return null;
       const a={...me,stg:{...me.stg,...stages}};
       if(id===187){
         const cost=Math.floor(a.max/2);if(a.hp<=cost)return null;
@@ -592,7 +596,7 @@ function monGuide(p,o={}){
       if(!original.length||original.some(id=>!supported(id))||opponents.some(o=>o.item||o.disg||o.formErr))return '';
       const stab=[...new Set(original.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
       const setup=s.moves.find(id=>[349,187,14,417,483,504,347,339].includes(id));
-      const items=setup?['lifeorb','sitrusberry']:['lifeorb','sitrusberry','choiceband','choicespecs','choicescarf'];
+      const items=setup?['lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses']:['lifeorb','sitrusberry','choiceband','choicespecs','choicescarf','expertbelt','muscleband','wiseglasses'];
       const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
       const budget=s.sp.reduce((a,b)=>a+b,0),cache=new Map();
       const started=performance.now();let attempts=0;
@@ -674,7 +678,7 @@ function monGuide(p,o={}){
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
     /* 2026/11/15 図鑑のページの「型・育成」タブ（o.parts）：形式・姿・出典の札と「この型をパーティに入れる」 */
     const reviewed=Array.isArray(s.refs);
-    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'Game Kid/s 利用者の保存した育成の集計':reviewed?'外部戦術を参考にした独自の検証用育成例':'当サイトが計算で組んだ提案'}</span></div>`:'';
+    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'Game Kid/s 利用者の保存した育成の集計':reviewed?'独自の検証用育成例':'当サイトが計算で組んだ提案'}</span></div>`:'';
     return `<div class="gset" id="gset-${p.no}-${i}">${meta}<b>${esc(s.title)}${s.rec?'<span class="atag">おすすめ</span>':''}</b><p>${esc(s.why)}</p><dl>
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
@@ -682,7 +686,7 @@ function monGuide(p,o={}){
       <table class="gstat"><tr>${SN.map(n=>`<th>${n}</th>`).join('')}</tr><tr>${st.map(v=>`<td>${v}</td>`).join('')}</tr><tr class="gsp">${s.sp.map(v=>`<td>${v||'-'}</td>`).join('')}</tr></table>
       <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
       <h4>この型の役割</h4><p>${reviewed?esc(s.why):roleOf(s)}</p>
-      ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考にした戦術（2026-11-28確認）：${s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・')}</p><p class="vcap">参考記事の型を転載したものではありません。対戦実績・最適性は未検証です。計算例は下の条件付き比較を確認してください。</p></details>`:''}
+      ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考資料：${s.refs.length?s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・'):'当サイトの計算用固定育成（外部記事なし）'}</p><p class="vcap">比較用の独自育成例です。対戦実績・最適性は未検証です。計算例は下の条件付き比較を確認してください。</p></details>`:''}
       ${o.parts&&reviewed?allocationHTML(s):''}
       ${o.parts&&reviewed?benchmarkHTML(s):''}
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
