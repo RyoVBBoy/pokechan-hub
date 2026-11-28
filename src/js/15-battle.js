@@ -628,6 +628,23 @@ const hsInit=(d,pb)=>({hp:d.hp,item:d.item,disg:d.disg,stg:{...d.stg},pb});
 /* Two independent enemy attacks, conditional on both being attempted and
    connecting. Enumerate rolls in both orders; no partner/action simulation.
    Restrict reactive states to the ones represented by hitStep. */
+// One friendly target of an all-adjacent attack; not a team recommendation.
+function reviewedFriendlyHit(a,m,d){
+  if(!a||!m||!d||a===d||a.p.no===d.p.no||a.formErr||d.formErr||![0,1,2].includes(m.tg||0))return null;
+  if(m.tg!==2)return {targeted:false,min:0,max:0};
+  if(m.maxH>1||m.prot||a.ab==='parental-bond'||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
+  if(!moveUsable(m,{a,d}).ok||!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
+  if(d.ab==='telepathy'&&a.ab!=='mold-breaker')return {targeted:true,min:0,max:0,protectedBy:'telepathy'};
+  if(!['multiscale','huge-power','rough-skin','levitate','pressure','magic-guard','telepathy','sturdy','disguise','inner-focus','water-absorb','flash-fire','volt-absorb','earth-eater','soundproof','bulletproof'].includes(d.ab)||d.item!=null)return null;
+  const loss=[];
+  for(let r=85;r<=100;r++){
+    const y=hitStep(a,m,d,0,r,false,{format:'double',spread:true,surv:true,protean:false},hsInit(d,false));
+    const hp=Math.max(0,y.ns.hp);
+    if(!Number.isFinite(hp)||hp>d.hp)return null;
+    loss.push(d.hp-hp);
+  }
+  return {targeted:true,min:Math.min(...loss),max:Math.max(...loss),protectedBy:null};
+}
 function reviewedDoubleFocus(a,m,b,n,d){
   if(!a||!b||!d||!m||!n||a===b||a.p.no===b.p.no||d.formErr||a.formErr||b.formErr)return null;
   if(!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
