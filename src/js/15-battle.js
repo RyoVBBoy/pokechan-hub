@@ -660,11 +660,27 @@ function reviewedFocusScores(result,expected){
   }
   return scores;
 }
+// Conditional HP after a received hit; no end-of-turn effects.
+function reviewedDoubleBerry(d,st,attacker){
+  if(!d||!st||!Number.isInteger(st.hp)||!Number.isInteger(d.max)||d.max<1)return null;
+  if(st.hp<=0||st.item!=='sitrusberry'||st.hp*2>d.max||attacker?.ab==='unnerve'||d.healblock||d.volatiles?.healblock)return {...st};
+  return {...st,hp:Math.min(d.max,st.hp+Math.floor(d.max/4)),item:null};
+}
+function reviewedDoubleIncoming(a,m,d,extra={}){
+  if(!a||!m||!d||m.maxH>1||m.prot||a.ab==='parental-bond'||!moveUsable(m,{a,d}).ok)return null;
+  const hp=[];
+  for(let r=85;r<=100;r++){
+    const y=hitStep(a,m,d,0,r,false,{format:'double',spread:!!m.tg,surv:true,protean:false,...extra},hsInit(d,false));
+    const st=reviewedDoubleBerry(d,y.ns,a);if(!st||!Number.isFinite(st.hp))return null;
+    hp.push(Math.max(0,st.hp));
+  }
+  return [Math.min(...hp),Math.max(...hp)];
+}
 function reviewedDoubleFocus(a,m,b,n,d){
   if(!a||!b||!d||!m||!n||a===b||a.p.no===b.p.no||d.formErr||a.formErr||b.formErr)return null;
   if(!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
   const allowed=new Set(['pressure','multiscale','sturdy','disguise','stamina','weak-armor','rough-skin','huge-power','levitate','magic-guard','inner-focus','technician','shell-armor','battle-armor','thick-fat']);
-  if(!allowed.has(d.ab)||!(d.item==null||['focussash','airballoon','leftovers','lifeorb','expertbelt','muscleband','wiseglasses','choicescarf','choiceband','choicespecs'].includes(d.item)||reviewedFixedMegaItem(d)))return null;
+  if(!allowed.has(d.ab)||!(d.item==null||['focussash','airballoon','leftovers','lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses','choicescarf','choiceband','choicespecs'].includes(d.item)||reviewedFixedMegaItem(d)))return null;
   if([a,b].some(x=>x.ab==='parental-bond'||x.item||CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]))return null;
   if([[a,m],[b,n]].some(([att,x])=>x.maxH>1||x.prot||fixedDmg(att,x,d)!=null||MCHG.has(mkey(x))||MRECH.has(mkey(x))))return null;
   const orders=[];
@@ -677,7 +693,7 @@ function reviewedDoubleFocus(a,m,b,n,d){
         if(!moveUsable(mv,{a:x,d:{...d,hp:st.hp,item:st.item,stg:st.stg}}).ok)return null;
         // An immunity stops this attack only, never the other attack.
         const y=hitStep(x,mv,d,0,i?t:r,false,{format:'double',spread:!!mv.tg,surv:true,protean:false},st);
-        st={...y.ns,stop:false};
+        st={...reviewedDoubleBerry(d,y.ns,[a,b].find(v=>v.ab==='unnerve')||x),stop:false};
       }
       const hp=Math.max(0,st.hp);min=Math.min(min,hp);max=Math.max(max,hp);if(!hp)ko++;
     }

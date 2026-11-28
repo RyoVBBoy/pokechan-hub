@@ -422,6 +422,11 @@ const DST=await pg.evaluate(()=>{
   return {heal:heal?.hp,atk:setup?.stg.atk,min:recovery?.minHP,max:recovery?.maxHP,unchanged:JSON.stringify(d)===b};
 });
 ok(DST.heal===200&&DST.atk===2&&DST.min===120&&DST.max===120&&DST.unchanged,'ダブル変化技：既存処理の条件別検査 '+JSON.stringify(DST));
+const DBERRY=await pg.evaluate(()=>{
+ const d={max:101},s={hp:50,item:'sitrusberry'},before=JSON.stringify(s);
+ return {at:reviewedDoubleBerry(d,s,{}),above:reviewedDoubleBerry(d,{...s,hp:51},{}),dead:reviewedDoubleBerry(d,{...s,hp:0},{}),blocked:reviewedDoubleBerry(d,s,{ab:'unnerve'}),consumed:reviewedDoubleBerry(d,{hp:20,item:null},{}),unchanged:JSON.stringify(s)===before};
+});
+ok(DBERRY.at?.hp===75&&DBERRY.at?.item===null&&DBERRY.above?.hp===51&&DBERRY.dead?.hp===0&&DBERRY.blocked?.hp===50&&DBERRY.consumed?.hp===20&&DBERRY.unchanged,'ダブル：オボンのみの発動境界・消費・阻害 '+JSON.stringify(DBERRY));
 const DALLY=await pg.evaluate(()=>{
   const a=[{one:100,many:75,order:[1],allyLoss:50},{one:20,many:20,order:[1],allyLoss:0}];
   const v=reviewedDoubleAllyScores(a,[0,50]);
