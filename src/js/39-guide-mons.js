@@ -387,7 +387,7 @@ function monGuide(p,o={}){
   /* Fixed, legal comparison targets; not claimed to be popular or optimal.
      Use calculator rolls, not estHit's single representative roll. */
   const benchmarkHTML=s=>{
-    if(s.fmt!=='single'||typeof dmgRolls!=='function'||typeof koInfo!=='function')return '';
+    if(!['single','double'].includes(s.fmt)||typeof dmgRolls!=='function'||typeof koInfo!=='function')return '';
     const fixtures=[
       {no:149,ab:'multiscale',moves:[245,337],sp:[2,32,0,0,0,32],up:1,dn:3},
       {no:184,ab:'huge-power',moves:[453,583],sp:[32,32,0,0,2,0],up:1,dn:3},
@@ -395,6 +395,30 @@ function monGuide(p,o={}){
     ];
     const build=(q,x,side)=>mkMon(q,side,{...x,moves:x.moves.filter(id=>MV[id]).map(mvObj)});
     const simple=new Set([89,337,245,453,583,127,401,710,7,8,9,53,57,58,85,94,188,247,242,399,404,406,418,430,442,585,98,421,444,157,411]);
+    // Restricted double-format benchmark. No inferred partner or opponent team;
+    // compare one selected target under one-target and multi-target conditions.
+    if(s.fmt==='double'){
+      const weather=B.weather;B.weather=null;
+      try{
+        const me=build(p,s,'me'),rows=[];
+        if(!me.formErr&&!CALC_UNIMPL.includes(me.ab)&&!CALC_UNVERIFIED[me.ab]&&!CALC_UNIMPL_IT.includes(me.item)&&me.ab!=='parental-bond'){
+          for(const x of fixtures.filter(x=>x.no!==p.no)){
+            const q=byNo[x.no],learn=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
+            if(!q||!abs.some(z=>z[0]===x.ab)||!x.moves.every(id=>learn.includes(id)&&MV[id]))continue;
+            const op=build(q,{...x,item:null},'op');if(op.formErr)continue;
+            for(const m of me.moves){
+              if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
+              const roll=spread=>{const v=dmgRolls(me,m,op,{format:'double',spread,crit:false,protean:false,noNext:true});return v.length&&!v.dist&&!v.fband&&v.every(Number.isFinite)?[Math.min(...v),Math.max(...v)]:null};
+              const one=roll(false),many=roll(true);if(!one||!many)continue;
+              rows.push({no:q.no,name:q.n,id:m.id,tg:m.tg||0,one,many,hp:op.max});
+            }
+          }
+        }
+        if(typeof o.auditDouble==='function')o.auditDouble({rows});
+        const note='固定の相手1体へのダメージ比較です。複数対象に当たる場合の範囲補正は0.75倍を計算途中で適用します。味方にも当たる技は明示します。味方の特性、相手2体からの被弾、交代、まもる、おいかぜ等は未評価です。ダブルの統合最適化は未対応です。';
+        return '<details class="gset-alt"><summary>ダブル：攻撃対象別の計算例</summary><p class="vcap">'+note+'</p>'+(rows.length?rows.map(r=>'<p>'+esc(r.name)+'／'+esc(mName(r.id))+'：1対象 '+r.one.join('〜')+'、複数対象条件 '+r.many.join('〜')+' / '+r.hp+' HP'+(r.tg===2?'（味方にも当たる）':r.tg===1?'（相手全体）':'（単体技・補正なし）')+'</p>').join(''):'<p>この育成の対応する攻撃技は比較できませんでした。</p>')+'</details>';
+      }finally{B.weather=weather}
+    }
     const result=(a,d,m)=>{
       if(!simple.has(m.id)||!moveUsable(m,{a,d}).ok||a.formErr||d.formErr)return null;
       if([a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNIMPL_IT.includes(x.item)))return null;
