@@ -658,7 +658,7 @@ function tbJointOptimize(mem,fmt,evalTeam=tbEval){
       for(const v of R.best||[]){
         const sv=impJointSaved(x.no,base,v.x,used);if(!sv)continue;
         // Retain all original utility moves and widely used attacks.
-        const pct=impUsePct(x.no,base.it.k);
+        const pct=impUsePct(x.no,null);
         if(base.mv.some(m=>!sv.mv.some(n=>n.id===m.id)&&((pct[m.id]||0)>=IMP_USED||IMP_KEEP.has(MD[m.id]?.[3])||!MV[m.id])))continue;
         if(sv.mv.some(m=>IMP_NOMV.has(MD[m.id]?.[3])))continue;
         const next=current.map((y,j)=>j===i?{...y,set:sv,src:'theory',spReal:false,srcTxt:'当サイトの統合比較による理論上の育成案（実戦での使用実績ではありません）'}:y);

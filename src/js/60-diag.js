@@ -740,8 +740,9 @@ function teamKindEvidence(entries,T){
   const evidence={tm:[],ac:[],dc:[],su:[]};
   const threshold=Math.max(1,Math.ceil(T.rows.length/4));
   const legalMoves=(x,p)=>(x.set?.mv||[]).filter(m=>m&&MD[m.id]&&lsOf(p).includes(+m.id));
-  const data=entries.map((x,i)=>{
-    const m=T.M[i],p=T.ms[i]?.p;if(!m||!p||!x.set)return null;
+  if(!Array.isArray(T.ms)||T.ms.length!==T.M.length)return null;
+  const data=T.ms.map(({x,p},i)=>{
+    const m=T.M[i];if(!m||!p||!x?.set||!entries.includes(x))return null;
     const mv=legalMoves(x,p),keys=mv.map(v=>MD[v.id][3]);
     const attack=mv.some(v=>MV[v.id]&&mvObj(v.id).pow>0);
     const rows=T.rows.map(r=>r.res.find(z=>z.i===i)).filter(Boolean);

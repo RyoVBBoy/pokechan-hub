@@ -750,6 +750,9 @@ ok(BAS.keys.every(v=>!v),'イダイトウを受けの型にしない '+JSON.stri
 ok(BAS.cyc.every(Boolean),'サイクル・軸の型でイダイトウは攻撃に振る '+JSON.stringify(BAS.cyc));
 ok(!BAS.imp.length,'イダイトウに耐久に回す改善案を出さない '+JSON.stringify(BAS.imp));
 ok(BAS.keep.every(Boolean),'もともと受けの型のポケモンは変えない '+JSON.stringify(BAS.keep));
+
+const jointCmp=await pg.evaluate(()=>{const mk=()=>({M:[{p:{no:445}}],rows:[{q:{no:149},lvl:3,res:[{i:0,r:4}]}]});const a=mk(),b=mk(),c=mk();b.rows[0].q.no=184;c.rows[0].res=[];return impJointComparable(a,a)&&!impJointComparable(a,b)&&!impJointComparable(a,c)});
+if(!jointCmp)throw Error('joint improvement comparison requires identical complete target list');
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
 console.log(`diag: OK（${n}項目）`);
