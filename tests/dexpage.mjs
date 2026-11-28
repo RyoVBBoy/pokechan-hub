@@ -425,6 +425,11 @@ const DST=await pg.evaluate(()=>{
   return {heal:heal?.hp,atk:setup?.stg.atk,min:recovery?.minHP,max:recovery?.maxHP,unchanged:JSON.stringify(d)===b};
 });
 ok(DST.heal===200&&DST.atk===2&&DST.min===120&&DST.max===120&&DST.unchanged,'ダブル変化技：既存処理の条件別検査 '+JSON.stringify(DST));
+const DFIRST=await pg.evaluate(()=>{
+ const a={id:252,maxH:1,tg:0,pri:3},b={id:660,maxH:1,tg:0,pri:2},c={id:89,maxH:1,tg:2,pri:0};
+ return reviewedDoubleFirstTurn(a)&&reviewedDoubleFirstTurn(b)&&!reviewedDoubleFirstTurn(c)&&!reviewedDoubleFirstTurn({...a,tg:1})&&reviewedDoubleRepeatable([a,b,c]).length===1&&reviewedDoubleRepeatable([a,b,c])[0]===c;
+});
+ok(DFIRST,'初回限定技を通常攻撃候補から分離');
 const DPOST=await pg.evaluate(()=>{
  const a={hp:100,max:100,item:'lifeorb',ab:'pressure',stg:{atk:0,def:0,spa:0,spd:0,spe:0}},d={hp:60,max:60,item:null};
  const m={id:370,tg:0,maxH:1,e:{s:[['def',-1,100],['spd',-1,100]]}};

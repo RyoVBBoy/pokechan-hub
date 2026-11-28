@@ -991,6 +991,13 @@ function reviewedDoubleTradeoff(base,next){
 // Bounded independent scenario search; all objective coordinates are maximized.
 // Damage attainable by one move meeting the same order threshold.
 // Isolated post-hit state for a reviewed single-target attack. No turn simulation.
+// These moves are kept as registered first-turn options, never ordinary repeatable attacks.
+function reviewedDoubleFirstTurn(m){
+  return !!m&&[252,660].includes(m.id)&&m.maxH===1&&!m.tg&&m.pri>0;
+}
+function reviewedDoubleRepeatable(attacks){
+  return attacks.filter(m=>!reviewedDoubleFirstTurn(m));
+}
 function reviewedDoublePostAttack(a,m,d,maxDamage,connected){
   if(!a||!m||!d||typeof connected!=='boolean'||!Number.isSafeInteger(maxDamage)||maxDamage<0)return null;
   let post=a;
