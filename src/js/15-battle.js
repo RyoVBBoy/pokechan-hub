@@ -714,6 +714,24 @@ function hitRemainingDist(a,mv,d,o={}){
    ダメージに効くのは：こちらの攻めの能力（物理＝攻撃、特殊＝特攻、ボディプレス＝防御）のランク・メテオビーム・ノーマルジュエル、
    相手の受ける能力のランク（じきゅうりょく・くだけるよろい＝物理）・この技で効く半減きのみ・ばけのかわ・HP満タンで働くマルチスケイル。
    （オボンのみは koInfo、タスキ・がんじょうは1回目の耐えだけ、ふうせんは同じ技なら次もじめん技ではない） */
+/* Conditional self-stage changes for the reviewed immediate attacks.
+   No turn simulation: connected must be established by the caller. White Herb,
+   other items and effects are deliberately not modeled here. */
+const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+function reviewedSelfStageAfterHit(a,mv,connected){
+  const out={...a,stg:{...a.stg}},expected=REVIEWED_SELF_STAGES[mv.id];
+  if(!expected)return null;
+  if(a.item==='whiteherb')return null;
+  const rows=(mv.e&&mv.e.s)||[];
+  if(rows.length!==Object.keys(expected).length||Object.entries(expected).some(([k,v])=>!rows.some(([st,n,p])=>st===k&&n===v&&p>=100)))return null;
+  if(!connected)return out;
+  const factor=a.ab==='contrary'?-1:a.ab==='simple'?2:1;
+  for(const [k,v] of Object.entries(expected)){
+    if(!Number.isInteger(out.stg[k])||out.stg[k]<-6||out.stg[k]>6)return null;
+    out.stg[k]=Math.max(-6,Math.min(6,out.stg[k]+v*factor));
+  }
+  return out;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;

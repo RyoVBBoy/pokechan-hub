@@ -295,6 +295,23 @@ const HM=await pg.evaluate(()=>{
 });
 console.log('variable hit audit '+JSON.stringify(HM));
 ok(HM.every(x=>!x.error),'連続技の攻撃回数分布・スキルリンク・追加命中判定 '+JSON.stringify(HM));
+const PS=await pg.evaluate(()=>{
+  const expected={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+  const rows=[];
+  for(const [key,delta] of Object.entries(expected)){
+    const id=Number(key),m=mvObj(id);
+    for(const [ab,factor] of [['rough-skin',1],['contrary',-1],['simple',2]])for(const initial of [-6,0,6])for(const connected of [true,false]){
+      const a={ab,item:null,stg:{atk:initial,def:initial,spa:initial,spd:initial,spe:initial}},before=JSON.stringify(a),out=reviewedSelfStageAfterHit(a,m,connected);
+      const target=Object.fromEntries(Object.keys(a.stg).map(k=>[k,Math.max(-6,Math.min(6,initial+(connected?(delta[k]||0)*factor:0)))]));
+      rows.push({id,ab,initial,connected,error:!out||Object.keys(target).some(k=>out.stg[k]!==target[k])||before!==JSON.stringify(a)||out.stg===a.stg});
+    }
+    const a={ab:'rough-skin',item:'whiteherb',stg:{atk:0,def:0,spa:0,spd:0,spe:0}};
+    rows.push({id,whiteHerb:true,error:reviewedSelfStageAfterHit(a,m,true)!==null});
+  }
+  return rows;
+});
+console.log('post-move stage audit '+JSON.stringify({total:PS.length,failed:PS.filter(x=>x.error)}));
+ok(PS.every(x=>!x.error),'使用後の能力変化・命中条件・上下限・元データ保持 '+JSON.stringify(PS.filter(x=>x.error)));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
