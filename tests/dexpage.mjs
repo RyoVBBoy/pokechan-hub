@@ -448,6 +448,20 @@ const SA=await pg.evaluate(()=>{
 });
 console.log('expanded post-stage audit '+JSON.stringify(SA));
 ok(!SA.failed.length,'能力低下技：追加特性7種との組み合わせ '+JSON.stringify(SA));
+const RS=await pg.evaluate(()=>{
+  const rows=[];
+  for(const max of [1,15,16,159,160,167,168,200])for(const hp of [...new Set([0,1,Math.floor(max/2),Math.max(0,max-1),max])])for(const item of [null,'leftovers'])for(const ab of ['speed-boost','rough-skin'])for(const spe of [-6,0,5,6])for(const activeTurns of [0,1,2]){
+    const a={max,hp,item,ab,stg:{spe,atk:2}},before=JSON.stringify(a),out=reviewedResidualState(a,activeTurns);
+    const expectedHP=hp>0&&item==='leftovers'?Math.min(max,hp+Math.max(1,Math.floor(max/16))):hp;
+    const expectedSpe=hp>0&&ab==='speed-boost'&&activeTurns>0?Math.min(6,spe+1):spe;
+    rows.push({max,hp,item,ab,spe,activeTurns,error:!out||out.hp!==expectedHP||out.stg.spe!==expectedSpe||out.stg.atk!==2||out.stg===a.stg||JSON.stringify(a)!==before});
+  }
+  const a={hp:50,max:100,item:'leftovers',ab:'speed-boost',stg:{spe:0}};
+  const guard=reviewedResidualState(a,-1)===null&&reviewedResidualState({...a,healblock:true},1)===null&&reviewedResidualState({...a,hp:101},1)===null;
+  return {total:rows.length,failed:rows.filter(x=>x.error),guard};
+});
+console.log('isolated residual audit '+JSON.stringify(RS));
+ok(!RS.failed.length&&RS.guard,'ターン終了効果：たべのこし・かそく・発動条件 '+JSON.stringify(RS));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));

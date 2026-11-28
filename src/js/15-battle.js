@@ -830,6 +830,19 @@ function reviewedRecoveryExchange(a,id,order,incoming){
   if(rows.some(x=>!x))return null;
   return {rows,minHP:Math.min(...rows.map(x=>x.hp)),maxHP:Math.max(...rows.map(x=>x.hp)),guaranteedSurvival:rows.every(x=>x.alive)};
 }
+/* Isolated residual effects, not a complete turn simulation.
+   Showdown e7f50cd data/items.ts and data/abilities.ts:
+   Leftovers order 5, Speed Boost order 28; Speed Boost requires activeTurns.
+   Caller establishes absence of other residual effects and healing prevention. */
+function reviewedResidualState(a,activeTurns){
+  if(!a||!Number.isSafeInteger(activeTurns)||activeTurns<0||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max||!a.stg||!Number.isInteger(a.stg.spe)||Math.abs(a.stg.spe)>6)return null;
+  if(a.healblock||a.volatiles?.healblock)return null;
+  const out={...a,stg:{...a.stg}};
+  if(!out.hp)return out;
+  if(out.item==='leftovers')out.hp=Math.min(out.max,out.hp+Math.max(1,Math.floor(out.max/16)));
+  if(out.ab==='speed-boost'&&activeTurns>0)out.stg.spe=Math.min(6,out.stg.spe+1);
+  return out;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
