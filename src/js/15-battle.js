@@ -816,6 +816,15 @@ function reviewedDirectHeal(a,id,canAct){
    incoming HP loss for each state, including full-HP-dependent effects.
    No residual damage, contact effects, items triggering on hit or action denial.
    A speed tie returns both orders rather than assuming either goes first. */
+/* Isolated end-of-turn Leftovers recovery, not other residual effects.
+   https://www.smogon.com/dex/champions/items/leftovers/
+   Floor/minimum-one follows the existing battle engine; device rounding unverified. */
+function reviewedLeftoversEnd(a){
+  if(!a||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  const out={...a,stg:{...a.stg}};
+  if(a.item==='leftovers'&&a.hp>0&&!a.fainted&&!a.healblock&&!a.volatiles?.healblock)out.hp=Math.min(a.max,a.hp+Math.max(1,Math.floor(a.max/16)));
+  return out;
+}
 function reviewedRecoveryExchange(a,id,order,incoming){
   if(![-1,0,1].includes(order)||typeof incoming!=='function'||!a||!Number.isInteger(a.hp)||a.hp<1||a.hp>=a.max)return null;
   if(![null,'leftovers','lifeorb','expertbelt','muscleband','wiseglasses'].includes(a.item))return null;
@@ -824,11 +833,11 @@ function reviewedRecoveryExchange(a,id,order,incoming){
     let x={...a,stg:{...a.stg}};
     if(first){x=reviewedDirectHeal(x,id,true);if(!x)return null;x=hit(x);}
     else{x=hit(x);if(!x)return null;if(x.hp>0)x=reviewedDirectHeal(x,id,true);}
-    return x?{first,hp:x.hp,alive:x.hp>0}:null;
+    if(!x)return null;const end=reviewedLeftoversEnd(x);return end?{first,hp:x.hp,endHP:end.hp,alive:x.hp>0}:null;
   };
   const rows=(order===0?[true,false]:[order===1]).map(run);
   if(rows.some(x=>!x))return null;
-  return {rows,minHP:Math.min(...rows.map(x=>x.hp)),maxHP:Math.max(...rows.map(x=>x.hp)),guaranteedSurvival:rows.every(x=>x.alive)};
+  return {rows,minHP:Math.min(...rows.map(x=>x.hp)),maxHP:Math.max(...rows.map(x=>x.hp)),guaranteedSurvival:rows.every(x=>x.alive),minEndHP:Math.min(...rows.map(x=>x.endHP)),maxEndHP:Math.max(...rows.map(x=>x.endHP))};
 }
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
