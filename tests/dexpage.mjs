@@ -959,7 +959,7 @@ ok(THROAT_CHOP_AUDIT.total===78&&!THROAT_CHOP_AUDIT.failures.length,'じごく�
 const DIRECT_ATTACK_BATCH_AUDIT=await pg.evaluate(()=>{
   const failures=[];let total=0;
   const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
-  const cases=[[25,120,75,0,'ノーマル',false],[402,80,100,0,'くさ',false],[398,80,100,0,'どく',true],[403,75,95,1,'ひこう',true],[231,100,75,0,'はがね',true],[348,90,100,0,'くさ',false],[529,80,95,0,'じめん',false],[280,75,100,0,'かくとう',false]];
+  const cases=[[428,80,90,0,"エスパー",true],[304,90,100,1,"ノーマル",false],[605,80,100,1,"フェアリー",false],[914,80,100,1,"フェアリー",true],[59,110,70,1,"こおり",true],[161,80,100,1,"ノーマル",true],[211,70,90,0,"はがね",true],[257,95,90,1,"ほのお",true],[326,80,100,1,"エスパー",true],[405,90,100,1,"むし",true],[25,120,75,0,'ノーマル',false],[402,80,100,0,'くさ',false],[398,80,100,0,'どく',true],[403,75,95,1,'ひこう',true],[231,100,75,0,'はがね',true],[348,90,100,0,'くさ',false],[529,80,95,0,'じめん',false],[280,75,100,0,'かくとう',false]];
   const make=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=make(149),rawTarget=make(184),d={...rawTarget,p:{...rawTarget.p,t:['ノーマル']}},weather=B.weather;
   try{
@@ -980,7 +980,7 @@ const DIRECT_ATTACK_BATCH_AUDIT=await pg.evaluate(()=>{
   return {total,failures};
 });
 console.log('direct attack batch audit '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
-ok(DIRECT_ATTACK_BATCH_AUDIT.total===168&&!DIRECT_ATTACK_BATCH_AUDIT.failures.length,'攻撃技8種：基本データ・命中・特性・乱数・壁 '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
+ok(DIRECT_ATTACK_BATCH_AUDIT.total===358&&!DIRECT_ATTACK_BATCH_AUDIT.failures.length,'攻撃技18種：基本データ・命中・特性・乱数・壁 '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
