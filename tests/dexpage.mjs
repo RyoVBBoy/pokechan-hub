@@ -254,8 +254,12 @@ const IA=await pg.evaluate(()=>{
           const drain={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]}[mv.id];
           if(drain&&Math.max(...raw)>0&&row.hit.acc>0&&post.hp>0)post.hp=Math.min(post.max,post.hp+Math.floor((2*Math.min(op.hp,Math.max(0,Math.min(...raw)))*drain[0]+drain[1])/(2*drain[1])));
           if(post.item==='lifeorb'&&post.ab!=='magic-guard'&&Math.max(...raw)>0&&row.hit.acc>0)post.hp=Math.max(0,post.hp-Math.max(1,Math.floor(post.max/10)));
-          const rp=post.hp>0?dmgRolls(post,mv,op,opt):[0],rv=post.hp===0?[0]:mv.maxH>1?hitRemainingDist(post,mv,op,opt).map(([hp])=>op.hp-hp):(rp.dist?rp.dist.map(x=>x[0]):rp);
-          const postIncoming=post.hp===0?[0]:op.moves.map(m=>{const z=dmgRolls(op,m,post,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&post.hp===z.surv.max?Math.min(n,post.hp-1):n+(z.loss||0)))});
+          const targetDelta={491:['spd',-2],855:['spd',-2],886:['atk',-1],679:['atk',-1],688:['atk',-1]}[mv.id];
+          const target={...op,stg:{...op.stg}};
+          if(targetDelta&&Math.max(...raw)>0&&row.hit.acc>0&&!sfSup(a,mv))target.stg[targetDelta[0]]=Math.max(-6,target.stg[targetDelta[0]]+targetDelta[1]);
+          if(Object.keys(target.stg).some(k=>row.targetStages[k]!==target.stg[k]))errors.push('target stages mismatch');
+          const rp=post.hp>0?dmgRolls(post,mv,target,opt):[0],rv=post.hp===0?[0]:mv.maxH>1?hitRemainingDist(post,mv,op,opt).map(([hp])=>op.hp-hp):(rp.dist?rp.dist.map(x=>x[0]):rp);
+          const postIncoming=post.hp===0?[0]:target.moves.map(m=>{const z=dmgRolls(target,m,post,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&post.hp===z.surv.max?Math.min(n,post.hp-1):n+(z.loss||0)))});
           const loss=mv.maxH>1?rv:rv.map(n=>rp.surv&&op.hp===rp.surv.max?Math.min(n,op.hp-1):n+(rp.loss||0));
           if(row.repeat.lo!==Math.min(...rv)||row.repeat.hi!==Math.max(...rv)||Math.abs(row.repeatQuality-Math.min(1,Math.min(...loss)/op.hp)*accOf(post,mv,op)/100)>1e-9||row.postMargin!==post.hp-Math.max(...postIncoming)||row.postHP!==post.hp||row.postOrder!==(post.hp>0?Math.sign(effSpd(post,op)-effSpd(op,post)):-1)||row.postSpeed!==(post.hp>0?effSpd(post,op):0)||Object.keys(post.stg).some(k=>row.postStages[k]!==post.stg[k]))errors.push('post-move calculator mismatch');
           if(row.quality+1e-9<ref.quality||row.repeatQuality+1e-9<ref.repeatQuality||row.margin<ref.margin||row.postMargin<ref.postMargin||row.postHP<ref.postHP||row.order<ref.order)errors.push('regression');
@@ -593,6 +597,29 @@ const SA=await pg.evaluate(()=>{
   }
   return {total:rows.length,failed:rows.filter(x=>x.error)};
 });
+const TD=await pg.evaluate(()=>{
+  const rows=[],specs={491:['spd',-2],855:['spd',-2],886:['atk',-1],679:['atk',-1],688:['atk',-1]};
+  for(const [key,[stat,delta]] of Object.entries(specs)){
+    const id=Number(key);if(!MV[id])continue;
+    const m=mvObj(id);
+    for(const ab of ['pressure','clear-body','white-smoke','full-metal-body','hyper-cutter','shield-dust','contrary','simple','defiant','competitive'])for(const source of ['pressure','mold-breaker','sheer-force'])for(const item of [null,'covertcloak'])for(const stage of [-6,-5,0,5,6])for(const connected of [false,true]){
+      const a={ab:source},d={ab,item,stg:{atk:stage,def:stage,spa:stage,spd:stage,spe:stage}},before=JSON.stringify(d),x=reviewedTargetStageAfterHit(a,m,d,connected);
+      const expected={...d.stg};
+      const bypass=source==='mold-breaker'&& !['full-metal-body','defiant','competitive'].includes(ab),effective=bypass?'pressure':ab;
+      if(connected&&source!=='sheer-force'&&!item&&!['clear-body','white-smoke','full-metal-body','shield-dust'].includes(effective)&&!(effective==='hyper-cutter'&&stat==='atk')){
+        expected[stat]=Math.max(-6,Math.min(6,stage+delta*(effective==='contrary'?-1:effective==='simple'?2:1)));
+        if(expected[stat]<stage&&effective==='defiant')expected.atk=Math.min(6,expected.atk+2);
+        if(expected[stat]<stage&&effective==='competitive')expected.spa=Math.min(6,expected.spa+2);
+      }
+      rows.push({id,ab,source,item,stage,connected,error:!x||JSON.stringify(x.stg)!==JSON.stringify(expected)||JSON.stringify(d)!==before||x.stg===d.stg});
+    }
+    const d={ab:'mirror-armor',item:null,stg:{atk:0,def:0,spa:0,spd:0,spe:0}};
+    rows.push({id,guard:'reflection',error:reviewedTargetStageAfterHit({ab:'pressure'},m,d,true)!==null});
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error)};
+});
+console.log('target stage audit '+JSON.stringify(TD));
+ok(TD.total>0&&!TD.failed.length,'相手の能力低下・防止特性・反応特性・上下限 '+JSON.stringify(TD));
 const SB=await pg.evaluate(()=>[488,885,872,871].filter(id=>!!MV[id]).map(id=>{
   const m=mvObj(id),a={ab:'sheer-force',item:null,stg:{atk:0,def:0,spa:0,spd:0,spe:0}},x=reviewedSelfStageAfterHit(a,m,true);
   return {id,error:!sfSup(a,m)||!x||Object.values(x.stg).some(v=>v!==0)};
