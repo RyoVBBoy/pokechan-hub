@@ -173,13 +173,22 @@ const IC=await pg.evaluate(()=>{
       if(!s)return {no:p.no,name:p.n,status:'no local single build'};
       const t=performance.now(),h=g.auditBenchmark(s),ms=Math.round(performance.now()-t),r=reports[0];
       if(!r)return {no:p.no,name:p.n,status:h.includes('比較は計算できませんでした')?'exception':skips[0]||'no benchmark',ms,moves:s.moves,ab:s.ab,item:s.item,baselineFailure:baselineFailures[0]||null};
-      const bad=r.attempts>360||r.valid<1||r.valid>r.attempts||r.eligibleItems.some(x=>!r.attemptedItems.includes(x))||!h.includes('技・持ち物・能力ポイントの一体比較');
+      const stone=p.base?Object.keys(MEGA).find(k=>MEGA[k][p.base]===p.no):null;
+      const megaBad=!!p.base&&(!stone||r.eligibleItems.length!==1||r.eligibleItems[0]!==stone||r.attemptedItems.length!==1||r.attemptedItems[0]!==stone||[r.baseline,...r.best].some(v=>{
+        const x=v.x,f=resolveForm(p.no,x.item);
+        return x.item!==stone||!f.ok||!f.mega||f.form.no!==p.no||!x.moves.every(id=>(LSD[p.no]?.[1]||LSD[p.base]?.[1]||[]).includes(id))||x.sp.length!==6||x.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||x.sp.reduce((a,b)=>a+b,0)!==s.sp.reduce((a,b)=>a+b,0);
+      }));
+      const bad=megaBad||r.attempts>360||r.valid<1||r.valid>r.attempts||r.eligibleItems.some(x=>!r.attemptedItems.includes(x))||!h.includes('技・持ち物・能力ポイントの一体比較');
       return {no:p.no,name:p.n,status:bad?'invalid report':'evaluated',ms,searchMs:Math.round(r.elapsedMs),candidates:r.best.length,attempts:r.attempts};
     }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
   });
 });
 const ICS={total:IC.length,counts:IC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:IC};
 console.log('integrated coverage '+JSON.stringify(ICS));
+const megaNos=await pg.evaluate(()=>MEGAP.map(p=>p.no));
+const megaRows=IC.filter(x=>megaNos.includes(x.no));
+console.log('mega integrated coverage '+JSON.stringify({total:megaRows.length,counts:megaRows.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:megaRows}));
+ok(megaRows.some(x=>x.status==='evaluated')&&megaRows.every(x=>x.status!=='mega item fixed'&&x.status!=='mega form mismatch'&&x.status!=='invalid report'&&x.status!=='exception'),'メガストーン固定探索：実行例・姿・技・能力ポイントの整合性');
 // Keep excluded formats distinct from evaluated single-battle builds.
 const DC=await pg.evaluate(()=>[...new Map([...P,...MEGAP].map(p=>[p.no,p])).values()].map(p=>{
   try {
