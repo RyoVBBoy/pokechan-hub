@@ -155,7 +155,7 @@ function monGuide(p,o={}){
       {title:'はらだいこ物理型（検証用）',why:'HPを確保して積む機会を探し、先制技と一致攻撃を使い分ける。HP・攻撃を最大配分した比較用の例。',ab:'huge-power',item:'sitrusberry',up:1,dn:3,sp:[32,32,0,0,2,0],moves:[187,453,583,282],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/555066'],['Game8','https://game8.jp/pokemon-champions/779109']],reasons:['HPを消費して攻撃ランクを最大にする','低い素早さを優先度で補う','みず技が通りにくい相手への一致打点','持ち物を落とせる相手への攻撃手段'],itemWhy:'HPが発動条件を満たす場合に回復する。はらだいこ後の残りHPと発動条件を確認する。'}
     ]:[];
     for(const v of reviewed){
-      if(v.moves.length===4&&new Set(v.moves).size===4&&v.moves.every(id=>ls.includes(id)&&MV[id])&&abK.includes(v.ab)&&Object.prototype.hasOwnProperty.call(ITEMN,v.item)&&v.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&v.sp.reduce((a,b)=>a+b,0)===66&&v.up!==v.dn)SETS.unshift(v);
+      if(v.moves.length===4&&new Set(v.moves).size===4&&v.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&abK.includes(v.ab)&&Object.prototype.hasOwnProperty.call(ITEMN,v.item)&&v.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&v.sp.reduce((a,b)=>a+b,0)===66&&v.up!==v.dn)SETS.unshift(v);
     }
   }
   /* 当サイトの利用者の育成が5件以上あれば、それをもとにした型を先頭に置く（43-usage.js） */
@@ -349,7 +349,7 @@ function monGuide(p,o={}){
       {no:184,ab:'huge-power',moves:[453,583],sp:[32,32,0,0,2,0],up:1,dn:3},
       {no:445,ab:'rough-skin',moves:[89,337],sp:[2,32,0,0,0,32],up:1,dn:3}
     ];
-    const build=(q,x,side)=>mkMon(q,side,{...x,moves:x.moves.map(mvObj)});
+    const build=(q,x,side)=>mkMon(q,side,{...x,moves:x.moves.filter(id=>MV[id]).map(mvObj)});
     const simple=new Set([89,337,245,453,583,127,401,710]);
     const result=(a,d,m)=>{
       if(!simple.has(m.id)||!moveUsable(m,{a,d}).ok||a.formErr||d.formErr)return null;
