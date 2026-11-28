@@ -474,6 +474,8 @@ function bcalc(a,mv,d,o){
   if((mk==='venoshock'||mk==='barbbarrage')&&(d.status==='psn'||d.status==='tox'))bm=chM(bm,8192);
   if(mk==='knockoff'&&d.item&&!isStone(d.item))bm=chM(bm,6144);
   if((mk==='lashout'||mk==='ficklebeam')&&o.cond)bm=chM(bm,8192);
+  // Explicit, already-activated double-battle support scenario only.
+  if(o.format==='double'&&o.helpingHand===true)bm=chM(bm,6144);
   if(a.ab==='technician'&&pow0<=60)bm=chM(bm,6144);
   if(SKIN[a.ab]&&mv.t==='ノーマル'&&mk!=='weatherball'&&mk!=='terrainpulse')bm=chM(bm,4915);
   if(ITEMT[a.item]===t)bm=chM(bm,4915);
@@ -562,6 +564,7 @@ function bcalc(a,mv,d,o){
   if(phys&&a.status==='brn'&&a.ab!=='guts'&&!facade)x=Math.floor(x/2);
   /* 最後の補正 */
   let fm=4096;
+  if(o.format==='double'&&o.friendGuard===true)fm=chM(fm,3072);
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
   if(o.screen&&!crit&&a.ab!=='infiltrator'&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))/* Wall strength follows battle format, not the number of targets. Legacy callers without format retain the old fallback. Champions-specific multipliers still require device verification. */
   fm=chM(fm,(o.format==='double'||(o.format==null&&o.spread))?2732:2048);
