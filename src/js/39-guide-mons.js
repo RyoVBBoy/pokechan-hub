@@ -537,19 +537,66 @@ function monGuide(p,o={}){
       }).join('');
       return sections;
     };
+    /* Compare complete four-move sets against the same legal opponent fixtures.
+       Preserve setup/status, priority and existing STAB types; only swap ordinary attacks.
+       Cache each move/opponent calculation before evaluating combinations. */
+    const movePlans=(me,opponents)=>{
+      if(!opponents.length||s.moves.length!==4||me.formErr)return '';
+      const supported=id=>simple.has(id)&&!!MV[id];
+      const current=s.moves.filter(id=>MV[id]);
+      // Do not claim an improvement if an existing attack is outside the evaluated subset.
+      if(!current.length||current.some(id=>!supported(id)))return '';
+      const candidates=[...new Set(ls.filter(supported))].filter(id=>!s.moves.includes(id));
+      const locked=s.moves.filter(id=>!MV[id]||mvObj(id).pri>0);
+      const stab=new Set(current.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)));
+      const cache=new Map(),opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+      const measure=(id,op)=>{
+        const k=id+'|'+op.p.no;if(cache.has(k))return cache.get(k);
+        const m=mvObj(id);let v=null;
+        if(!me.formErr&&!op.formErr&&!m.prot&&!(m.maxH>1)&&moveUsable(m,{a:me,d:op}).ok&&![me,op].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item))&&!(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(op.ab)&&me.ab!=='mold-breaker')){
+          const rolls=dmgRolls(me,m,op,opt),raw=rolls.dist?rolls.dist.map(x=>x[0]):rolls,acc=accOf(me,m,op);
+          if(raw.length&&raw.every(Number.isFinite)&&Number.isFinite(acc))v={id,lo:Math.min(...raw),hi:Math.max(...raw),acc,hp:op.max};
+        }
+        cache.set(k,v);return v;
+      };
+      const evaluate=ids=>{
+        if(ids.length!==4||new Set(ids).size!==4||!ids.every(id=>ls.includes(id)&&(MD[id]||MV[id]))||!locked.every(id=>ids.includes(id)))return null;
+        const atk=ids.filter(id=>MV[id]);if(![...stab].every(t=>atk.some(id=>mvObj(id).t===t)))return null;
+        const rows=opponents.map(op=>{
+          const all=atk.map(id=>measure(id,op));if(all.some(x=>!x))return null;
+          return all.sort((a,b)=>Math.min(1,b.lo/b.hp)*b.acc-Math.min(1,a.lo/a.hp)*a.acc||b.lo/b.hp-a.lo/a.hp||a.id-b.id)[0];
+        });
+        if(rows.some(x=>!x))return null;
+        return rows;
+      };
+      const baseline=evaluate(s.moves);if(!baseline)return '';
+      const value=x=>Math.min(1,x.lo/x.hp)*x.acc/100;
+      const options=[];
+      for(const from of current.filter(id=>!locked.includes(id)))for(const to of candidates){
+        const ids=s.moves.map(id=>id===from?to:id),rows=evaluate(ids);if(!rows)continue;
+        const gain=rows.map((x,i)=>value(x)-value(baseline[i]));
+        if(!gain.some(v=>v>1e-9)||gain.some(v=>v< -1e-9))continue;
+        options.push({from,to,ids,rows,gain:gain.reduce((a,b)=>a+b,0)});
+      }
+      options.sort((a,b)=>b.gain-a.gain||a.to-b.to||a.from-b.from);
+      const best=options.slice(0,3);
+      return '<details class="gset-alt"><summary>技構成の比較・入れ替え候補</summary><p class="vcap">積み技・補助技・現在の先制技・一致技のタイプは維持。習得可能な検証対象の攻撃技を1枠ずつ交換し、比較相手全員に対する最小ダメージと命中率を評価します。</p>'+(best.length?best.map(x=>'<div class="gdoc"><b>'+esc(mName(x.from))+' → '+esc(mName(x.to))+'</b><p>技構成：'+x.ids.map(id=>esc(mName(id))).join('・')+'</p>'+x.rows.map((y,i)=>'<p>'+esc(opponents[i].p.n)+'：'+esc(mName(baseline[i].id))+' '+baseline[i].lo+'〜'+baseline[i].hi+' → '+esc(mName(y.id))+' '+y.lo+'〜'+y.hi+' / '+y.hp+' HP（命中 '+baseline[i].acc+' → '+y.acc+'%）</p>').join('')+'</div>').join(''):'<p>今回の条件と検証対象技の範囲では、全比較相手への評価を維持しながら改善する1枠交換は見つかりませんでした。</p>')+'<p class="vcap">満タン・ランク0・非急所・天候なし・固定育成。命中率を考慮した最小ダメージの比較で、勝率や確定数そのものではありません。反動・追加効果・交代・複数ターンの価値は別途検証が必要です。</p></details>';
+    };
     const sw=B.weather;B.weather=null;
     try{
       const me=build(p,s,'me');if(me.formErr)return '';
+      const opponents=[];
       const sections=fixtures.filter(x=>x.no!==p.no).map(x=>{
         const q=byNo[x.no],ls=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
         if(!q||!abs.some(z=>z[0]===x.ab)||!x.moves.every(id=>ls.includes(id)&&MV[id]))return '';
         const op=build(q,{...x,item:null},'op');
+        if(!op.formErr)opponents.push(op);
         const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
         const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
         if(!out.length&&!inc.length)return '';
         return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+berryPlan(me,op)+itemPlans(me,op)+'</details>';
       }).join('');
-      return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
+      return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+movePlans(me,opponents)+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
   };
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
