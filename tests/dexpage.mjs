@@ -200,16 +200,17 @@ ok(megaRows.some(x=>x.status==='evaluated')&&megaRows.every(x=>x.status!=='mega 
 // Keep excluded formats distinct from evaluated single-battle builds.
 const DC=await pg.evaluate(()=>[...new Map([...P,...MEGAP].map(p=>[p.no,p])).values()].map(p=>{
   try {
-    const g=monGuide(p,{parts:true,auditCoverage:true});
+    const reports=[],g=monGuide(p,{parts:true,auditCoverage:true,auditDouble:r=>reports.push(r)});
     const s=g.sets.find(x=>x.fmt==='double'&&!x.live&&!x.usage);
     if(!s)return {no:p.no,name:p.n,status:'no local double build'};
     const h=g.auditBenchmark(s);
-    return {no:p.no,name:p.n,status:h===''?'double benchmark unavailable':'unexpected double benchmark',moves:s.moves,ab:s.ab,item:s.item};
+    const rows=reports[0]?.rows||[],invalid=rows.some(r=>r.one.length!==2||r.many.length!==2||r.one.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(r.many[i])||(r.tg?r.many[i]>v:r.many[i]!==v)));
+    return {no:p.no,name:p.n,status:!h.includes('ダブル：攻撃対象別の計算例')||!h.includes('ダブルの統合最適化は未対応')||invalid?'invalid double benchmark':rows.length?'double damage benchmark':'no supported double attacks',rows:rows.length,spread:rows.filter(r=>r.tg&&r.many.some((v,i)=>v<r.one[i])).length,moves:s.moves,ab:s.ab,item:s.item};
   }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
 }));
 const DCS={total:DC.length,counts:DC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:DC};
 console.log('double integrated coverage '+JSON.stringify(DCS));
-ok(DC.length===selectable.length&&DC.every(x=>x.status==='double benchmark unavailable'),'ダブル統合比較：未対応範囲を明示 '+JSON.stringify(DCS.counts));
+ok(DC.length===selectable.length&&DC.every(x=>['double damage benchmark','no supported double attacks','no local double build'].includes(x.status))&&DC.some(x=>x.spread>0),'ダブル：対象数補正・単体技不変・未対応範囲 '+JSON.stringify(DCS.counts));
 // An evaluated report and a deliberately skipped build are different outcomes.
 const reasonCounts=IC.filter(x=>x.status!=='evaluated').reduce((a,x)=>{
   const reason=x.baselineFailure?.reason||x.status;
