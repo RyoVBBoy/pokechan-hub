@@ -394,6 +394,12 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DCP=await pg.evaluate(()=>{
+  const groups=[[{id:1,one:100,many:75,order:[1]},{id:2,one:10,many:10,order:[0]}],[{id:1,one:10,many:10,order:[0]},{id:2,one:100,many:75,order:[1]}]];
+  const free=reviewedDoubleChoiceProfiles(groups,false),locked=reviewedDoubleChoiceProfiles(groups,true);
+  return {ids:locked?.map(v=>v.id),freeWins:reviewedDoublePolicyDominance(locked,free),lockedWins:reviewedDoublePolicyDominance(free,locked)};
+});
+ok(JSON.stringify(DCP.ids)==='[1,2]'&&DCP.freeWins&&!DCP.lockedWins,'ダブルこだわり固定技の比較 '+JSON.stringify(DCP));
 const DAS=await pg.evaluate(()=>{
   const a=[{one:100,many:75,order:[-1,1]},{one:20,many:20,order:[1,0]}];
   const b=[{one:100,many:75,order:[1,1]}];

@@ -973,6 +973,46 @@ function reviewedDoubleActionScores(attacks){
   }
   return scores;
 }
+// Fixed move across benchmark conditions; flexible builds may choose per condition.
+function reviewedDoubleChoiceProfiles(groups,choice){
+  if(!Array.isArray(groups)||!groups.length||groups.some(g=>!Array.isArray(g)||!g.length||g.some(v=>!Number.isInteger(v.id))||new Set(g.map(v=>v.id)).size!==g.length))return null;
+  const profiles=[];
+  for(const id of choice?groups[0].map(v=>v.id):[null]){
+    const scores=[];
+    for(const group of groups){
+      const v=reviewedDoubleActionScores(id===null?group:group.filter(v=>v.id===id));
+      if(!v)return null;
+      scores.push(...v);
+    }
+    profiles.push({id,scores});
+  }
+  return profiles;
+}
+function reviewedDoublePolicyDominance(base,next){
+  if(!Array.isArray(base)||!base.length||!Array.isArray(next)||!next.length)return false;
+  const len=base[0].scores?.length;
+  if(!len||[...base,...next].some(v=>!Array.isArray(v.scores)||v.scores.length!==len||!v.scores.every(Number.isFinite)))return false;
+  return base.every(a=>next.some(b=>b.scores.every((v,i)=>v>=a.scores[i])));
+}
+function reviewedDoublePolicySearch(original,candidates,legal,evaluate,limit=48){
+  if(!Number.isInteger(limit)||limit<1||limit>128||!legal(original))return null;
+  const baseline=evaluate(original);if(!reviewedDoublePolicyDominance(baseline,baseline))return null;
+  const key=x=>JSON.stringify([x.moves,x.item,x.sp]),seen=new Set([key(original)]),best=[];
+  let attempts=1,accepted=0;
+  for(const x of candidates){
+    if(attempts>=limit)break;
+    const k=key(x);if(seen.has(k)||!legal(x))continue;
+    seen.add(k);attempts++;
+    const profiles=evaluate(x);
+    if(!reviewedDoublePolicyDominance(profiles,profiles))continue;
+    accepted++;
+    if(!reviewedDoublePolicyDominance(baseline,profiles)||reviewedDoublePolicyDominance(profiles,baseline))continue;
+    if(best.some(v=>reviewedDoublePolicyDominance(profiles,v.profiles)))continue;
+    for(let i=best.length-1;i>=0;i--)if(reviewedDoublePolicyDominance(best[i].profiles,profiles))best.splice(i,1);
+    best.push({x,profiles});
+  }
+  return {baseline,attempts,accepted,best:best.slice(0,3)};
+}
 function reviewedDoubleSearch(original,candidates,legal,evaluate,limit=64){
   if(!Number.isInteger(limit)||limit<1||limit>128||!legal(original))return null;
   const valid=x=>Array.isArray(x)&&x.length>0&&x.every(Number.isFinite);
