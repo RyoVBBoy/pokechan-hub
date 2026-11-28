@@ -121,6 +121,48 @@ const brWhy=(p,r,F,tHold)=>{const n=(F||p).n,pc=v=>v>=100?'一撃で倒せる':`
   return `${brFirst(r)}${r.mv?'「'+esc(r.mv)+'」で':''}${pc(r.my)}${r.my>=100?brHoldTxt(n,tHold):''}。${n}からは${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒されるほど受けるが、先に動けば間に合う':'最大'+Math.round(r.their)+'%'}。`};
 /* 崩す方法の一覧（番号は手順ではなく、別々の崩し方。2026/11/17 依頼主：「手順」→「方法」）（図鑑のタブと静的ページ counter/ で共通） */
 const brStepsHTML=B=>`<h3>崩す方法</h3><ol class="gtips">${B.steps.map(x=>`<li><b>${x.h}</b>${Array.isArray(x.t)?`<ul>${x.t.map(y=>`<li>${y}</li>`).join('')}</ul>`:'：'+x.t}</li>`).join('')}</ol>`;
+// A fixed target is required in addition to the generic double benchmark.
+// Do not call this a full double-battle counter or a guaranteed KO.
+function brJointDominates(a,b){
+  if(!a||!b||a.me?.acc!==100||b.me?.acc!==100||!a.op||!b.op)return false;
+  const rank={no:0,sash:0,survive:1,unproven:0,sashwin:1,win:2};
+  if(!Object.hasOwn(rank,a.swIn)||!Object.hasOwn(rank,b.swIn))return false;
+  const x=[a.r,-a.myN,a.opW,a.first,rank[a.swIn],a.me.fmin,-a.op.fmax];
+  const y=[b.r,-b.myN,b.opW,b.first,rank[b.swIn],b.me.fmin,-b.op.fmax];
+  return x.every(Number.isFinite)&&y.every(Number.isFinite)&&y.every((v,j)=>v>=x[j])&&y.some((v,j)=>v>x[j]);
+}
+function brJointPlans(p,report){
+  if(typeof FMT==='undefined'||FMT!=='double'||typeof dgMatch0!=='function')return [];
+  const target=mkMon(p,'op',report.set);if(target.formErr)return [];
+  const out=[],seen=new Set();
+  // Isolate the fixed matchup from the currently selected party/weather.
+  return impWith([],()=>{
+    const prior=DG_TR,weather=B.weather;DG_TR=false;B.weather=null;
+    try{
+      for(const r of [...report.c.ohko,...report.c.strong,...report.c.wall]){
+        if(seen.size>=4)break;
+        const q=r.from||r.q;if(!q||q.base||seen.has(q.no))continue;seen.add(q.no);
+        try{
+          const set=detSet(q),m=mkMon(q,'me',set);
+          if(m.formErr||m.p.no!==q.no||isStone(m.item)||!Array.isArray(set.sp)||set.moves?.length!==4)continue;
+          if([m,target].some(v=>CALC_UNIMPL.includes(v.ab)||CALC_UNVERIFIED[v.ab]||CALC_UNIMPL_IT.includes(v.item)||v.uncalc?.length))continue;
+          const original={fmt:'double',ab:m.ab,item:m.item,moves:set.moves.map(v=>typeof v==='number'?v:v.id),sp:set.sp.slice(),up:set.up,dn:set.dn};
+          const base=impSaved(q.no,original),R=monGuide(q,{jointOnly:original,noAxis:true,jointLimit:12});
+          if(!R?.best?.length)continue;
+          const before=dgMatch(m,target);
+          for(const v of R.best){
+            const sv=impJointSaved(q.no,base,v.x,new Set());if(!sv)continue;
+            const next=mkMon(q,'me',{...v.x,moves:v.x.moves.filter(id=>MV[id]).map(mvObj)});
+            if(next.formErr||next.p.no!==m.p.no)continue;
+            const after=dgMatch(next,target);if(!brJointDominates(before,after))continue;
+            out.push({q,sv,before,after});break;
+          }
+        }catch(e){/* no verified candidate for this species */}
+      }
+      return out;
+    }finally{DG_TR=prior;B.weather=weather}
+  });
+}
 function breakHTML(p){
   let B;try{B=breakSteps(p)}catch(e){const w=/^form:/.test(e&&e.message||'')&&FORM_WHY[e.message.slice(5)];return `<p class="empty">${w?esc(w)+'。':'計算できませんでした。'}</p>`}
   const {c}=B,s=B.set,F=B.form||p,href=q=>`#/p/${q.no}`;
@@ -128,6 +170,8 @@ function breakHTML(p){
   const rows=(a,f)=>a.length?a.slice(0,5).map(r=>`<a class="row" href="${href(r.q)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s" style="white-space:normal">${f(r)}</div></div><span class="chev">${SVG(I.chev,18)}</span></a>`).join(''):'<p class="note" style="padding-top:0">当てはまるポケモンは見つかりませんでした。</p>';
   const sec=(h,sub,a,f)=>`<div class="sec"><h2>${h}</h2></div><p class="note" style="padding-top:0">${sub}</p>${rows(a,f)}`;
   const n=F.n,cs=counters(p.t).filter(q=>q.no!==p.no).slice(0,12);
+  let joint=[];try{joint=brJointPlans(p,B)}catch(e){}
+  const jointHTML=joint.length?'<details class="gdoc"><summary>ダブル：対策用の育成比較</summary><p class="note">固定の相手1体との対面評価も改善した理論案です。実際のダブルの勝率・交代の安全性は保証しません。</p>'+joint.map(v=>'<h3>'+esc(v.q.n)+'</h3><p>'+esc(ITEMN[v.sv.it.k])+'／'+esc(v.sv.mv.map(m=>m.n).join('・'))+'／'+esc(v.sv.sp.map((n,i)=>SN[i]+n).join('・'))+'</p><p>こちらの最小ダメージ '+Math.round(v.before.me.fmin)+'% → '+Math.round(v.after.me.fmin)+'%／相手の最大ダメージ '+Math.round(v.before.op.fmax)+'% → '+Math.round(v.after.op.fmax)+'%</p>').join('')+'</details>':'';
   return `<div class="gdoc"><h2>${esc(n)}の崩し方</h2><p>${B.lead}</p>
     ${brStepsHTML(B)}
     <p class="note" style="padding:8px 0 0">計算の前提：${F!==p?`${esc(p.n)}の型はメガストーンを持つので、${esc(n)}の姿で計算しています。`:''}${c.note?esc(c.note):''}${[B.form,...[...c.ohko,...c.strong,...c.wall,...c.threat].map(r=>r.q)].some(q=>q&&[...(q.mega?[q.ab]:(ABD[q.no]||[]).map(a=>a[0]))].some(a=>a==='protean'||a==='libero'))?PROTEAN_ASSUME:''}${esc(n)}は${esc(B.kind.t)}（${esc(setTxt)||'—'}）。1人が実際に使った型ではありません。こちらは合計種族値の高いポケモンとメガシンカの姿を、それぞれ同じ決め方の型（集計があれば集計から組み合わせた推定、なければ当サイトの提案）で計算しています。乱数・急所・育成の違いで結果は変わります。</p></div>
@@ -135,6 +179,7 @@ function breakHTML(p){
   ${sec('強く出られる',`半分以上削れて、${esc(n)}からは半分未満しか受けない相手です。`,c.strong,r=>brWhy(p,r,F,c.tHold))}
   ${sec('受けてから返せる',`${esc(n)}の攻撃が35%未満しか入らないので、交代で受けてから反撃できる相手です。`,c.wall,r=>`${esc(n)}の攻撃は最大${Math.round(r.their)}%${r.tmv?'（'+esc(r.tmv)+'）':''}。こちらの${r.mv?'「'+esc(r.mv)+'」':'攻撃'}は${r.my>=100?'一撃で倒せる':'最大'+Math.round(r.my)+'%'}。`)}
   ${sec('出すと危ない',`${esc(n)}から半分以上受けて、こちらは3割未満しか削れない相手です。${esc(n)}が見えたら、出すのを考え直しましょう。`,c.threat,r=>`${esc(n)}の${r.tmv?'「'+esc(r.tmv)+'」で':''}${r.their>=100?'一撃で倒される'+(r.mHold&&r.mHold.length?`（こちらの型は${r.mHold.join('・')}を持つので、HPが満タンなら1回は耐えられる。この計算には入れていない）`:''):'最大'+Math.round(r.their)+'%'}。こちらは最大${Math.round(r.my)}%。`)}
+  ${jointHTML}
   <div class="btns" style="flex-wrap:wrap"><a class="btn btn-s" href="#/calc">自分の育成でダメージ計算</a><a class="btn btn-s" href="#/memo/${p.base||p.no}">戦術メモに書く</a></div>
   <details class="gdoc"><summary>タイプ一致で弱点を突けるポケモン（合計種族値の高い順）</summary>${cs.map(q=>rowP(q)).join('')||'<p class="empty">該当するポケモンがいません。</p>'}</details>`;
 }

@@ -100,6 +100,11 @@ const FSW=await pg.evaluate(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms
   document.querySelector('#seg [data-i="3"]').click();await w(300);const a=document.querySelector('.fam-pills a[href="#/p/10058"]');a.click();await w(500);out.push(tab());return out});
 ok(FSW.slice(0,5).every(t=>t==="0")&&FSW[5]==="3","姿を切りかえても開いていたタブのまま "+FSW.join(','));
 /* 2026/11/17 依頼主：対策の番号は別々の崩し方なので「崩す手順」ではなく「崩す方法」。全部の姿で「手順」と書かない */
+const CJ=await pg.evaluate(()=>{
+ const a={r:3,myN:2,opW:3,first:1,swIn:'survive',me:{acc:100,fmin:55},op:{fmax:40}};
+ return {same:!brJointDominates(a,a),better:brJointDominates(a,{...a,myN:1,me:{acc:100,fmin:100}}),loss:!brJointDominates(a,{...a,myN:1,op:{fmax:41}}),accuracy:!brJointDominates(a,{...a,myN:1,me:{acc:90,fmin:100}})};
+});
+ok(CJ.same&&CJ.better&&CJ.loss&&CJ.accuracy,'対策用育成の採用条件 '+JSON.stringify(CJ));
 const BRW=await pg.evaluate(()=>{const bad=[],noH=[];[...P,...MEGAP].forEach(p=>{let h='';try{h=breakHTML(p)}catch(e){return}
   if(/手順/.test(h))bad.push(p.n);if(!/<h3>崩す方法<\/h3>/.test(h)&&/<ol class="gtips">/.test(h))noH.push(p.n)});return{bad,noH}});
 ok(!BRW.bad.length&&!BRW.noH.length,'対策は「崩す方法」と書く（「手順」なし） '+JSON.stringify(BRW));

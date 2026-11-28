@@ -101,7 +101,7 @@ function impJointSaved(no,base,candidate,used){
   if(!p||!item||used.has(item)||!CH_ITEMS.has(item)||!ITEMN[item])return null;
   const old=base.it?.k;
   if((isStone(old)||isStone(item))&&old!==item)return null;
-  const learn=lsOf(no)||[];
+  const learn=lsOf(p)||[];
   if(candidate.moves.length!==4||new Set(candidate.moves).size!==4||candidate.moves.some(id=>!learn.includes(id)||(!MV[id]&&!MD[id])))return null;
   if(candidate.sp.length!==6||candidate.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||candidate.sp.reduce((a,b)=>a+b,0)>66||candidate.sp.reduce((a,b)=>a+b,0)!==base.sp.reduce((a,b)=>a+b,0))return null;
   if(candidate.ab!==base.ab?.k||candidate.up!==base.up||candidate.dn!==base.dn)return null;
