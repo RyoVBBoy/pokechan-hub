@@ -380,6 +380,26 @@ const DH=await pg.evaluate(()=>{
 });
 console.log('drain HP audit '+JSON.stringify({total:DH.rows.length,failed:DH.rows.filter(x=>x.error),localDataGaps:DH.gaps,guard:DH.guard}));
 ok(DH.rows.every(x=>!x.error)&&DH.guard,'吸収技のHP回復・上限・端数・入力検証 '+JSON.stringify(DH.rows.filter(x=>x.error)));
+const SU=await pg.evaluate(()=>{
+  const specs={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1}};
+  const rows=[];
+  for(const [id,delta] of Object.entries(specs))for(const stage of [-6,-5,-1,0,1,5,6])for(const ab of ['multiscale','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof'])for(const item of ['lifeorb','leftovers']){
+    const a={hp:167,max:167,ab,item,stg:Object.fromEntries(['atk','def','spa','spd','spe'].map(k=>[k,stage]))},before=JSON.stringify(a);
+    const x=reviewedSetupState(a,Number(id),{ab:'rough-skin'});
+    const expected={...a.stg};for(const [k,v] of Object.entries(delta))expected[k]=Math.max(-6,Math.min(6,stage+v));
+    const changed=Object.keys(delta).some(k=>expected[k]!==stage);
+    rows.push({id,stage,ab,item,error:JSON.stringify(a)!==before||(changed?(!x||x.hp!==a.hp||x.item!==item||JSON.stringify(x.stg)!==JSON.stringify(expected)||x.stg===a.stg):x!==null)});
+  }
+  for(const max of [1,159,160,167,168])for(const hp of [...new Set([1,Math.max(1,Math.floor(max/2)),Math.ceil(max/2),max])])for(const atk of [-6,0,5,6])for(const item of ['sitrusberry','leftovers'])for(const opp of ['unnerve','rough-skin']){
+    const a={hp,max,ab:'thick-fat',item,stg:{atk,def:0,spa:0,spd:0,spe:0}},x=reviewedSetupState(a,187,{ab:opp});
+    const fail=hp<=max/2||atk===6||max===1;
+    let h=hp-Math.floor(max/2),it=item;if(item==='sitrusberry'&&h<=Math.floor(max/2)&&opp!=='unnerve'){h=Math.min(max,h+Math.floor(max/4));it=null}
+    rows.push({id:187,max,hp,atk,item,opp,error:fail?x!==null:(!x||x.hp!==h||x.item!==it||x.stg.atk!==6)});
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error)};
+});
+console.log('shared setup audit '+JSON.stringify(SU));
+ok(!SU.failed.length,'共通積み技：ランク加算・上限・持ち物・HP条件 '+JSON.stringify(SU.failed));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));

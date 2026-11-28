@@ -474,19 +474,8 @@ function monGuide(p,o={}){
     // One successful setup from full HP and stage zero; no opposing action is simulated.
     // Unsupported ability/item interactions are excluded rather than guessed.
     const setupState=(me,id,op)=>{
-      const stages={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1},187:{atk:6}}[id];
-      if(!stages||!s.moves.includes(id)||!ls.includes(id)||!MD[id])return null;
-      if(!['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body'].includes(me.ab))return null;
-      if(![null,'lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses'].includes(me.item))return null;
-      const a={...me,stg:{...me.stg,...stages}};
-      if(id===187){
-        const cost=Math.floor(a.max/2);if(a.hp<=cost)return null;
-        a.hp-=cost;
-        if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)&&op.ab!=='unnerve'){
-          a.hp=Math.min(a.max,a.hp+Math.floor(a.max/4));a.item=null;
-        }
-      }
-      return a;
+      if(!s.moves.includes(id)||!ls.includes(id)||!MD[id])return null;
+      return reviewedSetupState(me,id,op);
     };
     // Exhaust the HP/physical/special bulk split while keeping both attacks and speed fixed.
     // Compare the actual post-setup HP and one-hit margins, not the HP parity alone.

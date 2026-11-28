@@ -772,6 +772,29 @@ function reviewedDrainAfterHit(a,mv,dealt,d){
   if(dealt&&a.hp)out.hp=Math.min(a.max,a.hp+Math.round(dealt*ratio[0]/ratio[1]));
   return out;
 }
+/* Successful isolated setup action, before incoming hits or residual effects.
+   Reference: Showdown e7f50cd data/moves.ts. No entry effects or turn end.
+   Caller validates learnset, selected move, format and action legality.
+   Keep the ability/item scope explicit; expand only after separate review. */
+const REVIEWED_SETUP={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1},187:{atk:6}};
+const REVIEWED_SETUP_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof']);
+function reviewedSetupState(me,id,op){
+  const stages=REVIEWED_SETUP[id];
+  if(!stages||!op||!REVIEWED_SETUP_AB.has(me.ab)||![null,'lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses','leftovers'].includes(me.item))return null;
+  if(!Number.isInteger(me.hp)||!Number.isInteger(me.max)||me.hp<1||me.hp>me.max||!me.stg||['atk','def','spa','spd','spe'].some(k=>!Number.isInteger(me.stg[k])||Math.abs(me.stg[k])>6))return null;
+  const a={...me,stg:{...me.stg}};
+  if(id===187){
+    if(a.hp<=a.max/2||a.stg.atk>=6||a.max===1)return null;
+    a.hp-=Math.floor(a.max/2);a.stg.atk=6;
+    if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)&&op.ab!=='unnerve'){
+      a.hp=Math.min(a.max,a.hp+Math.floor(a.max/4));a.item=null;
+    }
+  }else{
+    for(const [k,v] of Object.entries(stages))a.stg[k]=Math.max(-6,Math.min(6,a.stg[k]+v));
+    if(Object.keys(stages).every(k=>a.stg[k]===me.stg[k]))return null;
+  }
+  return a;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
