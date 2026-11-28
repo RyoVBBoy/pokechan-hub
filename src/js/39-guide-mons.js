@@ -282,16 +282,22 @@ function monGuide(p,o={}){
       double:'味方と2匹で同じ相手を狙い、1ターンに1匹ずつ倒していく役。',dsup:'相手の攻撃を自分に集めて、味方を守る役。'}[s.k]||'';
     return base+(pv.length?`不利な相手の前では${esc(mName(pv[0]))}で交代し、有利な味方につなぐ。`:'')+(pr.length?`${esc(mName(pr[0]))}で、削れた相手に先にとどめを刺せる。`:'')+(s.item==='focussash'?'きあいのタスキはHP満タン時に一撃を耐えるための持ち物。連続技などには注意。':'')};
   const hardOf=s=>{try{
+    // Legacy estimates are midpoint samples, not maximum damage or matchup verdicts.
+    // Only use ordinary single-battle forms; do not mix Mega stones or battle-only forms.
+    if(s.fmt!=='single'||base)return null;
     const me=mkMon(p,'me',{ab:s.ab,item:s.item,moves:s.moves.filter(id=>MV[id]).map(mvObj),sp:s.sp,up:s.up,dn:s.dn});
-    const rows=gmOpps().filter(q=>q.no!==p.no&&q.no!==(base&&base.no)).map(q=>{const op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));const a=estHit(me,op),b=estHit(op,me);
-      return{q,my:a.pct,their:b.pct,mv:a.mv,resist:!!a.mv&&mult(a.mv.t,q.t)<1}});
+    if(me.formErr||me.disg||CALC_UNIMPL.includes(me.ab)||CALC_UNVERIFIED[me.ab]||CALC_UNIMPL_IT.includes(me.item))return null;
+    const rows=gmOpps().filter(q=>q.no!==p.no&&!q.base&&!q.mega).map(q=>{
+      const op=mkMon(q,'op',detSet(q));
+      if(op.formErr||op.disg||op.p.no!==q.no||CALC_UNIMPL.includes(op.ab)||CALC_UNVERIFIED[op.ab]||CALC_UNIMPL_IT.includes(op.item))return null;
+      const a=estHit(me,op),b=estHit(op,me);
+      if(!a.mv||!b.mv||!Number.isFinite(a.pct)||!Number.isFinite(b.pct))return null;
+      return{q,my:a.pct,their:b.pct,mv:a.mv};
+    }).filter(Boolean);
     const bad=rows.filter(r=>r.my<45&&r.their>=35).sort((x,y)=>(y.their-y.my)-(x.their-x.my)).slice(0,3);
     if(!bad.length)return null;
-    const res=bad.filter(r=>r.resist).length>=2,top=s.moves.filter(id=>MV[id]&&p.t.includes(MV[id][1]))[0];
-    const head=res&&top?`${MV[top][1]}技を半減以下で受けるポケモン`:'耐久が高く、ダメージが通りにくいポケモン';
-    const why=res&&top?`この型のいちばんの攻撃手段である${mName(top)}を半減以下で受けられ、ほかの技でも大きなダメージを与えにくい。相手の攻撃は受けきれないので、対面したら有利な味方に交代する。`
-      :'この型の技では大きなダメージを与えにくく、相手からはしっかりダメージを受ける。対面したら無理に戦わず、有利な味方に交代する。';
-    return{head,why,bad}}catch(e){return null}};
+    return{head:'攻撃が通りにくい対面の計算例',why:'固定育成どうしの中間乱数付近の概算です。相手の実際の育成、行動順、積み技、交代などによって結果は変わります。',bad};
+  }catch(e){return null}};
   /* Reusable allocation evidence: compare actual stats against the same nature and zero AP.
      Speed comparisons deliberately use explicit opponent assumptions, not usage claims. */
   /* Search the exact legal AP range, including nature rounding plateaus.
@@ -692,7 +698,7 @@ function monGuide(p,o={}){
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
         :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
       ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
-      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は合計種族値の高いポケモンとメガシンカの姿を、${SET_MIX}で計算（当サイトのダメージ計算・乱数の真ん中あたり）。</p>':''}`:''}
+      ${hard?`<h4>注意したい対面の計算例</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの攻撃 約${Math.round(r.my)}%・相手の攻撃 約${Math.round(r.their)}%</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は比較用の通常の姿と固定育成。中間乱数付近の概算で、最大値・確定数・勝敗ではありません。</p>':''}`:''}
       ${o.parts?`<div class="btns" style="padding:10px 0 0"><button class="btn btn-s" data-useset="${i}">この型をパーティに入れる</button></div>`:''}
       </div>`};
   /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */
