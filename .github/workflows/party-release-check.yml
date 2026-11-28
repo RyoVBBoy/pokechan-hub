@@ -4,6 +4,10 @@ on:
     branches: [main]
   push:
     branches: [release/party-check-20261126, release/party-check-integration-20261126]
+# Only superseded runs of this same verification workflow and PR/ref are cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
