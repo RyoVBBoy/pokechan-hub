@@ -380,6 +380,22 @@ const DH=await pg.evaluate(()=>{
 });
 console.log('drain HP audit '+JSON.stringify({total:DH.rows.length,failed:DH.rows.filter(x=>x.error),localDataGaps:DH.gaps,guard:DH.guard}));
 ok(DH.rows.every(x=>!x.error)&&DH.guard,'吸収技のHP回復・上限・端数・入力検証 '+JSON.stringify(DH.rows.filter(x=>x.error)));
+const RH=await pg.evaluate(()=>{
+  const rows=[],availability=[];
+  for(const id of [105,303,135,208,456]){
+    availability.push({id,present:!!MD[id]&&!MV[id]});
+    for(const max of [1,2,9,10,159,160,167,168,201])for(const hp of [...new Set([0,1,Math.floor(max/2),Math.max(0,max-1),max])])for(const canAct of [false,true]){
+      const a={hp,max,stg:{atk:1,def:0,spa:0,spd:0,spe:0}},before=JSON.stringify(a),out=reviewedDirectHeal(a,id,canAct);
+      const expected=canAct&&hp>0?Math.min(max,hp+Math.floor((max+1)/2)):hp;
+      rows.push({id,max,hp,canAct,error:!out||out.hp!==expected||JSON.stringify(a)!==before||out.stg===a.stg});
+    }
+  }
+  const a={hp:50,max:101,stg:{}};
+  const guards=[355,659,235,236,234,156,273,89].every(id=>reviewedDirectHeal(a,id,true)===null)&&reviewedDirectHeal({...a,healblock:true},105,true)===null&&reviewedDirectHeal({...a,hp:102},105,true)===null&&reviewedDirectHeal(a,105,'yes')===null;
+  return {rows,availability,guards};
+});
+console.log('direct heal audit '+JSON.stringify({total:RH.rows.length,failed:RH.rows.filter(x=>x.error),availability:RH.availability,guards:RH.guards}));
+ok(RH.rows.every(x=>!x.error)&&RH.guards,'通常回復技：最大HP・端数・行動可否・入力検証 '+JSON.stringify(RH.rows.filter(x=>x.error)));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));

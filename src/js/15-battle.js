@@ -772,6 +772,19 @@ function reviewedDrainAfterHit(a,mv,dealt,d){
   if(dealt&&a.hp)out.hp=Math.min(a.max,a.hp+Math.round(dealt*ratio[0]/ratio[1]));
   return out;
 }
+/* Reference e7f50cd data/moves.ts and sim/battle-actions.ts.
+   Plain immediate self-heal only. Roost, weather, sleep, delayed recovery,
+   PP, action denial, Heal Block and post-action effects are separate.
+   Caller must establish that the move may legally be used in this state. */
+const REVIEWED_DIRECT_HEAL=new Set([105,303,135,208,456]);
+function reviewedDirectHeal(a,id,canAct){
+  if(!REVIEWED_DIRECT_HEAL.has(id)||typeof canAct!=='boolean'||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  if(a.healblock||a.volatiles?.healblock)return null;
+  const out={...a,stg:{...a.stg}};
+  if(!canAct||a.hp===0||a.hp===a.max)return out;
+  out.hp=Math.min(a.max,a.hp+Math.round(a.max/2));
+  return out;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
