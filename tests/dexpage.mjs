@@ -271,6 +271,30 @@ const HR=await pg.evaluate(()=>{
   }
   return rows;
 });
+/* Variable hit count mixtures: use fixed-count replay as a reference for the independent count weights. */
+const HM=await pg.evaluate(()=>{
+  const mk=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445,'rough-skin',null),d=mk(184,'huge-power',null);
+  const opt={format:'single',spread:false,crit:false,protean:true};
+  const rows=[];
+  for(const id of [31,42,198,292,331,333,350,541,594,813]){
+    const m=mvObj(id);
+    for(const ab of ['rough-skin','skill-link']){
+      const aa={...a,ab};
+      const t=performance.now(),actual=hitRemainingDist(aa,m,d,opt),ms=performance.now()-t;
+      const expected=new Map(),p=accOf(aa,m,d)/100;
+      const weights=ab==='skill-link'?[[m.maxH,1]]:id===813?[[1,1-p],[2,p*(1-p)],[3,p*p]]:[[2,.35],[3,.35],[4,.15],[5,.15]];
+      for(const [n,w] of weights.filter(x=>x[1]>0)){
+        for(const [hp,q] of hitRemainingDist(aa,m,d,{...opt,hits:n}))expected.set(hp,(expected.get(hp)||0)+w*q);
+      }
+      const error=actual.length!==expected.size||actual.some(([hp,q])=>!expected.has(hp)||Math.abs(expected.get(hp)-q)>1e-9)||Math.abs(actual.reduce((t,x)=>t+x[1],0)-1)>1e-9;
+      rows.push({id,ab,error,states:actual.length,ms:Math.round(ms*100)/100});
+    }
+  }
+  return rows;
+});
+console.log('variable hit audit '+JSON.stringify(HM));
+ok(HM.every(x=>!x.error),'連続技の攻撃回数分布・スキルリンク・追加命中判定 '+JSON.stringify(HM));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
