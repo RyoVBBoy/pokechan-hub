@@ -131,7 +131,7 @@ const PA=await pg.evaluate(()=>{
 ok(PA.every(x=>x.legal&&x.moves&&x.allocation&&x.damage&&x.finite),'先行育成例：合法性・能力配分・火力耐久の根拠 '+JSON.stringify(PA));
 /* Audit actual generated integrated candidates, rather than only checking HTML. */
 const IA=await pg.evaluate(()=>{
-  return [149,184].map(no=>{
+  return [149,184,212,65].map(no=>{
     const p=byNo[no],reports=[],g=monGuide(p,{parts:true,auditIntegrated:x=>reports.push(x)}),i=g.sets.findIndex(s=>Array.isArray(s.refs));
     if(i<0)return {no,missing:true};
     const s=g.sets[i],t=performance.now(),h=g.setHTML(s,i),totalMs=performance.now()-t,r=reports[0];
@@ -146,6 +146,8 @@ const IA=await pg.evaluate(()=>{
         for(let j=0;j<r.opponents.length;j++){
           const op=r.opponents[j],row=v.rows[j],a=mkMon(p,'me',{...x,moves:x.moves.filter(id=>MV[id]).map(mvObj)});
           if(no===149){a.stg.atk=1;a.stg.spe=1}
+          if(no===212)a.stg.atk=2;
+          if(no===65)a.stg.spa=2;
           if(no===184){a.stg.atk=6;a.hp-=Math.floor(a.max/2);if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)){a.hp+=Math.floor(a.max/4);a.item=null}}
           const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
           const mv=mvObj(row.hit.id),rr=dmgRolls(a,mv,op,opt),raw=rr.dist?rr.dist.map(x=>x[0]):rr;
