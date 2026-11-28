@@ -676,7 +676,10 @@ function monGuide(p,o={}){
       for(const from of original.filter(id=>!locked.includes(id)))for(const to of ls.filter(id=>supported(id)&&!s.moves.includes(id)))variants.push(s.moves.map(id=>id===from?to:id));
       const rank=(a,b)=>Number(compare(b,baseline))-Number(compare(a,baseline))||Math.min(...b.rows.map(r=>r.quality))-Math.min(...a.rows.map(r=>r.quality))||Math.min(...b.rows.map(r=>r.margin))-Math.min(...a.rows.map(r=>r.margin));
       let beam=[];
-      for(const item of [...new Set([s.item,...items])])for(const moves of variants){
+      // Round-robin by move variant so every eligible held item is attempted
+      // before the search budget is exhausted by the first item.
+      const itemPool=[...new Set([s.item,...items])].filter(item=>Object.prototype.hasOwnProperty.call(ITEMN,item));
+      for(const moves of variants)for(const item of itemPool){
         if(attempts>=180)break;
         const v=evaluate({...s,item,moves,sp:[...s.sp]});if(v)beam.push(v);
       }
@@ -694,7 +697,7 @@ function monGuide(p,o={}){
         unique.sort(rank);beam=unique.slice(0,6);
       }
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
-      if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,opponents});
+      if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'</p>').join('')+'</div>';
       return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順を悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
