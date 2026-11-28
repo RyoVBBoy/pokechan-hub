@@ -509,7 +509,7 @@ function monGuide(p,o={}){
        Keep the original nature and moves, compare the same attack and defensive threats.
        Choice items are excluded from setup sets (move locking). */
     const itemPlans=(me,op)=>{
-      const setup=[349,187,14,417,483,504,347,339].find(id=>s.moves.includes(id));
+      const setup=Object.keys(REVIEWED_SETUP).map(Number).find(id=>s.moves.includes(id));
       const items=setup?['lifeorb','sitrusberry','leftovers','focussash']:['lifeorb','sitrusberry','leftovers','focussash','choiceband','choicespecs','choicescarf'];
       const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
       // Use unboosted single-turn damage bounds. No end-turn recovery or recoil is modeled here.
@@ -560,7 +560,7 @@ function monGuide(p,o={}){
       return '<details class="gset-alt"><summary>持ち物別の能力配分比較（通常時）</summary><p class="vcap">同じ相手・技・能力補正で比較。基準：'+esc(mName(target.id))+'の最小ダメージ'+baseline.b.lo+'、素早さ'+floorSpeed+'以上。各持ち物を個別に装備した候補で、条件を満たすものは耐久を優先。満たせない候補も区別して掲載します。</p>'+rows.map(x=>'<div class="gdoc"><b>'+esc(ITEMN[x.item])+'</b><p>'+x.sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+budget+'）</p><p>'+esc(mName(target.id))+' '+x.b.lo+'〜'+x.b.hi+' / '+op.max+' HP・受ける最大ダメージ '+x.worst+' / '+x.a.max+' HP・素早さ '+x.speed+'</p><p>'+ (x.meets?'基準の火力・素早さを維持':'基準未達：比較用候補')+(x.item==='focussash'?'／満タン時のタスキ発動はこの生ダメージ比較に含まない':x.item==='leftovers'?'／ターン終了時の回復は含まない':x.item==='sitrusberry'?'／被弾後の回復は含まない':x.item==='lifeorb'?'／攻撃後の反動は含まない':'')+'</p></div>').join('')+'<p class="vcap">限定した配分移動を2巡探索。全配分の最適解ではありません。通常時・非急所・満タン・天候なしの比較で、積み技後の状態や対戦全体の勝率は評価しません。</p></details>';
     };
     const setupHTML=(me,op)=>{
-      const sections=[349,187,14,417,483,504,347,339].map(id=>{
+      const sections=Object.keys(REVIEWED_SETUP).map(Number).map(id=>{
         const a=setupState(me,id,op);if(!a)return '';
         const outgoing=a.moves.map(m=>result(a,op,m)).filter(Boolean);
         const incoming=op.moves.map(m=>result(op,a,m)).filter(Boolean);
@@ -635,7 +635,7 @@ function monGuide(p,o={}){
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
       const stab=[...new Set(original.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
-      const setupIds=[349,187,14,417,483,504,347,339];
+      const setupIds=Object.keys(REVIEWED_SETUP).map(Number);
       const statusMoves=s.moves.filter(id=>!MV[id]);
       // One reviewed setup or direct recovery move; other status moves remain excluded.
       if(statusMoves.some(id=>!setupIds.includes(id)&&!REVIEWED_DIRECT_HEAL.has(id)))return skip('unsupported status move');
