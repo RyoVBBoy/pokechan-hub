@@ -927,7 +927,7 @@ function monGuide(p,o={}){
       // Knock Off is evaluated here only against fixtures without held items.
       // Fixed-power immediate single-hit attacks. Additional effects after the
       // hit are not evaluated by this one-use objective (see displayed limits).
-      const extraSimple=new Set([667,441,56,412,414,224,126,408,438,542,815,706,675,25,402,398,403,231,348,529,280,428,304,605,914,59,161,211,257,326,405]);
+      const extraSimple=new Set([667,441,56,412,414,224,126,408,438,542,815,706,675,25,402,398,403,231,348,529,280,428,304,605,914,59,161,211,257,326,405,44,34,309,330,503,539,836]);
       // Reviewed fixed-damage attacks: reuse bcalc immunity and current HP handling.
       const fixedSimple=new Set([69,101,162]);
       const statSimple=new Set([776,492,473,573]);
@@ -982,6 +982,13 @@ function monGuide(p,o={}){
         if(m.id===257&&(m.pow!==95||m.acc!==90||m.cls!==1||m.t!=='ほのお'||m.maxH!==1))return null;
         if(m.id===326&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='エスパー'||m.maxH!==1))return null;
         if(m.id===405&&(m.pow!==90||m.acc!==100||m.cls!==1||m.t!=='むし'||m.maxH!==1))return null;
+        if(m.id===44&&(m.pow!==60||m.acc!==100||m.cls!==0||m.t!=='あく'||m.maxH!==1))return null;
+        if(m.id===34&&(m.pow!==85||m.acc!==100||m.cls!==0||m.t!=='ノーマル'||m.maxH!==1))return null;
+        if(m.id===309&&(m.pow!==90||m.acc!==90||m.cls!==0||m.t!=='はがね'||m.maxH!==1))return null;
+        if(m.id===330&&(m.pow!==90||m.acc!==85||m.cls!==1||m.t!=='みず'||m.maxH!==1))return null;
+        if(m.id===503&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='みず'||m.maxH!==1))return null;
+        if(m.id===539&&(m.pow!==85||m.acc!==95||m.cls!==1||m.t!=='あく'||m.maxH!==1))return null;
+        if(m.id===836&&(m.pow!==100||m.acc!==85||m.cls!==0||m.t!=='こおり'||m.maxH!==1))return null;
         if((m.id===492&&!m.e?.fp)||(m.id===473&&!m.e?.ps))return null;
         if([484,535].includes(m.id)&&[a,d].some(x=>!((WT[x.p.no]||WT[x.p.base])>0)))return null;
         if([500,681].includes(m.id)&&m.pow!==20)return null;
