@@ -904,6 +904,32 @@ const WEATHER_ATTACK_AUDIT=await pg.evaluate(()=>{
 });
 console.log('weather attack audit '+JSON.stringify(WEATHER_ATTACK_AUDIT));
 ok(WEATHER_ATTACK_AUDIT.total===166&&!WEATHER_ATTACK_AUDIT.failures.length,'ぼうふう・ねっさのだいち：データ・天候・命中・ちからずく '+JSON.stringify(WEATHER_ATTACK_AUDIT));
+const PSYCHIC_FANGS_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
+  const m=mvObj(706),control=mvObj(337);
+  check('metadata',m.pow===85&&m.acc===100&&m.cls===0&&m.t==='エスパー'&&m.maxH===1);
+  check('contact and bite',mfl(m,'c')&&mfl(m,'b'));
+  check('not sheer force',!sfOn({ab:'sheer-force'},m));
+  const make=(no,moves)=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[0,32,0,0,0,32],up:1,dn:3,moves:moves.map(mvObj)});
+  const a=make(149,[706,337]),d=make(184,[89]),weather=B.weather;
+  try{
+    B.weather=null;
+    for(const format of ['single','double'])for(let r=85;r<=100;r++){
+      const opt={format,r,crit:false,spread:false,noNext:true};
+      const raw=bcalc(a,m,d,opt).dmg,screen=bcalc(a,m,d,{...opt,screen:true}).dmg;
+      check(format+' '+r+' breaks screen',raw>0&&screen===raw);
+      const normal=bcalc(a,control,d,opt).dmg,shielded=bcalc(a,control,d,{...opt,screen:true}).dmg;
+      check(format+' '+r+' normal screen',normal>0&&shielded>0&&shielded<normal);
+      const jaw=bcalc({...a,ab:'strong-jaw'},m,d,opt).dmg;
+      check(format+' '+r+' strong jaw',jaw>raw);
+      check(format+' '+r+' strong jaw screen',bcalc({...a,ab:'strong-jaw'},m,d,{...opt,screen:true}).dmg===jaw);
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('psychic fangs audit '+JSON.stringify(PSYCHIC_FANGS_AUDIT));
+ok(PSYCHIC_FANGS_AUDIT.total===131&&!PSYCHIC_FANGS_AUDIT.failures.length,'サイコファング：壁補正・かみつき・乱数・シングルダブル '+JSON.stringify(PSYCHIC_FANGS_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
