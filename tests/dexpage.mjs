@@ -115,6 +115,20 @@ ok(EV.rows[5].headline.includes('交代')&&EV.rows[6].headline.includes('交代'
 ok(EV.rows[7].html.includes('マジックミラー')&&EV.rows[7].html.includes('メガシンカ前後の種族値'),'メガアブソル：固有特性と変化量');
 ok(EV.rows[8].headline.includes('ちからもち'),'メガスターミー：物理火力の特性');
 await open(184);await tab(0);ok(await pg.evaluate(()=>document.body.scrollWidth<=innerWidth+1&&document.querySelector('[data-panel="0"]').textContent.includes('特性で変わる攻撃')),'スマホで根拠グラフが表示される');
+/* Pilot build evidence must render and preserve legal allocation. */
+const PA=await pg.evaluate(()=>{
+  return [149,184].map(no=>{
+    const p=byNo[no],g=monGuide(p,{parts:true}),i=g.sets.findIndex(s=>Array.isArray(s.refs));
+    if(i<0)return {no,missing:true};
+    const s=g.sets[i],h=g.setHTML(s,i);
+    return {no,legal:s.sp.length===6&&s.sp.every(v=>Number.isInteger(v)&&v>=0&&v<=32)&&s.sp.reduce((a,b)=>a+b,0)===66,
+      moves:s.moves.length===4&&s.moves.every(id=>LSD[no][1].includes(id)&&MV[id]),
+      allocation:h.includes('能力配分の計算根拠'),
+      damage:h.includes('火力・耐久の計算例')&&!h.includes('比較は計算できませんでした'),
+      finite:!/NaN|Infinity|undefined/.test(h)};
+  });
+});
+ok(PA.every(x=>x.legal&&x.moves&&x.allocation&&x.damage&&x.finite),'先行育成例：合法性・能力配分・火力耐久の根拠 '+JSON.stringify(PA));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
