@@ -990,6 +990,20 @@ function reviewedDoubleTradeoff(base,next){
 }
 // Bounded independent scenario search; all objective coordinates are maximized.
 // Damage attainable by one move meeting the same order threshold.
+// Isolated post-hit state for a reviewed single-target attack. No turn simulation.
+function reviewedDoublePostAttack(a,m,d,maxDamage,connected){
+  if(!a||!m||!d||typeof connected!=='boolean'||!Number.isSafeInteger(maxDamage)||maxDamage<0)return null;
+  let post=a;
+  if(Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,m.id)){
+    if(m.tg||m.maxH!==1||!REVIEWED_POST_STAGE_AB.has(a.ab))return null;
+    post=reviewedSelfStageAfterHit(a,m,connected);if(!post)return null;
+  }
+  if(Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,m.id)){
+    if(m.tg||m.maxH!==1||d.disg||d.item)return null;
+    post=reviewedMoveRecoilAfterHit(post,m,connected?Math.min(d.hp,maxDamage):0);if(!post)return null;
+  }
+  return reviewedLifeOrbAfterHit(post,m,connected);
+}
 function reviewedDoubleActionScores(attacks){
   if(!Array.isArray(attacks)||!attacks.length)return null;
   const len=attacks[0].order?.length;

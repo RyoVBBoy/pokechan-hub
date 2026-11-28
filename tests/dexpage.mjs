@@ -425,6 +425,14 @@ const DST=await pg.evaluate(()=>{
   return {heal:heal?.hp,atk:setup?.stg.atk,min:recovery?.minHP,max:recovery?.maxHP,unchanged:JSON.stringify(d)===b};
 });
 ok(DST.heal===200&&DST.atk===2&&DST.min===120&&DST.max===120&&DST.unchanged,'ダブル変化技：既存処理の条件別検査 '+JSON.stringify(DST));
+const DPOST=await pg.evaluate(()=>{
+ const a={hp:100,max:100,item:'lifeorb',ab:'pressure',stg:{atk:0,def:0,spa:0,spd:0,spe:0}},d={hp:60,max:60,item:null};
+ const m={id:370,tg:0,maxH:1,e:{s:[['def',-1,100],['spd',-1,100]]}};
+ const recoil={id:413,tg:0,maxH:1,drain:-33};
+ const x=reviewedDoublePostAttack(a,m,d,90,true),y=reviewedDoublePostAttack(a,recoil,d,90,true),z=reviewedDoublePostAttack(a,m,d,0,false);
+ return {stage:x?.stg,stageHP:x?.hp,recoil:y?.hp,immune:z?.hp,unchanged:a.stg.def===0&&a.hp===100,spread:reviewedDoublePostAttack(a,{...recoil,tg:1},d,90,true)===null};
+});
+ok(DPOST.stage?.def===-1&&DPOST.stage?.spd===-1&&DPOST.stageHP===90&&DPOST.recoil===70&&DPOST.immune===100&&DPOST.unchanged&&DPOST.spread,'ダブル単体技：能力下降・反動・いのちのたま・無効 '+JSON.stringify(DPOST));
 const DBERRY=await pg.evaluate(()=>{
  const d={max:101},s={hp:50,item:'sitrusberry'},before=JSON.stringify(s);
  return {at:reviewedDoubleBerry(d,s,{}),above:reviewedDoubleBerry(d,{...s,hp:51},{}),dead:reviewedDoubleBerry(d,{...s,hp:0},{}),blocked:reviewedDoubleBerry(d,s,{ab:'unnerve'}),consumed:reviewedDoubleBerry(d,{hp:20,item:null},{}),unchanged:JSON.stringify(s)===before};

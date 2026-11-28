@@ -398,6 +398,7 @@ function monGuide(p,o={}){
     // Restricted double-format benchmark. No inferred partner or opponent team;
     // compare one selected target under one-target and multi-target conditions.
     if(s.fmt==='double'){
+      const doubleSimple=new Set([...simple,...Object.keys(REVIEWED_SELF_STAGES).map(Number),...Object.keys(REVIEWED_RECOIL).map(Number)].filter(id=>MV[id]&&(!Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)&&!Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||(!mvObj(id).tg&&mvObj(id).maxH===1))));
       const weather=B.weather;B.weather=null;
       try{
         const me=build(p,s,'me'),rows=[],foes=[],focus=[],friendly=[],support=[];
@@ -408,7 +409,7 @@ function monGuide(p,o={}){
             const op=build(q,{...x,item:null},'op');if(op.formErr)continue;
             foes.push(op);
             for(const m of me.moves){
-              if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
+              if(!doubleSimple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
               const roll=spread=>{const v=dmgRolls(me,m,op,{format:'double',spread,crit:false,protean:false,noNext:true});return v.length&&!v.dist&&!v.fband&&v.every(Number.isFinite)?[Math.min(...v),Math.max(...v)]:null};
               const one=roll(false),many=roll(true);if(!one||!many)continue;
               rows.push({no:q.no,name:q.n,id:m.id,tg:m.tg||0,one,many,hp:op.max});
@@ -423,7 +424,7 @@ function monGuide(p,o={}){
           }
         }
         for(const ally of foes)for(const m of me.moves){
-          if(!simple.has(m.id)||m.tg!==2)continue;
+          if(!doubleSimple.has(m.id)||m.tg!==2)continue;
           const f=reviewedFriendlyHit(me,m,ally);
           if(f)friendly.push({no:ally.p.no,name:ally.p.n,id:m.id,hp:ally.max,...f});
         }
@@ -437,12 +438,12 @@ function monGuide(p,o={}){
         };
         for(const op of foes){
           if(helper)for(const m of me.moves){
-            if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
+            if(!doubleSimple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
             const normal=rollSupport(me,op,m,{}),modified=rollSupport(me,op,m,{helpingHand:true});
             if(normal&&modified)support.push({kind:'helpingHand',source:helper.no,sourceName:helper.n,no:op.p.no,name:op.p.n,id:m.id,normal,modified});
           }
           if(guard)for(const m of op.moves){
-            if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:op,d:me}).ok)continue;
+            if(!doubleSimple.has(m.id)||m.maxH>1||!moveUsable(m,{a:op,d:me}).ok)continue;
             const normal=rollSupport(op,me,m,{}),modified=rollSupport(op,me,m,{friendGuard:true});
             if(normal&&modified)support.push({kind:'friendGuard',source:guard.no,sourceName:guard.n,no:op.p.no,name:op.p.n,id:m.id,normal,modified});
           }
@@ -450,7 +451,7 @@ function monGuide(p,o={}){
         const orderRows=[];
         const scenarios=[['通常',{}],['自分側おいかぜ',{ownTailwind:true}],['相手側おいかぜ',{oppTailwind:true}],['双方おいかぜ',{ownTailwind:true,oppTailwind:true}],['トリックルーム',{trickRoom:true}],['自分側おいかぜ＋トリックルーム',{ownTailwind:true,trickRoom:true}]];
         for(const op of foes){
-          const m=me.moves.find(x=>simple.has(x.id)&&!x.pri),n=op.moves.find(x=>simple.has(x.id)&&!x.pri);
+          const m=me.moves.find(x=>doubleSimple.has(x.id)&&!x.pri),n=op.moves.find(x=>doubleSimple.has(x.id)&&!x.pri);
           if(!m||!n)continue;
           const values=scenarios.map(([label,field])=>({label,result:reviewedDoubleOrder(me,m,op,n,field)}));
           if(values.every(x=>x.result))orderRows.push({no:op.p.no,name:op.p.n,m:m.id,n:n.id,values});
@@ -548,7 +549,7 @@ function monGuide(p,o={}){
             for(const n of op.moves){const hp=reviewedDoubleIncoming(op,n,c);if(!hp)return null;scores.push(...hp);}
             if(jointGuard)for(const n of op.moves){const hp=reviewedDoubleIncoming(op,n,c,{friendGuard:true});if(!hp)return null;scores.push(...hp);}
             const attacks=c.moves.filter(m=>!m.prot&&m.cls!==2).map(m=>{
-              if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:c,d:op}).ok)return null;
+              if(!doubleSimple.has(m.id)||m.maxH>1||!moveUsable(m,{a:c,d:op}).ok)return null;
               const one=rollSupport(c,op,m,{spread:false}),many=m.tg?rollSupport(c,op,m,{spread:true}):one,acc=accOf(c,m,op);
               if(!one||!many||!Number.isFinite(acc))return null;
               const order=[];
@@ -557,19 +558,26 @@ function monGuide(p,o={}){
               const allyLosses=[];
               for(const ally of foes){const v=memoJoint(JSON.stringify([stateKey,m.id,ally.p.no]),()=>reviewedFriendlyHit(c,m,ally));if(!v)return null;allyLosses.push(v.max);}
               const allyLoss=Math.max(0,...allyLosses);
-              const self=reviewedLifeOrbAfterHit(c,m,true);if(!self)return null;
-              const attack={id:m.id,one:Math.min(op.hp,one[0])*acc/100,many:Math.min(op.hp,many[0])*acc/100,order,allyLoss,selfHP:self.hp};
+              const self=reviewedDoublePostAttack(c,m,op,Math.max(one[1],many[1]),Math.max(one[1],many[1])>0&&acc>0);if(!self)return null;
+              const postKeys=['atk','def','spa','spd','spe'];
+              const post=postKeys.map(k=>self.stg[k]);if(!post.every(Number.isInteger))return null;
+              const attack={id:m.id,one:Math.min(op.hp,one[0])*acc/100,many:Math.min(op.hp,many[0])*acc/100,order,allyLoss,selfHP:self.hp,post};
               if(jointSupport){
                 const h1=rollSupport(c,op,m,{spread:false,helpingHand:true}),h2=m.tg?rollSupport(c,op,m,{spread:true,helpingHand:true}):h1;
                 if(!h1||!h2)return null;
                 // Helping Hand and ally injury are separate conditional scenarios:
                 // do not imply the unboosted ally damage is the boosted damage.
-                attack.help={...attack,one:Math.min(op.hp,h1[0])*acc/100,many:Math.min(op.hp,h2[0])*acc/100};
+                const assistedSelf=reviewedDoublePostAttack(c,m,op,Math.max(h1[1],h2[1]),Math.max(h1[1],h2[1])>0&&acc>0);if(!assistedSelf)return null;
+                attack.help={...attack,one:Math.min(op.hp,h1[0])*acc/100,many:Math.min(op.hp,h2[0])*acc/100,selfHP:assistedSelf.hp,post:postKeys.map(k=>assistedSelf.stg[k])};
               }
               return attack;
             });
             if(!attacks.length||attacks.some(v=>!v))return null;
-            scores.push(Math.min(...attacks.map(v=>v.selfHP))); // conservative HP after a successful attack, independent of selected action
+            // Conservative independent lower bounds across registered attacks, not a turn sequence.
+            for(const group of [attacks,...(jointSupport?[attacks.map(v=>v.help)]:[])]){
+              scores.push(Math.min(...group.map(v=>v.selfHP)));
+              for(let k=0;k<5;k++)scores.push(Math.min(...group.map(v=>v.post[k])));
+            }
             groups.push(attacks);
             for(const id of statusReviewed){
               if(Object.prototype.hasOwnProperty.call(REVIEWED_SETUP,id)){
@@ -615,14 +623,14 @@ function monGuide(p,o={}){
         if(!foes.length)jointExcluded.push('no fixed opponents');
         if(!rows.length)jointExcluded.push('no supported damage rows');
         if(!guardRows.length)jointExcluded.push('no supported guard rows');
-        if(!originalAttacks.length||originalAttacks.some(id=>!simple.has(id)))jointExcluded.push('unsupported attack');
+        if(!originalAttacks.length||originalAttacks.some(id=>!doubleSimple.has(id)))jointExcluded.push('unsupported attack');
         if(statusSlots.some(id=>!MD[id]))jointExcluded.push('unknown status move');
         if(!itemOK(s.item))jointExcluded.push('unsupported item');
         if(!legal(s))jointExcluded.push('build outside search constraints');
         jointReason=jointExcluded.join('; ')||'baseline evaluation unavailable';
         if(!jointExcluded.length){
           const moves=[s.moves.slice()];
-          for(let i=0;i<s.moves.length;i++)if(!locked.includes(s.moves[i]))for(const id of ls)if(simple.has(id)&&!s.moves.includes(id)){
+          for(let i=0;i<s.moves.length;i++)if(!locked.includes(s.moves[i]))for(const id of ls)if(doubleSimple.has(id)&&!s.moves.includes(id)){
             const v=s.moves.slice();v[i]=id;if(!moves.some(a=>a.join(',')===v.join(',')))moves.push(v);
           }
           const items=[s.item,...reviewedItems.filter(i=>i!==s.item&&itemOK(i))];
@@ -637,9 +645,9 @@ function monGuide(p,o={}){
           doubleJoint=reviewedDoublePolicySearch(s,candidates,legal,evaluateJoint,o.jointOnly&&Number.isInteger(o.jointLimit)&&o.jointLimit>=1?Math.min(48,o.jointLimit):48);
           if(doubleJoint){jointReason=doubleJoint.best.length?'candidate generated':'no dominating candidate within search limit';doubleJoint.focusCases=focus.length;doubleJoint.statusReviewed=statusReviewed.slice();doubleJoint.statusUnreviewed=statusSlots.filter(id=>!statusReviewed.includes(id));}
         }
-        if(typeof o.auditDouble==='function')o.auditDouble({rows,focus,friendly,support,orderRows,guardRows,speedPlans,doubleJoint,jointReason,unsupportedAttacks:originalAttacks.filter(id=>!simple.has(id))});
+        if(typeof o.auditDouble==='function')o.auditDouble({rows,focus,friendly,support,orderRows,guardRows,speedPlans,doubleJoint,jointReason,unsupportedAttacks:originalAttacks.filter(id=>!doubleSimple.has(id))});
         if(o.jointOnly)return doubleJoint;
-        const note='固定の相手1体へのダメージ比較です。複数対象に当たる場合の範囲補正は0.75倍を計算途中で適用します。味方にも当たる技は固定の味方候補へのHP減少も比較します。交代・補助技の発動過程は未評価です。ダブルの統合比較は限定条件のみ対応します。';
+        const note='固定の相手1体へのダメージ比較です。複数対象に当たる場合の範囲補正は0.75倍を計算途中で適用します。味方にも当たる技は固定の味方候補へのHP減少も比較します。交代・補助技の発動過程は未評価です。ダブルの統合比較は限定条件のみ対応します。対応する単体技の攻撃後HP・能力ランクも独立した下限として比較します。';
         return '<details class="gset-alt"><summary>ダブル：攻撃対象別の計算例</summary><p class="vcap">'+note+'</p>'+(rows.length?rows.map(r=>'<p>'+esc(r.name)+'／'+esc(mName(r.id))+'：1対象 '+r.one.join('〜')+'、複数対象条件 '+r.many.join('〜')+' / '+r.hp+' HP'+(r.tg===2?'（味方にも当たる）':r.tg===1?'（相手全体）':'（単体技・補正なし）')+'</p>').join(''):'<p>この育成の対応する攻撃技は比較できませんでした。</p>')+'<h4>集中攻撃の耐久計算例</h4><p class="vcap">固定の相手2体の攻撃が命中する条件で、両方の順序と各16段階の乱数を比較します。範囲技は複数対象条件。行動順の確率、追加効果、オボンのみ以外のきのみ回復、味方の行動は含みません。</p>'+(focus.length?focus.map(f=>'<p>'+esc(f.nameA)+'の'+esc(mName(f.m))+' ＋ '+esc(f.nameB)+'の'+esc(mName(f.n))+'：残りHP '+f.min+'〜'+f.max+' / '+me.max+'</p>').join(''):'<p>この育成条件では集中攻撃の計算は未対応です。</p>')+'<h4>味方への巻き込み計算例</h4><p class="vcap">固定の比較用育成を味方に置き、複数対象条件での命中時HP減少を計算します。実際のパーティ推奨や勝率ではありません。吸収特性による回復・能力上昇、味方の補助行動は含みません。</p>'+(friendly.length?friendly.map(f=>'<p>'+esc(mName(f.id))+' → '+esc(f.name)+'：HP減少 '+f.min+'〜'+f.max+' / '+f.hp+(f.max===0?'（この条件でHP減少なし）':'')+'</p>').join(''):'<p>対象となる巻き込み技・対応する味方条件がありません。</p>')+'<h4>味方の補助効果の計算例</h4><p class="vcap">てだすけが成功した攻撃、または味方のフレンドガードが有効な被弾を個別に比較します。収録データに習得・所持例がある場合だけ表示します。実際の選出・行動順・補助の成功・複数効果の同時発動は保証しません。</p>'+(support.length?support.map(f=>'<p>'+esc(f.kind==='helpingHand'?'てだすけ':'フレンドガード')+'（例：'+esc(f.sourceName)+'）／'+esc(f.name)+'・'+esc(mName(f.id))+'：'+f.normal.join('〜')+' → '+f.modified.join('〜')+'</p>').join(''):'<p>この条件では補助効果の計算例がありません。</p>')+'<h4>行動順の条件別比較</h4><p class="vcap">場の効果が既に有効な条件で、指定した攻撃技の優先度と素早さを比較します。同速は未確定。ターン途中の変化や発動成功は評価しません。</p>'+(orderRows.length?orderRows.map(f=>'<p>'+esc(f.name)+'（'+esc(mName(f.m))+'／'+esc(mName(f.n))+'）：'+f.values.map(v=>esc(v.label)+' '+v.result.sa+'対'+v.result.sd+' '+(v.result.order>0?'先行':v.result.order<0?'後攻':'同速')).join('／')+'</p>').join(''):'<p>対応する行動順の比較条件がありません。</p>')+'<h4>防御技の条件別比較</h4><p class="vcap">防御技が既に成立した場合の比較です。複数対象条件。まもる・ワイドガードの習得や発動成功を保証するものではありません。貫通技・特殊条件は対象外です。</p>'+(guardRows.length?guardRows.map(f=>'<p>'+esc(f.name)+'・'+esc(mName(f.id))+'：通常 '+f.normal.min+'〜'+f.normal.max+'／まもる '+f.protect.min+'〜'+f.protect.max+'／ワイドガード '+f.wideGuard.min+'〜'+f.wideGuard.max+'</p>').join(''):'<p>対応する防御技の比較条件がありません。</p>')+'<h4>行動順を目的とした能力ポイント再配分</h4><p class="vcap">固定の比較相手に対して、素早さと他の1能力の間でポイントを移します。各場の条件を独立に評価します。対応する攻撃技のHP減少と被弾後の残りHPの差を個別に計算し、悪化があれば明示します。命中時・単発の比較で、集中攻撃・回復・ターン進行は含みません。技・特性・持ち物・能力補正は固定です。</p>'+(speedPlans.some(f=>f.best.length)?speedPlans.filter(f=>f.best.length).map(f=>'<p>'+esc(f.label)+'：'+f.best.slice(0,3).map(v=>['HP','攻撃','防御','特攻','特防'][v.donor]+' '+(-v.delta>0?'+':'')+(-v.delta)+'／素早さ '+(v.delta>0?'+':'')+v.delta+'（行動順改善 '+v.gains+'体'+(v.tradeoff?'、火力差 '+v.tradeoff.outMin+'〜'+v.tradeoff.outMax+' HP／残りHP差 '+v.tradeoff.hpMin+'〜'+v.tradeoff.hpMax+' HP'+(v.tradeoff.preserved?'・比較範囲で悪化なし':'・低下あり'):'、火力・耐久の一体比較未対応')+'）').join('、')+'</p>').join(''):'<p>対応する単一能力間の再配分候補はありません。総合的な最適配分を意味しません。</p>')+'<h4>技・持ち物・能力ポイントの一体比較（限定探索）</h4><p class="vcap">固定相手への命中率込み最低火力・被弾後HPを比較します。場の条件ごとに、同じ攻撃技で同速以上・先行できる場合の火力も比較します。変化技は維持し、対応する積み技成立後・半分HPからの回復と単発被弾・成立済み防御技を独立条件で評価します。未対応の変化技の効果、積む途中の被弾や妨害は評価しません。こだわり系は固定した攻撃技を全比較条件で評価し、元の各選択方針を維持できる候補だけを残します。対応する集中攻撃については両方の順序別に残りHPの上下限と256乱数中の生存数も比較します。両攻撃の命中を仮定した条件付き比較で、実際の生存確率ではありません。味方への通常時の最大巻き込みHP減少を上限とした同一技の火力・行動順、対応するてだすけ・フレンドガードの独立条件も比較します。補助と巻き込みの同時発動、交代による固定解除・連続ターンは評価しません。最大48育成の探索であり、全体最適を保証しません。</p>'+(doubleJoint?('<p>比較 '+doubleJoint.attempts+'件／有効 '+(doubleJoint.accepted+1)+'件／集中攻撃 '+(doubleJoint.focusCases?doubleJoint.focusCases+'組':'未対応')+'／評価対象変化技 '+doubleJoint.statusReviewed.length+'件／効果未評価 '+doubleJoint.statusUnreviewed.length+'件</p>'+(doubleJoint.best.length?doubleJoint.best.map(v=>'<p>'+esc(ITEMN[v.x.item]||v.x.item)+'／'+v.x.moves.map(id=>esc(mName(id))).join('・')+'／AP '+v.x.sp.join('/')+'（比較範囲で悪化なし・技選択制約を考慮）</p>').join(''):'<p>探索範囲内で全指標を維持した改善候補は見つかりませんでした。</p>')):'<p>この育成条件では一体比較は未対応です。</p>')+'</details>';
       }finally{B.weather=weather}
     }
