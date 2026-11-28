@@ -927,7 +927,7 @@ function monGuide(p,o={}){
       // Knock Off is evaluated here only against fixtures without held items.
       // Fixed-power immediate single-hit attacks. Additional effects after the
       // hit are not evaluated by this one-use objective (see displayed limits).
-      const extraSimple=new Set([667,441,56,412,414,224,126,408,438,542,815]);
+      const extraSimple=new Set([667,441,56,412,414,224,126,408,438,542,815,706]);
       // Reviewed fixed-damage attacks: reuse bcalc immunity and current HP handling.
       const fixedSimple=new Set([69,101,162]);
       const statSimple=new Set([776,492,473,573]);
@@ -962,6 +962,7 @@ function monGuide(p,o={}){
         // Guard reviewed fixed-power moves against local metadata drift.
         if(m.id===542&&(m.pow!==110||m.acc!==70||m.cls!==1||m.t!=='ひこう'||m.maxH!==1))return null;
         if(m.id===815&&(m.pow!==70||m.acc!==100||m.cls!==1||m.t!=='じめん'||m.maxH!==1))return null;
+        if(m.id===706&&(m.pow!==85||m.acc!==100||m.cls!==0||m.t!=='エスパー'||m.maxH!==1))return null;
         if((m.id===492&&!m.e?.fp)||(m.id===473&&!m.e?.ps))return null;
         if([484,535].includes(m.id)&&[a,d].some(x=>!((WT[x.p.no]||WT[x.p.base])>0)))return null;
         if([500,681].includes(m.id)&&m.pow!==20)return null;
@@ -1108,7 +1109,7 @@ function monGuide(p,o={}){
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,recovery,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用直後のHP '+baseline.rows[i].postHP+' → '+r.postHP+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+ '／被弾とたべのこしのみを仮定した残りHP '+baseline.rows[i].endHP+' → '+r.endHP+(r.recoveryHP===null?'':'／半分HPから回復技を使用した場合の最小残りHP '+baseline.rows[i].recoveryHP+' → '+r.recoveryHP)+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'／使用後の素早さ '+baseline.rows[i].postSpeed+' → '+r.postSpeed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する9種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動、てっていこうせんの使用時HP消費（オボンのみ併用は未評価）と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）の開始HPから相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果（ぼうふうの混乱・ねっさのだいちのやけどを含む）は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する9種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動、てっていこうせんの使用時HP消費（オボンのみ併用は未評価）と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）の開始HPから相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果（ぼうふうの混乱・ねっさのだいちのやけど・サイコファングの壁破壊による後続の恩恵を含む）は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{
