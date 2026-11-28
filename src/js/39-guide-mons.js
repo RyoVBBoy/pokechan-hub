@@ -638,7 +638,10 @@ function monGuide(p,o={}){
       // Fixed-power immediate single-hit attacks. Additional effects after the
       // hit are not evaluated by this one-use objective (see displayed limits).
       const extraSimple=new Set([667,441,56,412,414,224,126,408,438]);
-      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id));
+      // Start with fixed two-hit moves; variable counts and repeated accuracy
+      // checks remain gated until their search cost has been measured.
+      const multiSimple=new Set([24,458,751,814]);
+      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||multiSimple.has(id));
       if(!original.length)return skip('no attacks');
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
@@ -660,8 +663,14 @@ function monGuide(p,o={}){
       const started=performance.now();let attempts=0;
       const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&Object.prototype.hasOwnProperty.call(ITEMN,x.item)&&!CALC_UNIMPL_IT.includes(x.item)&&(!setup||!/^choice/.test(x.item));
       const bounds=(a,d,m)=>{
-        if(!moveUsable(m,{a,d}).ok||m.maxH>1||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
+        if(!moveUsable(m,{a,d}).ok||(m.maxH>1&&!multiSimple.has(m.id))||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
         if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
+        if(multiSimple.has(m.id)){
+          const dist=hitRemainingDist(a,m,d,opt),acc=accOf(a,m,d);
+          if(!dist.length||!Number.isFinite(acc)||dist.some(([hp,w])=>!Number.isFinite(hp)||!Number.isFinite(w)||w<0)||Math.abs(dist.reduce((t,x)=>t+x[1],0)-1)>1e-8)return null;
+          const loss=dist.map(([hp])=>d.hp-hp);
+          return {lo:Math.min(...loss),hi:Math.max(...loss),lossLo:Math.min(...loss),lossHi:Math.max(...loss),acc,id:m.id,multi:true};
+        }
         const r=dmgRolls(a,m,d,opt),v=r.dist?r.dist.map(x=>x[0]):r,acc=accOf(a,m,d);
         if(!v.length||!v.every(Number.isFinite)||!Number.isFinite(acc)||r.dist||r.fband)return null;
         // Reuse the calculator's first-use survival metadata. Keep raw damage
@@ -721,7 +730,7 @@ function monGuide(p,o={}){
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順を悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技のタスキ・がんじょう・ばけのかわによるHP減少を考慮。反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順を悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技と対応する固定2回攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{
