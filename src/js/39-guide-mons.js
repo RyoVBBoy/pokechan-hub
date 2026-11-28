@@ -306,6 +306,43 @@ function monGuide(p,o={}){
       (e.ties.length?'<p>同速になる相手の例：'+e.ties.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
       '<p class="vcap">相手は収録通常データ、素早さ上昇補正・素早さ32。自分の素早さ'+e.speed+'。同じ優先度、特性・持ち物・ランク・場の補正なし。環境での使用率や勝率を示すものではありません。</p></details>';
   };
+  /* Fixed, legal comparison targets; not claimed to be popular or optimal.
+     Use calculator rolls, not estHit's single representative roll. */
+  const benchmarkHTML=s=>{
+    if(s.fmt!=='single'||typeof dmgRolls!=='function'||typeof koInfo!=='function')return '';
+    const fixtures=[
+      {no:149,ab:'multiscale',moves:[245,337],sp:[2,32,0,0,0,32],up:1,dn:3},
+      {no:184,ab:'huge-power',moves:[453,583],sp:[32,32,0,0,2,0],up:1,dn:3},
+      {no:445,ab:'rough-skin',moves:[89,337],sp:[2,32,0,0,0,32],up:1,dn:3}
+    ];
+    const build=(q,x,side)=>mkMon(q,side,{...x,moves:x.moves.map(mvObj)});
+    const simple=new Set([89,337,245,453,583,127,401,710]);
+    const result=(a,d,m)=>{
+      if(!simple.has(m.id)||!moveUsable(m,{a,d}).ok||a.formErr||d.formErr)return null;
+      if([a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNIMPL_IT.includes(x.item)))return null;
+      if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
+      const o={format:'single',spread:false,crit:false,protean:true};
+      const r=dmgRolls(a,m,d,o),vals=r.dist?r.dist.map(x=>x[0]):r;
+      if(!vals.length||!vals.every(Number.isFinite))return null;
+      const lo=Math.min(...vals),hi=Math.max(...vals),ko=koInfo(r,d.hp);
+      return {m,lo,hi,hp:d.max,ko,acc:accOf(a,m,d)};
+    };
+    const line=x=>esc(mName(x.m.id))+'：'+x.lo+'〜'+x.hi+' / '+x.hp+' HP（'+(100*x.lo/x.hp).toFixed(1)+'〜'+(100*x.hi/x.hp).toFixed(1)+'%）・'+esc(koLabel(x.ko))+'（命中時）'+(x.acc<100?'・命中 '+x.acc+'%':'');
+    const sw=B.weather;B.weather=null;
+    try{
+      const me=build(p,s,'me');if(me.formErr)return '';
+      const sections=fixtures.filter(x=>x.no!==p.no).map(x=>{
+        const q=byNo[x.no],ls=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
+        if(!q||!abs.some(z=>z[0]===x.ab)||!x.moves.every(id=>ls.includes(id)&&MV[id]))return '';
+        const op=build(q,{...x,item:null},'op');
+        const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
+        const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
+        if(!out.length&&!inc.length)return '';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+'</details>';
+      }).join('');
+      return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
+    }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
+  };
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
     /* 2026/11/15 図鑑のページの「型・育成」タブ（o.parts）：形式・姿・出典の札と「この型をパーティに入れる」 */
     const reviewed=Array.isArray(s.refs);
@@ -317,8 +354,9 @@ function monGuide(p,o={}){
       <table class="gstat"><tr>${SN.map(n=>`<th>${n}</th>`).join('')}</tr><tr>${st.map(v=>`<td>${v}</td>`).join('')}</tr><tr class="gsp">${s.sp.map(v=>`<td>${v||'-'}</td>`).join('')}</tr></table>
       <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
       <h4>この型の役割</h4><p>${reviewed?esc(s.why):roleOf(s)}</p>
-      ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考にした戦術（2026-11-28確認）：${s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・')}</p><p class="vcap">参考記事の型を転載したものではありません。対戦実績・確定数・最適性は未検証です。</p></details>`:''}
+      ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考にした戦術（2026-11-28確認）：${s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・')}</p><p class="vcap">参考記事の型を転載したものではありません。対戦実績・最適性は未検証です。計算例は下の条件付き比較を確認してください。</p></details>`:''}
       ${o.parts&&reviewed?allocationHTML(s):''}
+      ${o.parts&&reviewed?benchmarkHTML(s):''}
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
         :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
       ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
