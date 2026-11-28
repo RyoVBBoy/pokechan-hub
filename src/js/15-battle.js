@@ -717,18 +717,18 @@ function hitRemainingDist(a,mv,d,o={}){
 /* Conditional self-stage changes for the reviewed immediate attacks.
    No turn simulation: connected must be established by the caller. White Herb,
    other items and effects are deliberately not modeled here. */
-const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
 // Isolated self-inflicted stage changes: these abilities do not alter
-// the five reviewed move deltas. External stage drops and end-turn effects
+// the reviewed move deltas (except the explicit multipliers and Sheer Force). External stage drops and end-turn effects
 // are not part of this predicate.
-const REVIEWED_POST_STAGE_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof']);
+const REVIEWED_POST_STAGE_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof','sheer-force']);
 function reviewedSelfStageAfterHit(a,mv,connected){
   const out={...a,stg:{...a.stg}},expected=REVIEWED_SELF_STAGES[mv.id];
   if(!expected)return null;
   if(a.item==='whiteherb')return null;
   const rows=(mv.e&&mv.e.s)||[];
   if(rows.length!==Object.keys(expected).length||Object.entries(expected).some(([k,v])=>!rows.some(([st,n,p])=>st===k&&n===v&&p>=100)))return null;
-  if(!connected)return out;
+  if(!connected||sfSup(a,mv))return out;
   const factor=a.ab==='contrary'?-1:a.ab==='simple'?2:1;
   for(const [k,v] of Object.entries(expected)){
     if(!Number.isInteger(out.stg[k])||out.stg[k]<-6||out.stg[k]>6)return null;
