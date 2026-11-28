@@ -185,6 +185,11 @@ function monGuide(p,o={}){
   SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=!x.refs&&SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;const kp=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。');st.why=(kp?kp+'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
+  // Transform-only strategies must not depend on having a damaging learnset.
+  // Ditto's one legal move is intentional; never invent three filler moves.
+  if(!o.raw&&!base&&ls.length===1&&ls[0]===144&&MD[144]&&abK.includes('imposter')&&ITEMN.choicescarf){
+    for(const fmt of ['single','double'])SETS.push({title:'へんしん型（検討用）',why:'かわりものが発動する条件では相手に変身する。HPを優先し、変身後の行動順や技固定は相手の姿・技・持ち物との関係で変わる。こだわりスカーフは変身後の素早さを補うための候補。',ab:'imposter',item:'choicescarf',up:-1,dn:-1,sp:[32,0,17,0,17,0],moves:[144],fmt,k:'transform'});
+  }
   // Validate display candidates from every source, including saved/aggregated builds.
   // Reject rather than silently change external builds, or assign an illegal item/form.
   if(!o.raw){
@@ -198,7 +203,7 @@ function monGuide(p,o={}){
       const validAbility=abK.includes(x.ab);
       // Choice-locked attack-only policy applies to generated offensive examples,
       // not to external strategic sets (e.g. Trick).
-      const validChoice=x.live||x.usage||!/^choice/.test(x.item||'')||x.moves.every(id=>!!MV[id]);
+      const validChoice=x.live||x.usage||(x.k==='transform'&&x.ab==='imposter'&&x.moves.length===1&&x.moves[0]===144)||!/^choice/.test(x.item||'')||x.moves.every(id=>!!MV[id]);
       if(!validMoves||!validAP||!validNature||!validItem||!validForm||!validAbility||!validChoice)SETS.splice(i,1);
     }
     SETS.forEach((x,i)=>{x.rec=!x.refs&&SETS.findIndex(y=>y.fmt===x.fmt)===i});
