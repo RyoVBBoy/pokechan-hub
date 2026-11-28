@@ -930,6 +930,32 @@ const PSYCHIC_FANGS_AUDIT=await pg.evaluate(()=>{
 });
 console.log('psychic fangs audit '+JSON.stringify(PSYCHIC_FANGS_AUDIT));
 ok(PSYCHIC_FANGS_AUDIT.total===131&&!PSYCHIC_FANGS_AUDIT.failures.length,'サイコファング：壁補正・かみつき・乱数・シングルダブル '+JSON.stringify(PSYCHIC_FANGS_AUDIT));
+const THROAT_CHOP_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
+  const m=mvObj(675);
+  check('metadata',m.pow===80&&m.acc===100&&m.cls===0&&m.t==='あく'&&m.maxH===1);
+  check('contact, not sound',mfl(m,'c')&&!mfl(m,'o'));
+  const make=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=make(149),d=make(184),weather=B.weather;
+  try{
+    B.weather=null;
+    for(const format of ['single','double'])for(let r=85;r<=100;r++){
+      const opt={format,r,crit:false,spread:false,noNext:true};
+      const raw=bcalc(a,m,d,opt).dmg;
+      check(format+' '+r+' soundproof',raw>0&&bcalc(a,m,{...d,ab:'soundproof'},opt).dmg===raw);
+      check(format+' '+r+' sheer force',bcalc({...a,ab:'sheer-force'},m,d,opt).dmg>raw);
+    }
+    for(const ab of ['pressure','sheer-force','magic-guard'])for(const connected of [false,true]){
+      const x={...a,ab,item:'lifeorb',hp:200,max:200};
+      check(ab+' '+connected+' secondary',sfSup(x,m)===(ab==='sheer-force'));
+      check(ab+' '+connected+' life orb',reviewedLifeOrbAfterHit(x,m,connected)?.hp===(connected&&ab==='pressure'?180:200));
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('throat chop audit '+JSON.stringify(THROAT_CHOP_AUDIT));
+ok(THROAT_CHOP_AUDIT.total===78&&!THROAT_CHOP_AUDIT.failures.length,'じごくづき：データ・防音・ちからずく・いのちのたま '+JSON.stringify(THROAT_CHOP_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
