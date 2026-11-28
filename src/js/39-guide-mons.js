@@ -514,12 +514,14 @@ function monGuide(p,o={}){
         const locked=s.moves.filter(id=>!MV[id]||mvObj(id).pri);
         const stabTypes=[...new Set(originalAttacks.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
         const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stabTypes.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&itemOK(x.item)&&(!/^choice/.test(x.item)||locked.every(id=>!!MV[id]));
-        const focusCache=new Map();
+        const focusCache=new Map(),jointRollCache=new Map();
+        const memoJoint=(key,fn)=>{if(!jointRollCache.has(key))jointRollCache.set(key,fn());return jointRollCache.get(key);};
         let allyCaps=null;
         const jointSupport=!!helper&&support.some(v=>v.kind==='helpingHand'),jointGuard=!!guard&&support.some(v=>v.kind==='friendGuard');
         const evaluateJoint=x=>{
           const c=build(p,x,'me');if(c.formErr||c.p.no!==me.p.no||c.ab!==me.ab)return null;
           const scores=[],groups=[];
+          const stateKey=JSON.stringify([x.item,x.sp,x.moves,x.ab,x.up,x.dn]);
           // Conditional status actions are preserved, not assumed to succeed in play.
           // All baseline-supported pairs must remain evaluable. Cache by fixed
           // defender's AP/item: changing its selected attacks cannot affect these hits.
@@ -547,18 +549,18 @@ function monGuide(p,o={}){
             if(jointGuard)for(const n of op.moves){const hp=reviewedDoubleIncoming(op,n,c,{friendGuard:true});if(!hp)return null;scores.push(...hp);}
             const attacks=c.moves.filter(m=>!m.prot&&m.cls!==2).map(m=>{
               if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:c,d:op}).ok)return null;
-              const one=rollSupport(c,op,m,{spread:false}),many=rollSupport(c,op,m,{spread:!!m.tg}),acc=accOf(c,m,op);
+              const one=rollSupport(c,op,m,{spread:false}),many=m.tg?rollSupport(c,op,m,{spread:true}):one,acc=accOf(c,m,op);
               if(!one||!many||!Number.isFinite(acc))return null;
               const order=[];
               for(const [,field] of scenarios)for(const n of op.moves){const v=reviewedDoubleOrder(c,m,op,n,field);if(!v)return null;order.push(v.order);}
               // Worst conditional loss to each fixed ally is kept on the SAME action.
               const allyLosses=[];
-              for(const ally of foes){const v=reviewedFriendlyHit(c,m,ally);if(!v)return null;allyLosses.push(v.max);}
+              for(const ally of foes){const v=memoJoint(JSON.stringify([stateKey,m.id,ally.p.no]),()=>reviewedFriendlyHit(c,m,ally));if(!v)return null;allyLosses.push(v.max);}
               const allyLoss=Math.max(0,...allyLosses);
               const self=reviewedLifeOrbAfterHit(c,m,true);if(!self)return null;
               const attack={id:m.id,one:Math.min(op.hp,one[0])*acc/100,many:Math.min(op.hp,many[0])*acc/100,order,allyLoss,selfHP:self.hp};
               if(jointSupport){
-                const h1=rollSupport(c,op,m,{spread:false,helpingHand:true}),h2=rollSupport(c,op,m,{spread:!!m.tg,helpingHand:true});
+                const h1=rollSupport(c,op,m,{spread:false,helpingHand:true}),h2=m.tg?rollSupport(c,op,m,{spread:true,helpingHand:true}):h1;
                 if(!h1||!h2)return null;
                 // Helping Hand and ally injury are separate conditional scenarios:
                 // do not imply the unboosted ally damage is the boosted damage.
