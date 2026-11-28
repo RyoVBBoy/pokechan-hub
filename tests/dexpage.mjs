@@ -178,13 +178,21 @@ const IC=await pg.evaluate(()=>{
         const x=v.x,f=resolveForm(p.no,x.item);
         return x.item!==stone||!f.ok||!f.mega||f.form.no!==p.no||!x.moves.every(id=>(LSD[p.no]?.[1]||LSD[p.base]?.[1]||[]).includes(id))||x.sp.length!==6||x.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||x.sp.reduce((a,b)=>a+b,0)!==s.sp.reduce((a,b)=>a+b,0);
       }));
-      const bad=megaBad||r.attempts>360||r.valid<1||r.valid>r.attempts||r.eligibleItems.some(x=>!r.attemptedItems.includes(x))||!h.includes('技・持ち物・能力ポイントの一体比較');
-      return {no:p.no,name:p.n,status:bad?'invalid report':'evaluated',ms,searchMs:Math.round(r.elapsedMs),candidates:r.best.length,attempts:r.attempts};
+      const recoveryBad=[r.baseline,...r.best].some(v=>v.rows.some((row,i)=>{
+        const expectedHP=Math.max(0,row.postMargin);
+        const end=v.x.item==='leftovers'&&expectedHP>0?Math.min(row.max,expectedHP+Math.max(1,Math.floor(row.max/16))):expectedHP;
+        const ref=r.baseline.rows[i];
+        return row.endHP!==end||row.endHP<ref.endHP||(r.recovery?( !Number.isInteger(row.recoveryHP)||row.recoveryHP<0||row.recoveryHP>row.max||row.recoveryHP<ref.recoveryHP):row.recoveryHP!==null);
+      }));
+      const bad=recoveryBad||megaBad||r.attempts>360||r.valid<1||r.valid>r.attempts||r.eligibleItems.some(x=>!r.attemptedItems.includes(x))||!h.includes('技・持ち物・能力ポイントの一体比較');
+      return {no:p.no,name:p.n,status:bad?'invalid report':'evaluated',ms,searchMs:Math.round(r.elapsedMs),candidates:r.best.length,attempts:r.attempts,recovery:r.recovery||null,leftovers:r.eligibleItems.includes('leftovers')};
     }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
   });
 });
 const ICS={total:IC.length,counts:IC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:IC};
 console.log('integrated coverage '+JSON.stringify(ICS));
+console.log('integrated recovery coverage '+JSON.stringify({direct:IC.filter(x=>x.status==='evaluated'&&x.recovery),leftovers:IC.filter(x=>x.status==='evaluated'&&x.leftovers).length}));
+ok(IC.some(x=>x.status==='evaluated'&&x.leftovers),'統合探索：たべのこし候補を実際に評価');
 const megaNos=await pg.evaluate(()=>MEGAP.map(p=>p.no));
 const megaRows=IC.filter(x=>megaNos.includes(x.no));
 console.log('mega integrated coverage '+JSON.stringify({total:megaRows.length,counts:megaRows.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:megaRows}));
