@@ -2,6 +2,26 @@
    ほかのサイトの記事は使わず、このサイトのデータ（種族値・タイプ相性・覚える技・特性）だけから組み立てる。
    図鑑の「解説」タブ（#/p/番号）と、検索向けの静的ページ（tools/gen-pages.cjs）で使う。
    「型の例」は計算で組んだもので、実際によく使われている型とは違うことがある（画面にもそう書く）。 */
+// Lexicographic, monotone ordering: preserve the original worst-case priorities,
+// then compare every remaining improvement metric before deterministic tie-breaking.
+// A bounded beam is still a heuristic, not an exhaustive Pareto search.
+function gmIntegratedRankMetrics(r){
+  return [Math.min(r.quality,r.repeatQuality),Math.min(r.margin,r.postMargin),r.quality,r.repeatQuality,r.margin,r.postMargin,r.postHP,r.endHP,r.recoveryHP??0,r.order??0,r.postOrder];
+}
+function gmIntegratedChoiceRank(a,b){
+  const x=gmIntegratedRankMetrics(a),y=gmIntegratedRankMetrics(b);
+  for(let i=0;i<x.length;i++)if(x[i]!==y[i])return y[i]-x[i];
+  return a.hit.id-b.hit.id;
+}
+function gmIntegratedBuildRank(a,b){
+  const x=a.rows.map(gmIntegratedRankMetrics),y=b.rows.map(gmIntegratedRankMetrics);
+  for(let i=0;i<x[0].length;i++){
+    const u=x.map(r=>r[i]),v=y.map(r=>r[i]);
+    const d=Math.min(...v)-Math.min(...u)||v.reduce((s,n)=>s+n,0)-u.reduce((s,n)=>s+n,0);
+    if(d)return d;
+  }
+  return 0;
+}
 const GM_PSET=['swordsdance','dragondance','bulkup','bellydrum','shiftgear','coil','tidyup','curse','noretreat','victorydance','howl','honeclaws','filletaway'];
 const GM_SSET=['nastyplot','quiverdance','calmmind','tailglow','geomancy','takeheart'];
 const GM_BSET=['shellsmash','growth','workup'];
@@ -1028,7 +1048,7 @@ function monGuide(p,o={}){
             if(!end)return reject('end recovery state',{move:hit.id,opponent:op.p.no});
             choices.push({hit,quality:quality(hit),repeatQuality:quality(repeat),repeat,margin:c.hp-worst,postMargin:post.hp-postWorst,postHP:post.hp,endHP:end.hp,postOrder:post.hp>0?Math.sign(effSpd(post,op)-effSpd(op,post)):-1,postSpeed:post.hp>0?effSpd(post,op):0,postStages:{...post.stg},targetStages:{...postTarget.stg}});
           }
-          const choice=choices.sort((u,v)=>Math.min(v.quality,v.repeatQuality)-Math.min(u.quality,u.repeatQuality)||Math.min(v.margin,v.postMargin)-Math.min(u.margin,u.postMargin)||v.quality-u.quality||u.hit.id-v.hit.id)[0];
+          const choice=choices.sort(gmIntegratedChoiceRank)[0];
           let recoveryHP=null;
           if(recovery){
             // Start from half HP (at least one), independent of the attack scenario.
@@ -1053,7 +1073,7 @@ function monGuide(p,o={}){
       // Keep a small deterministic beam; cap calculation work per page.
       const variants=[s.moves];
       for(const from of original.filter(id=>!locked.includes(id)))for(const to of ls.filter(id=>supported(id)&&!s.moves.includes(id)))variants.push(s.moves.map(id=>id===from?to:id));
-      const rank=(a,b)=>Number(compare(b,baseline))-Number(compare(a,baseline))||Math.min(...b.rows.map(r=>Math.min(r.quality,r.repeatQuality)))-Math.min(...a.rows.map(r=>Math.min(r.quality,r.repeatQuality)))||Math.min(...b.rows.map(r=>Math.min(r.margin,r.postMargin)))-Math.min(...a.rows.map(r=>Math.min(r.margin,r.postMargin)));
+      const rank=(a,b)=>Number(compare(b,baseline))-Number(compare(a,baseline))||gmIntegratedBuildRank(a,b);
       let beam=[];
       // Round-robin by move variant so every eligible held item is attempted
       // before the search budget is exhausted by the first item.
