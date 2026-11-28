@@ -761,6 +761,29 @@ function teamKindEvidence(entries,T){
   const order=['tm','ac','dc','su'].filter(k=>evidence[k].length>=min[k]).sort((a,b)=>evidence[b].length-evidence[a].length);
   return order.map(k=>({k,why:evidence[k].join('・')+'（固定対面の参考評価）'}));
 }
+// Weather and Tailwind badges describe evidenced synergy, not mere access.
+function teamWeatherEvidence(T){
+  const w=T?.weather;if(!w||w.guess||!Array.isArray(T.M))return null;
+  const setters=T.M.map((m,i)=>m&&m.ab===w.ab&&WSET[m.ab]===w.k?i:-1).filter(i=>i>=0);
+  if(!setters.length)return null;
+  const gain=T.M.filter((m,i)=>m&&!setters.includes(i)&&(WX_GAIN[w.k]||[]).includes(m.ab)&&
+    (T.ms[i]?.x?.set?.ab?.k===m.ab||reviewedFixedMegaItem(m)));
+  if(!gain.length)return null;
+  return {k:w.k,why:w.by+'の'+(ABN[w.ab]||'特性')+'・恩恵を受ける味方 '+gain.map(m=>m.p.n).join('・')};
+}
+function teamTailwindEvidence(T){
+  if(!T?.rows?.length||!Array.isArray(T.M))return null;
+  const id=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
+  const setters=(T.ms||[]).map((v,i)=>T.M[i]&&canLearn(v.p,id)&&(v.x.set?.mv||[]).some(m=>m&&+m.id===id)?i:-1).filter(i=>i>=0);
+  if(!setters.length)return null;
+  const gains=[];
+  for(let i=0;i<T.M.length;i++){
+    const m=T.M[i],v=T.ms[i];if(!m||!v||setters.includes(i)||!v.x.set?.mv?.some(x=>MV[x.id]&&canLearn(v.p,+x.id)))continue;
+    const n=T.rows.filter(r=>r.res.some(z=>z.i===i&&Number.isFinite(z.sa)&&Number.isFinite(z.so)&&z.sa>0&&z.sa<=z.so&&2*z.sa>z.so)).length;
+    if(n)gains.push(m.p.n+' '+n+'対面');
+  }
+  return gains.length?{k:'tailwind',why:setters.map(i=>T.M[i].p.n).join('・')+'の登録技・速度逆転候補 '+gains.join('・')+'（同優先度、他の行動順効果なしの参考）'}:null;
+}
 function teamArch(entries,T=null){
   const out=[];if(!entries||!entries.length)return out;
   try{T=T||dgTeam(entries,20)}catch(e){}
@@ -772,13 +795,8 @@ function teamArch(entries,T=null){
   });
   if(entries.length>=3&&T?.tr?.on&&registered.length)out.push({k:'tr',
     why:`${registered.map(v=>formInfo(T.ms[v.i].p).base).join('・')}が登録したトリックルームを使えて、${T.tr.slow.length}匹が遅い`});
-  const w=T?.weather;
-  if(w){
-    const gain=T.M.filter(m=>m&&(WX_GAIN[w.k]||[]).includes(m.ab));
-    out.push({k:w.k,why:`${w.by}の${ABN[w.ab]||'特性'}で天気を変える${w.guess?'（特性が未登録なので、この特性と仮定）':''}${gain.length?`（${gain.map(m=>formInfo(m.p).base).join('・')}が得をする）`:''}`});
-  }
-  const TW=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
-  const tw=(T?.ms||[]).filter(({x,p},i)=>T.M[i]&&canLearn(p,TW)&&(x.set?.mv||[]).some(m=>m&&+m.id===TW)).map(o=>o.x);if(tw.length)out.push({k:'tailwind',why:`${tw.map(x=>formInfo(byNo[x.no]).base).join('・')}がおいかぜを使う`});
+  const w=teamWeatherEvidence(T);if(w)out.push(w);
+  const tw=teamTailwindEvidence(T);if(tw)out.push(tw);
   try{const K=teamKindEvidence(entries,T);if(K)out.push(...K.filter(v=>ARCH_BADGE[v.k]))}catch(e){}
   return out.slice(0,3);
 }
