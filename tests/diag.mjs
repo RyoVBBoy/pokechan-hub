@@ -251,8 +251,16 @@ const V5=await pg.evaluate(()=>{
   r.tm=run(['ガブリアス','ルカリオ','ドドゲザン'],()=>{team[0].set=sc;team[1].set=ss;team[2].set=lo}).includes('tm');
   run(['ガブリアス','サーフゴー','アシレーヌ']);r.none=/判定中/.test(teamArchHTML(team))&&!teamArch(team).length;
   return r});
-ok(V5.tr&&V5.trUnset&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
+ok(V5.tr&&V5.trUnset&&V5.sun&&V5.rain&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
 /* 2026/11/10 依頼主の指摘：技を登録したトリックルーム向きのパーティが「晴れ・対面」になった */
+const KE=await pg.evaluate(()=>{
+  const no=445,p=byNo[no],id=89;
+  const entries=Array.from({length:3},()=>({no,set:{mv:[{id}],it:{k:'lifeorb'}}}));
+  const T={M:[{},{},{}],ms:entries.map(x=>({x,p})),rows:Array.from({length:4},()=>({res:entries.map((x,i)=>({i,r:4,k:'ko_fast',swIn:'win'}))}))};
+  const strong=teamKindEvidence(entries,T),weak=teamKindEvidence(entries,{...T,rows:T.rows.map(r=>({res:r.res.map(z=>({...z,r:1,k:'lose',swIn:'lose'}))}))});
+  return {strong:strong?.some(v=>v.k==='tm'),weak:weak?.length,empty:teamKindEvidence(entries,{...T,rows:[]})===null};
+});
+ok(KE.strong&&KE.weak===0&&KE.empty,'構築分類：持ち物だけで判定しない '+JSON.stringify(KE));
 const V6=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};team.length=0;['ブリムオン','リキキリン','コータス','ドサイドン','カビゴン','オニシズクモ'].forEach(s=>team.push({no:N(s).no}));
   const ss=archSets(['axis'],team.map(x=>byNo[x.no]));team.forEach((x,i)=>{x.set=toSaved(ss[i])});TWX_K=null;

@@ -734,6 +734,33 @@ function dgPremise(T){
    ・対面／サイクル／積み：teamKind（登録した持ち物・技から。3匹以上の育成が要る）
    押すとその型の解説（#/arch/ID）。決まらないときは灰色の「型：判定中」 */
 const ARCH_BADGE={sun:['晴れ','sun'],rain:['雨','rain'],sand:['砂嵐','sand'],snow:['雪','snow'],tr:['トリックルーム','tr'],tailwind:['おいかぜ','tailwind'],tm:['対面','taimen'],ac:['攻めサイクル','cycle'],dc:['受けサイクル','cycle'],su:['積み','setup']};
+// Conservative evidence for a registered build, not a battle simulation.
+function teamKindEvidence(entries,T){
+  if(!Array.isArray(entries)||!T?.rows?.length||!Array.isArray(T.M)||entries.length<3)return null;
+  const evidence={tm:[],ac:[],dc:[],su:[]};
+  const threshold=Math.max(1,Math.ceil(T.rows.length/4));
+  const legalMoves=(x,p)=>(x.set?.mv||[]).filter(m=>m&&MD[m.id]&&canLearn(p,+m.id));
+  const data=entries.map((x,i)=>{
+    const m=T.M[i],p=T.ms[i]?.p;if(!m||!p||!x.set)return null;
+    const mv=legalMoves(x,p),keys=mv.map(v=>MD[v.id][3]);
+    const attack=mv.some(v=>MV[v.id]&&mvObj(v.id).pow>0);
+    const rows=T.rows.map(r=>r.res.find(z=>z.i===i)).filter(Boolean);
+    return {i,p,m,keys,attack,rows,it:x.set.it?.k,ab:x.set.ab?.k};
+  });
+  if(data.filter(v=>v&&v.keys.length).length<3)return null;
+  for(const v of data.filter(Boolean)){
+    const {i,p,m,keys,attack,rows,it,ab}=v;
+    const favorable=rows.filter(z=>z.r>=4).length,fast=rows.filter(z=>z.k==='ko_fast').length,safe=rows.filter(z=>z.swIn==='win').length;
+    const partner=data.some(w=>w&&w.i!==i&&w.rows.filter(z=>z.swIn==='win').length>=threshold);
+    if(attack&&['focussash','choiceband','choicespecs','choicescarf','lifeorb'].includes(it)&&Math.max(favorable,fast)>=threshold)evidence.tm.push(p.n+'：有利または先に倒せる対面 '+Math.max(favorable,fast)+'件');
+    if(attack&&keys.some(k=>GM_PIV.includes(k))&&partner&&favorable>=threshold)evidence.ac.push(p.n+'：登録した交代技・有利対面 '+favorable+'件');
+    if((keys.some(k=>GM_HEAL.includes(k))||ab==='regenerator'||it==='leftovers')&&partner&&safe>=threshold)evidence.dc.push(p.n+'：回復手段・後出しで勝てる対面 '+safe+'件');
+    if(attack&&keys.some(k=>[...GM_PSET,...GM_SSET].includes(k))&&favorable>=threshold)evidence.su.push(p.n+'：登録した攻撃系積み技・通常時の有利対面 '+favorable+'件');
+  }
+  const min={tm:2,ac:2,dc:2,su:1};
+  const order=['tm','ac','dc','su'].filter(k=>evidence[k].length>=min[k]).sort((a,b)=>evidence[b].length-evidence[a].length);
+  return order.map(k=>({k,why:evidence[k].join('・')+'（固定対面の参考評価）'}));
+}
 function teamArch(entries,T=null){
   const out=[];if(!entries||!entries.length)return out;
   try{T=T||dgTeam(entries,20)}catch(e){}
@@ -752,7 +779,7 @@ function teamArch(entries,T=null){
   }
   const TW=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
   const tw=(T?.ms||[]).filter(({x,p},i)=>T.M[i]&&canLearn(p,TW)&&(x.set?.mv||[]).some(m=>m&&+m.id===TW)).map(o=>o.x);if(tw.length)out.push({k:'tailwind',why:`${tw.map(x=>formInfo(byNo[x.no]).base).join('・')}がおいかぜを使う`});
-  try{const K=teamKind(entries);if(K&&K.k&&ARCH_BADGE[K.k])out.push({k:K.k,why:K.why.length?K.why.join('・'):K.name})}catch(e){}
+  try{const K=teamKindEvidence(entries,T);if(K)out.push(...K.filter(v=>ARCH_BADGE[v.k]))}catch(e){}
   return out.slice(0,3);
 }
 function teamArchHTML(entries){
