@@ -394,6 +394,13 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DALLY=await pg.evaluate(()=>{
+  const a=[{one:100,many:75,order:[1],allyLoss:50},{one:20,many:20,order:[1],allyLoss:0}];
+  const v=reviewedDoubleAllyScores(a,[0,50]);
+  const u=reviewedDoubleAllyScores([{...a[0],allyLoss:51},a[1]],[0,50]);
+  return {v,u,invalid:reviewedDoubleAllyScores(a,[-1])===null};
+});
+ok(DALLY.v?.[1]===20&&DALLY.v?.[10]===100&&DALLY.u?.[10]===20&&DALLY.invalid,'ダブル巻き込み制約と同一技の火力 '+JSON.stringify(DALLY));
 const DFS=await pg.evaluate(()=>{
   const r={orders:[{first:2,min:0,max:80,ko:64,rolls:256},{first:1,min:10,max:90,ko:0,rolls:256}]};
   const v=reviewedFocusScores(r,[1,2]);

@@ -986,13 +986,26 @@ function reviewedDoubleActionScores(attacks){
   return scores;
 }
 // Fixed move across benchmark conditions; flexible builds may choose per condition.
-function reviewedDoubleChoiceProfiles(groups,choice){
+function reviewedDoubleAllyScores(attacks,caps){
+  if(!Array.isArray(attacks)||!attacks.length||!Array.isArray(caps)||!caps.length||caps.some(v=>!Number.isFinite(v)||v<0)||attacks.some(v=>!Number.isFinite(v.allyLoss)||v.allyLoss<0))return null;
+  const template=reviewedDoubleActionScores(attacks);if(!template)return null;
+  const result=[];
+  for(const cap of caps){
+    const eligible=attacks.filter(v=>v.allyLoss<=cap);
+    const scores=eligible.length?reviewedDoubleActionScores(eligible):Array(template.length).fill(0);
+    if(!scores)return null;
+    result.push(eligible.length?1:0,...scores);
+  }
+  return result;
+}
+function reviewedDoubleChoiceProfiles(groups,choice,caps=null){
   if(!Array.isArray(groups)||!groups.length||groups.some(g=>!Array.isArray(g)||!g.length||g.some(v=>!Number.isInteger(v.id))||new Set(g.map(v=>v.id)).size!==g.length))return null;
   const profiles=[];
   for(const id of choice?groups[0].map(v=>v.id):[null]){
     const scores=[];
-    for(const group of groups){
-      const v=reviewedDoubleActionScores(id===null?group:group.filter(v=>v.id===id));
+    for(let i=0;i<groups.length;i++){
+      const group=groups[i],attacks=id===null?group:group.filter(v=>v.id===id);
+      const v=caps?reviewedDoubleAllyScores(attacks,caps[i]):reviewedDoubleActionScores(attacks);
       if(!v)return null;
       scores.push(...v);
     }
