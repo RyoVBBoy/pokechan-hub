@@ -551,6 +551,36 @@ const LE=await pg.evaluate(()=>{
 });
 console.log('leftovers recovery audit '+JSON.stringify(LE));
 ok(!LE.failed.length,'たべのこし：端数・満タン・ひんし・回復封じ・回復行動の先後 '+JSON.stringify(LE));
+const MO=await pg.evaluate(()=>{
+  const rows=[];
+  const mk=(p,ab,item)=>mkMon(p,'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  for(const p of MEGAP){
+    const stone=Object.keys(MEGA).find(k=>Object.values(MEGA[k]).includes(p.no));
+    if(!stone)continue;
+    const a=mk(p,p.ab,stone),injured={...a,hp:Math.max(1,Math.floor(a.max/2))};
+    const setup=reviewedSetupState(a,14,{ab:'pressure'});
+    const heal=injured.hp<injured.max?reviewedRecoveryExchange(injured,105,1,()=>0):null;
+    const wrong=Object.keys(MEGA).find(k=>k!==stone&&!Object.values(MEGA[k]).includes(p.no));
+    rows.push({no:p.no,stone,error:!reviewedFixedMegaItem(a)||(!!wrong&&reviewedFixedMegaItem({...a,item:wrong}))||(REVIEWED_SETUP_AB.has(a.ab)&&(!setup||setup.item!==stone))||(injured.hp<injured.max&&(!heal||heal.minEndHP!==a.max))});
+  }
+  const a=mk(byNo[445],'pressure',null),d=mk(byNo[65],'pressure',null);
+  const speed=(x,n)=>({...x,st:x.st.map((v,i)=>i===5?n:v)});
+  for(const [ab,sa,sd,pri,expected] of [['pressure',100,100,0,0],['pressure',200,100,1,-1],['pressure',50,100,-1,1],['prankster',50,100,0,1],['prankster',50,100,1,-1],['triage',50,100,2,1],['triage',50,100,4,-1]]){
+    const actual=reviewedRecoveryOrder({...speed(a,sa),ab},105,speed(d,sd),{...mvObj(89),pri});
+    rows.push({ab,sa,sd,pri,expected,actual,error:actual!==expected});
+  }
+  if(MV[332]){
+    const slow=speed(a,50),fast=speed(d,100),gale={...slow,ab:'gale-wings'};
+    // Faster healer wins only when the slower flying attacker is not at full HP.
+    for(const full of [true,false]){
+      const attacker={...gale,hp:full?gale.max:gale.max-1},actual=reviewedRecoveryOrder(fast,105,attacker,mvObj(332)),expected=full?-1:1;
+      rows.push({gale:true,full,actual,expected,error:actual!==expected});
+    }
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error),mega:rows.filter(x=>x.stone).length};
+});
+console.log('mega recovery and order audit '+JSON.stringify(MO));
+ok(MO.mega>0&&!MO.failed.length,'メガ固定石・回復技の優先度・同速 '+JSON.stringify(MO));
 const SA=await pg.evaluate(()=>{
   const rows=[];
   const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
