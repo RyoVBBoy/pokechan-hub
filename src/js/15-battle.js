@@ -682,7 +682,9 @@ function hitDist(a,mv,d,o){
    Recovery berries, recoil and end-of-turn effects are outside this helper. */
 function hitRemainingDist(a,mv,d,o={}){
   const opt={...o,surv:true},out=new Map(),k=mkey(mv);
-  for(const [n,w] of hitCountDist(a,mv,d,opt)){
+  // nHits is an explicit conditional replay count, not the UI hit selector.
+  const counts=Number.isInteger(opt.nHits)&&opt.nHits>=1&&opt.nHits<=Math.max(1,mv.maxH||1)?[[opt.nHits,1]]:hitCountDist(a,mv,d,opt);
+  for(const [n,w] of counts){
     const pb=a.ab==='parental-bond'&&n===1&&!(opt.spread&&mv.tg)&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
     let states=new Map();
     const put=(map,st,p)=>{const key=JSON.stringify(st),v=map.get(key);if(v)v.p+=p;else map.set(key,{st,p})};

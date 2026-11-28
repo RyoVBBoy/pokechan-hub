@@ -285,7 +285,7 @@ const HM=await pg.evaluate(()=>{
       const expected=new Map(),p=accOf(aa,m,d)/100;
       const weights=ab==='skill-link'?[[m.maxH,1]]:id===813?[[1,1-p],[2,p*(1-p)],[3,p*p]]:[[2,.35],[3,.35],[4,.15],[5,.15]];
       for(const [n,w] of weights.filter(x=>x[1]>0)){
-        for(const [hp,q] of hitRemainingDist(aa,m,d,{...opt,hits:n}))expected.set(hp,(expected.get(hp)||0)+w*q);
+        for(const [hp,q] of hitRemainingDist(aa,m,d,{...opt,nHits:n}))expected.set(hp,(expected.get(hp)||0)+w*q);
       }
       const error=actual.length!==expected.size||actual.some(([hp,q])=>!expected.has(hp)||Math.abs(expected.get(hp)-q)>1e-9)||Math.abs(actual.reduce((t,x)=>t+x[1],0)-1)>1e-9;
       rows.push({id,ab,error,states:actual.length,ms:Math.round(ms*100)/100});
