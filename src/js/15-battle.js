@@ -933,6 +933,26 @@ function reviewedDoubleOrder(a,m,d,n,field={}){
   if(![sa,sd,pa,pd].every(Number.isFinite)||sa<1||sd<1)return null;
   return {sa,sd,pa,pd,order:Math.sign(pa-pd)||Math.sign(sa-sd)*(field.trickRoom===true?-1:1)};
 }
+// Exhaustive single-donor transfers for one declared field scenario.
+function reviewedSpeedTransfers(sp,evaluate){
+  if(!Array.isArray(sp)||sp.length!==6||sp.some(n=>!Number.isInteger(n)||n<0||n>32)||sp.reduce((a,b)=>a+b,0)>66||typeof evaluate!=='function')return null;
+  const valid=v=>Array.isArray(v)&&v.length>0&&v.every(n=>[-1,0,1].includes(n));
+  const baseline=evaluate(sp.slice());if(!valid(baseline))return null;
+  const best=[];let attempts=0;
+  for(let donor=0;donor<5;donor++)for(const direction of [-1,1]){
+    let winner=null;
+    for(let k=1;k<=32;k++){
+      const x=sp.slice();x[5]+=direction*k;x[donor]-=direction*k;
+      if(x[5]<0||x[5]>32||x[donor]<0||x[donor]>32)break;
+      attempts++;const v=evaluate(x);if(!valid(v)||v.length!==baseline.length||v.some((n,i)=>n<baseline[i]))continue;
+      const gains=v.filter((n,i)=>n>baseline[i]).length;
+      if(gains&&(!winner||gains>winner.gains))winner={sp:x,donor,delta:direction*k,gains,orders:v};
+    }
+    if(winner)best.push(winner);
+  }
+  best.sort((a,b)=>b.gains-a.gains||Math.abs(a.delta)-Math.abs(b.delta)||a.donor-b.donor||a.delta-b.delta);
+  return {baseline,attempts,best};
+}
 function reviewedRecoveryOrder(a,id,d,m){
   if(!REVIEWED_DIRECT_HEAL.has(id)||!a||!d||!m)return null;
   const selfPriority=a.ab==='triage'?3:a.ab==='prankster'?1:0;
