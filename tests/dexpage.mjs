@@ -876,6 +876,34 @@ const STEEL_BEAM_AUDIT=await pg.evaluate(()=>{
 });
 console.log('steel beam cost audit '+JSON.stringify(STEEL_BEAM_AUDIT));
 ok(STEEL_BEAM_AUDIT.total===460&&!STEEL_BEAM_AUDIT.failures.length,'てっていこうせん：HP消費・いのちのたま・特性・入力検査 '+JSON.stringify(STEEL_BEAM_AUDIT));
+const WEATHER_ATTACK_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,actual,expected)=>{total++;if(actual!==expected)failures.push({name,actual,expected});};
+  const weather=B.weather;
+  try{
+    for(const [id,power,accuracy,type] of [[542,110,70,'ひこう'],[815,70,100,'じめん']]){
+      const m=mvObj(id);
+      check(id+' power',m.pow,power);check(id+' accuracy',m.acc,accuracy);check(id+' type',m.t,type);
+      check(id+' category',m.cls,1);check(id+' hits',m.maxH,1);
+      for(const w of [null,'rain','sun','sand','snow'])for(const ab of ['pressure','sheer-force','no-guard','cloud-nine','air-lock']){
+        B.weather=w?{k:w}:null;
+        const a={ab,item:null,stg:{acc:0}},d={ab:'pressure',item:null,stg:{eva:0}};
+        const expected=ab==='no-guard'?100:id===542&&!['cloud-nine','air-lock'].includes(ab)?w==='rain'?100:w==='sun'?50:70:accuracy;
+        check(id+' '+w+' '+ab,accOf(a,m,d),expected);
+        check(id+' sheer force '+ab,sfOn(a,m),ab==='sheer-force');
+        check(id+' secondary suppression '+ab,sfSup(a,m),ab==='sheer-force');
+      }
+      B.weather={k:'rain'};
+      check(id+' defender weather suppression',accOf({ab:'pressure',stg:{}},m,{ab:'cloud-nine',stg:{}}),accuracy);
+      const a={ab:'sheer-force',item:'lifeorb',hp:200,max:200,stg:{}};
+      check(id+' life orb suppressed',reviewedLifeOrbAfterHit(a,m,true)?.hp,200);
+      check(id+' ordinary life orb',reviewedLifeOrbAfterHit({...a,ab:'pressure'},m,true)?.hp,180);
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('weather attack audit '+JSON.stringify(WEATHER_ATTACK_AUDIT));
+ok(WEATHER_ATTACK_AUDIT.total===166&&!WEATHER_ATTACK_AUDIT.failures.length,'ぼうふう・ねっさのだいち：データ・天候・命中・ちからずく '+JSON.stringify(WEATHER_ATTACK_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
