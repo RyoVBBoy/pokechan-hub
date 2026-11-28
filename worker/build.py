@@ -15,7 +15,7 @@ s = ''.join(open(os.path.join(ROOT, 'src/js', f), encoding='utf-8').read() for f
 # 取り込む関数・定数（この順に並べる）
 NAMES = ('PICK LEADN FMTDIR stgM natM calcStats mvObj PROT ABSORB PINCH SKIN WSET WSPD ABIMPL ITEMN ITEMT RES_BERRY STI nrm rnd wpick '
          'LF_BIND LF_CHOICE_OK LF_KEY lfId lfAtk lfDrain lfReq liveFit chooseSet buildSet digest MDK mkey WT wtOf MCHG MRECH mvTurnK MSELFKO MFIRST MFAIL MCOND MCOUNT simF varPow fixedDmg hitType '
-         'WX_SUPP wxEffK MOHKO PRIO_BLOCK moveUsable SF_SEC SF_POW_ONLY sfOn sfSup MB_REP mbSeq MACC nuOffK nextUseCould pR chM apM stgV disgLoss MEGA MEGAP isStone megaOf megasOf itemFor FORM_WHY resolveForm learnBase MFL mfl bcalc mhCount hitStep hsInit bhits hitCountDist nextUse useSeq effPri accOf wxPairOptions WX_GAIN asWeatherChoices asWithWeather withWeatherKind withWx estHit0 estHit combos asMatchMatrix analyze effSpd BATTLE_FORM mkMon').split()
+         'WX_SUPP wxEffK MOHKO PRIO_BLOCK moveUsable SF_SEC SF_POW_ONLY sfOn sfSup MB_REP mbSeq MACC nuOffK nextUseCould pR chM apM stgV disgLoss MEGA MEGAP isStone megaOf megasOf itemFor FORM_WHY resolveForm learnBase MFL mfl REVIEWED_ALWAYS_CRIT reviewedCritical bcalc mhCount hitStep hsInit bhits hitCountDist nextUse useSeq effPri accOf wxPairOptions WX_GAIN asWeatherChoices asWithWeather withWeatherKind withWx estHit0 estHit combos asMatchMatrix analyze effSpd BATTLE_FORM mkMon').split()
 DATA = ['MV', 'LSD', 'ABD', 'MVK', 'ABK', 'ABN']
 
 
