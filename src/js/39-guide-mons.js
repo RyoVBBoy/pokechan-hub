@@ -392,6 +392,40 @@ function monGuide(p,o={}){
       }
       return rows.length?'<details class="gset-alt"><summary>ダメージを基準にした配分候補</summary><ul class="gtips">'+rows.map(t=>'<li>'+t+'</li>').join('')+'</ul><p class="vcap">他の能力配分を固定し、1項目ずつ検査しています。候補同士を同時に適用できるとは限りません。満タン・非急所・指定した技と相手だけの比較です。節約分は未配分です。</p></details>':'';
     };
+    /* Bounded coordinate search: retain every selected goal after each change.
+       Not an exhaustive global optimum. Never exceed original AP budget. */
+    const jointPlan=(me,op,out,inc)=>{
+      const safe=(a,d,m)=>!d.disg&&d.item!=='focussash'&&d.ab!=='sturdy'&&d.item!=='focusband'&&m.maxH<=1&&a.ab!=='parental-bond';
+      const attack=out.filter(x=>safe(me,op,x.m)&&x.ko.sure===1&&x.ko.n===1&&x.acc===100);
+      const defense=inc.filter(x=>safe(op,me,x.m)&&x.hi>0&&x.hi<me.hp);
+      const speedTarget=me.st[5]>op.st[5]?op.st[5]:null;
+      if(!attack.length||!defense.length||speedTarget===null)return '';
+      const valid=sp=>{
+        if(sp.some(n=>!Number.isInteger(n)||n<0||n>32)||sp.reduce((a,b)=>a+b,0)>66)return false;
+        const c=build(p,{...s,sp},'me');
+        if(c.formErr||c.st[5]<=speedTarget)return false;
+        return attack.every(x=>{const y=result(c,op,x.m);return y&&y.ko.sure===1&&y.ko.n===1&&y.acc===100})&&
+          defense.every(x=>{const y=result(op,c,x.m);return y&&y.hi<c.hp});
+      };
+      if(!valid(s.sp))return '';
+      let sp=[...s.sp];
+      for(const i of [5,1,3,0,2,4]){
+        for(let n=0;n<sp[i];n++){
+          const trial=[...sp];trial[i]=n;
+          if(valid(trial)){sp=trial;break}
+        }
+      }
+      const freed=s.sp.reduce((a,b)=>a+b,0)-sp.reduce((a,b)=>a+b,0);
+      if(freed<=0||!valid(sp))return '';
+      const total=sp.reduce((a,b)=>a+b,0),budget=s.sp.reduce((a,b)=>a+b,0);
+      // Restore points only when all constraints still hold.
+      for(let j=total;j<budget;j++){
+        const choices=[0,2,4].filter(i=>sp[i]<32).map(i=>{const trial=[...sp];trial[i]++;const st=calcStats(p,trial,s.up,s.dn);return {trial,score:Math.min(st[0]*st[2],st[0]*st[4])}}).sort((a,b)=>b.score-a.score);
+        const next=choices.find(x=>valid(x.trial));if(!next)break;sp=next.trial;
+      }
+      if(!valid(sp))return '';
+      return '<details class="gset-alt"><summary>火力・耐久・素早さを同時に維持する配分候補</summary><p>'+sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+sp.reduce((a,b)=>a+b,0)+'）</p><ul class="gtips"><li>確定1発：'+attack.map(x=>esc(mName(x.m.id))).join('・')+'</li><li>最大ダメージを1回耐える：'+defense.map(x=>esc(mName(x.m.id))).join('・')+'</li><li>素早さ実数値 '+calcStats(p,sp,s.up,s.dn)[5]+' ＞ '+speedTarget+'</li></ul><p class="vcap">指定の相手・技、満タン・ランク0・非急所、同じ優先度、素早さ補正なしで再計算。順次探索で見つけた候補であり、全配分の最適解や他の相手への性能は保証しません。</p></details>';
+    };
     const line=x=>esc(mName(x.m.id))+'：'+x.lo+'〜'+x.hi+' / '+x.hp+' HP（'+(100*x.lo/x.hp).toFixed(1)+'〜'+(100*x.hi/x.hp).toFixed(1)+'%）・'+esc(koLabel(x.ko))+'（命中時）'+(x.acc<100?'・命中 '+x.acc+'%':'');
     const sw=B.weather;B.weather=null;
     try{
@@ -403,7 +437,7 @@ function monGuide(p,o={}){
         const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
         const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
         if(!out.length&&!inc.length)return '';
-        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+'</details>';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+'</details>';
       }).join('');
       return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
