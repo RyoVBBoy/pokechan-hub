@@ -207,7 +207,14 @@ const IA=await pg.evaluate(()=>{
           const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&a.hp===z.surv.max?Math.min(n,a.hp-1):n+(z.loss||0)))});
           if(row.hit.lo!==Math.min(...raw)||row.hit.hi!==Math.max(...raw)||row.hit.acc!==accOf(a,mv,op)||row.margin!==a.hp-Math.max(...incoming)||row.remaining!==a.hp||row.speed!==effSpd(a,op)||row.order!==Math.sign(effSpd(a,op)-effSpd(op,a)))errors.push('calculator mismatch');
           const ref=r.baseline.rows[j];
-          if(row.quality+1e-9<ref.quality||row.margin<ref.margin||row.order<ref.order)errors.push('regression');
+          const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}}[mv.id];
+          const post={...a,stg:{...a.stg}};
+          if(deltas&&Math.max(...raw)>0&&row.hit.acc>0)for(const [k,n] of Object.entries(deltas))post.stg[k]=Math.max(-6,Math.min(6,post.stg[k]+n));
+          const rp=dmgRolls(post,mv,op,opt),rv=mv.maxH>1?hitRemainingDist(post,mv,op,opt).map(([hp])=>op.hp-hp):(rp.dist?rp.dist.map(x=>x[0]):rp);
+          const postIncoming=op.moves.map(m=>{const z=dmgRolls(op,m,post,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&post.hp===z.surv.max?Math.min(n,post.hp-1):n+(z.loss||0)))});
+          const loss=mv.maxH>1?rv:rv.map(n=>rp.surv&&op.hp===rp.surv.max?Math.min(n,op.hp-1):n+(rp.loss||0));
+          if(row.repeat.lo!==Math.min(...rv)||row.repeat.hi!==Math.max(...rv)||Math.abs(row.repeatQuality-Math.min(1,Math.min(...loss)/op.hp)*accOf(post,mv,op)/100)>1e-9||row.postMargin!==post.hp-Math.max(...postIncoming)||Object.keys(post.stg).some(k=>row.postStages[k]!==post.stg[k]))errors.push('post-move calculator mismatch');
+          if(row.quality+1e-9<ref.quality||row.repeatQuality+1e-9<ref.repeatQuality||row.margin<ref.margin||row.postMargin<ref.postMargin||row.order<ref.order)errors.push('regression');
         }
       }
     }finally{B.weather=weather}
