@@ -648,7 +648,7 @@ function monGuide(p,o={}){
       if(statusMoves.length>1)return skip('multiple setup moves');
       const setup=statusMoves[0];
       if(base)return skip('mega item fixed');
-      if(me.disg||me.ab==='sturdy'||me.ab==='parental-bond'||['focussash','focusband'].includes(me.item))return skip('unsupported survival or multi-hit state');
+      if(me.ab==='parental-bond'||me.item==='focusband')return skip('unsupported probabilistic or multi-hit state');
       if(CALC_UNIMPL.includes(me.ab)||CALC_UNVERIFIED[me.ab])return skip('unsupported ability');
       if(CALC_UNIMPL_IT.includes(me.item))return skip('unsupported item');
       const items=setup?['lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses']:['lifeorb','sitrusberry','choiceband','choicespecs','choicescarf','expertbelt','muscleband','wiseglasses'];
@@ -660,7 +660,11 @@ function monGuide(p,o={}){
         if(!moveUsable(m,{a,d}).ok||m.maxH>1||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
         if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
         const r=dmgRolls(a,m,d,opt),v=r.dist?r.dist.map(x=>x[0]):r,acc=accOf(a,m,d);
-        return v.length&&v.every(Number.isFinite)&&Number.isFinite(acc)?{lo:Math.min(...v),hi:Math.max(...v),acc,id:m.id}:null;
+        if(!v.length||!v.every(Number.isFinite)||!Number.isFinite(acc)||r.dist||r.fband)return null;
+        // Reuse the calculator's first-use survival metadata. Keep raw damage
+        // separate from effective HP loss, including Disguise's separate HP cost.
+        const loss=v.map(n=>r.surv&&d.hp===r.surv.max?Math.min(n,d.hp-1):n+(r.loss||0));
+        return {lo:Math.min(...v),hi:Math.max(...v),lossLo:Math.min(...loss),lossHi:Math.max(...loss),acc,id:m.id};
       };
       const evaluate=x=>{
         const k=JSON.stringify([x.item,x.sp,x.moves]);if(cache.has(k))return cache.get(k);
@@ -674,9 +678,9 @@ function monGuide(p,o={}){
           const attacks=c.moves.map(m=>supported(m.id)?bounds(c,op,m):null);
           const threats=op.moves.map(m=>supported(m.id)?bounds(op,c,m):null);
           if(!attacks.length||!threats.length||attacks.some(v=>!v)||threats.some(v=>!v))return null;
-          const quality=v=>Math.min(1,v.lo/op.hp)*v.acc/100;
+          const quality=v=>Math.min(1,v.lossLo/op.hp)*v.acc/100;
           const hit=attacks.sort((u,v)=>quality(v)-quality(u)||v.lo-u.lo||u.id-v.id)[0];
-          const worst=Math.max(...threats.map(v=>v.hi));
+          const worst=Math.max(...threats.map(v=>v.lossHi));
           const speed=effSpd(c,op),oppSpeed=effSpd(op,c);
           rows.push({no:op.p.no,name:op.p.n,hit,hp:op.hp,quality:quality(hit),margin:c.hp-worst,remaining:c.hp,max:c.max,speed,order:Math.sign(speed-oppSpeed),item:c.item});
         }
@@ -714,7 +718,7 @@ function monGuide(p,o={}){
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順を悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順を悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技のタスキ・がんじょう・ばけのかわによるHP減少を考慮。反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{
