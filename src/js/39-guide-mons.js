@@ -657,11 +657,12 @@ function monGuide(p,o={}){
       if(me.ab==='parental-bond'||me.item==='focusband')return skip('unsupported probabilistic or multi-hit state');
       if(CALC_UNIMPL.includes(me.ab)||CALC_UNVERIFIED[me.ab])return skip('unsupported ability');
       if(CALC_UNIMPL_IT.includes(me.item))return skip('unsupported item');
-      const items=setup?['lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses']:['lifeorb','sitrusberry','choiceband','choicespecs','choicescarf','expertbelt','muscleband','wiseglasses'];
+      const items=setup?['lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses']:['lifeorb','sitrusberry','choicescarf','expertbelt','muscleband','wiseglasses'];
+      const legalItem=item=>CH_ITEMS.has(item)&&Object.prototype.hasOwnProperty.call(ITEMN,item)&&!CALC_UNIMPL_IT.includes(item)&&(!setup||!/^choice/.test(item));
       const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
       const budget=s.sp.reduce((a,b)=>a+b,0),cache=new Map();
       const started=performance.now();let attempts=0;
-      const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&Object.prototype.hasOwnProperty.call(ITEMN,x.item)&&!CALC_UNIMPL_IT.includes(x.item)&&(!setup||!/^choice/.test(x.item));
+      const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&legalItem(x.item);
       const bounds=(a,d,m)=>{
         if(!moveUsable(m,{a,d}).ok||(m.maxH>1&&!multiSimple.has(m.id))||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
         if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
@@ -711,7 +712,7 @@ function monGuide(p,o={}){
       let beam=[];
       // Round-robin by move variant so every eligible held item is attempted
       // before the search budget is exhausted by the first item.
-      const itemPool=[...new Set([s.item,...items])].filter(item=>Object.prototype.hasOwnProperty.call(ITEMN,item));
+      const itemPool=[...new Set([s.item,...items])].filter(legalItem);
       for(const moves of variants)for(const item of itemPool){
         if(attempts>=180)break;
         const v=evaluate({...s,item,moves,sp:[...s.sp]});if(v)beam.push(v);
