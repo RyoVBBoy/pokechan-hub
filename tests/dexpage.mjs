@@ -180,6 +180,25 @@ const IC=await pg.evaluate(()=>{
 });
 const ICS={total:IC.length,counts:IC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:IC};
 console.log('integrated coverage '+JSON.stringify(ICS));
+// Keep excluded formats distinct from evaluated single-battle builds.
+const DC=await pg.evaluate(()=>[...new Map([...P,...MEGAP].map(p=>[p.no,p])).values()].map(p=>{
+  try {
+    const g=monGuide(p,{parts:true,auditCoverage:true});
+    const s=g.sets.find(x=>x.fmt==='double'&&!x.live&&!x.usage);
+    if(!s)return {no:p.no,name:p.n,status:'no local double build'};
+    const h=g.auditBenchmark(s);
+    return {no:p.no,name:p.n,status:h===''?'double benchmark unavailable':'unexpected double benchmark',moves:s.moves,ab:s.ab,item:s.item};
+  }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
+}));
+const DCS={total:DC.length,counts:DC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:DC};
+console.log('double integrated coverage '+JSON.stringify(DCS));
+ok(DC.length===selectable.length&&DC.every(x=>x.status==='double benchmark unavailable'),'ダブル統合比較：未対応範囲を明示 '+JSON.stringify(DCS.counts));
+// An evaluated report and a deliberately skipped build are different outcomes.
+const reasonCounts=IC.filter(x=>x.status!=='evaluated').reduce((a,x)=>{
+  const reason=x.baselineFailure?.reason||x.status;
+  a[reason]=(a[reason]||0)+1;return a;
+},{});
+console.log('integrated coverage exclusions '+JSON.stringify({total:IC.length,evaluated:ICS.counts.evaluated||0,excluded:IC.length-(ICS.counts.evaluated||0),reasonCounts}));
 ok(IC.length===selectable.length&&IC.every(x=>x.status!=='exception'&&x.status!=='invalid report'),'統合エンジン全姿の適用範囲・例外検査 '+JSON.stringify(ICS.counts));
 /* Audit actual generated integrated candidates, rather than only checking HTML. */
 const IA=await pg.evaluate(()=>{
