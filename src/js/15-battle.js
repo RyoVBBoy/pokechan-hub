@@ -960,6 +960,28 @@ function reviewedDoubleTradeoff(base,next){
   const out=next.out.map((v,i)=>v-base.out[i]),hp=next.hp.map((v,i)=>v-base.hp[i]);
   return {outMin:Math.min(...out),outMax:Math.max(...out),hpMin:Math.min(...hp),hpMax:Math.max(...hp),preserved:[...out,...hp].every(v=>v>=0)};
 }
+// Bounded independent scenario search; all objective coordinates are maximized.
+function reviewedDoubleSearch(original,candidates,legal,evaluate,limit=64){
+  if(!Number.isInteger(limit)||limit<1||limit>128||!legal(original))return null;
+  const valid=x=>Array.isArray(x)&&x.length>0&&x.every(Number.isFinite);
+  const baseline=evaluate(original);if(!valid(baseline))return null;
+  const key=x=>JSON.stringify([x.moves,x.item,x.sp]),seen=new Set([key(original)]),best=[];
+  let attempts=1,accepted=0;
+  for(const x of candidates){
+    if(attempts>=limit)break;
+    const k=key(x);if(seen.has(k)||!legal(x))continue;
+    seen.add(k);attempts++;
+    const scores=evaluate(x);
+    if(!valid(scores)||scores.length!==baseline.length)continue;
+    accepted++;
+    if(scores.some((v,i)=>v<baseline[i])||!scores.some((v,i)=>v>baseline[i]))continue;
+    if(best.some(v=>v.scores.every((n,i)=>n>=scores[i])))continue;
+    for(let i=best.length-1;i>=0;i--)if(scores.every((n,j)=>n>=best[i].scores[j]))best.splice(i,1);
+    best.push({x,scores,gains:scores.filter((v,i)=>v>baseline[i]).length});
+  }
+  best.sort((a,b)=>b.gains-a.gains);
+  return {baseline,attempts,accepted,best:best.slice(0,3)};
+}
 function reviewedRecoveryOrder(a,id,d,m){
   if(!REVIEWED_DIRECT_HEAL.has(id)||!a||!d||!m)return null;
   const selfPriority=a.ab==='triage'?3:a.ab==='prankster'?1:0;

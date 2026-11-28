@@ -394,6 +394,14 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DJ=await pg.evaluate(()=>{
+  const s={moves:[1,2,3,4],item:'a',sp:[0,0,0,0,0,0]};
+  const candidates=[{...s,item:'b'},{...s,item:'c'},{...s,item:'d'},{...s,item:'e'},{...s,item:'f'}];
+  const values={a:[5,5],b:[6,4],c:[5,6],d:[7,6],e:[6,7],f:[99,99]};
+  const r=reviewedDoubleSearch(s,candidates,x=>x.item!=='f',x=>values[x.item],5);
+  return {attempts:r?.attempts,best:r?.best.map(x=>x.x.item).sort().join(','),accepted:r?.accepted};
+});
+ok(DJ.attempts===5&&DJ.best==='d,e'&&DJ.accepted===4,'ダブル統合探索：上限・合法性・個別悪化・支配関係 '+JSON.stringify(DJ));
 const DTO=await pg.evaluate(()=>{
   const base={out:[20,40,80],hp:[50,60]};
   const rows=[];
