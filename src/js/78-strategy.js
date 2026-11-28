@@ -64,7 +64,7 @@ function stSelectionFlow(P0,entries){
   const head=`先発候補は${lead.map(pn).join('・')}。${adv.length?`対面で有利な相手の例は${adv.join('・')}。`:'先発で有利と判定できた相手は見つかりませんでした。'}`;
   const mega=B.megaI>=0?`この選出は${P0.DS.megaNm(B.megaI)}を使う場合の評価です。`
     :P0.DS.H.length?'この選出はメガシンカなしで評価しています。':'';
-  const setup=B.trUse?`${B.tr.setters.filter(s=>B.c.includes(s.i)).map(s=>pn(s.i)).join('・')}でトリックルームを張れた場合は、場が有効な間に攻めます。`
+  const setup=B.trUse&&stRegisteredTR(entries)?`${B.tr.setters.filter(s=>B.c.includes(s.i)).map(s=>pn(s.i)).join('・')}でトリックルームを張れた場合は、場が有効な間に攻めます。`
     :B.weather?`${B.weather.by}が${ARCH_BADGE[B.weather.k][0]}を作れた場合は、天候が有効な間に攻めます。`:'';
   const mid=switches.slice(0,3).map(x=>`${x.opponent.n}には${x.matchups.map(z=>pn(z.i)+'の'+z.me.mvn+dgAccLabel(z.me)).join('／')}が後出しから倒し切る候補。`).join('')+
     (switches.length?'計算と同じHP・場の条件が前提です。':watch.length?'先発が有利を取れない相手への、後出しで勝てる控えは見つかりませんでした。':'比較した相手には、先発候補のいずれかが対面で有利です。')+
@@ -74,13 +74,20 @@ function stSelectionFlow(P0,entries){
   const end=fin?`終盤の候補は${fin.n}。 ${fin.t}を使える場面で、相手を倒せるHPまで削れているか確認します。`:'終盤の候補を決める根拠が足りません。残った相手のHPと先に動けるかを確認します。';
   return {sel:B.c.map(pn),ld:lead.map(pn),adv,fin,switches,steps:[['序盤',head+mega+setup],['中盤',mid],['終盤',end]]};
 }
+// Learnability and inferred moves are not evidence of a registered strategy.
+function stRegisteredTR(entries){
+  return Array.isArray(entries)&&entries.some(x=>Array.isArray(x?.set?.mv)&&x.set.mv.some(m=>m&&MD[m.id]?.[3]==='trickroom'));
+}
+function stActualArch(entries,arch){
+  return arch.filter(a=>a.k!=='tr'||(!a.unset&&stRegisteredTR(entries)));
+}
 function stFill(entries){
   const box=document.getElementById('st-box');if(!box)return;
   let T,P0=null;
   try{T=dgTeam(entries,20)}catch(e){box.innerHTML='<p class="stg-p" role="status">戦い方の判定に必要な計算を完了できませんでした。</p>';return}
   const N=T.rows.length;
   try{P0=selPlan(entries)}catch(e){}
-  const arch=(()=>{try{return teamArch(entries,T)}catch(e){return []}})(),W=stWx(T);
+  const arch=(()=>{try{return stActualArch(entries,teamArch(entries,T))}catch(e){return []}})(),W=stWx(T);
   const nmE=i=>esc(byNo[entries[i].no].n);
   /* 推定の匹（技を登録していない匹は、使用率の高い型か自動の型で計算） */
   const guess=entries.filter(x=>!(x.set&&(x.set.mv||[]).some(m=>m&&m.id))).map(x=>byNo[x.no]?.n||String(x.no));
@@ -92,7 +99,7 @@ function stFill(entries){
     ${T.mega&&T.mega.holders&&T.mega.holders.length?`<details class="stg-nomega" id="stg-nomega"><summary>メガシンカしない場合と比べる</summary><div class="stg-nm-b"><p class="dgu-loading">開くと計算します</p></div></details>`:''}
     <p class="stg-f">${FMTN()}・${N?`パーティ全体を${esc(T.opponentSource)}${N}匹と1匹ずつ比較した結果です。`:'比較できる相手がいないため、対面の判定を保留しています。'}${guess.length?`育成の技を登録していない${guess.slice(0,4).map(esc).join('・')}${guess.length>4?' など':''}は、推定の型で計算した<b>推定</b>です。`:''}${FMT==='double'?DG_DOUBLE_SCOPE+DG_DOUBLE_LIMITS:''}</p></div>`;
   /* 2. 強み */
-  const G=stStrengths(T,W);
+  const G=stStrengths(T,W).filter(g=>g.k!=='tr'||stRegisteredTR(entries));
   const sec2=`<div class="stg-sec"><h3>パーティの強み</h3>${G.length?`<p class="stg-f">パーティ全体の評価です。トリックルーム中の強みは条件付きで示します。</p><ol class="stg-gl">${G.map(g=>`<li><p class="stg-gt">${g.t}</p><p class="stg-gh"><span>使い方</span>${g.how}</p></li>`).join('')}</ol>`
     :'<p class="stg-p">計算では、目立った強みはまだ見つかりませんでした。下の「気をつけたい相手・場面」と改善案から、少しずつ整えていきましょう。</p>'}</div>`;
   /* 3. おすすめの選出と先発 */
@@ -111,7 +118,7 @@ function stFill(entries){
       ${(()=>{const notes=[];const inC=n=>B.c.some(i=>byNo[entries[i].no].n===n);
         if(B.weather)notes.push(`${esc(ARCH_BADGE[B.weather.k][0])}は${esc(B.weather.by)}が作った場合を、該当する対面に反映しています${B.weather.guess?'（特性は推定）':''}。`);
         else if(W&&W.gain.length&&!inC(W.by))notes.push(`この選出には${ARCH_BADGE[W.k][0]}を作る${esc(W.by)}が入っていません。${ARCH_BADGE[W.k][0]}で戦うなら、${esc(W.by)}と${W.gain.map(esc).join('・')}を入れた選出も比べてください。`);
-        if(T.tr&&T.tr.on&&!T.tr.setters.some(t=>B.c.includes(t.i)))notes.push(`この選出にはトリックルームを張れるポケモン（${T.tr.setters.map(t=>esc(T.ms[t.i].p.n)).join('・')}）が入っていません。トリックルームで戦うなら、張る役を入れた選出も比べてください。`);
+        if(stRegisteredTR(entries)&&T.tr&&T.tr.on&&!T.tr.setters.some(t=>B.c.includes(t.i)))notes.push(`この選出にはトリックルームを張れるポケモン（${T.tr.setters.map(t=>esc(T.ms[t.i].p.n)).join('・')}）が入っていません。トリックルームで戦うなら、張る役を入れた選出も比べてください。`);
         return notes.map(t=>`<p class="stg-warn">${t}</p>`).join('')})()}
       <div class="stg-btns">${(()=>{const sel=entries.map((x,i)=>x.sel?i:-1).filter(i=>i>=0);return sel.length===B.c.length&&B.c.every(i=>sel.includes(i))?'<span class="stg-done">✓ いま選出にしている組み合わせです</span>':`<button class="btn btn-p" data-stg-sel="${B.c.join(',')}">この組み合わせを選出にする</button>`})()}
         <button class="dgu-link" data-dgu-tab="plan">選出の理由・ほかの選出と比べる</button></div></div>`;

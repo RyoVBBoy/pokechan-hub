@@ -18,10 +18,10 @@ for(const [k,S] of Object.entries(SC)){
   const errs=[];pg.on('pageerror',e=>errs.push(e.message));
   await pg.route(/^https?:/,r=>r.abort());await pg.goto('file://'+root+'/dist/index.html');await pg.waitForTimeout(600);
   await pg.evaluate(S=>{FMT=S.fmt;try{localStorage.setItem('pcfmt',S.fmt)}catch(e){}const N=s=>P.find(x=>x.n===s).no;team.length=0;
-    S.m.forEach(([n,it,ab])=>team.push({no:N(n),sel:false,...(it||ab?{set:{it:it?{k:it,n:ITEMN[it]}:null,mv:[],sp:null,up:-1,dn:-1,ab:ab||null}}:{})}));saveTeam();TTAB='check';location.hash='#/team'},S);
+    S.m.forEach(([n,it,ab])=>team.push({no:N(n),sel:false,...(it||ab?{set:{it:it?{k:it,n:ITEMN[it]}:null,mv:[],sp:null,up:-1,dn:-1,ab:ab?{k:ab,n:ABN[ab]}:null}}:{})}));saveTeam();TTAB='check';location.hash='#/team'},S);
   await pg.waitForFunction(()=>document.querySelector('#st-box .dgu-head'),null,{timeout:60000});
   const R=await pg.evaluate(()=>{const st=document.getElementById('st-box'),t=st.textContent,hs=[...st.querySelectorAll('h3')].map(h=>h.textContent);
-    const T=dgTeam(team,20),A=teamArch(team),S=dgSelect(team),adv=document.getElementById('dg-adv');
+    const T=dgTeam(team,20),A=stActualArch(team,teamArch(team)),S=dgSelect(team),adv=document.getElementById('dg-adv');
     return{hs,t,arch:A.map(a=>a.k),archShown:[...st.querySelectorAll('.stg-arch .tarch-b')].length,
       strengths:st.querySelectorAll('.stg-gl>li').length,how:[...st.querySelectorAll('.stg-gl>li')].every(li=>li.querySelector('.stg-gh')&&/<b>|[ァ-ヶー]{2,}/.test(li.querySelector('.stg-gt').innerHTML)),
       sel:S&&S.best?S.best.c.map(i=>byNo[team[i].no].n):null,selShown:[...st.querySelectorAll('.stg-sel li>b')].map(b=>b.textContent),
@@ -30,6 +30,13 @@ for(const [k,S] of Object.entries(SC)){
       mega:T.mega&&T.mega.holders?T.mega.holders.length:0,megaBar:!!st.querySelector('.dgm-bar'),noMega:!!st.querySelector('#stg-nomega'),
       over:document.body.scrollWidth>innerWidth+1}});
   ok(!errs.length,'エラーなし '+errs.join(' / '));
+  const TR=await pg.evaluate(()=>{
+    const id=+Object.keys(MD).find(k=>MD[k][3]==='trickroom');
+    const a=[{k:'tr',unset:true},{k:'su'},{k:'ac'}],b=[{k:'tr'},{k:'su'}];
+    const yes=[{set:{mv:[{id}]}}],no=[{set:{mv:[]}}],registeredOther=[{set:{mv:[{id:182}]}}];
+    return {unset:stActualArch(no,a).map(x=>x.k),no:stActualArch(registeredOther,b).map(x=>x.k),yes:stActualArch(yes,b).map(x=>x.k),contradiction:stActualArch(yes,a).map(x=>x.k)};
+  });
+  ok(TR.unset.join()==='su,ac'&&TR.no.join()==='su'&&TR.yes.join()==='tr,su'&&TR.contradiction.join()==='su,ac','未登録のトリックルームを現在の型にしない '+JSON.stringify(TR));
   ok(R.hs[0]==='戦い方の型'&&R.hs[1]==='パーティの強み'&&R.hs[2]==='おすすめの選出と先発','順番：戦い方→強み→選出 '+R.hs.join('・'));
   ok(R.firstTop,'戦い方が「気をつけたい相手・場面」より上');
   ok(R.advClosed,'くわしい分析（相手ごとの対応力・改善案）はたたんで残す');

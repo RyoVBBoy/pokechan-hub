@@ -626,8 +626,54 @@ function tbPropComp(){
   return tbPropEval('comp',V2.mem,V2.notes,skip);
 }
 /* 案の評価と、条件を守れたか。できれば守る条件は案ごとに理由つき */
+// Require comparable evidence in every Mega/no-Mega scenario; never accept
+// the permissive "not evaluated" path of the ordinary replacement gate.
+function tbJointGate(E0,E1,no,i){
+  if(E0?.st!=='ok'||E1?.st!=='ok'||!E0.scen?.length||E0.scen.length!==E1.scen?.length||E1.dup?.length)return false;
+  const keys=rows=>{
+    if(!Array.isArray(rows)||!rows.length||rows.some(r=>typeof r.op?.key!=='string'||!r.op.key||!Array.isArray(r.z)||r.z.length!==E0.mem.length||r.z.some(v=>!v)))return null;
+    const k=new Set(rows.map(r=>r.op.key));return k.size===rows.length?k:null;
+  };
+  if(E0.fmt!==E1.fmt||E0.ver!==E1.ver||!Array.isArray(E0.mem)||!Array.isArray(E1.mem)||E0.mem.length!==E1.mem.length||E0.mem.some((v,j)=>v.no!==E1.mem[j].no))return false;
+  if(new Set(E0.scen.map(v=>v.key)).size!==E0.scen.length||new Set(E1.scen.map(v=>v.key)).size!==E1.scen.length)return false;
+  if(!E0.scen.every(a=>{const b=E1.scen.find(z=>z.key===a.key);if(!b)return false;const x=keys(a.rows),y=keys(b.rows);return x&&y&&x.size===y.size&&[...x].every(k=>y.has(k));}))return false;
+  const C=mvpCompare(E0,E1,no,no,i);
+  return C.pairs.length===E0.scen.length&&!C.lost.length&&!C.added.length&&!C.roleLoss&&C.cm===0&&C.pairs.every(p=>p.n1<=p.n0)&&C.net>0;
+}
+function tbJointOptimize(mem,fmt,evalTeam=tbEval){
+  const result={mem,changed:[],attempts:0};
+  if(fmt!=='double'||mem.length!==6||mem.some(x=>!x.set))return result;
+  let current=mem.slice(),E0=evalTeam(current);
+  if(E0?.st!=='ok')return result;
+  for(let i=0;i<current.length;i++){
+    const x=current[i],base=x.set,p=byNo[x.no];
+    // Preserve user and real recorded sets. Only optimize generated or inferred builds.
+    if(!p||!['theory','pokekit'].includes(x.src)||x.spReal||!base.ab?.k||!base.it?.k||!Array.isArray(base.sp)||base.mv?.length!==4||isStone(base.it.k))continue;
+    if(mvpLegal(x.no).st!=='ok')continue;
+    try{
+      const original={fmt:'double',ab:base.ab.k,item:base.it.k,moves:base.mv.map(m=>m.id),sp:base.sp.slice(),up:base.up,dn:base.dn};
+      const R=monGuide(p,{jointOnly:original,noAxis:true,jointLimit:12});
+      if(!R)continue;
+      const used=new Set(current.filter((_,j)=>j!==i).map(v=>v.set?.it?.k).filter(Boolean));
+      for(const v of R.best||[]){
+        const sv=impJointSaved(x.no,base,v.x,used);if(!sv)continue;
+        // Retain all original utility moves and widely used attacks.
+        const pct=impUsePct(x.no,null);
+        if(base.mv.some(m=>!sv.mv.some(n=>n.id===m.id)&&((pct[m.id]||0)>=IMP_USED||IMP_KEEP.has(MD[m.id]?.[3])||!MV[m.id])))continue;
+        if(sv.mv.some(m=>IMP_NOMV.has(MD[m.id]?.[3])))continue;
+        const next=current.map((y,j)=>j===i?{...y,set:sv,src:'theory',spReal:false,srcTxt:'当サイトの統合比較による理論上の育成案（実戦での使用実績ではありません）'}:y);
+        result.attempts++;
+        const E1=evalTeam(next);if(!tbJointGate(E0,E1,x.no,i))continue;
+        current=next;E0=E1;result.changed.push(x.no);break;
+      }
+    }catch(e){/* unsupported candidate: preserve the original build */}
+  }
+  result.mem=current;return result;
+}
 function tbPropEval(kind,mem,notes,skip){
-  const c={...TB_CONDDEF,...TB.cond},E=tbEval(mem);
+  const c={...TB_CONDDEF,...TB.cond};
+  if(FMT==='double'){const R=tbJointOptimize(mem,FMT);mem=R.mem;if(R.changed.length)notes=[...notes,'統合育成比較：'+R.changed.map(no=>byNo[no].n).join('・')+'（固定条件の個体比較と既存の全体対面評価を通過した理論案）'];}
+  const E=tbEval(mem);
   const req=[{t:`入れたいポケモン（${[TB.start,...c.must].map(n=>byNo[n].n).join('・')}）`,ok:[TB.start,...c.must].every(n=>mem.some(x=>tbFam(x.no)===tbFam(n)))},
     {t:'入れたくないポケモンを入れない',ok:!mem.some(x=>c.ng.some(n=>tbFam(n)===tbFam(x.no)))},
     {t:`メガシンカ：${c.mega==='none'?'なし':c.mega==='auto'?'おまかせ':byNo[+c.mega.slice(5)].n+'をメガシンカ'}`,ok:c.mega==='none'?!mem.some(x=>x.set&&x.set.it&&isStone(x.set.it.k)):c.mega.startsWith('must:')?mem.some(x=>x.no===+c.mega.slice(5)&&x.set&&x.set.it&&isStone(x.set.it.k)):true},

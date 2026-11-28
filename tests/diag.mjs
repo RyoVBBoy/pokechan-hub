@@ -243,24 +243,39 @@ const V5=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};const run=(names,mod)=>{team.length=0;names.forEach(s=>team.push({no:N(s).no}));mod&&mod();TWX_K=null;return teamArch(team).map(a=>a.k)};
   const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
   r.tr=run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'],()=>{team[0].set=trSet(team[0].no)}).includes('tr');
-  /* 覚えられるだけなら「技が未登録」の札（張れる型としては出さない） */
-  run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);r.trUnset=teamArch(team).some(a=>a.k==='tr'&&a.unset);
+  /* 覚えられるだけなら構築の型には出さず、適性は別の診断に残す */
+  run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);r.trUnset=!teamArch(team).some(a=>a.k==='tr')&&dgTeam(team,20).tr.unset;
   r.sun=run(['リザードン','フシギバナ','ルチャブル','ガブリアス'],()=>{team[0].set={it:{k:'charizarditey',n:''},mv:[]}}).includes('sun');
   r.rain=run(['ペリッパー','イダイトウ','ブリジュラス']).includes('rain');
   const sc={it:{k:'choicescarf',n:''},mv:[{id:89,n:'じしん'}]},ss={it:{k:'focussash',n:''},mv:[{id:89,n:'じしん'}]},lo={it:{k:'lifeorb',n:''},mv:[{id:89,n:'じしん'}]};
   r.tm=run(['ガブリアス','ルカリオ','ドドゲザン'],()=>{team[0].set=sc;team[1].set=ss;team[2].set=lo}).includes('tm');
   run(['ガブリアス','サーフゴー','アシレーヌ']);r.none=/判定中/.test(teamArchHTML(team))&&!teamArch(team).length;
   return r});
-ok(V5.tr&&V5.trUnset&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
+ok(V5.tr&&V5.trUnset&&!V5.sun&&!V5.rain&&V5.none,'構築の型のバッジ '+JSON.stringify(V5));
 /* 2026/11/10 依頼主の指摘：技を登録したトリックルーム向きのパーティが「晴れ・対面」になった */
+const WE=await pg.evaluate(()=>{
+  const p=byNo[445],id=89,tw=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
+  const setter=Object.values(byNo).find(q=>q&&lsOf(q).includes(tw));
+  const T={weather:{k:'rain',ab:'drizzle',by:'A',guess:false},M:[{ab:'drizzle',p:{n:'A'}},{ab:'swift-swim',p:{n:'B'}}],ms:[{p:setter,x:{set:{ab:{k:'drizzle'},mv:[{id:tw}]}}},{p,x:{set:{ab:{k:'swift-swim'},mv:[{id}]}}}],rows:[{res:[{i:1,sa:80,so:120}]}]};
+  return {weather:teamWeatherEvidence(T)?.k,guess:teamWeatherEvidence({...T,weather:{...T.weather,guess:true}})===null,missingSetter:teamWeatherEvidence({...T,ms:[{...T.ms[0],x:{set:{mv:[{id:tw}]}}},T.ms[1]]})===null,wind:teamTailwindEvidence(T)?.k,noGain:teamTailwindEvidence({...T,rows:[{res:[{i:1,sa:60,so:120}]}]})===null};
+});
+ok(WE.weather==='rain'&&WE.guess&&WE.missingSetter&&WE.wind==='tailwind'&&WE.noGain,'天候・おいかぜの根拠 '+JSON.stringify(WE));
+const KE=await pg.evaluate(()=>{
+  const no=445,p=byNo[no],id=89;
+  const entries=Array.from({length:3},()=>({no,set:{mv:[{id}],it:{k:'lifeorb'}}}));
+  const T={M:[{},{},{}],ms:entries.map(x=>({x,p})),rows:Array.from({length:4},()=>({res:entries.map((x,i)=>({i,r:4,k:'ko_fast',swIn:'win'}))}))};
+  const strong=teamKindEvidence(entries,T),weak=teamKindEvidence(entries,{...T,rows:T.rows.map(r=>({res:r.res.map(z=>({...z,r:1,k:'lose',swIn:'lose'}))}))});
+  return {strong:strong?.some(v=>v.k==='tm'),weak:weak?.length,empty:teamKindEvidence(entries,{...T,rows:[]})===null};
+});
+ok(KE.strong&&KE.weak===0&&KE.empty,'構築分類：持ち物だけで判定しない '+JSON.stringify(KE));
 const V6=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};team.length=0;['ブリムオン','リキキリン','コータス','ドサイドン','カビゴン','オニシズクモ'].forEach(s=>team.push({no:N(s).no}));
   const ss=archSets(['axis'],team.map(x=>byNo[x.no]));team.forEach((x,i)=>{x.set=toSaved(ss[i])});TWX_K=null;
-  const A=teamArch(team);r.first=A[0]&&A[0].k==='tr'&&A[0].unset===true;r.sun=A.some(a=>a.k==='sun');
+  const A=teamArch(team);r.first=!A.some(a=>a.k==='tr')&&dgTeam(team,20).tr.unset;r.sun=A.some(a=>a.k==='sun');
   r.warn=dgAnalyze(dgTeam(team,20)).bad.some(b=>/トリックルームの技が入っていない/.test(b.t));
   const t2=archSets(ARCHS.find(x=>x[0]==='tr'),team.map(x=>byNo[x.no]));r.fill=t2.some(z=>toSaved(z).mv.some(m=>m.n==='トリックルーム'));
   return r});
-ok(V6.first&&V6.sun,'トリックルーム向きのパーティのバッジ '+JSON.stringify(V6));
+ok(V6.first,'トリックルーム向きのパーティのバッジ '+JSON.stringify(V6));
 ok(V6.warn,'トリックルームの技が入っていない注意が出ない');
 ok(V6.fill,'トリックルームの型で組むとトリックルームが入らない');
 /* 2026/11/10 依頼主の検証⑤：攻撃偏重のパーティ（固定した型）で弱点を見つけられるか */
@@ -735,6 +750,9 @@ ok(BAS.keys.every(v=>!v),'イダイトウを受けの型にしない '+JSON.stri
 ok(BAS.cyc.every(Boolean),'サイクル・軸の型でイダイトウは攻撃に振る '+JSON.stringify(BAS.cyc));
 ok(!BAS.imp.length,'イダイトウに耐久に回す改善案を出さない '+JSON.stringify(BAS.imp));
 ok(BAS.keep.every(Boolean),'もともと受けの型のポケモンは変えない '+JSON.stringify(BAS.keep));
+
+const jointCmp=await pg.evaluate(()=>{const mk=()=>({M:[{p:{no:445}}],rows:[{q:{no:149},lvl:3,res:[{i:0,r:4}]}]});const a=mk(),b=mk(),c=mk();b.rows[0].q.no=184;c.rows[0].res=[];return impJointComparable(a,a)&&!impJointComparable(a,b)&&!impJointComparable(a,c)});
+if(!jointCmp)throw Error('joint improvement comparison requires identical complete target list');
 await b.close();
 if(bad){console.error(`diag: ${bad}/${n} 項目が失敗`);process.exit(1)}
 console.log(`diag: OK（${n}項目）`);

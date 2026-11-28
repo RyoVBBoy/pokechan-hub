@@ -7,15 +7,97 @@ let DPF=null;   /* 型・育成タブの形式（はじめは対戦の形式 FMT
 const dpList=a=>a.join('・');
 const dpTyA=a=>a.map(t=>chip(t)).join('');
 /* ---- 1. 概要：どんなポケモンか・強いところ・弱いところ・向いている役割・姿の違い ---- */
+
+/* Evidence-first overview: only measured values, legal ability/move choices and explicit conditions.
+   No invented overall strength scores. The deeper tabs retain their existing calculations. */
+function dpEvidenceHTML(p){
+  const abs=(p.base&&p.ab?[[p.ab,0]]:ABD[p.no]||(p.ab?[[p.ab,0]]:[])).map(a=>a[0]);
+  const ids=(LSD[p.no]||LSD[p.base]||[0,[]])[1]||[];
+  const facts={
+    'huge-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
+    'pure-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
+    'water-bubble':'みず技の火力を強化し、ほのお技の被ダメージを半減する。',
+    'fur-coat':'物理技に対する耐久を高める。',
+    'magic-bounce':'対象となる相手の変化技を跳ね返す。',
+    'zero-to-hero':'一度交代して戻るとマイティフォルムで戦える。',
+    'stance-change':'攻撃時と防御時の姿で能力が異なる。',
+    'emergency-exit':'攻撃を受けHPが半分以下になると交代が発生する場合がある。',
+    'prankster':'変化技の優先度が上がる。相手のあくタイプなどには制約がある。',
+    'intimidate':'場に出たとき相手の攻撃を下げる。無効化や反応する特性に注意。',
+    'multiscale':'HP満タン時に受ける攻撃のダメージを軽減する。',
+    'disguise':'最初の対象となる攻撃を受けると姿が変わる。',
+    'regenerator':'交代で引くとHPを回復する。',
+    'technician':'条件を満たす低威力技を強化する。'
+  };
+  const special=abs.filter(k=>facts[k]);
+  const ordered=[...special,...abs.filter(k=>!special.includes(k))];
+  const abRows=ordered.map(k=>'<details class="dp-li"><summary><span class="dp-li-t">'+esc(ABN[k]||k)+'</span><span class="dp-li-c" aria-hidden="true">›</span></summary><p>'+esc(facts[k]||ABDS[k]||'効果は特性の詳細で確認してください。')+'</p></details>').join('');
+  const hit=abs.filter(k=>k==='huge-power'||k==='pure-power');
+  const raw=calcStats(p,[0,32,0,0,0,0],1,3)[1];
+  const bar=(label,v,max)=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;margin:8px 0"><span>'+esc(label)+'</span><b>'+v+'</b><span style="grid-column:1/-1;height:9px;border-radius:6px;background:var(--line);overflow:hidden"><span style="display:block;width:'+Math.min(100,v/max*100)+'%;height:100%;background:var(--acc);border-radius:6px"></span></span></div>';
+  const chart=hit.length?'<section class="dp-sec"><h3 class="dp-st">特性で変わる攻撃</h3>'+bar('特性の補正なし',raw,raw*2)+bar(ABN[hit[0]]+'の補正あり',raw*2,raw*2)+'<p class="dp-fn">攻撃上昇補正・能力ポイント32。特性が有効な場合の計算上の攻撃値であり、最終ダメージではありません。</p></section>':'';
+  const speed=calcStats(p,[0,0,0,0,0,32],5,1)[5];
+  const comparisons=[
+    ['water-bubble','みず技の威力補正',2,'みず技を使う場合'],
+    ['fur-coat','物理防御の補正',2,'特性が有効な場合'],
+    ['ice-scales','特殊技の被ダメージ補正',0.5,'特性が有効な場合'],
+    ['multiscale','被ダメージ補正',0.5,'HP満タン時'],
+    ['swift-swim','素早さ',2,'雨のとき'],
+    ['chlorophyll','素早さ',2,'晴れのとき'],
+    ['sand-rush','素早さ',2,'砂嵐のとき'],
+    ['slush-rush','素早さ',2,'雪のとき']
+  ].filter(([k])=>abs.includes(k));
+  const extra=comparisons.map(([k,label,m,cond])=>{
+    const isSpeed=label==='素早さ',v=isSpeed?speed:100,max=Math.max(v,v*m);
+    return '<details class="dp-li"><summary>'+esc(ABN[k]||k)+'：'+esc(label)+'</summary>'+bar('補正なし',v,max)+bar('補正あり',v*m,max)+'<p class="dp-fn">'+esc(cond)+(isSpeed?'。素早さ上昇補正・能力ポイント32。':'。補正なしを100とした比較。最終ダメージではありません。')+'</p></details>';
+  }).join('');
+  const mvIds=ids.filter(id=>MV[id]).filter(id=>{const k=MD[id]&&MD[id][3];return ['aquajet','suckerpunch','extremespeed','machpunch','bulletpunch','iceshard','shadowsneak','fakeout','uturn','voltswitch','flipturn','partingshot','trickroom','tailwind','bellydrum','swordsdance','nastyplot','quiverdance','followme','ragepowder','wideguard'].includes(k)});
+  const tags=mvIds.slice(0,8).map(id=>'<a class="pill gchip" href="#/move/'+id+'">'+esc(mName(id))+'</a>').join('');
+  const form=p.base?byNo[p.base]:null;
+  const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
+  const statNames=['HP','攻撃','防御','特攻','特防','素早さ'];
+  const hasMove=id=>ids.includes(id)&&!!(MV[id]||MD[id]);
+  const dragonDance=hasMove(349);
+  const priority=ids.filter(id=>MV[id]&&mvObj(id)&&mvObj(id).pri>0&&mvObj(id).cls<2);
+  const danceStats=calcStats(p,[2,32,0,0,0,32],1,3);
+  const danceChart=dragonDance?'<details class="dp-li"><summary>りゅうのまい：攻撃・素早さの変化</summary>'+[1,5].map(i=>bar(statNames[i]+'（使用前）',danceStats[i],Math.floor(danceStats[i]*1.5))+bar(statNames[i]+'（1回使用後）',Math.floor(danceStats[i]*1.5),Math.floor(danceStats[i]*1.5))).join('')+'<p class="dp-fn">攻撃上昇・特攻下降補正、HP2・攻撃32・素早さ32。ランク0から1へ上昇した場合。特性・持ち物・場の補正なし。</p></details>':'';
+  const priorityText=priority.length?'<details class="dp-li"><summary>先制攻撃の選択肢</summary>'+priority.map(id=>'<p>'+esc(mName(id))+'：優先度 +'+mvObj(id).pri+'</p>').join('')+'<p class="dp-fn">技の成功条件や優先度の高い相手の技、先制技を防ぐ効果に注意。</p></details>':'';
+  const formatMoves=(label,entries)=>{
+    const rows=entries.filter(([id])=>hasMove(id)).map(([id,why])=>'<p><a href="#/move/'+id+'">'+esc(mName(id))+'</a>：'+esc(why)+'</p>').join('');
+    return rows?'<details class="dp-li"><summary>'+label+'</summary>'+rows+'</details>':'';
+  };
+  const singleRoles=formatMoves('シングル：戦い方の候補',[[349,'攻撃と素早さを上げる積み技'],[14,'攻撃を2段階上げる積み技'],[417,'特攻を2段階上げる積み技'],[245,'優先度+2の攻撃技。無効タイプなどに注意']]);
+  const doubleRoles=formatMoves('ダブル：味方と連携する技',[[366,'味方側の素早さを上げる'],[433,'同じ優先度内の素早さ順を逆転させる'],[266,'対象となる相手の技を自分に引き寄せる'],[476,'対象となる相手の技を自分に引き寄せる。粉技無効の相手などに注意'],[469,'対象となる範囲攻撃から味方側を守る'],[252,'場に出た最初のターンに使える先制技。ひるみ無効などに注意']]);
+  const bellyStats=calcStats(p,[32,32,0,0,2,0],1,3);
+  const bellyRaw=bellyStats[1];
+  const bellyChart=hasMove(187)?'<details class="dp-li"><summary>はらだいこ：攻撃の変化</summary>'+bar('使用前（特性補正なし）',bellyRaw,bellyRaw*(hit.length?8:4))+bar('成功後（攻撃ランク+6）',bellyRaw*4,bellyRaw*(hit.length?8:4))+(hit.length?bar('成功後・'+ABN[hit[0]]+'有効時',bellyRaw*8,bellyRaw*8):'')+'<p class="dp-fn">攻撃上昇・特攻下降補正、HP32・攻撃32・特防2。使用に必要なHPが残っている場合に限ります。攻撃への補正を比較しており、最終ダメージではありません。</p></details>':'';
+  const moveEvidence=danceChart+bellyChart+priorityText+singleRoles+doubleRoles;
+  const strengths=[];
+  if(hit.length) strengths.push([ABN[hit[0]]+'で攻撃2倍','特性が有効な場合の攻撃補正。最終ダメージとは異なります。']);
+  if(abs.includes('multiscale')) strengths.push(['HP満タン時のダメージ軽減','マルチスケイル選択時、HP満タンで対象の攻撃を受ける場合。']);
+  if(dragonDance) strengths.push(['攻撃と素早さを同時に強化','りゅうのまい採用時、成功すると各1段階上昇。']);
+  if(hasMove(187)) strengths.push(['攻撃ランクを最大まで上げる','はらだいこ採用時。最大HPの半分を消費するため残りHPに注意。']);
+  if(hasMove(245)) strengths.push(['優先度+2の先制攻撃','しんそく採用時。無効タイプや先制技を防ぐ効果に注意。']);
+  else if(hasMove(453)) strengths.push(['優先度+1の先制攻撃','アクアジェット採用時。無効化や先制技を防ぐ効果に注意。']);
+  if(abs.includes('inner-focus')) strengths.push(['ひるみ・いかくに対処','せいしんりょく選択時。']);
+  if(hasMove(366)) strengths.push(['味方側の素早さを強化','おいかぜ採用時。']);
+
+  const topStat=p.s.reduce((best,v,i)=>v>p.s[best]?i:best,0);
+  const pilotHeadline=p.no===149&&abs.includes('multiscale')&&dragonDance&&hasMove(245)?'マルチスケイルで行動機会を作り、りゅうのまいで攻撃と素早さを強化する型や、しんそくで先制する戦い方が選べる。':p.no===184&&hit.length&&hasMove(187)&&hasMove(453)?'ちからもちの物理火力を活かし、はらだいこで攻撃を強化してアクアジェットで先制する型が選べる。':'';
+  const headline=pilotHeadline|| (hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。');
+  return {strengths,headline:esc(headline),html:chart+(moveEvidence?'<section class="dp-sec"><h3 class="dp-st">技による性能の変化</h3>'+moveEvidence+'</section>':'')+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
+}
+
 function dpOverviewHTML(p,g){
+  const evidence=dpEvidenceHTML(p);
+  const overviewPros=evidence.strengths;
+  const weaknesses=T.map(t=>[t,mult(t,p.t)]).filter(([,v])=>v>1).sort((a,b)=>b[1]-a[1]);
+  const cautions=weaknesses.length?[[weaknesses[0][1]+'倍のタイプ弱点',weaknesses.filter(([,v])=>v===weaknesses[0][1]).map(([t])=>esc(t)).join('・')+'。タイプ相性のみ。特性・技・持ち物による変化は別です。']]:[];
   /* 2026/11/15 依頼主「Premium UI」：枠の中に枠を重ねない。見出し・余白・区切り線で分け、1行ずつ押すと説明が開く（› が回る）。説明の中身は前と同じ */
   const base=p.base?byNo[p.base]:null;
   const li=(t,d,o={})=>`<details class="dp-li${o.cls||''}"><summary><span class="dp-li-t">${t}</span>${o.tag?`<span class="dp-li-tag${o.tagc?' '+o.tagc:''}">${o.tag}</span>`:''}<span class="dp-li-c" aria-hidden="true">›</span></summary><p>${d}</p></details>`;
-  /* 役割：はじめ（ひとことの役）を「メイン」、積み技など条件のある役は「条件つき」と分ける。役の判定は前と同じ */
-  const roles=g.roles.map((r,i)=>{const cond=/（(.+)のとき）$/.exec(r.name);return li(esc(cond?r.name.replace(/（.+のとき）$/,''):r.name),String(r.text).replace(/[<>]/g,''),
-    {tag:i===0?'メイン':cond?esc(cond[1]):'',tagc:i===0?'is-main':cond?'is-cond':''})}).join('');
   let forms='';
-  if(base&&g.megaCh)forms=`<section class="dp-sec"><h3 class="dp-st">メガシンカで変わるところ</h3><ul class="dp-ul">${g.megaCh.map(x=>`<li>${x}</li>`).join('')}</ul>
+  if(base)forms=`<section class="dp-sec"><h3 class="dp-st">メガシンカで変わるところ</h3><p>タイプ：${esc(dpList(base.t))} → ${esc(dpList(p.t))}。特性：${esc(ABN[p.ab]||p.ab)}。</p>
     <a class="dp-link" href="#/p/${base.no}"><span>元の姿（${esc(base.n)}）</span><span aria-hidden="true">›</span></a></section>`;
   else if(g.megas.length)forms=`<section class="dp-sec"><h3 class="dp-st">ほかの姿</h3>${g.megas.map(({m,stone})=>{const tc=m.t.join()!==p.t.join();
     return `<a class="dp-form" href="#/p/${m.no}"><span class="av">${stamp(m)}</span><span class="dp-form-m"><span class="dp-form-n">${nm(m)}</span><span class="dp-form-s">${esc(ITEMN[stone]||'メガストーン')}でメガシンカ・合計 ${p.bst}→${m.bst}${tc?`・${esc(dpList(m.t))}タイプに`:''}・特性 ${esc(ABN[m.ab]||m.ab)}</span></span><span class="dp-li-c" aria-hidden="true">›</span></a>`}).join('')}
@@ -23,11 +105,10 @@ function dpOverviewHTML(p,g){
   /* 英語のときは文が日本語だけと知らせる（攻略ガイドと同じ、英語は未翻訳） */
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
-    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${g.lead}</p></section>
-    ${g.pros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${g.pros.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
-    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>弱いところ</h3><div class="dp-list">${g.cons.map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
-    ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
-      <p class="dp-fn">種族値と覚える技から見た目安です。どの役で使うかは型（技・持ち物）で決まり、条件のある役はその技を入れた型のときだけです。</p></section>`:''}
+    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p></section>
+    ${overviewPros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${overviewPros.slice(0,3).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${cautions.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>注意するポイント</h3><div class="dp-list">${cautions.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${evidence.html}
     ${forms}
     <section class="dp-sec"><h3 class="dp-st">くわしく見る</h3><nav class="dp-nav" aria-label="ほかのタブへ">
       <button type="button" class="dp-link" data-dpgo="4"><span>型・育成<small>使われている型と、計算で組んだ型</small></span><span aria-hidden="true">›</span></button>

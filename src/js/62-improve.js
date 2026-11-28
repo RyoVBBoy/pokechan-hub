@@ -85,15 +85,37 @@ function impRoleLoss(T0,T1,i){
   if(w0-w1>=3&&w1<=w0/2)return `${nm}が後出しして勝てる相手が${w0}→${w1}匹に減る`;
   return null;
 }
-const IMP_KIND={swap:'入れかえ',move:'技',sp:'能力ポイント',nat:'性格',item:'持ち物',role:'型（役割）',sel:'選出'};
+const IMP_KIND={joint:'統合育成',swap:'入れかえ',move:'技',sp:'能力ポイント',nat:'性格',item:'持ち物',role:'型（役割）',sel:'選出'};
 /* 改善案を作る。戻り値：[{kind,i,title,why,entries（変更後）,J（比べた結果）,apply}] */
 /* 入れかえ先にしない採用率（%）。使用データで多く使われている技は、1対1のダメージだけで「いらない」とは言えない */
 const IMP_USED=30;
 /* その匹の技の採用率（%）：ランクバトルの集計（種族ごと）と PokéKit（姿・メガストーンごと）の高い方 */
-function impUsePct(no,stone){const out={};const put=(id,pc)=>{if(id&&pc!=null&&!(out[id]>=pc))out[id]=pc};
+function impUsePct(no,stone){stone=stone&&isStone(stone)?stone:null;const out={};const put=(id,pc)=>{if(id&&pc!=null&&!(out[id]>=pc))out[id]=pc};
   try{const d=typeof LIVE!=='undefined'&&LIVE.csv[no];if(d&&d.mv)d.mv.forEach(([n,pc])=>put(MVKA[nrm(n)],pc))}catch(e){}
   try{if(typeof mvpRowOf==='function'){const r=mvpRowOf(typeof FMT!=='undefined'?FMT:'single',no,stone);if(r&&r.mv)r.mv.forEach(([k,pc])=>put(MVKA[nrm(k)],pc))}}catch(e){}
   return out}
+// Convert only candidates from the same resolved form; preserve saved fields.
+// Joint candidates must be compared over the same complete target list.
+function impJointComparable(T0,T1){
+  if(!Array.isArray(T0?.rows)||!T0.rows.length||!Array.isArray(T1?.rows)||T0.rows.length!==T1.rows.length||!Array.isArray(T0.M)||!Array.isArray(T1.M)||T0.M.length!==T1.M.length||T0.M.some((m,j)=>!m||!T1.M[j]||m.p.no!==T1.M[j].p.no))return false;
+  const ids=T=>{const keys=new Set();for(const r of T.rows){
+    if(!Number.isInteger(r.q?.no)||keys.has(r.q.no)||!Number.isFinite(r.lvl)||!Array.isArray(r.res)||r.res.length!==T.M.length||new Set(r.res.map(z=>z?.i)).size!==T.M.length||r.res.some(z=>!z||!Number.isInteger(z.i)||z.i<0||z.i>=T.M.length||!Number.isFinite(z.r)))return null;
+    keys.add(r.q.no);
+  }return keys};
+  const a=ids(T0),b=ids(T1);return !!(a&&b&&[...a].every(k=>b.has(k)));
+}
+function impJointSaved(no,base,candidate,used){
+  if(!base||!candidate||!Array.isArray(candidate.moves)||!Array.isArray(candidate.sp)||!Array.isArray(base.sp)||!used||typeof used.has!=='function')return null;
+  const p=byNo[no],item=candidate.item;
+  if(!p||!item||used.has(item)||!CH_ITEMS.has(item)||!ITEMN[item])return null;
+  const old=base.it?.k;
+  if((isStone(old)||isStone(item))&&old!==item)return null;
+  const learn=lsOf(p)||[];
+  if(candidate.moves.length!==4||new Set(candidate.moves).size!==4||candidate.moves.some(id=>!learn.includes(id)||(!MV[id]&&!MD[id])))return null;
+  if(candidate.sp.length!==6||candidate.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||candidate.sp.reduce((a,b)=>a+b,0)>66||candidate.sp.reduce((a,b)=>a+b,0)!==base.sp.reduce((a,b)=>a+b,0))return null;
+  if(candidate.ab!==base.ab?.k||candidate.up!==base.up||candidate.dn!==base.dn)return null;
+  return {...base,it:{k:item,n:ITEMN[item]},mv:candidate.moves.map(id=>({id,n:mName(id)})),sp:candidate.sp.slice(),src:'manual'};
+}
 function dgImprove(entries){const prev=DG_MEMO;DG_MEMO=prev||new Map();try{return impWith(entries,()=>dgImprove0(entries))}finally{DG_MEMO=prev}}
 function dgImprove0(entries){
   if(!entries||entries.length<3)return{list:[],note:'3匹以上入れると改善案を計算できます。'};
@@ -107,7 +129,8 @@ function dgImprove0(entries){
   const used=i=>new Set(entries.filter((_,k)=>k!==i).map(x=>{const s=impBase(x);return s.it&&s.it.k}).filter(Boolean));
   const problem=T0.rows.filter(r=>r.lvl<=2||!r.res.some(z=>z.swIn==='win'));
   const tryEntry=(kind,i,nx,title,why,badMv)=>{const es=entries.map((x,k)=>k===i?nx:x);let T1;try{T1=impRecalc(es)}catch(e){return}
-    if(feT1(T1))return;/* 変えたあとに合わない持ち物の匹ができる案は出さない */
+    if(feT1(T1))return;
+    if(kind==='joint'&&!impJointComparable(T0,T1))return;/* 変えたあとに合わない持ち物の匹ができる案は出さない */
     const J=impEvaluate(T0,T1);if(!J.ok)return;
     if(J.tr?.loss){dropped.push({title,loss:`通常時 ${impGainLabel(J.gain)}／トリックルーム中 ${J.tr.gain==null?'比較不可':impGainLabel(J.tr.gain)}。 ${J.tr.loss}`});return}
     const loss=impRoleLoss(T0,T1,i);if(loss){dropped.push({title,loss});return}
@@ -122,6 +145,22 @@ function dgImprove0(entries){
     /* 2026/11/16 依頼主の報告：攻撃役（解説の型に受けの型がない匹）には、攻撃のポイント・性格を削って耐久に回す案を出さない */
     let gk=[];try{gk=monGuide(p,{raw:true}).keys}catch(e){}
     const atkRole=!gk.includes('bulky')&&(gk.includes('attacker')||gk.includes('setup')||!gk.length);
+    // Evaluate each member independently against the original team (up to six).
+    // An unsupported individual must not abort the existing improvement search.
+    if(typeof FMT!=='undefined'&&FMT==='double'&&i<6&&M.p&&base.ab?.k&&base.mv.length===4){
+      try{
+      const original={fmt:'double',ab:base.ab.k,item:base.it?.k,moves:base.mv.map(m=>m.id),sp:base.sp.slice(),up:base.up,dn:base.dn};
+      const result=monGuide(M.p,{jointOnly:original,noAxis:true,jointLimit:12});
+      for(const v of result?.best||[]){
+        const sv=impJointSaved(x.no,base,v.x,used(i));if(!sv)continue;
+        const removed=base.mv.filter(m=>!sv.mv.some(n=>n.id===m.id));
+        const pct=impUsePct(x.no,stone?base.it.k:null);
+        if(removed.some(m=>(pct[m.id]||0)>=IMP_USED||IMP_KEEP.has(MD[m.id]?.[3])))continue;
+        const bad=sv.mv.filter(m=>IMP_NOMV.has(MD[m.id]?.[3]));
+        tryEntry('joint',i,{...x,set:sv},nm(i)+'の統合育成候補','固定比較条件での個体評価を通過した候補。パーティ全体の既存対面評価も再計算しています。ダブルの実戦勝率を保証するものではありません。',bad);
+      }
+      }catch(e){dropped.push({title:nm(i)+'の統合育成候補',loss:'個体の統合比較を完了できませんでした。既存の改善案は引き続き計算します。'});}
+    }
     /* ---- 技：比較対面で最善に選ばれた回数と採用率を区別し、採用率の高い攻撃技を保護する ---- */
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));
@@ -161,7 +200,7 @@ function dgImprove0(entries){
         if(stone)s.item=base.it.k;else if(s.item&&(u.has(s.item)||!(CH_ITEMS.has(s.item))))return;
         const sv=impSaved(x.no,s);
         /* 2026/11/14：技の案と同じく、覚えない技・1対1で正しく扱えない技（IMP_NOMV）を含む型は出さない（計算したうえで、理由つきで「出さなかった案」へ） */
-        const ls=lsOf(x.no),badMv=sv.mv.filter(m=>!ls.includes(m.id)||IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
+        const ls=lsOf(p),badMv=sv.mv.filter(m=>!ls.includes(m.id)||IMP_NOMV.has(MD[m.id]&&MD[m.id][3]));
         tryEntry('role',i,{...x,set:{...sv,src:'manual'}},`${nm(i)}を${{attacker:'攻撃',bulky:'耐久',support:'サポート',setup:'積み'}[k]}の型に`,`特性 ${sv.ab?sv.ab.n:'―'}・持ち物 ${sv.it?sv.it.n:'なし'}・${natName(sv.up,sv.dn)||'補正なし'}・${SN.map((n,q)=>sv.sp[q]?`${n}${sv.sp[q]}`:'').filter(Boolean).join('・')}・技 ${sv.mv.map(m=>m.n).join('・')}`,badMv)})}catch(e){}
   });
   /* ---- 入れかえ：問題の相手に強い候補を先に1対1でしぼり、役目の少ない2匹と入れかえて全部を計算し直す ---- */
