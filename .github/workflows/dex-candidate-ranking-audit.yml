@@ -1,0 +1,39 @@
+name: Dex candidate ranking audit (no deployment)
+on:
+  push:
+    branches: [audit/dex-candidate-ranking-20261129]
+  pull_request:
+    branches: [feature/dex-double-order-20261129]
+permissions:
+  contents: read
+jobs:
+  regression:
+    if: github.event_name == 'push' || github.head_ref == 'audit/dex-candidate-ranking-20261129'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://pokechan-hub.pages.dev
+      - name: Full regression including dexpage
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test -- --keep-going 2>&1 | tee regression.log
+      - name: Preserve test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dex-ranking-regression
+          path: regression.log
+          if-no-files-found: warn
