@@ -956,6 +956,31 @@ const THROAT_CHOP_AUDIT=await pg.evaluate(()=>{
 });
 console.log('throat chop audit '+JSON.stringify(THROAT_CHOP_AUDIT));
 ok(THROAT_CHOP_AUDIT.total===78&&!THROAT_CHOP_AUDIT.failures.length,'じごくづき：データ・防音・ちからずく・いのちのたま '+JSON.stringify(THROAT_CHOP_AUDIT));
+const DIRECT_ATTACK_BATCH_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
+  const cases=[[25,120,75,0,'ノーマル',false],[402,80,100,0,'くさ',false],[398,80,100,0,'どく',true],[403,75,95,1,'ひこう',true],[231,100,75,0,'はがね',true],[348,90,100,0,'くさ',false],[529,80,95,0,'じめん',false],[280,75,100,0,'かくとう',false]];
+  const make=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=make(149),rawTarget=make(184),d={...rawTarget,p:{...rawTarget.p,t:['ノーマル']}},weather=B.weather;
+  try{
+    B.weather=null;
+    for(const [id,pow,acc,cls,type,sheer] of cases){
+      const m=mvObj(id);
+      check(id+' metadata',m.pow===pow&&m.acc===acc&&m.cls===cls&&m.t===type&&m.maxH===1);
+      check(id+' accuracy',accOf(a,m,d)===acc);
+      check(id+' sheer force',sfOn({...a,ab:'sheer-force'},m)===sheer);
+      for(let r=85;r<=100;r++){
+        const opt={format:'single',r,crit:false,spread:false,noNext:true};
+        const hit=bcalc(a,m,d,opt).dmg,boost=bcalc({...a,ab:'sheer-force'},m,d,opt).dmg;
+        check(id+' '+r+' damage',hit>0&&(sheer?boost>hit:boost===hit));
+        if(id===280)check(id+' '+r+' screen',bcalc(a,m,d,{...opt,screen:true}).dmg===hit);
+      }
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('direct attack batch audit '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
+ok(DIRECT_ATTACK_BATCH_AUDIT.total===168&&!DIRECT_ATTACK_BATCH_AUDIT.failures.length,'攻撃技8種：基本データ・命中・特性・乱数・壁 '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
