@@ -319,6 +319,18 @@ const PS=await pg.evaluate(()=>{
 });
 console.log('post-move stage audit '+JSON.stringify({total:PS.length,failed:PS.filter(x=>x.error)}));
 ok(PS.every(x=>!x.error),'使用後の能力変化・命中条件・上下限・元データ保持 '+JSON.stringify(PS.filter(x=>x.error)));
+const LH=await pg.evaluate(()=>{
+  const rows=[];
+  for(const max of [9,10,159,168,200])for(const hp of [1,max])for(const item of [null,'lifeorb'])for(const [ab,id,immune] of [['multiscale',89,false],['magic-guard',89,true],['sheer-force',53,true],['sheer-force',89,false]])for(const hit of [false,true]){
+    const a={max,hp,item,ab,stg:{atk:0,def:0,spa:0,spd:0,spe:0}},before=JSON.stringify(a);
+    const m=mvObj(id),v=reviewedLifeOrbAfterHit(a,m,hit);
+    const expected=item==='lifeorb'&&hit&&!immune?Math.max(0,hp-Math.max(1,Math.floor(max/10))):hp;
+    rows.push({max,hp,item,ab,id,hit,error:!v||v.hp!==expected||JSON.stringify(a)!==before||v.stg===a.stg});
+  }
+  return rows;
+});
+console.log('Life Orb HP audit '+JSON.stringify({total:LH.length,failed:LH.filter(x=>x.error)}));
+ok(LH.every(x=>!x.error),'いのちのたまのHP消費・特性による無効・元データ保持 '+JSON.stringify(LH.filter(x=>x.error)));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));

@@ -732,6 +732,18 @@ function reviewedSelfStageAfterHit(a,mv,connected){
   }
   return out;
 }
+/* Conditional Life Orb HP cost after a damaging hit. The caller must supply
+   a confirmed damaging hit (not merely an attempted attack). This is not a
+   full turn simulator: contact effects, move recoil and berry triggers are separate.
+   Reference: https://dex.pokemonshowdown.com/items/lifeorb
+   https://bulbapedia.bulbagarden.net/wiki/Sheer_Force */
+function reviewedLifeOrbAfterHit(a,mv,damagingHit){
+  if(typeof damagingHit!=='boolean'||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  const out={...a,stg:{...a.stg}};
+  if(a.item!=='lifeorb'||!damagingHit||a.hp===0||a.ab==='magic-guard'||sfSup(a,mv))return out;
+  out.hp=Math.max(0,a.hp-Math.max(1,Math.floor(a.max/10)));
+  return out;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
