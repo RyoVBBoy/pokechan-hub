@@ -618,7 +618,13 @@ function monGuide(p,o={}){
     /* Joint search over complete legal builds. Every candidate is checked against
        the same opponents, with the same nature and ability. No synthetic win score. */
     const integratedPlans=(me,opponents)=>{
-      const skip=reason=>{if(typeof o.auditSkipped==='function')o.auditSkipped(reason);return ''};
+      const skip=(reason,detail={})=>{
+        if(typeof o.auditSkipped==='function')o.auditSkipped(reason);
+        if(typeof o.auditBaselineFailure==='function'&&reason!=='unsupported baseline')o.auditBaselineFailure({reason,...detail});
+        // Keep absence of a supported evaluation distinct from a negative result.
+        const names=(detail.moves||[]).map(id=>esc(mName(id))).join('・');
+        return '<p class="vcap">技・持ち物・能力ポイントの一体比較は、この育成条件では未対応です。'+(names?'対象外の技：'+names+'。':'')+'改善候補がないという判定ではありません。</p>';
+      };
       if(!opponents.length)return skip('no fixtures');
       if(me.formErr)return skip('form');
       if(s.moves.length!==4)return skip('move count');
@@ -636,14 +642,14 @@ function monGuide(p,o={}){
       const multiSimple=new Set([24,458,751,814,31,42,198,292,331,333,350,541,594,813]);
       const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||fixedSimple.has(id)||statSimple.has(id)||variableSimple.has(id)||REVIEWED_ALWAYS_CRIT.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_TARGET_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
       if(!original.length)return skip('no attacks');
-      if(original.some(id=>!supported(id)))return skip('unsupported move');
+      if(original.some(id=>!supported(id)))return skip('unsupported move',{moves:original.filter(id=>!supported(id))});
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
       const stab=[...new Set(original.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
       const setupIds=Object.keys(REVIEWED_SETUP).map(Number);
       const statusMoves=s.moves.filter(id=>!MV[id]);
       // One reviewed setup or direct recovery move; other status moves remain excluded.
-      if(statusMoves.some(id=>!setupIds.includes(id)&&!REVIEWED_DIRECT_HEAL.has(id)))return skip('unsupported status move');
-      if(statusMoves.length>1)return skip('multiple setup moves');
+      if(statusMoves.some(id=>!setupIds.includes(id)&&!REVIEWED_DIRECT_HEAL.has(id)))return skip('unsupported status move',{moves:statusMoves.filter(id=>!setupIds.includes(id)&&!REVIEWED_DIRECT_HEAL.has(id))});
+      if(statusMoves.length>1)return skip('multiple setup moves',{moves:statusMoves});
       const recovery=statusMoves.find(id=>REVIEWED_DIRECT_HEAL.has(id));
       const setup=statusMoves.find(id=>setupIds.includes(id));
       if(base&&(!stoneK||s.item!==stoneK||me.p.no!==p.no))return skip('mega form mismatch');
@@ -797,7 +803,7 @@ function monGuide(p,o={}){
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,recovery,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用直後のHP '+baseline.rows[i].postHP+' → '+r.postHP+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+ '／被弾とたべのこしのみを仮定した残りHP '+baseline.rows[i].endHP+' → '+r.endHP+(r.recoveryHP===null?'':'／半分HPから回復技を使用した場合の最小残りHP '+baseline.rows[i].recoveryHP+' → '+r.recoveryHP)+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'／使用後の素早さ '+baseline.rows[i].postSpeed+' → '+r.postSpeed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する9種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）から相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する9種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）の開始HPから相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{
@@ -813,7 +819,7 @@ function monGuide(p,o={}){
         if(!out.length&&!inc.length)return '';
         return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+berryPlan(me,op)+itemPlans(me,op)+'</details>';
       }).join('');
-      return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+movePlans(me,opponents)+integratedPlans(me,opponents)+'</details>':'';
+      return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし。通常技の偶発的な急所は含みません。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+movePlans(me,opponents)+integratedPlans(me,opponents)+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
   };
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
