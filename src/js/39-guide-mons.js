@@ -146,6 +146,18 @@ function monGuide(p,o={}){
       pickAb(supMode?['weaken','bulk','field']:['power','speed','weaken']),item,supMode?lowDef:offS>=.6&&spdS>=.4?5:ai,ai===1?3:1,supMode?spOf(0,lowDef):spOf(ai,spdS>=.4?5:0),mv);
     if(d.moves.length){d.k=supMode?'dsup':'double';d.fmt='double';SETS.push(d)}
   }catch(e){}
+  /* Reviewed strategy examples: independent allocations, no usage statistics or copied article text.
+     Only display if every move, ability and item is present in the current game data. */
+  if(o.parts&&!base){
+    const reviewed=p.no===149?[
+      {title:'りゅうのまい物理型（検証用）',why:'HP満タンから積む機会を探し、先制技と通常攻撃を使い分ける。攻撃・素早さを最大配分した比較用の例。',ab:'multiscale',item:'lifeorb',up:1,dn:3,sp:[2,32,0,0,0,32],moves:[349,245,89,337],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/554956'],['Game8','https://game8.jp/pokemon-champions/776110']],reasons:['攻撃・素早さを同時に上げる','削れた相手への先制攻撃','はがねなどへの打点','行動固定のないドラゴン一致技'],itemWhy:'攻撃技の威力を上げる代わりにHPを消費する。マルチスケイルの再発動を妨げる場合がある。'}
+    ]:p.no===184?[
+      {title:'はらだいこ物理型（検証用）',why:'HPを確保して積む機会を探し、先制技と一致攻撃を使い分ける。HP・攻撃を最大配分した比較用の例。',ab:'huge-power',item:'sitrusberry',up:1,dn:3,sp:[32,32,0,0,2,0],moves:[187,453,583,282],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/555066'],['Game8','https://game8.jp/pokemon-champions/779109']],reasons:['HPを消費して攻撃ランクを最大にする','低い素早さを優先度で補う','みず技が通りにくい相手への一致打点','持ち物を落とせる相手への攻撃手段'],itemWhy:'HPが発動条件を満たす場合に回復する。はらだいこ後の残りHPと発動条件を確認する。'}
+    ]:[];
+    for(const v of reviewed){
+      if(v.moves.length===4&&new Set(v.moves).size===4&&v.moves.every(id=>ls.includes(id)&&MV[id])&&abK.includes(v.ab)&&Object.prototype.hasOwnProperty.call(ITEMN,v.item)&&v.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&v.sp.reduce((a,b)=>a+b,0)===66&&v.up!==v.dn)SETS.unshift(v);
+    }
+  }
   /* 当サイトの利用者の育成が5件以上あれば、それをもとにした型を先頭に置く（43-usage.js） */
   /* ランクバトルの集計（championsbattledata.com、15-battle.js の LIVE）があれば、いちばん多い組み合わせの型を先頭に置く */
   const liveF=!o.raw&&!base&&typeof LIVE!=='undefined'&&LIVE.csv[p.no]?FMT:null;
@@ -155,7 +167,7 @@ function monGuide(p,o={}){
     if(mv.length>=2&&b.sp&&lvR.ok&&!lvR.mega){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルの集計から組み合わせた推定の型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計から、いちばん多い特性・性格・能力ポイントと、いっしょに使って意味のある持ち物と技（ジュエル・タイプ強化の持ち物ならそのタイプの技、こだわり系なら攻撃技だけ等）を組み合わせたものです。`,
       ab:b.ab,item:b.item,up:b.up,dn:b.dn,sp:b.sp,moves:mv.slice(0,4),fmt:liveF,k:/^choice|lifeorb|focussash|expertbelt/.test(it)?'attacker':it==='leftovers'?'bulky':'attacker',live:true})}}catch(e){}
   if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].filter(f=>f!==liveF).forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
-  SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
+  SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=!x.refs&&SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;const kp=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。');st.why=(kp?kp+'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
@@ -278,14 +290,16 @@ function monGuide(p,o={}){
     return{head,why,bad}}catch(e){return null}};
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
     /* 2026/11/15 図鑑のページの「型・育成」タブ（o.parts）：形式・姿・出典の札と「この型をパーティに入れる」 */
-    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'Game Kid/s 利用者の保存した育成の集計':'当サイトが計算で組んだ提案'}</span></div>`:'';
+    const reviewed=Array.isArray(s.refs);
+    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'Game Kid/s 利用者の保存した育成の集計':reviewed?'外部戦術を参考にした独自の検証用育成例':'当サイトが計算で組んだ提案'}</span></div>`:'';
     return `<div class="gset" id="gset-${p.no}-${i}">${meta}<b>${esc(s.title)}${s.rec?'<span class="atag">おすすめ</span>':''}</b><p>${esc(s.why)}</p><dl>
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
       <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div>
       <table class="gstat"><tr>${SN.map(n=>`<th>${n}</th>`).join('')}</tr><tr>${st.map(v=>`<td>${v}</td>`).join('')}</tr><tr class="gsp">${s.sp.map(v=>`<td>${v||'-'}</td>`).join('')}</tr></table>
       <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
-      <h4>この型の役割</h4><p>${roleOf(s)}</p>
+      <h4>この型の役割</h4><p>${reviewed?esc(s.why):roleOf(s)}</p>
+      ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考にした戦術（2026-11-28確認）：${s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・')}</p><p class="vcap">参考記事の型を転載したものではありません。対戦実績・確定数・最適性は未検証です。</p></details>`:''}
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
         :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
       ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
