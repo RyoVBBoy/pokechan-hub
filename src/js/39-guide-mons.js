@@ -400,7 +400,7 @@ function monGuide(p,o={}){
     if(s.fmt==='double'){
       const weather=B.weather;B.weather=null;
       try{
-        const me=build(p,s,'me'),rows=[],foes=[],focus=[];
+        const me=build(p,s,'me'),rows=[],foes=[],focus=[],friendly=[];
         if(!me.formErr&&!CALC_UNIMPL.includes(me.ab)&&!CALC_UNVERIFIED[me.ab]&&!CALC_UNIMPL_IT.includes(me.item)&&me.ab!=='parental-bond'){
           for(const x of fixtures.filter(x=>x.no!==p.no)){
             const q=byNo[x.no],learn=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
@@ -422,9 +422,14 @@ function monGuide(p,o={}){
             if(f)focus.push({a:a.p.no,b:b.p.no,nameA:a.p.n,nameB:b.p.n,m:m.id,n:n.id,...f});
           }
         }
-        if(typeof o.auditDouble==='function')o.auditDouble({rows,focus});
-        const note='固定の相手1体へのダメージ比較です。複数対象に当たる場合の範囲補正は0.75倍を計算途中で適用します。味方にも当たる技は明示します。味方の特性、交代、まもる、おいかぜ等は未評価です。ダブルの統合最適化は未対応です。';
-        return '<details class="gset-alt"><summary>ダブル：攻撃対象別の計算例</summary><p class="vcap">'+note+'</p>'+(rows.length?rows.map(r=>'<p>'+esc(r.name)+'／'+esc(mName(r.id))+'：1対象 '+r.one.join('〜')+'、複数対象条件 '+r.many.join('〜')+' / '+r.hp+' HP'+(r.tg===2?'（味方にも当たる）':r.tg===1?'（相手全体）':'（単体技・補正なし）')+'</p>').join(''):'<p>この育成の対応する攻撃技は比較できませんでした。</p>')+'<h4>集中攻撃の耐久計算例</h4><p class="vcap">固定の相手2体の攻撃が命中する条件で、両方の順序と各16段階の乱数を比較します。範囲技は複数対象条件。行動順の確率、追加効果、きのみ回復、味方の行動は含みません。</p>'+(focus.length?focus.map(f=>'<p>'+esc(f.nameA)+'の'+esc(mName(f.m))+' ＋ '+esc(f.nameB)+'の'+esc(mName(f.n))+'：残りHP '+f.min+'〜'+f.max+' / '+me.max+'</p>').join(''):'<p>この育成条件では集中攻撃の計算は未対応です。</p>')+'</details>';
+        for(const ally of foes)for(const m of me.moves){
+          if(!simple.has(m.id)||m.tg!==2)continue;
+          const f=reviewedFriendlyHit(me,m,ally);
+          if(f)friendly.push({no:ally.p.no,name:ally.p.n,id:m.id,hp:ally.max,...f});
+        }
+        if(typeof o.auditDouble==='function')o.auditDouble({rows,focus,friendly});
+        const note='固定の相手1体へのダメージ比較です。複数対象に当たる場合の範囲補正は0.75倍を計算途中で適用します。味方にも当たる技は固定の味方候補へのHP減少も比較します。味方からの補助、交代、まもる、おいかぜ等は未評価です。ダブルの統合最適化は未対応です。';
+        return '<details class="gset-alt"><summary>ダブル：攻撃対象別の計算例</summary><p class="vcap">'+note+'</p>'+(rows.length?rows.map(r=>'<p>'+esc(r.name)+'／'+esc(mName(r.id))+'：1対象 '+r.one.join('〜')+'、複数対象条件 '+r.many.join('〜')+' / '+r.hp+' HP'+(r.tg===2?'（味方にも当たる）':r.tg===1?'（相手全体）':'（単体技・補正なし）')+'</p>').join(''):'<p>この育成の対応する攻撃技は比較できませんでした。</p>')+'<h4>集中攻撃の耐久計算例</h4><p class="vcap">固定の相手2体の攻撃が命中する条件で、両方の順序と各16段階の乱数を比較します。範囲技は複数対象条件。行動順の確率、追加効果、きのみ回復、味方の行動は含みません。</p>'+(focus.length?focus.map(f=>'<p>'+esc(f.nameA)+'の'+esc(mName(f.m))+' ＋ '+esc(f.nameB)+'の'+esc(mName(f.n))+'：残りHP '+f.min+'〜'+f.max+' / '+me.max+'</p>').join(''):'<p>この育成条件では集中攻撃の計算は未対応です。</p>')+'<h4>味方への巻き込み計算例</h4><p class="vcap">固定の比較用育成を味方に置き、複数対象条件での命中時HP減少を計算します。実際のパーティ推奨や勝率ではありません。吸収特性による回復・能力上昇、味方の補助行動は含みません。</p>'+(friendly.length?friendly.map(f=>'<p>'+esc(mName(f.id))+' → '+esc(f.name)+'：HP減少 '+f.min+'〜'+f.max+' / '+f.hp+(f.max===0?'（この条件でHP減少なし）':'')+'</p>').join(''):'<p>対象となる巻き込み技・対応する味方条件がありません。</p>')+'</details>';
       }finally{B.weather=weather}
     }
     const result=(a,d,m)=>{
