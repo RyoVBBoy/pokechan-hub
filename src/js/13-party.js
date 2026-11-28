@@ -171,6 +171,15 @@ function ttLoadHTML(k){return `<div class="tt-load" role="status" aria-live="pol
   <div class="tt-sk tt-sk-h"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div></div>`}
 function teamRenderSoon(){clearTimeout(TEAM_RT);['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('t-busy')});
   TEAM_RT=setTimeout(()=>requestAnimationFrame(()=>{TEAM_RT=0;if(document.getElementById('tout'))teamRender()}),160)}
+/* Display only: use the explicitly held stone, never an estimated set. */
+function partyMegaDisplay(x,p){
+  const k=x?.set?.it?.k;
+  if(!p||!k||!isStone(k))return {form:p,label:''};
+  const f=resolveForm(p.no,k);
+  if(!f.ok||!f.mega)return {form:p,label:''};
+  const name=ITEMN[k]||x.set.it.n||k;
+  return {form:f.form,label:`<div class="row-s" style="font-weight:700;text-align:center;position:relative;overflow-wrap:anywhere"><span class="ftag ftag-mega">MEGA</span> ${esc(name)} <span>${L('（メガシンカ後）','(Mega form)')}</span></div>`};
+}
 function teamRender(){
   ['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('t-busy')});
   const ts=document.getElementById('tslots');
@@ -179,16 +188,16 @@ function teamRender(){
   /* 育成のタブでも、構築の型の札のために診断のデータを読んでおく（そろったら描き直す） */
   if(team.length>=2&&dgState(team)==='loading')dgPrepare(team,()=>{if(keyOf(cur)==='team'&&document.getElementById('tout'))teamRender()});
   document.getElementById('slots').innerHTML=Array.from({length:6},(_,i)=>{
-    const x=team[i],p=x&&byNo[x.no];
+    const x=team[i],p=x&&byNo[x.no],d=partyMegaDisplay(x,p);
     return p?`<div class="tile mon-card${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
-      ${monCardArt(p)}<button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
-      <div class="nm">${nm(p,{no:false})}</div><div class="chips">${p.t.map(chip).join('')}</div>
+      ${monCardArt(d.form)}<button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
+      <div class="nm">${nm(p,{no:false})}</div><div class="chips">${d.form.t.map(chip).join('')}</div>${d.label}
       <button class="t-sel${x.sel?' lit':''}" data-sel="${i}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${x.sel?SVG(I.check,16):SVG('<circle cx="12" cy="12" r="7.5"/>',16)}<span>${x.sel?L('選出','Picked'):L('選出する','Pick')}</span></button></div>`
     :`<button class="tile empty tadd" data-add="1">${SVG(I.plus,22)}<span>追加する</span></button>`}).join('');
-  document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
+  document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set,d=partyMegaDisplay(x,p);
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
       :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（${byNo[x.no]?detSetKind(byNo[x.no]).s:'推定の型'}で計算中）</div>${tsLiveLine(x)}`;
-    return `<a class="row mon-card mon-card-row" href="#/edit/${i}">${monCardArt(p)}<div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
+    return `<a class="row mon-card mon-card-row" href="#/edit/${i}">${monCardArt(d.form)}<div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${d.label}${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
   document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=()=>teamPickMany());
   /* 空のパーティ（2026/11/12）：6つの「追加する」の代わりに、はじめ方を3つ出す。パーティが要る「診断」「選出」のボタンは隠す（ダメージ計算はパーティなしでも使えるので残す） */
   {const ob=document.getElementById('tonb'),sl=document.getElementById('slots'),em=!team.length;
