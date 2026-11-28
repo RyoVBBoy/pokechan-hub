@@ -394,6 +394,13 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DST=await pg.evaluate(()=>{
+  const d={hp:100,max:200,stg:{atk:0,def:0,spa:0,spd:0,spe:0},ab:'pressure',item:null};
+  const b=JSON.stringify(d),heal=reviewedDirectHeal(d,105,true),setup=reviewedSetupState(d,14,{ab:'pressure'});
+  const recovery=reviewedRecoveryExchange(d,105,0,()=>80);
+  return {heal:heal?.hp,atk:setup?.stg.atk,min:recovery?.minHP,max:recovery?.maxHP,unchanged:JSON.stringify(d)===b};
+});
+ok(DST.heal===200&&DST.atk===2&&DST.min===120&&DST.max===120&&DST.unchanged,'ダブル変化技：既存処理の条件別検査 '+JSON.stringify(DST));
 const DALLY=await pg.evaluate(()=>{
   const a=[{one:100,many:75,order:[1],allyLoss:50},{one:20,many:20,order:[1],allyLoss:0}];
   const v=reviewedDoubleAllyScores(a,[0,50]);
