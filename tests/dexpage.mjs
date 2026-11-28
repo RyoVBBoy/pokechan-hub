@@ -394,6 +394,18 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DTO=await pg.evaluate(()=>{
+  const base={out:[20,40,80],hp:[50,60]};
+  const rows=[];
+  for(const x of [-5,0,5])for(const y of [-5,0,5])for(const z of [-5,0,5]){
+    const next={out:[20+x,40+y,80],hp:[50+z,60]};
+    const before=JSON.stringify([base,next]),r=reviewedDoubleTradeoff(base,next);
+    rows.push(!r||r.outMin!==Math.min(x,y,0)||r.outMax!==Math.max(x,y,0)||r.hpMin!==Math.min(z,0)||r.hpMax!==Math.max(z,0)||r.preserved!==(x>=0&&y>=0&&z>=0)||before!==JSON.stringify([base,next]));
+  }
+  const invalid=[{out:[],hp:[50,60]},{out:[20,40],hp:[50,60]},{out:[20,40,NaN],hp:[50,60]}].every(x=>reviewedDoubleTradeoff(base,x)===null);
+  return {total:rows.length,failed:rows.filter(Boolean).length,invalid};
+});
+ok(DTO.total===27&&DTO.failed===0&&DTO.invalid,'ダブル再配分：個別火力・耐久差と悪化判定 '+JSON.stringify(DTO));
 const DO=await pg.evaluate(()=>{
   const mk=(no,speed)=>{const a=mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});return {...a,st:a.st.map((v,i)=>i===5?speed:v),ab:'pressure',status:null,item:null}};
   const rows=[];

@@ -953,6 +953,13 @@ function reviewedSpeedTransfers(sp,evaluate){
   best.sort((a,b)=>b.gains-a.gains||Math.abs(a.delta)-Math.abs(b.delta)||a.donor-b.donor||a.delta-b.delta);
   return {baseline,attempts,best};
 }
+// Compare matching per-scenario bounds, never compensate one lost matchup with another.
+function reviewedDoubleTradeoff(base,next){
+  const valid=v=>Array.isArray(v)&&v.length>0&&v.every(Number.isFinite);
+  if(!base||!next||!['out','hp'].every(k=>valid(base[k])&&valid(next[k])&&base[k].length===next[k].length))return null;
+  const out=next.out.map((v,i)=>v-base.out[i]),hp=next.hp.map((v,i)=>v-base.hp[i]);
+  return {outMin:Math.min(...out),outMax:Math.max(...out),hpMin:Math.min(...hp),hpMax:Math.max(...hp),preserved:[...out,...hp].every(v=>v>=0)};
+}
 function reviewedRecoveryOrder(a,id,d,m){
   if(!REVIEWED_DIRECT_HEAL.has(id)||!a||!d||!m)return null;
   const selfPriority=a.ab==='triage'?3:a.ab==='prankster'?1:0;
