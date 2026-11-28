@@ -648,13 +648,25 @@ function reviewedFriendlyHit(a,m,d){
   }
   return {targeted:true,min:Math.min(...loss),max:Math.max(...loss),protectedBy:null};
 }
+function reviewedFocusScores(result,expected){
+  if(!result||!Array.isArray(result.orders)||result.orders.length!==2||!Array.isArray(expected)||expected.length!==2||expected[0]===expected[1])return null;
+  const scores=[];
+  for(const id of expected){
+    const rows=result.orders.filter(v=>v.first===id);
+    if(rows.length!==1)return null;
+    const v=rows[0];
+    if(![v.min,v.max,v.ko,v.rolls].every(Number.isInteger)||v.min<0||v.max<v.min||v.rolls!==256||v.ko<0||v.ko>v.rolls||(v.ko===0)!==(v.min>0)||(v.ko===v.rolls)!==(v.max===0))return null;
+    scores.push(v.min,v.max,v.rolls-v.ko);
+  }
+  return scores;
+}
 function reviewedDoubleFocus(a,m,b,n,d){
   if(!a||!b||!d||!m||!n||a===b||a.p.no===b.p.no||d.formErr||a.formErr||b.formErr)return null;
   if(!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
   const allowed=new Set(['pressure','multiscale','sturdy','disguise','stamina','weak-armor','rough-skin','huge-power','levitate','magic-guard','inner-focus','technician','shell-armor','battle-armor','thick-fat']);
   if(!allowed.has(d.ab)||!(d.item==null||['focussash','airballoon','leftovers','lifeorb','expertbelt','muscleband','wiseglasses','choicescarf','choiceband','choicespecs'].includes(d.item)||reviewedFixedMegaItem(d)))return null;
   if([a,b].some(x=>x.ab==='parental-bond'||x.item||CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]))return null;
-  if([m,n].some(x=>x.maxH>1||x.prot||fixedDmg(a,x,d)!=null||MCHG.has(mkey(x))||MRECH.has(mkey(x))))return null;
+  if([[a,m],[b,n]].some(([att,x])=>x.maxH>1||x.prot||fixedDmg(att,x,d)!=null||MCHG.has(mkey(x))||MRECH.has(mkey(x))))return null;
   const orders=[];
   for(const seq of [[[a,m],[b,n]],[[b,n],[a,m]]]){
     let min=d.hp,max=0,ko=0;

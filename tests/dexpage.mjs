@@ -394,6 +394,13 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DFS=await pg.evaluate(()=>{
+  const r={orders:[{first:2,min:0,max:80,ko:64,rolls:256},{first:1,min:10,max:90,ko:0,rolls:256}]};
+  const v=reviewedFocusScores(r,[1,2]);
+  const invalid=[{orders:[r.orders[0],r.orders[0]]},{orders:[{...r.orders[0],ko:0},r.orders[1]]},{orders:[{...r.orders[0],rolls:255},r.orders[1]]}].every(x=>reviewedFocusScores(x,[1,2])===null);
+  return {v,invalid};
+});
+ok(JSON.stringify(DFS.v)==='[10,90,256,0,80,192]'&&DFS.invalid,'ダブル集中攻撃：順序別HP・生存数・不正入力 '+JSON.stringify(DFS));
 const DCP=await pg.evaluate(()=>{
   const groups=[[{id:1,one:100,many:75,order:[1]},{id:2,one:10,many:10,order:[0]}],[{id:1,one:10,many:10,order:[0]},{id:2,one:100,many:75,order:[1]}]];
   const free=reviewedDoubleChoiceProfiles(groups,false),locked=reviewedDoubleChoiceProfiles(groups,true);
