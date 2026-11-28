@@ -6,5 +6,12 @@
     "projectId": "pokechan-hub",
     "appId": "1:974120833547:web:83d8f6cde2d86a31852d0e"
   },
-  "apple": false
+  "apple": false,
+  "ai": {
+    "_説明": "Game Kid/s AI。enabled は独立画面、partyConsult はパーティチェックのベータ版。サーバー側も有効にする必要があります。",
+    "enabled": false,
+    "partyConsult": false,
+    "auditHold": true,
+    "adminPreview": true
+  }
 }

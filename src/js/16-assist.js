@@ -385,7 +385,7 @@ function assistView(arg){
   <p class="vcap" style="margin:4px 0 10px">選んだカードを動画にして、PiP（ピクチャ・イン・ピクチャ）でゲームの上に浮かべます。<b>再生中は自動で次のカード、一時停止でそのカードに止まります</b>。</p>
   <div class="pipset"><div class="mx2" style="margin-bottom:6px">おすすめ</div><div class="pills" style="padding:0 0 10px"><button class="pill" data-pp="jissen">実戦</button><button class="pill" data-pp="hajime">はじめて</button></div>
   <div class="mx2" style="margin-bottom:6px">表示するカード（押した順に並びます）</div><div class="pills pcards" style="padding:0 0 10px;flex-wrap:wrap" id="pip-cards"></div>
-  <div class="mx2" style="margin-bottom:6px">切り替えの間隔</div><div class="pills" style="padding:0 0 12px" id="pip-sec">${[3,4,6,8].map(n=>`<button class="pill" data-ps="${n}">${n}秒</button>`).join('')}</div></div>
+  ${pipSecHTML()}</div>
   <div class="btns" style="padding:0 0 8px"><button class="btn btn-a" id="as-pip" disabled>カードを準備中…</button></div>
   <div id="pip-box"></div><p class="vcap" id="pip-msg"></p></div>
   
@@ -440,7 +440,7 @@ function assistView(arg){
     if(e.target.closest('#as-pip')){pipStart();return}
     const pp=e.target.closest('[data-pp]');if(pp){PIP.cfg.cards=[...PPRESET[pp.dataset.pp]];pipSave();pipSetUI();pipSchedule();return}
     const pc=e.target.closest('[data-pc]');if(pc){const c=pc.dataset.pc,a=PIP.cfg.cards,i=a.indexOf(c);if(i>=0){if(a.length>1)a.splice(i,1)}else a.push(c);pipSave();pipSetUI();pipSchedule();return}
-    const ps=e.target.closest('[data-ps]');if(ps){PIP.cfg.sec=+ps.dataset.ps;pipSave();pipSetUI();pipSchedule();return}
+    if(pipSecClick(e))return;
     const h=e.target.closest('[data-hm]');if(h){asMode=h.dataset.hm;asDraw()}
   });
   PIP.mode='battle';

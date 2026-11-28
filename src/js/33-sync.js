@@ -93,6 +93,7 @@ function userLocalReset(){
   if(typeof FAV!=='undefined'){const nos=Object.keys(FAV);nos.forEach(k=>delete FAV[k]);favSave();nos.forEach(n=>favPaint(+n))}
   if(typeof MEMO!=='undefined'){MEMO.mon={};MEMO.type={};MEMO.party={};try{localStorage.setItem('pcmemo',JSON.stringify(MEMO))}catch(e){}}
   SYNC.at=0;SYNC.state='';
+  if(typeof aiReset==='function')aiReset();
   if(keyOf(cur)==='team'&&document.getElementById('slots'))teamRender();
 }
 function syncBadge(){

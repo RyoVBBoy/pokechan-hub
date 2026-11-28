@@ -55,7 +55,15 @@ async function teamPickMany(){
   if(team.length>=6){toast('パーティは6匹までです');return}
   const n0=team.length;
   await pickMon(0,{add:true,multi:teamAddQuiet,slots:()=>team.map(x=>x.no),max:6});
-  if(keyOf(cur)==='team'&&document.getElementById('slots'))teamRender();
+  if(keyOf(cur)==='team'&&document.getElementById('slots')){
+    teamRender();
+    const guide=document.getElementById('ai-party-start-title');
+    if(guide&&team.length>n0)requestAnimationFrame(()=>{
+      if(!guide.isConnected)return;
+      guide.focus({preventScroll:true});
+      scrTo(0,0);
+    });
+  }
   if(team.length>n0)toast(team.length>=6?'パーティが6匹そろいました':`${team.length-n0}匹を追加しました（${team.length}/6）`);
 }
 function addTeam(no){
@@ -71,14 +79,22 @@ let PSUB=(()=>{try{const v=sessionStorage.getItem('pcpsub');return v==='sel'?'se
 let TTAB=(()=>{try{return sessionStorage.getItem('pcttab')||'sets'}catch(e){return 'sets'}})();
 function teamView(arg){
   setHeader('パーティ');
-  if(arg){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
+  const consult=arg==='consult'&&typeof aiUiOn==='function'&&aiUiOn(true)&&curGame().id==='pokechamp';
+  if(consult)TTAB='check';
+  if(arg&&arg!=='consult'){const ids=[...new Set(arg.split('-').map(Number).filter(n=>byNo[n]))].slice(0,6);
     if(ids.length){team=ids.map((no,i)=>({no,sel:i<PICK()}));saveTeam();cur='#/team';setUrl('#/team')}}
   V.innerHTML=`
+  ${consult?`<section class="stg-card ai-party-start" aria-labelledby="ai-party-start-title"><h2 id="ai-party-start-title" tabindex="-1">攻略AIに相談（ベータ版）</h2>
+    <p class="note">パーティの強みや、次に試す練習を相談できます。</p>
+    <div id="ai-party-start-action"></div></section>`:''}
   <div class="pills tslots" id="tslots"></div><div id="tsync"></div>
   <div class="thd"><p class="note thd-n">6匹まで登録し、<b>「選出する」を押して、出す${PICK()}匹</b>を決めます（${FMTN()}）。</p><div class="tarch" id="tarch"></div></div>
   <div id="tonb"></div>
   <div class="grid3" id="slots"></div>
-  <nav class="tqa" aria-label="ほかのツール"><a class="tqa-ext" href="#/calc" title="ダメージ計算のツールを開きます">${SVG(I.calc,16)}<span>ダメージ計算</span><span class="tqa-arr" aria-hidden="true">↗</span></a></nav>
+  <nav class="tqa" aria-label="ほかのツール">
+    <a class="tqa-ext" href="#/calc" title="ダメージ計算のツールを開きます">${SVG(I.calc,16)}<span>ダメージ計算</span><span class="tqa-arr" aria-hidden="true">↗</span></a>
+    ${!consult&&typeof aiUiOn==='function'&&aiUiOn(true)&&curGame().id==='pokechamp'?aiPartyShortcutHTML():''}
+  </nav>
   <div class="seg" id="tt-seg" style="margin-top:8px">${TTABS.map(([k,l])=>`<button data-tt="${k}" aria-selected="${k===TTAB}">${l}</button>`).join('')}<span class="seg-i" style="width:${100/TTABS.length}%;transform:translateX(${TTABS.findIndex(x=>x[0]===TTAB)*100}%)"></span></div>
   <div id="tt-pages" class="tt-pages">
   <div data-sw data-tp="sets"${TTAB!=='sets'?' hidden':''}>
@@ -102,6 +118,7 @@ function teamView(arg){
        その絵が出てから（次の描画のあと）計算する。計算の中身は同じ */
     const heavy=(k==='check'||k==='plan')&&team.length&&!['loading','error'].includes(dgState(team)),box=heavy&&document.getElementById(k==='check'?'tout':'tplan');
     if(box)box.innerHTML=ttLoadHTML(k);
+    if(consult&&heavy)aiPartyStartUpdate();
     segSlideIn(V.querySelector(`[data-tp="${k}"]`),dir||(ttIdx()>from?1:-1));
     if(box)requestAnimationFrame(()=>setTimeout(()=>{if(TTAB===k&&document.getElementById('tout'))teamRender()},40));else teamRender()};
   V.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>ttGo(b.dataset.tt));
@@ -154,6 +171,15 @@ function ttLoadHTML(k){return `<div class="tt-load" role="status" aria-live="pol
   <div class="tt-sk tt-sk-h"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div><div class="tt-sk"></div><div class="tt-sk tt-sk-s"></div></div>`}
 function teamRenderSoon(){clearTimeout(TEAM_RT);['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('t-busy')});
   TEAM_RT=setTimeout(()=>requestAnimationFrame(()=>{TEAM_RT=0;if(document.getElementById('tout'))teamRender()}),160)}
+/* Display only: use the explicitly held stone, never an estimated set. */
+function partyMegaDisplay(x,p){
+  const k=x?.set?.it?.k;
+  if(!p||!k||!isStone(k))return {form:p,label:''};
+  const f=resolveForm(p.no,k);
+  if(!f.ok||!f.mega)return {form:p,label:''};
+  const name=ITEMN[k]||x.set.it.n||k;
+  return {form:f.form,label:`<div class="row-s" style="font-weight:700;text-align:center;position:relative;overflow-wrap:anywhere"><span class="ftag ftag-mega">MEGA</span> ${esc(name)}</div>`};
+}
 function teamRender(){
   ['tout','tplan'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('t-busy')});
   const ts=document.getElementById('tslots');
@@ -162,16 +188,16 @@ function teamRender(){
   /* 育成のタブでも、構築の型の札のために診断のデータを読んでおく（そろったら描き直す） */
   if(team.length>=2&&dgState(team)==='loading')dgPrepare(team,()=>{if(keyOf(cur)==='team'&&document.getElementById('tout'))teamRender()});
   document.getElementById('slots').innerHTML=Array.from({length:6},(_,i)=>{
-    const x=team[i],p=x&&byNo[x.no];
+    const x=team[i],p=x&&byNo[x.no],d=partyMegaDisplay(x,p);
     return p?`<div class="tile mon-card${x.sel?' on':''}" data-ti="${i}" style="cursor:pointer">
-      ${monCardArt(p)}<button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
-      <div class="nm">${nm(p,{no:false})}</div><div class="chips">${p.t.map(chip).join('')}</div>
+      ${monCardArt(d.form)}<button class="t-rm" data-rm="${i}" aria-label="${p.n}を外す">${SVG(I.x,16)}</button>
+      <div class="nm">${nm(p,{no:false})}</div><div class="chips">${d.form.t.map(chip).join('')}</div>${d.label}
       <button class="t-sel${x.sel?' lit':''}" data-sel="${i}" aria-label="${p.n}を選出する" aria-pressed="${x.sel}">${x.sel?SVG(I.check,16):SVG('<circle cx="12" cy="12" r="7.5"/>',16)}<span>${x.sel?L('選出','Picked'):L('選出する','Pick')}</span></button></div>`
     :`<button class="tile empty tadd" data-add="1">${SVG(I.plus,22)}<span>追加する</span></button>`}).join('');
-  document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set;
+  document.getElementById('tsets').innerHTML=team.length?`<p class="note" style="padding-top:10px">押すと、技・持ち物・能力ポイントを編集できます。</p>`+team.map((x,i)=>{const p=byNo[x.no],s=x.set,d=partyMegaDisplay(x,p);
     const sub=s&&s.sp?[`<div class="row-s">${[s.ab&&s.ab.n,s.it&&s.it.n,natName(s.up,s.dn)].filter(Boolean).map(esc).join('／')}</div>`,`<div class="row-s">${(s.mv||[]).filter(m=>m&&m.n).map(m=>esc(m.n)).join('・')}</div>`,`<div class="row-s" style="color:var(--mute)">${spLine(s.sp)}</div>`].join('')
       :`<div class="row-s" style="color:var(--mute)">${s?'能力ポイント未入力':'未設定'}（${byNo[x.no]?detSetKind(byNo[x.no]).s:'推定の型'}で計算中）</div>${tsLiveLine(x)}`;
-    return `<a class="row mon-card mon-card-row" href="#/edit/${i}">${monCardArt(p)}<div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
+    return `<a class="row mon-card mon-card-row" href="#/edit/${i}">${monCardArt(d.form)}<div class="row-m"><div class="row-t">${nm(p)}${s&&s.src==='manual'?'<span class="atag on" style="margin-left:6px">入力済み</span>':s&&s.sp?'<span class="atag" style="margin-left:6px">画像から</span>':''}</div>${d.label}${sub}</div><span class="chev">${SVG(I.chev,18)}</span></a>`}).join(''):'';
   document.querySelectorAll('#slots [data-add]').forEach(b=>b.onclick=()=>teamPickMany());
   /* 空のパーティ（2026/11/12）：6つの「追加する」の代わりに、はじめ方を3つ出す。パーティが要る「診断」「選出」のボタンは隠す（ダメージ計算はパーティなしでも使えるので残す） */
   {const ob=document.getElementById('tonb'),sl=document.getElementById('slots'),em=!team.length;
@@ -190,6 +216,7 @@ function teamRender(){
 
   {const st=document.getElementById('tsteps');if(st){st.innerHTML=teamStepsHTML();teamStepsBind(st)}}
   const out=document.getElementById('tout'),pl=document.getElementById('tplan');
+  if(typeof aiPartyStartUpdate==='function')aiPartyStartUpdate();
   if(!team.length){out.innerHTML=pl.innerHTML='<p class="empty">上の「追加する」からポケモンを入れると、チェックと構築・選出の考え方が出ます。</p>';return}
   /* 診断に使うデータがそろうまで計算しない（2026/11/12、60-diag.js の dgState）。そろったら描き直す。古い読み込みの結果では描き直さない（dgPrepare の番号） */
   /* 画面を開いたときも、チェック・構築なら先に「計算しています」を出してから計算する */
