@@ -42,6 +42,23 @@ const cases=await pg.evaluate(([N,SEED])=>{
     if(!eff)continue;
     out.push({a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:a.status==='brn'},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id,tg:mv.tg},fl:(MDK[mv.id]||'|').split('|')[1],o,w:wk,rolls});
   }
+  // Fixed regression: the failing CI fixture, plus every defender rank for both moves.
+  for(const id of [533,663]){
+    const mv=mvObj(id);
+    if(!mv||!['sacredsword','darkestlariat'].includes(mkey(mv)))throw Error('Missing rank-ignore move '+id);
+    for(let def=-6;def<=6;def++){
+      const a=mkMon(P.find(p=>p.no===445),'me',{ab:'sharpness',moves:[mv]});
+      const d=mkMon(P.find(p=>p.no===248),'op',{ab:'filter',moves:[]});
+      a.p={...a.p,t:['はがね','ゴースト']};d.p={...d.p,t:['いわ','あく']};
+      a.st=[135,63,163,102,160,90];a.stAtk=null;d.st=[182,167,130,121,120,89];
+      a.ab='sharpness';a.item='silkscarf';a.status=null;a.stg={atk:5,def:0,spa:0,spd:0,spe:0};
+      d.ab='filter';d.item='assaultvest';d.stg={atk:0,def,spa:0,spd:-4,spe:0};
+      const o={crit:false,format:'double',spread:false,screen:false};
+      const sw=B.weather;B.weather=null;
+      let rolls;try{rolls=Array.from({length:16},(_,i)=>bcalc(a,mv,d,{...o,r:85+i}).dmg)}finally{B.weather=sw}
+      out.push({regression:true,a:{t:a.p.t,st:a.st,ab:a.ab,item:a.item,stg:a.stg,brn:false},d:{t:d.p.t,st:d.st,ab:d.ab,item:d.item,stg:d.stg},mv:{t:mv.t,pow:mv.pow,cls:mv.cls,id:mv.id,tg:mv.tg},fl:(MDK[mv.id]||'|').split('|')[1],o,w:null,rolls});
+    }
+  }
   return out;
 },[N,SEED]);
 await b.close();
@@ -57,8 +74,9 @@ const mk=(x,isA)=>{const p=new Pokemon(gen,'Mew',{level:50,ability:AB(x.ab),item
 let ok=0;const bad=[];
 for(const c of cases){
   const flags={};[...c.fl].forEach(ch=>{if(FL[ch])flags[FL[ch]]=1});
-  // These named moves ignore defender stat stages; a generic Stone Edge cannot model that rule.
-  const mv=new Move(gen,c.mv.id===663?'Darkest Lariat':c.mv.id===533?'Sacred Sword':c.mv.cls?'Swift':'Stone Edge',{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
+  // Preserve move identity when damage depends on ignoring defensive boosts.
+  const refName=({533:'Sacred Sword',663:'Darkest Lariat'})[c.mv.id]||(c.mv.cls?'Swift':'Stone Edge');
+  const mv=new Move(gen,refName,{isCrit:c.o.crit,overrides:{basePower:c.mv.pow,type:TY[c.mv.t],category:c.mv.cls?'Special':'Physical',target:c.o.spread&&c.mv.tg?'allAdjacentFoes':'normal',flags}});
   const f=new Field({gameType:c.o.format==='double'?'Doubles':'Singles',weather:c.w?W[c.w]:undefined,defenderSide:new Side({isReflect:c.o.screen&&!c.mv.cls,isLightScreen:c.o.screen&&!!c.mv.cls})});
   let r=calculate(gen,mk(c.a,1),mk(c.d,0),mv,f).damage;r=Array.isArray(r)?r:[r];
   if(JSON.stringify(r)===JSON.stringify(c.rolls))ok++;else bad.push({c,ref:r});
@@ -79,13 +97,14 @@ const coverage={
  criticalAndNonzeroRank:cases.filter(c=>c.o.crit&&(c.a.stg.atk!==0||c.a.stg.spa!==0||c.d.stg.def!==0||c.d.stg.spd!==0)).length
 };
 const coverageMissing=Object.entries({...coverage.format,...coverage}).filter(([key,value])=>key!=='format'&&value<1).map(([key])=>key);
-const pass=cases.length===N&&bad.length===0&&coverageMissing.length===0;
+const randomCount=cases.filter(c=>!c.regression).length, regressionCount=cases.filter(c=>c.regression).length;
+const pass=randomCount===N&&regressionCount===26&&bad.length===0&&coverageMissing.length===0;
 const rate=cases.length?ok/cases.length:0;
 console.log(`calc: ${ok}/${cases.length} 一致（${(rate*100).toFixed(2)}%・乱数の種 ${SEED}）`);
 if(bad.length)console.log('違い（参考）',JSON.stringify(bad.slice(0,2).map(x=>({ab:x.c.a.ab,mv:x.c.mv.id,ours:x.c.rolls.slice(0,3),ref:x.ref.slice(0,3)}))));
 if(process.env.CALC_REF_REPORT)writeFileSync(process.env.CALC_REF_REPORT,JSON.stringify({
   reference:'@smogon/calc Gen 9 (comparison, not Pokémon Champions device proof)',
-  requested:N,generated:cases.length,matched:ok,mismatched:bad.length,
+  requested:N,generated:randomCount,regressionCount,matched:ok,mismatched:bad.length,
   seed:SEED,pass,
   firstMismatches:bad.slice(0,20),
   coverage,coverageMissing
