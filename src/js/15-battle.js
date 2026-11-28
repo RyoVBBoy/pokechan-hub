@@ -910,6 +910,16 @@ function reviewedLeftoversEnd(a){
 }
 // Self-targeted direct healing: Prankster adds one, Triage adds three.
  // No Quick Claw, Trick Room, action denial or other order-changing field effects.
+// Conditional order comparison for two damaging actions; fields are already active.
+function reviewedDoubleOrder(a,m,d,n,field={}){
+  if(!a||!d||!m||!n||a.formErr||d.formErr||m.prot||n.prot)return null;
+  const unknown=new Set(['quick-draw','stall','mycelium-might','prankster','triage']);
+  if([a,d].some(x=>unknown.has(x.ab)||['quickclaw','custapberry','laggingtail','fullincense'].includes(x.item)))return null;
+  const sa=effSpd(a,d)*(field.ownTailwind===true?2:1),sd=effSpd(d,a)*(field.oppTailwind===true?2:1);
+  const pa=effPri(a,m),pd=effPri(d,n);
+  if(![sa,sd,pa,pd].every(Number.isFinite)||sa<1||sd<1)return null;
+  return {sa,sd,pa,pd,order:Math.sign(pa-pd)||Math.sign(sa-sd)*(field.trickRoom===true?-1:1)};
+}
 function reviewedRecoveryOrder(a,id,d,m){
   if(!REVIEWED_DIRECT_HEAL.has(id)||!a||!d||!m)return null;
   const selfPriority=a.ab==='triage'?3:a.ab==='prankster'?1:0;
