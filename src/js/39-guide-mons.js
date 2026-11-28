@@ -702,16 +702,29 @@ function monGuide(p,o={}){
           const choices=[];
           for(const hit of attacks){
             let post=c,repeat=hit,postWorst=worst;
+            const move=mvObj(hit.id),connected=hit.lossHi>0&&hit.acc>0;
             if(Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,hit.id)){
               if(!['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple'].includes(c.ab))return reject('post-stage ability',{ability:c.ab,move:hit.id,opponent:op.p.no});
-              post=reviewedSelfStageAfterHit(c,mvObj(hit.id),hit.lossHi>0&&hit.acc>0);
+              post=reviewedSelfStageAfterHit(c,move,connected);
               if(!post)return reject('post-stage data or item',{move:hit.id,item:c.item,opponent:op.p.no});
-              repeat=bounds(post,op,mvObj(hit.id));
+            }
+            // For these fixtures, no Disguise or held item can make HP loss differ
+            // from a damaging hit; zero damage must not trigger Life Orb.
+            if(post.item==='lifeorb'){
+              post=reviewedLifeOrbAfterHit(post,move,connected);
+              if(!post)return reject('post-hit HP state',{move:hit.id,opponent:op.p.no});
+            }
+            if(post.hp===0){
+              // Fainted attackers cannot attack or receive a subsequent attack.
+              // Preserve the initial attack; use zero repeat performance and HP.
+              repeat={...hit,lo:0,hi:0,lossLo:0,lossHi:0};postWorst=0;
+            }else if(post!==c){
+              repeat=bounds(post,op,move);
               const incoming=op.moves.map(m=>bounds(op,post,m));
               if(!repeat||incoming.some(v=>!v))return reject('post-stage bounds',{move:hit.id,opponent:op.p.no,repeat:!!repeat,threats:op.moves.filter((m,i)=>!incoming[i]).map(m=>m.id)});
               postWorst=Math.max(...incoming.map(v=>v.lossHi));
             }
-            choices.push({hit,quality:quality(hit),repeatQuality:quality(repeat),repeat,margin:c.hp-worst,postMargin:post.hp-postWorst,postStages:{...post.stg}});
+            choices.push({hit,quality:quality(hit),repeatQuality:quality(repeat),repeat,margin:c.hp-worst,postMargin:post.hp-postWorst,postHP:post.hp,postStages:{...post.stg}});
           }
           const choice=choices.sort((u,v)=>Math.min(v.quality,v.repeatQuality)-Math.min(u.quality,u.repeatQuality)||Math.min(v.margin,v.postMargin)-Math.min(u.margin,u.postMargin)||v.quality-u.quality||u.hit.id-v.hit.id)[0];
           rows.push({no:op.p.no,name:op.p.n,...choice,hp:op.hp,remaining:c.hp,max:c.max,speed,order:Math.sign(speed-oppSpeed),item:c.item});
@@ -719,8 +732,8 @@ function monGuide(p,o={}){
         const v={x,rows};cache.set(k,v);return v;
       };
       const baseline=evaluate(s);if(!baseline){if(typeof o.auditBaselineFailure==='function')o.auditBaselineFailure(baselineReason||{reason:'unknown'});return skip('unsupported baseline');}
-      const compare=(a,b)=>a.rows.every((r,i)=>r.quality+1e-9>=b.rows[i].quality&&r.repeatQuality+1e-9>=b.rows[i].repeatQuality&&r.margin>=b.rows[i].margin&&r.postMargin>=b.rows[i].postMargin&&r.order>=b.rows[i].order);
-      const improves=(a,b)=>compare(a,b)&&a.rows.some((r,i)=>r.quality>b.rows[i].quality+1e-9||r.repeatQuality>b.rows[i].repeatQuality+1e-9||r.margin>b.rows[i].margin||r.postMargin>b.rows[i].postMargin||r.order>b.rows[i].order);
+      const compare=(a,b)=>a.rows.every((r,i)=>r.quality+1e-9>=b.rows[i].quality&&r.repeatQuality+1e-9>=b.rows[i].repeatQuality&&r.margin>=b.rows[i].margin&&r.postMargin>=b.rows[i].postMargin&&r.postHP>=b.rows[i].postHP&&r.order>=b.rows[i].order);
+      const improves=(a,b)=>compare(a,b)&&a.rows.some((r,i)=>r.quality>b.rows[i].quality+1e-9||r.repeatQuality>b.rows[i].repeatQuality+1e-9||r.margin>b.rows[i].margin||r.postMargin>b.rows[i].postMargin||r.postHP>b.rows[i].postHP||r.order>b.rows[i].order);
       // Seed each legal held item and one-slot move alternative before searching AP.
       // Keep a small deterministic beam; cap calculation work per page.
       const variants=[s.moves];
@@ -749,8 +762,8 @@ function monGuide(p,o={}){
       }
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
-      const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力低下技の使用後の火力・耐久指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する5種類の技は初撃命中後の自分の能力変化を反映し、同じ満タンの相手への再攻撃と被弾を別々に比較します。実際の2ターンの進行ではありません。反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用直後のHP '+baseline.rows[i].postHP+' → '+r.postHP+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'</p>').join('')+'</div>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力低下技の使用後の火力・耐久指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する5種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費も考慮して、同じ満タンの相手への再攻撃と被弾を別々に比較します。実際の2ターンの進行ではありません。技自体の反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{
