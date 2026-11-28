@@ -661,7 +661,8 @@ function monGuide(p,o={}){
       const legalItem=item=>CH_ITEMS.has(item)&&Object.prototype.hasOwnProperty.call(ITEMN,item)&&!CALC_UNIMPL_IT.includes(item)&&(!setup||!/^choice/.test(item));
       const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
       const budget=s.sp.reduce((a,b)=>a+b,0),cache=new Map();
-      const started=performance.now();let attempts=0;
+      const started=performance.now();let attempts=0,baselineReason=null;
+      const reject=(reason,detail={})=>{if(attempts===1&&!baselineReason)baselineReason={reason,...detail};return null};
       const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&legalItem(x.item);
       const bounds=(a,d,m)=>{
         if(!moveUsable(m,{a,d}).ok||(m.maxH>1&&!multiSimple.has(m.id))||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
@@ -685,14 +686,14 @@ function monGuide(p,o={}){
         const k=JSON.stringify([x.item,x.sp,x.moves]);if(cache.has(k))return cache.get(k);
         if(attempts>=360)return null;
         attempts++;cache.set(k,null);
-        if(!legal(x))return null;
-        const a=build(p,x,'me');if(a.formErr)return null;
+        if(!legal(x))return reject('illegal build',{item:x.item,moves:x.moves,sp:x.sp});
+        const a=build(p,x,'me');if(a.formErr)return reject('form resolution',{item:x.item});
         const rows=[];
         for(const op of opponents){
-          const c=setup?setupState(a,setup,op):a;if(!c)return null;
+          const c=setup?setupState(a,setup,op):a;if(!c)return reject('setup state',{setup,ability:a.ab,item:a.item,opponent:op.p.no});
           const attacks=c.moves.map(m=>supported(m.id)?bounds(c,op,m):null);
           const threats=op.moves.map(m=>supported(m.id)?bounds(op,c,m):null);
-          if(!attacks.length||!threats.length||attacks.some(v=>!v)||threats.some(v=>!v))return null;
+          if(!attacks.length||!threats.length||attacks.some(v=>!v)||threats.some(v=>!v))return reject('attack or threat bounds',{opponent:op.p.no,attacks:c.moves.filter((m,i)=>!attacks[i]).map(m=>m.id),threats:op.moves.filter((m,i)=>!threats[i]).map(m=>m.id),ability:c.ab,item:c.item});
           const quality=v=>Math.min(1,v.lossLo/op.hp)*v.acc/100;
           const worst=Math.max(...threats.map(v=>v.lossHi));
           const speed=effSpd(c,op),oppSpeed=effSpd(op,c);
@@ -702,12 +703,12 @@ function monGuide(p,o={}){
           for(const hit of attacks){
             let post=c,repeat=hit,postWorst=worst;
             if(Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,hit.id)){
-              if(!['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple'].includes(c.ab))return null;
+              if(!['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple'].includes(c.ab))return reject('post-stage ability',{ability:c.ab,move:hit.id,opponent:op.p.no});
               post=reviewedSelfStageAfterHit(c,mvObj(hit.id),hit.lossHi>0&&hit.acc>0);
-              if(!post)return null;
+              if(!post)return reject('post-stage data or item',{move:hit.id,item:c.item,opponent:op.p.no});
               repeat=bounds(post,op,mvObj(hit.id));
               const incoming=op.moves.map(m=>bounds(op,post,m));
-              if(!repeat||incoming.some(v=>!v))return null;
+              if(!repeat||incoming.some(v=>!v))return reject('post-stage bounds',{move:hit.id,opponent:op.p.no,repeat:!!repeat,threats:op.moves.filter((m,i)=>!incoming[i]).map(m=>m.id)});
               postWorst=Math.max(...incoming.map(v=>v.lossHi));
             }
             choices.push({hit,quality:quality(hit),repeatQuality:quality(repeat),repeat,margin:c.hp-worst,postMargin:post.hp-postWorst,postStages:{...post.stg}});
@@ -717,7 +718,7 @@ function monGuide(p,o={}){
         }
         const v={x,rows};cache.set(k,v);return v;
       };
-      const baseline=evaluate(s);if(!baseline)return skip('unsupported baseline');
+      const baseline=evaluate(s);if(!baseline){if(typeof o.auditBaselineFailure==='function')o.auditBaselineFailure(baselineReason||{reason:'unknown'});return skip('unsupported baseline');}
       const compare=(a,b)=>a.rows.every((r,i)=>r.quality+1e-9>=b.rows[i].quality&&r.repeatQuality+1e-9>=b.rows[i].repeatQuality&&r.margin>=b.rows[i].margin&&r.postMargin>=b.rows[i].postMargin&&r.order>=b.rows[i].order);
       const improves=(a,b)=>compare(a,b)&&a.rows.some((r,i)=>r.quality>b.rows[i].quality+1e-9||r.repeatQuality>b.rows[i].repeatQuality+1e-9||r.margin>b.rows[i].margin||r.postMargin>b.rows[i].postMargin||r.order>b.rows[i].order);
       // Seed each legal held item and one-slot move alternative before searching AP.

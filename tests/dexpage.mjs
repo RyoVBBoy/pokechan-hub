@@ -166,13 +166,13 @@ ok(COVER.total>0&&COVER.rows.length===COVER.total&&COVER.pilots===4,'全姿の�
 const IC=await pg.evaluate(()=>{
   const forms=[...new Map([...P,...MEGAP].map(p=>[p.no,p])).values()];
   return forms.map(p=>{
-    const reports=[],skips=[];
+    const reports=[],skips=[],baselineFailures=[];
     try{
-      const g=monGuide(p,{parts:true,auditCoverage:true,auditIntegrated:r=>reports.push(r),auditSkipped:r=>skips.push(r)});
+      const g=monGuide(p,{parts:true,auditCoverage:true,auditIntegrated:r=>reports.push(r),auditSkipped:r=>skips.push(r),auditBaselineFailure:r=>baselineFailures.push(r)});
       const s=g.sets.find(x=>x.fmt==='single'&&!x.live&&!x.usage);
       if(!s)return {no:p.no,name:p.n,status:'no local single build'};
       const t=performance.now(),h=g.auditBenchmark(s),ms=Math.round(performance.now()-t),r=reports[0];
-      if(!r)return {no:p.no,name:p.n,status:h.includes('比較は計算できませんでした')?'exception':skips[0]||'no benchmark',ms,moves:s.moves,ab:s.ab,item:s.item};
+      if(!r)return {no:p.no,name:p.n,status:h.includes('比較は計算できませんでした')?'exception':skips[0]||'no benchmark',ms,moves:s.moves,ab:s.ab,item:s.item,baselineFailure:baselineFailures[0]||null};
       const bad=r.attempts>360||r.valid<1||r.valid>r.attempts||r.eligibleItems.some(x=>!r.attemptedItems.includes(x))||!h.includes('技・持ち物・能力ポイントの一体比較');
       return {no:p.no,name:p.n,status:bad?'invalid report':'evaluated',ms,searchMs:Math.round(r.elapsedMs),candidates:r.best.length,attempts:r.attempts};
     }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
