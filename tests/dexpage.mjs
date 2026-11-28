@@ -203,7 +203,7 @@ const IA=await pg.evaluate(()=>{
           if(no===65)a.stg.spa=2;
           if(no===184){a.stg.atk=6;a.hp-=Math.floor(a.max/2);if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)){a.hp+=Math.floor(a.max/4);a.item=null}}
           const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
-          const mv=mvObj(row.hit.id),rr=dmgRolls(a,mv,op,opt),raw=rr.dist?rr.dist.map(x=>x[0]):rr;
+          const mv=mvObj(row.hit.id),rr=dmgRolls(a,mv,op,opt),raw=mv.maxH>1?hitRemainingDist(a,mv,op,opt).map(([hp])=>op.hp-hp):(rr.dist?rr.dist.map(x=>x[0]):rr);
           const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&a.hp===z.surv.max?Math.min(n,a.hp-1):n+(z.loss||0)))});
           if(row.hit.lo!==Math.min(...raw)||row.hit.hi!==Math.max(...raw)||row.hit.acc!==accOf(a,mv,op)||row.margin!==a.hp-Math.max(...incoming)||row.remaining!==a.hp||row.speed!==effSpd(a,op)||row.order!==Math.sign(effSpd(a,op)-effSpd(op,a)))errors.push('calculator mismatch');
           const ref=r.baseline.rows[j];
@@ -242,6 +242,11 @@ const HR=await pg.evaluate(()=>{
     ['bypass',{...a,ab:'mold-breaker'},mvObj(89),{...d,ab:'sturdy'},1],
     ['disguise',a,mvObj(89),{...d,ab:'disguise',disg:true},1],
     ['two hits',a,mvObj(331),{...d,item:'focussash'},2],
+    ...[24,458,751,814].flatMap(id=>[
+      ['fixed two-hit '+id,a,mvObj(id),{...d,item:'focussash'},2],
+      ['fixed two-hit sturdy '+id,a,mvObj(id),{...d,ab:'sturdy'},2],
+      ['fixed two-hit disguise '+id,a,mvObj(id),{...d,ab:'disguise',disg:true},2]
+    ]),
     ['three hits',a,mvObj(331),{...d,ab:'stamina'},3],
     ['triple axel',a,mvObj(813),{...d,ab:'disguise',disg:true},3],
     ['parental bond',{...a,ab:'parental-bond'},mvObj(89),{...d,item:'focussash'},1]
