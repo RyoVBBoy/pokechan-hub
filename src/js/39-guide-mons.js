@@ -402,7 +402,7 @@ function monGuide(p,o={}){
       try{
         const me=build(p,s,'me'),rows=[],foes=[],focus=[],friendly=[],support=[];
         if(!me.formErr&&!CALC_UNIMPL.includes(me.ab)&&!CALC_UNVERIFIED[me.ab]&&!CALC_UNIMPL_IT.includes(me.item)&&me.ab!=='parental-bond'){
-          for(const x of fixtures.filter(x=>x.no!==p.no)){
+          for(const x of fixtures.filter(x=>x.no!==p.no&&x.no!==me.p.base)){
             const q=byNo[x.no],learn=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
             if(!q||!abs.some(z=>z[0]===x.ab)||!x.moves.every(id=>learn.includes(id)&&MV[id]))continue;
             const op=build(q,{...x,item:null},'op');if(op.formErr)continue;

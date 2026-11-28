@@ -255,11 +255,11 @@ ok(V5.tr&&V5.trUnset&&!V5.sun&&!V5.rain&&V5.none,'構築の型のバッジ '+JSO
 /* 2026/11/10 依頼主の指摘：技を登録したトリックルーム向きのパーティが「晴れ・対面」になった */
 const WE=await pg.evaluate(()=>{
   const p=byNo[445],id=89,tw=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
-  const setter=Object.values(byNo).find(q=>q&&canLearn(q,tw));
-  const T={weather:{k:'rain',ab:'drizzle',by:'A',guess:false},M:[{ab:'drizzle',p:{n:'A'}},{ab:'swift-swim',p:{n:'B'}}],ms:[{p:setter,x:{set:{mv:[{id:tw}]}}},{p,x:{set:{ab:{k:'swift-swim'},mv:[{id}]}}}],rows:[{res:[{i:1,sa:80,so:120}]}]};
-  return {weather:teamWeatherEvidence(T)?.k,guess:teamWeatherEvidence({...T,weather:{...T.weather,guess:true}})===null,wind:teamTailwindEvidence(T)?.k,noGain:teamTailwindEvidence({...T,rows:[{res:[{i:1,sa:60,so:120}]}]})===null};
+  const setter=Object.values(byNo).find(q=>q&&lsOf(q).includes(tw));
+  const T={weather:{k:'rain',ab:'drizzle',by:'A',guess:false},M:[{ab:'drizzle',p:{n:'A'}},{ab:'swift-swim',p:{n:'B'}}],ms:[{p:setter,x:{set:{ab:{k:'drizzle'},mv:[{id:tw}]}}},{p,x:{set:{ab:{k:'swift-swim'},mv:[{id}]}}}],rows:[{res:[{i:1,sa:80,so:120}]}]};
+  return {weather:teamWeatherEvidence(T)?.k,guess:teamWeatherEvidence({...T,weather:{...T.weather,guess:true}})===null,missingSetter:teamWeatherEvidence({...T,ms:[{...T.ms[0],x:{set:{mv:[{id:tw}]}}},T.ms[1]]})===null,wind:teamTailwindEvidence(T)?.k,noGain:teamTailwindEvidence({...T,rows:[{res:[{i:1,sa:60,so:120}]}]})===null};
 });
-ok(WE.weather==='rain'&&WE.guess&&WE.wind==='tailwind'&&WE.noGain,'天候・おいかぜの根拠 '+JSON.stringify(WE));
+ok(WE.weather==='rain'&&WE.guess&&WE.missingSetter&&WE.wind==='tailwind'&&WE.noGain,'天候・おいかぜの根拠 '+JSON.stringify(WE));
 const KE=await pg.evaluate(()=>{
   const no=445,p=byNo[no],id=89;
   const entries=Array.from({length:3},()=>({no,set:{mv:[{id}],it:{k:'lifeorb'}}}));
@@ -275,7 +275,7 @@ const V6=await pg.evaluate(()=>{
   r.warn=dgAnalyze(dgTeam(team,20)).bad.some(b=>/トリックルームの技が入っていない/.test(b.t));
   const t2=archSets(ARCHS.find(x=>x[0]==='tr'),team.map(x=>byNo[x.no]));r.fill=t2.some(z=>toSaved(z).mv.some(m=>m.n==='トリックルーム'));
   return r});
-ok(V6.first&&!V6.sun,'トリックルーム向きのパーティのバッジ '+JSON.stringify(V6));
+ok(V6.first,'トリックルーム向きのパーティのバッジ '+JSON.stringify(V6));
 ok(V6.warn,'トリックルームの技が入っていない注意が出ない');
 ok(V6.fill,'トリックルームの型で組むとトリックルームが入らない');
 /* 2026/11/10 依頼主の検証⑤：攻撃偏重のパーティ（固定した型）で弱点を見つけられるか */

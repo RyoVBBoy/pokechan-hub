@@ -18,7 +18,7 @@ for(const [k,S] of Object.entries(SC)){
   const errs=[];pg.on('pageerror',e=>errs.push(e.message));
   await pg.route(/^https?:/,r=>r.abort());await pg.goto('file://'+root+'/dist/index.html');await pg.waitForTimeout(600);
   await pg.evaluate(S=>{FMT=S.fmt;try{localStorage.setItem('pcfmt',S.fmt)}catch(e){}const N=s=>P.find(x=>x.n===s).no;team.length=0;
-    S.m.forEach(([n,it,ab])=>team.push({no:N(n),sel:false,...(it||ab?{set:{it:it?{k:it,n:ITEMN[it]}:null,mv:[],sp:null,up:-1,dn:-1,ab:ab||null}}:{})}));saveTeam();TTAB='check';location.hash='#/team'},S);
+    S.m.forEach(([n,it,ab])=>team.push({no:N(n),sel:false,...(it||ab?{set:{it:it?{k:it,n:ITEMN[it]}:null,mv:[],sp:null,up:-1,dn:-1,ab:ab?{k:ab,n:ABN[ab]}:null}}:{})}));saveTeam();TTAB='check';location.hash='#/team'},S);
   await pg.waitForFunction(()=>document.querySelector('#st-box .dgu-head'),null,{timeout:60000});
   const R=await pg.evaluate(()=>{const st=document.getElementById('st-box'),t=st.textContent,hs=[...st.querySelectorAll('h3')].map(h=>h.textContent);
     const T=dgTeam(team,20),A=stActualArch(team,teamArch(team)),S=dgSelect(team),adv=document.getElementById('dg-adv');

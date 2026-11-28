@@ -739,7 +739,7 @@ function teamKindEvidence(entries,T){
   if(!Array.isArray(entries)||!T?.rows?.length||!Array.isArray(T.M)||entries.length<3)return null;
   const evidence={tm:[],ac:[],dc:[],su:[]};
   const threshold=Math.max(1,Math.ceil(T.rows.length/4));
-  const legalMoves=(x,p)=>(x.set?.mv||[]).filter(m=>m&&MD[m.id]&&canLearn(p,+m.id));
+  const legalMoves=(x,p)=>(x.set?.mv||[]).filter(m=>m&&MD[m.id]&&lsOf(p).includes(+m.id));
   const data=entries.map((x,i)=>{
     const m=T.M[i],p=T.ms[i]?.p;if(!m||!p||!x.set)return null;
     const mv=legalMoves(x,p),keys=mv.map(v=>MD[v.id][3]);
@@ -764,7 +764,7 @@ function teamKindEvidence(entries,T){
 // Weather and Tailwind badges describe evidenced synergy, not mere access.
 function teamWeatherEvidence(T){
   const w=T?.weather;if(!w||w.guess||!Array.isArray(T.M))return null;
-  const setters=T.M.map((m,i)=>m&&m.ab===w.ab&&WSET[m.ab]===w.k?i:-1).filter(i=>i>=0);
+  const setters=T.M.map((m,i)=>m&&m.ab===w.ab&&WSET[m.ab]===w.k&&(T.ms[i]?.x?.set?.ab?.k===m.ab||reviewedFixedMegaItem(m))?i:-1).filter(i=>i>=0);
   if(!setters.length)return null;
   const gain=T.M.filter((m,i)=>m&&!setters.includes(i)&&(WX_GAIN[w.k]||[]).includes(m.ab)&&
     (T.ms[i]?.x?.set?.ab?.k===m.ab||reviewedFixedMegaItem(m)));
@@ -774,11 +774,11 @@ function teamWeatherEvidence(T){
 function teamTailwindEvidence(T){
   if(!T?.rows?.length||!Array.isArray(T.M))return null;
   const id=+Object.keys(MD).find(i=>MD[i][3]==='tailwind');
-  const setters=(T.ms||[]).map((v,i)=>T.M[i]&&canLearn(v.p,id)&&(v.x.set?.mv||[]).some(m=>m&&+m.id===id)?i:-1).filter(i=>i>=0);
+  const setters=(T.ms||[]).map((v,i)=>T.M[i]&&lsOf(v.p).includes(id)&&(v.x.set?.mv||[]).some(m=>m&&+m.id===id)?i:-1).filter(i=>i>=0);
   if(!setters.length)return null;
   const gains=[];
   for(let i=0;i<T.M.length;i++){
-    const m=T.M[i],v=T.ms[i];if(!m||!v||setters.includes(i)||!v.x.set?.mv?.some(x=>MV[x.id]&&canLearn(v.p,+x.id)))continue;
+    const m=T.M[i],v=T.ms[i];if(!m||!v||setters.includes(i)||!v.x.set?.mv?.some(x=>x&&MV[x.id]&&lsOf(v.p).includes(+x.id)&&mvObj(x.id).pow>0))continue;
     const n=T.rows.filter(r=>r.res.some(z=>z.i===i&&Number.isFinite(z.sa)&&Number.isFinite(z.so)&&z.sa>0&&z.sa<=z.so&&2*z.sa>z.so)).length;
     if(n)gains.push(m.p.n+' '+n+'対面');
   }
@@ -791,7 +791,7 @@ function teamArch(entries,T=null){
   // remains available in dgAnalyze as a separate conditional recommendation.
   const trId=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
   const registered=(T?.tr?.setters||[]).filter(v=>{
-    const row=T.ms[v.i];return row&&T.M[v.i]&&canLearn(row.p,trId)&&(row.x.set?.mv||[]).some(m=>m&&+m.id===trId);
+    const row=T.ms[v.i];return row&&T.M[v.i]&&lsOf(row.p).includes(trId)&&(row.x.set?.mv||[]).some(m=>m&&+m.id===trId);
   });
   if(entries.length>=3&&T?.tr?.on&&registered.length)out.push({k:'tr',
     why:`${registered.map(v=>formInfo(T.ms[v.i].p).base).join('・')}が登録したトリックルームを使えて、${T.tr.slow.length}匹が遅い`});
