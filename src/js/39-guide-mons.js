@@ -427,6 +427,34 @@ function monGuide(p,o={}){
       return '<details class="gset-alt"><summary>火力・耐久・素早さを同時に維持する配分候補</summary><p>'+sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+sp.reduce((a,b)=>a+b,0)+'）</p><ul class="gtips"><li>確定1発：'+attack.map(x=>esc(mName(x.m.id))).join('・')+'</li><li>最大ダメージを1回耐える：'+defense.map(x=>esc(mName(x.m.id))).join('・')+'</li><li>素早さ実数値 '+calcStats(p,sp,s.up,s.dn)[5]+' ＞ '+speedTarget+'</li></ul><p class="vcap">指定の相手・技、満タン・ランク0・非急所、同じ優先度、素早さ補正なしで再計算。順次探索で見つけた候補であり、全配分の最適解や他の相手への性能は保証しません。</p></details>';
     };
     const line=x=>esc(mName(x.m.id))+'：'+x.lo+'〜'+x.hi+' / '+x.hp+' HP（'+(100*x.lo/x.hp).toFixed(1)+'〜'+(100*x.hi/x.hp).toFixed(1)+'%）・'+esc(koLabel(x.ko))+'（命中時）'+(x.acc<100?'・命中 '+x.acc+'%':'');
+    // One successful setup from full HP and stage zero; no opposing action is simulated.
+    // Unsupported ability/item interactions are excluded rather than guessed.
+    const setupState=(me,id,op)=>{
+      const stages={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1},187:{atk:6}}[id];
+      if(!stages||!s.moves.includes(id)||!ls.includes(id)||!MD[id])return null;
+      if(!['multiscale','huge-power','inner-focus'].includes(me.ab))return null;
+      if(![null,'lifeorb','sitrusberry'].includes(me.item))return null;
+      const a={...me,stg:{...me.stg,...stages}};
+      if(id===187){
+        const cost=Math.floor(a.max/2);if(a.hp<=cost)return null;
+        a.hp-=cost;
+        if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)&&op.ab!=='unnerve'){
+          a.hp=Math.min(a.max,a.hp+Math.floor(a.max/4));a.item=null;
+        }
+      }
+      return a;
+    };
+    const setupHTML=(me,op)=>{
+      const sections=[349,187,14,417,483,504,347,339].map(id=>{
+        const a=setupState(me,id,op);if(!a)return '';
+        const outgoing=a.moves.map(m=>result(a,op,m)).filter(Boolean);
+        const incoming=op.moves.map(m=>result(op,a,m)).filter(Boolean);
+        if(!outgoing.length&&!incoming.length)return '';
+        const speed=Math.floor(a.st[5]*stgM(a.stg.spe));
+        return '<details class="gset-alt"><summary>'+esc(mName(id))+'使用後の比較</summary><p>残りHP '+a.hp+' / '+a.max+'・持ち物 '+esc(a.item?ITEMN[a.item]||a.item:'なし')+'・素早さ '+me.st[5]+' → '+speed+'</p><p>能力ランク：'+Object.entries(a.stg).filter(([,v])=>v).map(([k,v])=>({atk:'攻撃',def:'防御',spa:'特攻',spd:'特防',spe:'素早さ'}[k])+ (v>0?'+':'')+v).join('・')+'</p><b>与えるダメージ</b>'+outgoing.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+incoming.map(y=>'<p>'+line(y)+'</p>').join('')+'<p class="vcap">HP満タンから積み技が1回成功し、相手の行動やターン終了処理がなかった場合。確定数は残りHPを基準とする計算例。積むターンの安全性は保証しません。</p></details>';
+      }).join('');
+      return sections;
+    };
     const sw=B.weather;B.weather=null;
     try{
       const me=build(p,s,'me');if(me.formErr)return '';
@@ -437,7 +465,7 @@ function monGuide(p,o={}){
         const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
         const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
         if(!out.length&&!inc.length)return '';
-        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+'</details>';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+'</details>';
       }).join('');
       return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
