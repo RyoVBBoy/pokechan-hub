@@ -137,7 +137,7 @@ const COVER=await pg.evaluate(()=>{
     const abilities=ABD[p.no]||(p.ab?[[p.ab,0]]:[]);
     const attacks=learn.filter(id=>!!MV[id]),status=learn.filter(id=>!!MD[id]&&!MV[id]);
     let g=null,error=null;
-    try{g=monGuide(p,{parts:true,raw:true})}catch(e){error=String(e)}
+    try{g=monGuide(p,{parts:true})}catch(e){error=String(e)}
     const sets=Array.isArray(g?.sets)?g.sets:[];
     const invalid=sets.filter(x=>!Array.isArray(x.moves)||x.moves.some(id=>!learn.includes(id)||!(MV[id]||MD[id]))||new Set(x.moves).size!==x.moves.length||x.moves.length>4||!Array.isArray(x.sp)||x.sp.length!==6||x.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||x.sp.reduce((a,b)=>a+b,0)>66).length;
     return {no:p.no,name:p.n,form:p.base?'mega':'other',attacks:attacks.length,status:status.length,abilities:abilities.map(a=>a[0]),sets:sets.length,invalid,error,integratedPilot:[149,184,212,65].includes(p.no)};
