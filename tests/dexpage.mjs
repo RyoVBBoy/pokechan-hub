@@ -301,6 +301,26 @@ const FX=await pg.evaluate(()=>{
 });
 console.log('fixed damage audit '+JSON.stringify(FX));
 ok(FX.total>0&&!FX.failed.length,'固定ダメージ：HP・無効タイプ・持ち物補正 '+JSON.stringify(FX));
+const ALTSTAT=await pg.evaluate(()=>{
+  const mk=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445),d=mk(65),opt={format:'single',spread:false,crit:false,protean:false,r:100},rows=[];
+  const damage=(id,x,y)=>bcalc(x,mvObj(id),y,opt).dmg;
+  for(const [id,source,ignored] of [[776,'def','atk'],[492,'atk','spa'],[473,'def','spd']]){
+    if(!MV[id])continue;
+    const base=damage(id,a,d),actor=id===776?a:d;
+    const changed={...actor,stg:{...actor.stg,[source]:2}},other={...actor,stg:{...actor.stg,[ignored]:2}};
+    const v=id===776?damage(id,changed,d):damage(id,a,changed);
+    const u=id===776?damage(id,other,d):damage(id,a,other);
+    rows.push({id,base,v,u,error:!(base>0)||!(id===473?v<base:v>base)||u!==base});
+  }
+  if(MV[573])for(const [types,expected] of [[['みず'],2],[['みず','じめん'],4],[['みず','こおり'],1],[['みず','ドラゴン'],4]]){
+    const target={...d,p:{...d.p,t:types}},v=bcalc(a,mvObj(573),target,opt);
+    rows.push({id:573,types,expected,actual:v.eff,error:v.eff!==expected});
+  }
+  return {rows,failed:rows.filter(x=>x.error)};
+});
+console.log('alternate stat audit '+JSON.stringify(ALTSTAT));
+ok(ALTSTAT.rows.length>0&&!ALTSTAT.failed.length,'特殊参照技：能力ランクとフリーズドライ相性 '+JSON.stringify(ALTSTAT.failed));
 const HR=await pg.evaluate(()=>{
   const make=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=make(445,'rough-skin',null),d=make(65,'magic-guard',null);
