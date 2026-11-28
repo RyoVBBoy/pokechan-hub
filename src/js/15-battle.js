@@ -911,6 +911,19 @@ function reviewedLeftoversEnd(a){
 // Self-targeted direct healing: Prankster adds one, Triage adds three.
  // No Quick Claw, Trick Room, action denial or other order-changing field effects.
 // Conditional order comparison for two damaging actions; fields are already active.
+// Restricted, already-successful protection; only reviewed ordinary damaging moves.
+const REVIEWED_GUARD_ATTACKS=new Set([89,57,58,85,53,94,157,585,337,583,453,245]);
+function reviewedDoubleGuard(a,m,d,field={}){
+  if(!a||!m||!d||a.formErr||d.formErr||!REVIEWED_GUARD_ATTACKS.has(m.id)||m.prot||m.maxH>1)return null;
+  if(!['none','protect','wideGuard'].includes(field.guard)||!Number.isInteger(d.hp)||d.hp<=0)return null;
+  if([a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item))||a.ab==='parental-bond'||a.ab==='unseen-fist')return null;
+  if(!moveUsable(m,{a,d}).ok)return null;
+  const blocked=field.guard==='protect'||(field.guard==='wideGuard'&&!!m.tg);
+  if(blocked)return {blocked:true,min:0,max:0};
+  const r=dmgRolls(a,m,d,{format:'double',spread:field.multipleTargets===true,crit:false,protean:false,noNext:true});
+  if(!r.length||r.dist||r.fband||!r.every(Number.isFinite))return null;
+  return {blocked:false,min:Math.min(...r),max:Math.max(...r)};
+}
 function reviewedDoubleOrder(a,m,d,n,field={}){
   if(!a||!d||!m||!n||a.formErr||d.formErr||m.prot||n.prot)return null;
   const unknown=new Set(['quick-draw','stall','mycelium-might','prankster','triage']);
