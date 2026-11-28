@@ -11,7 +11,7 @@ const dpTyA=a=>a.map(t=>chip(t)).join('');
 /* Evidence-first overview: only measured values, legal ability/move choices and explicit conditions.
    No invented overall strength scores. The deeper tabs retain their existing calculations. */
 function dpEvidenceHTML(p){
-  const abs=(p.ab?[[p.ab,0]]:ABD[p.no]||[]).map(a=>a[0]);
+  const abs=(p.base&&p.ab?[[p.ab,0]]:ABD[p.no]||(p.ab?[[p.ab,0]]:[])).map(a=>a[0]);
   const ids=(LSD[p.no]||LSD[p.base]||[0,[]])[1]||[];
   const facts={
     'huge-power':'攻撃の実数値が2倍になる。物理技で活かせる。',
@@ -68,7 +68,10 @@ function dpEvidenceHTML(p){
   };
   const singleRoles=formatMoves('シングル：戦い方の候補',[[349,'攻撃と素早さを上げる積み技'],[14,'攻撃を2段階上げる積み技'],[417,'特攻を2段階上げる積み技'],[245,'優先度+2の攻撃技。無効タイプなどに注意']]);
   const doubleRoles=formatMoves('ダブル：味方と連携する技',[[366,'味方側の素早さを上げる'],[433,'同じ優先度内の素早さ順を逆転させる'],[266,'対象となる相手の技を自分に引き寄せる'],[476,'対象となる相手の技を自分に引き寄せる。粉技無効の相手などに注意'],[469,'対象となる範囲攻撃から味方側を守る'],[252,'場に出た最初のターンに使える先制技。ひるみ無効などに注意']]);
-  const moveEvidence=danceChart+priorityText+singleRoles+doubleRoles;
+  const bellyStats=calcStats(p,[32,32,0,0,2,0],1,3);
+  const bellyRaw=bellyStats[1];
+  const bellyChart=hasMove(187)?'<details class="dp-li"><summary>はらだいこ：攻撃の変化</summary>'+bar('使用前（特性補正なし）',bellyRaw,bellyRaw*(hit.length?8:4))+bar('成功後（攻撃ランク+6）',bellyRaw*4,bellyRaw*(hit.length?8:4))+(hit.length?bar('成功後・'+ABN[hit[0]]+'有効時',bellyRaw*8,bellyRaw*8):'')+'<p class="dp-fn">攻撃上昇・特攻下降補正、HP32・攻撃32・特防2。使用に必要なHPが残っている場合に限ります。攻撃への補正を比較しており、最終ダメージではありません。</p></details>':'';
+  const moveEvidence=danceChart+bellyChart+priorityText+singleRoles+doubleRoles;
   const strengths=[];
   if(hit.length) strengths.push([ABN[hit[0]]+'で攻撃2倍','特性が有効な場合の攻撃補正。最終ダメージとは異なります。']);
   if(abs.includes('multiscale')) strengths.push(['HP満タン時のダメージ軽減','マルチスケイル選択時、HP満タンで対象の攻撃を受ける場合。']);
@@ -80,7 +83,8 @@ function dpEvidenceHTML(p){
   if(hasMove(366)) strengths.push(['味方側の素早さを強化','おいかぜ採用時。']);
 
   const topStat=p.s.reduce((best,v,i)=>v>p.s[best]?i:best,0);
-  const headline=hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。';
+  const pilotHeadline=p.no===149&&abs.includes('multiscale')&&dragonDance&&hasMove(245)?'マルチスケイルで行動機会を作り、りゅうのまいで攻撃と素早さを強化する型や、しんそくで先制する戦い方が選べる。':p.no===184&&hit.length&&hasMove(187)&&hasMove(453)?'ちからもちの物理火力を活かし、はらだいこで攻撃を強化してアクアジェットで先制する型が選べる。':'';
+  const headline=pilotHeadline|| (hit.length?'特性'+ABN[hit[0]]+'を選ぶと物理火力を伸ばせる。':special.length?ABN[special[0]]+'：'+facts[special[0]]:'最も高い種族値は'+statNames[topStat]+'（'+p.s[topStat]+'）。特性や習得技と合わせて戦い方を考えられる。');
   return {strengths,headline:esc(headline),html:chart+(moveEvidence?'<section class="dp-sec"><h3 class="dp-st">技による性能の変化</h3>'+moveEvidence+'</section>':'')+(extra?'<section class="dp-sec"><h3 class="dp-st">条件による性能の変化</h3>'+extra+'</section>':'')+(abRows?'<section class="dp-sec"><h3 class="dp-st">特性で変わる戦い方</h3><div class="dp-list">'+abRows+'</div><p class="dp-fn">特性は同時に発動するものではありません。選んだ特性と発動条件によって性能が変わります。</p></section>':'')+(tags?'<section class="dp-sec"><h3 class="dp-st">戦い方を広げる技</h3><div class="pills gchips">'+tags+'</div><p class="dp-fn">習得できる技の一例。採用率や同時採用を示すものではありません。</p></section>':'')+delta};
 }
 
