@@ -288,6 +288,24 @@ function monGuide(p,o={}){
     const why=res&&top?`この型のいちばんの攻撃手段である${mName(top)}を半減以下で受けられ、ほかの技でも大きなダメージを与えにくい。相手の攻撃は受けきれないので、対面したら有利な味方に交代する。`
       :'この型の技では大きなダメージを与えにくく、相手からはしっかりダメージを受ける。対面したら無理に戦わず、有利な味方に交代する。';
     return{head,why,bad}}catch(e){return null}};
+  /* Reusable allocation evidence: compare actual stats against the same nature and zero AP.
+     Speed comparisons deliberately use explicit opponent assumptions, not usage claims. */
+  const allocationEvidence=s=>{
+    const st=calcStats(p,s.sp,s.up,s.dn),zero=calcStats(p,[0,0,0,0,0,0],s.up,s.dn);
+    const rows=s.sp.map((v,i)=>({i,v,from:zero[i],to:st[i]})).filter(x=>x.v>0);
+    const speeds=P.filter(q=>q.no!==p.no).map(q=>({q,v:calcStats(q,[0,0,0,0,0,32],5,1)[5]}));
+    const crossed=speeds.filter(x=>x.v>=zero[5]&&x.v<st[5]).sort((a,b)=>b.v-a.v||a.q.no-b.q.no).slice(0,3);
+    const ties=speeds.filter(x=>x.v===st[5]).sort((a,b)=>a.q.no-b.q.no).slice(0,3);
+    return {rows,crossed,ties,speed:st[5]};
+  };
+  const allocationHTML=s=>{
+    const e=allocationEvidence(s);
+    return '<details class="gset-alt"><summary>能力配分の計算根拠</summary><ul class="gtips">'+e.rows.map(x=>'<li>'+esc(SN[x.i])+' '+x.v+'ポイント：'+x.from+' → '+x.to+'</li>').join('')+'</ul>'+
+      '<p class="vcap">同じ能力補正でポイント0の場合と比較しています。</p>'+
+      (e.crossed.length?'<p>素早さ配分によって先に動けるようになる相手の例：'+e.crossed.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
+      (e.ties.length?'<p>同速になる相手の例：'+e.ties.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
+      '<p class="vcap">相手は収録通常データ、素早さ上昇補正・素早さ32。自分の素早さ'+e.speed+'。同じ優先度、特性・持ち物・ランク・場の補正なし。環境での使用率や勝率を示すものではありません。</p></details>';
+  };
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
     /* 2026/11/15 図鑑のページの「型・育成」タブ（o.parts）：形式・姿・出典の札と「この型をパーティに入れる」 */
     const reviewed=Array.isArray(s.refs);
@@ -300,6 +318,7 @@ function monGuide(p,o={}){
       <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
       <h4>この型の役割</h4><p>${reviewed?esc(s.why):roleOf(s)}</p>
       ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考にした戦術（2026-11-28確認）：${s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・')}</p><p class="vcap">参考記事の型を転載したものではありません。対戦実績・確定数・最適性は未検証です。</p></details>`:''}
+      ${o.parts&&reviewed?allocationHTML(s):''}
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
         :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
       ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
