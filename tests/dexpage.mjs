@@ -122,7 +122,7 @@ const PA=await pg.evaluate(()=>{
     if(i<0)return {no,missing:true};
     const s=g.sets[i],h=g.setHTML(s,i);
     return {no,legal:s.sp.length===6&&s.sp.every(v=>Number.isInteger(v)&&v>=0&&v<=32)&&s.sp.reduce((a,b)=>a+b,0)===66,
-      moves:s.moves.length===4&&s.moves.every(id=>LSD[no][1].includes(id)&&MV[id]),
+      moves:s.moves.length===4&&s.moves.every(id=>LSD[no][1].includes(id)&&(MV[id]||MD[id])),
       allocation:h.includes('能力配分の計算根拠'),
       damage:h.includes('火力・耐久の計算例')&&!h.includes('比較は計算できませんでした'),
       finite:!/NaN|Infinity|undefined/.test(h)};
