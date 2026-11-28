@@ -56,7 +56,7 @@ function dpEvidenceHTML(p){
   const form=p.base?byNo[p.base]:null;
   const delta=form?'<section class="dp-sec"><h3 class="dp-st">メガシンカ前後の種族値</h3>'+SN.map((n,i)=>{const a=form.s[i],b=p.s[i],d=b-a;return '<div style="display:grid;grid-template-columns:4em minmax(0,1fr) auto;align-items:center;gap:6px;margin:8px 0"><span>'+n+'</span><span style="height:8px;border-radius:5px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+Math.abs(d)/Math.max(1,...p.s.map((v,j)=>Math.abs(v-form.s[j])))*100+'%;background:var(--acc)"></span></span><b>'+a+' → '+b+' ('+(d>0?'+':'')+d+')</b></div>'}).join('')+'<p class="dp-fn">棒の長さは変化量の絶対値。合計種族値や特性の効果とは別です。</p></section>':'';
   const statNames=['HP','攻撃','防御','特攻','特防','素早さ'];
-  const hasMove=id=>ids.includes(id)&&!!MV[id];
+  const hasMove=id=>ids.includes(id)&&!!(MV[id]||MD[id]);
   const dragonDance=hasMove(349);
   const priority=ids.filter(id=>MV[id]&&mvObj(id)&&mvObj(id).pri>0&&mvObj(id).cls<2);
   const danceStats=calcStats(p,[2,32,0,0,0,32],1,3);
@@ -90,15 +90,14 @@ function dpEvidenceHTML(p){
 
 function dpOverviewHTML(p,g){
   const evidence=dpEvidenceHTML(p);
-  const overviewPros=evidence.strengths.length?evidence.strengths:g.pros;
+  const overviewPros=evidence.strengths;
+  const weaknesses=T.map(t=>[t,mult(t,p.t)]).filter(([,v])=>v>1).sort((a,b)=>b[1]-a[1]);
+  const cautions=weaknesses.length?[[weaknesses[0][1]+'倍のタイプ弱点',weaknesses.filter(([,v])=>v===weaknesses[0][1]).map(([t])=>esc(t)).join('・')+'。タイプ相性のみ。特性・技・持ち物による変化は別です。']]:[];
   /* 2026/11/15 依頼主「Premium UI」：枠の中に枠を重ねない。見出し・余白・区切り線で分け、1行ずつ押すと説明が開く（› が回る）。説明の中身は前と同じ */
   const base=p.base?byNo[p.base]:null;
   const li=(t,d,o={})=>`<details class="dp-li${o.cls||''}"><summary><span class="dp-li-t">${t}</span>${o.tag?`<span class="dp-li-tag${o.tagc?' '+o.tagc:''}">${o.tag}</span>`:''}<span class="dp-li-c" aria-hidden="true">›</span></summary><p>${d}</p></details>`;
-  /* 役割：はじめ（ひとことの役）を「メイン」、積み技など条件のある役は「条件つき」と分ける。役の判定は前と同じ */
-  const roles=g.roles.map((r,i)=>{const cond=/（(.+)のとき）$/.exec(r.name);return li(esc(cond?r.name.replace(/（.+のとき）$/,''):r.name),String(r.text).replace(/[<>]/g,''),
-    {tag:cond?esc(cond[1]):'候補',tagc:cond?'is-cond':''})}).join('');
   let forms='';
-  if(base&&g.megaCh)forms=`<section class="dp-sec"><h3 class="dp-st">メガシンカで変わるところ</h3><ul class="dp-ul">${g.megaCh.map(x=>`<li>${x}</li>`).join('')}</ul>
+  if(base)forms=`<section class="dp-sec"><h3 class="dp-st">メガシンカで変わるところ</h3><p>タイプ：${esc(dpList(base.t))} → ${esc(dpList(p.t))}。特性：${esc(ABN[p.ab]||p.ab)}。</p>
     <a class="dp-link" href="#/p/${base.no}"><span>元の姿（${esc(base.n)}）</span><span aria-hidden="true">›</span></a></section>`;
   else if(g.megas.length)forms=`<section class="dp-sec"><h3 class="dp-st">ほかの姿</h3>${g.megas.map(({m,stone})=>{const tc=m.t.join()!==p.t.join();
     return `<a class="dp-form" href="#/p/${m.no}"><span class="av">${stamp(m)}</span><span class="dp-form-m"><span class="dp-form-n">${nm(m)}</span><span class="dp-form-s">${esc(ITEMN[stone]||'メガストーン')}でメガシンカ・合計 ${p.bst}→${m.bst}${tc?`・${esc(dpList(m.t))}タイプに`:''}・特性 ${esc(ABN[m.ab]||m.ab)}</span></span><span class="dp-li-c" aria-hidden="true">›</span></a>`}).join('')}
@@ -106,12 +105,10 @@ function dpOverviewHTML(p,g){
   /* 英語のときは文が日本語だけと知らせる（攻略ガイドと同じ、英語は未翻訳） */
   const en=typeof LANG!=='undefined'&&LANG==='en';
   return `${en?'<p class="note" style="padding:12px 16px 0">This overview is currently available in Japanese only.</p>':''}<div class="dp-ov" data-notr>
-    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p><details class="dp-li"><summary>役割・姿の詳しい説明</summary><p>${g.lead}</p></details></section>
+    <section class="dp-intro"><h2 class="dp-ov-h">${esc(p.n)}はどんなポケモン？</h2><p class="dp-lead">${evidence.headline}</p></section>
     ${overviewPros.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-good" aria-hidden="true"></i>強いところ</h3><div class="dp-list">${overviewPros.slice(0,3).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
-    ${g.cons.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>注意するポイント</h3><div class="dp-list">${g.cons.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
+    ${cautions.length?`<section class="dp-sec"><h3 class="dp-st"><i class="dp-dot is-bad" aria-hidden="true"></i>注意するポイント</h3><div class="dp-list">${cautions.slice(0,2).map(([t,d])=>li(esc(t),d)).join('')}</div></section>`:''}
     ${evidence.html}
-    ${g.roles.length?`<section class="dp-sec"><h3 class="dp-st">向いている役割</h3><div class="dp-list">${roles}</div>
-      <p class="dp-fn">種族値と覚える技から見た目安です。どの役で使うかは型（技・持ち物）で決まり、条件のある役はその技を入れた型のときだけです。</p></section>`:''}
     ${forms}
     <section class="dp-sec"><h3 class="dp-st">くわしく見る</h3><nav class="dp-nav" aria-label="ほかのタブへ">
       <button type="button" class="dp-link" data-dpgo="4"><span>型・育成<small>使われている型と、計算で組んだ型</small></span><span aria-hidden="true">›</span></button>

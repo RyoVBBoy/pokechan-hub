@@ -31,7 +31,7 @@ const RP=await pg.evaluate(()=>[...document.querySelectorAll('.dp-rp')].map(e=>e
 ok(RP.length&&RP.every(t=>/良くなること/.test(t)&&/失うこと/.test(t)),'入れかえ候補に良くなること・失うこと');
 await tab(5);ok(await pg.$$eval('#brpanel .row',x=>x.length)>=3&&/上から一撃/.test(await pg.evaluate(()=>document.querySelector('[data-panel="5"]').innerText)),'対策＝崩し方と場面ごとの相手（理由つき）');
 await tab(0);const O=await pg.evaluate(()=>document.querySelector('[data-panel="0"]').textContent);
-ok(/物理アタッカーとして使いやすい/.test(O)&&!/積んで勝負を決める役として使いやすい/.test(O)&&/型によっては/.test(O),'概要：積み技のない型まで積む役とは書かない '+O.split('\n')[2]);
+ok(!/物理アタッカーとして使いやすい|向いている役割/.test(O),'概要：旧来の役割断定を表示しない');
 ok(/ほかの姿/.test(O)&&/メガ Z/.test(O),'概要：ほかの姿の違い');
 /* 姿ごとのデータ：メガガブリアスZはドラゴンだけ（こおり4倍ではない）・タイプ一致はドラゴン */
 await open(10309);await tab(2);const Z=await pg.evaluate(()=>document.querySelector('[data-panel="2"]').innerText);
@@ -107,7 +107,7 @@ ok(!BF.tsu.length,'10以上を「Nつ」と数えない '+BF.tsu.join('・'));
 ok(BF.ag.every(Boolean),'ギルガルドはブレードフォルムの攻撃で判定 '+JSON.stringify(BF.ag));
 ok(BF.pf.every(Boolean),'イルカマンはマイティフォルムで判定 '+JSON.stringify(BF.pf));
 /* Evidence overview: actual attack values, legal abilities, no fabricated ratings. */
-const EV=await pg.evaluate(()=>{const cases=[184,308,660,752,676,964,768,10057,10280];const rows=cases.map(no=>{const p=byNo[no],e=dpEvidenceHTML(p);return {no,headline:e.headline,html:e.html}});const bad=[...P,...MEGAP].filter(p=>{try{const e=dpEvidenceHTML(p);return !e.headline||/undefined|NaN|Infinity/.test(e.headline+e.html)}catch(err){return true}}).map(p=>p.no);return {rows,bad}});
+const EV=await pg.evaluate(()=>{const cases=[184,308,660,752,676,964,768,10057,10280];const rows=cases.map(no=>{const p=byNo[no],e=dpEvidenceHTML(p);return {no,headline:e.headline,html:e.html}});const bad=[...P,...MEGAP].filter(p=>{try{const e=dpEvidenceHTML(p);const g=monGuide(p,{parts:true});const h=dpOverviewHTML(p,g);return !e.headline||/undefined|NaN|Infinity/.test(e.headline+e.html)||/向いている役割|役割・姿の詳しい説明/.test(h)}catch(err){return true}}).map(p=>p.no);return {rows,bad}});
 ok(!EV.bad.length,'根拠概要：全姿で生成できる '+EV.bad.join(','));
 ok(EV.rows[0].html.includes('112')&&EV.rows[0].html.includes('224')&&EV.rows[0].headline.includes('ちからもち'),'マリルリ：特性による攻撃の比較');
 ok(EV.rows[3].html.includes('すいほう')&&EV.rows[4].html.includes('ファーコート'),'すいほう・ファーコートの説明');
