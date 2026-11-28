@@ -89,7 +89,7 @@ for r in ledger['recs']:
     v = [_tcd[c] for c in row[2]] if r['field'] == 'types' else [int(x) for x in row[3:9]]
     if v != r['typedValue']: raise Exception('AI台帳: species.txt とサイトのデータが違います ' + r['evidenceId'])
     _chk += 1
-CALC_FN = ('mkMon bcalc bhits hitDist mhCount varPow fixedDmg hitType dmgRolls koInfo ABSORB PINCH SKIN WSET WSPD ABIMPL BATTLE_FORM MCHG MRECH MSELFKO MFIRST MFAIL MCOND MCOUNT disgLoss stgV apM chM pR').split()
+CALC_FN = ('mkMon REVIEWED_ALWAYS_CRIT reviewedCritical bcalc bhits hitDist mhCount varPow fixedDmg hitType dmgRolls koInfo ABSORB PINCH SKIN WSET WSPD ABIMPL BATTLE_FORM MCHG MRECH MSELFKO MFIRST MFAIL MCOND MCOUNT disgLoss stgV apM chM pR').split()
 calc_src = '\n'.join(get(n) for n in CALC_FN)
 engine_rev = 'e' + hashlib.sha256(calc_src.encode()).hexdigest()[:12]
 special = sorted(set(re.findall(r"['\"]([a-z][a-z0-9-]{2,30})['\"]", calc_src)) | set(re.findall(r"(?<![\w'\"-])([a-z][a-z0-9-]{2,30})(?=\s*:)", calc_src)))
@@ -141,7 +141,7 @@ audit_hold = ai_cfg.get('auditHold') is not False
 code = code.replace('__AI_ADMIN_PREVIEW__', json.dumps(audit_hold and ai_cfg.get('adminPreview') is True))
 open(os.path.join(W, 'dist/worker.js'), 'w', encoding='utf-8').write(code.replace('__AI_AUDIT_HOLD__', json.dumps(audit_hold)))
 # テスト用：同じ中身に、AI の内部の関数を取り出す口を付けたもの（公開しない）
-open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code.replace('__AI_AUDIT_HOLD__', 'false') + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiRoles,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,aiComposeB1,aiPublicTeams,aiFairPlay,aiFpNext,ladderInit,ladderSig,MDK,MVN,megaOf,isStone,aiRuleset,AI_RULESETS,OpenAIProvider,aiOpenAICall,aiRedact,aiConvLoad,aiConvSave,aiHalt,aiHalted,aiBreaker,aiProviderFor,aiB1Constraints,aiTeamStyles,aiReserveMore,aiCost,aiPrice,AI_LIMITS,AI_OPENAI_URL,AI_PROMPT_VERSION,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo};\n')
+open(os.path.join(W, 'dist/worker_test.js'), 'w', encoding='utf-8').write(code.replace('__AI_AUDIT_HOLD__', 'false') + '\nexport const __ai={aiLedger,aiLedgerFrom,aiMakeAdapter,aiNorm,aiRoles,aiFindEntities,aiCalc,aiCalcCheck,aiUsage,aiCheckPlan,aiVerify,aiCompose,aiReserve,aiFinish,aiSettle,aiPurge,aiForgetUser,aiHmac,aiDay,aiMonth,aiResets,aiCfg,AI_ADAPTERS,AI_PROVIDERS,MockProvider,aiComposeB1,aiPublicTeams,aiFairPlay,aiFpNext,ladderInit,ladderSig,MDK,MVN,megaOf,isStone,aiRuleset,AI_RULESETS,OpenAIProvider,aiOpenAICall,aiRedact,aiConvLoad,aiConvSave,aiHalt,aiHalted,aiBreaker,aiProviderFor,aiB1Constraints,aiTeamStyles,aiReserveMore,aiCost,aiPrice,AI_LIMITS,AI_OPENAI_URL,AI_PROMPT_VERSION,AI_ENGINE_REV,AI_CALC_SPECIAL,AI_CALC_ABILITY_OK,byNo,mkMon,dmgRolls,koInfo,reviewedCritical,REVIEWED_ALWAYS_CRIT};\n')
 open(os.path.join(W, 'dist/ai_meta.json'), 'w', encoding='utf-8').write(json.dumps({'dataRevision': ledger['dataRevision'], 'engineRevision': engine_rev, 'records': len(ledger['recs']), 'entities': len(ledger['ents']), 'special': len(special), 'specialList': special}, ensure_ascii=False))
 print('AI ledger', len(ledger['recs']), 'records', ledger['dataRevision'], engine_rev)
 # dist の中の .js を ES モジュールとして扱う（テストで読み込むため）
