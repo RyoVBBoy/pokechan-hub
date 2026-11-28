@@ -11,6 +11,15 @@ globalThis.fetch=async(url)=>{url=String(url);
 const w=(await import(path.join(ROOT,'worker/dist/worker.js'))).default;
 const img=new Uint8Array(4096);img.set([137,80,78,71,13,10,26,10]);
 let bad=0;
+// Exercise the actual generated Worker, not a browser-side copy.
+const {__ai:engine}=await import(path.join(ROOT,'worker/dist/worker_test.js'));
+for(const id of [480,524,870,89])for(const ab of ['pressure','mold-breaker'])for(const armor of ['pressure','shell-armor','battle-armor'])for(const requested of [false,true]){
+  const expected=(requested||id!==89)&&(ab==='mold-breaker'||armor==='pressure');
+  const actual=engine.reviewedCritical({ab},{id},{ab:armor},requested);
+  if(actual!==expected){bad++;console.error('NG worker critical resolution',{id,ab,armor,requested,expected,actual})}
+}
+if(engine.REVIEWED_ALWAYS_CRIT.size!==3){bad++;console.error('NG worker guaranteed critical move registry')}
+
 for(const team of ['130,3,6,547,983,1000','D!130,3,6,547,983,1000']){
   const r=await w.fetch(new Request('https://x.dev/',{method:'POST',headers:{'content-type':'image/png','x-app-token':'t','x-team':team},body:img}),{APP_TOKEN:'t',GEMINI_API_KEY:'k',LEGACY_TAP:'1'},{waitUntil(){}});
   const t=await r.text();if(!/選出/.test(t)||!/予想/.test(t)){bad++;console.error('NG',team,t.slice(0,200))}
