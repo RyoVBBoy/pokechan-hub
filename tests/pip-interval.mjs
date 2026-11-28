@@ -25,6 +25,10 @@ for(const [saved,want,keep] of [[null,4],[`{${cards},"sec":3}`,4,1],[`{${cards},
 }
 /* ② 入口ごとのボタン */
 const {ctx,pg,errs}=await open(null,'#/pip');
+// Keep the explicit encoder probes isolated from the debounced UI video builds.
+// Both use global PIP state and the temporary Mp4Muxer test double.
+await pg.evaluate(()=>{clearTimeout(pipT);pipSchedule=()=>{};});
+await pg.waitForFunction(()=>PIP.state!=='building',{},{timeout:30000});
 await pg.evaluate(()=>{team.length=0;team.push({no:445},{no:479});saveTeam&&saveTeam()});
 const btns=async()=>pg.$$eval('#pip-sec [data-ps]',a=>a.map(x=>({v:+x.dataset.ps,t:x.textContent.trim(),on:x.getAttribute('aria-pressed')})));
 const check=async(where)=>{const a=await btns();
