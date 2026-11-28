@@ -85,7 +85,7 @@ function impRoleLoss(T0,T1,i){
   if(w0-w1>=3&&w1<=w0/2)return `${nm}が後出しして勝てる相手が${w0}→${w1}匹に減る`;
   return null;
 }
-const IMP_KIND={swap:'入れかえ',move:'技',sp:'能力ポイント',nat:'性格',item:'持ち物',role:'型（役割）',sel:'選出'};
+const IMP_KIND={joint:'統合育成',swap:'入れかえ',move:'技',sp:'能力ポイント',nat:'性格',item:'持ち物',role:'型（役割）',sel:'選出'};
 /* 改善案を作る。戻り値：[{kind,i,title,why,entries（変更後）,J（比べた結果）,apply}] */
 /* 入れかえ先にしない採用率（%）。使用データで多く使われている技は、1対1のダメージだけで「いらない」とは言えない */
 const IMP_USED=30;
@@ -94,6 +94,19 @@ function impUsePct(no,stone){const out={};const put=(id,pc)=>{if(id&&pc!=null&&!
   try{const d=typeof LIVE!=='undefined'&&LIVE.csv[no];if(d&&d.mv)d.mv.forEach(([n,pc])=>put(MVKA[nrm(n)],pc))}catch(e){}
   try{if(typeof mvpRowOf==='function'){const r=mvpRowOf(typeof FMT!=='undefined'?FMT:'single',no,stone);if(r&&r.mv)r.mv.forEach(([k,pc])=>put(MVKA[nrm(k)],pc))}}catch(e){}
   return out}
+// Convert only candidates from the same resolved form; preserve saved fields.
+function impJointSaved(no,base,candidate,used){
+  if(!base||!candidate||!Array.isArray(candidate.moves)||!Array.isArray(candidate.sp)||!Array.isArray(base.sp)||!used||typeof used.has!=='function')return null;
+  const p=byNo[no],item=candidate.item;
+  if(!p||!item||used.has(item)||!CH_ITEMS.has(item)||!ITEMN[item])return null;
+  const old=base.it?.k;
+  if((isStone(old)||isStone(item))&&old!==item)return null;
+  const learn=lsOf(no)||[];
+  if(candidate.moves.length!==4||new Set(candidate.moves).size!==4||candidate.moves.some(id=>!learn.includes(id)||(!MV[id]&&!MD[id])))return null;
+  if(candidate.sp.length!==6||candidate.sp.some(n=>!Number.isInteger(n)||n<0||n>32)||candidate.sp.reduce((a,b)=>a+b,0)>66||candidate.sp.reduce((a,b)=>a+b,0)!==base.sp.reduce((a,b)=>a+b,0))return null;
+  if(candidate.ab!==base.ab?.k||candidate.up!==base.up||candidate.dn!==base.dn)return null;
+  return {...base,it:{k:item,n:ITEMN[item]},mv:candidate.moves.map(id=>({id,n:mName(id)})),sp:candidate.sp.slice(),src:'manual'};
+}
 function dgImprove(entries){const prev=DG_MEMO;DG_MEMO=prev||new Map();try{return impWith(entries,()=>dgImprove0(entries))}finally{DG_MEMO=prev}}
 function dgImprove0(entries){
   if(!entries||entries.length<3)return{list:[],note:'3匹以上入れると改善案を計算できます。'};
@@ -122,6 +135,19 @@ function dgImprove0(entries){
     /* 2026/11/16 依頼主の報告：攻撃役（解説の型に受けの型がない匹）には、攻撃のポイント・性格を削って耐久に回す案を出さない */
     let gk=[];try{gk=monGuide(p,{raw:true}).keys}catch(e){}
     const atkRole=!gk.includes('bulky')&&(gk.includes('attacker')||gk.includes('setup')||!gk.length);
+    // Explicitly bounded: at most one joint search per improvement request.
+    if(typeof FMT!=='undefined'&&FMT==='double'&&i===0&&M.p&&base.ab?.k&&base.mv.length===4){
+      const original={fmt:'double',ab:base.ab.k,item:base.it?.k,moves:base.mv.map(m=>m.id),sp:base.sp.slice(),up:base.up,dn:base.dn};
+      const result=monGuide(M.p,{jointOnly:original,noAxis:true});
+      for(const v of result?.best||[]){
+        const sv=impJointSaved(x.no,base,v.x,used(i));if(!sv)continue;
+        const removed=base.mv.filter(m=>!sv.mv.some(n=>n.id===m.id));
+        const pct=impUsePct(x.no,base.it?.k);
+        if(removed.some(m=>(pct[m.id]||0)>=IMP_USED||IMP_KEEP.has(MD[m.id]?.[3])))continue;
+        const bad=sv.mv.filter(m=>IMP_NOMV.has(MD[m.id]?.[3]));
+        tryEntry('joint',i,{...x,set:sv},nm(i)+'の統合育成候補','固定比較条件での個体評価を通過した候補。パーティ全体の既存対面評価も再計算しています。ダブルの実戦勝率を保証するものではありません。',bad);
+      }
+    }
     /* ---- 技：比較対面で最善に選ばれた回数と採用率を区別し、採用率の高い攻撃技を保護する ---- */
     const bestUse={};T0.rows.forEach(r=>{const z=r.res.find(q=>q.i===i);if(z&&z.me)bestUse[z.me.mv.id]=(bestUse[z.me.mv.id]||0)+1});
     const atkIdx=base.mv.map((m,k)=>({m,k,info:MV[m.id]?mvObj(m.id):null})).filter(o=>o.info&&o.info.pow>0&&!(o.info.pri>0)&&!IMP_KEEP.has(MD[o.m.id]&&MD[o.m.id][3]));

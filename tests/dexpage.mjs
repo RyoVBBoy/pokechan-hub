@@ -394,6 +394,14 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const JBR=await pg.evaluate(()=>{
+ const p=byNo[445],learn=(lsOf(445)||[]).filter(id=>MV[id]||MD[id]).slice(0,4);
+ const ab=(ABD[445]||[])[0]?.[0],base={ab:{k:ab},it:{k:'expertbelt'},mv:learn.map(id=>({id,n:mName(id)})),sp:[2,32,0,0,0,32],up:1,dn:3};
+ const x={ab,item:'expertbelt',moves:learn,sp:[2,28,4,0,0,32],up:1,dn:3};
+ const before=JSON.stringify([base,x]),v=impJointSaved(p.no,base,x,new Set());
+ return {valid:!!v,duplicate:impJointSaved(p.no,base,x,new Set(['expertbelt']))===null,illegal:impJointSaved(p.no,base,{...x,sp:[2,33,0,0,0,31]},new Set())===null,unchanged:before===JSON.stringify([base,x])};
+});
+ok(JBR.valid&&JBR.duplicate&&JBR.illegal&&JBR.unchanged,'統合育成の保存変換 '+JSON.stringify(JBR));
 const DST=await pg.evaluate(()=>{
   const d={hp:100,max:200,stg:{atk:0,def:0,spa:0,spd:0,spe:0},ab:'pressure',item:null};
   const b=JSON.stringify(d),heal=reviewedDirectHeal(d,105,true),setup=reviewedSetupState(d,14,{ab:'pressure'});
