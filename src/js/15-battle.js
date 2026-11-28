@@ -435,6 +435,10 @@ const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
 /* ばけのかわがはがれたときに減るHP：最大HPの1/8。端数は切り捨て、ただし最低1
    （ポケモン対戦シミュレーター Showdown の処理と同じ：this.damage(baseMaxhp/8) → 1未満は1にし、小数を切り捨てる。チャンピオンズ用の変更もない） */
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
+const REVIEWED_ALWAYS_CRIT=new Set([480,524,870]);
+function reviewedCritical(a,mv,d,requested){
+  return !!(requested||REVIEWED_ALWAYS_CRIT.has(mv.id))&&(a.ab==='mold-breaker'||!['shell-armor','battle-armor'].includes(d.ab));
+}
 function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv,d);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
@@ -461,7 +465,7 @@ function bcalc(a,mv,d,o){
   if(mk==='shellsidearm'){const A1=stgV(a.st[1],a.stg.atk),C1=stgV(a.st[3],a.stg.spa),B1=stgV(d.st[2],d.stg.def),D1=stgV(d.st[4],d.stg.spd);
     phys=Math.floor(Math.floor(22*90*A1)/B1)>Math.floor(Math.floor(22*90*C1)/D1)}
   /* シェルアーマー・カブトアーマー：急所に当たらない（かたやぶりで消える） */
-  const ee=mv.e||{},crit=(!!o.crit||['flowertrick','frostbreath','stormthrow'].includes(mk))&&dab!=='shell-armor'&&dab!=='battle-armor';
+  const ee=mv.e||{},crit=reviewedCritical(a,mv,d,o.crit);
   /* メガソーラー：自分の技は天気が「はれ」として扱われる */
   const wr=wxEffK(a,d),w=a.ab==='mega-sol'?'sun':wr;
   /* 威力の補正 */
@@ -575,7 +579,7 @@ function bcalc(a,mv,d,o){
   if(a.item==='lifeorb')fm=chM(fm,5324);
   if(d.item&&RES_BERRY[d.item]===t&&(eff>=2||d.item==='chilanberry'))fm=chM(fm,2048);
   x=apM(x,fm);
-  return{dmg:Math.max(1,x),eff};
+  return{dmg:Math.max(1,x),eff,crit};
 }
 /* ---- 連続技を1発ずつ順番に計算する（2026/11/13 ダメージ計算の点検） ----
    1発ごとに、その時点の相手のHP（マルチスケイルは満タンのときだけ）・乱数（o.rolls[i]、なければ o.r）・急所（o.crits[i]、なければ o.crit）で bcalc を呼ぶ。
@@ -608,7 +612,7 @@ function hitStep(a,mv,d,i,r,cr,o,st){
     if(o.surv&&x.eff&&st.hp===d.max&&dmg>=st.hp&&!st.dead){
       if(st.item==='focussash'){dmg=st.hp-1;ns.item=null;ns.surv='focussash'}
       else if(d.ab==='sturdy'&&a.ab!=='mold-breaker'){dmg=st.hp-1;ns.surv='sturdy'}}
-    h={dmg,crit:cr,r:r||null,hp:st.hp};
+    h={dmg,crit:!!x.crit,r:r||null,hp:st.hp};
     if(!x.eff)return{x,h,ns:{...ns,stop:true}};
     if(st.item&&RES_BERRY[st.item]&&RES_BERRY[st.item]===hitType(a,m,d)&&(x.eff>=2||st.item==='chilanberry'))ns.item=null;
     if(st.item==='airballoon')ns.item=null;
