@@ -641,7 +641,7 @@ function monGuide(p,o={}){
       // Fixed and variable hit counts use the conditional-on-first-hit HP distribution.
       // Repeated accuracy checks after the first hit are included in that distribution.
       const multiSimple=new Set([24,458,751,814,31,42,198,292,331,333,350,541,594,813]);
-      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id));
+      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id));
       if(!original.length)return skip('no attacks');
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
@@ -708,6 +708,15 @@ function monGuide(p,o={}){
               post=reviewedSelfStageAfterHit(c,move,connected);
               if(!post)return reject('post-stage data or item',{move:hit.id,item:c.item,opponent:op.p.no});
             }
+            // Damage-based recoil: one-hit attacks only, with no Disguise or
+            // held item on the fixture. Use maximum actual damage, capped at
+            // the defender's current HP, as a conservative HP-cost scenario.
+            if(Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,hit.id)){
+              if(move.maxH!==1||op.disg||op.item)return reject('recoil fixture',{move:hit.id,opponent:op.p.no});
+              const dealt=connected?Math.min(op.hp,Math.max(0,hit.lossHi)):0;
+              post=reviewedMoveRecoilAfterHit(post,move,dealt);
+              if(!post)return reject('recoil metadata',{move:hit.id,opponent:op.p.no,drain:move.drain});
+            }
             // For these fixtures, no Disguise or held item can make HP loss differ
             // from a damaging hit; zero damage must not trigger Life Orb.
             if(post.item==='lifeorb'){
@@ -763,7 +772,7 @@ function monGuide(p,o={}){
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用直後のHP '+baseline.rows[i].postHP+' → '+r.postHP+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力低下技の使用後の火力・耐久指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する5種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費も考慮して、同じ満タンの相手への再攻撃と被弾を別々に比較します。実際の2ターンの進行ではありません。技自体の反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+'の比較。相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力低下技の使用後の火力・耐久指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する5種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動も考慮して、同じ満タンの相手への再攻撃と被弾を別々に比較します。実際の2ターンの進行ではありません。未対応の技の反動、被弾後のきのみ発動、ターン終了回復、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{

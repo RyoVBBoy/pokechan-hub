@@ -210,6 +210,11 @@ const IA=await pg.evaluate(()=>{
           const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}}[mv.id];
           const post={...a,stg:{...a.stg}};
           if(deltas&&Math.max(...raw)>0&&row.hit.acc>0)for(const [k,n] of Object.entries(deltas))post.stg[k]=Math.max(-6,Math.min(6,post.stg[k]+n));
+          const recoil={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]}[mv.id];
+          if(recoil&&Math.max(...raw)>0&&row.hit.acc>0&&!['rock-head','magic-guard'].includes(post.ab)){
+            const dealt=Math.min(op.hp,Math.max(...raw));
+            post.hp=Math.max(0,post.hp-Math.max(1,Math.floor((2*dealt*recoil[0]+recoil[1])/(2*recoil[1]))));
+          }
           if(post.item==='lifeorb'&&post.ab!=='magic-guard'&&Math.max(...raw)>0&&row.hit.acc>0)post.hp=Math.max(0,post.hp-Math.max(1,Math.floor(post.max/10)));
           const rp=post.hp>0?dmgRolls(post,mv,op,opt):[0],rv=post.hp===0?[0]:mv.maxH>1?hitRemainingDist(post,mv,op,opt).map(([hp])=>op.hp-hp):(rp.dist?rp.dist.map(x=>x[0]):rp);
           const postIncoming=post.hp===0?[0]:op.moves.map(m=>{const z=dmgRolls(op,m,post,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&post.hp===z.surv.max?Math.min(n,post.hp-1):n+(z.loss||0)))});
