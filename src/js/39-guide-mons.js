@@ -627,10 +627,12 @@ function monGuide(p,o={}){
       // Fixed-power immediate single-hit attacks. Additional effects after the
       // hit are not evaluated by this one-use objective (see displayed limits).
       const extraSimple=new Set([667,441,56,412,414,224,126,408,438]);
+      // Reviewed fixed-damage attacks: reuse bcalc immunity and current HP handling.
+      const fixedSimple=new Set([69,101,162]);
       // Fixed and variable hit counts use the conditional-on-first-hit HP distribution.
       // Repeated accuracy checks after the first hit are included in that distribution.
       const multiSimple=new Set([24,458,751,814,31,42,198,292,331,333,350,541,594,813]);
-      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
+      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||fixedSimple.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
       if(!original.length)return skip('no attacks');
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
