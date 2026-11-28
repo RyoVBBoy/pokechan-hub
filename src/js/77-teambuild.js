@@ -630,7 +630,13 @@ function tbPropComp(){
 // the permissive "not evaluated" path of the ordinary replacement gate.
 function tbJointGate(E0,E1,no,i){
   if(E0?.st!=='ok'||E1?.st!=='ok'||!E0.scen?.length||E0.scen.length!==E1.scen?.length||E1.dup?.length)return false;
-  if(!E0.scen.every(a=>{const b=E1.scen.find(z=>z.key===a.key);return b&&a.rows.length>0&&a.rows.length===b.rows.length&&a.rows.every(r=>b.rows.some(z=>z.q?.no===r.q?.no));}))return false;
+  const keys=rows=>{
+    if(!Array.isArray(rows)||!rows.length||rows.some(r=>typeof r.op?.key!=='string'||!r.op.key||!Array.isArray(r.z)||r.z.length!==E0.mem.length||r.z.some(v=>!v)))return null;
+    const k=new Set(rows.map(r=>r.op.key));return k.size===rows.length?k:null;
+  };
+  if(E0.fmt!==E1.fmt||E0.ver!==E1.ver||!Array.isArray(E0.mem)||!Array.isArray(E1.mem)||E0.mem.length!==E1.mem.length||E0.mem.some((v,j)=>v.no!==E1.mem[j].no))return false;
+  if(new Set(E0.scen.map(v=>v.key)).size!==E0.scen.length||new Set(E1.scen.map(v=>v.key)).size!==E1.scen.length)return false;
+  if(!E0.scen.every(a=>{const b=E1.scen.find(z=>z.key===a.key);if(!b)return false;const x=keys(a.rows),y=keys(b.rows);return x&&y&&x.size===y.size&&[...x].every(k=>y.has(k));}))return false;
   const C=mvpCompare(E0,E1,no,no,i);
   return C.pairs.length===E0.scen.length&&!C.lost.length&&!C.added.length&&!C.roleLoss&&C.cm===0&&C.pairs.every(p=>p.n1<=p.n0)&&C.net>0;
 }
