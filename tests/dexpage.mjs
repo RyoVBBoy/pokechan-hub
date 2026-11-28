@@ -394,6 +394,13 @@ const DGARD=await pg.evaluate(()=>{
 });
 console.log('double guard audit '+JSON.stringify(DGARD));
 ok(DGARD.total>0&&DGARD.failed.length===0&&DGARD.guard,'ダブル防御技：対象範囲・乱数・状態保持・例外 '+JSON.stringify(DGARD));
+const DAS=await pg.evaluate(()=>{
+  const a=[{one:100,many:75,order:[-1,1]},{one:20,many:20,order:[1,0]}];
+  const b=[{one:100,many:75,order:[1,1]}];
+  const x=reviewedDoubleActionScores(a),y=reviewedDoubleActionScores(b);
+  return {x,y,invalid:reviewedDoubleActionScores([{one:1,many:1,order:[2]}])===null};
+});
+ok(JSON.stringify(DAS.x)===JSON.stringify([100,75,1,20,20,1,20,20,1,100,75,1,100,75])&&DAS.y[6]===100&&DAS.invalid,'ダブル同一技の火力と行動順 '+JSON.stringify(DAS));
 const DJ=await pg.evaluate(()=>{
   const s={moves:[1,2,3,4],item:'a',sp:[0,0,0,0,0,0]};
   const candidates=[{...s,item:'b'},{...s,item:'c'},{...s,item:'d'},{...s,item:'e'},{...s,item:'f'}];

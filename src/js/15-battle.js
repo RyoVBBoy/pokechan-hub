@@ -961,6 +961,18 @@ function reviewedDoubleTradeoff(base,next){
   return {outMin:Math.min(...out),outMax:Math.max(...out),hpMin:Math.min(...hp),hpMax:Math.max(...hp),preserved:[...out,...hp].every(v=>v>=0)};
 }
 // Bounded independent scenario search; all objective coordinates are maximized.
+// Damage attainable by one move meeting the same order threshold.
+function reviewedDoubleActionScores(attacks){
+  if(!Array.isArray(attacks)||!attacks.length)return null;
+  const len=attacks[0].order?.length;
+  if(!len||attacks.some(v=>!Number.isFinite(v.one)||!Number.isFinite(v.many)||v.one<0||v.many<0||!Array.isArray(v.order)||v.order.length!==len||v.order.some(n=>![-1,0,1].includes(n))))return null;
+  const scores=[Math.max(...attacks.map(v=>v.one)),Math.max(...attacks.map(v=>v.many))];
+  for(let i=0;i<len;i++)for(const threshold of [0,1]){
+    const eligible=attacks.filter(v=>v.order[i]>=threshold);
+    scores.push(eligible.length?1:0,Math.max(0,...eligible.map(v=>v.one)),Math.max(0,...eligible.map(v=>v.many)));
+  }
+  return scores;
+}
 function reviewedDoubleSearch(original,candidates,legal,evaluate,limit=64){
   if(!Number.isInteger(limit)||limit<1||limit>128||!legal(original))return null;
   const valid=x=>Array.isArray(x)&&x.length>0&&x.every(Number.isFinite);
