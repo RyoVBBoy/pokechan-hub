@@ -425,6 +425,11 @@ const DST=await pg.evaluate(()=>{
   return {heal:heal?.hp,atk:setup?.stg.atk,min:recovery?.minHP,max:recovery?.maxHP,unchanged:JSON.stringify(d)===b};
 });
 ok(DST.heal===200&&DST.atk===2&&DST.min===120&&DST.max===120&&DST.unchanged,'ダブル変化技：既存処理の条件別検査 '+JSON.stringify(DST));
+const DPOLLEN=await pg.evaluate(()=>{
+ const a={p:{no:1}},m={id:676,tg:0,maxH:1},d={p:{no:2},hp:30,max:101};
+ return {heal:reviewedDoublePollenHeal(a,m,d),cap:reviewedDoublePollenHeal(a,m,{...d,hp:99}),full:reviewedDoublePollenHeal(a,m,{...d,hp:101}),block:reviewedDoublePollenHeal(a,m,{...d,healblock:true}),dead:reviewedDoublePollenHeal(a,m,{...d,hp:0}),invalid:reviewedDoublePollenHeal(a,{...m,id:809},d),unchanged:d.hp===30};
+});
+ok(DPOLLEN.heal===50&&DPOLLEN.cap===2&&DPOLLEN.full===0&&DPOLLEN.block===0&&DPOLLEN.dead===null&&DPOLLEN.invalid===null&&DPOLLEN.unchanged,'かふんだんご：味方回復・上限・回復阻害 '+JSON.stringify(DPOLLEN));
 const DFIRST=await pg.evaluate(()=>{
  const a={id:252,maxH:1,tg:0,pri:3},b={id:660,maxH:1,tg:0,pri:2},c={id:89,maxH:1,tg:2,pri:0};
  return reviewedDoubleFirstTurn(a)&&reviewedDoubleFirstTurn(b)&&!reviewedDoubleFirstTurn(c)&&!reviewedDoubleFirstTurn({...a,tg:1})&&reviewedDoubleRepeatable([a,b,c]).length===1&&reviewedDoubleRepeatable([a,b,c])[0]===c;

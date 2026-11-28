@@ -998,6 +998,11 @@ function reviewedDoubleFirstTurn(m){
 function reviewedDoubleRepeatable(attacks){
   return attacks.filter(m=>!reviewedDoubleFirstTurn(m));
 }
+function reviewedDoublePollenHeal(a,m,d){
+  if(!a||!m||!d||m.id!==676||m.tg||m.maxH!==1||a===d||a.formErr||d.formErr||!Number.isInteger(d.hp)||!Number.isInteger(d.max)||d.hp<1||d.hp>d.max)return null;
+  if(d.healblock||d.volatiles?.healblock)return 0;
+  return Math.min(d.max-d.hp,Math.floor(d.max/2));
+}
 function reviewedDoublePostAttack(a,m,d,maxDamage,connected){
   if(!a||!m||!d||typeof connected!=='boolean'||!Number.isSafeInteger(maxDamage)||maxDamage<0)return null;
   let post=a;
