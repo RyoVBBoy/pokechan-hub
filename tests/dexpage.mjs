@@ -204,8 +204,9 @@ const DC=await pg.evaluate(()=>[...new Map([...P,...MEGAP].map(p=>[p.no,p])).val
     const s=g.sets.find(x=>x.fmt==='double'&&!x.live&&!x.usage);
     if(!s)return {no:p.no,name:p.n,status:'no local double build'};
     const h=g.auditBenchmark(s);
-    const rows=reports[0]?.rows||[],invalid=rows.some(r=>r.one.length!==2||r.many.length!==2||r.one.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(r.many[i])||(r.tg?r.many[i]>v:r.many[i]!==v)));
-    return {no:p.no,name:p.n,status:!h.includes('ダブル：攻撃対象別の計算例')||!h.includes('ダブルの統合最適化は未対応')||invalid?'invalid double benchmark':rows.length?'double damage benchmark':'no supported double attacks',rows:rows.length,spread:rows.filter(r=>r.tg&&r.many.some((v,i)=>v<r.one[i])).length,moves:s.moves,ab:s.ab,item:s.item};
+    const focus=reports[0]?.focus||[],focusInvalid=focus.some(f=>f.orders.length!==2||f.orders.some(x=>x.rolls!==256||x.ko<0||x.ko>256||x.min<0||x.max<x.min)||f.min!==Math.min(...f.orders.map(x=>x.min))||f.max!==Math.max(...f.orders.map(x=>x.max)));
+    const rows=reports[0]?.rows||[],invalid=focusInvalid||rows.some(r=>r.one.length!==2||r.many.length!==2||r.one.some((v,i)=>!Number.isFinite(v)||!Number.isFinite(r.many[i])||(r.tg?r.many[i]>v:r.many[i]!==v)));
+    return {no:p.no,name:p.n,status:!h.includes('ダブル：攻撃対象別の計算例')||!h.includes('ダブルの統合最適化は未対応')||invalid?'invalid double benchmark':rows.length?'double damage benchmark':'no supported double attacks',rows:rows.length,focus:focus.length,spread:rows.filter(r=>r.tg&&r.many.some((v,i)=>v<r.one[i])).length,moves:s.moves,ab:s.ab,item:s.item};
   }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
 }));
 const DCS={total:DC.length,counts:DC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:DC};
@@ -375,6 +376,32 @@ const CR=await pg.evaluate(()=>{
 });
 console.log('critical hit audit '+JSON.stringify(CR));
 ok(CR.rows.length>1&&!CR.failed.length,'確定急所・急所防止・能力ランク・壁・スナイパー '+JSON.stringify(CR.failed));
+const DF=await pg.evaluate(()=>{
+  const mk=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=mk(445,'rough-skin',null),b=mk(184,'huge-power',null),rows=[];
+  for(const [ab,item] of [['pressure',null],['multiscale',null],['sturdy',null],['pressure','focussash'],['pressure','airballoon'],['disguise',null],['stamina',null]]){
+    const d=mk(65,ab,item);if(ab==='disguise')d.disg=true;
+    const before=JSON.stringify(d),m=mvObj(89),n=mvObj(583),actual=reviewedDoubleFocus(a,m,b,n,d);
+    const expected=[];
+    for(const seq of [[[a,m],[b,n]],[[b,n],[a,m]]]){
+      const hps=[];
+      for(let i=85;i<=100;i++)for(let j=85;j<=100;j++){
+        let target={...d,stg:{...d.stg}};
+        for(const [k,[att,move]] of seq.entries()){
+          if(target.hp<=0)break;
+          const x=bhits(att,move,target,{format:'double',spread:!!move.tg,surv:true,protean:false,r:k?j:i});
+          target={...target,hp:Math.max(0,x.state.hp),item:x.state.item,disg:x.state.disg,stg:{...x.state.stg}};
+        }
+        hps.push(target.hp);
+      }
+      expected.push({first:seq[0][0].p.no,min:Math.min(...hps),max:Math.max(...hps),ko:hps.filter(h=>h===0).length,rolls:256});
+    }
+    rows.push({ab,item,error:!actual||JSON.stringify(actual.orders)!==JSON.stringify(expected)||JSON.stringify(d)!==before});
+  }
+  return rows;
+});
+console.log('double focus fire audit '+JSON.stringify(DF));
+ok(DF.every(x=>!x.error),'ダブル集中攻撃：両順序・全乱数・生存条件・状態保持 '+JSON.stringify(DF));
 const HR=await pg.evaluate(()=>{
   const make=(no,ab,item)=>mkMon(byNo[no],'me',{ab,item,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=make(445,'rough-skin',null),d=make(65,'magic-guard',null);
