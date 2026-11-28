@@ -444,6 +444,34 @@ function monGuide(p,o={}){
       }
       return a;
     };
+    // Exhaust the HP/physical/special bulk split while keeping both attacks and speed fixed.
+    // Compare the actual post-setup HP and one-hit margins, not the HP parity alone.
+    const berryPlan=(me,op)=>{
+      if(me.item!=='sitrusberry'||!s.moves.includes(187)||op.ab==='unnerve')return '';
+      const initial=setupState(me,187,op);if(!initial)return '';
+      const incoming=op.moves.filter(m=>simple.has(m.id)&&moveUsable(m,{a:op,d:initial}).ok&&!(m.maxH>1));
+      if(!incoming.length)return '';
+      const budget=s.sp[0]+s.sp[2]+s.sp[4];
+      const score=(a)=>{
+        const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+        const margins=incoming.map(m=>{
+          const rr=dmgRolls(op,m,a,opt),v=rr.dist?rr.dist.map(x=>x[0]):rr;
+          return v.length&&v.every(Number.isFinite)?a.hp-Math.max(...v):NaN;
+        });
+        return margins.every(Number.isFinite)?Math.min(...margins):NaN;
+      };
+      const baseMargin=score(initial);if(!Number.isFinite(baseMargin))return '';
+      let best=null;
+      for(let h=0;h<=32;h++)for(let d=0;d<=32;d++){
+        const f=budget-h-d;if(f<0||f>32)continue;
+        const sp=[h,s.sp[1],d,s.sp[3],f,s.sp[5]],c=build(p,{...s,sp},'me'),a=setupState(c,187,op);
+        if(!a||a.item!==null||c.formErr||c.st[1]!==me.st[1]||c.st[3]!==me.st[3]||c.st[5]!==me.st[5])continue;
+        const margin=score(a);if(!Number.isFinite(margin))continue;
+        if(!best||margin>best.margin||(margin===best.margin&&a.hp>best.a.hp))best={sp,a,margin};
+      }
+      if(!best||best.margin<=baseMargin||best.sp.every((v,i)=>v===s.sp[i]))return '';
+      return '<details class="gset-alt"><summary>オボンのみの発動を含めた耐久配分候補</summary><p>'+best.sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+best.sp.reduce((a,b)=>a+b,0)+'）</p><p>はらだいこ後のHP '+initial.hp+'/'+initial.max+' → '+best.a.hp+'/'+best.a.max+'（オボンのみ消費済み）</p><p>比較対象の技：'+incoming.map(m=>esc(mName(m.id))).join('・')+'。最も厳しい最大ダメージ後の残りHP（計算上） '+baseMargin+' → '+best.margin+'</p><p class="vcap">攻撃・特攻・素早さの配分を固定し、残りのHP・防御・特防の全合法配分を比較。満タンから積み技が成功した後、指定の相手の技を1回受ける条件。負の値は不足HPを示します。他の相手や積むターンの安全性は保証しません。</p></details>';
+    };
     const setupHTML=(me,op)=>{
       const sections=[349,187,14,417,483,504,347,339].map(id=>{
         const a=setupState(me,id,op);if(!a)return '';
@@ -465,7 +493,7 @@ function monGuide(p,o={}){
         const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
         const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
         if(!out.length&&!inc.length)return '';
-        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+'</details>';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+berryPlan(me,op)+'</details>';
       }).join('');
       return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし・急所なし。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+'</details>':'';
     }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
