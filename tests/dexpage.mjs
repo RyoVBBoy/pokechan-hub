@@ -204,7 +204,7 @@ const IA=await pg.evaluate(()=>{
           if(no===184){a.stg.atk=6;a.hp-=Math.floor(a.max/2);if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)){a.hp+=Math.floor(a.max/4);a.item=null}}
           const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
           const mv=mvObj(row.hit.id),rr=dmgRolls(a,mv,op,opt),raw=rr.dist?rr.dist.map(x=>x[0]):rr;
-          const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt);return Math.max(...(z.dist?z.dist.map(x=>x[0]):z))});
+          const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&a.hp===z.surv.max?Math.min(n,a.hp-1):n+(z.loss||0)))});
           if(row.hit.lo!==Math.min(...raw)||row.hit.hi!==Math.max(...raw)||row.hit.acc!==accOf(a,mv,op)||row.margin!==a.hp-Math.max(...incoming)||row.remaining!==a.hp||row.speed!==effSpd(a,op)||row.order!==Math.sign(effSpd(a,op)-effSpd(op,a)))errors.push('calculator mismatch');
           const ref=r.baseline.rows[j];
           if(row.quality+1e-9<ref.quality||row.margin<ref.margin||row.order<ref.order)errors.push('regression');
@@ -214,6 +214,20 @@ const IA=await pg.evaluate(()=>{
     return {no,errors,attempts:r.attempts,valid:r.valid,candidates:r.best.length,eligibleItems:r.eligibleItems,attemptedItems:r.attemptedItems,elapsedMs:Math.round(r.elapsedMs),totalMs:Math.round(totalMs),render:h.includes('技・持ち物・能力ポイントの一体比較')};
   });
 });
+/* Independent direct checks of the calculator metadata used by integrated HP-loss evaluation. */
+const SV=await pg.evaluate(()=>{
+  const make=(no,ab,item,sp,up,dn,moves)=>mkMon(byNo[no],'me',{ab,item,sp,up,dn,moves:moves.map(mvObj)});
+  const a=make(445,'rough-skin',null,[2,32,0,0,0,32],1,3,[89]);
+  const d=make(65,'magic-guard','focussash',[2,0,0,32,0,32],5,1,[94]);
+  const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+  const m=mvObj(89);
+  const full=dmgRolls(a,m,d,opt),chip=dmgRolls(a,m,{...d,hp:d.hp-1},opt);
+  const sturdy=dmgRolls(a,m,{...d,item:null,ab:'sturdy'},opt);
+  const bypass=dmgRolls({...a,ab:'mold-breaker'},m,{...d,item:null,ab:'sturdy'},opt);
+  const disguise=dmgRolls(a,m,{...d,item:null,ab:'disguise',disg:true},opt);
+  return {full:full.surv?.k,chip:!!chip.surv,sturdy:sturdy.surv?.k,bypass:!!bypass.surv,disguise:disguise.loss,expectedLoss:Math.floor(d.max/8),raw:Math.max(...full)};
+});
+ok(SV.full==='focussash'&&!SV.chip&&SV.sturdy==='sturdy'&&!SV.bypass&&SV.disguise===SV.expectedLoss,'単発技の生存条件・HP減少の計算メタデータ '+JSON.stringify(SV));
 console.log('integrated audit '+JSON.stringify(IA));
 ok(IA.every(x=>!x.missing&&x.render&&x.errors.length===0&&x.valid>0&&x.attempts<=360),'統合探索：合法性・計算一致・探索上限 '+JSON.stringify(IA));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
