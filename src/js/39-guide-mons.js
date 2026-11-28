@@ -629,10 +629,11 @@ function monGuide(p,o={}){
       const extraSimple=new Set([667,441,56,412,414,224,126,408,438]);
       // Reviewed fixed-damage attacks: reuse bcalc immunity and current HP handling.
       const fixedSimple=new Set([69,101,162]);
+      const statSimple=new Set([776,492,473,573]);
       // Fixed and variable hit counts use the conditional-on-first-hit HP distribution.
       // Repeated accuracy checks after the first hit are included in that distribution.
       const multiSimple=new Set([24,458,751,814,31,42,198,292,331,333,350,541,594,813]);
-      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||fixedSimple.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
+      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||fixedSimple.has(id)||statSimple.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
       if(!original.length)return skip('no attacks');
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
@@ -656,6 +657,7 @@ function monGuide(p,o={}){
       const reject=(reason,detail={})=>{if(attempts===1&&!baselineReason)baselineReason={reason,...detail};return null};
       const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&legalItem(x.item);
       const bounds=(a,d,m)=>{
+        if((m.id===492&&!m.e?.fp)||(m.id===473&&!m.e?.ps))return null;
         if(!moveUsable(m,{a,d}).ok||(m.maxH>1&&!multiSimple.has(m.id))||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
         if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
         if(multiSimple.has(m.id)){
