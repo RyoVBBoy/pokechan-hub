@@ -243,8 +243,8 @@ const V5=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};const run=(names,mod)=>{team.length=0;names.forEach(s=>team.push({no:N(s).no}));mod&&mod();TWX_K=null;return teamArch(team).map(a=>a.k)};
   const TRID=+Object.keys(MD).find(i=>MD[i][3]==='trickroom'),trSet=no=>({mv:[{id:TRID,n:'トリックルーム'},...mySetFor(no).moves.filter(m=>m&&m.pow>0).slice(0,3).map(m=>({id:m.id,n:m.n}))]});
   r.tr=run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム'],()=>{team[0].set=trSet(team[0].no)}).includes('tr');
-  /* 覚えられるだけなら「技が未登録」の札（張れる型としては出さない） */
-  run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);r.trUnset=teamArch(team).some(a=>a.k==='tr'&&a.unset);
+  /* 覚えられるだけなら構築の型には出さず、適性は別の診断に残す */
+  run(['ブリムオン','リキキリン','ドサイドン','ヤドラン','カビゴン','ハッサム']);r.trUnset=!teamArch(team).some(a=>a.k==='tr')&&dgTeam(team,20).tr.unset;
   r.sun=run(['リザードン','フシギバナ','ルチャブル','ガブリアス'],()=>{team[0].set={it:{k:'charizarditey',n:''},mv:[]}}).includes('sun');
   r.rain=run(['ペリッパー','イダイトウ','ブリジュラス']).includes('rain');
   const sc={it:{k:'choicescarf',n:''},mv:[{id:89,n:'じしん'}]},ss={it:{k:'focussash',n:''},mv:[{id:89,n:'じしん'}]},lo={it:{k:'lifeorb',n:''},mv:[{id:89,n:'じしん'}]};
@@ -256,7 +256,7 @@ ok(V5.tr&&V5.trUnset&&V5.sun&&V5.rain&&V5.tm&&V5.none,'構築の型のバッジ 
 const V6=await pg.evaluate(()=>{
   const N=s=>P.find(x=>x.n===s),r={};team.length=0;['ブリムオン','リキキリン','コータス','ドサイドン','カビゴン','オニシズクモ'].forEach(s=>team.push({no:N(s).no}));
   const ss=archSets(['axis'],team.map(x=>byNo[x.no]));team.forEach((x,i)=>{x.set=toSaved(ss[i])});TWX_K=null;
-  const A=teamArch(team);r.first=A[0]&&A[0].k==='tr'&&A[0].unset===true;r.sun=A.some(a=>a.k==='sun');
+  const A=teamArch(team);r.first=!A.some(a=>a.k==='tr')&&dgTeam(team,20).tr.unset;r.sun=A.some(a=>a.k==='sun');
   r.warn=dgAnalyze(dgTeam(team,20)).bad.some(b=>/トリックルームの技が入っていない/.test(b.t));
   const t2=archSets(ARCHS.find(x=>x[0]==='tr'),team.map(x=>byNo[x.no]));r.fill=t2.some(z=>toSaved(z).mv.some(m=>m.n==='トリックルーム'));
   return r});

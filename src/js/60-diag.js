@@ -737,8 +737,14 @@ const ARCH_BADGE={sun:['晴れ','sun'],rain:['雨','rain'],sand:['砂嵐','sand'
 function teamArch(entries,T=null){
   const out=[];if(!entries||!entries.length)return out;
   try{T=T||dgTeam(entries,20)}catch(e){}
-  if(entries.length>=3&&T?.tr&&(T.tr.on||T.tr.unset))out.push({k:'tr',unset:!T.tr.on,
-    why:`${(T.tr.on?T.tr.setters:T.tr.cand).map(s=>formInfo(T.ms[s.i].p).base).join('・')}が${T.tr.on?'張れて':'覚えられて（いまの技には未登録。計算ではトリックルームを張っていない）'}、${T.tr.slow.length}匹が遅い`});
+  // Actual strategy badges require an active, registered setter. Suitability
+  // remains available in dgAnalyze as a separate conditional recommendation.
+  const trId=+Object.keys(MD).find(i=>MD[i][3]==='trickroom');
+  const registered=(T?.tr?.setters||[]).filter(v=>{
+    const row=T.ms[v.i];return row&&T.M[v.i]&&canLearn(row.p,trId)&&(row.x.set?.mv||[]).some(m=>m&&+m.id===trId);
+  });
+  if(entries.length>=3&&T?.tr?.on&&registered.length)out.push({k:'tr',
+    why:`${registered.map(v=>formInfo(T.ms[v.i].p).base).join('・')}が登録したトリックルームを使えて、${T.tr.slow.length}匹が遅い`});
   const w=T?.weather;
   if(w){
     const gain=T.M.filter(m=>m&&(WX_GAIN[w.k]||[]).includes(m.ab));
