@@ -1,0 +1,26 @@
+name: Dex targeted audit (no deployment)
+on:
+  push:
+    branches: ['audit/dex-post-hit-hp-20261128']
+permissions:
+  contents: read
+jobs:
+  dex:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://pokechan-hub.pages.dev
+      - name: Dex regression and integrated calculation audit
+        run: node tests/dexpage.mjs
