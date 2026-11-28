@@ -7,7 +7,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const src=readFileSync(path.join(root,'src/js/15-battle.js'),'utf8');
-const start=src.indexOf('function bcalc('),end=src.indexOf('/* ---- 連続技を1発ずつ',start);
+const start=src.indexOf('const REVIEWED_ALWAYS_CRIT='),end=src.indexOf('/* ---- 連続技を1発ずつ',start);
 assert.ok(start>=0&&end>start,'bcalc source boundaries');
 const pR=x=>{const f=Math.floor(x);return x-f>.5?f+1:f};
 const __B={weather:null};/* 2026-11-24: shared weather state for the new wxEffK/effPri helpers */

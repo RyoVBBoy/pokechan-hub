@@ -94,23 +94,34 @@ function monGuide(p,o={}){
   /* ---- 型を組む ---- */
   const lowDef=B<=D?2:4;
   /* 技が4つに満たないときは、攻撃技で埋める */
-  const mkSet=(title,why,ab,item,up,dn,sp,moves)=>({title,why,ab,item,up,dn,sp,moves:[...new Set([...moves.filter(Boolean),...pickAtk(4)])].slice(0,4)});
+  // Build candidates only from legal, distinct moves. Preserve requested role moves first;
+  // when the preferred attack pool is short, use remaining legal attacks or support moves.
+  const mkSet=(title,why,ab,item,up,dn,sp,moves)=>{
+    const legal=id=>ls.includes(id)&&!!(MV[id]||MD[id]);
+    const choice=/^choice/.test(item||'');
+    const eligible=id=>legal(id)&&(!choice||!!MV[id]);
+    const preferred=[...moves.filter(Boolean),...pickAtk(4)];
+    const otherAttacks=[...atk].sort((a,b)=>sc(b)-sc(a)||a.id-b.id).map(m=>m.id);
+    const fallback=ls.filter(id=>!MV[id]&&MD[id]);
+    const ids=[...new Set([...preferred,...otherAttacks,...fallback].filter(eligible))].slice(0,4);
+    return {title,why,ab,item,up,dn,sp,moves:ids};
+  };
   const spOf=(a,b)=>{const s=[0,0,0,0,0,0];s[a]=32;s[b]=32;const r=[0,lowDef,4,2,5].find(i=>i!==a&&i!==b);s[r]=2;return s};
   const sets={
     attacker:()=>{const item=spdS<.35?'expertbelt':spdS<.7?'choicescarf':'lifeorb';
       const why=item==='choicescarf'?`素早さが中くらいなので、${ITEMN.choicescarf}で上から攻撃できる相手を増やす。`:item==='lifeorb'?`素早さが高いので、技を固定されない${ITEMN.lifeorb}で火力を上げる。`:`素早さは低いが${atkStat}が高いので、${ITEMN[item]}で弱点を突いたときの火力を上げ、受けに来た相手も押し切る。`;
       return mkSet(`${atkName}アタッカー`,why,pickAb(['power','speed','weaken','absorb']),item,item==='choicescarf'||item==='lifeorb'?5:ai,ai===1?3:1,spOf(ai,5),pickAtk(4))},
     setup:()=>{const s=setup[0],isSh=key(s)==='shellsmash',bd=key(s)==='bellydrum';const item=isSh&&bulkS<.5?'focussash':bd?'sitrusberry':bulkS>=.55?'leftovers':'lifeorb';
-      return mkSet('積みアタッカー',`${mName(s)}で能力を上げてから、タイプの違う技で一気に倒していく。${item==='focussash'?'耐久が低いので'+ITEMN.focussash+'で1回は確実に積む。':item==='sitrusberry'?ITEMN.sitrusberry+'でHPを戻しながら戦う。':item==='leftovers'?'耐久もあるので、'+ITEMN.leftovers+'で回復しながら何度も積む。':ITEMN.lifeorb+'で、積んだあとの火力をさらに上げる。'}`,
+      return mkSet('積みアタッカー',`${mName(s)}で能力を上げてから、タイプの違う技で一気に倒していく。${item==='focussash'?'耐久が低いので'+ITEMN.focussash+'でHP満タン時に一撃を耐えられる場合がある。':item==='sitrusberry'?ITEMN.sitrusberry+'でHPを戻しながら戦う。':item==='leftovers'?'耐久もあるので、'+ITEMN.leftovers+'で回復しながら何度も積む。':ITEMN.lifeorb+'で、積んだあとの火力をさらに上げる。'}`,
         pickAb(['power','speed','bulk','stat']),item,spdS>=.4&&!['curse'].includes(key(s))?5:ai,ai===1?3:1,key(s)==='curse'?spOf(0,ai):spOf(ai,5),[s,...pickAtk(3)])},
     bulky:()=>{const at=pickAtk(2),aux=[...heal.slice(0,1),...sup.filter(id=>['willowisp','toxic','stealthrock','thunderwave','yawn','spikes','taunt'].includes(key(id))).slice(0,1),...piv.slice(0,1),...have(['knockoff','protect'])];
       const mv=[...aux.slice(0,2),...at,...aux.slice(2)];
       return mkSet('受けて粘る役（サイクル）',`HPと${lowDef===2?'防御':'特防'}を伸ばし、${heal.length?mName(heal[0])+'で回復しながら':'交代を繰り返しながら'}何度も場に出る。${ITEMN.leftovers}で少しずつ回復する。`,
         pickAb(['pivot','bulk','weaken','absorb','statusab','stat']),'leftovers',lowDef,ai===1?3:1,spOf(0,lowDef),mv)},
     support:()=>{const fast=spdS>=.55;const s=sup.slice(0,3);
-      return mkSet('起点作り',`${list(s.map(mName))}で味方が戦いやすい状況を作る。${bulkS<.4?'耐久が低いので'+ITEMN.focussash+'で確実に1回は動く。':ITEMN.sitrusberry+'で長く場に残る。'}`,
+      return mkSet('起点作り',`${list(s.map(mName))}で味方が戦いやすい状況を作る。${bulkS<.4?'耐久が低いので'+ITEMN.focussash+'でHP満タン時に一撃を耐えられる場合がある。':ITEMN.sitrusberry+'で長く場に残る。'}`,
         pickAb(['speed','weaken','field','bulk']),bulkS<.4?'focussash':'sitrusberry',fast?5:lowDef,ai===1?3:1,fast?spOf(0,5):spOf(0,lowDef),[...s,...pickAtk(1,[]).slice(0,1),...sup.slice(3)])},
-    tr:()=>mkSet('トリックルームのアタッカー',`自分でトリックルームを使い、遅さを活かして先に攻撃する。素早さは下げる性格にして、ポイントは振らない。`,
+    tr:()=>mkSet('トリックルームのアタッカー',`自分でトリックルームを使い、同じ優先度で相手より遅い場合に先に攻撃できる。素早さは下げる性格にして、ポイントは振らない。`,
       pickAb(['weaken','bulk','power']),bulkS>=.5?'sitrusberry':'lifeorb',ai,5,spOf(0,ai),[tr[0],...pickAtk(3)])
   };
   /* ---- 向いている役割 ---- */
@@ -120,13 +131,13 @@ function monGuide(p,o={}){
   /* 2026/11/16 依頼主の報告（イダイトウが「攻撃を削って防御」の型になる）：HPだけが高く、防御・特防がどちらも80未満なら受け役にしない */
   if(bulkS>=.65&&Math.max(B,D)>=80&&(heal.length||abK.includes('regenerator')||piv.length))R('bulky',bulkS+.2,'受けて粘る役（サイクル）',`耐久は${lvl(pbS)===lvl(sbS)?'物理・特殊ともに'+lvl(pbS):'物理が'+lvl(pbS)+'・特殊が'+lvl(sbS)}。${heal.length?mName(heal[0])+'で回復でき、':''}${abK.includes('regenerator')?ABN.regenerator+'で引っ込むたびに回復できるので、':''}交代を繰り返す戦い方に向く。`,'bulky');
   if(sup.length>=2)R('support',.4+.08*sup.length,'起点作り',`${list(sup.slice(0,4).map(mName))}など、味方を助ける技が多い。自分は倒れてもよいので、後ろのアタッカーが動きやすい状況を作る。`,'support');
-  if(tr.length)R('tr',spdS<.3?.95:.6,'トリックルームを使う役',spdS<.3?'自分も遅いので、トリックルームを張ったあとにそのまま先手で攻撃できる。':'トリックルームを張って、遅い味方を活かす。自分は速いので、張ったあとは交代して味方に任せることが多い。',spdS<.3&&offS>=.4?'tr':null);
-  else if(spdS<.25&&offS>=.6)R('slow',.55,'トリックルームで活きるアタッカー',`素早さはとても低いが${atkStat}は高い。味方のトリックルームの中では、先に動いて大きなダメージを与えられる。`,null);
+  if(tr.length)R('tr',spdS<.3?.95:.6,'トリックルームを使う役',spdS<.3?'自分も遅いので、トリックルーム中、同じ優先度で相手より遅ければ先に攻撃できる。':'トリックルームを張って、遅い味方を活かす。自分は速いので、張ったあとは交代して味方に任せることが多い。',spdS<.3&&offS>=.4?'tr':null);
+  else if(spdS<.25&&offS>=.6)R('slow',.55,'トリックルームで活きるアタッカー',`素早さはとても低いが${atkStat}は高い。味方のトリックルーム中、同じ優先度で相手より遅ければ先に動ける。`,null);
   if(wset)R('wset',1.05,`天気（${GM_WN[WSET[wset]]}）を作る役`,`特性${ABN[wset]}で、場に出るだけで天気が${GM_WN[WSET[wset]]}になる。天気で強くなる味方と組むと、出すたびに天気を作り直せる。`,null);
   if(wspd)R('wspd',.75,`${GM_WN[WSPD[wspd]]}で速くなるアタッカー`,`特性${ABN[wspd]}で、天気が${GM_WN[WSPD[wspd]]}のときは素早さが2倍になる。天気を作る味方と一緒に出したい。`,null);
-  if(abK.includes('intimidate'))R('intim',.58,'いかくで相手を弱らせる役',`特性${ABN.intimidate}で、出るたびに相手の攻撃を下げられる。物理アタッカーの多い相手に強く、交代で何度も出すと効果が大きい。`,null);
-  if(prio.length&&offS>=.45)R('prio',.5,'先制技でとどめを刺す役',`${list(prio.slice(0,2).map(m=>m.n))}で、速い相手にも先に攻撃できる。削れた相手へのとどめに使う。`,null);
-  if(piv.length&&spdS>=.5)R('pivot',.46,'交代しながら削る役',`${list(piv.map(mName))}で、攻撃しながら有利な味方に交代できる。先発で相手を見てから動くのに向く。`,null);
+  if(abK.includes('intimidate'))R('intim',.58,'いかくで相手を弱らせる役',`特性${ABN.intimidate}で、場に出たとき相手の攻撃を下げられる場合がある。物理アタッカーの多い相手に強く、交代で何度も出すと効果が大きい。`,null);
+  if(prio.length&&offS>=.45)R('prio',.5,'先制技でとどめを刺す役',`${list(prio.slice(0,2).map(m=>m.n))}で、優先度と発動条件が合えば速い相手より先に攻撃できる。`,null);
+  if(piv.length&&spdS>=.5)R('pivot',.46,'交代技を使う役',`${list(piv.map(mName))}で、技が成功すると味方に交代できる。先発で相手を見てから動くのに向く。`,null);
   if(dbl.some(id=>['fakeout','followme','ragepowder'].includes(key(id)))||dbl.length>=2)R('double',.36,'ダブルの補助',`${list(dbl.slice(0,3).map(mName))}を覚える。ダブルでは味方を守ったり、相手の動きを止めたりできる。`,null);
   roles.sort((a,b)=>b.sc-a.sc);
   const topRoles=roles.slice(0,4);
@@ -146,6 +157,22 @@ function monGuide(p,o={}){
       pickAb(supMode?['weaken','bulk','field']:['power','speed','weaken']),item,supMode?lowDef:offS>=.6&&spdS>=.4?5:ai,ai===1?3:1,supMode?spOf(0,lowDef):spOf(ai,spdS>=.4?5:0),mv);
     if(d.moves.length){d.k=supMode?'dsup':'double';d.fmt='double';SETS.push(d)}
   }catch(e){}
+  /* Reviewed strategy examples: independent allocations, no usage statistics or copied article text.
+     Only display if every move, ability and item is present in the current game data. */
+  if(o.parts&&!base){
+    const reviewed=p.no===149?[
+      {title:'りゅうのまい物理型（検証用）',why:'HP満タンから積む機会を探し、先制技と通常攻撃を使い分ける。攻撃・素早さを最大配分した比較用の例。',ab:'multiscale',item:'lifeorb',up:1,dn:3,sp:[2,32,0,0,0,32],moves:[349,245,89,337],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/554956'],['Game8','https://game8.jp/pokemon-champions/776110']],reasons:['攻撃・素早さを同時に上げる','削れた相手への先制攻撃','はがねなどへの打点','行動固定のないドラゴン一致技'],itemWhy:'攻撃技の威力を上げる代わりにHPを消費する。マルチスケイルの再発動を妨げる場合がある。'}
+    ]:p.no===184?[
+      {title:'はらだいこ物理型（検証用）',why:'HPを確保して積む機会を探し、先制技と一致攻撃を使い分ける。HP・攻撃を最大配分した比較用の例。',ab:'huge-power',item:'sitrusberry',up:1,dn:3,sp:[32,32,0,0,2,0],moves:[187,453,583,282],fmt:'single',k:'setup',refs:[['GameWith','https://gamewith.jp/pokemon-champions/555066'],['Game8','https://game8.jp/pokemon-champions/779109']],reasons:['HPを消費して攻撃ランクを最大にする','低い素早さを優先度で補う','みず技が通りにくい相手への一致打点','持ち物を落とせる相手への攻撃手段'],itemWhy:'HPが発動条件を満たす場合に回復する。はらだいこ後の残りHPと発動条件を確認する。'}
+    ]:p.no===212?[
+      {title:'つるぎのまい物理型（検証用）',why:'テクニシャンと先制技を使う物理型の比較例。',ab:'technician',item:'lifeorb',up:1,dn:3,sp:[32,32,0,0,2,0],moves:[14,418,404,282],fmt:'single',k:'setup',refs:[],reasons:['攻撃を上げる','特性が適用される先制技','むし一致技','持ち物への対策'],itemWhy:'火力を上げる代わりに反動がある。'}
+    ]:p.no===65?[
+      {title:'わるだくみ特殊型（検証用）',why:'特攻と素早さを中心に配分した比較例。',ab:'magic-guard',item:'lifeorb',up:5,dn:1,sp:[2,0,0,32,0,32],moves:[417,94,247,411],fmt:'single',k:'setup',refs:[],reasons:['特攻を上げる','エスパー一致技','ゴースト打点','かくとう打点'],itemWhy:'マジックガードの反動無効と火力補正を利用する。'}
+    ]:[];
+    for(const v of reviewed){
+      if(v.moves.length===4&&new Set(v.moves).size===4&&v.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&abK.includes(v.ab)&&Object.prototype.hasOwnProperty.call(ITEMN,v.item)&&v.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&v.sp.reduce((a,b)=>a+b,0)===66&&v.up!==v.dn)SETS.unshift(v);
+    }
+  }
   /* 当サイトの利用者の育成が5件以上あれば、それをもとにした型を先頭に置く（43-usage.js） */
   /* ランクバトルの集計（championsbattledata.com、15-battle.js の LIVE）があれば、いちばん多い組み合わせの型を先頭に置く */
   const liveF=!o.raw&&!base&&typeof LIVE!=='undefined'&&LIVE.csv[p.no]?FMT:null;
@@ -155,9 +182,32 @@ function monGuide(p,o={}){
     if(mv.length>=2&&b.sp&&lvR.ok&&!lvR.mega){const it=b.item||'';SETS.splice(Math.max(0,SETS.findIndex(x=>(x.fmt||'single')===liveF)),0,{title:'ランクバトルの集計から組み合わせた推定の型',why:`ランクバトル（${liveF==='double'?'ダブル':'シングル'}）の使用率の集計から、いちばん多い特性・性格・能力ポイントと、いっしょに使って意味のある持ち物と技（ジュエル・タイプ強化の持ち物ならそのタイプの技、こだわり系なら攻撃技だけ等）を組み合わせたものです。`,
       ab:b.ab,item:b.item,up:b.up,dn:b.dn,sp:b.sp,moves:mv.slice(0,4),fmt:liveF,k:/^choice|lifeorb|focussash|expertbelt/.test(it)?'attacker':it==='leftovers'?'bulky':'attacker',live:true})}}catch(e){}
   if(!o.raw&&!base&&typeof usageBuildOf==='function')['double','single'].filter(f=>f!==liveF).forEach(f=>{usageGet(f);const b=usageBuildOf(p.no,f),u=b&&usageSet(p,b);if(u){u.fmt=f;const i=SETS.findIndex(x=>(x.fmt||'single')===f);SETS.splice(i<0?SETS.length:i,0,u)}});
-  SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
+  SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=!x.refs&&SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;const kp=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。');st.why=(kp?kp+'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
+  // Transform-only strategies must not depend on having a damaging learnset.
+  // Ditto's one legal move is intentional; never invent three filler moves.
+  if(!o.raw&&!base&&ls.length===1&&ls[0]===144&&MD[144]&&abK.includes('imposter')&&ITEMN.choicescarf){
+    for(const fmt of ['single','double'])SETS.push({title:'へんしん型（検討用）',why:'かわりものが発動する条件では相手に変身する。HPを優先し、変身後の行動順や技固定は相手の姿・技・持ち物との関係で変わる。こだわりスカーフは変身後の素早さを補うための候補。',ab:'imposter',item:'choicescarf',up:-1,dn:-1,sp:[32,0,17,0,17,0],moves:[144],fmt,k:'transform'});
+  }
+  // Validate display candidates from every source, including saved/aggregated builds.
+  // Reject rather than silently change external builds, or assign an illegal item/form.
+  if(!o.raw){
+    for(let i=SETS.length-1;i>=0;i--){
+      const x=SETS[i],validMoves=Array.isArray(x.moves)&&x.moves.length>=1&&x.moves.length<=4&&new Set(x.moves).size===x.moves.length&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]));
+      const validAP=Array.isArray(x.sp)&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)<=66;
+      const validNature=(x.up===-1&&x.dn===-1)||(Number.isInteger(x.up)&&Number.isInteger(x.dn)&&x.up>=1&&x.up<=5&&x.dn>=1&&x.dn<=5&&x.up!==x.dn);
+      const validItem=!x.item||Object.prototype.hasOwnProperty.call(ITEMN,x.item);
+      const form=validItem?resolveForm(p.no,x.item||null):null;
+      const validForm=form&&form.ok&&(base?!!form.mega&&form.form.no===p.no:!form.mega);
+      const validAbility=abK.includes(x.ab);
+      // Choice-locked attack-only policy applies to generated offensive examples,
+      // not to external strategic sets (e.g. Trick).
+      const validChoice=x.live||x.usage||(x.k==='transform'&&x.ab==='imposter'&&x.moves.length===1&&x.moves[0]===144)||!/^choice/.test(x.item||'')||x.moves.every(id=>!!MV[id]);
+      if(!validMoves||!validAP||!validNature||!validItem||!validForm||!validAbility||!validChoice)SETS.splice(i,1);
+    }
+    SETS.forEach((x,i)=>{x.rec=!x.refs&&SETS.findIndex(y=>y.fmt===x.fmt)===i});
+  }
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
   if(o.raw)return{keys:setKeys,make:k=>{try{const r=sets[k]();return r&&r.moves.length?r:null}catch(e){return null}},key,ai,lowDef,best:n=>pickAtk(n)};
   /* ---- まとめ ---- */
@@ -174,7 +224,7 @@ function monGuide(p,o={}){
   if(offS>=.75&&bestStab[0])pros.push([`${atkStat}が高い`,`${atkStat}${ps[ai]}${bfl(ai)}はメガシンカも入れた${RANKP.length}匹で${rk(ai)}位。タイプ一致の${esc(bestStab[0].n)}なら、等倍の相手にも大きなダメージを与えられる。`,2.6,'off']);
   if(pbS>=.7&&pbS>=sbS)pros.push(['物理技に強い',`HP${h}・防御${B}で、物理技を受けても倒れにくい。物理アタッカーの多い相手に出しやすい。`,2,'def']);
   else if(sbS>=.7)pros.push(['特殊技に強い',`HP${h}・特防${D}で、特殊技を受けても倒れにくい。特殊アタッカーの多い相手に出しやすい。`,2,'def']);
-  if(piv.length)pros.push(['交代しながら攻撃できる',`${esc(list(piv.slice(0,2).map(mName)))}で、攻撃や補助のあとに有利な味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
+  if(piv.length)pros.push(['交代技で戦える',`${esc(list(piv.slice(0,2).map(mName)))}で、技が成功すると攻撃や補助のあとに味方へ交代できる。不利な相手から引きつつ、少しずつ削れる。`,1.8,'def']);
   const weakenMv=have(['willowisp','thunderwave','toxic','yawn','taunt','knockoff','trick']);
   if(weakenMv.length)pros.push(['相手を弱らせる技がある',`${esc(list(weakenMv.slice(0,3).map(mName)))}を覚える。相手の攻撃を下げたり、動きを止めたりして、味方が戦いやすくなる。`,1.6,'def']);
   if(h<=65&&Math.max(B,D)>=95)cons.push(['HPが低め',`${B>=D?'防御':'特防'}${Math.max(B,D)}は高いが、HP${h}が低いので、思ったほどは耐えない。等倍の強い技を続けて受けると倒れやすいので、受けに出すときは半減以下で受けられる相手を選ぶ。`,3,'HPが低く、思ったほどは耐えない']);
@@ -182,8 +232,8 @@ function monGuide(p,o={}){
   if(x4.length)cons.push([`${list(x4.map(x=>x[0]))}が4倍の弱点`,`${list(x4.map(x=>x[0]))}タイプの技は4倍のダメージになり、耐久があっても一撃で倒されやすい。${list(x4.map(x=>x[0]))}技を持つ相手の前には出さないようにする。`,3,`${list(x4.map(x=>x[0]))}技を4倍で受ける`]);
   if(weak.length>=5)cons.push(['弱点が多い',`${list(weak.map(x=>x[0]))}の${weak.length}${weak.length<10?'つ':'個'}が弱点。交代で受けに出せる相手が限られるので、先に攻撃して数を減らす使い方が向く。`,2.5,'弱点が多い']);
   if(spdS<.25)cons.push(['素早さが低い',`最速にしても${maxSpe(p)}で、多くの相手に先に攻撃される。トリックルームを使うか、先に攻撃を受けても耐えられる相手に合わせて出す。`,2,'素早さが低く、先に攻撃されやすい']);
-  if(offS<.3)cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}と火力は高くないので、ダメージで押すより、補助技や交代で味方を助ける役に向く。`,1.5,'火力は高くない']);
-  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、きあいのタスキで確実に1回動く使い方が向く。'}`,2,'打たれ弱い']);
+  if(offS<.3&&!abK.some(k=>['huge-power','pure-power','water-bubble','technician','hustle','guts','adaptability','strong-jaw','solar-power'].includes(k)))cons.push(['攻撃・特攻が控えめ',`攻撃${A}・特攻${C}という種族値。実際の火力は技・特性・持ち物・相手によって変わる。`,1.5,'火力は高くない']);
+  if(bulkS<.25&&!(h<=65&&Math.max(B,D)>=95))cons.push(['打たれ弱い',`HP${h}・防御${B}・特防${D}と耐久が低く、弱点でなくても強い技で倒されやすい。${base?'メガストーンを持つので、耐久を補う持ち物は持てない。先に動ける相手を選んで出し、倒される前に攻撃する使い方が向く。':'先に動ける場面や、HP満タン時にきあいのタスキで一撃を耐える使い方が向く。'}`,2,'打たれ弱い']);
   if(!cons.length&&weak.length)cons.push([`${weak[0][0]}技に弱い`,`${list(weak.map(x=>x[0]))}が弱点。${weak[0][0]}技を持つ相手が出てきたら、受けられる味方に交代する。`,1,`${weak[0][0]}技に弱い`]);
   pros.sort((a,b)=>b[2]-a[2]);cons.sort((a,b)=>b[2]-a[2]);
   /* ひとこと：いちばんの強みと、それに合う役割（守りの強みなら受け・交代・補助、攻めの強みならアタッカー・積み） */
@@ -191,8 +241,8 @@ function monGuide(p,o={}){
   const role=roles.find(r=>want.includes(r.k))||topRoles[0];
   /* 「向いている役割」も、ひとことで挙げた役割を先頭にする */
   if(role&&topRoles.includes(role)){topRoles.splice(topRoles.indexOf(role),1);topRoles.unshift(role)}else if(role){topRoles.pop();topRoles.unshift(role)}
-  const strong=pros[0]?pros[0][0].replace(/が高い$/,'の高さ').replace(/に強い$/,'への強さ').replace(/^弱点が(.+)だけ$/,'弱点が$1だけという耐性').replace(/^弱点がない$/,'弱点のない耐性').replace(/^受けられるタイプが多い$/,'受けられるタイプの多さ').replace(/^交代しながら攻撃できる$/,'交代しながら戦える器用さ').replace(/^相手を弱らせる技がある$/,'相手を弱らせる技'):'';
-  const lead=`${esc(p.n)}は、${strong?strong+'を活かして、':''}${role?esc(role.name).replace(/（.*$/,'')+'として活躍しやすいポケモン':'いろいろな役をこなせるポケモン'}。${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+  const strong=pros[0]?pros[0][0].replace(/が高い$/,'の高さ').replace(/に強い$/,'への強さ').replace(/^弱点が(.+)だけ$/,'弱点が$1だけという耐性').replace(/^弱点がない$/,'弱点のない耐性').replace(/^受けられるタイプが多い$/,'受けられるタイプの多さ').replace(/^交代技で戦える$/,'交代しながら戦える器用さ').replace(/^相手を弱らせる技がある$/,'相手を弱らせる技'):'';
+  const lead=`${esc(p.n)}は、${strong?strong+'を活かして、':''}${role?esc(role.name).replace(/（.*$/,'')+'として活躍しやすいポケモン':'技や特性から戦い方を検討するポケモン'}。${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
   const item=([t,d])=>`<div class="gpt"><b>${esc(t)}</b><p>${d}</p></div>`;
   const dn=defNotes(p);
   const numHTML=`<dl class="gnum">
@@ -234,7 +284,7 @@ function monGuide(p,o={}){
   const mvParts=[];
   if(bestStab.length)mvParts.push(['タイプ一致の主力技','威力が1.5倍になる、いちばん頼りになる技。',bestStab.slice(0,4).map(m=>m.id)]);
   if(hard.length)mvParts.push(['タイプ一致技では倒しにくい相手',`${list(hard)}タイプには、タイプ一致技がどれも等倍より低い。${covM.length?'次の技で弱点を突ける。':'弱点を突ける技がないので、味方に任せる。'}`,covM.map(m=>m.id)]);
-  if(prio.length)mvParts.push(['先制技','素早さに関係なく先に攻撃できる。削れた相手へのとどめに。',prio.slice(0,3).map(m=>m.id)]);
+  if(prio.length)mvParts.push(['先制技','優先度と発動条件が合えば素早さの高い相手より先に攻撃できる。削れた相手へのとどめに。',prio.slice(0,3).map(m=>m.id)]);
   if(aux.length)mvParts.push(['補助に使える技','能力を上げる・回復する・相手を邪魔するなど、攻撃以外で役立つ技。',aux]);
   /* 型ごとのくわしい説明：実数値・この型の役割・技の入れ替え候補・苦手な相手（ダメージ計算から） */
   const mvCard=(id,why)=>{const u=MVU[id]||[],d=MD[id]||[];return `<div class="mvr gmvr"><div class="mvr-h"><a href="${lk('#/move/'+id)}" style="color:var(--fg)"><b>${esc(mName(id))}</b></a>${u[0]?chip(u[0]):''}<span class="mvc c${u[1]}">${['物理','特殊','変化'][u[1]]||''}</span></div>
@@ -262,34 +312,591 @@ function monGuide(p,o={}){
       setup:'相手が交代したときや、攻撃の弱い相手の前で能力を上げ、そのまま後ろの相手まで倒していくエース。積む前に倒されないよう、出す場面を選ぶ。',
       bulky:'相手の攻撃を受けて、交代を繰り返しながら少しずつ削る役。不利な相手からは早めに交代する。',
       support:'先発で場を整え、後ろのアタッカーが戦いやすい状況を作る役。倒れる前に補助技を使い切る。',
-      tr:'トリックルームを張り、その中で先に攻撃する役。トリックルームが終わるターンを数えて動く。',
+      tr:'トリックルームを張り、同じ優先度で相手より遅い場合に先に攻撃する役。トリックルームが終わるターンを数えて動く。',
       double:'味方と2匹で同じ相手を狙い、1ターンに1匹ずつ倒していく役。',dsup:'相手の攻撃を自分に集めて、味方を守る役。'}[s.k]||'';
-    return base+(pv.length?`不利な相手の前では${esc(mName(pv[0]))}で交代し、有利な味方につなぐ。`:'')+(pr.length?`${esc(mName(pr[0]))}で、削れた相手に先にとどめを刺せる。`:'')+(s.item==='focussash'?'きあいのタスキで1回は確実に動ける。':'')};
+    return base+(pv.length?`不利な相手の前では${esc(mName(pv[0]))}で交代し、有利な味方につなぐ。`:'')+(pr.length?`${esc(mName(pr[0]))}で、削れた相手に先にとどめを刺せる。`:'')+(s.item==='focussash'?'きあいのタスキはHP満タン時に一撃を耐えるための持ち物。連続技などには注意。':'')};
   const hardOf=s=>{try{
+    // Legacy estimates are midpoint samples, not maximum damage or matchup verdicts.
+    // Only use ordinary single-battle forms; do not mix Mega stones or battle-only forms.
+    if(s.fmt!=='single'||base)return null;
     const me=mkMon(p,'me',{ab:s.ab,item:s.item,moves:s.moves.filter(id=>MV[id]).map(mvObj),sp:s.sp,up:s.up,dn:s.dn});
-    const rows=gmOpps().filter(q=>q.no!==p.no&&q.no!==(base&&base.no)).map(q=>{const op=mkMon(q,'op',q.base&&byNo[q.base]?{...detSet(byNo[q.base]),ab:q.ab,item:null}:detSet(q));const a=estHit(me,op),b=estHit(op,me);
-      return{q,my:a.pct,their:b.pct,mv:a.mv,resist:!!a.mv&&mult(a.mv.t,q.t)<1}});
+    if(me.formErr||me.disg||CALC_UNIMPL.includes(me.ab)||CALC_UNVERIFIED[me.ab]||CALC_UNIMPL_IT.includes(me.item))return null;
+    const rows=gmOpps().filter(q=>q.no!==p.no&&!q.base&&!q.mega).map(q=>{
+      const op=mkMon(q,'op',detSet(q));
+      if(op.formErr||op.disg||op.p.no!==q.no||CALC_UNIMPL.includes(op.ab)||CALC_UNVERIFIED[op.ab]||CALC_UNIMPL_IT.includes(op.item))return null;
+      const a=estHit(me,op),b=estHit(op,me);
+      if(!a.mv||!b.mv||!Number.isFinite(a.pct)||!Number.isFinite(b.pct))return null;
+      return{q,my:a.pct,their:b.pct,mv:a.mv};
+    }).filter(Boolean);
     const bad=rows.filter(r=>r.my<45&&r.their>=35).sort((x,y)=>(y.their-y.my)-(x.their-x.my)).slice(0,3);
     if(!bad.length)return null;
-    const res=bad.filter(r=>r.resist).length>=2,top=s.moves.filter(id=>MV[id]&&p.t.includes(MV[id][1]))[0];
-    const head=res&&top?`${MV[top][1]}技を半減以下で受けるポケモン`:'耐久が高く、ダメージが通りにくいポケモン';
-    const why=res&&top?`この型のいちばんの攻撃手段である${mName(top)}を半減以下で受けられ、ほかの技でも大きなダメージを与えにくい。相手の攻撃は受けきれないので、対面したら有利な味方に交代する。`
-      :'この型の技では大きなダメージを与えにくく、相手からはしっかりダメージを受ける。対面したら無理に戦わず、有利な味方に交代する。';
-    return{head,why,bad}}catch(e){return null}};
+    return{head:'攻撃が通りにくい対面の計算例',why:'固定育成どうしの中間乱数付近の概算です。相手の実際の育成、行動順、積み技、交代などによって結果は変わります。',bad};
+  }catch(e){return null}};
+  /* Reusable allocation evidence: compare actual stats against the same nature and zero AP.
+     Speed comparisons deliberately use explicit opponent assumptions, not usage claims. */
+  /* Search the exact legal AP range, including nature rounding plateaus.
+     Preserve the strict speed target; redistribute only to HP/defenses. */
+  const speedAllocation=(s,target)=>{
+    const current=calcStats(p,s.sp,s.up,s.dn);
+    if(!Number.isInteger(target)||current[5]<=target)return null;
+    let need=-1;
+    for(let n=0;n<=s.sp[5];n++){
+      const sp=[...s.sp];sp[5]=n;
+      if(calcStats(p,sp,s.up,s.dn)[5]>target){need=n;break}
+    }
+    if(need<0||need===s.sp[5])return null;
+    const freed=s.sp[5]-need,sp=[...s.sp];sp[5]=need;
+    // Compare each single-point addition using actual HP × defense products.
+    // Prefer the weakest of physical/special neutral bulk; do not claim matchup optimality.
+    const bulk=v=>Math.min(v[0]*v[2],v[0]*v[4]);
+    for(let j=0;j<freed;j++){
+      const choices=[0,2,4].filter(i=>sp[i]<32).map(i=>{
+        const x=[...sp];x[i]++;
+        const st=calcStats(p,x,s.up,s.dn);
+        return {i,score:bulk(st),sum:st[0]*(st[2]+st[4])};
+      }).sort((a,b)=>b.score-a.score||b.sum-a.sum||a.i-b.i);
+      if(!choices.length)return null;
+      sp[choices[0].i]++;
+    }
+    const stats=calcStats(p,sp,s.up,s.dn);
+    if(stats[5]<=target||sp.some(v=>v<0||v>32)||sp.reduce((a,b)=>a+b,0)!==s.sp.reduce((a,b)=>a+b,0))return null;
+    return {need,freed,sp,stats,current,target};
+  };
+  const allocationEvidence=s=>{
+    const st=calcStats(p,s.sp,s.up,s.dn),zero=calcStats(p,[0,0,0,0,0,0],s.up,s.dn);
+    const rows=s.sp.map((v,i)=>({i,v,from:zero[i],to:st[i]})).filter(x=>x.v>0);
+    const speeds=P.filter(q=>q.no!==p.no).map(q=>({q,v:calcStats(q,[0,0,0,0,0,32],5,1)[5]}));
+    const crossed=speeds.filter(x=>x.v>=zero[5]&&x.v<st[5]).sort((a,b)=>b.v-a.v||a.q.no-b.q.no).slice(0,3);
+    const ties=speeds.filter(x=>x.v===st[5]).sort((a,b)=>a.q.no-b.q.no).slice(0,3);
+    const candidates=crossed.map(x=>({q:x.q,plan:speedAllocation(s,x.v)})).filter(x=>x.plan);
+    const adjustment=candidates[0]||null;
+    return {rows,crossed,ties,speed:st[5],adjustment};
+  };
+  const allocationHTML=s=>{
+    const e=allocationEvidence(s);
+    const adj=e.adjustment;
+    const candidate=adj?'<p><b>素早さを調整する候補</b></p><p>'+esc(adj.q.n)+'（素早さ'+adj.plan.target+'）を同じ優先度で抜くために必要な最小ポイント：'+adj.plan.need+'。'+adj.plan.freed+'ポイントを耐久へ振り替える例。</p><p>'+adj.plan.sp.map((v,i)=>v?esc(SN[i])+v:'').filter(Boolean).join('・')+'</p><p>'+[0,2,4,5].map(i=>esc(SN[i])+' '+adj.plan.current[i]+' → '+adj.plan.stats[i]).join('／')+'</p><p class="vcap">この相手だけを目標とした候補です。ほかの相手への行動順が変わる場合があります。耐久配分はHP×防御・HP×特防の小さい方を優先した簡易比較で、実際の確定数を保証しません。</p>':'';
+
+    return '<details class="gset-alt"><summary>能力配分の計算根拠</summary><ul class="gtips">'+e.rows.map(x=>'<li>'+esc(SN[x.i])+' '+x.v+'ポイント：'+x.from+' → '+x.to+'</li>').join('')+'</ul>'+
+      '<p class="vcap">同じ能力補正でポイント0の場合と比較しています。</p>'+
+      (e.crossed.length?'<p>素早さ配分によって先に動けるようになる相手の例：'+e.crossed.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
+      (e.ties.length?'<p>同速になる相手の例：'+e.ties.map(x=>esc(x.q.n)+'（'+x.v+'）').join('・')+'</p>':'')+
+      candidate+
+      '<p class="vcap">相手は収録通常データ、素早さ上昇補正・素早さ32。自分の素早さ'+e.speed+'。同じ優先度、特性・持ち物・ランク・場の補正なし。環境での使用率や勝率を示すものではありません。</p></details>';
+  };
+  /* Fixed, legal comparison targets; not claimed to be popular or optimal.
+     Use calculator rolls, not estHit's single representative roll. */
+  const benchmarkHTML=s=>{
+    if(!['single','double'].includes(s.fmt)||typeof dmgRolls!=='function'||typeof koInfo!=='function')return '';
+    const fixtures=[
+      {no:149,ab:'multiscale',moves:[245,337],sp:[2,32,0,0,0,32],up:1,dn:3},
+      {no:184,ab:'huge-power',moves:[453,583],sp:[32,32,0,0,2,0],up:1,dn:3},
+      {no:445,ab:'rough-skin',moves:[89,337],sp:[2,32,0,0,0,32],up:1,dn:3}
+    ];
+    const build=(q,x,side)=>mkMon(q,side,{...x,moves:x.moves.filter(id=>MV[id]).map(mvObj)});
+    const simple=new Set([89,337,245,453,583,127,401,710,7,8,9,53,57,58,85,94,188,247,242,399,404,406,418,430,442,585,98,421,444,157,411]);
+    // Restricted double-format benchmark. No inferred partner or opponent team;
+    // compare one selected target under one-target and multi-target conditions.
+    if(s.fmt==='double'){
+      const weather=B.weather;B.weather=null;
+      try{
+        const me=build(p,s,'me'),rows=[],foes=[],focus=[],friendly=[],support=[];
+        if(!me.formErr&&!CALC_UNIMPL.includes(me.ab)&&!CALC_UNVERIFIED[me.ab]&&!CALC_UNIMPL_IT.includes(me.item)&&me.ab!=='parental-bond'){
+          for(const x of fixtures.filter(x=>x.no!==p.no)){
+            const q=byNo[x.no],learn=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
+            if(!q||!abs.some(z=>z[0]===x.ab)||!x.moves.every(id=>learn.includes(id)&&MV[id]))continue;
+            const op=build(q,{...x,item:null},'op');if(op.formErr)continue;
+            foes.push(op);
+            for(const m of me.moves){
+              if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
+              const roll=spread=>{const v=dmgRolls(me,m,op,{format:'double',spread,crit:false,protean:false,noNext:true});return v.length&&!v.dist&&!v.fband&&v.every(Number.isFinite)?[Math.min(...v),Math.max(...v)]:null};
+              const one=roll(false),many=roll(true);if(!one||!many)continue;
+              rows.push({no:q.no,name:q.n,id:m.id,tg:m.tg||0,one,many,hp:op.max});
+            }
+          }
+        }
+        for(let i=0;i<foes.length;i++)for(let j=i+1;j<foes.length;j++){
+          const a=foes[i],b=foes[j];
+          for(const m of a.moves)for(const n of b.moves){
+            const f=reviewedDoubleFocus(a,m,b,n,me);
+            if(f)focus.push({a:a.p.no,b:b.p.no,nameA:a.p.n,nameB:b.p.n,m:m.id,n:n.id,...f});
+          }
+        }
+        for(const ally of foes)for(const m of me.moves){
+          if(!simple.has(m.id)||m.tg!==2)continue;
+          const f=reviewedFriendlyHit(me,m,ally);
+          if(f)friendly.push({no:ally.p.no,name:ally.p.n,id:m.id,hp:ally.max,...f});
+        }
+        // A legal source in the local roster is necessary; do not claim a recommended partner.
+        const sources=[...P].filter(q=>q.no!==p.no);
+        const helper=sources.find(q=>(LSD[q.no]?.[1]||[]).includes(270));
+        const guard=sources.find(q=>(ABD[q.no]||[]).some(x=>x[0]==='friend-guard'));
+        const rollSupport=(a,d,m,extra)=>{
+          const v=dmgRolls(a,m,d,{format:'double',spread:!!m.tg,crit:false,protean:false,noNext:true,...extra});
+          return v.length&&!v.dist&&!v.fband&&v.every(Number.isFinite)?[Math.min(...v),Math.max(...v)]:null;
+        };
+        for(const op of foes){
+          if(helper)for(const m of me.moves){
+            if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:me,d:op}).ok)continue;
+            const normal=rollSupport(me,op,m,{}),modified=rollSupport(me,op,m,{helpingHand:true});
+            if(normal&&modified)support.push({kind:'helpingHand',source:helper.no,sourceName:helper.n,no:op.p.no,name:op.p.n,id:m.id,normal,modified});
+          }
+          if(guard)for(const m of op.moves){
+            if(!simple.has(m.id)||m.maxH>1||!moveUsable(m,{a:op,d:me}).ok)continue;
+            const normal=rollSupport(op,me,m,{}),modified=rollSupport(op,me,m,{friendGuard:true});
+            if(normal&&modified)support.push({kind:'friendGuard',source:guard.no,sourceName:guard.n,no:op.p.no,name:op.p.n,id:m.id,normal,modified});
+          }
+        }
+        if(typeof o.auditDouble==='function')o.auditDouble({rows,focus,friendly,support});
+        const note='固定の相手1体へのダメージ比較です。複数対象に当たる場合の範囲補正は0.75倍を計算途中で適用します。味方にも当たる技は固定の味方候補へのHP減少も比較します。味方からの補助、交代、まもる、おいかぜ等は未評価です。ダブルの統合最適化は未対応です。';
+        return '<details class="gset-alt"><summary>ダブル：攻撃対象別の計算例</summary><p class="vcap">'+note+'</p>'+(rows.length?rows.map(r=>'<p>'+esc(r.name)+'／'+esc(mName(r.id))+'：1対象 '+r.one.join('〜')+'、複数対象条件 '+r.many.join('〜')+' / '+r.hp+' HP'+(r.tg===2?'（味方にも当たる）':r.tg===1?'（相手全体）':'（単体技・補正なし）')+'</p>').join(''):'<p>この育成の対応する攻撃技は比較できませんでした。</p>')+'<h4>集中攻撃の耐久計算例</h4><p class="vcap">固定の相手2体の攻撃が命中する条件で、両方の順序と各16段階の乱数を比較します。範囲技は複数対象条件。行動順の確率、追加効果、きのみ回復、味方の行動は含みません。</p>'+(focus.length?focus.map(f=>'<p>'+esc(f.nameA)+'の'+esc(mName(f.m))+' ＋ '+esc(f.nameB)+'の'+esc(mName(f.n))+'：残りHP '+f.min+'〜'+f.max+' / '+me.max+'</p>').join(''):'<p>この育成条件では集中攻撃の計算は未対応です。</p>')+'<h4>味方への巻き込み計算例</h4><p class="vcap">固定の比較用育成を味方に置き、複数対象条件での命中時HP減少を計算します。実際のパーティ推奨や勝率ではありません。吸収特性による回復・能力上昇、味方の補助行動は含みません。</p>'+(friendly.length?friendly.map(f=>'<p>'+esc(mName(f.id))+' → '+esc(f.name)+'：HP減少 '+f.min+'〜'+f.max+' / '+f.hp+(f.max===0?'（この条件でHP減少なし）':'')+'</p>').join(''):'<p>対象となる巻き込み技・対応する味方条件がありません。</p>')+'<h4>味方の補助効果の計算例</h4><p class="vcap">てだすけが成功した攻撃、または味方のフレンドガードが有効な被弾を個別に比較します。収録データに習得・所持例がある場合だけ表示します。実際の選出・行動順・補助の成功・複数効果の同時発動は保証しません。</p>'+(support.length?support.map(f=>'<p>'+esc(f.kind==='helpingHand'?'てだすけ':'フレンドガード')+'（例：'+esc(f.sourceName)+'）／'+esc(f.name)+'・'+esc(mName(f.id))+'：'+f.normal.join('〜')+' → '+f.modified.join('〜')+'</p>').join(''):'<p>この条件では補助効果の計算例がありません。</p>')+'</details>';
+      }finally{B.weather=weather}
+    }
+    const result=(a,d,m)=>{
+      if(!simple.has(m.id)||!moveUsable(m,{a,d}).ok||a.formErr||d.formErr)return null;
+      if([a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNIMPL_IT.includes(x.item)))return null;
+      if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
+      const o={format:'single',spread:false,crit:false,protean:true};
+      const r=dmgRolls(a,m,d,o),vals=r.dist?r.dist.map(x=>x[0]):r;
+      if(!vals.length||!vals.every(Number.isFinite))return null;
+      const lo=Math.min(...vals),hi=Math.max(...vals),ko=koInfo(r,d.hp);
+      return {m,lo,hi,hp:d.max,ko,acc:accOf(a,m,d)};
+    };
+    // Exact one-axis search, with the other allocations held fixed.
+    // Only show targets that the existing build achieves and can preserve with fewer AP.
+    const minAP=(idx,goal)=>{
+      for(let n=0;n<=s.sp[idx];n++){
+        const sp=[...s.sp];sp[idx]=n;
+        const candidate=build(p,{...s,sp},'me');
+        if(goal(candidate))return n;
+      }
+      return null;
+    };
+    const thresholds=(me,op,out,inc)=>{
+      const rows=[];
+      // Restrict to simple physical/special single-hit moves and ordinary damage states.
+      // Do not infer multi-turn survival from first-hit damage.
+      const safe=(a,d,m)=>!d.disg&&d.item!=='focussash'&&d.ab!=='sturdy'&&d.item!=='focusband'&&m.maxH<=1&&a.ab!=='parental-bond';
+      for(const x of out){
+        if(!safe(me,op,x.m)||x.ko.sure!==1||x.ko.n!==1||x.acc!==100)continue;
+        const idx=x.m.cls===0?1:3;
+        const n=minAP(idx,c=>{const y=result(c,op,x.m);return !!y&&y.ko.sure===1&&y.ko.n===1&&y.acc===100});
+        if(n!==null&&n<s.sp[idx])rows.push(esc(mName(x.m.id))+'：確定1発を維持する'+esc(SN[idx])+'の最小ポイント '+n+'（'+(s.sp[idx]-n)+'ポイント節約可能）');
+      }
+      for(const x of inc){
+        if(!safe(op,me,x.m)||x.hi>=me.hp||x.hi<=0)continue;
+        for(const idx of [0,x.m.cls===0?2:4]){
+          if(!s.sp[idx])continue;
+          const n=minAP(idx,c=>{const y=result(op,c,x.m);return !!y&&y.hi<c.hp});
+          if(n!==null&&n<s.sp[idx])rows.push(esc(mName(x.m.id))+'：最大ダメージを1回耐える'+esc(SN[idx])+'の最小ポイント '+n+'（'+(s.sp[idx]-n)+'ポイント節約可能）');
+        }
+      }
+      return rows.length?'<details class="gset-alt"><summary>ダメージを基準にした配分候補</summary><ul class="gtips">'+rows.map(t=>'<li>'+t+'</li>').join('')+'</ul><p class="vcap">他の能力配分を固定し、1項目ずつ検査しています。候補同士を同時に適用できるとは限りません。満タン・非急所・指定した技と相手だけの比較です。節約分は未配分です。</p></details>':'';
+    };
+    /* Bounded coordinate search: retain every selected goal after each change.
+       Not an exhaustive global optimum. Never exceed original AP budget. */
+    const jointPlan=(me,op,out,inc)=>{
+      const safe=(a,d,m)=>!d.disg&&d.item!=='focussash'&&d.ab!=='sturdy'&&d.item!=='focusband'&&m.maxH<=1&&a.ab!=='parental-bond';
+      const attack=out.filter(x=>safe(me,op,x.m)&&x.ko.sure===1&&x.ko.n===1&&x.acc===100);
+      const defense=inc.filter(x=>safe(op,me,x.m)&&x.hi>0&&x.hi<me.hp);
+      const speedTarget=me.st[5]>op.st[5]?op.st[5]:null;
+      if(!attack.length||!defense.length||speedTarget===null)return '';
+      const valid=sp=>{
+        if(sp.some(n=>!Number.isInteger(n)||n<0||n>32)||sp.reduce((a,b)=>a+b,0)>66)return false;
+        const c=build(p,{...s,sp},'me');
+        if(c.formErr||c.st[5]<=speedTarget)return false;
+        return attack.every(x=>{const y=result(c,op,x.m);return y&&y.ko.sure===1&&y.ko.n===1&&y.acc===100})&&
+          defense.every(x=>{const y=result(op,c,x.m);return y&&y.hi<c.hp});
+      };
+      if(!valid(s.sp))return '';
+      let sp=[...s.sp];
+      for(const i of [5,1,3,0,2,4]){
+        for(let n=0;n<sp[i];n++){
+          const trial=[...sp];trial[i]=n;
+          if(valid(trial)){sp=trial;break}
+        }
+      }
+      const freed=s.sp.reduce((a,b)=>a+b,0)-sp.reduce((a,b)=>a+b,0);
+      if(freed<=0||!valid(sp))return '';
+      const total=sp.reduce((a,b)=>a+b,0),budget=s.sp.reduce((a,b)=>a+b,0);
+      // Restore points only when all constraints still hold.
+      for(let j=total;j<budget;j++){
+        const choices=[0,2,4].filter(i=>sp[i]<32).map(i=>{const trial=[...sp];trial[i]++;const st=calcStats(p,trial,s.up,s.dn);return {trial,score:Math.min(st[0]*st[2],st[0]*st[4])}}).sort((a,b)=>b.score-a.score);
+        const next=choices.find(x=>valid(x.trial));if(!next)break;sp=next.trial;
+      }
+      if(!valid(sp))return '';
+      return '<details class="gset-alt"><summary>火力・耐久・素早さを同時に維持する配分候補</summary><p>'+sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+sp.reduce((a,b)=>a+b,0)+'）</p><ul class="gtips"><li>確定1発：'+attack.map(x=>esc(mName(x.m.id))).join('・')+'</li><li>最大ダメージを1回耐える：'+defense.map(x=>esc(mName(x.m.id))).join('・')+'</li><li>素早さ実数値 '+calcStats(p,sp,s.up,s.dn)[5]+' ＞ '+speedTarget+'</li></ul><p class="vcap">指定の相手・技、満タン・ランク0・非急所、同じ優先度、素早さ補正なしで再計算。順次探索で見つけた候補であり、全配分の最適解や他の相手への性能は保証しません。</p></details>';
+    };
+    const line=x=>esc(mName(x.m.id))+'：'+x.lo+'〜'+x.hi+' / '+x.hp+' HP（'+(100*x.lo/x.hp).toFixed(1)+'〜'+(100*x.hi/x.hp).toFixed(1)+'%）・'+esc(koLabel(x.ko))+'（命中時）'+(x.acc<100?'・命中 '+x.acc+'%':'');
+    // One successful setup from full HP and stage zero; no opposing action is simulated.
+    // Unsupported ability/item interactions are excluded rather than guessed.
+    const setupState=(me,id,op)=>{
+      if(!s.moves.includes(id)||!ls.includes(id)||!MD[id])return null;
+      return reviewedSetupState(me,id,op);
+    };
+    // Exhaust the HP/physical/special bulk split while keeping both attacks and speed fixed.
+    // Compare the actual post-setup HP and one-hit margins, not the HP parity alone.
+    const berryPlan=(me,op)=>{
+      if(me.item!=='sitrusberry'||!s.moves.includes(187)||op.ab==='unnerve')return '';
+      const initial=setupState(me,187,op);if(!initial)return '';
+      const incoming=op.moves.filter(m=>simple.has(m.id)&&moveUsable(m,{a:op,d:initial}).ok&&!(m.maxH>1));
+      if(!incoming.length)return '';
+      const budget=s.sp[0]+s.sp[2]+s.sp[4];
+      const score=(a)=>{
+        const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+        const margins=incoming.map(m=>{
+          const rr=dmgRolls(op,m,a,opt),v=rr.dist?rr.dist.map(x=>x[0]):rr;
+          return v.length&&v.every(Number.isFinite)?a.hp-Math.max(...v):NaN;
+        });
+        return margins.every(Number.isFinite)?Math.min(...margins):NaN;
+      };
+      const baseMargin=score(initial);if(!Number.isFinite(baseMargin))return '';
+      let best=null;
+      for(let h=0;h<=32;h++)for(let d=0;d<=32;d++){
+        const f=budget-h-d;if(f<0||f>32)continue;
+        const sp=[h,s.sp[1],d,s.sp[3],f,s.sp[5]],c=build(p,{...s,sp},'me'),a=setupState(c,187,op);
+        if(!a||a.item!==null||c.formErr||c.st[1]!==me.st[1]||c.st[3]!==me.st[3]||c.st[5]!==me.st[5])continue;
+        const margin=score(a);if(!Number.isFinite(margin))continue;
+        if(!best||margin>best.margin||(margin===best.margin&&a.hp>best.a.hp))best={sp,a,margin};
+      }
+      if(!best||best.margin<=baseMargin||best.sp.every((v,i)=>v===s.sp[i]))return '';
+      return '<details class="gset-alt"><summary>オボンのみの発動を含めた耐久配分候補</summary><p>'+best.sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+best.sp.reduce((a,b)=>a+b,0)+'）</p><p>はらだいこ後のHP '+initial.hp+'/'+initial.max+' → '+best.a.hp+'/'+best.a.max+'（オボンのみ消費済み）</p><p>比較対象の技：'+incoming.map(m=>esc(mName(m.id))).join('・')+'。最も厳しい最大ダメージ後の残りHP（計算上） '+baseMargin+' → '+best.margin+'</p><p class="vcap">攻撃・特攻・素早さの配分を固定し、残りのHP・防御・特防の全合法配分を比較。満タンから積み技が成功した後、指定の相手の技を1回受ける条件。負の値は不足HPを示します。他の相手や積むターンの安全性は保証しません。</p></details>';
+    };
+    /* Item-specific candidate search, one opponent at a time.
+       Keep the original nature and moves, compare the same attack and defensive threats.
+       Choice items are excluded from setup sets (move locking). */
+    const itemPlans=(me,op)=>{
+      const setup=Object.keys(REVIEWED_SETUP).map(Number).find(id=>s.moves.includes(id));
+      const items=setup?['lifeorb','sitrusberry','leftovers','focussash']:['lifeorb','sitrusberry','leftovers','focussash','choiceband','choicespecs','choicescarf'];
+      const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+      // Use unboosted single-turn damage bounds. No end-turn recovery or recoil is modeled here.
+      const attacks=me.moves.filter(m=>simple.has(m.id)&&!(m.maxH>1)&&moveUsable(m,{a:me,d:op}).ok);
+      const threats=op.moves.filter(m=>simple.has(m.id)&&!(m.maxH>1)&&moveUsable(m,{a:op,d:me}).ok);
+      if(!attacks.length||!threats.length||me.formErr||op.formErr||[me,op].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]))return '';
+      const bounds=(a,d,m)=>{
+        if(!moveUsable(m,{a,d}).ok)return null;
+        if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
+        const r=dmgRolls(a,m,d,opt),v=r.dist?r.dist.map(x=>x[0]):r;
+        return v.length&&v.every(Number.isFinite)?{lo:Math.min(...v),hi:Math.max(...v)}:null;
+      };
+      const baseline=attacks.map(m=>({m,b:bounds(me,op,m)})).filter(x=>x.b&&x.b.lo>0).sort((a,b)=>b.b.lo-a.b.lo||a.m.id-b.m.id)[0];
+      if(!baseline)return '';
+      const target=baseline.m,baseSpeed=effSpd(me,op),opSpeed=effSpd(op,me),budget=s.sp.reduce((a,b)=>a+b,0);
+      const floorSpeed=Math.min(baseSpeed,opSpeed+1);
+      // Preserve the reference damage and the existing speed target where possible.
+      // A bounded neighborhood search avoids enumerating millions of legal spreads on page load.
+      const evaluate=(item,sp)=>{
+        const a=build(p,{...s,item,sp},'me');if(a.formErr)return null;
+        const b=bounds(a,op,target);if(!b)return null;
+        const incoming=threats.map(m=>bounds(op,a,m));
+        if(incoming.some(x=>!x))return null;
+        const worst=Math.max(...incoming.map(x=>x.hi)),speed=effSpd(a,op);
+        return {item,sp,a,b,worst,speed,margin:a.hp-worst,meets:b.lo>=baseline.b.lo&&speed>=floorSpeed};
+      };
+      const better=(a,b)=>!b||Number(a.meets)>Number(b.meets)||(a.meets===b.meets&&(a.meets?(a.margin>b.margin||(a.margin===b.margin&&a.b.lo>b.b.lo)):(a.b.lo>b.b.lo||(a.b.lo===b.b.lo&&a.speed>b.speed))));
+      const rows=[];
+      for(const item of [...new Set([s.item,...items])]){
+        if(!item||!items.includes(item)||!Object.prototype.hasOwnProperty.call(ITEMN,item)||CALC_UNIMPL_IT.includes(item))continue;
+        let best=evaluate(item,[...s.sp]);if(!best)continue;
+        for(let pass=0;pass<2;pass++){
+          const origin=[...best.sp];let next=best;
+          for(const from of [0,1,2,3,4,5])for(const to of [0,1,2,3,4,5]){
+            if(from===to)continue;
+            for(const n of [1,2,4,8,16,32]){
+              if(origin[from]<n||origin[to]+n>32)continue;
+              const sp=[...origin];sp[from]-=n;sp[to]+=n;
+              if(sp.reduce((a,b)=>a+b,0)!==budget)continue;
+              const x=evaluate(item,sp);if(x&&better(x,next))next=x;
+            }
+          }
+          best=next;if(best.sp.every((v,i)=>v===origin[i]))break;
+        }
+        rows.push(best);
+      }
+      if(rows.length<2)return '';
+      return '<details class="gset-alt"><summary>持ち物別の能力配分比較（通常時）</summary><p class="vcap">同じ相手・技・能力補正で比較。基準：'+esc(mName(target.id))+'の最小ダメージ'+baseline.b.lo+'、素早さ'+floorSpeed+'以上。各持ち物を個別に装備した候補で、条件を満たすものは耐久を優先。満たせない候補も区別して掲載します。</p>'+rows.map(x=>'<div class="gdoc"><b>'+esc(ITEMN[x.item])+'</b><p>'+x.sp.map((v,i)=>esc(SN[i])+v).join('・')+'（合計'+budget+'）</p><p>'+esc(mName(target.id))+' '+x.b.lo+'〜'+x.b.hi+' / '+op.max+' HP・受ける最大ダメージ '+x.worst+' / '+x.a.max+' HP・素早さ '+x.speed+'</p><p>'+ (x.meets?'基準の火力・素早さを維持':'基準未達：比較用候補')+(x.item==='focussash'?'／満タン時のタスキ発動はこの生ダメージ比較に含まない':x.item==='leftovers'?'／ターン終了時の回復は含まない':x.item==='sitrusberry'?'／被弾後の回復は含まない':x.item==='lifeorb'?'／攻撃後の反動は含まない':'')+'</p></div>').join('')+'<p class="vcap">限定した配分移動を2巡探索。全配分の最適解ではありません。通常時・非急所・満タン・天候なしの比較で、積み技後の状態や対戦全体の勝率は評価しません。</p></details>';
+    };
+    const setupHTML=(me,op)=>{
+      const sections=Object.keys(REVIEWED_SETUP).map(Number).map(id=>{
+        const a=setupState(me,id,op);if(!a)return '';
+        const outgoing=a.moves.map(m=>result(a,op,m)).filter(Boolean);
+        const incoming=op.moves.map(m=>result(op,a,m)).filter(Boolean);
+        if(!outgoing.length&&!incoming.length)return '';
+        const speed=Math.floor(a.st[5]*stgM(a.stg.spe));
+        return '<details class="gset-alt"><summary>'+esc(mName(id))+'使用後の比較</summary><p>残りHP '+a.hp+' / '+a.max+'・持ち物 '+esc(a.item?ITEMN[a.item]||a.item:'なし')+'・素早さ '+me.st[5]+' → '+speed+'</p><p>能力ランク：'+Object.entries(a.stg).filter(([,v])=>v).map(([k,v])=>({atk:'攻撃',def:'防御',spa:'特攻',spd:'特防',spe:'素早さ'}[k])+ (v>0?'+':'')+v).join('・')+'</p><b>与えるダメージ</b>'+outgoing.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+incoming.map(y=>'<p>'+line(y)+'</p>').join('')+'<p class="vcap">HP満タンから積み技が1回成功し、相手の行動やターン終了処理がなかった場合。確定数は残りHPを基準とする計算例。積むターンの安全性は保証しません。</p></details>';
+      }).join('');
+      return sections;
+    };
+    /* Compare complete four-move sets against the same legal opponent fixtures.
+       Preserve setup/status, priority and existing STAB types; only swap ordinary attacks.
+       Cache each move/opponent calculation before evaluating combinations. */
+    const movePlans=(me,opponents)=>{
+      if(!opponents.length||s.moves.length!==4||me.formErr)return '';
+      const supported=id=>simple.has(id)&&!!MV[id];
+      const current=s.moves.filter(id=>MV[id]);
+      // Do not claim an improvement if an existing attack is outside the evaluated subset.
+      if(!current.length||current.some(id=>!supported(id)))return '';
+      const candidates=[...new Set(ls.filter(supported))].filter(id=>!s.moves.includes(id));
+      const locked=s.moves.filter(id=>!MV[id]||mvObj(id).pri>0);
+      const stab=new Set(current.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)));
+      const cache=new Map(),opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+      const measure=(id,op)=>{
+        const k=id+'|'+op.p.no;if(cache.has(k))return cache.get(k);
+        const m=mvObj(id);let v=null;
+        if(!me.formErr&&!op.formErr&&!m.prot&&!(m.maxH>1)&&moveUsable(m,{a:me,d:op}).ok&&![me,op].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item))&&!(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(op.ab)&&me.ab!=='mold-breaker')){
+          const rolls=dmgRolls(me,m,op,opt),raw=rolls.dist?rolls.dist.map(x=>x[0]):rolls,acc=accOf(me,m,op);
+          if(raw.length&&raw.every(Number.isFinite)&&Number.isFinite(acc))v={id,lo:Math.min(...raw),hi:Math.max(...raw),acc,hp:op.max};
+        }
+        cache.set(k,v);return v;
+      };
+      const evaluate=ids=>{
+        if(ids.length!==4||new Set(ids).size!==4||!ids.every(id=>ls.includes(id)&&(MD[id]||MV[id]))||!locked.every(id=>ids.includes(id)))return null;
+        const atk=ids.filter(id=>MV[id]);if(![...stab].every(t=>atk.some(id=>mvObj(id).t===t)))return null;
+        const rows=opponents.map(op=>{
+          const all=atk.map(id=>measure(id,op));if(all.some(x=>!x))return null;
+          return all.sort((a,b)=>Math.min(1,b.lo/b.hp)*b.acc-Math.min(1,a.lo/a.hp)*a.acc||b.lo/b.hp-a.lo/a.hp||a.id-b.id)[0];
+        });
+        if(rows.some(x=>!x))return null;
+        return rows;
+      };
+      const baseline=evaluate(s.moves);if(!baseline)return '';
+      const value=x=>Math.min(1,x.lo/x.hp)*x.acc/100;
+      const options=[];
+      for(const from of current.filter(id=>!locked.includes(id)))for(const to of candidates){
+        const ids=s.moves.map(id=>id===from?to:id),rows=evaluate(ids);if(!rows)continue;
+        const gain=rows.map((x,i)=>value(x)-value(baseline[i]));
+        if(!gain.some(v=>v>1e-9)||gain.some(v=>v< -1e-9))continue;
+        options.push({from,to,ids,rows,gain:gain.reduce((a,b)=>a+b,0)});
+      }
+      options.sort((a,b)=>b.gain-a.gain||a.to-b.to||a.from-b.from);
+      const best=options.slice(0,3);
+      return '<details class="gset-alt"><summary>技構成の比較・入れ替え候補</summary><p class="vcap">積み技・補助技・現在の先制技・一致技のタイプは維持。習得可能な検証対象の攻撃技を1枠ずつ交換し、比較相手全員に対する最小ダメージと命中率を評価します。</p>'+(best.length?best.map(x=>'<div class="gdoc"><b>'+esc(mName(x.from))+' → '+esc(mName(x.to))+'</b><p>技構成：'+x.ids.map(id=>esc(mName(id))).join('・')+'</p>'+x.rows.map((y,i)=>'<p>'+esc(opponents[i].p.n)+'：'+esc(mName(baseline[i].id))+' '+baseline[i].lo+'〜'+baseline[i].hi+' → '+esc(mName(y.id))+' '+y.lo+'〜'+y.hi+' / '+y.hp+' HP（命中 '+baseline[i].acc+' → '+y.acc+'%）</p>').join('')+'</div>').join(''):'<p>今回の条件と検証対象技の範囲では、全比較相手への評価を維持しながら改善する1枠交換は見つかりませんでした。</p>')+'<p class="vcap">満タン・ランク0・非急所・天候なし・固定育成。命中率を考慮した最小ダメージの比較で、勝率や確定数そのものではありません。反動・追加効果・交代・複数ターンの価値は別途検証が必要です。</p></details>';
+    };
+    /* Joint search over complete legal builds. Every candidate is checked against
+       the same opponents, with the same nature and ability. No synthetic win score. */
+    const integratedPlans=(me,opponents)=>{
+      const skip=(reason,detail={})=>{
+        if(typeof o.auditSkipped==='function')o.auditSkipped(reason);
+        if(typeof o.auditBaselineFailure==='function'&&reason!=='unsupported baseline')o.auditBaselineFailure({reason,...detail});
+        // Keep absence of a supported evaluation distinct from a negative result.
+        const names=(detail.moves||[]).map(id=>esc(mName(id))).join('・');
+        return '<p class="vcap">技・持ち物・能力ポイントの一体比較は、この育成条件では未対応です。'+(names?'対象外の技：'+names+'。':'')+'改善候補がないという判定ではありません。</p>';
+      };
+      if(!opponents.length)return skip('no fixtures');
+      if(me.formErr)return skip('form');
+      if(s.moves.length!==4)return skip('move count');
+      const original=s.moves.filter(id=>MV[id]),locked=s.moves.filter(id=>!MV[id]||mvObj(id).pri>0);
+      // Knock Off is evaluated here only against fixtures without held items.
+      // Fixed-power immediate single-hit attacks. Additional effects after the
+      // hit are not evaluated by this one-use objective (see displayed limits).
+      const extraSimple=new Set([667,441,56,412,414,224,126,408,438]);
+      // Reviewed fixed-damage attacks: reuse bcalc immunity and current HP handling.
+      const fixedSimple=new Set([69,101,162]);
+      const statSimple=new Set([776,492,473,573]);
+      const variableSimple=new Set([284,323,360,484,486,500,535,681]);
+      // Fixed and variable hit counts use the conditional-on-first-hit HP distribution.
+      // Repeated accuracy checks after the first hit are included in that distribution.
+      const multiSimple=new Set([24,458,751,814,31,42,198,292,331,333,350,541,594,813]);
+      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||fixedSimple.has(id)||statSimple.has(id)||variableSimple.has(id)||REVIEWED_ALWAYS_CRIT.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_TARGET_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
+      if(!original.length)return skip('no attacks');
+      if(original.some(id=>!supported(id)))return skip('unsupported move',{moves:original.filter(id=>!supported(id))});
+      if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
+      const stab=[...new Set(original.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
+      const setupIds=Object.keys(REVIEWED_SETUP).map(Number);
+      const statusMoves=s.moves.filter(id=>!MV[id]);
+      // One reviewed setup or direct recovery move; other status moves remain excluded.
+      if(statusMoves.some(id=>!setupIds.includes(id)&&!REVIEWED_DIRECT_HEAL.has(id)))return skip('unsupported status move',{moves:statusMoves.filter(id=>!setupIds.includes(id)&&!REVIEWED_DIRECT_HEAL.has(id))});
+      if(statusMoves.length>1)return skip('multiple setup moves',{moves:statusMoves});
+      const recovery=statusMoves.find(id=>REVIEWED_DIRECT_HEAL.has(id));
+      const setup=statusMoves.find(id=>setupIds.includes(id));
+      if(base&&(!stoneK||s.item!==stoneK||me.p.no!==p.no))return skip('mega form mismatch');
+      if(me.ab==='parental-bond'||me.item==='focusband')return skip('unsupported probabilistic or multi-hit state');
+      if(CALC_UNIMPL.includes(me.ab)||CALC_UNVERIFIED[me.ab])return skip('unsupported ability');
+      if(CALC_UNIMPL_IT.includes(me.item))return skip('unsupported item');
+      const items=setup||recovery?['lifeorb','leftovers','expertbelt','muscleband','wiseglasses',...(setup?['sitrusberry']:[])]:['lifeorb','leftovers','sitrusberry','choicescarf','expertbelt','muscleband','wiseglasses'];
+      const legalItem=item=>Object.prototype.hasOwnProperty.call(ITEMN,item)&&!CALC_UNIMPL_IT.includes(item)&&(base?item===stoneK:CH_ITEMS.has(item)&&(!(setup||recovery)||!/^choice/.test(item)));
+      const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
+      const budget=s.sp.reduce((a,b)=>a+b,0),cache=new Map();
+      const started=performance.now();let attempts=0,baselineReason=null;
+      const reject=(reason,detail={})=>{if(attempts===1&&!baselineReason)baselineReason={reason,...detail};return null};
+      const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&legalItem(x.item);
+      const bounds=(a,d,m)=>{
+        if((m.id===492&&!m.e?.fp)||(m.id===473&&!m.e?.ps))return null;
+        if([484,535].includes(m.id)&&[a,d].some(x=>!((WT[x.p.no]||WT[x.p.base])>0)))return null;
+        if([500,681].includes(m.id)&&m.pow!==20)return null;
+        if(!moveUsable(m,{a,d}).ok||(m.maxH>1&&!multiSimple.has(m.id))||m.prot||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
+        if(m.pri>0&&typeof PRIO_BLOCK!=='undefined'&&PRIO_BLOCK.has(d.ab)&&a.ab!=='mold-breaker')return null;
+        if(multiSimple.has(m.id)){
+          const dist=hitRemainingDist(a,m,d,opt),acc=accOf(a,m,d);
+          if(!dist.length||!Number.isFinite(acc)||dist.some(([hp,w])=>!Number.isFinite(hp)||!Number.isFinite(w)||w<0)||Math.abs(dist.reduce((t,x)=>t+x[1],0)-1)>1e-8)return null;
+          const loss=dist.map(([hp])=>d.hp-hp);
+          // Conservative lower bound across all positive-probability hit counts.
+          // First-hit accuracy is applied once by quality; later misses are in dist.
+          return {lo:Math.min(...loss),hi:Math.max(...loss),lossLo:Math.min(...loss),lossHi:Math.max(...loss),acc,id:m.id,multi:true};
+        }
+        const r=dmgRolls(a,m,d,opt),v=r.dist?r.dist.map(x=>x[0]):r,acc=accOf(a,m,d);
+        if(!v.length||!v.every(Number.isFinite)||!Number.isFinite(acc)||r.dist||r.fband)return null;
+        // Reuse the calculator's first-use survival metadata. Keep raw damage
+        // separate from effective HP loss, including Disguise's separate HP cost.
+        const loss=v.map(n=>r.surv&&d.hp===r.surv.max?Math.min(n,d.hp-1):n+(r.loss||0));
+        return {lo:Math.min(...v),hi:Math.max(...v),lossLo:Math.min(...loss),lossHi:Math.max(...loss),acc,id:m.id};
+      };
+      const evaluate=x=>{
+        const k=JSON.stringify([x.item,x.sp,x.moves]);if(cache.has(k))return cache.get(k);
+        if(attempts>=360)return null;
+        attempts++;cache.set(k,null);
+        if(!legal(x))return reject('illegal build',{item:x.item,moves:x.moves,sp:x.sp});
+        const a=build(p,x,'me');if(a.formErr||a.p.no!==p.no)return reject('form resolution',{item:x.item});
+        const rows=[];
+        for(const op of opponents){
+          const c=setup?setupState(a,setup,op):a;if(!c)return reject('setup state',{setup,ability:a.ab,item:a.item,opponent:op.p.no});
+          const attacks=c.moves.map(m=>supported(m.id)?bounds(c,op,m):null);
+          const threats=op.moves.map(m=>supported(m.id)?bounds(op,c,m):null);
+          if(!attacks.length||!threats.length||attacks.some(v=>!v)||threats.some(v=>!v))return reject('attack or threat bounds',{opponent:op.p.no,attacks:c.moves.filter((m,i)=>!attacks[i]).map(m=>m.id),threats:op.moves.filter((m,i)=>!threats[i]).map(m=>m.id),ability:c.ab,item:c.item});
+          const quality=v=>Math.min(1,v.lossLo/op.hp)*v.acc/100;
+          const worst=Math.max(...threats.map(v=>v.lossHi));
+          const speed=effSpd(c,op),oppSpeed=effSpd(op,c);
+          // Independent comparison against the same fresh target, not a simulated second turn.
+          // Keep both pre- and post-hit metrics; do not reward a gain that hides a loss.
+          const choices=[];
+          for(const hit of attacks){
+            let post=c,postTarget=op,repeat=hit,postWorst=worst;
+            const move=mvObj(hit.id),connected=hit.lossHi>0&&hit.acc>0;
+            if(Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,hit.id)){
+              if(!REVIEWED_POST_STAGE_AB.has(c.ab))return reject('post-stage ability',{ability:c.ab,move:hit.id,opponent:op.p.no});
+              post=reviewedSelfStageAfterHit(c,move,connected);
+              if(!post)return reject('post-stage data or item',{move:hit.id,item:c.item,opponent:op.p.no});
+            }
+            if(Object.prototype.hasOwnProperty.call(REVIEWED_TARGET_STAGES,hit.id)){
+              postTarget=reviewedTargetStageAfterHit(c,move,op,connected);
+              if(!postTarget)return reject('target-stage data or state',{move:hit.id,opponent:op.p.no,ability:op.ab});
+            }
+            // Damage-based recoil: one-hit attacks only, with no Disguise or
+            // held item on the fixture. Use maximum actual damage, capped at
+            // the defender's current HP, as a conservative HP-cost scenario.
+            if(Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,hit.id)){
+              if(move.maxH!==1||op.disg||op.item)return reject('recoil fixture',{move:hit.id,opponent:op.p.no});
+              const dealt=connected?Math.min(op.hp,Math.max(0,hit.lossHi)):0;
+              post=reviewedMoveRecoilAfterHit(post,move,dealt);
+              if(!post)return reject('recoil metadata',{move:hit.id,opponent:op.p.no,drain:move.drain});
+            }
+            // Drain: minimum actual damage on a connected hit, not overkill.
+            // Misses and healing prevention are not simulated as turn states.
+            if(Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,hit.id)){
+              if(move.maxH!==1||op.disg||op.item)return reject('drain fixture',{move:hit.id,opponent:op.p.no});
+              const dealt=connected?Math.min(op.hp,Math.max(0,hit.lossLo)):0;
+              post=reviewedDrainAfterHit(post,move,dealt,op);
+              if(!post)return reject('drain metadata or state',{move:hit.id,opponent:op.p.no,drain:move.drain});
+            }
+            // For these fixtures, no Disguise or held item can make HP loss differ
+            // from a damaging hit; zero damage must not trigger Life Orb.
+            if(post.item==='lifeorb'){
+              post=reviewedLifeOrbAfterHit(post,move,connected);
+              if(!post)return reject('post-hit HP state',{move:hit.id,opponent:op.p.no});
+            }
+            if(post.hp===0){
+              // Fainted attackers cannot attack or receive a subsequent attack.
+              // Preserve the initial attack; use zero repeat performance and HP.
+              repeat={...hit,lo:0,hi:0,lossLo:0,lossHi:0};postWorst=0;
+            }else if(post!==c||postTarget!==op){
+              repeat=bounds(post,postTarget,move);
+              const incoming=postTarget.moves.map(m=>bounds(postTarget,post,m));
+              if(!repeat||incoming.some(v=>!v))return reject('post-stage bounds',{move:hit.id,opponent:op.p.no,repeat:!!repeat,threats:op.moves.filter((m,i)=>!incoming[i]).map(m=>m.id)});
+              postWorst=Math.max(...incoming.map(v=>v.lossHi));
+            }
+            // Independent maximum-loss scenario, not a simulated full turn.
+            const after={...post,hp:Math.max(0,post.hp-postWorst)};
+            const end=reviewedLeftoversEnd(after);
+            if(!end)return reject('end recovery state',{move:hit.id,opponent:op.p.no});
+            choices.push({hit,quality:quality(hit),repeatQuality:quality(repeat),repeat,margin:c.hp-worst,postMargin:post.hp-postWorst,postHP:post.hp,endHP:end.hp,postOrder:post.hp>0?Math.sign(effSpd(post,op)-effSpd(op,post)):-1,postSpeed:post.hp>0?effSpd(post,op):0,postStages:{...post.stg},targetStages:{...postTarget.stg}});
+          }
+          const choice=choices.sort((u,v)=>Math.min(v.quality,v.repeatQuality)-Math.min(u.quality,u.repeatQuality)||Math.min(v.margin,v.postMargin)-Math.min(u.margin,u.postMargin)||v.quality-u.quality||u.hit.id-v.hit.id)[0];
+          let recoveryHP=null;
+          if(recovery){
+            // Start from half HP (at least one), independent of the attack scenario.
+            const injured={...c,hp:Math.max(1,Math.floor(c.max/2))};
+            if(injured.hp>=injured.max)return reject('recovery fixture HP',{opponent:op.p.no});
+            const outcomes=op.moves.map(m=>{
+              // Resolve priority on the actual injured recovery fixture, not a full-HP proxy.
+              const order=reviewedRecoveryOrder(injured,recovery,op,m);
+              return reviewedRecoveryExchange(injured,recovery,order,state=>bounds(op,state,m)?.lossHi);
+            });
+            if(outcomes.some(v=>!v))return reject('recovery exchange',{opponent:op.p.no,item:c.item});
+            recoveryHP=Math.min(...outcomes.map(v=>v.minEndHP));
+          }
+          rows.push({no:op.p.no,name:op.p.n,...choice,recoveryHP,hp:op.hp,remaining:c.hp,max:c.max,speed,order:Math.sign(speed-oppSpeed),item:c.item});
+        }
+        const v={x,rows};cache.set(k,v);return v;
+      };
+      const baseline=evaluate(s);if(!baseline){if(typeof o.auditBaselineFailure==='function')o.auditBaselineFailure(baselineReason||{reason:'unknown'});return skip('unsupported baseline');}
+      const compare=(a,b)=>a.rows.every((r,i)=>r.quality+1e-9>=b.rows[i].quality&&r.repeatQuality+1e-9>=b.rows[i].repeatQuality&&r.margin>=b.rows[i].margin&&r.postMargin>=b.rows[i].postMargin&&r.postHP>=b.rows[i].postHP&&r.endHP>=b.rows[i].endHP&&r.postOrder>=b.rows[i].postOrder&&(r.recoveryHP===null||r.recoveryHP>=b.rows[i].recoveryHP)&&r.order>=b.rows[i].order);
+      const improves=(a,b)=>compare(a,b)&&a.rows.some((r,i)=>r.quality>b.rows[i].quality+1e-9||r.repeatQuality>b.rows[i].repeatQuality+1e-9||r.margin>b.rows[i].margin||r.postMargin>b.rows[i].postMargin||r.postHP>b.rows[i].postHP||r.endHP>b.rows[i].endHP||r.postOrder>b.rows[i].postOrder||(r.recoveryHP!==null&&r.recoveryHP>b.rows[i].recoveryHP)||r.order>b.rows[i].order);
+      // Seed each legal held item and one-slot move alternative before searching AP.
+      // Keep a small deterministic beam; cap calculation work per page.
+      const variants=[s.moves];
+      for(const from of original.filter(id=>!locked.includes(id)))for(const to of ls.filter(id=>supported(id)&&!s.moves.includes(id)))variants.push(s.moves.map(id=>id===from?to:id));
+      const rank=(a,b)=>Number(compare(b,baseline))-Number(compare(a,baseline))||Math.min(...b.rows.map(r=>Math.min(r.quality,r.repeatQuality)))-Math.min(...a.rows.map(r=>Math.min(r.quality,r.repeatQuality)))||Math.min(...b.rows.map(r=>Math.min(r.margin,r.postMargin)))-Math.min(...a.rows.map(r=>Math.min(r.margin,r.postMargin)));
+      let beam=[];
+      // Round-robin by move variant so every eligible held item is attempted
+      // before the search budget is exhausted by the first item.
+      const itemPool=(base?[stoneK]:[...new Set([s.item,...items])]).filter(legalItem);
+      for(const moves of variants)for(const item of itemPool){
+        if(attempts>=180)break;
+        const v=evaluate({...s,item,moves,sp:[...s.sp]});if(v)beam.push(v);
+      }
+      beam.sort(rank);beam=beam.slice(0,6);
+      for(let pass=0;pass<2;pass++){
+        const next=[...beam];
+        for(const seed of beam){
+          for(let from=0;from<6;from++)for(let to=0;to<6;to++)for(const n of [1,2,4,8,16]){
+            if(attempts>=360||from===to||seed.x.sp[from]<n||seed.x.sp[to]+n>32)continue;
+            const sp=[...seed.x.sp];sp[from]-=n;sp[to]+=n;
+            const v=evaluate({...seed.x,sp});if(v)next.push(v);
+          }
+        }
+        const unique=[...new Map(next.map(v=>[JSON.stringify([v.x.item,v.x.sp,v.x.moves]),v])).values()];
+        unique.sort(rank);beam=unique.slice(0,6);
+      }
+      const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
+      if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,recovery,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
+      const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用直後のHP '+baseline.rows[i].postHP+' → '+r.postHP+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+ '／被弾とたべのこしのみを仮定した残りHP '+baseline.rows[i].endHP+' → '+r.endHP+(r.recoveryHP===null?'':'／半分HPから回復技を使用した場合の最小残りHP '+baseline.rows[i].recoveryHP+' → '+r.recoveryHP)+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'／使用後の素早さ '+baseline.rows[i].postSpeed+' → '+r.postSpeed+'</p>').join('')+'</div>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する9種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）の開始HPから相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+    };
+    const sw=B.weather;B.weather=null;
+    try{
+      const me=build(p,s,'me');if(me.formErr)return '';
+      const opponents=[];
+      const sections=fixtures.filter(x=>x.no!==p.no).map(x=>{
+        const q=byNo[x.no],ls=LSD[x.no]?.[1]||[],abs=ABD[x.no]||[];
+        if(!q||!abs.some(z=>z[0]===x.ab)||!x.moves.every(id=>ls.includes(id)&&MV[id]))return '';
+        const op=build(q,{...x,item:null},'op');
+        if(!op.formErr)opponents.push(op);
+        const out=me.moves.map(m=>result(me,op,m)).filter(Boolean);
+        const inc=op.moves.map(m=>result(op,me,m)).filter(Boolean);
+        if(!out.length&&!inc.length)return '';
+        return '<details class="gset-alt"><summary>'+esc(q.n)+'との比較</summary><p class="vcap">相手：'+esc(ABN[x.ab]||x.ab)+'・持ち物なし・'+esc(natName(x.up,x.dn))+'・'+x.sp.map((v,i)=>v?SN[i]+v:'').filter(Boolean).join('・')+'</p><b>与えるダメージ</b>'+out.map(y=>'<p>'+line(y)+'</p>').join('')+'<b>受けるダメージ</b>'+inc.map(y=>'<p>'+line(y)+'</p>').join('')+thresholds(me,op,out,inc)+jointPlan(me,op,out,inc)+setupHTML(me,op)+berryPlan(me,op)+itemPlans(me,op)+'</details>';
+      }).join('');
+      return sections?'<details class="gset-alt"><summary>火力・耐久の計算例</summary><p class="vcap">双方HP満タン・ランク0・天候なし。通常技の偶発的な急所は含みません。比較用の固定育成であり、環境使用率ではありません。確定数は命中を前提とした計算機の推定で、反動・交代・ターン終了時の回復などは別途確認してください。</p>'+sections+movePlans(me,opponents)+integratedPlans(me,opponents)+'</details>':'';
+    }catch(e){return '<p class="vcap">火力・耐久の比較は計算できませんでした。</p>'}finally{B.weather=sw}
+  };
   const setHTML=(s,i)=>{const nat=natName(s.up,s.dn),st=calcStats(p,s.sp,s.up,s.dn),alt=altOf(s),hard=hardOf(s);
     /* 2026/11/15 図鑑のページの「型・育成」タブ（o.parts）：形式・姿・出典の札と「この型をパーティに入れる」 */
-    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'Game Kid/s 利用者の保存した育成の集計':'当サイトが計算で組んだ提案'}</span></div>`:'';
+    const reviewed=Array.isArray(s.refs);
+    const meta=o.parts?`<div class="gset-meta"><span class="gsm-f">${s.fmt==='double'?'ダブル':'シングル'}</span><span>姿：${esc(p.n)}</span><span class="gsm-v gsm-${s.live?'ext':s.usage?'site':'calc'}">${s.live?'外部の集計（項目ごとの割合を組み合わせた型）':s.usage?'Game Kid/s 利用者の保存した育成の集計':reviewed?'独自の検証用育成例':'当サイトが計算で組んだ提案'}</span></div>`:'';
     return `<div class="gset" id="gset-${p.no}-${i}">${meta}<b>${esc(s.title)}${s.rec?'<span class="atag">おすすめ</span>':''}</b><p>${esc(s.why)}</p><dl>
       <dt>特性</dt><dd>${s.ab?abA(s.ab):'—'}</dd><dt>持ち物</dt><dd>${itA(s.item)}</dd><dt>性格</dt><dd>${esc(nat||'—')}</dd>
       <dt>能力ポイント</dt><dd>${s.sp.map((v,i)=>v?`${SN[i]}${v}`:'').filter(Boolean).join('・')}</dd></dl>
       <div class="pills gchips" style="padding:6px 0 0">${s.moves.map(mvA).join('')}</div>
       <table class="gstat"><tr>${SN.map(n=>`<th>${n}</th>`).join('')}</tr><tr>${st.map(v=>`<td>${v}</td>`).join('')}</tr><tr class="gsp">${s.sp.map(v=>`<td>${v||'-'}</td>`).join('')}</tr></table>
       <p class="vcap" style="margin:2px 0 0">上の段はレベル50の実数値、下の段は能力ポイント。</p>
-      <h4>この型の役割</h4><p>${roleOf(s)}</p>
+      <h4>この型の役割</h4><p>${reviewed?esc(s.why):roleOf(s)}</p>
+      ${reviewed?`<details class="gset-alt"><summary>技・持ち物・能力配分の根拠</summary><ul class="gtips">${s.moves.map((id,j)=>'<li>'+esc(mName(id))+'：'+esc(s.reasons[j])+'</li>').join('')}</ul><p>${esc(s.itemWhy)}</p><p>能力ポイントは最大配分による比較用の例です。特定の相手への最適調整ではありません。</p><p>参考資料：${s.refs.length?s.refs.map(([n,u])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>').join('・'):'当サイトの計算用固定育成（外部記事なし）'}</p><p class="vcap">比較用の独自育成例です。対戦実績・最適性は未検証です。計算例は下の条件付き比較を確認してください。</p></details>`:''}
+      ${o.parts&&reviewed?allocationHTML(s):''}
+      ${o.parts&&reviewed?benchmarkHTML(s):''}
       ${alt.out.length?(o.parts?`<details class="gset-alt"><summary>技の入れ替え候補（${alt.out.length}）</summary>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}</details>`
         :`<h4>技の入れ替え候補</h4>${alt.rep?`<p>${esc(mName(alt.rep))}の枠は、パーティに合わせて入れかえられる。</p>`:''}${alt.out.map(([id,w])=>mvCard(id,w)).join('')}`):''}
       ${o.parts?`<p class="vcap" style="margin:6px 0 0">${s.live?'集計の持ち物・技・特性・性格・能力ポイントの割合を、それぞれ多い順に組み合わせた型です。実在の1人の型と同じとは限りません。':s.usage?'当サイトの利用者が保存した育成から作った型です（3人以上）。':'種族値・覚える技・特性から計算で組んだ提案です。実際によく使われている型とは限りません。'}</p>`:''}
-      ${hard?`<h4>苦手なポケモン</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの技で最大 ${Math.round(r.my)}%・${r.their>=100?'相手の技で一撃で倒される':'相手の技で最大 '+Math.round(r.their)+'%'}</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は合計種族値の高いポケモンとメガシンカの姿を、${SET_MIX}で計算（当サイトのダメージ計算・乱数の真ん中あたり）。</p>':''}`:''}
+      ${hard?`<h4>注意したい対面の計算例</h4><p><b>${esc(hard.head)}</b><br>${esc(hard.why)}</p><div class="ghard">${hard.bad.map(r=>`<a class="row" href="${mon(r.q.no)}"><span class="av">${stamp(r.q)}</span><div class="row-m"><div class="row-t">${nm(r.q)}</div><div class="row-s">こちらの攻撃 約${Math.round(r.my)}%・相手の攻撃 約${Math.round(r.their)}%</div></div></a>`).join('')}</div>${o.parts?'<p class="vcap" style="margin:4px 0 0">相手は比較用の通常の姿と固定育成。中間乱数付近の概算で、最大値・確定数・勝敗ではありません。</p>':''}`:''}
       ${o.parts?`<div class="btns" style="padding:10px 0 0"><button class="btn btn-s" data-useset="${i}">この型をパーティに入れる</button></div>`:''}
       </div>`};
   /* メガシンカの姿：特徴と「メガシンカで変わるところ」だけを返す（元のポケモンの解説の中に出す） */
@@ -355,9 +962,9 @@ function monGuide(p,o={}){
     const atkR=offS>=.6&&!prankSup?roles.find(r=>r.k==='attacker'):null;
     const role2=wxr||prankSup||atkR||roles.find(r=>want.includes(r.k)&&r.k!=='setup')||roles.find(r=>r.k!=='setup')||role;
     const offPro=pros.find(x=>x[3]==='off');
-    const strong2=prankSup&&role2===prankSup?'いたずらごころで補助技を先に出せること':atkR&&role2===atkR?(offPro?offPro[0].replace(/が高い$/,'の高さ'):''):strong;
+    const strong2=prankSup&&role2===prankSup?'いたずらごころ選択時の変化技の優先度':atkR&&role2===atkR?(offPro?offPro[0].replace(/が高い$/,'の高さ'):''):strong;
     const opt=roles.filter(r=>r!==role2&&['setup','support','bulky','tr','pivot'].includes(r.k)).slice(0,2).map(r=>esc(r.name).replace(/（.*$/,''));
-    const lead2=`${esc(p.n)}は、${strong2&&!wxr?strong2+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'いろいろな役をこなせるポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
+    const lead2=`${esc(p.n)}は、${strong2&&!wxr?strong2+'を活かした、':''}${role2?(role2.k==='wset'?esc(role2.name):esc(role2.name).replace(/（.*$/,''))+'として使いやすいポケモン':'技や特性から戦い方を検討するポケモン'}。${opt.length?`型によっては${opt.join('や')}もできる。`:''}${cons[0]?`ただし、${cons[0][3]}点に注意。`:''}`;
     /* 2026/11/16 依頼主に届いた報告（メガガブリアスの図鑑：通常・メガ・メガZ で「どんなポケモン？」が同じ）：
        姿ごとの違いを種族値・タイプ・特性のデータから1文足す。メガの姿＝元の姿から何が変わるか、元の姿＝それぞれのメガで何が変わるか */
     const fdiff=(a,b)=>{const d=SN.map((n,i)=>({n,i,a:a.s[i],b:b.s[i],d:b.s[i]-a.s[i]})).filter(x=>x.d);
@@ -371,7 +978,7 @@ function monGuide(p,o={}){
     /* 役割の並びも、ひとことの役を先頭に。積む役には「積み技を入れた型のとき」と添える */
     const roles2=[role2,...topRoles.filter(r=>r!==role2)].filter(Boolean).slice(0,4).map(r=>r.k==='setup'?{...r,name:r.name+'（積み技を入れた型のとき）'}:r);
     return{lead:lead2+formLead,pros:pros.slice(0,3),cons:cons.slice(0,3),num:numHTML,roles:roles2,megaCh,megas:megas.map(m=>({m,stone:Object.keys(MEGA).find(k=>MEGA[k][p.no]===m.no)})),
-      sets:SETS,setHTML,live:liveF?gmLiveHTML(p,lk):'',liveF,usage:base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk),
+      sets:SETS,setHTML,auditBenchmark:o.auditCoverage?benchmarkHTML:undefined,live:liveF?gmLiveHTML(p,lk):'',liveF,usage:base||typeof usageGuideHTML!=='function'?'':usageGuideHTML(p,'single',lk)+usageGuideHTML(p,'double',lk),
       mvParts,abl,partners,good,axis:axisHTML,repl,stab:stabTypes,item}}
   if(base)return megaHead+sections;
   const megaHTML=megas.map(m=>monGuide(m,o)).join('');

@@ -435,6 +435,10 @@ const stgV=(v,s)=>s>=0?Math.floor(v*(2+s)/2):Math.floor(v*2/(2-s));
 /* ばけのかわがはがれたときに減るHP：最大HPの1/8。端数は切り捨て、ただし最低1
    （ポケモン対戦シミュレーター Showdown の処理と同じ：this.damage(baseMaxhp/8) → 1未満は1にし、小数を切り捨てる。チャンピオンズ用の変更もない） */
 const disgLoss=d=>Math.max(1,Math.floor(d.max/8));
+const REVIEWED_ALWAYS_CRIT=new Set([480,524,870]);
+function reviewedCritical(a,mv,d,requested){
+  return !!(requested||REVIEWED_ALWAYS_CRIT.has(mv.id))&&(a.ab==='mold-breaker'||!['shell-armor','battle-armor'].includes(d.ab));
+}
 function bcalc(a,mv,d,o){
   o=o||{};const t=hitType(a,mv,d);
   const ig=a.ab==='mold-breaker',dab=ig?null:d.ab;
@@ -461,7 +465,7 @@ function bcalc(a,mv,d,o){
   if(mk==='shellsidearm'){const A1=stgV(a.st[1],a.stg.atk),C1=stgV(a.st[3],a.stg.spa),B1=stgV(d.st[2],d.stg.def),D1=stgV(d.st[4],d.stg.spd);
     phys=Math.floor(Math.floor(22*90*A1)/B1)>Math.floor(Math.floor(22*90*C1)/D1)}
   /* シェルアーマー・カブトアーマー：急所に当たらない（かたやぶりで消える） */
-  const ee=mv.e||{},crit=(!!o.crit||['flowertrick','frostbreath','stormthrow'].includes(mk))&&dab!=='shell-armor'&&dab!=='battle-armor';
+  const ee=mv.e||{},crit=reviewedCritical(a,mv,d,o.crit);
   /* メガソーラー：自分の技は天気が「はれ」として扱われる */
   const wr=wxEffK(a,d),w=a.ab==='mega-sol'?'sun':wr;
   /* 威力の補正 */
@@ -470,6 +474,8 @@ function bcalc(a,mv,d,o){
   if((mk==='venoshock'||mk==='barbbarrage')&&(d.status==='psn'||d.status==='tox'))bm=chM(bm,8192);
   if(mk==='knockoff'&&d.item&&!isStone(d.item))bm=chM(bm,6144);
   if((mk==='lashout'||mk==='ficklebeam')&&o.cond)bm=chM(bm,8192);
+  // Explicit, already-activated double-battle support scenario only.
+  if(o.format==='double'&&o.helpingHand===true)bm=chM(bm,6144);
   if(a.ab==='technician'&&pow0<=60)bm=chM(bm,6144);
   if(SKIN[a.ab]&&mv.t==='ノーマル'&&mk!=='weatherball'&&mk!=='terrainpulse')bm=chM(bm,4915);
   if(ITEMT[a.item]===t)bm=chM(bm,4915);
@@ -558,6 +564,7 @@ function bcalc(a,mv,d,o){
   if(phys&&a.status==='brn'&&a.ab!=='guts'&&!facade)x=Math.floor(x/2);
   /* 最後の補正 */
   let fm=4096;
+  if(o.format==='double'&&o.friendGuard===true)fm=chM(fm,3072);
   /* かわらわり・サイコファング・レイジングブルは、攻撃の前に壁を壊すので壁の補正がかからない */
   if(o.screen&&!crit&&a.ab!=='infiltrator'&&!['brickbreak','psychicfangs','ragingbull'].includes(mk))/* Wall strength follows battle format, not the number of targets. Legacy callers without format retain the old fallback. Champions-specific multipliers still require device verification. */
   fm=chM(fm,(o.format==='double'||(o.format==null&&o.spread))?2732:2048);
@@ -575,7 +582,7 @@ function bcalc(a,mv,d,o){
   if(a.item==='lifeorb')fm=chM(fm,5324);
   if(d.item&&RES_BERRY[d.item]===t&&(eff>=2||d.item==='chilanberry'))fm=chM(fm,2048);
   x=apM(x,fm);
-  return{dmg:Math.max(1,x),eff};
+  return{dmg:Math.max(1,x),eff,crit};
 }
 /* ---- 連続技を1発ずつ順番に計算する（2026/11/13 ダメージ計算の点検） ----
    1発ごとに、その時点の相手のHP（マルチスケイルは満タンのときだけ）・乱数（o.rolls[i]、なければ o.r）・急所（o.crits[i]、なければ o.crit）で bcalc を呼ぶ。
@@ -608,7 +615,7 @@ function hitStep(a,mv,d,i,r,cr,o,st){
     if(o.surv&&x.eff&&st.hp===d.max&&dmg>=st.hp&&!st.dead){
       if(st.item==='focussash'){dmg=st.hp-1;ns.item=null;ns.surv='focussash'}
       else if(d.ab==='sturdy'&&a.ab!=='mold-breaker'){dmg=st.hp-1;ns.surv='sturdy'}}
-    h={dmg,crit:cr,r:r||null,hp:st.hp};
+    h={dmg,crit:!!x.crit,r:r||null,hp:st.hp};
     if(!x.eff)return{x,h,ns:{...ns,stop:true}};
     if(st.item&&RES_BERRY[st.item]&&RES_BERRY[st.item]===hitType(a,m,d)&&(x.eff>=2||st.item==='chilanberry'))ns.item=null;
     if(st.item==='airballoon')ns.item=null;
@@ -621,6 +628,52 @@ function hitStep(a,mv,d,i,r,cr,o,st){
   }finally{d.hp=hp0;d.item=it0;d.disg=dg0;d.stg=stg0}
 }
 const hsInit=(d,pb)=>({hp:d.hp,item:d.item,disg:d.disg,stg:{...d.stg},pb});
+/* Two independent enemy attacks, conditional on both being attempted and
+   connecting. Enumerate rolls in both orders; no partner/action simulation.
+   Restrict reactive states to the ones represented by hitStep. */
+// One friendly target of an all-adjacent attack; not a team recommendation.
+function reviewedFriendlyHit(a,m,d){
+  if(!a||!m||!d||a===d||a.p.no===d.p.no||a.formErr||d.formErr||![0,1,2].includes(m.tg||0))return null;
+  if(m.tg!==2)return {targeted:false,min:0,max:0};
+  if(m.maxH>1||m.prot||a.ab==='parental-bond'||[a,d].some(x=>CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]||CALC_UNIMPL_IT.includes(x.item)))return null;
+  if(!moveUsable(m,{a,d}).ok||!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
+  if(d.ab==='telepathy'&&a.ab!=='mold-breaker')return {targeted:true,min:0,max:0,protectedBy:'telepathy'};
+  if(!['multiscale','huge-power','rough-skin','levitate','pressure','magic-guard','telepathy','sturdy','disguise','inner-focus','water-absorb','flash-fire','volt-absorb','earth-eater','soundproof','bulletproof'].includes(d.ab)||d.item!=null)return null;
+  const loss=[];
+  for(let r=85;r<=100;r++){
+    const y=hitStep(a,m,d,0,r,false,{format:'double',spread:true,surv:true,protean:false},hsInit(d,false));
+    const hp=Math.max(0,y.ns.hp);
+    if(!Number.isFinite(hp)||hp>d.hp)return null;
+    loss.push(d.hp-hp);
+  }
+  return {targeted:true,min:Math.min(...loss),max:Math.max(...loss),protectedBy:null};
+}
+function reviewedDoubleFocus(a,m,b,n,d){
+  if(!a||!b||!d||!m||!n||a===b||a.p.no===b.p.no||d.formErr||a.formErr||b.formErr)return null;
+  if(!Number.isInteger(d.hp)||d.hp<1||d.hp>d.max)return null;
+  const allowed=new Set(['pressure','multiscale','sturdy','disguise','stamina','weak-armor','rough-skin','huge-power','levitate','magic-guard','inner-focus','technician','shell-armor','battle-armor','thick-fat']);
+  if(!allowed.has(d.ab)||!(d.item==null||['focussash','airballoon','leftovers','lifeorb','expertbelt','muscleband','wiseglasses','choicescarf','choiceband','choicespecs'].includes(d.item)||reviewedFixedMegaItem(d)))return null;
+  if([a,b].some(x=>x.ab==='parental-bond'||x.item||CALC_UNIMPL.includes(x.ab)||CALC_UNVERIFIED[x.ab]))return null;
+  if([m,n].some(x=>x.maxH>1||x.prot||fixedDmg(a,x,d)!=null||MCHG.has(mkey(x))||MRECH.has(mkey(x))))return null;
+  const orders=[];
+  for(const seq of [[[a,m],[b,n]],[[b,n],[a,m]]]){
+    let min=d.hp,max=0,ko=0;
+    for(let r=85;r<=100;r++)for(let t=85;t<=100;t++){
+      let st=hsInit(d,false);
+      for(let i=0;i<2&&st.hp>0;i++){
+        const [x,mv]=seq[i];
+        if(!moveUsable(mv,{a:x,d:{...d,hp:st.hp,item:st.item,stg:st.stg}}).ok)return null;
+        // An immunity stops this attack only, never the other attack.
+        const y=hitStep(x,mv,d,0,i?t:r,false,{format:'double',spread:!!mv.tg,surv:true,protean:false},st);
+        st={...y.ns,stop:false};
+      }
+      const hp=Math.max(0,st.hp);min=Math.min(min,hp);max=Math.max(max,hp);if(!hp)ko++;
+    }
+    orders.push({first:seq[0][0].p.no,min,max,ko,rolls:256});
+  }
+  return {orders,min:Math.min(...orders.map(x=>x.min)),max:Math.max(...orders.map(x=>x.max))};
+}
+
 /* 1回の使用。当たる回数は n（o.hits・決まった回数・スキルリンク・mhCount） */
 function bhits(a,mv,d,o){
   o=o||{};const k=mkey(mv),n=o.nHits||mhCount(a,mv,o);
@@ -676,6 +729,37 @@ function hitDist(a,mv,d,o){
   const out=new Map();for(const v of S.values())out.set(v.t,(out.get(v.t)||0)+v.p);
   return [...out.entries()].sort((x,y)=>x[0]-y[0]);
 }
+/* Actual remaining HP distribution after one successful move, reusing hitStep.
+   Unlike hitDist's theoretical damage, stop at fainting and count Disguise HP cost.
+   Conditional on first hit; hitCountDist includes later accuracy checks.
+   Recovery berries, recoil and end-of-turn effects are outside this helper. */
+function hitRemainingDist(a,mv,d,o={}){
+  const opt={...o,surv:true},out=new Map(),k=mkey(mv);
+  // nHits is an explicit conditional replay count, not the UI hit selector.
+  const counts=Number.isInteger(opt.nHits)&&opt.nHits>=1&&opt.nHits<=Math.max(1,mv.maxH||1)?[[opt.nHits,1]]:hitCountDist(a,mv,d,opt);
+  for(const [n,w] of counts){
+    const pb=a.ab==='parental-bond'&&n===1&&!(opt.spread&&mv.tg)&&!MCHG.has(k)&&fixedDmg(a,mv,d)==null;
+    let states=new Map();
+    const put=(map,st,p)=>{const key=JSON.stringify(st),v=map.get(key);if(v)v.p+=p;else map.set(key,{st,p})};
+    put(states,hsInit(d,pb),1);
+    for(let i=0;i<(pb?2:n);i++){
+      const next=new Map();
+      for(const {st,p} of states.values()){
+        if(st.dead||st.stop){put(next,st,p);continue}
+        for(let r=85;r<=100;r++){
+          const {ns}=hitStep(a,mv,d,i,r,!!opt.crit,opt,st);
+          put(next,ns,p/16);
+        }
+      }
+      states=next;
+    }
+    for(const {st,p} of states.values()){
+      const hp=Math.max(0,Math.min(d.max,st.hp));
+      out.set(hp,(out.get(hp)||0)+p*w);
+    }
+  }
+  return [...out.entries()].sort((a,b)=>a[0]-b[0]);
+}
 /* 1回使ったあとの状態（2026/11/24）：次の使用のダメージを出すため、こちら・相手の写しを作る（もとのものは変えない）。
    こちら：必ず起きる自分の能力の変化（りゅうせいぐん 特攻−2・インファイトは攻撃に関係しない…技の効果の表 MVE.s の確率100%）・メテオビーム/エレクトロビームの特攻+1・使ったノーマルジュエル。
    相手：bhits の終わりの状態（持ち物・ばけのかわ・ランク）とHP（満タンでない＝マルチスケイル等は働かない） */
@@ -683,6 +767,170 @@ function hitDist(a,mv,d,o){
    ダメージに効くのは：こちらの攻めの能力（物理＝攻撃、特殊＝特攻、ボディプレス＝防御）のランク・メテオビーム・ノーマルジュエル、
    相手の受ける能力のランク（じきゅうりょく・くだけるよろい＝物理）・この技で効く半減きのみ・ばけのかわ・HP満タンで働くマルチスケイル。
    （オボンのみは koInfo、タスキ・がんじょうは1回目の耐えだけ、ふうせんは同じ技なら次もじめん技ではない） */
+/* Conditional self-stage changes for the reviewed immediate attacks.
+   No turn simulation: connected must be established by the caller. White Herb,
+   other items and effects are deliberately not modeled here. */
+const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
+// Isolated self-inflicted stage changes: these abilities do not alter
+// the reviewed move deltas (except the explicit multipliers and Sheer Force). External stage drops and end-turn effects
+// are not part of this predicate.
+const REVIEWED_POST_STAGE_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof','sheer-force']);
+function reviewedSelfStageAfterHit(a,mv,connected){
+  const out={...a,stg:{...a.stg}},expected=REVIEWED_SELF_STAGES[mv.id];
+  if(!expected)return null;
+  if(a.item==='whiteherb')return null;
+  const rows=(mv.e&&mv.e.s)||[];
+  if(rows.length!==Object.keys(expected).length||Object.entries(expected).some(([k,v])=>!rows.some(([st,n,p])=>st===k&&n===v&&p>=100)))return null;
+  if(!connected||sfSup(a,mv))return out;
+  const factor=a.ab==='contrary'?-1:a.ab==='simple'?2:1;
+  for(const [k,v] of Object.entries(expected)){
+    if(!Number.isInteger(out.stg[k])||out.stg[k]<-6||out.stg[k]>6)return null;
+    out.stg[k]=Math.max(-6,Math.min(6,out.stg[k]+v*factor));
+  }
+  return out;
+}
+/* Guaranteed target secondary drops, evaluated only on an isolated surviving
+   target. Reference: Showdown data/abilities.ts, data/moves.ts; Covert Cloak
+   blocks secondary effects, including guaranteed drops. No reflection chains,
+   Substitute, Mist, Flower Veil, Ability Shield or field state modeled. */
+const REVIEWED_TARGET_STAGES={491:{spd:-2},855:{spd:-2},886:{atk:-1},679:{atk:-1},688:{atk:-1}};
+const REVIEWED_TARGET_AB=new Set(['multiscale','huge-power','rough-skin','pressure','levitate','inner-focus','magic-guard','clear-body','white-smoke','full-metal-body','hyper-cutter','shield-dust','contrary','simple','defiant','competitive']);
+function reviewedTargetStageAfterHit(a,mv,d,connected){
+  const delta=REVIEWED_TARGET_STAGES[mv.id];
+  if(!delta||!d||typeof connected!=='boolean'||!REVIEWED_TARGET_AB.has(d.ab)||![null,'covertcloak'].includes(d.item)||d.disg||d.substitute||d.volatiles?.substitute)return null;
+  const rows=mv.e?.t||[],keys=Object.keys(delta);
+  if(rows.length!==keys.length||keys.some(k=>!rows.some(([st,n,p])=>st===k&&n===delta[k]&&p===100)))return null;
+  if(!d.stg||['atk','def','spa','spd','spe'].some(k=>!Number.isInteger(d.stg[k])||Math.abs(d.stg[k])>6))return null;
+  const out={...d,stg:{...d.stg}};
+  if(!connected||sfSup(a,mv)||d.item==='covertcloak')return out;
+  const ab=a.ab==='mold-breaker'&&!['full-metal-body','defiant','competitive'].includes(d.ab)?null:d.ab;
+  if(['clear-body','white-smoke','full-metal-body','shield-dust'].includes(ab))return out;
+  const k=keys[0];if(k==='atk'&&ab==='hyper-cutter')return out;
+  const n=delta[k]*(ab==='contrary'?-1:ab==='simple'?2:1);
+  const prev=out.stg[k];out.stg[k]=Math.max(-6,Math.min(6,prev+n));
+  if(out.stg[k]<prev&&ab==='defiant')out.stg.atk=Math.min(6,out.stg.atk+2);
+  if(out.stg[k]<prev&&ab==='competitive')out.stg.spa=Math.min(6,out.stg.spa+2);
+  return out;
+}
+/* Conditional Life Orb HP cost after a damaging hit. The caller must supply
+   a confirmed damaging hit (not merely an attempted attack). This is not a
+   full turn simulator: contact effects, move recoil and berry triggers are separate.
+   Reference: https://dex.pokemonshowdown.com/items/lifeorb
+   https://bulbapedia.bulbagarden.net/wiki/Sheer_Force */
+function reviewedLifeOrbAfterHit(a,mv,damagingHit){
+  if(typeof damagingHit!=='boolean'||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  const out={...a,stg:{...a.stg}};
+  if(a.item!=='lifeorb'||!damagingHit||a.hp===0||a.ab==='magic-guard'||sfSup(a,mv))return out;
+  out.hp=Math.max(0,a.hp-Math.max(1,Math.floor(a.max/10)));
+  return out;
+}
+/* Damage-based recoil only, using the pinned Showdown e7f50cd reference.
+   Exact recoil fractions: data/moves.ts; Champions overrides inherit these.
+   sim/battle-actions.ts applyRecoilDamage rounds nearest, minimum one.
+   Actual dealt damage must exclude overkill and Disguise HP loss.
+   Does not simulate ability replacement, crash damage or fixed self-HP costs. */
+const REVIEWED_RECOIL={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]};
+function reviewedMoveRecoilAfterHit(a,mv,dealt){
+  const ratio=REVIEWED_RECOIL[mv.id];
+  if(!ratio||!Number.isSafeInteger(dealt)||dealt<0||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  // Refuse mismatched local move metadata rather than silently override it.
+  if(!Number.isFinite(mv.drain)||Math.abs(-mv.drain-100*ratio[0]/ratio[1])>1e-9)return null;
+  const out={...a,stg:{...a.stg}};
+  if(!dealt||!a.hp||a.ab==='rock-head'||a.ab==='magic-guard')return out;
+  out.hp=Math.max(0,a.hp-Math.max(1,Math.round(dealt*ratio[0]/ratio[1])));
+  return out;
+}
+/* Pinned Showdown e7f50cd: data/moves.ts drain fractions and
+   sim/battle.ts spreadDamage / heal. Normal single-target recovery only;
+   Liquid Ooze, Big Root and healing prevention need separate review. */
+const REVIEWED_DRAIN={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]};
+function reviewedDrainAfterHit(a,mv,dealt,d){
+  const ratio=REVIEWED_DRAIN[mv.id];
+  if(!ratio||!d||d.ab==='liquid-ooze'||a.item==='bigroot'||a.healblock||a.volatiles?.healblock||!Number.isSafeInteger(dealt)||dealt<0||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  if(!Number.isFinite(mv.drain)||Math.abs(mv.drain-100*ratio[0]/ratio[1])>1e-9)return null;
+  const out={...a,stg:{...a.stg}};
+  if(dealt&&a.hp)out.hp=Math.min(a.max,a.hp+Math.round(dealt*ratio[0]/ratio[1]));
+  return out;
+}
+/* Successful isolated setup action, before incoming hits or residual effects.
+   Reference: Showdown e7f50cd data/moves.ts. No entry effects or turn end.
+   Caller validates learnset, selected move, format and action legality.
+   Keep the ability/item scope explicit; expand only after separate review. */
+const REVIEWED_SETUP={349:{atk:1,spe:1},14:{atk:2},417:{spa:2},483:{spa:1,spd:1,spe:1},504:{atk:2,spa:2,spe:2,def:-1,spd:-1},347:{spa:1,spd:1},339:{atk:1,def:1},97:{spe:2},334:{def:2},133:{spd:2},397:{spe:2},187:{atk:6}};
+const REVIEWED_SETUP_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof','simple','contrary']);
+// A stone is inert in these isolated actions once the exact Mega form is resolved.
+function reviewedFixedMegaItem(a){
+  if(!a||!a.p||!a.item||a.formErr||!MEGA[a.item])return false;
+  const r=resolveForm(a.p.no,a.item);
+  return !!(r.ok&&r.mega&&r.form.no===a.p.no&&r.stone===a.item);
+}
+function reviewedSetupState(me,id,op){
+  const stages=REVIEWED_SETUP[id];
+  if(!stages||!op||!REVIEWED_SETUP_AB.has(me.ab)||(![null,'lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses','leftovers'].includes(me.item)&&!reviewedFixedMegaItem(me)))return null;
+  if(!Number.isInteger(me.hp)||!Number.isInteger(me.max)||me.hp<1||me.hp>me.max||!me.stg||['atk','def','spa','spd','spe'].some(k=>!Number.isInteger(me.stg[k])||Math.abs(me.stg[k])>6))return null;
+  const a={...me,stg:{...me.stg}};
+  if(id===187){
+    if(a.ab==='simple'||a.ab==='contrary'||a.hp<=a.max/2||a.stg.atk>=6||a.max===1)return null;
+    a.hp-=Math.floor(a.max/2);a.stg.atk=6;
+    if(a.item==='sitrusberry'&&a.hp<=Math.floor(a.max/2)&&op.ab!=='unnerve'){
+      a.hp=Math.min(a.max,a.hp+Math.floor(a.max/4));a.item=null;
+    }
+  }else{
+    const factor=a.ab==='contrary'?-1:a.ab==='simple'?2:1;
+    for(const [k,v] of Object.entries(stages))a.stg[k]=Math.max(-6,Math.min(6,a.stg[k]+v*factor));
+    if(Object.keys(stages).every(k=>a.stg[k]===me.stg[k]))return null;
+  }
+  return a;
+}
+/* Reference e7f50cd data/moves.ts and sim/battle-actions.ts.
+   Plain immediate self-heal only. Roost, weather, sleep, delayed recovery,
+   PP, action denial, Heal Block and post-action effects are separate.
+   Caller must establish that the move may legally be used in this state. */
+const REVIEWED_DIRECT_HEAL=new Set([105,303,135,208,456]);
+function reviewedDirectHeal(a,id,canAct){
+  if(!REVIEWED_DIRECT_HEAL.has(id)||typeof canAct!=='boolean'||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  if(a.healblock||a.volatiles?.healblock)return null;
+  const out={...a,stg:{...a.stg}};
+  if(!canAct||a.hp===0||a.hp===a.max)return out;
+  out.hp=Math.min(a.max,a.hp+Math.round(a.max/2));
+  return out;
+}
+/* Restricted one-action recovery scenario. The caller provides the actual
+   incoming HP loss for each state, including full-HP-dependent effects.
+   No residual damage, contact effects, items triggering on hit or action denial.
+   A speed tie returns both orders rather than assuming either goes first. */
+/* Isolated end-of-turn Leftovers recovery, not other residual effects.
+   https://www.smogon.com/dex/champions/items/leftovers/
+   Floor/minimum-one follows the existing battle engine; device rounding unverified. */
+function reviewedLeftoversEnd(a){
+  if(!a||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  const out={...a,stg:{...a.stg}};
+  if(a.item==='leftovers'&&a.hp>0&&!a.fainted&&!a.healblock&&!a.volatiles?.healblock)out.hp=Math.min(a.max,a.hp+Math.max(1,Math.floor(a.max/16)));
+  return out;
+}
+// Self-targeted direct healing: Prankster adds one, Triage adds three.
+ // No Quick Claw, Trick Room, action denial or other order-changing field effects.
+function reviewedRecoveryOrder(a,id,d,m){
+  if(!REVIEWED_DIRECT_HEAL.has(id)||!a||!d||!m)return null;
+  const selfPriority=a.ab==='triage'?3:a.ab==='prankster'?1:0;
+  const attackPriority=effPri(d,m);
+  if(selfPriority!==attackPriority)return Math.sign(selfPriority-attackPriority);
+  return Math.sign(effSpd(a,d)-effSpd(d,a));
+}
+function reviewedRecoveryExchange(a,id,order,incoming){
+  if(![-1,0,1].includes(order)||typeof incoming!=='function'||!a||!Number.isInteger(a.hp)||a.hp<1||a.hp>=a.max)return null;
+  if(![null,'leftovers','lifeorb','expertbelt','muscleband','wiseglasses'].includes(a.item)&&!reviewedFixedMegaItem(a))return null;
+  const hit=x=>{const n=incoming(x);return Number.isSafeInteger(n)&&n>=0?{...x,stg:{...x.stg},hp:Math.max(0,x.hp-n)}:null};
+  const run=first=>{
+    let x={...a,stg:{...a.stg}};
+    if(first){x=reviewedDirectHeal(x,id,true);if(!x)return null;x=hit(x);}
+    else{x=hit(x);if(!x)return null;if(x.hp>0)x=reviewedDirectHeal(x,id,true);}
+    if(!x)return null;const end=reviewedLeftoversEnd(x);return end?{first,hp:x.hp,endHP:end.hp,alive:x.hp>0}:null;
+  };
+  const rows=(order===0?[true,false]:[order===1]).map(run);
+  if(rows.some(x=>!x))return null;
+  return {rows,minHP:Math.min(...rows.map(x=>x.hp)),maxHP:Math.max(...rows.map(x=>x.hp)),guaranteedSurvival:rows.every(x=>x.alive),minEndHP:Math.min(...rows.map(x=>x.endHP)),maxEndHP:Math.max(...rows.map(x=>x.endHP))};
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;
