@@ -693,7 +693,7 @@ function monGuide(p,o={}){
             let post=c,repeat=hit,postWorst=worst;
             const move=mvObj(hit.id),connected=hit.lossHi>0&&hit.acc>0;
             if(Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,hit.id)){
-              if(!['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple'].includes(c.ab))return reject('post-stage ability',{ability:c.ab,move:hit.id,opponent:op.p.no});
+              if(!REVIEWED_POST_STAGE_AB.has(c.ab))return reject('post-stage ability',{ability:c.ab,move:hit.id,opponent:op.p.no});
               post=reviewedSelfStageAfterHit(c,move,connected);
               if(!post)return reject('post-stage data or item',{move:hit.id,item:c.item,opponent:op.p.no});
             }

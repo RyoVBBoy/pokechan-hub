@@ -718,6 +718,10 @@ function hitRemainingDist(a,mv,d,o={}){
    No turn simulation: connected must be established by the caller. White Herb,
    other items and effects are deliberately not modeled here. */
 const REVIEWED_SELF_STAGES={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+// Isolated self-inflicted stage changes: these abilities do not alter
+// the five reviewed move deltas. External stage drops and end-turn effects
+// are not part of this predicate.
+const REVIEWED_POST_STAGE_AB=new Set(['multiscale','huge-power','inner-focus','rough-skin','technician','magic-guard','cursed-body','contrary','simple','levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof']);
 function reviewedSelfStageAfterHit(a,mv,connected){
   const out={...a,stg:{...a.stg}},expected=REVIEWED_SELF_STAGES[mv.id];
   if(!expected)return null;

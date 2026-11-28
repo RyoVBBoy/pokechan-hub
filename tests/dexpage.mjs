@@ -435,6 +435,19 @@ const RE=await pg.evaluate(()=>{
 });
 console.log('recovery exchange audit '+JSON.stringify(RE));
 ok(!RE.failed.length&&RE.guard,'回復行動：先後・同速・ひんし・HP依存被弾 '+JSON.stringify(RE));
+const SA=await pg.evaluate(()=>{
+  const rows=[];
+  const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2}};
+  for(const [key,delta] of Object.entries(deltas))for(const ab of ['levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof'])for(const stage of [-6,-5,0,5,6])for(const connected of [false,true]){
+    const id=Number(key),a={ab,item:null,stg:Object.fromEntries(['atk','def','spa','spd','spe'].map(k=>[k,stage]))},before=JSON.stringify(a);
+    const x=reviewedSelfStageAfterHit(a,mvObj(id),connected),expected={...a.stg};
+    if(connected)for(const [k,v] of Object.entries(delta))expected[k]=Math.max(-6,Math.min(6,stage+v));
+    rows.push({id,ab,stage,connected,error:!REVIEWED_POST_STAGE_AB.has(ab)||!x||JSON.stringify(x.stg)!==JSON.stringify(expected)||JSON.stringify(a)!==before});
+  }
+  return {total:rows.length,failed:rows.filter(x=>x.error)};
+});
+console.log('expanded post-stage audit '+JSON.stringify(SA));
+ok(!SA.failed.length,'能力低下技：追加特性7種との組み合わせ '+JSON.stringify(SA));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
