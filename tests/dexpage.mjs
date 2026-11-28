@@ -378,6 +378,18 @@ const CR=await pg.evaluate(()=>{
 });
 console.log('critical hit audit '+JSON.stringify(CR));
 ok(CR.rows.length>1&&!CR.failed.length,'確定急所・急所防止・能力ランク・壁・スナイパー '+JSON.stringify(CR.failed));
+const DO=await pg.evaluate(()=>{
+  const mk=(no,speed)=>{const a=mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});return {...a,st:a.st.map((v,i)=>i===5?speed:v),ab:'pressure',status:null,item:null}};
+  const rows=[];
+  for(const x of [60,100,200])for(const y of [60,100,200])for(const ownTailwind of [false,true])for(const oppTailwind of [false,true])for(const trickRoom of [false,true])for(const pa of [0,1])for(const pd of [0,1]){
+    const a=mk(445,x),d=mk(184,y),m={...mvObj(89),pri:pa},n={...mvObj(583),pri:pd},before=JSON.stringify([a,d]);
+    const actual=reviewedDoubleOrder(a,m,d,n,{ownTailwind,oppTailwind,trickRoom});
+    const sa=x*(ownTailwind?2:1),sd=y*(oppTailwind?2:1),order=pa!==pd?Math.sign(pa-pd):Math.sign(sa-sd)*(trickRoom?-1:1);
+    rows.push(!actual||actual.sa!==sa||actual.sd!==sd||actual.order!==order||JSON.stringify([a,d])!==before);
+  }
+  return {total:rows.length,errors:rows.filter(Boolean).length};
+});
+ok(DO.total===288&&DO.errors===0,'ダブル行動順：おいかぜ・トリックルーム・優先度・同速 '+JSON.stringify(DO));
 const DS=await pg.evaluate(()=>{
   const mk=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
   const a=mk(445),d={...mk(184),p:{...byNo[184],t:['ノーマル']}},rows=[];
