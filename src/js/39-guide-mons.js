@@ -750,8 +750,8 @@ function monGuide(p,o={}){
             const injured={...c,hp:Math.max(1,Math.floor(c.max/2))};
             if(injured.hp>=injured.max)return reject('recovery fixture HP',{opponent:op.p.no});
             const outcomes=op.moves.map(m=>{
-              // Recovery moves in this reviewed subset have priority zero.
-              const order=m.pri>0?-1:m.pri<0?1:Math.sign(speed-oppSpeed);
+              // Resolve priority on the actual injured recovery fixture, not a full-HP proxy.
+              const order=reviewedRecoveryOrder(injured,recovery,op,m);
               return reviewedRecoveryExchange(injured,recovery,order,state=>bounds(op,state,m)?.lossHi);
             });
             if(outcomes.some(v=>!v))return reject('recovery exchange',{opponent:op.p.no,item:c.item});
