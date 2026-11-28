@@ -857,6 +857,15 @@ function reviewedLifeOrbAfterHit(a,mv,damagingHit){
    sim/battle-actions.ts applyRecoilDamage rounds nearest, minimum one.
    Actual dealt damage must exclude overkill and Disguise HP loss.
    Does not simulate ability replacement, crash damage or fixed self-HP costs. */
+/* Steel Beam: fixed maximum-HP cost on execution, not damage-based recoil.
+   Champions reference: https://www.championsdex.app/moves (Steel Beam);
+   https://champions.pokewiki.net/ (攻撃技の効果). No battle outcome simulation. */
+function reviewedSteelBeamCost(a,mv,executed){
+  if(!a||mv?.id!==796||mv.pow!==140||typeof executed!=='boolean'||!Number.isSafeInteger(a.hp)||!Number.isSafeInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  const out={...a,stg:{...a.stg}};
+  if(executed&&a.hp>0&&a.ab!=='magic-guard')out.hp=Math.max(0,a.hp-Math.ceil(a.max/2));
+  return out;
+}
 const REVIEWED_RECOIL={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]};
 function reviewedMoveRecoilAfterHit(a,mv,dealt){
   const ratio=REVIEWED_RECOIL[mv.id];
