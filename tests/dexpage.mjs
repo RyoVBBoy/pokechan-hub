@@ -259,7 +259,7 @@ const IA=await pg.evaluate(()=>{
           const incoming=op.moves.map(m=>{const z=dmgRolls(op,m,a,opt),v=z.dist?z.dist.map(x=>x[0]):z;return Math.max(...v.map(n=>z.surv&&a.hp===z.surv.max?Math.min(n,a.hp-1):n+(z.loss||0)))});
           if(row.hit.lo!==Math.min(...raw)||row.hit.hi!==Math.max(...raw)||row.hit.acc!==accOf(a,mv,op)||row.margin!==a.hp-Math.max(...incoming)||row.remaining!==a.hp||row.speed!==effSpd(a,op)||row.order!==Math.sign(effSpd(a,op)-effSpd(op,a)))errors.push('calculator mismatch');
           const ref=r.baseline.rows[j];
-          const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}}[mv.id];
+          const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1},359:{spe:-1},838:{def:-1,spd:-1},665:{spe:-1}}[mv.id];
           const post={...a,stg:{...a.stg}};
           if(deltas&&Math.max(...raw)>0&&row.hit.acc>0)for(const [k,n] of Object.entries(deltas))post.stg[k]=Math.max(-6,Math.min(6,post.stg[k]+n));
           const recoil={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]}[mv.id];
@@ -267,6 +267,7 @@ const IA=await pg.evaluate(()=>{
             const dealt=Math.min(op.hp,Math.max(...raw));
             post.hp=Math.max(0,post.hp-Math.max(1,Math.floor((2*dealt*recoil[0]+recoil[1])/(2*recoil[1]))));
           }
+          if(mv.id===796&&post.ab!=='magic-guard')post.hp=Math.max(0,post.hp-Math.ceil(post.max/2));
           const drain={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]}[mv.id];
           if(drain&&Math.max(...raw)>0&&row.hit.acc>0&&post.hp>0)post.hp=Math.min(post.max,post.hp+Math.floor((2*Math.min(op.hp,Math.max(0,Math.min(...raw)))*drain[0]+drain[1])/(2*drain[1])));
           if(post.item==='lifeorb'&&post.ab!=='magic-guard'&&Math.max(...raw)>0&&row.hit.acc>0)post.hp=Math.max(0,post.hp-Math.max(1,Math.floor(post.max/10)));
@@ -623,7 +624,7 @@ const HM=await pg.evaluate(()=>{
 console.log('variable hit audit '+JSON.stringify(HM));
 ok(HM.every(x=>!x.error),'連続技の攻撃回数分布・スキルリンク・追加命中判定 '+JSON.stringify(HM));
 const PS=await pg.evaluate(()=>{
-  const expected={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
+  const expected={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1},359:{spe:-1},838:{def:-1,spd:-1},665:{spe:-1}};
   const rows=[];
   for(const [key,delta] of Object.entries(expected)){
     const id=Number(key),m=mvObj(id);
@@ -799,7 +800,7 @@ console.log('mega recovery and order audit '+JSON.stringify(MO));
 ok(MO.mega>0&&!MO.failed.length,'メガ固定石・回復技の優先度・同速 '+JSON.stringify(MO));
 const SA=await pg.evaluate(()=>{
   const rows=[];
-  const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1}};
+  const deltas={276:{atk:-1,def:-1},370:{def:-1,spd:-1},315:{spa:-2},437:{spa:-2},434:{spa:-2},488:{spe:1},885:{spe:1},872:{spe:1},871:{spa:1},359:{spe:-1},838:{def:-1,spd:-1},665:{spe:-1}};
   for(const [key,delta] of Object.entries(deltas))for(const ab of ['levitate','thick-fat','reckless','hyper-cutter','shell-armor','pressure','soundproof'])for(const stage of [-6,-5,0,5,6])for(const connected of [false,true]){
     const id=Number(key);if(!MV[id])continue;const a={ab,item:null,stg:Object.fromEntries(['atk','def','spa','spd','spe'].map(k=>[k,stage]))},before=JSON.stringify(a);
     const x=reviewedSelfStageAfterHit(a,mvObj(id),connected),expected={...a.stg};
@@ -842,6 +843,144 @@ console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
 ok(IA.every(x=>!x.missing&&x.render&&x.errors.length===0&&x.valid>0&&x.attempts<=360),'統合探索：合法性・計算一致・探索上限 '+JSON.stringify(IA));
+const CANDIDATE_RANK_AUDIT=await pg.evaluate(()=>{
+  const a={hit:{id:1},quality:.4,repeatQuality:.4,margin:50,postMargin:40,postHP:80,endHP:40,recoveryHP:20,order:-1,postOrder:-1};
+  const failures=[];let total=0;
+  for(const k of ['quality','repeatQuality','margin','postMargin','postHP','endHP','recoveryHP','order','postOrder']){
+    const b={...a,hit:{id:2},[k]:a[k]+(['quality','repeatQuality'].includes(k)?.1:1)};
+    total++;if([a,b].sort(gmIntegratedChoiceRank)[0]!==b)failures.push('move '+k);
+    total++;if(gmIntegratedBuildRank({rows:[a,a]},{rows:[a,b]})<=0)failures.push('build '+k);
+    total++;if(gmIntegratedBuildRank({rows:[a,b]},{rows:[a,a]})>=0)failures.push('reverse '+k);
+  }
+  total++;if([{...a,hit:{id:2}},a].sort(gmIntegratedChoiceRank)[0]!==a)failures.push('tie');
+  return {total,failures};
+});
+ok(CANDIDATE_RANK_AUDIT.total===28&&!CANDIDATE_RANK_AUDIT.failures.length,'統合探索順位：全評価指標・逆順・同値 '+JSON.stringify(CANDIDATE_RANK_AUDIT));
+const STEEL_BEAM_AUDIT=await pg.evaluate(()=>{
+  const m=mvObj(796),failures=[];let total=0;
+  for(const max of [1,2,199,200,201])for(const hp of [...new Set([0,1,Math.floor(max/2),Math.ceil(max/2),max])])for(const ab of ['pressure','magic-guard','rock-head','sheer-force'])for(const item of [null,'lifeorb'])for(const [executed,hit] of [[false,false],[true,false],[true,true]]){
+    const a={hp,max,ab,item,stg:{atk:0,def:0,spa:0,spd:0,spe:0}},before=JSON.stringify(a);
+    const x=reviewedSteelBeamCost(a,m,executed);
+    const y=x?reviewedLifeOrbAfterHit(x,m,hit):null;
+    let expected=hp;
+    if(executed&&ab!=='magic-guard')expected=Math.max(0,expected-Math.ceil(max/2));
+    if(hit&&item==='lifeorb'&&ab!=='magic-guard'&&expected>0)expected=Math.max(0,expected-Math.max(1,Math.floor(max/10)));
+    total++;
+    if(!y||y.hp!==expected||JSON.stringify(a)!==before||y.stg===a.stg)failures.push({hp,max,ab,item,executed,hit,expected,actual:y?.hp});
+  }
+  const a={hp:100,max:100,ab:'pressure',stg:{}};
+  for(const [state,move,executed] of [[a,{...m,pow:139},true],[a,{...m,id:1},true],[{...a,hp:101},m,true],[a,m,null]]){
+    total++;if(reviewedSteelBeamCost(state,move,executed)!==null)failures.push('invalid input');
+  }
+  return {total,failures};
+});
+console.log('steel beam cost audit '+JSON.stringify(STEEL_BEAM_AUDIT));
+ok(STEEL_BEAM_AUDIT.total===460&&!STEEL_BEAM_AUDIT.failures.length,'てっていこうせん：HP消費・いのちのたま・特性・入力検査 '+JSON.stringify(STEEL_BEAM_AUDIT));
+const WEATHER_ATTACK_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,actual,expected)=>{total++;if(actual!==expected)failures.push({name,actual,expected});};
+  const weather=B.weather;
+  try{
+    for(const [id,power,accuracy,type] of [[542,110,70,'ひこう'],[815,70,100,'じめん']]){
+      const m=mvObj(id);
+      check(id+' power',m.pow,power);check(id+' accuracy',m.acc,accuracy);check(id+' type',m.t,type);
+      check(id+' category',m.cls,1);check(id+' hits',m.maxH,1);
+      for(const w of [null,'rain','sun','sand','snow'])for(const ab of ['pressure','sheer-force','no-guard','cloud-nine','air-lock']){
+        B.weather=w?{k:w}:null;
+        const a={ab,item:null,stg:{acc:0}},d={ab:'pressure',item:null,stg:{eva:0}};
+        const expected=ab==='no-guard'?100:id===542&&!['cloud-nine','air-lock'].includes(ab)?w==='rain'?100:w==='sun'?50:70:accuracy;
+        check(id+' '+w+' '+ab,accOf(a,m,d),expected);
+        check(id+' sheer force '+ab,sfOn(a,m),ab==='sheer-force');
+        check(id+' secondary suppression '+ab,sfSup(a,m),ab==='sheer-force');
+      }
+      B.weather={k:'rain'};
+      check(id+' defender weather suppression',accOf({ab:'pressure',stg:{}},m,{ab:'cloud-nine',stg:{}}),accuracy);
+      const a={ab:'sheer-force',item:'lifeorb',hp:200,max:200,stg:{}};
+      check(id+' life orb suppressed',reviewedLifeOrbAfterHit(a,m,true)?.hp,200);
+      check(id+' ordinary life orb',reviewedLifeOrbAfterHit({...a,ab:'pressure'},m,true)?.hp,180);
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('weather attack audit '+JSON.stringify(WEATHER_ATTACK_AUDIT));
+ok(WEATHER_ATTACK_AUDIT.total===166&&!WEATHER_ATTACK_AUDIT.failures.length,'ぼうふう・ねっさのだいち：データ・天候・命中・ちからずく '+JSON.stringify(WEATHER_ATTACK_AUDIT));
+const PSYCHIC_FANGS_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
+  const m=mvObj(706),control=mvObj(337);
+  check('metadata',m.pow===85&&m.acc===100&&m.cls===0&&m.t==='エスパー'&&m.maxH===1);
+  check('contact and bite',mfl(m,'c')&&mfl(m,'b'));
+  check('not sheer force',!sfOn({ab:'sheer-force'},m));
+  const make=(no,moves)=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[0,32,0,0,0,32],up:1,dn:3,moves:moves.map(mvObj)});
+  const a=make(149,[706,337]),d=make(184,[89]),weather=B.weather;
+  try{
+    B.weather=null;
+    for(const format of ['single','double'])for(let r=85;r<=100;r++){
+      const opt={format,r,crit:false,spread:false,noNext:true};
+      const raw=bcalc(a,m,d,opt).dmg,screen=bcalc(a,m,d,{...opt,screen:true}).dmg;
+      check(format+' '+r+' breaks screen',raw>0&&screen===raw);
+      const normal=bcalc(a,control,d,opt).dmg,shielded=bcalc(a,control,d,{...opt,screen:true}).dmg;
+      check(format+' '+r+' normal screen',normal>0&&shielded>0&&shielded<normal);
+      const jaw=bcalc({...a,ab:'strong-jaw'},m,d,opt).dmg;
+      check(format+' '+r+' strong jaw',jaw>raw);
+      check(format+' '+r+' strong jaw screen',bcalc({...a,ab:'strong-jaw'},m,d,{...opt,screen:true}).dmg===jaw);
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('psychic fangs audit '+JSON.stringify(PSYCHIC_FANGS_AUDIT));
+ok(PSYCHIC_FANGS_AUDIT.total===131&&!PSYCHIC_FANGS_AUDIT.failures.length,'サイコファング：壁補正・かみつき・乱数・シングルダブル '+JSON.stringify(PSYCHIC_FANGS_AUDIT));
+const THROAT_CHOP_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
+  const m=mvObj(675);
+  check('metadata',m.pow===80&&m.acc===100&&m.cls===0&&m.t==='あく'&&m.maxH===1);
+  check('contact, not sound',mfl(m,'c')&&!mfl(m,'o'));
+  const make=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=make(149),d=make(184),weather=B.weather;
+  try{
+    B.weather=null;
+    for(const format of ['single','double'])for(let r=85;r<=100;r++){
+      const opt={format,r,crit:false,spread:false,noNext:true};
+      const raw=bcalc(a,m,d,opt).dmg;
+      check(format+' '+r+' soundproof',raw>0&&bcalc(a,m,{...d,ab:'soundproof'},opt).dmg===raw);
+      check(format+' '+r+' sheer force',bcalc({...a,ab:'sheer-force'},m,d,opt).dmg>raw);
+    }
+    for(const ab of ['pressure','sheer-force','magic-guard'])for(const connected of [false,true]){
+      const x={...a,ab,item:'lifeorb',hp:200,max:200};
+      check(ab+' '+connected+' secondary',sfSup(x,m)===(ab==='sheer-force'));
+      check(ab+' '+connected+' life orb',reviewedLifeOrbAfterHit(x,m,connected)?.hp===(connected&&ab==='pressure'?180:200));
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('throat chop audit '+JSON.stringify(THROAT_CHOP_AUDIT));
+ok(THROAT_CHOP_AUDIT.total===78&&!THROAT_CHOP_AUDIT.failures.length,'じごくづき：データ・防音・ちからずく・いのちのたま '+JSON.stringify(THROAT_CHOP_AUDIT));
+const DIRECT_ATTACK_BATCH_AUDIT=await pg.evaluate(()=>{
+  const failures=[];let total=0;
+  const check=(name,condition)=>{total++;if(!condition)failures.push(name);};
+  const cases=[[44,60,100,0,"あく",true],[34,85,100,0,"ノーマル",true],[309,90,90,0,"はがね",true],[330,90,85,1,"みず",true],[503,80,100,1,"みず",true],[539,85,95,1,"あく",true],[836,100,85,0,"こおり",true],[428,80,90,0,"エスパー",true],[304,90,100,1,"ノーマル",false],[605,80,100,1,"フェアリー",false],[914,80,100,1,"フェアリー",true],[59,110,70,1,"こおり",true],[161,80,100,1,"ノーマル",true],[211,70,90,0,"はがね",true],[257,95,90,1,"ほのお",true],[326,80,100,1,"エスパー",true],[405,90,100,1,"むし",true],[25,120,75,0,'ノーマル',false],[402,80,100,0,'くさ',false],[398,80,100,0,'どく',true],[403,75,95,1,'ひこう',true],[231,100,75,0,'はがね',true],[348,90,100,0,'くさ',false],[529,80,95,0,'じめん',false],[280,75,100,0,'かくとう',false]];
+  const make=no=>mkMon(byNo[no],'me',{ab:'pressure',item:null,sp:[2,32,0,0,0,32],up:1,dn:3,moves:[]});
+  const a=make(149),rawTarget=make(184),d={...rawTarget,p:{...rawTarget.p,t:['ノーマル']}},weather=B.weather;
+  try{
+    B.weather=null;
+    for(const [id,pow,acc,cls,type,sheer] of cases){
+      const m=mvObj(id);
+      check(id+' metadata',m.pow===pow&&m.acc===acc&&m.cls===cls&&m.t===type&&m.maxH===1);
+      check(id+' accuracy',accOf(a,m,d)===acc);
+      check(id+' sheer force',sfOn({...a,ab:'sheer-force'},m)===sheer);
+      for(let r=85;r<=100;r++){
+        const opt={format:'single',r,crit:false,spread:false,noNext:true};
+        const hit=bcalc(a,m,d,opt).dmg,boost=bcalc({...a,ab:'sheer-force'},m,d,opt).dmg;
+        check(id+' '+r+' damage',hit>0&&(sheer?boost>hit:boost===hit));
+        if(id===280)check(id+' '+r+' screen',bcalc(a,m,d,{...opt,screen:true}).dmg===hit);
+      }
+    }
+  }finally{B.weather=weather;}
+  return {total,failures};
+});
+console.log('direct attack batch audit '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
+ok(DIRECT_ATTACK_BATCH_AUDIT.total===491&&!DIRECT_ATTACK_BATCH_AUDIT.failures.length,'攻撃技25種：基本データ・命中・特性・乱数・壁 '+JSON.stringify(DIRECT_ATTACK_BATCH_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);

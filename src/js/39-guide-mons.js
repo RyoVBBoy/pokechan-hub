@@ -2,6 +2,26 @@
    ほかのサイトの記事は使わず、このサイトのデータ（種族値・タイプ相性・覚える技・特性）だけから組み立てる。
    図鑑の「解説」タブ（#/p/番号）と、検索向けの静的ページ（tools/gen-pages.cjs）で使う。
    「型の例」は計算で組んだもので、実際によく使われている型とは違うことがある（画面にもそう書く）。 */
+// Lexicographic, monotone ordering: preserve the original worst-case priorities,
+// then compare every remaining improvement metric before deterministic tie-breaking.
+// A bounded beam is still a heuristic, not an exhaustive Pareto search.
+function gmIntegratedRankMetrics(r){
+  return [Math.min(r.quality,r.repeatQuality),Math.min(r.margin,r.postMargin),r.quality,r.repeatQuality,r.margin,r.postMargin,r.postHP,r.endHP,r.recoveryHP??0,r.order??0,r.postOrder];
+}
+function gmIntegratedChoiceRank(a,b){
+  const x=gmIntegratedRankMetrics(a),y=gmIntegratedRankMetrics(b);
+  for(let i=0;i<x.length;i++)if(x[i]!==y[i])return y[i]-x[i];
+  return a.hit.id-b.hit.id;
+}
+function gmIntegratedBuildRank(a,b){
+  const x=a.rows.map(gmIntegratedRankMetrics),y=b.rows.map(gmIntegratedRankMetrics);
+  for(let i=0;i<x[0].length;i++){
+    const u=x.map(r=>r[i]),v=y.map(r=>r[i]);
+    const d=Math.min(...v)-Math.min(...u)||v.reduce((s,n)=>s+n,0)-u.reduce((s,n)=>s+n,0);
+    if(d)return d;
+  }
+  return 0;
+}
 const GM_PSET=['swordsdance','dragondance','bulkup','bellydrum','shiftgear','coil','tidyup','curse','noretreat','victorydance','howl','honeclaws','filletaway'];
 const GM_SSET=['nastyplot','quiverdance','calmmind','tailglow','geomancy','takeheart'];
 const GM_BSET=['shellsmash','growth','workup'];
@@ -907,7 +927,7 @@ function monGuide(p,o={}){
       // Knock Off is evaluated here only against fixtures without held items.
       // Fixed-power immediate single-hit attacks. Additional effects after the
       // hit are not evaluated by this one-use objective (see displayed limits).
-      const extraSimple=new Set([667,441,56,412,414,224,126,408,438]);
+      const extraSimple=new Set([667,441,56,412,414,224,126,408,438,542,815,706,675,25,402,398,403,231,348,529,280,428,304,605,914,59,161,211,257,326,405,44,34,309,330,503,539,836]);
       // Reviewed fixed-damage attacks: reuse bcalc immunity and current HP handling.
       const fixedSimple=new Set([69,101,162]);
       const statSimple=new Set([776,492,473,573]);
@@ -915,7 +935,7 @@ function monGuide(p,o={}){
       // Fixed and variable hit counts use the conditional-on-first-hit HP distribution.
       // Repeated accuracy checks after the first hit are included in that distribution.
       const multiSimple=new Set([24,458,751,814,31,42,198,292,331,333,350,541,594,813]);
-      const supported=id=>!!MV[id]&&(simple.has(id)||id===282||extraSimple.has(id)||fixedSimple.has(id)||statSimple.has(id)||variableSimple.has(id)||REVIEWED_ALWAYS_CRIT.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_TARGET_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
+      const supported=id=>!!MV[id]&&(simple.has(id)||(id===282||id===796)||extraSimple.has(id)||fixedSimple.has(id)||statSimple.has(id)||variableSimple.has(id)||REVIEWED_ALWAYS_CRIT.has(id)||multiSimple.has(id)||Object.prototype.hasOwnProperty.call(REVIEWED_TARGET_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_SELF_STAGES,id)||Object.prototype.hasOwnProperty.call(REVIEWED_RECOIL,id)||Object.prototype.hasOwnProperty.call(REVIEWED_DRAIN,id));
       if(!original.length)return skip('no attacks');
       if(original.some(id=>!supported(id)))return skip('unsupported move',{moves:original.filter(id=>!supported(id))});
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
@@ -939,6 +959,36 @@ function monGuide(p,o={}){
       const reject=(reason,detail={})=>{if(attempts===1&&!baselineReason)baselineReason={reason,...detail};return null};
       const legal=x=>x.moves.length===4&&new Set(x.moves).size===4&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]))&&locked.every(id=>x.moves.includes(id))&&stab.every(t=>x.moves.some(id=>MV[id]&&mvObj(id).t===t))&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)===budget&&budget<=66&&legalItem(x.item);
       const bounds=(a,d,m)=>{
+        // Guard reviewed fixed-power moves against local metadata drift.
+        if(m.id===542&&(m.pow!==110||m.acc!==70||m.cls!==1||m.t!=='ひこう'||m.maxH!==1))return null;
+        if(m.id===815&&(m.pow!==70||m.acc!==100||m.cls!==1||m.t!=='じめん'||m.maxH!==1))return null;
+        if(m.id===706&&(m.pow!==85||m.acc!==100||m.cls!==0||m.t!=='エスパー'||m.maxH!==1))return null;
+        if(m.id===675&&(m.pow!==80||m.acc!==100||m.cls!==0||m.t!=='あく'||m.maxH!==1))return null;
+        if(m.id===25&&(m.pow!==120||m.acc!==75||m.cls!==0||m.t!=='ノーマル'||m.maxH!==1))return null;
+        if(m.id===402&&(m.pow!==80||m.acc!==100||m.cls!==0||m.t!=='くさ'||m.maxH!==1))return null;
+        if(m.id===398&&(m.pow!==80||m.acc!==100||m.cls!==0||m.t!=='どく'||m.maxH!==1))return null;
+        if(m.id===403&&(m.pow!==75||m.acc!==95||m.cls!==1||m.t!=='ひこう'||m.maxH!==1))return null;
+        if(m.id===231&&(m.pow!==100||m.acc!==75||m.cls!==0||m.t!=='はがね'||m.maxH!==1))return null;
+        if(m.id===348&&(m.pow!==90||m.acc!==100||m.cls!==0||m.t!=='くさ'||m.maxH!==1))return null;
+        if(m.id===529&&(m.pow!==80||m.acc!==95||m.cls!==0||m.t!=='じめん'||m.maxH!==1))return null;
+        if(m.id===280&&(m.pow!==75||m.acc!==100||m.cls!==0||m.t!=='かくとう'||m.maxH!==1))return null;
+        if(m.id===428&&(m.pow!==80||m.acc!==90||m.cls!==0||m.t!=='エスパー'||m.maxH!==1))return null;
+        if(m.id===304&&(m.pow!==90||m.acc!==100||m.cls!==1||m.t!=='ノーマル'||m.maxH!==1))return null;
+        if(m.id===605&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='フェアリー'||m.maxH!==1))return null;
+        if(m.id===914&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='フェアリー'||m.maxH!==1))return null;
+        if(m.id===59&&(m.pow!==110||m.acc!==70||m.cls!==1||m.t!=='こおり'||m.maxH!==1))return null;
+        if(m.id===161&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='ノーマル'||m.maxH!==1))return null;
+        if(m.id===211&&(m.pow!==70||m.acc!==90||m.cls!==0||m.t!=='はがね'||m.maxH!==1))return null;
+        if(m.id===257&&(m.pow!==95||m.acc!==90||m.cls!==1||m.t!=='ほのお'||m.maxH!==1))return null;
+        if(m.id===326&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='エスパー'||m.maxH!==1))return null;
+        if(m.id===405&&(m.pow!==90||m.acc!==100||m.cls!==1||m.t!=='むし'||m.maxH!==1))return null;
+        if(m.id===44&&(m.pow!==60||m.acc!==100||m.cls!==0||m.t!=='あく'||m.maxH!==1))return null;
+        if(m.id===34&&(m.pow!==85||m.acc!==100||m.cls!==0||m.t!=='ノーマル'||m.maxH!==1))return null;
+        if(m.id===309&&(m.pow!==90||m.acc!==90||m.cls!==0||m.t!=='はがね'||m.maxH!==1))return null;
+        if(m.id===330&&(m.pow!==90||m.acc!==85||m.cls!==1||m.t!=='みず'||m.maxH!==1))return null;
+        if(m.id===503&&(m.pow!==80||m.acc!==100||m.cls!==1||m.t!=='みず'||m.maxH!==1))return null;
+        if(m.id===539&&(m.pow!==85||m.acc!==95||m.cls!==1||m.t!=='あく'||m.maxH!==1))return null;
+        if(m.id===836&&(m.pow!==100||m.acc!==85||m.cls!==0||m.t!=='こおり'||m.maxH!==1))return null;
         if((m.id===492&&!m.e?.fp)||(m.id===473&&!m.e?.ps))return null;
         if([484,535].includes(m.id)&&[a,d].some(x=>!((WT[x.p.no]||WT[x.p.base])>0)))return null;
         if([500,681].includes(m.id)&&m.pow!==20)return null;
@@ -964,6 +1014,8 @@ function monGuide(p,o={}){
         if(attempts>=360)return null;
         attempts++;cache.set(k,null);
         if(!legal(x))return reject('illegal build',{item:x.item,moves:x.moves,sp:x.sp});
+        // The immediate berry trigger after the fixed HP cost is not modeled.
+        if(x.moves.includes(796)&&x.item==='sitrusberry')return reject('steel beam berry state',{item:x.item,move:796});
         const a=build(p,x,'me');if(a.formErr||a.p.no!==p.no)return reject('form resolution',{item:x.item});
         const rows=[];
         for(const op of opponents){
@@ -1006,6 +1058,11 @@ function monGuide(p,o={}){
               post=reviewedDrainAfterHit(post,move,dealt,op);
               if(!post)return reject('drain metadata or state',{move:hit.id,opponent:op.p.no,drain:move.drain});
             }
+            // Steel Beam consumes HP on execution, regardless of accuracy/immunity.
+            if(hit.id===796){
+              post=reviewedSteelBeamCost(post,move,true);
+              if(!post)return reject('steel beam metadata or state',{move:hit.id,opponent:op.p.no});
+            }
             // For these fixtures, no Disguise or held item can make HP loss differ
             // from a damaging hit; zero damage must not trigger Life Orb.
             if(post.item==='lifeorb'){
@@ -1028,7 +1085,7 @@ function monGuide(p,o={}){
             if(!end)return reject('end recovery state',{move:hit.id,opponent:op.p.no});
             choices.push({hit,quality:quality(hit),repeatQuality:quality(repeat),repeat,margin:c.hp-worst,postMargin:post.hp-postWorst,postHP:post.hp,endHP:end.hp,postOrder:post.hp>0?Math.sign(effSpd(post,op)-effSpd(op,post)):-1,postSpeed:post.hp>0?effSpd(post,op):0,postStages:{...post.stg},targetStages:{...postTarget.stg}});
           }
-          const choice=choices.sort((u,v)=>Math.min(v.quality,v.repeatQuality)-Math.min(u.quality,u.repeatQuality)||Math.min(v.margin,v.postMargin)-Math.min(u.margin,u.postMargin)||v.quality-u.quality||u.hit.id-v.hit.id)[0];
+          const choice=choices.sort(gmIntegratedChoiceRank)[0];
           let recoveryHP=null;
           if(recovery){
             // Start from half HP (at least one), independent of the attack scenario.
@@ -1053,7 +1110,7 @@ function monGuide(p,o={}){
       // Keep a small deterministic beam; cap calculation work per page.
       const variants=[s.moves];
       for(const from of original.filter(id=>!locked.includes(id)))for(const to of ls.filter(id=>supported(id)&&!s.moves.includes(id)))variants.push(s.moves.map(id=>id===from?to:id));
-      const rank=(a,b)=>Number(compare(b,baseline))-Number(compare(a,baseline))||Math.min(...b.rows.map(r=>Math.min(r.quality,r.repeatQuality)))-Math.min(...a.rows.map(r=>Math.min(r.quality,r.repeatQuality)))||Math.min(...b.rows.map(r=>Math.min(r.margin,r.postMargin)))-Math.min(...a.rows.map(r=>Math.min(r.margin,r.postMargin)));
+      const rank=(a,b)=>Number(compare(b,baseline))-Number(compare(a,baseline))||gmIntegratedBuildRank(a,b);
       let beam=[];
       // Round-robin by move variant so every eligible held item is attempted
       // before the search budget is exhausted by the first item.
@@ -1078,7 +1135,7 @@ function monGuide(p,o={}){
       const best=[...cache.values()].filter(v=>v&&improves(v,baseline)).sort(rank).slice(0,3);
       if(typeof o.auditIntegrated==='function')o.auditIntegrated({baseline,best,attempts,valid:[...cache.values()].filter(Boolean).length,elapsedMs:performance.now()-started,setup,recovery,opponents,attemptedItems:[...new Set([...cache.keys()].map(k=>JSON.parse(k)[0]))],eligibleItems:itemPool});
       const render=v=>'<div class="gdoc"><b>'+esc(ITEMN[v.x.item])+'</b><p>'+v.x.moves.map(id=>esc(mName(id))).join('・')+'</p><p>'+v.x.sp.map((n,i)=>esc(SN[i])+n).join('・')+'（合計'+budget+'）</p>'+v.rows.map((r,i)=>'<p>'+esc(r.name)+'：'+esc(mName(baseline.rows[i].hit.id))+' '+baseline.rows[i].hit.lo+'〜'+baseline.rows[i].hit.hi+' → '+esc(mName(r.hit.id))+' '+r.hit.lo+'〜'+r.hit.hi+' / '+r.hp+' HP（命中 '+baseline.rows[i].hit.acc+' → '+r.hit.acc+'%）／被弾後の残りHP指標 '+baseline.rows[i].margin+' → '+r.margin+'／使用直後のHP '+baseline.rows[i].postHP+' → '+r.postHP+'／使用後の残りHP指標 '+baseline.rows[i].postMargin+' → '+r.postMargin+ '／被弾とたべのこしのみを仮定した残りHP '+baseline.rows[i].endHP+' → '+r.endHP+(r.recoveryHP===null?'':'／半分HPから回復技を使用した場合の最小残りHP '+baseline.rows[i].recoveryHP+' → '+r.recoveryHP)+'／使用後の同じ技 '+baseline.rows[i].repeat.lo+'〜'+baseline.rows[i].repeat.hi+' → '+r.repeat.lo+'〜'+r.repeat.hi+'／素早さ '+baseline.rows[i].speed+' → '+r.speed+'／使用後の素早さ '+baseline.rows[i].postSpeed+' → '+r.postSpeed+'</p>').join('')+'</div>';
-      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する9種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）の開始HPから相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
+      return '<details class="gset-alt"><summary>技・持ち物・能力ポイントの一体比較</summary><p class="vcap">'+(setup?esc(mName(setup))+'が満タンから1回成功した後':'通常時')+ 'の比較。'+(base?'メガシンカ後の姿・対応するメガストーン固定で技と能力ポイントを比較します。':'')+'相手全員への命中を考慮した最小ダメージ、被弾後の残りHP指標、同優先度での行動順に加え、対応する能力変化技の使用後の火力・耐久・行動順指標も悪化させない候補だけを掲載。</p>'+(best.length?best.map(render).join(''):'<p>今回の探索範囲では全条件を維持しながら改善する候補は見つかりませんでした。</p>')+'<p class="vcap">比較した育成 '+[...cache.values()].filter(Boolean).length+'件（探索試行 '+attempts+'件）。限定した技・持ち物・配分移動による探索で、全組み合わせの最適解ではありません。通常技の偶発的な急所は含まず、対応する確定急所技は急所防止特性を含めて計算します。単発技と対応する連続攻撃のタスキ・がんじょう・ばけのかわによるHP減少を考慮。連続技は初撃命中後に起こり得る最小・最大のHP減少を使い、初撃の命中率は別に評価します。連続技の表示値は実際のHP減少（HP上限まで）で、単発技は通常のダメージ幅。対応する12種類の技は初撃命中後の自分の能力変化を反映し、いのちのたまのHP消費と対応する反動技9種類の最大実ダメージに基づく反動、てっていこうせんの使用時HP消費（オボンのみ併用は未評価）と、対応する吸収技8種類の最小実ダメージに基づく命中時の回復も考慮して、相手への対応する5種類の能力低下技も、相手が生存したと仮定しHP満タンのまま能力変化だけを反映して再攻撃・被弾を別々に比較します。実際の2ターンの進行ではありません。たべのこしは使用後の最大被弾を仮定し、生存時のみ回復を加えた独立指標です。対応する通常回復技は最大HPの半分（切り捨て、最低1）の開始HPから相手の各攻撃との先後を比較し、同速は両順序を評価します。未対応の技の反動、被弾後のきのみ発動、たべのこし以外のターン終了処理、積む際の被弾、その他の技の追加効果（ぼうふうの混乱・ねっさのだいちのやけど・サイコファングの壁破壊による後続の恩恵・じごくづきの音技封じを含む）は含みません。こだわり系は相手ごとに選んだ1回の攻撃だけを評価します。</p></details>';
     };
     const sw=B.weather;B.weather=null;
     try{
