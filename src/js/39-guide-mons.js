@@ -640,7 +640,17 @@ function monGuide(p,o={}){
       if(original.some(id=>!supported(id)))return skip('unsupported move');
       if(opponents.some(o=>o.item||o.disg||o.formErr))return skip('unsupported fixture');
       const stab=[...new Set(original.map(id=>mvObj(id).t).filter(t=>p.t.includes(t)))];
-      const setup=s.moves.find(id=>[349,187,14,417,483,504,347,339].includes(id));
+      const setupIds=[349,187,14,417,483,504,347,339];
+      const statusMoves=s.moves.filter(id=>!MV[id]);
+      // This objective models one successful setup action or ordinary attacks,
+      // not recovery, protection, weather, status control or multiple setup choices.
+      if(statusMoves.some(id=>!setupIds.includes(id)))return skip('unsupported status move');
+      if(statusMoves.length>1)return skip('multiple setup moves');
+      const setup=statusMoves[0];
+      if(base)return skip('mega item fixed');
+      if(me.disg||me.ab==='sturdy'||me.ab==='parental-bond'||['focussash','focusband'].includes(me.item))return skip('unsupported survival or multi-hit state');
+      if(CALC_UNIMPL.includes(me.ab)||CALC_UNVERIFIED[me.ab])return skip('unsupported ability');
+      if(CALC_UNIMPL_IT.includes(me.item))return skip('unsupported item');
       const items=setup?['lifeorb','sitrusberry','expertbelt','muscleband','wiseglasses']:['lifeorb','sitrusberry','choiceband','choicespecs','choicescarf','expertbelt','muscleband','wiseglasses'];
       const opt={format:'single',spread:false,crit:false,protean:true,noNext:true};
       const budget=s.sp.reduce((a,b)=>a+b,0),cache=new Map();
