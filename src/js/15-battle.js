@@ -736,6 +736,29 @@ function reviewedSelfStageAfterHit(a,mv,connected){
   }
   return out;
 }
+/* Guaranteed target secondary drops, evaluated only on an isolated surviving
+   target. Reference: Showdown data/abilities.ts, data/moves.ts; Covert Cloak
+   blocks secondary effects, including guaranteed drops. No reflection chains,
+   Substitute, Mist, Flower Veil, Ability Shield or field state modeled. */
+const REVIEWED_TARGET_STAGES={491:{spd:-2},855:{spd:-2},886:{atk:-1},679:{atk:-1},688:{atk:-1}};
+const REVIEWED_TARGET_AB=new Set(['multiscale','huge-power','rough-skin','pressure','levitate','inner-focus','magic-guard','clear-body','white-smoke','full-metal-body','hyper-cutter','shield-dust','contrary','simple','defiant','competitive']);
+function reviewedTargetStageAfterHit(a,mv,d,connected){
+  const delta=REVIEWED_TARGET_STAGES[mv.id];
+  if(!delta||!d||typeof connected!=='boolean'||!REVIEWED_TARGET_AB.has(d.ab)||![null,'covertcloak'].includes(d.item)||d.disg||d.substitute||d.volatiles?.substitute)return null;
+  const rows=mv.e?.t||[],keys=Object.keys(delta);
+  if(rows.length!==keys.length||keys.some(k=>!rows.some(([st,n,p])=>st===k&&n===delta[k]&&p===100)))return null;
+  if(!d.stg||['atk','def','spa','spd','spe'].some(k=>!Number.isInteger(d.stg[k])||Math.abs(d.stg[k])>6))return null;
+  const out={...d,stg:{...d.stg}};
+  if(!connected||sfSup(a,mv)||d.item==='covertcloak')return out;
+  const ab=a.ab==='mold-breaker'&&!['full-metal-body','defiant','competitive'].includes(d.ab)?null:d.ab;
+  if(['clear-body','white-smoke','full-metal-body','shield-dust'].includes(ab))return out;
+  const k=keys[0];if(k==='atk'&&ab==='hyper-cutter')return out;
+  const n=delta[k]*(ab==='contrary'?-1:ab==='simple'?2:1);
+  const prev=out.stg[k];out.stg[k]=Math.max(-6,Math.min(6,prev+n));
+  if(out.stg[k]<prev&&ab==='defiant')out.stg.atk=Math.min(6,out.stg.atk+2);
+  if(out.stg[k]<prev&&ab==='competitive')out.stg.spa=Math.min(6,out.stg.spa+2);
+  return out;
+}
 /* Conditional Life Orb HP cost after a damaging hit. The caller must supply
    a confirmed damaging hit (not merely an attempted attack). This is not a
    full turn simulator: contact effects, move recoil and berry triggers are separate.
