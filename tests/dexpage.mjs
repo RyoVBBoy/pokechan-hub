@@ -267,6 +267,7 @@ const IA=await pg.evaluate(()=>{
             const dealt=Math.min(op.hp,Math.max(...raw));
             post.hp=Math.max(0,post.hp-Math.max(1,Math.floor((2*dealt*recoil[0]+recoil[1])/(2*recoil[1]))));
           }
+          if(mv.id===796&&post.ab!=='magic-guard')post.hp=Math.max(0,post.hp-Math.ceil(post.max/2));
           const drain={409:[1,2],202:[1,2],141:[1,2],532:[1,2],577:[3,4],71:[1,2],72:[1,2],613:[3,4]}[mv.id];
           if(drain&&Math.max(...raw)>0&&row.hit.acc>0&&post.hp>0)post.hp=Math.min(post.max,post.hp+Math.floor((2*Math.min(op.hp,Math.max(0,Math.min(...raw)))*drain[0]+drain[1])/(2*drain[1])));
           if(post.item==='lifeorb'&&post.ab!=='magic-guard'&&Math.max(...raw)>0&&row.hit.acc>0)post.hp=Math.max(0,post.hp-Math.max(1,Math.floor(post.max/10)));
@@ -855,6 +856,26 @@ const CANDIDATE_RANK_AUDIT=await pg.evaluate(()=>{
   return {total,failures};
 });
 ok(CANDIDATE_RANK_AUDIT.total===28&&!CANDIDATE_RANK_AUDIT.failures.length,'統合探索順位：全評価指標・逆順・同値 '+JSON.stringify(CANDIDATE_RANK_AUDIT));
+const STEEL_BEAM_AUDIT=await pg.evaluate(()=>{
+  const m=mvObj(796),failures=[];let total=0;
+  for(const max of [1,2,199,200,201])for(const hp of [...new Set([0,1,Math.floor(max/2),Math.ceil(max/2),max])])for(const ab of ['pressure','magic-guard','rock-head','sheer-force'])for(const item of [null,'lifeorb'])for(const [executed,hit] of [[false,false],[true,false],[true,true]]){
+    const a={hp,max,ab,item,stg:{atk:0,def:0,spa:0,spd:0,spe:0}},before=JSON.stringify(a);
+    const x=reviewedSteelBeamCost(a,m,executed);
+    const y=x?reviewedLifeOrbAfterHit(x,m,hit):null;
+    let expected=hp;
+    if(executed&&ab!=='magic-guard')expected=Math.max(0,expected-Math.ceil(max/2));
+    if(hit&&item==='lifeorb'&&ab!=='magic-guard'&&expected>0)expected=Math.max(0,expected-Math.max(1,Math.floor(max/10)));
+    total++;
+    if(!y||y.hp!==expected||JSON.stringify(a)!==before||y.stg===a.stg)failures.push({hp,max,ab,item,executed,hit,expected,actual:y?.hp});
+  }
+  const a={hp:100,max:100,ab:'pressure',stg:{}};
+  for(const [state,move,executed] of [[a,{...m,pow:139},true],[a,{...m,id:1},true],[{...a,hp:101},m,true],[a,m,null]]){
+    total++;if(reviewedSteelBeamCost(state,move,executed)!==null)failures.push('invalid input');
+  }
+  return {total,failures};
+});
+console.log('steel beam cost audit '+JSON.stringify(STEEL_BEAM_AUDIT));
+ok(STEEL_BEAM_AUDIT.total===460&&!STEEL_BEAM_AUDIT.failures.length,'てっていこうせん：HP消費・いのちのたま・特性・入力検査 '+JSON.stringify(STEEL_BEAM_AUDIT));
 ok(!errs.length,'エラーなし '+errs.join(' / '));
 await b.close();
 if(fail){console.log(`dexpage: ${fail}/${n} NG`);process.exit(1)}console.log(`dexpage: OK（${n}項目）`);
