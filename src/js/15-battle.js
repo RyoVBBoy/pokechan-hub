@@ -744,6 +744,22 @@ function reviewedLifeOrbAfterHit(a,mv,damagingHit){
   out.hp=Math.max(0,a.hp-Math.max(1,Math.floor(a.max/10)));
   return out;
 }
+/* Damage-based recoil only, using the pinned Showdown e7f50cd reference.
+   Exact recoil fractions: data/moves.ts; Champions overrides inherit these.
+   sim/battle-actions.ts applyRecoilDamage rounds nearest, minimum one.
+   Actual dealt damage must exclude overkill and Disguise HP loss.
+   Does not simulate ability replacement, crash damage or fixed self-HP costs. */
+const REVIEWED_RECOIL={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]};
+function reviewedMoveRecoilAfterHit(a,mv,dealt){
+  const ratio=REVIEWED_RECOIL[mv.id];
+  if(!ratio||!Number.isSafeInteger(dealt)||dealt<0||!Number.isInteger(a.hp)||!Number.isInteger(a.max)||a.max<1||a.hp<0||a.hp>a.max)return null;
+  // Refuse mismatched local move metadata rather than silently override it.
+  if(!Number.isFinite(mv.drain)||Math.abs(-mv.drain-100*ratio[0]/ratio[1])>1e-9)return null;
+  const out={...a,stg:{...a.stg}};
+  if(!dealt||!a.hp||a.ab==='rock-head'||a.ab==='magic-guard')return out;
+  out.hp=Math.max(0,a.hp-Math.max(1,Math.round(dealt*ratio[0]/ratio[1])));
+  return out;
+}
 const nuOffK=mv=>mv.id===776?'def':mv.cls===0?'atk':'spa';
 function nextUseCould(a,mv,d){const k=mkey(mv),ok=nuOffK(mv);
   if(MB_REP.has(k)||(mv.e&&mv.e.s&&mv.e.s.some(([st,n,c])=>c>=100&&st===ok)))return true;

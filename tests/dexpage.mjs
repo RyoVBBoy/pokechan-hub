@@ -332,6 +332,28 @@ const LH=await pg.evaluate(()=>{
 });
 console.log('Life Orb HP audit '+JSON.stringify({total:LH.length,failed:LH.filter(x=>x.error)}));
 ok(LH.every(x=>!x.error),'いのちのたまのHP消費・特性による無効・元データ保持 '+JSON.stringify(LH.filter(x=>x.error)));
+const RC=await pg.evaluate(()=>{
+  const fractions={36:[1,4],38:[33,100],394:[33,100],413:[33,100],452:[33,100],834:[33,100],528:[1,4],457:[1,2],344:[33,100]};
+  const rows=[],missing=[];
+  for(const [key,[num,den]] of Object.entries(fractions)){
+    const id=Number(key);
+    // Synthetic move fixtures verify arithmetic independently of availability.
+    // Separately record local data agreement for each available move.
+    const m={id,drain:-100*num/den};
+    if(!MV[id])missing.push({id,reason:'not in MV'});
+    else if(Math.abs(mvObj(id).drain-m.drain)>1e-9)missing.push({id,reason:'local recoil mismatch',actual:mvObj(id).drain,expected:m.drain});
+    for(const ab of ['rough-skin','rock-head','magic-guard','reckless','sheer-force'])for(const hp of [1,168])for(const dealt of [0,1,2,3,30,50,149,150,151,168]){
+      const a={ab,hp,max:168,stg:{atk:0,def:0,spa:0,spd:0,spe:0}},before=JSON.stringify(a),out=reviewedMoveRecoilAfterHit(a,m,dealt);
+      const amount=dealt===0||ab==='rock-head'||ab==='magic-guard'?0:Math.max(1,Math.floor((2*dealt*num+den)/(2*den)));
+      rows.push({id,ab,hp,dealt,error:!out||out.hp!==Math.max(0,hp-amount)||JSON.stringify(a)!==before||out.stg===a.stg});
+    }
+  }
+  const a={ab:'rough-skin',hp:168,max:168,stg:{}};
+  const guard=reviewedMoveRecoilAfterHit(a,{id:38,drain:-34},150)===null&&reviewedMoveRecoilAfterHit(a,{id:89,drain:0},150)===null&&reviewedMoveRecoilAfterHit(a,{id:38,drain:-33},-1)===null;
+  return {rows,missing,guard};
+});
+console.log('move recoil audit '+JSON.stringify({total:RC.rows.length,failed:RC.rows.filter(x=>x.error),localDataGaps:RC.missing,guard:RC.guard}));
+ok(RC.rows.every(x=>!x.error)&&RC.guard,'技の反動：割合・端数・特性・ひんし・入力検証 '+JSON.stringify(RC.rows.filter(x=>x.error)));
 console.log('remaining HP audit '+JSON.stringify(HR));
 ok(HR.every(x=>x.error===false&&x.trials>0),'独立乱数の全列挙と残りHP分布が一致 '+JSON.stringify(HR));
 console.log('integrated audit '+JSON.stringify(IA));
