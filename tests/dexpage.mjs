@@ -161,6 +161,26 @@ ok(!gaps.length,'全選択可能な姿の合法育成・両形式 '+JSON.stringi
 const DT=await pg.evaluate(()=>monGuide(byNo[132],{parts:true}).sets.filter(x=>x.k==='transform').map(x=>({fmt:x.fmt,ab:x.ab,item:x.item,moves:x.moves,sp:x.sp})));
 ok(['single','double'].every(f=>DT.some(x=>x.fmt===f&&x.ab==='imposter'&&x.item==='choicescarf'&&x.moves.length===1&&x.moves[0]===144&&x.sp[0]===32)),'メタモンの合法な変身型 '+JSON.stringify(DT));
 ok(COVER.total>0&&COVER.rows.length===COVER.total&&COVER.pilots===4,'全姿の育成対応状況を個別に記録 '+COVER.total+'姿');
+/* Measure actual integrated coverage on every selectable form, separately from ordinary build coverage.
+   Audit only one local single-battle build per form to keep runtime bounded. */
+const IC=await pg.evaluate(()=>{
+  const forms=[...new Map([...P,...MEGAP].map(p=>[p.no,p])).values()];
+  return forms.map(p=>{
+    const reports=[],skips=[];
+    try{
+      const g=monGuide(p,{parts:true,auditCoverage:true,auditIntegrated:r=>reports.push(r),auditSkipped:r=>skips.push(r)});
+      const s=g.sets.find(x=>x.fmt==='single'&&!x.live&&!x.usage);
+      if(!s)return {no:p.no,name:p.n,status:'no local single build'};
+      const t=performance.now(),h=g.auditBenchmark(s),ms=Math.round(performance.now()-t),r=reports[0];
+      if(!r)return {no:p.no,name:p.n,status:h.includes('比較は計算できませんでした')?'exception':skips[0]||'no benchmark',ms,moves:s.moves,ab:s.ab,item:s.item};
+      const bad=r.attempts>360||r.valid<1||r.valid>r.attempts||r.eligibleItems.some(x=>!r.attemptedItems.includes(x))||!h.includes('技・持ち物・能力ポイントの一体比較');
+      return {no:p.no,name:p.n,status:bad?'invalid report':'evaluated',ms,searchMs:Math.round(r.elapsedMs),candidates:r.best.length,attempts:r.attempts};
+    }catch(e){return {no:p.no,name:p.n,status:'exception',error:String(e)}}
+  });
+});
+const ICS={total:IC.length,counts:IC.reduce((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{}),rows:IC};
+console.log('integrated coverage '+JSON.stringify(ICS));
+ok(IC.length===selectable.length&&IC.every(x=>x.status!=='exception'&&x.status!=='invalid report'),'統合エンジン全姿の適用範囲・例外検査 '+JSON.stringify(ICS.counts));
 /* Audit actual generated integrated candidates, rather than only checking HTML. */
 const IA=await pg.evaluate(()=>{
   return [149,184,212,65].map(no=>{
