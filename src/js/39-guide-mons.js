@@ -94,7 +94,18 @@ function monGuide(p,o={}){
   /* ---- 型を組む ---- */
   const lowDef=B<=D?2:4;
   /* 技が4つに満たないときは、攻撃技で埋める */
-  const mkSet=(title,why,ab,item,up,dn,sp,moves)=>({title,why,ab,item,up,dn,sp,moves:[...new Set([...moves.filter(Boolean),...pickAtk(4)])].slice(0,4)});
+  // Build candidates only from legal, distinct moves. Preserve requested role moves first;
+  // when the preferred attack pool is short, use remaining legal attacks or support moves.
+  const mkSet=(title,why,ab,item,up,dn,sp,moves)=>{
+    const legal=id=>ls.includes(id)&&!!(MV[id]||MD[id]);
+    const choice=/^choice/.test(item||'');
+    const eligible=id=>legal(id)&&(!choice||!!MV[id]);
+    const preferred=[...moves.filter(Boolean),...pickAtk(4)];
+    const otherAttacks=[...atk].sort((a,b)=>sc(b)-sc(a)||a.id-b.id).map(m=>m.id);
+    const fallback=ls.filter(id=>!MV[id]&&MD[id]);
+    const ids=[...new Set([...preferred,...otherAttacks,...fallback].filter(eligible))].slice(0,4);
+    return {title,why,ab,item,up,dn,sp,moves:ids};
+  };
   const spOf=(a,b)=>{const s=[0,0,0,0,0,0];s[a]=32;s[b]=32;const r=[0,lowDef,4,2,5].find(i=>i!==a&&i!==b);s[r]=2;return s};
   const sets={
     attacker:()=>{const item=spdS<.35?'expertbelt':spdS<.7?'choicescarf':'lifeorb';
@@ -174,6 +185,24 @@ function monGuide(p,o={}){
   SETS.forEach((x,i)=>{x.fmt=x.fmt||'single';x.rec=!x.refs&&SETS.findIndex(y=>(y.fmt||'single')===x.fmt)===i});
   /* メガシンカの姿の型は、持ち物をメガストーンにする（持ち物の説明の文は外す） */
   if(stoneK&&!o.raw)SETS.forEach(st=>{st.item=stoneK;const kp=st.why.split('。').filter(x=>x&&!Object.values(ITEMN).some(n=>x.includes(n))).join('。');st.why=(kp?kp+'。':'')+`持ち物は${ITEMN[stoneK]}（メガシンカする）。`});
+  // Validate display candidates from every source, including saved/aggregated builds.
+  // Reject rather than silently change external builds, or assign an illegal item/form.
+  if(!o.raw){
+    for(let i=SETS.length-1;i>=0;i--){
+      const x=SETS[i],validMoves=Array.isArray(x.moves)&&x.moves.length>=1&&x.moves.length<=4&&new Set(x.moves).size===x.moves.length&&x.moves.every(id=>ls.includes(id)&&(MV[id]||MD[id]));
+      const validAP=Array.isArray(x.sp)&&x.sp.length===6&&x.sp.every(n=>Number.isInteger(n)&&n>=0&&n<=32)&&x.sp.reduce((a,b)=>a+b,0)<=66;
+      const validNature=(x.up===-1&&x.dn===-1)||(Number.isInteger(x.up)&&Number.isInteger(x.dn)&&x.up>=1&&x.up<=5&&x.dn>=1&&x.dn<=5&&x.up!==x.dn);
+      const validItem=!x.item||Object.prototype.hasOwnProperty.call(ITEMN,x.item);
+      const form=validItem?resolveForm(p.no,x.item||null):null;
+      const validForm=form&&form.ok&&(base?!!form.mega&&form.form.no===p.no:!form.mega);
+      const validAbility=abK.includes(x.ab);
+      // Choice-locked attack-only policy applies to generated offensive examples,
+      // not to external strategic sets (e.g. Trick).
+      const validChoice=x.live||x.usage||!/^choice/.test(x.item||'')||x.moves.every(id=>!!MV[id]);
+      if(!validMoves||!validAP||!validNature||!validItem||!validForm||!validAbility||!validChoice)SETS.splice(i,1);
+    }
+    SETS.forEach((x,i)=>{x.rec=!x.refs&&SETS.findIndex(y=>y.fmt===x.fmt)===i});
+  }
   /* 構築の型（40-guide-builds.js）から、型を組む部品として使う */
   if(o.raw)return{keys:setKeys,make:k=>{try{const r=sets[k]();return r&&r.moves.length?r:null}catch(e){return null}},key,ai,lowDef,best:n=>pickAtk(n)};
   /* ---- まとめ ---- */
